@@ -62,6 +62,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean  IsIPv4
             => true;
 
+        Boolean  IIPAddress.IsMappedIPv4
+            => false;
+
         public Boolean  IsIPv6
             => false;
 
@@ -82,6 +85,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean  IsLocalNet
 
             => ipAddressArray[0] == 127;
+
+
+        IPv4Address? IIPAddress.AsIPv4
+            => this;
 
         #endregion
 

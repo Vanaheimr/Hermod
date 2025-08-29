@@ -286,11 +286,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         Boolean  IsIPv4         { get; }
 
+        Boolean  IsMappedIPv4   { get; }
+
         Boolean  IsIPv6         { get; }
 
         Boolean  IsLocalhost    { get; }
 
         Boolean  IsAny          { get; }
+
+
+
+        IPv4Address?  AsIPv4         { get; }
 
 
         /// <summary>

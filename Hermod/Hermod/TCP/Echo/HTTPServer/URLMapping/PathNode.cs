@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         public String?                                       ParameterName      { get; }
 
-        public Boolean                                       CatchRestOfPath    { get; } = false;
+        public Boolean                                       CatchRestOfPath2   { get; } = false;
 
         public URLReplacement                                AllowReplacement   { get; set; }
 
@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             this.FullPath          = FullPath;
             this.Path              = Path;
             this.ParameterName     = ParameterName;
-            this.CatchRestOfPath   = CatchRestOfPath;
+            this.CatchRestOfPath2  = CatchRestOfPath;
             this.AllowReplacement  = AllowReplacement ?? URLReplacement.Fail;
 
             unchecked
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 hashCode = this.FullPath.        GetHashCode()       * 11 ^
                            this.Path.            GetHashCode()       *  7 ^
                           (this.ParameterName?.  GetHashCode() ?? 0) *  5 ^
-                           this.CatchRestOfPath. GetHashCode()       *  3 ^
+                           this.CatchRestOfPath2. GetHashCode()       *  3 ^
                            this.AllowReplacement.GetHashCode();
 
             }
@@ -109,14 +109,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        public static PathNode FromPath(String FullPath, String Path)
-            => new (FullPath, Path, null, false);
+        public static PathNode FromPath          (String FullPath, String Path)
+            => new (FullPath, Path, null,      false);
 
-        public static PathNode ForParameter(String FullPath, String ParamName)
-            => new (FullPath, "", ParamName, false);
+        public static PathNode ForParameter      (String FullPath, String ParamName, URLReplacement? AllowReplacement = null)
+            => new (FullPath, "",   ParamName, false, AllowReplacement);
 
         public static PathNode ForCatchRestOfPath(String FullPath, String ParamName, URLReplacement? AllowReplacement = null)
-            => new (FullPath, "", ParamName, true, AllowReplacement);
+            => new (FullPath, "",   ParamName, true,  AllowReplacement);
 
 
 
@@ -250,7 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     );
 
             if (c == 0)
-                c = CatchRestOfPath. CompareTo(PathNode.CatchRestOfPath);
+                c = CatchRestOfPath2. CompareTo(PathNode.CatchRestOfPath2);
 
             if (c == 0)
                 c = AllowReplacement.CompareTo(PathNode.AllowReplacement);
@@ -291,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                FullPath.        Equals(PathNode.FullPath)                     &&
                Path.            Equals(PathNode.Path)                         &&
                String.          Equals(ParameterName, PathNode.ParameterName) &&
-               CatchRestOfPath. Equals(PathNode.CatchRestOfPath)              &&
+               CatchRestOfPath2. Equals(PathNode.CatchRestOfPath2)              &&
                AllowReplacement.Equals(PathNode.AllowReplacement);
 
         #endregion
@@ -318,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         public override String ToString()
 
-            => $"{FullPath}{(CatchRestOfPath ? " [catch rest of path]" : "")}: {Children.Count} childs, {Methods.Count} methods";
+            => $"{FullPath}{(CatchRestOfPath2 ? " [catch rest of path]" : "")}: {Children.Count} childs, {Methods.Count} methods";
 
         #endregion
 

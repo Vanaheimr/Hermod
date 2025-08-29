@@ -993,30 +993,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             var routeNode1    = routeNodes.GetOrAdd(
                                     segments[0],
                                     segment => {
+
                                         if (segment.StartsWith('{') && segment.EndsWith('}'))
                                         {
 
-                                             var paramName = segment[1..^1];
+                                            var paramName = segment[1..^1];
 
-                                             if (("/" + segment) == URLTemplate.ToString())
-                                             {
-                                                 return PathNode.ForCatchRestOfPath(
-                                                            "/" + segment,
-                                                            paramName,
-                                                            AllowReplacement: AllowReplacement
-                                                        );
-                                             }
+                                            if (segment.EndsWith("..}") && ("/" + segment) == URLTemplate.ToString())
+                                                return PathNode.ForCatchRestOfPath(
+                                                           "/" + segment,
+                                                           paramName,
+                                                           AllowReplacement: AllowReplacement
+                                                       );
 
-                                             return PathNode.ForParameter(
-                                                        "/" + segment,
-                                                        paramName
-                                                    );
-                                        }
-                                        else
-                                            return PathNode.FromPath(
-                                                       "/" + segments[0],
-                                                       HTTPPath.Root.ToString()
+                                            return PathNode.ForParameter(
+                                                       "/" + segment,
+                                                       paramName,
+                                                       AllowReplacement: AllowReplacement
                                                    );
+
+                                        }
+
+                                        return PathNode.FromPath(
+                                                   "/" + segments[0],
+                                                   HTTPPath.Root.ToString()
+                                               );
+
                                     }
                                 );
 
@@ -1151,12 +1153,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     parameters.Add(
                         parameterCatcher.ParameterName,
-                        parameterCatcher.CatchRestOfPath
+                        parameterCatcher.CatchRestOfPath2
                             ? Path.ToString().TrimStart('/')
                             : pathSegment
                     );
 
-                    if (parameterCatcher.CatchRestOfPath)
+                    if (parameterCatcher.CatchRestOfPath2)
                         return ParsedRequest2.Parsed(parameterCatcher, parameters);
 
                 }
@@ -1173,7 +1175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 {
                     parameters.Add(
                         routeNode.ParameterName,
-                        routeNode.CatchRestOfPath
+                        routeNode.CatchRestOfPath2
                             ? segments.Skip(1).AggregateWith('/')
                             : segments[0]
                     );
@@ -1195,13 +1197,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                             parameters.Add(
                                 parameterCatcher.ParameterName,
-                                parameterCatcher.CatchRestOfPath
+                                parameterCatcher.CatchRestOfPath2 && i == segments.Length-1
                                     ? segments.Skip(i).AggregateWith('/')
                                     : segments[i]
                             );
 
-                            if (parameterCatcher.CatchRestOfPath)
-                                return ParsedRequest2.Parsed(parameterCatcher, parameters);
+                            //if (parameterCatcher.CatchRestOfPath2)
+                            //    return ParsedRequest2.Parsed(parameterCatcher, parameters);
 
                         }
                         else

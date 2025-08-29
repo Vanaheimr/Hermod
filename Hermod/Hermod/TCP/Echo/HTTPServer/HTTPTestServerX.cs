@@ -223,7 +223,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             else
             {
-                foreach (var segment in path.ToString().Trim('/').Split('/'))
+
+                var segments = ("/" + path.ToString().Trim('/')).Split('/');
+
+                if (segments[0] == "")
+                    segments[0] = "/";
+
+                foreach (var segment in segments)
                 {
 
                     var routeNode2 = routeNode1.Children.GetOrAdd(
@@ -261,6 +267,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         }
 
+
+
+        private void FindMatch(String Path, ref List<String> Matches)
+        {
+            foreach (var child in routeNodes.Values)
+            {
+                if (Path.StartsWith(child.Path))
+                {
+                    Matches.Add(child.Path);
+                    //child.FindMatch(Path[(child.Path.Length - 1)..], ref Matches);
+                }
+            }
+        }
 
 
         #region (internal) GetRequestHandle(Request)
@@ -303,7 +322,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return ParsedRequest.Error($"Unknown hostname '{Hostname}'!");
                 }
 
-                var segments  = Path.ToString().Trim('/').Split('/');
+                var path = "/" + Path.ToString().Trim('/');
+                var list = new List<String>();
+
+                foreach (var httpAPI in host.Children)
+                {
+                    var newPath          = HTTPPath.Parse(path[(httpAPI.Key.Length - 1)..]);
+                //    var parsedRouteNode  = httpAPI.Value. .GetRequestHandle(newPath);
+
+
+                }
+
+
+
+                //var segments  = Path.ToString().Trim('/').Split('/');
+                var segments = ("/" + Path.ToString().Trim('/')).Split('/');
+
+                if (segments[0] == "")
+                    segments[0] = "/";
+
 
                 for (var i=0; i < segments.Length; i++)
                 {

@@ -43,6 +43,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean  IsIPv4
             => true;
 
+        public Boolean  IsMappedIPv4
+            => true;
+
         public Boolean  IsIPv6
             => true;
 
@@ -54,6 +57,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Boolean  IsMulticast
             => false;
+
+
+        public IPv4Address?  AsIPv4
+            => null;
 
         #endregion
 

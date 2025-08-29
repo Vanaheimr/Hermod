@@ -117,6 +117,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
         }
 
+        IPv4Address? IIPAddress.AsIPv4
+            => MappedIPv4;
+
         /// <summary>
         /// True, when this is an IPv4-mapped IPv6 (::ffff:w.x.y.z) address.
         /// </summary>
