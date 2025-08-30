@@ -223,228 +223,392 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // cli
             _ = Task.Factory.StartNew(async () => {
 
+                var logfilePath = Path.Combine(AppContext.BaseDirectory, "cliRequestChannel.log");
+
                 do
                 {
 
-                    var loggingData = await cliRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                    try
+                    {
 
-                    var PreviousColor = Console.ForegroundColor;
+                        var loggingData = await cliRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
 
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write($"[{loggingData.Request.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
+                        var PreviousColor = Console.ForegroundColor;
 
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.Write(this.Context + "/");
+                        Console.ForegroundColor = ConsoleColor.Gray;
+                        Console.Write($"[{loggingData.Request.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
 
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.Write(loggingData.LogEventName);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write(this.Context + "/");
 
-                    //Console.ForegroundColor = ConsoleColor.Gray;
-                    //Console.WriteLine(Request.HTTPSource.Socket == Request.LocalSocket
-                    //                      ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
-                    //                      : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket));
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write(loggingData.LogEventName);
 
-                    Console.ForegroundColor = PreviousColor;
+                        //Console.ForegroundColor = ConsoleColor.Gray;
+                        //Console.WriteLine(Request.HTTPSource.Socket == Request.LocalSocket
+                        //                      ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
+                        //                      : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket));
+
+                        Console.ForegroundColor = PreviousColor;
+
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Log cancellation to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop on cancellation
+                    }
+                    catch (ChannelClosedException)
+                    {
+                        // Log channel closure to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop if channel is closed
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log other unexpected exceptions to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            cancellationTokenSource.Token);
+
+                        // Log to console for visibility
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Error in channel consumer: {ex.Message}");
+                        Console.WriteLine(ex.StackTrace);
+                        Console.ForegroundColor = ConsoleColor.White;
+
+                        // Optional delay before retrying
+                        await Task.Delay(1000, cancellationTokenSource.Token);
+                    }
 
                 }
                 while (!cancellationTokenSource.IsCancellationRequested);
 
-            }, cancellationTokenSource.Token);
+            }, cancellationTokenSource.Token,
+               TaskCreationOptions.LongRunning,
+               TaskScheduler.Default);
 
             _ = Task.Factory.StartNew(async () => {
 
+                var logfilePath = Path.Combine(AppContext.BaseDirectory, "cliResponseChannel.log");
+
                 do
                 {
 
-                    var loggingData = await cliResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                    try
+                    {
 
-                    var PreviousColor = Console.ForegroundColor;
+                        var loggingData = await cliResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
 
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write($"[{loggingData.Request.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
+                        var PreviousColor = Console.ForegroundColor;
 
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.Write(this.Context + "/");
+                        Console.ForegroundColor = ConsoleColor.Gray;
+                        Console.Write($"[{loggingData.Request.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
 
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.Write(loggingData.LogEventName);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write(this.Context + "/");
 
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write(String.Concat(" from ", loggingData.Request.HTTPSource, " => "));
-
-                    if (loggingData.Response.HTTPStatusCode == HTTPStatusCode.OK ||
-                        loggingData.Response.HTTPStatusCode == HTTPStatusCode.Created)
-                        Console.ForegroundColor = ConsoleColor.Green;
-
-                    else if (loggingData.Response.HTTPStatusCode == HTTPStatusCode.NoContent)
                         Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write(loggingData.LogEventName);
 
-                    else
+                        Console.ForegroundColor = ConsoleColor.Gray;
+                        Console.Write(String.Concat(" from ", loggingData.Request.HTTPSource, " => "));
+
+                        if (loggingData.Response.HTTPStatusCode == HTTPStatusCode.OK ||
+                            loggingData.Response.HTTPStatusCode == HTTPStatusCode.Created)
+                            Console.ForegroundColor = ConsoleColor.Green;
+
+                        else if (loggingData.Response.HTTPStatusCode == HTTPStatusCode.NoContent)
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+
+                        else
+                            Console.ForegroundColor = ConsoleColor.Red;
+
+                        Console.Write(loggingData.Response.HTTPStatusCode);
+
+                        Console.ForegroundColor = ConsoleColor.Gray;
+                        Console.WriteLine(String.Concat(" in ", Math.Round((loggingData.Response.Timestamp - loggingData.Request.Timestamp).TotalMilliseconds), "ms"));
+
+                        Console.ForegroundColor = PreviousColor;
+
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Log cancellation to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop on cancellation
+                    }
+                    catch (ChannelClosedException)
+                    {
+                        // Log channel closure to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop if channel is closed
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log other unexpected exceptions to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            cancellationTokenSource.Token);
+
+                        // Log to console for visibility
                         Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Error in channel consumer: {ex.Message}");
+                        Console.WriteLine(ex.StackTrace);
+                        Console.ForegroundColor = ConsoleColor.White;
 
-                    Console.Write(loggingData.Response.HTTPStatusCode);
-
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.WriteLine(String.Concat(" in ", Math.Round((loggingData.Response.Timestamp - loggingData.Request.Timestamp).TotalMilliseconds), "ms"));
-
-                    Console.ForegroundColor = PreviousColor;
+                        // Optional delay before retrying
+                        await Task.Delay(1000, cancellationTokenSource.Token);
+                    }
 
                 }
                 while (!cancellationTokenSource.IsCancellationRequested);
 
-            }, cancellationTokenSource.Token);
+            }, cancellationTokenSource.Token,
+               TaskCreationOptions.LongRunning,
+               TaskScheduler.Default);
 
 
             // disc
             _ = Task.Factory.StartNew(async () => {
 
+                var logfilePath = Path.Combine(AppContext.BaseDirectory, "discRequestChannel.log");
+
                 do
                 {
 
-                    var requestLogData  = await discRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
-                    var logFileName     = this.LogfileCreator(this.LoggingPath, this.Context, requestLogData.LogEventName);
-                    var retry           = 0;
-                    var data            = String.Concat(
-                                              requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket // A HTTP Client Request!
-                                                   ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"  // A HTTP Client Request!
-                                                   : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",  // A HTTP Server Request!
-                                              //requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket
-                                              //    ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"
-                                              //    : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",
-                                              requestLogData.Request.IsKeepAlive
-                                                  ? $" (KeepAlive: {requestLogData.Request.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
-                                                  : "",                                                                            Environment.NewLine,
-                                              ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
-                                              requestLogData.Request.Timestamp.ToISO8601(),                                        Environment.NewLine,
-                                              requestLogData.Request.EntirePDU,                                                    Environment.NewLine,
-                                              "--------------------------------------------------------------------------------",  Environment.NewLine
-                                          );
-
-                    do
+                    try
                     {
 
-                        try
+                        var requestLogData  = await discRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                        var logFileName     = this.LogfileCreator(this.LoggingPath, this.Context, requestLogData.LogEventName);
+                        var retry           = 0;
+                        var data            = String.Concat(
+                                                  requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket // A HTTP Client Request!
+                                                       ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"  // A HTTP Client Request!
+                                                       : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",  // A HTTP Server Request!
+                                                  //requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket
+                                                  //    ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"
+                                                  //    : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",
+                                                  requestLogData.Request.IsKeepAlive
+                                                      ? $" (KeepAlive: {requestLogData.Request.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
+                                                      : "",                                                                            Environment.NewLine,
+                                                  ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
+                                                  requestLogData.Request.Timestamp.ToISO8601(),                                        Environment.NewLine,
+                                                  requestLogData.Request.EntirePDU,                                                    Environment.NewLine,
+                                                  "--------------------------------------------------------------------------------",  Environment.NewLine
+                                              );
+
+                        do
                         {
 
-                            File.AppendAllText(
-                                logFileName,
-                                data,
-                                Encoding.UTF8
-                            );
-
-                            break;
-
-                        }
-                        catch (IOException e)
-                        {
-
-                            if (e.HResult != -2147024864)
+                            try
                             {
-                                DebugX.LogT($"File access error while logging to '{logFileName}' (retry: {retry}): {e.Message}");
-                                Thread.Sleep(100);
-                            }
 
-                            else
+                                File.AppendAllText(
+                                    logFileName,
+                                    data,
+                                    Encoding.UTF8
+                                );
+
+                                break;
+
+                            }
+                            catch (IOException e)
+                            {
+
+                                if (e.HResult != -2147024864)
+                                {
+                                    DebugX.LogT($"File access error while logging to '{logFileName}' (retry: {retry}): {e.Message}");
+                                    Thread.Sleep(100);
+                                }
+
+                                else
+                                {
+                                    DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
+                                    break;
+                                }
+
+                            }
+                            catch (Exception e)
                             {
                                 DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
                                 break;
                             }
 
                         }
-                        catch (Exception e)
-                        {
-                            DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
-                            break;
-                        }
+                        while (retry++ < MaxRetries);
+
+                        if (retry >= MaxRetries)
+                            DebugX.LogT($"Could not write to logfile '{logFileName}' for {retry} retries!");
+
+                        else if (retry > 0)
+                            DebugX.LogT($"Successfully written to logfile '{logFileName}' after {retry} retries!");
 
                     }
-                    while (retry++ < MaxRetries);
+                    catch (OperationCanceledException)
+                    {
+                        // Log cancellation to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop on cancellation
+                    }
+                    catch (ChannelClosedException)
+                    {
+                        // Log channel closure to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop if channel is closed
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log other unexpected exceptions to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            cancellationTokenSource.Token);
 
-                    if (retry >= MaxRetries)
-                        DebugX.LogT($"Could not write to logfile '{logFileName}' for {retry} retries!");
+                        // Log to console for visibility
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Error in channel consumer: {ex.Message}");
+                        Console.WriteLine(ex.StackTrace);
+                        Console.ForegroundColor = ConsoleColor.White;
 
-                    else if (retry > 0)
-                        DebugX.LogT($"Successfully written to logfile '{logFileName}' after {retry} retries!");
+                        // Optional delay before retrying
+                        await Task.Delay(1000, cancellationTokenSource.Token);
+                    }
 
                 }
                 while (!cancellationTokenSource.IsCancellationRequested);
 
-            }, cancellationTokenSource.Token);
+            }, cancellationTokenSource.Token,
+               TaskCreationOptions.LongRunning,
+               TaskScheduler.Default);
 
             _ = Task.Factory.StartNew(async () => {
 
+                var logfilePath = Path.Combine(AppContext.BaseDirectory, "discRequestChannel.log");
+
                 do
                 {
 
-                    var responseLogData  = await discResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
-                    var logFileName      = this.LogfileCreator(this.LoggingPath, this.Context, responseLogData.LogEventName);
-                    var retry            = 0;
-                    var data             = String.Concat(
-                                               responseLogData.Response.HTTPSource.Socket == responseLogData.Response.LocalSocket // A HTTP Client Request!
-                                                   ? $"{responseLogData.Response.LocalSocket} -> {responseLogData.Response.RemoteSocket}"  // A HTTP Client Request!
-                                                   : $"{responseLogData.Response.HTTPSource } -> {responseLogData.Response.LocalSocket}",  // A HTTP Server Request!
-                                               responseLogData.Response.IsKeepAlive
-                                                  ? $" (KeepAlive: {responseLogData.Response.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
-                                                  : "",                                                                                                              Environment.NewLine,
-                                               ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                                   Environment.NewLine,
-                                               responseLogData.Request. Timestamp.ToISO8601(),                                                                       Environment.NewLine,
-                                               responseLogData.Request. EntirePDU,                                                                                   Environment.NewLine,
-                                               "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                                   Environment.NewLine,
-                                            $"{responseLogData.Response.Timestamp.ToISO8601()} -> {responseLogData.Response.Runtime.TotalMilliseconds} ms runtime",  Environment.NewLine,
-                                               responseLogData.Response.EntirePDU,                                                                                   Environment.NewLine,
-                                               "--------------------------------------------------------------------------------",                                   Environment.NewLine
-                                           );
-
-                    do
+                    try
                     {
 
-                        try
+                        var responseLogData  = await discResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                        var logFileName      = this.LogfileCreator(this.LoggingPath, this.Context, responseLogData.LogEventName);
+                        var retry            = 0;
+                        var data             = String.Concat(
+                                                   responseLogData.Response.HTTPSource.Socket == responseLogData.Response.LocalSocket // A HTTP Client Request!
+                                                       ? $"{responseLogData.Response.LocalSocket} -> {responseLogData.Response.RemoteSocket}"  // A HTTP Client Request!
+                                                       : $"{responseLogData.Response.HTTPSource } -> {responseLogData.Response.LocalSocket}",  // A HTTP Server Request!
+                                                   responseLogData.Response.IsKeepAlive
+                                                      ? $" (KeepAlive: {responseLogData.Response.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
+                                                      : "",                                                                                                              Environment.NewLine,
+                                                   ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                                   Environment.NewLine,
+                                                   responseLogData.Request. Timestamp.ToISO8601(),                                                                       Environment.NewLine,
+                                                   responseLogData.Request. EntirePDU,                                                                                   Environment.NewLine,
+                                                   "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                                   Environment.NewLine,
+                                                $"{responseLogData.Response.Timestamp.ToISO8601()} -> {responseLogData.Response.Runtime.TotalMilliseconds} ms runtime",  Environment.NewLine,
+                                                   responseLogData.Response.EntirePDU,                                                                                   Environment.NewLine,
+                                                   "--------------------------------------------------------------------------------",                                   Environment.NewLine
+                                               );
+
+                        do
                         {
 
-                            File.AppendAllText(
-                                logFileName,
-                                data,
-                                Encoding.UTF8
-                            );
-
-                            break;
-
-                        }
-                        catch (IOException e)
-                        {
-
-                            if (e.HResult != -2147024864)
+                            try
                             {
-                                DebugX.LogT($"File access error while logging to '{logFileName}' (retry: {retry}): {e.Message}");
-                                Thread.Sleep(100);
-                            }
 
-                            else
+                                File.AppendAllText(
+                                    logFileName,
+                                    data,
+                                    Encoding.UTF8
+                                );
+
+                                break;
+
+                            }
+                            catch (IOException e)
+                            {
+
+                                if (e.HResult != -2147024864)
+                                {
+                                    DebugX.LogT($"File access error while logging to '{logFileName}' (retry: {retry}): {e.Message}");
+                                    Thread.Sleep(100);
+                                }
+
+                                else
+                                {
+                                    DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
+                                    break;
+                                }
+
+                            }
+                            catch (Exception e)
                             {
                                 DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
                                 break;
                             }
 
                         }
-                        catch (Exception e)
-                        {
-                            DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
-                            break;
-                        }
+                        while (retry++ < MaxRetries);
+
+                        if (retry >= MaxRetries)
+                            DebugX.LogT($"Could not write to logfile '{logFileName}' for {retry} retries!");
+
+                        else if (retry > 0)
+                            DebugX.LogT($"Successfully written to logfile '{logFileName}' after {retry} retries!");
 
                     }
-                    while (retry++ < MaxRetries);
+                    catch (OperationCanceledException)
+                    {
+                        // Log cancellation to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop on cancellation
+                    }
+                    catch (ChannelClosedException)
+                    {
+                        // Log channel closure to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            cancellationTokenSource.Token);
+                        break; // Exit the loop if channel is closed
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log other unexpected exceptions to file
+                        await File.AppendAllTextAsync(logfilePath,
+                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            cancellationTokenSource.Token);
 
-                    if (retry >= MaxRetries)
-                        DebugX.LogT($"Could not write to logfile '{logFileName}' for {retry} retries!");
+                        // Log to console for visibility
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Error in channel consumer: {ex.Message}");
+                        Console.WriteLine(ex.StackTrace);
+                        Console.ForegroundColor = ConsoleColor.White;
 
-                    else if (retry > 0)
-                        DebugX.LogT($"Successfully written to logfile '{logFileName}' after {retry} retries!");
+                        // Optional delay before retrying
+                        await Task.Delay(1000, cancellationTokenSource.Token);
+                    }
 
                 }
                 while (!cancellationTokenSource.IsCancellationRequested);
 
-            }, cancellationTokenSource.Token);
+            }, cancellationTokenSource.Token,
+               TaskCreationOptions.LongRunning,
+               TaskScheduler.Default);
 
         }
 
@@ -461,18 +625,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public async Task Default_LogHTTPRequest_toConsole(String       LoggingPath,
-                                                           String       Context,
-                                                           String       LogEventName,
-                                                           HTTPRequest  Request)
-        {
+        public Task Default_LogHTTPRequest_toConsole(String       LoggingPath,
+                                                     String       Context,
+                                                     String       LogEventName,
+                                                     HTTPRequest  Request)
 
-            await cliRequestChannel.Writer.WriteAsync(new RequestData(LoggingPath,
-                                                                      Context,
-                                                                      LogEventName,
-                                                                      Request));
+            => cliRequestChannel.Writer.WriteAsync(
+                   new RequestData(
+                       LoggingPath,
+                       Context,
+                       LogEventName,
+                       Request
+                   )
+               ).AsTask();
 
-        }
 
         #endregion
 
@@ -485,20 +651,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public async Task Default_LogHTTPResponse_toConsole(String        LoggingPath,
-                                                            String        Context,
-                                                            String        LogEventName,
-                                                            HTTPRequest   Request,
-                                                            HTTPResponse  Response)
-        {
+        public Task Default_LogHTTPResponse_toConsole(String        LoggingPath,
+                                                      String        Context,
+                                                      String        LogEventName,
+                                                      HTTPRequest   Request,
+                                                      HTTPResponse  Response)
 
-            await cliResponseChannel.Writer.WriteAsync(new ResponseData(LoggingPath,
-                                                                        Context,
-                                                                        LogEventName,
-                                                                        Request,
-                                                                        Response));
-
-        }
+            => cliResponseChannel.Writer.WriteAsync(
+                   new ResponseData(
+                       LoggingPath,
+                       Context,
+                       LogEventName,
+                       Request,
+                       Response
+                   )
+               ).AsTask();
 
         #endregion
 
@@ -511,18 +678,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public async Task Default_LogHTTPRequest_toDisc(String       LoggingPath,
-                                                        String       Context,
-                                                        String       LogEventName,
-                                                        HTTPRequest  Request)
-        {
+        public Task Default_LogHTTPRequest_toDisc(String       LoggingPath,
+                                                  String       Context,
+                                                  String       LogEventName,
+                                                  HTTPRequest  Request)
 
-            await discRequestChannel.Writer.WriteAsync(new RequestData(LoggingPath,
-                                                                       Context,
-                                                                       LogEventName,
-                                                                       Request));
-
-        }
+            => discRequestChannel.Writer.WriteAsync(
+                   new RequestData(
+                       LoggingPath,
+                       Context,
+                       LogEventName,
+                       Request
+                   )
+               ).AsTask();
 
         #endregion
 
@@ -535,20 +703,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public async Task Default_LogHTTPResponse_toDisc(String        LoggingPath,
-                                                         String        Context,
-                                                         String        LogEventName,
-                                                         HTTPRequest   Request,
-                                                         HTTPResponse  Response)
-        {
+        public Task Default_LogHTTPResponse_toDisc(String        LoggingPath,
+                                                   String        Context,
+                                                   String        LogEventName,
+                                                   HTTPRequest   Request,
+                                                   HTTPResponse  Response)
 
-            await discResponseChannel.Writer.WriteAsync(new ResponseData(LoggingPath,
-                                                                         Context,
-                                                                         LogEventName,
-                                                                         Request,
-                                                                         Response));
-
-        }
+            => discResponseChannel.Writer.WriteAsync(
+                   new ResponseData(
+                       LoggingPath,
+                       Context,
+                       LogEventName,
+                       Request,
+                       Response
+                   )
+               ).AsTask();
 
         #endregion
 
