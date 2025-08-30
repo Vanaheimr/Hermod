@@ -4451,25 +4451,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     #region Register security token
 
                     var validUser        = possibleUsers.First();
-                    var securityTokenId  = SecurityToken_Id.Parse(SHA256.HashData(
-                                                                      String.Concat(Guid.NewGuid().ToString(),
-                                                                                    validUser.Id).
-                                                                      ToUTF8Bytes()
-                                                                  ).ToHexString());
+                    var securityTokenId  = SecurityToken_Id.Parse(
+                                               SHA256.HashData(
+                                                   String.Concat(
+                                                       Guid.NewGuid().ToString(),
+                                                       validUser.Id
+                                                   ).ToUTF8Bytes()
+                                               ).ToHexString()
+                                           );
 
                     var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
 
                     lock (httpCookies)
                     {
 
-                        httpCookies.TryAdd(securityTokenId,
-                                           new SecurityToken(
-                                               validUser.Id,
-                                               expires
-                                           ));
+                        httpCookies.TryAdd(
+                            securityTokenId,
+                            new SecurityToken(
+                                validUser.Id,
+                                expires
+                            )
+                        );
 
-                        File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                           securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
+                        File.AppendAllText(
+                            HTTPAPIPath + DefaultHTTPCookiesFile,
+                            securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine
+                        );
 
                     }
 
@@ -4487,7 +4494,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                   @"<html><head><meta http-equiv=""refresh"" content=""0; url=" + redirectURL + @""" /></head></html>",
                                                   Environment.NewLine
                                               ).ToUTF8Bytes(),
-                            CacheControl    = "private",
+                            CacheControl    = "private, no-cache, no-store, must-revalidate",
+                            //Pragma          = "no-cache",
+                            Expires         = "0",
+                            //res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                            //res.setHeader('Pragma', 'no-cache');
+                            //res.setHeader('Expires', '0');
                             SetCookie       = HTTPCookies.Parse(
 
                                                   String.Concat(CookieName,
@@ -5527,32 +5539,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             // curl -X DEAUTH -v -H "Accept: application/json" http://127.0.0.1:2100/users
             // -----------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.DEAUTH,
-                              HTTPPath.Parse("/users"),
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: Request =>
+                HTTPMethod.DEAUTH,
+                HTTPPath.Parse("/users"),
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: async request => {
 
-                                   Task.FromResult(
-                                       new HTTPResponse.Builder(Request) {
-                                           HTTPStatusCode  = HTTPStatusCode.OK,
-                                           CacheControl    = "private",
-                                           SetCookie       = HTTPCookies.Parse(
+                    if (request.Cookies is not null)
+                    {
 
-                                                                 String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
-                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
-                                                                                   ? "; Domain=" + HTTPCookieDomain
-                                                                                   : String.Empty,
-                                                                               "; Path=", URLPathPrefix),
+                        if (request.Cookies.TryGet(SessionCookieName, out var httpSessionCookie))
+                        {
 
-                                                                 String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
-                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
-                                                                                   ? "; Domain=" + HTTPCookieDomain
-                                                                                   : String.Empty,
-                                                                               "; Path=", URLPathPrefix)
+                            if (httpSessionCookie.Value.IsNotNullOrEmpty() &&
+                                SecurityToken_Id.TryParse(httpSessionCookie.Value, out var securityTokenId))
+                            {
 
-                                                             ),
-                                           Connection      = ConnectionType.KeepAlive
-                                       }.AsImmutable));
+                                httpCookies.TryRemove(
+                                    securityTokenId,
+                                    out _
+                                //    //new SecurityToken(
+                                //    //    validUser.Id,
+                                //    //    expires
+                                //    //)
+                                );
+
+                                //await File.AppendAllTextAsync(
+                                //          HTTPAPIPath + DefaultHTTPCookiesFile,
+                                //          securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine
+                                //      );
+
+                            }
+
+                        }
+
+                        if (request.Cookies.TryGet(CookieName, out var httpCookie))
+                        {
+
+                            if (httpCookie.Value.IsNotNullOrEmpty())
+                            {
+
+                            }
+
+                        }
+
+                    }
+
+
+                    return new HTTPResponse.Builder(request) {
+                               HTTPStatusCode  = HTTPStatusCode.OK,
+                               CacheControl    = "private",
+                               SetCookie       = HTTPCookies.Parse(
+
+                                                     String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
+                                                                   HTTPCookieDomain.IsNotNullOrEmpty()
+                                                                       ? "; Domain=" + HTTPCookieDomain
+                                                                       : String.Empty,
+                                                                   "; Path=", URLPathPrefix),
+
+                                                     String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
+                                                                   HTTPCookieDomain.IsNotNullOrEmpty()
+                                                                       ? "; Domain=" + HTTPCookieDomain
+                                                                       : String.Empty,
+                                                                   "; Path=", URLPathPrefix)
+
+                                                 ),
+                               Connection      = ConnectionType.Close
+                           }.AsImmutable;
+
+                }
+            );
 
             #endregion
 
@@ -6435,8 +6490,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     var securityTokenId  = SecurityToken_Id.Parse(
                                                 SHA256.HashData(
-                                                    String.Concat(Guid.NewGuid().ToString(),
-                                                                validUser.Id).
+                                                    String.Concat(
+                                                        Guid.NewGuid().ToString(),
+                                                        validUser.Id
+                                                    ).
                                                     ToUTF8Bytes()
                                                 ).ToHexString()
                                             );
@@ -6471,13 +6528,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                CacheControl    = "private",
                                SetCookie       = HTTPCookies.Parse(
 
-                                                   String.Concat(CookieName,
-                                                                 GenerateCookieUserData(validUser),
-                                                                 GenerateCookieSettings(expires)),
+                                                     String.Concat(CookieName,
+                                                                   GenerateCookieUserData(validUser),
+                                                                   GenerateCookieSettings(expires)),
 
-                                                   String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                 GenerateCookieSettings(expires),
-                                                                 "; HttpOnly")
+                                                     String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
+                                                                   GenerateCookieSettings(expires),
+                                                                   "; HttpOnly")
 
                                                ),
                                Connection      = ConnectionType.KeepAlive

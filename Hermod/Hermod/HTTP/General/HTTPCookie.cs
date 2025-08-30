@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -135,7 +136,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a single HTTP cookie.</param>
         /// <param name="HTTPCookie">The parsed HTTP cookie.</param>
-        public static Boolean TryParse(String Text, out HTTPCookie? HTTPCookie)
+        public static Boolean TryParse(String                               Text,
+                                       [NotNullWhen(true)] out HTTPCookie?  HTTPCookie)
         {
 
             if (Text.IsNotNullOrEmpty())
@@ -207,9 +209,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             parts.Remove(cookieName.ToString());
 
 
-            HTTPCookie = new HTTPCookie(cookieName,
-                                        crumbs,
-                                        parts);
+            HTTPCookie = new HTTPCookie(
+                             cookieName,
+                             crumbs,
+                             parts
+                         );
 
             return true;
 
@@ -269,6 +273,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => crumbs.TryGetValue(Crumb, out Value);
 
         #endregion
+
+
+        public String? Value
+            => crumbs.Keys.FirstOrDefault();
 
 
         #region GetEnumerator()

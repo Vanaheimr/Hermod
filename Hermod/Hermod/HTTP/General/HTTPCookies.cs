@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (TryParse(Texts, out var httpCookies))
-                return httpCookies!;
+                return httpCookies;
 
             throw new ArgumentException("The given JSON representation of HTTP cookies is invalid!",
                                         nameof(Texts));
@@ -118,11 +118,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Texts.Length == 1 &&
                 TryParse(Texts[0], out var httpCookies))
             {
-                return httpCookies!;
+                return httpCookies;
             }
 
             if (TryParse(Texts, out httpCookies))
-                return httpCookies!;
+                return httpCookies;
 
             throw new ArgumentException("The given JSON representation of HTTP cookies is invalid!",
                                         nameof(Texts));
@@ -138,7 +138,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of one or multiple HTTP cookies.</param>
         /// <param name="HTTPCookies">The parsed enumeration of HTTP cookies.</param>
-        public static Boolean TryParse(String Text, out HTTPCookies? HTTPCookies)
+        public static Boolean TryParse(String                                Text,
+                                       [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
         {
 
             Text = Text.Trim();
@@ -149,9 +150,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            if (TryParse(Text.Split(multipleCookiesSplitter,
-                                    StringSplitOptions.RemoveEmptyEntries),
-                         out HTTPCookies))
+            if (TryParse(
+                    Text.Split(
+                        multipleCookiesSplitter,
+                        StringSplitOptions.RemoveEmptyEntries
+                    ).Select(cookieText => cookieText.Trim()),
+                    out HTTPCookies
+                ))
             {
                 return true;
             }
@@ -169,7 +174,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Texts">An enumeration of text representations of HTTP cookies.</param>
         /// <param name="HTTPCookies">The parsed enumeration of HTTP cookies.</param>
-        public static Boolean TryParse(IEnumerable<String> Texts, out HTTPCookies? HTTPCookies)
+        public static Boolean TryParse(IEnumerable<String>                   Texts,
+                                       [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
         {
 
             if (!Texts.Any())
@@ -186,15 +192,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    if (HTTPCookie.TryParse(singleCookie, out var parsedCookie) &&
-                        parsedCookie is not null)
+                    if (HTTPCookie.TryParse(singleCookie, out var parsedCookie))
                     {
 
                         // There is no guarantee, that cookie.Name is unique within a HTTP request!
                         // Therefore use the latest cookie having this id/name!
-                        if (!parsedCookies.ContainsKey(parsedCookie.Name))
-                            parsedCookies.Add(parsedCookie.Name, parsedCookie);
-                        else
+                        if (!parsedCookies.TryAdd(parsedCookie.Name, parsedCookie))
                             parsedCookies[parsedCookie.Name] = parsedCookie;
 
                     }
@@ -240,7 +243,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGet(HTTPCookieName                       CookieName,
                               [NotNullWhen(true)] out HTTPCookie?  Cookie)
 
-            => cookies.TryGetValue(CookieName, out Cookie);
+            => cookies.TryGetValue(
+                   CookieName,
+                   out Cookie
+               );
 
         #endregion
 
