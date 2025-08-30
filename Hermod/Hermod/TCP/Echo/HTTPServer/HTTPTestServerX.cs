@@ -381,6 +381,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    );
                                     }
 
+                                    if (methodNode.ContentTypes.Count() == 1)
+                                        return ParsedRequest.Parsed(
+                                                   methodNode.HTTPRequestHandlers.First(),
+                                                   parsedRouteNode.Parameters
+                                               );
+
                                 }
 
                                 return ParsedRequest.Parsed(
@@ -729,6 +735,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                  Request.ParsedURLParametersX  = parsedRequest.Parameters;
                                  Request.NetworkStream         = Stream;
+
+                                 DebugX.Log(Request.HTTPMethod + " " + Request.Path);
 
                                  httpResponse                  = await httpDelegate(Request);
 

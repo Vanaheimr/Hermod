@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -174,11 +176,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (static) TryParseJSON(JSONObject, UserProvider, out PasswordReset, out ErrorResponse, IgnoreContextMismatches = true)
 
-        public static Boolean TryParseJSON(JObject               JSONObject,
-                                           UserProviderDelegate  UserProvider,
-                                           out PasswordReset?    PasswordReset,
-                                           out String?           ErrorResponse,
-                                           Boolean               IgnoreContextMismatches = true)
+        public static Boolean TryParseJSON(JObject                                  JSONObject,
+                                           UserProviderDelegate                     UserProvider,
+                                           [NotNullWhen(true)]  out PasswordReset?  PasswordReset,
+                                           [NotNullWhen(false)] out String?         ErrorResponse,
+                                           Boolean                                  IgnoreContextMismatches = true)
 
         {
 
@@ -321,11 +323,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                PasswordReset = new PasswordReset(Timestamp,
-                                                  Users,
-                                                  SecurityToken1,
-                                                  SecurityToken2,
-                                                  EventTrackingId);
+                PasswordReset = new PasswordReset(
+                                    Timestamp,
+                                    Users,
+                                    SecurityToken1,
+                                    SecurityToken2,
+                                    EventTrackingId
+                                );
 
                 return true;
 

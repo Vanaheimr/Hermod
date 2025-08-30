@@ -11114,56 +11114,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #region add
 
-                                        case "add":
-                                        case "addPassword":
-                                        case "AddPassword":
+                                    case "addPassword":
 
-                                            if (!loginPasswords.ContainsKey(login))
-                                            {
+                                        if (!loginPasswords.ContainsKey(login))
+                                        {
 
-                                                loginPasswords.TryAdd(login,
-                                                                      new LoginPassword(login,
-                                                                                        Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                           jsonObject["newPassword"]["passwordHash"].Value<String>())));
+                                            loginPasswords.TryAdd(login,
+                                                                  new LoginPassword(login,
+                                                                                    Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
+                                                                                                       jsonObject["newPassword"]["passwordHash"].Value<String>())));
 
-                                            }
+                                        }
 
-                                            else
-                                                DebugX.Log("Invalid 'AddPassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                        else
+                                            DebugX.Log($"Invalid 'AddPassword' command in '{this.HTTPAPIPath + DefaultPasswordFile}' line {linenumber}!");
 
-                                            break;
+                                        break;
 
-                                        #endregion
+                                    #endregion
 
                                     #region change
 
-                                        case "change":
-                                        case "changePassword":
-                                        case "ChangePassword":
+                                    case "changePassword":
 
-                                            if (loginPasswords.TryGetValue(login, out var loginPassword) &&
-                                                loginPassword.Password.     UnsecureString   == jsonObject["currentPassword"]["passwordHash"].Value<String>() &&
-                                                loginPassword.Password.Salt.UnsecureString() == jsonObject["currentPassword"]["salt"].        Value<String>())
-                                            {
+                                        if (loginPasswords.TryGetValue(login, out var loginPassword) &&
+                                            loginPassword.Password.     UnsecureString   == jsonObject["currentPassword"]["passwordHash"].Value<String>() &&
+                                            loginPassword.Password.Salt.UnsecureString() == jsonObject["currentPassword"]["salt"].        Value<String>())
+                                        {
 
-                                                loginPasswords[login] = new LoginPassword(login,
-                                                                                          Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                             jsonObject["newPassword"]["passwordHash"].Value<String>()));
+                                            loginPasswords[login] = new LoginPassword(login,
+                                                                                      Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
+                                                                                                         jsonObject["newPassword"]["passwordHash"].Value<String>()));
 
-                                            }
+                                        }
 
-                                            else
-                                                DebugX.Log("Invalid 'ChangePassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                        else
+                                            DebugX.Log($"Invalid 'ChangePassword' command in '{this.HTTPAPIPath + DefaultPasswordFile}' line {linenumber}!");
 
-                                            break;
+                                        break;
 
-                                        #endregion
+                                    #endregion
 
                                     #region reset
 
-                                        case "reset":
                                         case "resetPassword":
-                                        case "ResetPassword":
 
                                             if (loginPasswords.ContainsKey(login))
                                                 loginPasswords.TryRemove(login, out _);
@@ -11178,7 +11172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         #endregion
 
                                     default:
-                                        DebugX.Log("Unknown command '" + jsonCommand + "' in password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                        DebugX.Log($"Unknown command '{jsonCommand}' in password file '{this.HTTPAPIPath + DefaultPasswordFile}' line {linenumber}!");
                                         break;
 
                                 }
@@ -11186,12 +11180,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                DebugX.Log($"Could not read password file '{this.HTTPAPIPath + DefaultPasswordFile}' line {linenumber}!");
 
                         }
                         catch (Exception e)
                         {
-                            DebugX.Log("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + ": " + e.Message);
+                            DebugX.Log($"Could not read password file '{this.HTTPAPIPath + DefaultPasswordFile}' line {linenumber}: " + e.Message);
                         }
 
                     }
@@ -11203,7 +11197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             { }
             catch (Exception e)
             {
-                DebugX.LogT("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' failed: " + e.Message);
+                DebugX.LogT($"Could not read password file '{this.HTTPAPIPath + DefaultPasswordFile}' failed: " + e.Message);
             }
 
             #endregion
@@ -12814,26 +12808,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    var Now          = Timestamp.Now;
+                    var Now = Timestamp.Now;
 
-                    var JSONMessage  = new JObject(
-                                           new JProperty(MessageType.ToString(),  JSONData),
-                                           new JProperty("eventTrackingId",       (EventTrackingId ?? EventTracking_Id.New).ToString()),
-                                           new JProperty("userId",                (CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot.Id).ToString()),
-                                           new JProperty("systemId",              SystemId.ToString()),
-                                           new JProperty("timestamp",             Now.ToISO8601()),
-                                           new JProperty("sha256hash",            new JObject(
-                                               new JProperty("nonce",                 Guid.NewGuid().ToString().Replace("-", "")),
-                                               new JProperty("parentHash",            CurrentDatabaseHashValue)
+                    var JSONMessage = new JObject(
+                                           new JProperty(MessageType.ToString(), JSONData),
+                                           new JProperty("eventTrackingId", (EventTrackingId ?? EventTracking_Id.New).ToString()),
+                                           new JProperty("userId", (CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot.Id).ToString()),
+                                           new JProperty("systemId", SystemId.ToString()),
+                                           new JProperty("timestamp", Now.ToISO8601()),
+                                           new JProperty("sha256hash", new JObject(
+                                               new JProperty("nonce", Guid.NewGuid().ToString().Replace("-", "")),
+                                               new JProperty("parentHash", CurrentDatabaseHashValue)
                                            ))
                                        );
 
-                    var SHA256                = new SHA256Managed();
-                    CurrentDatabaseHashValue  = SHA256.ComputeHash(Encoding.Unicode.GetBytes(JSONMessage.ToString(Newtonsoft.Json.Formatting.None))).
+                    CurrentDatabaseHashValue = SHA256.HashData(Encoding.Unicode.GetBytes(JSONMessage.ToString(Newtonsoft.Json.Formatting.None))).
                                                        Select(value => String.Format("{0:x2}", value)).
                                                        Aggregate();
 
-                    (JSONMessage["sha256hash"] as JObject)?.Add(new JProperty("hashValue",  CurrentDatabaseHashValue));
+                    (JSONMessage["sha256hash"] as JObject)?.Add(new JProperty("hashValue", CurrentDatabaseHashValue));
 
 
                     #region Write to database file
@@ -12846,8 +12839,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             await LogFileSemaphore.WaitAsync();
 
-                            var retry       = 0;
-                            var maxRetries  = 23;
+                            var retry = 0;
+                            var maxRetries = 23;
 
                             do
                             {
@@ -16879,7 +16872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (NewPassword.IsNullOrEmpty)
                 return ChangePasswordResult.ArgumentError(
-                           new[] { User },
+                           [ User ],
                            "The given new password must not be null or empty!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -16888,7 +16881,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (CurrentPassword.HasValue && CurrentPassword.Value.IsNullOrEmpty)
                 return ChangePasswordResult.ArgumentError(
-                           new[] { User },
+                           [ User ],
                            "The given current password must not be empty!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -16898,33 +16891,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region AddPassword
 
-            if (!loginPasswords.TryGetValue(User.Id, out var _LoginPassword))
+            if (!loginPasswords.TryGetValue(User.Id, out var loginPassword))
             {
 
-                await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordFile,
-                                          addPassword_MessageType,
-                                          new JObject(
-                                              new JProperty("login",         User.Id.ToString()),
-                                              new JProperty("newPassword", new JObject(
-                                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
-                                              ))
-                                          ),
-                                          eventTrackingId,
-                                          CurrentUserId);
+                await WriteToDatabaseFile(
+                          this.HTTPAPIPath + DefaultPasswordResetsFile,
+                          addPassword_MessageType,
+                          new JObject(
+                              new JProperty("login",         User.Id.ToString()),
+                              new JProperty("newPassword", new JObject(
+                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
+                              ))
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
-                loginPasswords.TryAdd(User.Id,
-                                      new LoginPassword(
-                                          User.Id,
-                                          NewPassword
-                                      ));
+                loginPasswords.TryAdd(
+                    User.Id,
+                    new LoginPassword(
+                        User.Id,
+                        NewPassword
+                    )
+                );
 
                 if (!SuppressNotifications)
-                    await SMTPClient.Send(PasswordChangedEMailCreator(User,
-                                                                      User.EMail,
-                                                                      //"https://" + Request.Host.SimpleString,
-                                                                      DefaultLanguage,
-                                                                      eventTrackingId));
+                    await SMTPClient.Send(
+                              PasswordChangedEMailCreator(
+                                  User,
+                                  User.EMail,
+                                  //"https://" + Request.Host.SimpleString,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
                 return ChangePasswordResult.Success(
                            new[] { User },
@@ -16939,33 +16940,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region ChangePassword
 
-            else if (CurrentPassword.IsNotNullOrEmpty() && _LoginPassword.VerifyPassword(CurrentPassword.Value))
+            else if (CurrentPassword.IsNotNullOrEmpty() && loginPassword.VerifyPassword(CurrentPassword.Value))
             {
 
-                await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordFile,
-                                          changePassword_MessageType,
-                                          new JObject(
-                                              new JProperty("login",         User.Id.ToString()),
-                                              new JProperty("currentPassword", new JObject(
-                                                  new JProperty("salt",          _LoginPassword.Password.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",  _LoginPassword.Password.UnsecureString)
-                                              )),
-                                              new JProperty("newPassword",     new JObject(
-                                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
-                                              ))
-                                          ),
-                                          eventTrackingId,
-                                          CurrentUserId);
+                await WriteToDatabaseFile(
+                          HTTPAPIPath + DefaultPasswordResetsFile,
+                          changePassword_MessageType,
+                          new JObject(
+                              new JProperty("login",         User.Id.ToString()),
+                              new JProperty("currentPassword", new JObject(
+                                  new JProperty("salt",          loginPassword.Password.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",  loginPassword.Password.UnsecureString)
+                              )),
+                              new JProperty("newPassword",     new JObject(
+                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
+                              ))
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
                 loginPasswords[User.Id] = new LoginPassword(User.Id, NewPassword);
 
                 if (!SuppressNotifications)
-                    await SMTPClient.Send(PasswordChangedEMailCreator(User,
-                                                                      User.EMail,
-                                                                      //"https://" + Request.Host.SimpleString,
-                                                                      DefaultLanguage,
-                                                                      eventTrackingId));
+                    await SMTPClient.Send(
+                              PasswordChangedEMailCreator(
+                                  User,
+                                  User.EMail,
+                                  //"https://" + Request.Host.SimpleString,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
                 return ChangePasswordResult.Success(
                            new[] { User },
@@ -17118,26 +17125,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             foreach (var user in Users)
             {
 
-                await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordFile,
-                                          resetPassword_MessageType,
-                                          JSONObject.Create(
+                await WriteToDatabaseFile(
+                          HTTPAPIPath + DefaultPasswordFile,
+                          resetPassword_MessageType,
+                          JSONObject.Create(
 
-                                              new JProperty("login",                 user.Id.ToString()),
+                              new JProperty("login",                 user.Id.ToString()),
 
-                                              new JProperty("newPassword", new JObject(
-                                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
-                                              ))
+                              new JProperty("newPassword", new JObject(
+                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
+                              ))
 
-                                              //new JProperty("securityToken1",        SecurityToken1.ToString()),
+                              //new JProperty("securityToken1",        SecurityToken1.ToString()),
 
-                                              //SecurityToken2.HasValue
-                                              //    ? new JProperty("securityToken2",  SecurityToken2.ToString())
-                                              //    : null
+                              //SecurityToken2.HasValue
+                              //    ? new JProperty("securityToken2",  SecurityToken2.ToString())
+                              //    : null
 
-                                          ),
-                                          eventTrackingId,
-                                          CurrentUserId);
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
                 loginPasswords[user.Id] = new LoginPassword(user.Id, NewPassword);
 

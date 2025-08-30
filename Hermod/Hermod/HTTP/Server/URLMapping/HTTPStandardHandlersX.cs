@@ -631,8 +631,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPMethod.GET,
                 URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                   ? $"{{{ResourceName}}}"
-                                   : $"/{{{ResourceName}}}"),
+                                   ? $"{{{ResourceName}..}}"
+                                   : $"/{{{ResourceName}..}}"),
 
                 HTTPDelegate:       GetFromResourceAssembly(
                                         URLTemplate,
@@ -723,8 +723,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPMethod.GET,
                 URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                   ? $"{{{ResourceName}}}"
-                                   : $"/{{{ResourceName}}}"),
+                                   ? $"{{{ResourceName}..}}"
+                                   : $"/{{{ResourceName}..}}"),
 
                 HTTPDelegate:       RequireAuthentication
 
@@ -815,8 +815,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPMethod.GET,
                 URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                   ? $"{{{ResourceName}}}"
-                                   : $"/{{{ResourceName}}}"),
+                                   ? $"{{{ResourceName}..}}"
+                                   : $"/{{{ResourceName}..}}"),
                 GetFromResourceAssemblies(
                     URLTemplate,
                     HTTPAPI.HTTPServer.HTTPServerName,
@@ -907,8 +907,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPMethod.GET,
                 URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                   ? $"{{{ResourceName}}}"
-                                   : $"/{{{ResourceName}}}"),
+                                   ? $"{{{ResourceName}..}}"
+                                   : $"/{{{ResourceName}..}}"),
 
                 HTTPDelegate:      RequireAuthentication
 
@@ -997,7 +997,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPAPI.AddHandler(
 
                 HTTPMethod.GET,
-                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}}}" : $"/{{{ResourceName}}}"),
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}..}}" : $"/{{{ResourceName}..}}"),
 
                 HTTPDelegate:       GetFromFileSystem(
                                         URLTemplate,
@@ -1057,7 +1057,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPExtAPI.AddHandler(
 
                 HTTPMethod.GET,
-                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}}}" : $"/{{{ResourceName}}}"),
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}..}}" : $"/{{{ResourceName}..}}"),
 
                 HTTPDelegate:       RequireAuthentication
 

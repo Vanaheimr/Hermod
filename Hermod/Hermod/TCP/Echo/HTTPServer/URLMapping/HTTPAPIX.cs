@@ -27,6 +27,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using System.Reflection.Emit;
 
 #endregion
 
@@ -1002,7 +1003,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                             if (segment.EndsWith("..}") && ("/" + segment) == URLTemplate.ToString())
                                                 return PathNode.ForCatchRestOfPath(
                                                            "/" + segment,
-                                                           paramName,
+                                                           paramName[..^2],
                                                            AllowReplacement: AllowReplacement
                                                        );
 
@@ -1034,17 +1035,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              var paramName = segment[1..^1];
 
-                                             if ((routeNode1.FullPath + "/" + segment) == URLTemplate.ToString())
-                                             {
+                                             if (segment.EndsWith("..}") && ("/" + segment) == URLTemplate.ToString())
                                                  return PathNode.ForCatchRestOfPath(
                                                             routeNode1.FullPath + "/" + segment,
-                                                            paramName
+                                                            paramName[..^2],
+                                                            AllowReplacement: AllowReplacement
                                                         );
-                                             }
+
+                                             //if ((routeNode1.FullPath + "/" + segment) == URLTemplate.ToString())
+                                             //{
+                                             //    return PathNode.ForCatchRestOfPath(
+                                             //               routeNode1.FullPath + "/" + segment,
+                                             //               paramName,
+                                             //               AllowReplacement: AllowReplacement
+                                             //           );
+                                             //}
 
                                              return PathNode.ForParameter(
                                                         routeNode1.FullPath + "/" + segment,
-                                                        paramName
+                                                        paramName,
+                                                        AllowReplacement: AllowReplacement
                                                     );
 
                                          }
@@ -1133,8 +1143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region (internal) GetRequestHandle(Path)
 
-        internal ParsedRequest2 GetRequestHandle(//HTTPHostname    Host,
-                                                 HTTPPath        Path)
+        internal ParsedRequest2 GetRequestHandle(HTTPPath  Path)
         {
 
             var segments    = Path.ToString().Trim('/').Split('/');
@@ -1207,10 +1216,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                         }
                         else
-                            return ParsedRequest2.Error(
-                                       $"Unknown path {Path}!",
-                                       parameters
-                                   );
+                            goto Error;
+                            //return ParsedRequest2.Error(
+                            //           $"Unknown path {Path}!",
+                            //           parameters
+                            //       );
 
                         routeNode = parameterCatcher;
 
@@ -1234,6 +1244,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     routeNode,
                     parameters
                 );
+
+Error:
+
+            var parameterCatchers = routeNodes.Where(routeNode => routeNode.Value.ParameterName is not null &&
+                                                                  routeNode.Value.CatchRestOfPath2).
+                                               ToArray();
+
+            if (parameterCatchers.Length > 0)
+            {
+
+                var parameterCatcher = parameterCatchers.First().Value;
+
+                parameters.Add(
+                    parameterCatcher.ParameterName!,
+                    Path.ToString().Trim('/')
+                );
+
+                return ParsedRequest2.Parsed(parameterCatcher, parameters);
+
+            }
 
             return ParsedRequest2.Error(
                        $"Unknown path {Path}!",

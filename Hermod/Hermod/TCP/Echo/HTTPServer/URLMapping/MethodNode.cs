@@ -74,6 +74,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public IEnumerable<HTTPContentType>  ContentTypes
             => contentTypes.Keys;
 
+
+        public IEnumerable<HTTPRequestHandlersX>  HTTPRequestHandlers
+            => contentTypes.Values;
+
         #endregion
 
 

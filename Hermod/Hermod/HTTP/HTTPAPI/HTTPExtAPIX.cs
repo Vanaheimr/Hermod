@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -234,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -249,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -301,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -319,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -372,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -389,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -404,7 +404,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserGroupId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -456,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -474,7 +474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -527,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -544,7 +544,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -559,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown OrganizationId!"" }".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
+                    Connection      = ConnectionType.KeepAlive
                 };
 
                 return false;
@@ -3503,7 +3503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                               Server              = HTTPServer?.HTTPServerName,
                                               CacheControl        = "private, max-age=0, no-cache",
                                               XLocationAfterAuth  = Request.Path,
-                                              Connection          = ConnectionType.Close
+                                              Connection          = ConnectionType.KeepAlive
                                           };
 
             return Organizations.Count != 0;
@@ -3531,7 +3531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 ResponseBuilder.Date                = Timestamp.Now;
                 ResponseBuilder.CacheControl        = "private, max-age=0, no-cache";
                 ResponseBuilder.XLocationAfterAuth  = Request.Path;
-                ResponseBuilder.Connection          = ConnectionType.Close;
+                ResponseBuilder.Connection          = ConnectionType.KeepAlive;
 
                 return false;
 
@@ -3572,7 +3572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      Date            = Timestamp.Now,
                                      Server          = HTTPServer?.HTTPServerName,
                                      CacheControl    = "private, max-age=0, no-cache",
-                                     Connection      = ConnectionType.Close
+                                     Connection      = ConnectionType.KeepAlive
                                  };
 
                 return false;
@@ -4150,7 +4150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             //            CacheControl              = "private, max-age=0, no-cache",
             //            ContentType               = HTTPContentType.Application.JSON_UTF8,
             //            Content                   = JSONObject.Create(new JProperty("message", "Please accept the EULA within the portal!")).ToUTF8Bytes(),
-            //            Connection                = ConnectionType.Close
+            //            Connection                = ConnectionType.KeepAlive
             //        };
             //    }
 
@@ -4179,7 +4179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             //                //                                    "; Path=", URLPathPrefix),
             //                XLocationAfterAuth  = request.Path,
             //                CacheControl        = "private, max-age=0, no-cache",
-            //                Connection          = ConnectionType.Close
+            //                Connection          = ConnectionType.KeepAlive
             //            };
             //        }
 
@@ -4193,7 +4193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             //                CacheControl              = "private, max-age=0, no-cache",
             //                ContentType               = HTTPContentType.Application.JSON_UTF8,
             //                Content                   = JSONObject.Create(new JProperty("message", "Invalid login!")).ToUTF8Bytes(),
-            //                Connection                = ConnectionType.Close
+            //                Connection                = ConnectionType.KeepAlive
             //            };
 
             //    }
@@ -4219,7 +4219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             AddHandler(
                 HTTPMethod.POST,
-                URLPathPrefix + "/login",
+                URLPathPrefix + "login",
                 HTTPContentType.Application.XWWWFormUrlEncoded,
                 HTTPDelegate: Request => {
 
@@ -4230,10 +4230,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     if (!Request.TryParseUTF8StringRequestBody(HTTPContentType.Application.XWWWFormUrlEncoded,
                                                                out var loginText,
                                                                out var httpResponse,
-                                                               AllowEmptyHTTPBody: false) ||
-                         loginText is null)
+                                                               AllowEmptyHTTPBody: false))
                     {
-                        return Task.FromResult(httpResponse!);
+                        return Task.FromResult(httpResponse);
                     }
 
                     #endregion
@@ -4253,12 +4252,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
-                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("statusCode",   400),
                                                       new JProperty("property",     "login"),
                                                       new JProperty("description",  "The login must not be empty!")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl     = "private",
-                                Connection       = ConnectionType.Close
+                                Connection       = ConnectionType.KeepAlive
                             }.AsImmutable);
 
                     }
@@ -4275,12 +4274,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
-                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("statusCode",   400),
                                                       new JProperty("property",     "login"),
                                                       new JProperty("description",  "The login is too short!")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
-                                Connection      = ConnectionType.Close
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
 
                     }
@@ -4300,12 +4299,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
-                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("statusCode",   400),
                                                       new JProperty("property",     "password"),
                                                       new JProperty("description",  "The password must not be empty!")
                                                  ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
-                                Connection      = ConnectionType.Close
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
 
                     }
@@ -4322,12 +4321,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
-                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("statusCode",   400),
                                                       new JProperty("property",     "password"),
                                                       new JProperty("description",  "The password does not match the password quality criteria!")
                                                  ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
-                                Connection      = ConnectionType.Close
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
 
                     }
@@ -4382,7 +4381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                       new JProperty("description",  "Unknown login!")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
-                                Connection      = ConnectionType.Close
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
 
 
@@ -4409,7 +4408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                       new JProperty("description",  "Invalid password!")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
-                                Connection      = ConnectionType.Close
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
 
 
@@ -4425,7 +4424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                       new JProperty("description",  "Multiple matching user accounts found: Please use your login name!")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
-                                Connection      = ConnectionType.Close
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
 
                     #endregion
@@ -4443,7 +4442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                       new JProperty("description", "You do not have access to any organization!")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
-                                Connection      = ConnectionType.Close
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
 
                     #endregion
@@ -4500,7 +4499,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                 "; HttpOnly")
 
                                               ),
-                            Connection      = ConnectionType.Close,
+                            Connection      = ConnectionType.KeepAlive,
                             X_FrameOptions  = "DENY"
                         }.AsImmutable);
 
@@ -4551,7 +4550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "SET" },
                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                   Connection                 = ConnectionType.Close
+                                   Connection                 = ConnectionType.KeepAlive
                                };
 
                     }
@@ -4595,7 +4594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "SET" },
                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                   Connection                 = ConnectionType.Close
+                                   Connection                 = ConnectionType.KeepAlive
                                };
 
                     }
@@ -4620,7 +4619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      Content                    = JSONObject.Create(
                                                                       new JProperty("numberOfAccountsFound", users.Count)
                                                                   ).ToUTF8Bytes(),
-                                     Connection                 = ConnectionType.Close
+                                     Connection                 = ConnectionType.KeepAlive
                                  }
 
                                : new HTTPResponse.Builder(Request) {
@@ -4640,7 +4639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                       new JProperty("numberOfAccountsFound",  users.Count)
 
                                                                   ).ToUTF8Bytes(),
-                                     Connection                 = ConnectionType.Close
+                                     Connection                 = ConnectionType.KeepAlive
                                  };
 
                 },
@@ -4718,12 +4717,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                                    Content         = JSONObject.Create(
                                                          new JProperty("@context",      SignInOutContext),
-                                                         new JProperty("statuscode",    400),
+                                                         new JProperty("statusCode",    400),
                                                          new JProperty("property",     "password"),
                                                          new JProperty("description",  "The chosen password does not match the password quality criteria!")
                                                      ).ToString().ToUTF8Bytes(),
                                    CacheControl    = "private",
-                                   Connection      = ConnectionType.Close
+                                   Connection      = ConnectionType.KeepAlive
                                }.AsImmutable;
 
                     #endregion
@@ -4760,7 +4759,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "SET" },
                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                   Connection                 = ConnectionType.Close
+                                   Connection                 = ConnectionType.KeepAlive
                                }.AsImmutable;
 
                     }
@@ -4797,7 +4796,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                     "; Path=", URLPathPrefix)
                                                                       )
                                                                   ),
-                                     Connection                 = ConnectionType.Close
+                                     Connection                 = ConnectionType.KeepAlive
                                  }.AsImmutable
 
                                : new HTTPResponse.Builder(Request) {
@@ -4820,7 +4819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                         "; Path=", URLPathPrefix)
                                                                       )
                                                                   ),
-                                     Connection                 = ConnectionType.Close
+                                     Connection                 = ConnectionType.KeepAlive
                                  }.AsImmutable;
 
                 },
@@ -4853,7 +4852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             AccessControlAllowOrigin   = "*",
                             AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization", "X-App-Version" },
-                            Connection                 = ConnectionType.Close
+                            Connection                 = ConnectionType.KeepAlive
                         }.AsImmutable);
 
                 }
@@ -4892,7 +4891,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                     new JProperty("description",  "Please use a valid API key!")
 
                                                                 ).ToUTF8Bytes(),
-                                   Connection                 = ConnectionType.Close
+                                   Connection                 = ConnectionType.KeepAlive
                                }.AsImmutable;
 
                     #endregion
@@ -4925,7 +4924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    Content                    = JSONObject.Create(
                                                                     new JProperty("description", errorDescription)
                                                                 ).ToUTF8Bytes(),
-                                   Connection                 = ConnectionType.Close
+                                   Connection                 = ConnectionType.KeepAlive
                                }.AsImmutable;
 
                     }
@@ -4952,7 +4951,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                        Content                    = JSONObject.Create(
                                                                         new JProperty("description", errorDescription)
                                                                     ).ToUTF8Bytes(),
-                                       Connection                 = ConnectionType.Close
+                                       Connection                 = ConnectionType.KeepAlive
                                    }.AsImmutable;
 
                     }
@@ -4983,7 +4982,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                          : null
 
                                                                  ).ToUTF8Bytes(),
-                                   Connection                  = ConnectionType.Close
+                                   Connection                  = ConnectionType.KeepAlive
                                }.AsImmutable;
 
 
@@ -4994,7 +4993,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    AccessControlAllowOrigin    = "*",
                                    AccessControlAllowMethods   = new[] { "CHECK" },
                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                   Connection                  = ConnectionType.Close
+                                   Connection                  = ConnectionType.KeepAlive
                                }.AsImmutable;
 
                 }
@@ -5027,7 +5026,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                             AccessControlMaxAge        = 3600,
                             CacheControl               = "public",
-                            Connection                 = ConnectionType.Close
+                            Connection                 = ConnectionType.KeepAlive
                         }.AsImmutable);
 
                 }
@@ -5058,7 +5057,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                             AccessControlAllowMethods   = new[] { "ADD", "SET", "GET" },
                                                             AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                            Connection                  = ConnectionType.Close
+                                                            Connection                  = ConnectionType.KeepAlive
                                                         };
 
                                   #endregion
@@ -5152,7 +5151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                               new JProperty("data",         json["@id"]),
                                                                                               new JProperty("description",  $"The given user identification is invalid: {errorResponse}")
                                                                                           ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.Close
+                                                             Connection                 = ConnectionType.KeepAlive
                                                          };
 
                                           }
@@ -5181,7 +5180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                           new JProperty("data",         json),
                                                                                           new JProperty("description",  errorResponse)
                                                                                       ).ToUTF8Bytes(),
-                                                         Connection                 = ConnectionType.Close
+                                                         Connection                 = ConnectionType.KeepAlive
                                                      };
 
                                           }
@@ -5209,7 +5208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                               new JProperty("data",         json["accessRights"]),
                                                                                               new JProperty("description",  errorResponse)
                                                                                           ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.Close
+                                                             Connection                 = ConnectionType.KeepAlive
                                                          };
 
                                           }
@@ -5238,7 +5237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                               new JProperty("data",         accessRightJSON),
                                                                                               new JProperty("description",  "Invalid 'accessRight' JSON object!")
                                                                                           ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.Close
+                                                             Connection                 = ConnectionType.KeepAlive
                                                          };
 
                                               #endregion
@@ -5263,7 +5262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                               new JProperty("data",         accessRightObject["accessRight"]),
                                                                                               new JProperty("description",  $"Invalid 'access right': {errorResponse}")
                                                                                           ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.Close
+                                                             Connection                 = ConnectionType.KeepAlive
                                                          };
 
                                               }
@@ -5291,7 +5290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                               new JProperty("data",         accessRightObject["organizationId"]),
                                                                                               new JProperty("description",  $"Invalid organization identification: {errorResponse}")
                                                                                           ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.Close
+                                                             Connection                 = ConnectionType.KeepAlive
                                                          };
 
                                               }
@@ -5448,7 +5447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                             ETag                       = "1",
                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                            Connection                 = ConnectionType.Close,
+                                                            Connection                 = ConnectionType.KeepAlive,
                                                             Vary                       = "Accept"
                                                         };
 
@@ -5552,7 +5551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                "; Path=", URLPathPrefix)
 
                                                              ),
-                                           Connection      = ConnectionType.Close
+                                           Connection      = ConnectionType.KeepAlive
                                        }.AsImmutable));
 
             #endregion
@@ -5580,7 +5579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                           //ETag                       = "1",
                                           CacheControl               = "public",
                                           //Expires                    = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                          Connection                 = ConnectionType.Close
+                                          Connection                 = ConnectionType.KeepAlive
                                       }.AsImmutable);
 
                               });
@@ -5610,7 +5609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                             AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
                                                             AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                            Connection                  = ConnectionType.Close
+                                                            Connection                  = ConnectionType.KeepAlive
                                                         };
 
                                   #endregion
@@ -5947,7 +5946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = [ "GET", "SET" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
 
@@ -5968,7 +5967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    //ETag                        = _User.HashValue,
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = user.ToJSON().ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable
 
                                              : new HTTPResponse.Builder(Request) {
@@ -6046,7 +6045,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                               Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
-                                              Connection                 = ConnectionType.Close,
+                                              Connection                 = ConnectionType.KeepAlive,
                                               Vary                       = "Accept"
                                           }.AsImmutable;
                                   }
@@ -6070,7 +6069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = user.ToJSON(false).ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -6085,7 +6084,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    Content                     = JSONObject.Create(
                                                                                     new JProperty("description", result?.Description?.ToJSON())
                                                                                 ).ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable;
 
@@ -6159,7 +6158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = [ "GET", "SET" ],
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                     Connection                 = ConnectionType.Close
+                                                     Connection                 = ConnectionType.KeepAlive
                                                  }.AsImmutable);
 
 
@@ -6180,7 +6179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                           AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                           ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                           Content                     = userJSON.ToUTF8Bytes(),
-                                          Connection                  = ConnectionType.Close,
+                                          Connection                  = ConnectionType.KeepAlive,
                                           Vary                        = "Accept"
                                       }.AsImmutable);
 
@@ -6191,290 +6190,300 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             #region AUTH        ~/users/{UserId}
 
             AddHandler(
-                              HTTPMethod.AUTH,
-                              URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: async Request => {
+                HTTPMethod.AUTH,
+                URLPathPrefix + "users/{UserId}",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: async request => {
 
-                                  #region Check JSON body...
+                    #region Check JSON body...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out var httpResponseBuilder) || json is null)
-                                      return httpResponseBuilder!;
+                    if (!request.TryParseJSONObjectRequestBody(out var json, out var httpResponseBuilder))
+                        return httpResponseBuilder;
 
-                                  if (!json.HasValues)
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer?.HTTPServerName,
-                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                 Content         = new JObject(
-                                                                       new JProperty("@context",     SignInOutContext),
-                                                                       new JProperty("statuscode",   400),
-                                                                       new JProperty("description",  "Invalid JSON!")
-                                                                  ).ToUTF8Bytes(),
-                                                 CacheControl    = "private",
-                                                 Connection      = ConnectionType.Close
-                                             }.AsImmutable;
+                    if (!json.HasValues)
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   Server          = HTTPServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = JSONObject.Create(
+                                                         new JProperty("@context",     SignInOutContext),
+                                                         new JProperty("statusCode",   400),
+                                                         new JProperty("description",  "Invalid JSON!")
+                                                     ).ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
-                                  #endregion
+                    #endregion
 
-                                  #region Verify username
+                    #region Verify username
 
-                                  // The login is taken from the URL, not from the JSON!
-                                  var login = Request.ParsedURLParameters[0];
+                    // The login is taken from the URL, not from the JSON!
 
-                                  if (login.Length < MinUserIdLength)
-                                  {
+                    if (!request.TryGetURLParameter("UserId", out var login))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   Server          = HTTPServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = JSONObject.Create(
+                                                         new JProperty("@context",     SignInOutContext),
+                                                         new JProperty("statusCode",   400),
+                                                         new JProperty("property",     "user identification"),
+                                                         new JProperty("description",  "Invalid login!")
+                                                     ).ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer?.HTTPServerName,
-                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                 Content         = new JObject(
-                                                                       new JProperty("@context",     SignInOutContext),
-                                                                       new JProperty("statuscode",   400),
-                                                                       new JProperty("property",     "user identification"),
-                                                                       new JProperty("description",  "The login is too short!")
-                                                                   ).ToString().ToUTF8Bytes(),
-                                                 CacheControl    = "private",
-                                                 Connection      = ConnectionType.Close
-                                             }.AsImmutable;
+                    if (login.Length < MinUserIdLength)
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   Server          = HTTPServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = JSONObject.Create(
+                                                         new JProperty("@context",     SignInOutContext),
+                                                         new JProperty("statusCode",   400),
+                                                         new JProperty("property",     "user identification"),
+                                                         new JProperty("description",  "The login is too short!")
+                                                     ).ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
-                                  }
+                    json["username"] = login;
 
-                                  json["username"] = login;
+                    #endregion
 
-                                  #endregion
+                    #region Verify password
 
-                                  #region Verify password
+                    var password = json.GetString("password") ?? "";
 
-                                  var password = json.GetString("password") ?? "";
+                    if (password.IsNullOrEmpty())
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   Server          = HTTPServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = JSONObject.Create(
+                                                         new JProperty("@context",     SignInOutContext),
+                                                         new JProperty("statusCode",   400),
+                                                         new JProperty("property",     "password"),
+                                                         new JProperty("description",  "Missing \"password\" property!")
+                                                     ).ToString().ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
-                                  if (password.IsNullOrEmpty())
-                                  {
+                    var passwordQuality = PasswordQualityCheck(password);
 
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer?.HTTPServerName,
-                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                 Content         = new JObject(
-                                                                       new JProperty("@context",     SignInOutContext),
-                                                                       new JProperty("statuscode",   400),
-                                                                       new JProperty("property",     "password"),
-                                                                       new JProperty("description",  "Missing \"password\" property!")
-                                                                  ).ToString().ToUTF8Bytes(),
-                                                 CacheControl    = "private",
-                                                 Connection      = ConnectionType.Close
-                                             }.AsImmutable;
+                    if (passwordQuality < 1.0)
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   Server          = HTTPServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = JSONObject.Create(
+                                                         new JProperty("@context",     SignInOutContext),
+                                                         new JProperty("statusCode",   400),
+                                                         new JProperty("property",     "password"),
+                                                         new JProperty("description",  "The password does not match the password quality criteria!")
+                                                     ).ToString().ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
-                                  }
+                    json["passwordQuality"] = passwordQuality;
 
-                                  var passwordQuality = PasswordQualityCheck(password);
+                    #endregion
 
-                                  if (passwordQuality < 1.0)
-                                  {
+                    #region Check login or e-mail address and password(s)
 
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer?.HTTPServerName,
-                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                 Content         = new JObject(
-                                                                       new JProperty("@context",     SignInOutContext),
-                                                                       new JProperty("statuscode",   400),
-                                                                       new JProperty("property",     "password"),
-                                                                       new JProperty("description",  "The password does not match the password quality criteria!")
-                                                                  ).ToString().ToUTF8Bytes(),
-                                                 CacheControl    = "private",
-                                                 Connection      = ConnectionType.Close
-                                             }.AsImmutable;
+                    var possibleUsers = new HashSet<IUser>();
 
-                                  }
+                    if (User_Id.       TryParse   (login,  out var userId) &&
+                        users.         TryGetValue(userId, out var user)   &&
+                        loginPasswords.TryGetValue(userId, out var loginPassword))
+                    {
+                        possibleUsers.Add(user);
+                    }
 
-                                  json["passwordQuality"] = passwordQuality;
+                    if (possibleUsers.Count == 0)
+                    {
+                        foreach (var user2 in users.Values)
+                        {
+                            if (String.Equals(login,
+                                              user2.EMail.Address.ToString(),
+                                              StringComparison.OrdinalIgnoreCase))
+                            {
+                                possibleUsers.Add(user2);
+                            }
+                        }
+                    }
 
-                                  #endregion
-
-                                  #region Check login or e-mail address and password(s)
-
-                                  var possibleUsers = new HashSet<IUser>();
-
-                                  if (User_Id.       TryParse   (login,  out var userId) &&
-                                      users.         TryGetValue(userId, out var user)   &&
-                                      loginPasswords.TryGetValue(userId, out var loginPassword))
-                                  {
-                                      possibleUsers.Add(user);
-                                  }
-
-                                  if (possibleUsers.Count == 0)
-                                  {
-                                      foreach (var user2 in users.Values)
-                                      {
-                                          if (String.Equals(login,
-                                                            user2.EMail.Address.ToString(),
-                                                            StringComparison.OrdinalIgnoreCase))
-                                          {
-                                              possibleUsers.Add(user2);
-                                          }
-                                      }
-                                  }
-
-                                  if (possibleUsers.Count == 0)
-                                      return new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                              Server          = HTTPServer?.HTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "Unknown login!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable;
-
-
-                                  var validUsers = new HashSet<IUser>();
-
-                                  foreach (var possibleUser in possibleUsers)
-                                  {
-                                      if (loginPasswords.TryGetValue(possibleUser.Id, out loginPassword) &&
-                                          loginPassword.VerifyPassword(password))
-                                      {
-                                          validUsers.Add(possibleUser);
-                                      }
-                                  }
-
-                                  if (validUsers.Count == 0)
-                                      return new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                              Server          = HTTPServer?.HTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "Invalid password!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable;
+                    if (possibleUsers.Count == 0)
+                        return new HTTPResponse.Builder(request) {
+                                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                Server          = HTTPServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = JSONObject.Create(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "Unknown login!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.KeepAlive
+                            }.AsImmutable;
 
 
-                                  if (validUsers.Count > 1)
-                                      return new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
-                                              Server          = HTTPServer?.HTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "Multiple matching user accounts found: Please use your login name!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable;
+                    var validUsers = new HashSet<IUser>();
 
-                                  #endregion
+                    foreach (var possibleUser in possibleUsers)
+                    {
+                        if (loginPasswords.TryGetValue(possibleUser.Id, out loginPassword) &&
+                            loginPassword.VerifyPassword(password))
+                        {
+                            validUsers.Add(possibleUser);
+                        }
+                    }
 
-                                  #region Check whether the user has access to at least one organization
-
-                                  if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                                 Server          = HTTPServer?.HTTPServerName,
-                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                 Content         = new JObject(
-                                                                       new JProperty("@context",    SignInOutContext),
-                                                                       new JProperty("description", "You do not have access to any organization!")
-                                                                   ).ToString().ToUTF8Bytes(),
-                                                 CacheControl    = "private",
-                                                 Connection      = ConnectionType.Close
-                                             }.AsImmutable;
-
-                                  #endregion
-
-                                  var validUser = validUsers.First();
-
-                                  #region Check EULA
-
-                                  var acceptsEULA = json["acceptsEULA"]?.Value<Boolean>();
-
-                                  if (!validUser.AcceptedEULA.HasValue)
-                                  {
-
-                                      if (!acceptsEULA.HasValue || acceptsEULA == false)
-                                      {
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                                     Server          = HTTPServer?.HTTPServerName,
-                                                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                     Content         = new JObject(
-                                                                           new JProperty("@context",     SignInOutContext),
-                                                                           new JProperty("showEULA",     true),
-                                                                           new JProperty("description",  "Please accept the end-user license agreement!")
-                                                                       ).ToString().ToUTF8Bytes(),
-                                                     CacheControl    = "private",
-                                                     Connection      = ConnectionType.Close
-                                                 }.AsImmutable;
-                                      }
-
-                                      await UpdateUser(validUser,
-                                                       _user => _user.AcceptedEULA = Timestamp.Now,
-                                                       false,
-                                                       null,
-                                                       Request.EventTrackingId,
-                                                       Robot.Id);
-
-                                  }
-
-                                  #endregion
+                    if (validUsers.Count == 0)
+                        return new HTTPResponse.Builder(request) {
+                                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                Server          = HTTPServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = JSONObject.Create(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "Invalid password!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.KeepAlive
+                            }.AsImmutable;
 
 
-                                  #region Register security token
+                    if (validUsers.Count > 1)
+                        return new HTTPResponse.Builder(request) {
+                                HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
+                                Server          = HTTPServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = JSONObject.Create(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "Multiple matching user accounts found: Please use your login name!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.KeepAlive
+                            }.AsImmutable;
 
-                                  var securityTokenId  = SecurityToken_Id.Parse(
-                                                             SHA256.HashData(
-                                                                 String.Concat(Guid.NewGuid().ToString(),
-                                                                               validUser.Id).
-                                                                 ToUTF8Bytes()
-                                                             ).ToHexString()
-                                                         );
+                    #endregion
 
-                                  var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
+                    #region Check whether the user has access to at least one organization
 
-                                  httpCookies.TryAdd(securityTokenId,
-                                                     new SecurityToken(validUser.Id,
-                                                                       expires));
+                    if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
+                        return new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                    Server          = HTTPServer?.HTTPServerName,
+                                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                    Content         = JSONObject.Create(
+                                                          new JProperty("@context",    SignInOutContext),
+                                                          new JProperty("description", "You do not have access to any organization!")
+                                                      ).ToString().ToUTF8Bytes(),
+                                    CacheControl    = "private",
+                                    Connection      = ConnectionType.KeepAlive
+                                }.AsImmutable;
 
-                                  await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
+                    #endregion
 
-                                  #endregion
+                    var validUser = validUsers.First();
+
+                    #region Check EULA
+
+                    var acceptsEULA = json["acceptsEULA"]?.Value<Boolean>();
+
+                    if (!validUser.AcceptedEULA.HasValue)
+                    {
+
+                        if (!acceptsEULA.HasValue || acceptsEULA == false)
+                        {
+                            return new HTTPResponse.Builder(request) {
+                                        HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                        Server          = HTTPServer?.HTTPServerName,
+                                        ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                        Content         = JSONObject.Create(
+                                                              new JProperty("@context",     SignInOutContext),
+                                                              new JProperty("showEULA",     true),
+                                                              new JProperty("description",  "Please accept the end-user license agreement!")
+                                                          ).ToString().ToUTF8Bytes(),
+                                        CacheControl    = "private",
+                                        Connection      = ConnectionType.KeepAlive
+                                    }.AsImmutable;
+                        }
+
+                        await UpdateUser(
+                                  validUser,
+                                  _user => _user.AcceptedEULA = Timestamp.Now,
+                                  false,
+                                  null,
+                                  request.EventTrackingId,
+                                  Robot.Id
+                              );
+
+                    }
+
+                    #endregion
 
 
-                                  return new HTTPResponse.Builder(Request) {
-                                             HTTPStatusCode  = HTTPStatusCode.Created,
-                                             ContentType     = HTTPContentType.Text.PLAIN,
-                                             Content         = new JObject(
-                                                                   new JProperty("@context",  SignInOutContext),
-                                                                   new JProperty("login",     validUser.Id.           ToString()),
-                                                                   new JProperty("username",  validUser.Name.         ToJSON()),
-                                                                   new JProperty("email",     validUser.EMail.Address.ToString())
-                                                               ).ToUTF8Bytes(),
-                                             CacheControl    = "private",
-                                             SetCookie       = HTTPCookies.Parse(
+                    #region Register security token
 
-                                                                   String.Concat(CookieName,
-                                                                                 GenerateCookieUserData(validUser),
-                                                                                 GenerateCookieSettings(expires)),
+                    var securityTokenId  = SecurityToken_Id.Parse(
+                                                SHA256.HashData(
+                                                    String.Concat(Guid.NewGuid().ToString(),
+                                                                validUser.Id).
+                                                    ToUTF8Bytes()
+                                                ).ToHexString()
+                                            );
 
-                                                                   String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                                 GenerateCookieSettings(expires),
-                                                                                 "; HttpOnly")
+                    var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
 
-                                                               ),
-                                             Connection      = ConnectionType.Close
-                                         }.AsImmutable;
+                    httpCookies.TryAdd(
+                        securityTokenId,
+                        new SecurityToken(
+                            validUser.Id,
+                            expires
+                        )
+                    );
 
-                              });
+                    await File.AppendAllTextAsync(
+                              HTTPAPIPath + DefaultHTTPCookiesFile,
+                              securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine
+                          );
+
+                    #endregion
+
+
+                    return new HTTPResponse.Builder(request) {
+                               HTTPStatusCode  = HTTPStatusCode.Created,
+                               ContentType     = HTTPContentType.Text.PLAIN,
+                               Content         = JSONObject.Create(
+                                                     new JProperty("@context",  SignInOutContext),
+                                                     new JProperty("login",     validUser.Id.           ToString()),
+                                                     new JProperty("username",  validUser.Name.         ToJSON()),
+                                                     new JProperty("email",     validUser.EMail.Address.ToString())
+                                                 ).ToUTF8Bytes(),
+                               CacheControl    = "private",
+                               SetCookie       = HTTPCookies.Parse(
+
+                                                   String.Concat(CookieName,
+                                                                 GenerateCookieUserData(validUser),
+                                                                 GenerateCookieSettings(expires)),
+
+                                                   String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
+                                                                 GenerateCookieSettings(expires),
+                                                                 "; HttpOnly")
+
+                                               ),
+                               Connection      = ConnectionType.KeepAlive
+                           }.AsImmutable;
+
+                });
 
             #endregion
 
@@ -6504,7 +6513,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                   : String.Empty,
                                                                               "; Path=", URLPathPrefix)
                                                             ),
-                                          Connection      = ConnectionType.Close
+                                          Connection      = ConnectionType.KeepAlive
                                       }.AsImmutable));
 
             #endregion
@@ -6555,7 +6564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "IMPERSONATE" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   }
@@ -6572,7 +6581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "IMPERSONATE" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -6622,7 +6631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                  "; HttpOnly")
 
                                                                ),
-                                             Connection      = ConnectionType.Close
+                                             Connection      = ConnectionType.KeepAlive
                                          }.AsImmutable;
 
                               });
@@ -6673,7 +6682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "DEPERSONATE" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   }
@@ -6725,7 +6734,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                  "; HttpOnly")
 
                                                                ),
-                                             Connection      = ConnectionType.Close
+                                             Connection      = ConnectionType.KeepAlive
                                          }.AsImmutable;
 
                               });
@@ -6786,7 +6795,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   }
@@ -6857,12 +6866,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = JSONObject.Create(
                                                                        new JProperty("@context",      SignInOutContext),
-                                                                       new JProperty("statuscode",    400),
+                                                                       new JProperty("statusCode",    400),
                                                                        new JProperty("property",     "password"),
                                                                        new JProperty("description",  "The chosen password does not match the password quality criteria!")
                                                                    ).ToString().ToUTF8Bytes(),
                                                  CacheControl    = "private",
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -6884,7 +6893,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "SET" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable
 
                                              : new HTTPResponse.Builder(Request) {
@@ -6894,7 +6903,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "SET" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                               });
@@ -7022,7 +7031,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              ETag                       = "1",
                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = GetNotifications(httpUser).ToUTF8Bytes(),
-                                             Connection                 = ConnectionType.Close,
+                                             Connection                 = ConnectionType.KeepAlive,
                                              Vary                       = "Accept"
                                          }.AsImmutable);
 
@@ -7089,7 +7098,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   }
@@ -7215,7 +7224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                              ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(httpUser).ToUTF8Bytes(),
-                                             Connection                  = ConnectionType.Close
+                                             Connection                  = ConnectionType.KeepAlive
                                          }.AsImmutable;
 
                               });
@@ -7281,7 +7290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   }
@@ -7407,7 +7416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                              ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(httpUser).ToUTF8Bytes(),
-                                             Connection                  = ConnectionType.Close
+                                             Connection                  = ConnectionType.KeepAlive
                                          }.AsImmutable;
 
                               });
@@ -7450,7 +7459,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                      HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                      Server          = HTTPServer?.HTTPServerName,
                                                      Date            = Timestamp.Now,
-                                                     Connection      = ConnectionType.Close
+                                                     Connection      = ConnectionType.KeepAlive
                                                  }.AsImmutable);
 
                                   }
@@ -7471,7 +7480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                  ETag                       = "1",
                                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                                  Content                    = GetNotification(httpUser, notificationId).ToUTF8Bytes(),
-                                                                 Connection                 = ConnectionType.Close,
+                                                                 Connection                 = ConnectionType.KeepAlive,
                                                                  Vary                       = "Accept"
                                                              }.AsImmutable);
 
@@ -7485,7 +7494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable);
 
             });
@@ -7550,7 +7559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              }.AsImmutable);
                                   }
@@ -7571,7 +7580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                               GetAPIKeysForUser(user).
                                                                                               SafeSelect       (apiKey => apiKey.ToJSON(Embedded: false))
                                                                                           ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.Close,
+                                                             Connection                 = ConnectionType.KeepAlive,
                                                              Vary                       = "Accept"
                                                          }.AsImmutable);
 
@@ -7669,7 +7678,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              }.AsImmutable;
 
@@ -7694,7 +7703,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                        ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = apiKey.ToJSON().ToUTF8Bytes(),
-                                                       Connection                 = ConnectionType.Close,
+                                                       Connection                 = ConnectionType.KeepAlive,
                                                        Vary                       = "Accept"
                                                    }.AsImmutable
 
@@ -7771,7 +7780,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "Missing API key!")
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              };
 
@@ -7793,7 +7802,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "Invalid API key!")
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              };
 
@@ -7813,7 +7822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "Unknown API key!")
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              };
 
@@ -7838,7 +7847,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              }.AsImmutable;
 
@@ -7862,7 +7871,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = apiKeyInfo.ToJSON().ToUTF8Bytes(),
-                                             Connection                 = ConnectionType.Close,
+                                             Connection                 = ConnectionType.KeepAlive,
                                              Vary                       = "Accept"
                                          }.AsImmutable;
 
@@ -7953,7 +7962,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                 ).ToUTF8Bytes()
                                                                               : JSONResults.ToUTF8Bytes(),
                                           X_ExpectedTotalNumberOfItems  = filteredCount,
-                                          Connection                    = ConnectionType.Close,
+                                          Connection                    = ConnectionType.KeepAlive,
                                           Vary                          = "Accept"
                                       }.AsImmutable);
 
@@ -8013,7 +8022,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = [ "GET", "SET" ],
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                     Connection                 = ConnectionType.Close
+                                                     Connection                 = ConnectionType.KeepAlive
                                                  }.AsImmutable
                                              );
 
@@ -8030,7 +8039,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = userGroup.ToJSON(false).ToUTF8Bytes(),
-                                                 Connection                  = ConnectionType.Close,
+                                                 Connection                  = ConnectionType.KeepAlive,
                                                  Vary                        = "Accept"
                                              }.AsImmutable);
 
@@ -8127,7 +8136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                  ).ToUTF8Bytes()
                                                                                : JSONResults.ToUTF8Bytes(),
                                           X_ExpectedTotalNumberOfItems   = filteredCount,
-                                          Connection                     = ConnectionType.Close,
+                                          Connection                     = ConnectionType.KeepAlive,
                                           Vary                           = "Accept"
                                       }.AsImmutable);
 
@@ -8178,7 +8187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                           Content                    = JSONObject.Create(
                                                                            new JProperty("count", httpOrganizations.ULongCount())
                                                                        ).ToUTF8Bytes(),
-                                          Connection                 = ConnectionType.Close
+                                          Connection                 = ConnectionType.KeepAlive
                                       }.AsImmutable);
 
                               });
@@ -8257,7 +8266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                     = JSONObject.Create(
                                                                                    new JProperty("description", errorResponse)
                                                                                ).ToUTF8Bytes(),
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   }
@@ -8284,7 +8293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                     = JSONObject.Create(
                                                                                    new JProperty("description", errorResponse)
                                                                                ).ToUTF8Bytes(),
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   }
@@ -8303,7 +8312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                               Content                    = JSONObject.Create(
                                                                                new JProperty("description",  "Unknown parent organization!")
                                                                            ).ToUTF8Bytes(),
-                                              Connection                 = ConnectionType.Close
+                                              Connection                 = ConnectionType.KeepAlive
                                           }.AsImmutable;
 
                                   }
@@ -8330,7 +8339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = result.Organization.ToJSON(false).ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable
 
                                              : new HTTPResponse.Builder(Request) {
@@ -8342,7 +8351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = result.ToJSON().ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -8414,7 +8423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
                                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                       Connection                 = ConnectionType.Close
+                                                       Connection                 = ConnectionType.KeepAlive
                                                    }.AsImmutable
 
                                                  : new HTTPResponse.Builder(Request) {
@@ -8439,7 +8448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                                                expandSubOrganizations,
                                                                                                                expandTags,
                                                                                                                includeCryptoHash)).ToUTF8Bytes(),
-                                                       Connection                 = ConnectionType.Close,
+                                                       Connection                 = ConnectionType.KeepAlive,
                                                        Vary                       = "Accept"
                                                    }.AsImmutable);
 
@@ -8497,7 +8506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                     Connection                 = ConnectionType.Close
+                                                     Connection                 = ConnectionType.KeepAlive
                                                  }.AsImmutable);
 
                               });
@@ -8745,7 +8754,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                           AccessControlAllowOrigin    = "*",
                                           AccessControlAllowMethods   = [ "GET", "SET" ],
                                           AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                          Connection                  = ConnectionType.Close
+                                          Connection                  = ConnectionType.KeepAlive
                                       }.AsImmutable;
 
                               });
@@ -8825,7 +8834,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -8880,7 +8889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = updatedOrganization.ToJSON().ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }
 
                                              : new HTTPResponse.Builder(Request) {
@@ -8983,7 +8992,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable
 
                                              : new HTTPResponse.Builder(Request) {
@@ -8997,7 +9006,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    Content                     = JSONObject.Create(
                                                                                      new JProperty("errorDescription",  result.Description.ToJSON())
                                                                                  ).ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9050,7 +9059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
@@ -9060,7 +9069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   if (!TryGetUser(userId.Value, out var user))
@@ -9068,7 +9077,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9088,7 +9097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -9099,7 +9108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9151,7 +9160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
@@ -9161,7 +9170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   if (!TryGetUser(userId.Value, out var user))
@@ -9169,7 +9178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9189,7 +9198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -9200,7 +9209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9252,7 +9261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
@@ -9262,7 +9271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   if (!TryGetUser(userId.Value, out var user))
@@ -9270,7 +9279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9290,7 +9299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -9301,7 +9310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9353,7 +9362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
@@ -9363,7 +9372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   if (!TryGetUser(userId.Value, out var user))
@@ -9371,7 +9380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9390,7 +9399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -9401,7 +9410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9453,7 +9462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
@@ -9463,7 +9472,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   if (!TryGetUser(userId.Value, out var user))
@@ -9471,7 +9480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9491,7 +9500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -9502,7 +9511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9554,7 +9563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
@@ -9564,7 +9573,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   if (!TryGetUser(userId.Value, out var user))
@@ -9572,7 +9581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9592,7 +9601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -9603,7 +9612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9655,7 +9664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
@@ -9665,7 +9674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   if (!TryGetUser(userId.Value, out var user))
@@ -9673,7 +9682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
-                                                 Connection      = ConnectionType.Close
+                                                 Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9693,7 +9702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close,
+                                                   Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
                                                }.AsImmutable
 
@@ -9704,7 +9713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   Connection                  = ConnectionType.Close
+                                                   Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
                               });
@@ -9765,7 +9774,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              ETag                       = "1",
                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = GetNotifications(organization).ToUTF8Bytes(),
-                                             Connection                 = ConnectionType.Close
+                                             Connection                 = ConnectionType.KeepAlive
                                          }.AsImmutable);
 
             });
@@ -9832,7 +9841,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -9956,7 +9965,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                              ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(organization).ToUTF8Bytes(),
-                                             Connection                  = ConnectionType.Close
+                                             Connection                  = ConnectionType.KeepAlive
                                          }.AsImmutable;
 
                               });
@@ -10021,7 +10030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
+                                                 Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -10145,7 +10154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                              ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(organization).ToUTF8Bytes(),
-                                             Connection                  = ConnectionType.Close
+                                             Connection                  = ConnectionType.KeepAlive
                                          }.AsImmutable;
 
                               });
@@ -10235,7 +10244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                 ).ToUTF8Bytes()
                                                                               : jsonResults.ToUTF8Bytes(),
                                           X_ExpectedTotalNumberOfItems  = filteredCount,
-                                          Connection                    = ConnectionType.Close,
+                                          Connection                    = ConnectionType.KeepAlive,
                                           Vary                          = "Accept"
                                       }.AsImmutable);
 
@@ -10287,7 +10296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  Content                    = JSONArray.Create(
                                                                                   GetNotificationMessages(HTTPUser).Select(notificationMessage => notificationMessage.ToJSON())
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              }.AsImmutable);
 
@@ -10347,7 +10356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                        notificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
                                                                                   ))
                                                                                ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close,
+                                                 Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
                                              }.AsImmutable);
 
@@ -10429,7 +10438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                    Content                    = jsonResponse.ToUTF8Bytes(),
                                    CacheControl               = "no-cache",
-                                   Connection                 = ConnectionType.Close
+                                   Connection                 = ConnectionType.KeepAlive
                                }.AsImmutable);
 
                 },
@@ -10518,7 +10527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                             Content                    = jsonResponse.ToUTF8Bytes(),
                             CacheControl               = "no-cache",
-                            Connection                 = ConnectionType.Close
+                            Connection                 = ConnectionType.KeepAlive
                         }.AsImmutable);
 
                 },
@@ -10590,7 +10599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                             Content                    = jsonResponse.ToUTF8Bytes(),
                             CacheControl               = "no-cache",
-                            Connection                 = ConnectionType.Close
+                            Connection                 = ConnectionType.KeepAlive
                         }.AsImmutable);
 
                 },
@@ -10650,7 +10659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             Content         = f,
                             CacheControl    = "public",
                             //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                            Connection      = ConnectionType.Close
+                            Connection      = ConnectionType.KeepAlive
                         }.AsImmutable);
 
                 }
@@ -10700,7 +10709,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode  = HTTPStatusCode.OK,
                                           Server          = HTTPServer?.HTTPServerName,
-                                          Connection      = ConnectionType.Close
+                                          Connection      = ConnectionType.KeepAlive
                                       }.AsImmutable);
 
                               });
@@ -10746,7 +10755,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode  = HTTPStatusCode.OK,
                                           Server          = HTTPServer?.HTTPServerName,
-                                          Connection      = ConnectionType.Close
+                                          Connection      = ConnectionType.KeepAlive
                                       }.AsImmutable);
 
                               });
@@ -10772,7 +10781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "GET", "OPTIONS" },
                                           AccessControlAllowHeaders  = new[] { "Authorization", "X-App-Version" },
-                                          Connection                 = ConnectionType.Close
+                                          Connection                 = ConnectionType.KeepAlive
                                       }.AsImmutable);
 
                               });
@@ -10810,7 +10819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                   new JProperty("description",  "Please use a valid API key!")
 
                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close
+                                                 Connection                 = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
                                   #endregion
@@ -10851,7 +10860,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                                    ).ToUTF8Bytes()
                                                                                  : JSONResults.ToUTF8Bytes(),
                                              X_ExpectedTotalNumberOfItems  = filteredCount,
-                                             Connection                    = ConnectionType.Close
+                                             Connection                    = ConnectionType.KeepAlive
                                          }.AsImmutable;
 
                               });
@@ -10916,10 +10925,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                     CurrentDatabaseHashValue = jsonLine?["sha256hash"]?["hashValue"]?.Value<String>() ?? "";
 
-                                    await ProcessEventDelegate(jsonCommand,
-                                                               jsonObject,
-                                                               databaseFileName,
-                                                               lineNumber);
+                                    await ProcessEventDelegate(
+                                              jsonCommand,
+                                              jsonObject,
+                                              databaseFileName,
+                                              lineNumber
+                                          );
 
                                 }
 
@@ -10985,73 +10996,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                 switch (jsonCommand)
                                 {
 
-                                    #region add
+                                    #region addPassword
 
-                                        case "add":
-                                        case "addPassword":
-                                        case "AddPassword":
+                                    case "addPassword":
 
-                                            if (!loginPasswords.ContainsKey(login))
-                                            {
+                                        if (!loginPasswords.ContainsKey(login))
+                                            loginPasswords.TryAdd(
+                                                login,
+                                                new LoginPassword(
+                                                    login,
+                                                    Password.ParseHash(
+                                                        jsonObject["newPassword"]["salt"].        Value<String>(),
+                                                        jsonObject["newPassword"]["passwordHash"].Value<String>()
+                                                    )
+                                                )
+                                            );
 
-                                                loginPasswords.TryAdd(login,
-                                                                      new LoginPassword(login,
-                                                                                        Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                           jsonObject["newPassword"]["passwordHash"].Value<String>())));
+                                        else
+                                            DebugX.Log("Invalid 'AddPassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
 
-                                            }
+                                        break;
 
-                                            else
-                                                DebugX.Log("Invalid 'AddPassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                    #endregion
 
-                                            break;
+                                    #region changePassword
 
-                                        #endregion
+                                    case "changePassword":
 
-                                    #region change
+                                        if (loginPasswords.TryGetValue(login, out var loginPassword) &&
+                                            loginPassword.Password.     UnsecureString   == jsonObject["currentPassword"]["passwordHash"].Value<String>() &&
+                                            loginPassword.Password.Salt.UnsecureString() == jsonObject["currentPassword"]["salt"].        Value<String>())
+                                        {
 
-                                        case "change":
-                                        case "changePassword":
-                                        case "ChangePassword":
+                                            loginPasswords[login] = new LoginPassword(
+                                                                        login,
+                                                                        Password.ParseHash(
+                                                                            jsonObject["newPassword"]["salt"].        Value<String>(),
+                                                                            jsonObject["newPassword"]["passwordHash"].Value<String>()
+                                                                        )
+                                                                    );
 
-                                            if (loginPasswords.TryGetValue(login, out var loginPassword) &&
-                                                loginPassword.Password.     UnsecureString   == jsonObject["currentPassword"]["passwordHash"].Value<String>() &&
-                                                loginPassword.Password.Salt.UnsecureString() == jsonObject["currentPassword"]["salt"].        Value<String>())
-                                            {
+                                        }
 
-                                                loginPasswords[login] = new LoginPassword(login,
-                                                                                          Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                             jsonObject["newPassword"]["passwordHash"].Value<String>()));
+                                        else
+                                            DebugX.Log("Invalid 'ChangePassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
 
-                                            }
+                                        break;
 
-                                            else
-                                                DebugX.Log("Invalid 'ChangePassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                    #endregion
 
-                                            break;
+                                    #region resetPassword
 
-                                        #endregion
+                                    case "resetPassword":
 
-                                    #region reset
+                                        if (loginPasswords.ContainsKey(login))
+                                            loginPasswords.TryRemove(login, out _);
 
-                                        case "reset":
-                                        case "resetPassword":
-                                        case "ResetPassword":
+                                        loginPasswords.TryAdd(
+                                            login,
+                                            new LoginPassword(
+                                                login,
+                                                Password.ParseHash(
+                                                    jsonObject?["newPassword"]?["salt"]?.        Value<String>() ?? "",
+                                                    jsonObject?["newPassword"]?["passwordHash"]?.Value<String>() ?? ""
+                                                )
+                                            )
+                                        );
 
-                                            if (loginPasswords.ContainsKey(login))
-                                                loginPasswords.TryRemove(login, out _);
+                                        break;
 
-                                            loginPasswords.TryAdd(login,
-                                                                  new LoginPassword(login,
-                                                                                    Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                       jsonObject["newPassword"]["passwordHash"].Value<String>())));
-
-                                            break;
-
-                                        #endregion
+                                    #endregion
 
                                     default:
-                                        DebugX.Log("Unknown command '" + jsonCommand + "' in password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                        DebugX.Log($"Unknown command '{jsonCommand}' in password file '{HTTPAPIPath + DefaultPasswordFile}' line {linenumber}!");
                                         break;
 
                                 }
@@ -11059,12 +11076,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             }
 
                             else
-                                DebugX.Log("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                DebugX.Log($"Could not read password file '{HTTPAPIPath + DefaultPasswordFile}' line {linenumber}!");
 
                         }
                         catch (Exception e)
                         {
-                            DebugX.Log("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + ": " + e.Message);
+                            DebugX.Log($"Could not read password file '{HTTPAPIPath + DefaultPasswordFile}' line {linenumber}: " + e.Message);
                         }
 
                     }
@@ -11076,7 +11093,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             { }
             catch (Exception e)
             {
-                DebugX.LogT("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' failed: " + e.Message);
+                DebugX.LogT($"Could not read password file '{HTTPAPIPath + DefaultPasswordFile}' failed: " + e.Message);
             }
 
             #endregion
@@ -11086,38 +11103,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             try
             {
 
-                var lines = await File.ReadAllLinesAsync(HTTPAPIPath + DefaultHTTPCookiesFile);
+                var splitter  = new Char[] { ';' };
+                var lines     = await File.ReadAllLinesAsync(HTTPAPIPath + DefaultHTTPCookiesFile);
 
                 lines.ForEachCounted((line, linenumber) => {
 
                     try
                     {
 
-                        var elements         = line.Split(new Char[] { ';' }, StringSplitOptions.None);
+                        var elements         = line.Split(splitter, StringSplitOptions.None);
 
                         var securityTokenId  = SecurityToken_Id.Parse(elements[0]);
                         var userId           = User_Id.         Parse(elements[1]);
                         var expires          = DateTime.        Parse(elements[2]);
                         var superUserId      = elements.Length == 4
-                                                    ? new User_Id?(User_Id.Parse(elements[3]))
-                                                    : null;
+                                                   ? new User_Id?(User_Id.Parse(elements[3]))
+                                                   : null;
 
                         if (!httpCookies.ContainsKey(securityTokenId) &&
                             loginPasswords.ContainsKey(userId) &&
                             expires > Timestamp.Now)
                         {
 
-                            httpCookies.TryAdd(securityTokenId,
-                                                new SecurityToken(userId,
-                                                                    expires,
-                                                                    superUserId));
+                            httpCookies.TryAdd(
+                                securityTokenId,
+                                new SecurityToken(
+                                    userId,
+                                    expires,
+                                    superUserId
+                                )
+                            );
 
                         }
 
                     }
                     catch (Exception e)
                     {
-                        DebugX.Log("Could not read HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "' line " + linenumber + ": " + e.Message);
+                        DebugX.Log($"Could not read HTTP cookies file '{HTTPAPIPath + DefaultHTTPCookiesFile}' line {linenumber}: " + e.Message);
                     }
 
                 });
@@ -11127,7 +11149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             { }
             catch (Exception e)
             {
-                DebugX.Log("Could not read HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "': " + e.Message);
+                DebugX.Log($"Could not read HTTP cookies file '{HTTPAPIPath + DefaultHTTPCookiesFile}': " + e.Message);
             }
 
 
@@ -11135,13 +11157,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             try
             {
 
-                File.WriteAllLines(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                    httpCookies.Select(token => token.Key + ";" + token.Value.ToLogLine()));
+                File.WriteAllLines(
+                    HTTPAPIPath + DefaultHTTPCookiesFile,
+                    httpCookies.Select(token => token.Key + ";" + token.Value.ToLogLine())
+                );
 
             }
             catch (Exception e)
             {
-                DebugX.Log("Could not update HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "': " + e.Message);
+                DebugX.Log("Could not update HTTP cookies file '{HTTPAPIPath + DefaultHTTPCookiesFile}': " + e.Message);
             }
 
             #endregion
@@ -11164,7 +11188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 lines.ForEachCounted((line, linenumber) => {
 
                     if (line.IsNeitherNullNorEmpty() &&
-                       !line.StartsWith("#")         &&
+                       !line.StartsWith('#')         &&
                        !line.StartsWith("//"))
                     {
 
@@ -11179,11 +11203,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             if (jsonCommand is not null &&
                                 jsonCommand.IsNotNullOrEmpty() &&
                                 jsonObject is not null &&
-                                PasswordReset.TryParseJSON(jsonObject,
-                                                           users.TryGetValue,
-                                                           out var passwordReset,
-                                                           out var errorResponse) &&
-                                passwordReset is not null)
+                                PasswordReset.TryParseJSON(
+                                    jsonObject,
+                                    users.TryGetValue,
+                                    out var passwordReset,
+                                    out var errorResponse)
+                                )
                             {
 
                                 if (errorResponse is null)
@@ -11200,13 +11225,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                             {
                                                 if (now - passwordReset.Timestamp <= maxAge)
                                                 {
-                                                    passwordResets.TryAdd(passwordReset.SecurityToken1,
-                                                                          passwordReset);
+                                                    passwordResets.TryAdd(
+                                                        passwordReset.SecurityToken1,
+                                                        passwordReset
+                                                    );
                                                 }
                                             }
 
                                             else
-                                                DebugX.Log("Invalid 'Add' command in '" + this.HTTPAPIPath + DefaultPasswordResetsFile + "' line " + linenumber + "!");
+                                                DebugX.Log($"Invalid 'Add' command in '{HTTPAPIPath + DefaultPasswordResetsFile}' line {linenumber}!");
 
                                             break;
 
@@ -11221,7 +11248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                         #endregion
 
                                         default:
-                                            DebugX.Log("Unknown command '" + jsonCommand + "' in password file '" + this.HTTPAPIPath + DefaultPasswordResetsFile + "' line " + linenumber + "!");
+                                            DebugX.Log($"Unknown command '{jsonCommand}' in password file '{HTTPAPIPath + DefaultPasswordResetsFile}' line {linenumber}!");
                                             break;
 
                                     }
@@ -11231,12 +11258,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             }
 
                             else
-                                DebugX.Log("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordResetsFile + "' line " + linenumber + "!");
+                                DebugX.Log($"Could not read password file '{HTTPAPIPath + DefaultPasswordResetsFile}' line {linenumber}!");
 
                         }
                         catch (Exception e)
                         {
-                            DebugX.Log("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordResetsFile + "' line " + linenumber + ": " + e.Message);
+                            DebugX.Log($"Could not read password file '{HTTPAPIPath + DefaultPasswordResetsFile}' line {linenumber}: " + e.Message);
                         }
 
                     }
@@ -11248,7 +11275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             { }
             catch (Exception e)
             {
-                DebugX.LogT("Could not read password file '" + this.HTTPAPIPath + DefaultPasswordResetsFile + "': " + e.Message);
+                DebugX.LogT($"Could not read password file '{HTTPAPIPath + DefaultPasswordResetsFile}': " + e.Message);
             }
 
             #endregion

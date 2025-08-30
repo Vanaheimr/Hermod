@@ -95,11 +95,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">The HTTP request body as an UTF8 string.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
-        public static Boolean TryParseUTF8StringRequestBody(this HTTPRequest   Request,
-                                                            HTTPContentType    ExpectedContentType,
-                                                            out String?        Text,
-                                                            out HTTPResponse?  HTTPResponse,
-                                                            Boolean            AllowEmptyHTTPBody   = false)
+        public static Boolean TryParseUTF8StringRequestBody(this HTTPRequest                        Request,
+                                                            HTTPContentType                         ExpectedContentType,
+                                                            [NotNullWhen(true)]  out String?        Text,
+                                                            [NotNullWhen(false)] out HTTPResponse?  HTTPResponse,
+                                                            Boolean                                 AllowEmptyHTTPBody   = false)
         {
 
             #region AllowEmptyHTTPBody
