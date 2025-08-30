@@ -538,7 +538,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 try
                 {
                     // Graceful shutdown after echo completes (client EOF received)
-                    client.Client.Shutdown(SocketShutdown.Both);
+                    if (client.Client.Connected)
+                        client.Client.Shutdown(SocketShutdown.Both);
                 }
                 catch (Exception)
                 { }
