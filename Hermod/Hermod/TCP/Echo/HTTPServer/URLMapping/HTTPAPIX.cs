@@ -644,7 +644,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// The HTTP root path of this HTTP API.
         /// </summary>
-        public HTTPPath                      RootPath                    { get; }
+        public HTTPPath                      RootPath
+            => URLPathPrefix;
 
 
         public HTTPPath?                     BasePath                    { get; }
@@ -696,7 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         I18NString?                    Description               = null,
 
                         String?                        ExternalDNSName           = null,
-                        HTTPPath?                      BasePath                  = null,
+                        HTTPPath?                      BasePath                  = null,  // For URL prefixes in HTML!
 
                         String?                        HTTPServerName            = null,
                         String?                        HTTPServiceName           = null,
@@ -719,7 +720,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         String?                        LogfileName               = DefaultHTTPAPI_LogfileName,
                         LogfileCreatorDelegate?        LogfileCreator            = null)
 
-            : base(HTTPServerName,
+            : base(RootPath,
+                   BasePath,
+
+                   HTTPServerName,
                    HTTPServiceName,
                    APIVersionHash ?? APIVersionHashes?[nameof(HTTPAPIX)]?.Value<String>()?.Trim(),
                    APIVersionHashes,
@@ -734,7 +738,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         {
 
             this.Hostnames                = Hostnames?.       Distinct() ?? [];
-            this.RootPath                 = RootPath                     ?? HTTPPath.Root;
             this.HTTPContentTypes         = HTTPContentTypes?.Distinct() ?? [];
             this.Description              = Description                  ?? I18NString.Empty;
             this.HTTPServer               = HTTPServer;
@@ -1035,7 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              var paramName = segment[1..^1];
 
-                                             if (segment.EndsWith("..}") && ("/" + segment) == URLTemplate.ToString())
+                                             if (segment.EndsWith("..}") && $"{routeNode1.FullPath}/{segment}" == URLTemplate.ToString())
                                                  return PathNode.ForCatchRestOfPath(
                                                             routeNode1.FullPath + "/" + segment,
                                                             paramName[..^2],
@@ -1204,15 +1207,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         if (parameterCatcher is not null && parameterCatcher.ParameterName is not null)
                         {
 
+                            if (parameterCatcher.CatchRestOfPath2 && i <= segments.Length-1)
+                            {
+
+                                parameters.Add(
+                                    parameterCatcher.ParameterName,
+                                    parameterCatcher.CatchRestOfPath2 && i <= segments.Length-1
+                                        ? segments.Skip(i).AggregateWith('/')
+                                        : segments[i]
+                                );
+
+                                return ParsedRequest2.Parsed(
+                                           parameterCatcher,
+                                           parameters
+                                       );
+
+                            }
+
                             parameters.Add(
                                 parameterCatcher.ParameterName,
-                                parameterCatcher.CatchRestOfPath2 && i == segments.Length-1
-                                    ? segments.Skip(i).AggregateWith('/')
-                                    : segments[i]
+                                segments[i]
                             );
-
-                            //if (parameterCatcher.CatchRestOfPath2)
-                            //    return ParsedRequest2.Parsed(parameterCatcher, parameters);
 
                         }
                         else

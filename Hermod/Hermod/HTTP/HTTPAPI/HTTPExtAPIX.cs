@@ -2260,7 +2260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPExtAPIX(HTTPTestServerX?               HTTPTestServer     = null,
+        public HTTPExtAPIX(HTTPTestServerX?               HTTPServer         = null,
                            IEnumerable<HTTPHostname>?     Hostnames          = null,
                            HTTPPath?                      RootPath           = null,
                            IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
@@ -2334,7 +2334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           LogfileCreatorDelegate?        LogfileCreator     = null)
 
 
-            : base(HTTPTestServer,
+            : base(HTTPServer,
                    Hostnames,
                    RootPath,
                    HTTPContentTypes,

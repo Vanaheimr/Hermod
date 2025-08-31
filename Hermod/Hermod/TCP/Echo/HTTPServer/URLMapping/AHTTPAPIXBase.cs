@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// The default HTTP URL prefix.
         /// </summary>
-        //public HTTPPath                 URLPathPrefix            { get; }
+        public HTTPPath                 URLPathPrefix            { get; }
 
 
         public HTTPPath?                BasePath                 { get; }
@@ -114,7 +114,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// Create a new common HTTP API Base.
         /// </summary>
         /// <param name="HTTPServiceName">An HTTP service name (HTTP Servername).</param>
-        public AHTTPAPIXBase(String?                  HTTPServerName       = DefaultHTTPServerName,
+        public AHTTPAPIXBase(HTTPPath?                URLPathPrefix        = null,
+                             HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
+
+                             String?                  HTTPServerName       = DefaultHTTPServerName,
                              String?                  HTTPServiceName      = DefaultHTTPServiceName,
                              String?                  APIVersionHash       = null,
                              JObject?                 APIVersionHashes     = null,
@@ -129,8 +132,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             this.HTTPServerName      = HTTPServerName  ?? DefaultHTTPServerName;
             this.HTTPServiceName     = HTTPServiceName ?? DefaultHTTPServiceName;
-            //this.URLPathPrefix       = URLPathPrefix  ?? HTTPPath.Root;
-            //this.BasePath            = BasePath;
+            this.URLPathPrefix       = URLPathPrefix   ?? HTTPPath.Root;
+            this.BasePath            = BasePath;
             this.HTMLTemplate        = GetResourceString("template.html");
 
             this.APIVersionHash      = APIVersionHash               ?? "";

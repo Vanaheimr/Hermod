@@ -610,6 +610,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      String            DefaultFilename    = "index.html")
         {
 
+            ResourceAssembly ??= Assembly.GetCallingAssembly();
+
             HTTPAPI.AddHandler(
 
                 HTTPMethod.GET,
@@ -618,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPDelegate:       GetFromResourceAssembly(
                                         URLTemplate,
                                         HTTPAPI.HTTPServer.HTTPServerName,
-                                        ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                        ResourceAssembly,
                                         ResourcePath,
                                         DefaultFilename
                                     ),
@@ -637,7 +639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPDelegate:       GetFromResourceAssembly(
                                         URLTemplate,
                                         HTTPAPI.HTTPServer.HTTPServerName,
-                                        ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                        ResourceAssembly,
                                         ResourcePath,
                                         DefaultFilename
                                     ),
@@ -670,6 +672,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Func<String, String, String>?  HTMLTemplateHandler     = null)
         {
 
+            ResourceAssembly ??= Assembly.GetCallingAssembly();
+
             HTTPExtAPI.AddHandler(
 
                 HTTPMethod.GET,
@@ -698,7 +702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               return GetFromResourceAssembly(
                                                          URLTemplate,
                                                          HTTPExtAPI.HTTPServer.HTTPServerName,
-                                                         ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                                         ResourceAssembly,
                                                          ResourcePath,
                                                          DefaultFilename,
                                                          HTMLTemplateHandler
@@ -709,7 +713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         : GetFromResourceAssembly(
                                               URLTemplate,
                                               HTTPExtAPI.HTTPServer.HTTPServerName,
-                                              ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                              ResourceAssembly,
                                               ResourcePath,
                                               DefaultFilename,
                                               HTMLTemplateHandler
@@ -749,7 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               return GetFromResourceAssembly(
                                                          URLTemplate,
                                                          HTTPExtAPI.HTTPServer.HTTPServerName,
-                                                         ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                                         ResourceAssembly,
                                                          ResourcePath,
                                                          DefaultFilename,
                                                          HTMLTemplateHandler
@@ -760,7 +764,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         : GetFromResourceAssembly(
                                               URLTemplate,
                                               HTTPExtAPI.HTTPServer.HTTPServerName,
-                                              ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                              ResourceAssembly,
                                               ResourcePath,
                                               DefaultFilename,
                                               HTMLTemplateHandler

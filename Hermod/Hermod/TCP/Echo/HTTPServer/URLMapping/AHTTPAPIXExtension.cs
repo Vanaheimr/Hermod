@@ -21,6 +21,7 @@ using System.Reflection;
 
 using Newtonsoft.Json.Linq;
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
 #endregion
@@ -55,8 +56,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
         /// <param name="APIVersionHash">An optional API version hash (git commit hash value).</param>
         public AHTTPAPIXExtension(THTTPAPI                 HTTPAPI,
-                                  //HTTPPath?                URLPathPrefix        = null,
-                                  //HTTPPath?                BasePath             = null,
+                                  HTTPPath?                URLPathPrefix        = null,
+                                  HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
                                   //String?                  HTMLTemplate         = null,
 
                                   String?                  HTTPServerName       = DefaultHTTPServerName,
@@ -71,8 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   String?                  LogfileName          = DefaultHTTPAPI_LogfileName,
                                   LogfileCreatorDelegate?  LogfileCreator       = null)
 
-            : base(//URLPathPrefix,
-                   //BasePath,
+            : base(URLPathPrefix,
+                   BasePath,
                    //HTMLTemplate,
 
                    HTTPServerName,

@@ -1353,7 +1353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    !ContentLength.HasValue ||
                     ContentLength.Value == 0)
                 {
-                    httpBody = Array.Empty<Byte>();
+                    httpBody = [];
                     return true;
                 }
 
