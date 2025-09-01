@@ -648,8 +648,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             => URLPathPrefix;
 
 
-        public HTTPPath?                     BasePath                    { get; }
-
         /// <summary>
         /// The HTTP content types served by this HTTP API.
         /// </summary>
@@ -659,9 +657,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// An optional description of this HTTP API.
         /// </summary>
         public I18NString?                   Description                 { get; }
-
-
-        public String?                       ExternalDNSName             { get; }
 
 
         public Warden.Warden                 Warden                      { get; }
@@ -696,9 +691,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
                         I18NString?                    Description               = null,
 
-                        String?                        ExternalDNSName           = null,
                         HTTPPath?                      BasePath                  = null,  // For URL prefixes in HTML!
 
+                        String?                        ExternalDNSName           = null,
                         String?                        HTTPServerName            = null,
                         String?                        HTTPServiceName           = null,
                         String?                        APIVersionHash            = null,
@@ -723,6 +718,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             : base(RootPath,
                    BasePath,
 
+                   ExternalDNSName,
                    HTTPServerName,
                    HTTPServiceName,
                    APIVersionHash ?? APIVersionHashes?[nameof(HTTPAPIX)]?.Value<String>()?.Trim(),
@@ -737,13 +733,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         {
 
+            this.HTTPServer               = HTTPServer;
             this.Hostnames                = Hostnames?.       Distinct() ?? [];
             this.HTTPContentTypes         = HTTPContentTypes?.Distinct() ?? [];
             this.Description              = Description                  ?? I18NString.Empty;
-            this.HTTPServer               = HTTPServer;
-
-            this.ExternalDNSName          = ExternalDNSName;
-            this.BasePath                 = BasePath;
 
             // Register HTTP API within the HTTP server!
             HTTPServer?.AddHTTPAPI(

@@ -60,6 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
                                   //String?                  HTMLTemplate         = null,
 
+                                  String?                  ExternalDNSName      = null,
                                   String?                  HTTPServerName       = DefaultHTTPServerName,
                                   String?                  HTTPServiceName      = DefaultHTTPServiceName,
                                   String?                  APIVersionHash       = null,
@@ -76,6 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    BasePath,
                    //HTMLTemplate,
 
+                   ExternalDNSName,
                    HTTPServerName,
                    HTTPServiceName,
                    APIVersionHash,

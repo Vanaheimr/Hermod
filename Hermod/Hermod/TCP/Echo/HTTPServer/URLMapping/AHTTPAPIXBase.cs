@@ -49,6 +49,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Properties
 
+        /// <summary>
+        /// The external DNS name of this HTTP API.
+        /// </summary>
+        public String?                  ExternalDNSName          { get; }
+
         public String                   HTTPServerName           { get; protected set; } = DefaultHTTPServerName;
 
         /// <summary>
@@ -117,6 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public AHTTPAPIXBase(HTTPPath?                URLPathPrefix        = null,
                              HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
 
+                             String?                  ExternalDNSName      = null,
                              String?                  HTTPServerName       = DefaultHTTPServerName,
                              String?                  HTTPServiceName      = DefaultHTTPServiceName,
                              String?                  APIVersionHash       = null,
@@ -130,6 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                              LogfileCreatorDelegate?  LogfileCreator       = null)
         {
 
+            this.ExternalDNSName     = ExternalDNSName;
             this.HTTPServerName      = HTTPServerName  ?? DefaultHTTPServerName;
             this.HTTPServiceName     = HTTPServiceName ?? DefaultHTTPServiceName;
             this.URLPathPrefix       = URLPathPrefix   ?? HTTPPath.Root;

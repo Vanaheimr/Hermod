@@ -2340,9 +2340,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    HTTPContentTypes,
                    Description,
 
-                   ExternalDNSName,
                    BasePath,
 
+                   ExternalDNSName,
                    HTTPServerName  ?? DefaultHTTPServerName,
                    HTTPServiceName ?? DefaultHTTPServiceName,
                    APIVersionHash  ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
