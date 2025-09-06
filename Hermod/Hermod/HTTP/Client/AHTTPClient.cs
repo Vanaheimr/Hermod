@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        public SslProtocols                                               TLSProtocols                   { get; }
+        public SslProtocols                                               TLSProtocols                  { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
@@ -1850,13 +1850,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 Response = new HTTPResponse.Builder(Request) {
-                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                             ContentType     = HTTPContentType.Application.JSON_UTF8,
-                             Content         = JSONObject.Create(
-                                                   new JProperty("message",  "Something wicked happened!"),
-                                                   new JProperty("timings",  timings.ToString())
-                                               ).ToUTF8Bytes()
-                         };
+                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                               ContentType     = HTTPContentType.Application.JSON_UTF8,
+                               Content         = JSONObject.Create(
+                                                     new JProperty("message",  "Something wicked happened!"),
+                                                     new JProperty("timings",  timings.ToString())
+                                                 ).ToUTF8Bytes()
+                           };
 
                 timings.AddError("Something wicked happened!");
 
