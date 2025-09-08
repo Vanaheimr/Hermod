@@ -537,8 +537,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 try
                 {
-                    // Graceful shutdown after echo completes (client EOF received)
-                    if (client.Client.Connected)
+                    // Graceful shutdown after request completes (client EOF received)
+                    if (client.Client?.Connected == true)
                         client.Client.Shutdown(SocketShutdown.Both);
                 }
                 catch (Exception)
@@ -552,7 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             catch (IOException ex)
             {
                 // Connection closed or reset
-                await Log($"Echo stream closed: {ex.Message}");
+                await Log($"TCP stream closed: {ex.Message}");
             }
             catch (ObjectDisposedException)
             {

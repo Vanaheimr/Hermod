@@ -42,7 +42,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public static class HTTPTestClientExtensions
     {
 
-        #region GET  (Path, ...)
+        #region OPTIONS (Path, ...)
+
+        public static Task<HTTPResponse> OPTIONS(this AHTTPTestClient          HTTPTestClient,
+                                                 HTTPPath                      Path,
+                                                 IHTTPAuthentication?          Authentication        = null,
+                                                 ConnectionType?               Connection            = null,
+                                                 TimeSpan?                     RequestTimeout        = null,
+                                                 EventTracking_Id?             EventTrackingId       = null,
+                                                 Byte                          NumberOfRetry         = 0,
+                                                 Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                                                 ClientRequestLogHandler?      RequestLogDelegate    = null,
+                                                 ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                                                 CancellationToken             CancellationToken     = default)
+
+            => HTTPTestClient.RunRequest(
+
+                   HTTPMethod.OPTIONS,
+                   Path,
+                   null,
+                   null,
+                   Authentication,
+                   null, //UserAgent
+                   null, //Content,
+                   null, //ContentType,
+                   Connection,
+                   RequestBuilder,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+        #region GET     (Path, ...)
 
         public static Task<HTTPResponse> GET(this AHTTPTestClient          HTTPTestClient,
                                              HTTPPath                      Path,
@@ -104,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region POST (Path, Content, ...)
+        #region POST    (Path, Content, ...)
 
         public static Task<HTTPResponse> POST(this AHTTPTestClient          HTTPTestClient,
                                               HTTPPath                      Path,
