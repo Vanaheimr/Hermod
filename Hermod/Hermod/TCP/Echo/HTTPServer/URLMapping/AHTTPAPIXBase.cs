@@ -360,8 +360,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         protected virtual String MixWithHTMLTemplate(String ResourceName)
 
-            => MixWithHTMLTemplate(ResourceName,
-                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+            => MixWithHTMLTemplate(
+                   ResourceName,
+                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly)
+               );
 
         protected virtual String MixWithHTMLTemplate(String                            ResourceName,
                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
@@ -382,15 +384,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         resourceStream.Seek(3, SeekOrigin.Begin);
                         resourceStream.CopyTo(htmlStream);
 
-                        return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                            Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
+                        return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String(), StringComparison.OrdinalIgnoreCase).
+                                            Replace("{{BasePath}}",    BasePath?.ToString() ?? "",          StringComparison.OrdinalIgnoreCase);
 
                     }
 
                 }
 
-                return HTMLTemplate.Replace("<%= content %>",  "").
-                                    Replace("{{BasePath}}",    "");
+                return HTMLTemplate.Replace("<%= content %>",  "", StringComparison.OrdinalIgnoreCase).
+                                    Replace("{{BasePath}}",    "", StringComparison.OrdinalIgnoreCase);
 
             }
 
@@ -405,9 +407,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         protected virtual String MixWithHTMLTemplate(String                ResourceName,
                                                      Func<String, String>  HTMLConverter)
 
-            => MixWithHTMLTemplate(ResourceName,
-                                   HTMLConverter,
-                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+            => MixWithHTMLTemplate(
+                   ResourceName,
+                   HTMLConverter,
+                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly)
+               );
 
         protected virtual String MixWithHTMLTemplate(String                            ResourceName,
                                                      Func<String, String>              HTMLConverter,
@@ -429,15 +433,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         resourceStream.Seek(3, SeekOrigin.Begin);
                         resourceStream.CopyTo(htmlStream);
 
-                        return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                                          Replace("{{BasePath}}",    BasePath?.ToString() ?? ""));
+                        return HTMLConverter(
+                                   HTMLTemplate.
+                                       Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String(), StringComparison.OrdinalIgnoreCase).
+                                       Replace("{{BasePath}}",    BasePath?.ToString() ?? "",          StringComparison.OrdinalIgnoreCase)
+                               );
 
                     }
 
                 }
 
-                return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  "").
-                                                  Replace("{{BasePath}}",    ""));
+                return HTMLConverter(
+                           HTMLTemplate.
+                               Replace("<%= content %>",  "", StringComparison.OrdinalIgnoreCase).
+                               Replace("{{BasePath}}",    "", StringComparison.OrdinalIgnoreCase)
+                       );
 
             }
 
@@ -453,10 +463,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                      String   ResourceName,
                                                      String?  Content   = null)
 
-            => MixWithHTMLTemplate(Template,
-                                   ResourceName,
-                                   new Tuple<String, Assembly>[] { new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) },
-                                   Content);
+            => MixWithHTMLTemplate(
+                   Template,
+                   ResourceName,
+                   [ new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) ],
+                   Content
+               );
 
         protected virtual String MixWithHTMLTemplate(String                     Template,
                                                      String                     ResourceName,
@@ -476,15 +488,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     resourceStream.Seek(3, SeekOrigin.Begin);
                     resourceStream.CopyTo(htmlStream);
 
-                    return Template.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                    Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
+                    return Template.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String(), StringComparison.OrdinalIgnoreCase).
+                                    Replace("{{BasePath}}",    BasePath?.ToString() ?? "",          StringComparison.OrdinalIgnoreCase);
 
                 }
 
             }
 
-            return Template.Replace("<%= content %>",  "").
-                            Replace("{{BasePath}}",    "");
+            return Template.Replace("<%= content %>",  "", StringComparison.OrdinalIgnoreCase).
+                            Replace("{{BasePath}}",    "", StringComparison.OrdinalIgnoreCase);
 
         }
 
