@@ -17,11 +17,10 @@
 
 #region Usings
 
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -29,11 +28,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     public delegate Task OnHTTPRequestDelegate (HTTPRequest        Request,
-                                                NetworkStream      Stream,
+                                                Stream             Stream,
                                                 CancellationToken  CancellationToken);
 
     public delegate Task OnHTTPResponseDelegate(HTTPResponse       Response,
-                                                NetworkStream      Stream,
+                                                Stream             Stream,
                                                 CancellationToken  CancellationToken);
 
 
@@ -125,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected override async Task<HTTPResponse>
 
             ProcessHTTPRequest(HTTPRequest        Request,
-                               NetworkStream      Stream,
+                               Stream             Stream,
                                CancellationToken  CancellationToken   = default)
         {
 

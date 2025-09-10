@@ -1138,7 +1138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => $"{HTTPMethod} {FakeURLPrefix}{Path}{QueryString} {ProtocolName}/{ProtocolVersion}\r\n{ConstructedHTTPHeader}";
 
-        public NetworkStream?                                          NetworkStream           { get; internal set; }
+        public Stream?                                                 NetworkStream           { get; internal set; }
         public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker             { get; set; } = (request, stream) => Task.CompletedTask;
 
 

@@ -742,7 +742,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         protected override async Task<HTTPResponse>
 
             ProcessHTTPRequest(HTTPRequest        Request,
-                               NetworkStream      Stream,
+                               Stream             Stream,
                                CancellationToken  CancellationToken   = default)
 
         {

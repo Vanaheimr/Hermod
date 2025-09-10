@@ -203,16 +203,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 #region Data
 
-                Int32           bufferSize    = (Int32) BufferSize;
-                await using var stream        = Connection.TCPClient.GetStream() as NetworkStream
-                                                  ?? throw new InvalidOperationException("Stream is not a NetworkStream.");
-                using var       bufferOwner   = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
-                var             buffer        = bufferOwner.Memory;
-                var             dataLength    = 0;
+                Int32           bufferSize     = (Int32) BufferSize;
+                var             networkstream  = Connection.TCPClient.GetStream();
+                await using var stream         = (Connection.SSLStream as Stream) ?? networkstream
+                                                     ?? throw new InvalidOperationException("Stream is not a NetworkStream.");
+                using var       bufferOwner    = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
+                var             buffer         = bufferOwner.Memory;
+                var             dataLength     = 0;
 
-                var             localSocket   = IPSocket.FromIPEndPoint((stream.Socket.LocalEndPoint  as IPEndPoint)!);
-                var             remoteSocket  = IPSocket.FromIPEndPoint((stream.Socket.RemoteEndPoint as IPEndPoint)!);
-                var             httpSource    = new HTTPSource(remoteSocket);
+                var             localSocket    = IPSocket.FromIPEndPoint((networkstream.Socket.LocalEndPoint  as IPEndPoint)!);
+                var             remoteSocket   = IPSocket.FromIPEndPoint((networkstream.Socket.RemoteEndPoint as IPEndPoint)!);
+                var             httpSource     = new HTTPSource(remoteSocket);
 
                 #endregion
 
@@ -424,11 +425,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Stream">The network stream for reading the HTTP body and sending the response.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel the processing of the HTTP request.</param>
         protected abstract Task<HTTPResponse> ProcessHTTPRequest(HTTPRequest        Request,
-                                                                 NetworkStream      Stream,
+                                                                 Stream             Stream,
                                                                  CancellationToken  CancellationToken   = default);
 
 
-        protected static async Task SendResponse(NetworkStream      Stream,
+        protected static async Task SendResponse(Stream             Stream,
                                                  HTTPResponse       Response,
                                                  CancellationToken  CancellationToken   = default)
         {
