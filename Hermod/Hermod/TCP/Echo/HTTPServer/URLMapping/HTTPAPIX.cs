@@ -28,6 +28,10 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using System.Reflection.Emit;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Security.Authentication;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -565,39 +569,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// Add a method callback for the given URL template.
         /// </summary>
         /// <param name="HTTPAPIX">An HTTP API.</param>
-        /// <param name="URLTemplate">The URL template.</param>
-        /// <param name="HTTPDelegate">A delegate called for each incoming HTTP request.</param>
         public static HTTPTestServerX
 
-            StartServer(this HTTPAPIX            HTTPAPIX,
-                        HTTPPath                 Path,
-                        HTTPHostname?            Hostname         = null,
+            StartServer(this HTTPAPIX                                             HTTPAPIX,
+                        HTTPPath                                                  Path,
+                        HTTPHostname?                                             Hostname                     = null,
 
-                        IIPAddress?              IPAddress        = null,
-                        IPPort?                  TCPPort          = null,
-                        String?                  HTTPServerName   = null,
-                        UInt32?                  BufferSize       = null,
-                        TimeSpan?                ReceiveTimeout   = null,
-                        TimeSpan?                SendTimeout      = null,
-                        TCPEchoLoggingDelegate?  LoggingHandler   = null)
+                        IIPAddress?                                               IPAddress                    = null,
+                        IPPort?                                                   TCPPort                      = null,
+                        String?                                                   HTTPServerName               = null,
+                        UInt32?                                                   BufferSize                   = null,
+                        TimeSpan?                                                 ReceiveTimeout               = null,
+                        TimeSpan?                                                 SendTimeout                  = null,
+                        TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+
+                        ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                        RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                        LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                        SslProtocols?                                             AllowedTLSProtocols          = null,
+                        Boolean?                                                  ClientCertificateRequired    = null,
+                        Boolean?                                                  CheckCertificateRevocation   = null,
+
+                        ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                        UInt32?                                                   MaxClientConnections         = null,
+                        IDNSClient?                                               DNSClient                    = null)
 
         {
 
             var server = new HTTPTestServerX(
+
                              IPAddress,
                              TCPPort,
                              HTTPServerName,
                              BufferSize,
                              ReceiveTimeout,
                              SendTimeout,
-                             LoggingHandler
-                         );
+                             LoggingHandler,
 
-            server.AddHTTPAPI(
-                       Path,
-                       Hostname,
-                       (server, path) => HTTPAPIX
-                   );
+                             ServerCertificateSelector,
+                             ClientCertificateValidator,
+                             LocalCertificateSelector,
+                             AllowedTLSProtocols,
+                             ClientCertificateRequired,
+                             CheckCertificateRevocation,
+
+                             ConnectionIdBuilder,
+                             MaxClientConnections,
+                             DNSClient,
+
+                             HTTPAPIX
+
+                         );
 
             return server;
 
@@ -634,7 +656,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Properties
 
-        public HTTPTestServerX               HTTPServer              { get; internal set; }
+        public HTTPTestServerX               HTTPServer                  { get; internal set; }
 
         /// <summary>
         /// The HTTP hostname of this HTTP API.

@@ -91,11 +91,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                          SOAPBodyDelegate  SOAPBodyDelegate)
         {
 
-            soapDispatches.Add(new SOAPDispatch(
-                                   Description,
-                                   SOAPMatch,
-                                   SOAPBodyDelegate
-                               ));
+            soapDispatches.Add(
+                new SOAPDispatch(
+                    Description,
+                    SOAPMatch,
+                    SOAPBodyDelegate
+                )
+            );
 
         }
 
@@ -153,29 +155,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             {
 
                 if (soapDispatch.dispatch.BodyDelegate          is not null)
-                    return await soapDispatch.dispatch.BodyDelegate(Request,
-                                                                    soapDispatch.SOAPBody);
+                    return await soapDispatch.dispatch.BodyDelegate(
+                                     Request,
+                                     soapDispatch.SOAPBody
+                                 );
 
                 if (soapDispatch.dispatch.HeaderAndBodyDelegate is not null)
-                    return await soapDispatch.dispatch.HeaderAndBodyDelegate(Request,
-                                                                             soapDispatch.SOAPHeader,
-                                                                             soapDispatch.SOAPBody);
+                    return await soapDispatch.dispatch.HeaderAndBodyDelegate(
+                                     Request,
+                                     soapDispatch.SOAPHeader,
+                                     soapDispatch.SOAPBody
+                                 );
 
                 return new HTTPResponse.Builder(Request) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    ContentType     = HTTPContentType.Text.PLAIN,
-                    Content         = "Invalid SOAP/XML processing!".ToUTF8Bytes(),
-                    Connection      = ConnectionType.Close
-                };
+                           HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                           ContentType     = HTTPContentType.Text.PLAIN,
+                           Content         = "Invalid SOAP/XML processing!".ToUTF8Bytes(),
+                           Connection      = ConnectionType.Close
+                       };
 
             }
 
             return new HTTPResponse.Builder(Request) {
-                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.Text.PLAIN,
-                Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
-                Connection      = ConnectionType.Close
-            };
+                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       ContentType     = HTTPContentType.Text.PLAIN,
+                       Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
+                       Connection      = ConnectionType.Close
+                   };
 
         }
 

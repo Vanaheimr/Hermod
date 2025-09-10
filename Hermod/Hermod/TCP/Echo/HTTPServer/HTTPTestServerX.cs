@@ -59,61 +59,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     /// <summary>
     /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
     /// </summary>
-    /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
-    /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
-    /// <param name="HTTPServerName">An optional HTTP server name. If null or empty, the default HTTP server name will be used.</param>
-    /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
-    /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
-    /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
-    /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-    public class HTTPTestServerX(IIPAddress?                                               IPAddress                    = null,
-                                 IPPort?                                                   TCPPort                      = null,
-                                 String?                                                   HTTPServerName               = null,
-                                 UInt32?                                                   BufferSize                   = null,
-                                 TimeSpan?                                                 ReceiveTimeout               = null,
-                                 TimeSpan?                                                 SendTimeout                  = null,
-                                 TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
-
-                                 ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
-                                 RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
-                                 LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
-                                 SslProtocols?                                             AllowedTLSProtocols          = null,
-                                 Boolean?                                                  ClientCertificateRequired    = null,
-                                 Boolean?                                                  CheckCertificateRevocation   = null,
-
-                                 ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
-                                 UInt32?                                                   MaxClientConnections         = null,
-                                 IDNSClient?                                               DNSClient                    = null)
-
-
-        : AHTTPTestServer(
-
-              IPAddress,
-              TCPPort,
-              HTTPServerName,
-              BufferSize,
-              ReceiveTimeout,
-              SendTimeout,
-              LoggingHandler,
-
-              ServerCertificateSelector,
-              ClientCertificateValidator,
-              LocalCertificateSelector,
-              AllowedTLSProtocols,
-              ClientCertificateRequired,
-              CheckCertificateRevocation,
-
-              ConnectionIdBuilder,
-              MaxClientConnections,
-              DNSClient
-
-          )
-
+        public class HTTPTestServerX : AHTTPTestServer
     {
 
         #region Data
 
         private readonly ConcurrentDictionary<HTTPHostname, HostnameNodeX>  hostnameNodes = [];
+        private readonly ConcurrentDictionary<HTTPHostname, HTTPAPINode>    routeNodes = [];
 
         #endregion
 
@@ -136,29 +88,156 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new HTTP server.
+        /// </summary>
+        /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
+        /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
+        /// <param name="HTTPServerName">An optional HTTP server name. If null or empty, the default HTTP server name will be used.</param>
+        /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
+        /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
+        /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
+        /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
+        /// 
+        /// <param name="ServerCertificateSelector"></param>
+        /// <param name="ClientCertificateValidator"></param>
+        /// <param name="LocalCertificateSelector"></param>
+        /// <param name="AllowedTLSProtocols"></param>
+        /// <param name="ClientCertificateRequired"></param>
+        /// <param name="CheckCertificateRevocation"></param>
+        /// 
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="MaxClientConnections"></param>
+        /// <param name="DNSClient"></param>
+        /// 
+        /// <param name="DefaultAPI"></param>
+        public HTTPTestServerX(IIPAddress?                                               IPAddress                    = null,
+                               IPPort?                                                   TCPPort                      = null,
+                               String?                                                   HTTPServerName               = null,
+                               UInt32?                                                   BufferSize                   = null,
+                               TimeSpan?                                                 ReceiveTimeout               = null,
+                               TimeSpan?                                                 SendTimeout                  = null,
+                               TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+
+                               ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                               RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                               SslProtocols?                                             AllowedTLSProtocols          = null,
+                               Boolean?                                                  ClientCertificateRequired    = null,
+                               Boolean?                                                  CheckCertificateRevocation   = null,
+
+                               ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                               UInt32?                                                   MaxClientConnections         = null,
+                               IDNSClient?                                               DNSClient                    = null,
+
+                               HTTPAPIX?                                                 DefaultAPI                   = null)
+
+            : base(IPAddress,
+                   TCPPort,
+                   HTTPServerName,
+                   BufferSize,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   LoggingHandler,
+
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   LocalCertificateSelector,
+                   AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
+                   ConnectionIdBuilder,
+                   MaxClientConnections,
+                   DNSClient)
+
+        {
+
+            if (DefaultAPI is not null)
+            {
+
+                var defaultHost = routeNodes.AddAndReturnValue(
+                                      HTTPHostname.Any,
+                                      new HTTPAPINode(
+                                          HTTPHostname.Any.ToString(),
+                                          HTTPPath.Root.ToString()
+                                      )
+                                  );
+
+                defaultHost.Children.GetOrAdd(
+                    "/",
+                    pathSegment => {
+
+                        return new HTTPAPINode(
+                            defaultHost.FullPath + "/" + pathSegment,
+                            pathSegment,
+                            DefaultAPI
+                        );
+
+                    }
+                );
+
+                DefaultAPI.HTTPServer = this;
+
+            }
+
+        }
+
+        #endregion
+
 
         #region StartNew(...)
 
         public static async Task<HTTPTestServerX>
 
-            StartNew(IIPAddress?              IPAddress        = null,
-                     IPPort?                  TCPPort          = null,
-                     String?                  HTTPServerName   = null,
-                     UInt32?                  BufferSize       = null,
-                     TimeSpan?                ReceiveTimeout   = null,
-                     TimeSpan?                SendTimeout      = null,
-                     TCPEchoLoggingDelegate?  LoggingHandler   = null)
+            StartNew(IIPAddress?                                               IPAddress                    = null,
+                     IPPort?                                                   TCPPort                      = null,
+                     String?                                                   HTTPServerName               = null,
+                     UInt32?                                                   BufferSize                   = null,
+                     TimeSpan?                                                 ReceiveTimeout               = null,
+                     TimeSpan?                                                 SendTimeout                  = null,
+                     TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+
+                     ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                     RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                     LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                     SslProtocols?                                             AllowedTLSProtocols          = null,
+                     Boolean?                                                  ClientCertificateRequired    = null,
+                     Boolean?                                                  CheckCertificateRevocation   = null,
+
+                     ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                     UInt32?                                                   MaxClientConnections         = null,
+                     IDNSClient?                                               DNSClient                    = null,
+
+                     HTTPAPIX?                                                 DefaultAPI                   = null)
 
         {
 
             var server = new HTTPTestServerX(
+
                              IPAddress,
                              TCPPort,
                              HTTPServerName,
                              BufferSize,
                              ReceiveTimeout,
                              SendTimeout,
-                             LoggingHandler
+                             LoggingHandler,
+
+                             ServerCertificateSelector,
+                             ClientCertificateValidator,
+                             LocalCertificateSelector,
+                             AllowedTLSProtocols,
+                             ClientCertificateRequired,
+                             CheckCertificateRevocation,
+
+                             ConnectionIdBuilder,
+                             MaxClientConnections,
+                             DNSClient,
+
+                             DefaultAPI
+
                          );
 
             await server.Start();
@@ -182,7 +261,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        private readonly ConcurrentDictionary<HTTPHostname, HTTPAPINode> routeNodes = [];
+        public HTTPAPIX DefaultAPI
+
+            => routeNodes[HTTPHostname.Any]?.Children["/"]?.HTTPAPI
+                   ?? throw new InvalidOperationException("The main API '/' is not registered!");
+
 
         public HTTPAPIX AddHTTPAPI(HTTPPath?                                   Path             = null,
                                    HTTPHostname?                               Hostname         = null,
