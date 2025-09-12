@@ -28,15 +28,18 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// <summary>
     /// A warden for service checking and monitoring.
     /// </summary>
-    public partial class Warden
+    public partial class Warden : IDisposable
     {
 
         #region Data
 
+        
+
         private readonly        List<IWardenCheck>   allWardenChecks;
 
-        private readonly        Object               ServiceCheckLock;
+        //private readonly        Lock                 ServiceCheckLock;
         private readonly        Timer                ServiceCheckTimer;
+        private readonly        SemaphoreSlim        ServiceCheckLock     = new (1, 1);
 
 
         /// <summary>
@@ -49,9 +52,13 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// </summary>
         public static readonly  TimeSpan             DefaultCheckEvery    = TimeSpan.FromSeconds(10);
 
+        private                 Boolean              disposed;
+
         #endregion
 
         #region Properties
+
+        public String                     Id                       { get; }
 
         /// <summary>
         /// An enumeration of all Warden checks.
@@ -90,11 +97,13 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// <param name="InitialDelay">The initial start-up delay.</param>
         /// <param name="CheckEvery">Run the warden checks every...</param>
         /// <param name="DNSClient">An optional DNS client for warden checks requiring network access.</param>
-        public Warden(TimeSpan?    InitialDelay   = null,
+        public Warden(String       Id,
+                      TimeSpan?    InitialDelay   = null,
                       TimeSpan?    CheckEvery     = null,
                       IDNSClient?  DNSClient      = null)
         {
 
+            this.Id                     = Id;
             this.InitialDelay           = InitialDelay ?? DefaultInitialDelay;
             this.CheckEvery             = CheckEvery   ?? DefaultCheckEvery;
             this.DNSClient              = DNSClient    ?? new DNSClient();
@@ -102,10 +111,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
             this.allWardenChecks        = [];
             this.WardenCheckProperties  = new WardenProperties();
 
-            this.ServiceCheckLock       = new Object();
+            //this.ServiceCheckLock       = new Lock();
 
             this.ServiceCheckTimer      = new Timer(
-                                              RunWardenChecks,
+                                              state => Task.Run(() => RunWardenChecks(state)).GetAwaiter().GetResult(),
                                               null,
                                               this.InitialDelay,
                                               this.CheckEvery
@@ -118,60 +127,91 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         #region (private, Timer) RunWardenChecks(Status)
 
-        private void RunWardenChecks(Object Status)
+        private async Task RunWardenChecks(Object? Status)
         {
 
-            //DebugX.LogT("'Warden' called!");
+            DebugX.LogT($"Warden '{Id}' called!");
 
-            Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+            //Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
 
-            if (Monitor.TryEnter(ServiceCheckLock))
+            if (await ServiceCheckLock.WaitAsync(0).ConfigureAwait(false))
             {
 
                 try
                 {
 
+                    DebugX.LogT($"Warden '{Id}' entered!");
+
                     var Now       = Timestamp.Now;
                     var TS        = new CancellationTokenSource();
 
-                    var allTasks  = allWardenChecks.Where (check => check.RunCheck(Now, WardenCheckProperties)).
-                                                    Select(check => {
-                                                        try
-                                                        {
-                                                            return check.Run(Now, DNSClient, TS.Token);
-                                                        }
-                                                        catch (Exception e)
-                                                        {
+                    //var allTasks  = allWardenChecks.Where (check => check.RunCheck(Now, WardenCheckProperties)).
+                    //                                Select(check => {
+                    //                                    try
+                    //                                    {
+                    //                                        return check.Run(Now, DNSClient, TS.Token);
+                    //                                    }
+                    //                                    catch (Exception e)
+                    //                                    {
 
-                                                            while (e.InnerException is not null)
-                                                                e = e.InnerException;
+                    //                                        while (e.InnerException is not null)
+                    //                                            e = e.InnerException;
 
-                                                            return Task.FromException(e);
+                    //                                        return Task.FromException(e);
 
-                                                        }
-                                                    }).
-                                                    Where (task  => task is not null).
-                                                    ToArray();
+                    //                                    }
+                    //                                }).
+                    //                                Where (task  => task is not null).
+                    //                                ToArray();
 
-                    if (allTasks.Length > 0)
-                        Task.WaitAll(allTasks);
+                    //if (allTasks.Length > 0)
+                    //    Task.WaitAll(allTasks);
 
                     //ToDo: Log exceptions!
+
+                    foreach (var check in allWardenChecks)
+                    {
+
+                        try
+                        {
+
+                            var shouldRunNow = check.RunCheck(Now, WardenCheckProperties);
+
+                            if (shouldRunNow)
+                            {
+                                try
+                                {
+                                    await check.Run(Now, DNSClient, TS.Token);
+                                }
+                                catch (Exception e)
+                                {
+                                    DebugX.LogT($"Warden '{Id}': {e.Message}{Environment.NewLine}{e.StackTrace}");
+                                }
+                            }
+
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.LogT($"Warden '{Id}': {e.Message}{Environment.NewLine}{e.StackTrace}");
+                        }
+
+                    }
 
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogT("'Warden' led to an exception: " + e.Message + Environment.NewLine + e.StackTrace);
+                    DebugX.LogT($"Warden '{Id}' led to an exception: {e.Message}{Environment.NewLine}{e.StackTrace}");
                 }
                 finally
                 {
-                    Monitor.Exit(ServiceCheckLock);
+                    DebugX.LogT($"Warden '{Id}' exited!");
+                    ServiceCheckLock.Release();
                 }
 
             }
 
-            //else
-            //    DebugX.LogT("'Warden' skipped!");
+            else
+                DebugX.LogT($"Warden '{Id}' skipped!");
 
         }
 
@@ -392,6 +432,36 @@ namespace org.GraphDefined.Vanaheimr.Warden
         public WardenProperties Remove(String Key)
         {
             return WardenCheckProperties.Remove(Key);
+        }
+
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Dispose managed resources
+                ServiceCheckTimer?.Dispose(new ManualResetEvent(true)); // Wait for callbacks to complete
+                ServiceCheckLock?.Dispose();
+            }
+
+            // No unmanaged resources to clean up in this case
+            // If DNSClient or allWardenChecks hold unmanaged resources, dispose them here
+
+            disposed = true;
+        }
+
+        ~Warden()
+        {
+            Dispose(false);
         }
 
     }

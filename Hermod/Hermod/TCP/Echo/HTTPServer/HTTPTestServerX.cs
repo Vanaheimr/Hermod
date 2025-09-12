@@ -29,6 +29,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -101,6 +102,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
         /// 
+        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
+        /// 
+        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
+        /// 
         /// <param name="ServerCertificateSelector"></param>
         /// <param name="ClientCertificateValidator"></param>
         /// <param name="LocalCertificateSelector"></param>
@@ -108,9 +117,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="ClientCertificateRequired"></param>
         /// <param name="CheckCertificateRevocation"></param>
         /// 
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="MaxClientConnections"></param>
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information. If null, the default connection identification will be used.</param>
+        /// <param name="MaxClientConnections">An optional maximum number of concurrent TCP client connections. If null, the default maximum number of concurrent TCP client connections will be used.</param>
         /// <param name="DNSClient"></param>
+        /// 
+        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
+        /// 
+        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="DefaultAPI"></param>
         public HTTPTestServerX(IIPAddress?                                               IPAddress                    = null,
@@ -132,6 +149,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                UInt32?                                                   MaxClientConnections         = null,
                                IDNSClient?                                               DNSClient                    = null,
 
+                               Boolean?                                                  DisableMaintenanceTasks      = false,
+                               TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                               TimeSpan?                                                 MaintenanceEvery             = null,
+
+                               Boolean?                                                  DisableWardenTasks           = false,
+                               TimeSpan?                                                 WardenInitialDelay           = null,
+                               TimeSpan?                                                 WardenCheckEvery             = null,
+
                                HTTPAPIX?                                                 DefaultAPI                   = null)
 
             : base(IPAddress,
@@ -151,7 +176,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                    ConnectionIdBuilder,
                    MaxClientConnections,
-                   DNSClient)
+                   DNSClient,
+
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery)
 
         {
 
@@ -211,6 +244,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                      UInt32?                                                   MaxClientConnections         = null,
                      IDNSClient?                                               DNSClient                    = null,
 
+                     Boolean?                                                  DisableMaintenanceTasks      = false,
+                     TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                     TimeSpan?                                                 MaintenanceEvery             = null,
+
+                     Boolean?                                                  DisableWardenTasks           = false,
+                     TimeSpan?                                                 WardenInitialDelay           = null,
+                     TimeSpan?                                                 WardenCheckEvery             = null,
+
                      HTTPAPIX?                                                 DefaultAPI                   = null)
 
         {
@@ -235,6 +276,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                              ConnectionIdBuilder,
                              MaxClientConnections,
                              DNSClient,
+
+                             DisableMaintenanceTasks,
+                             MaintenanceInitialDelay,
+                             MaintenanceEvery,
+
+                             DisableWardenTasks,
+                             WardenInitialDelay,
+                             WardenCheckEvery,
 
                              DefaultAPI
 
@@ -365,6 +414,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         }
 
 
+        /// <summary>
+        /// Command-line JSON HTTP clients, libraries, and API tools...
+        /// </summary>
+        private static readonly Regex JSONUserAgents = new(
+            @"\b(curl|wget|httpie|PostmanRuntime|python-requests|Go-http-client|libcurl|restsharp|okhttp|Apache-HttpClient|Insomnia|Java/\d)\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+
         #region (internal) GetRequestHandle(Request)
 
         /// <summary>
@@ -372,13 +429,200 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         /// <param name="Request">An HTTP request.</param>
         internal ParsedRequest GetRequestHandle(HTTPRequest Request)
+        {
 
-            => GetRequestHandle(
-                   Request.Host,
-                   Request.HTTPMethod,
-                   Request.Path,
-                   Request.Accept.BestMatchingContentType
-               );
+            try
+            {
+
+                if (!routeNodes.TryGetValue(Request.Host,     out var httpAPINode) &&
+                    !routeNodes.TryGetValue(HTTPHostname.Any, out     httpAPINode))
+                {
+                    return ParsedRequest.Error($"Unknown hostname '{Request.Host}'!");
+                }
+
+                var segments = ("/" + Request.Path.ToString().Trim('/')).Split('/');
+
+                if (segments[0] == "")
+                    segments[0] = "/";
+
+
+                for (var i=0; i < segments.Length; i++)
+                {
+
+                    if (!httpAPINode.Children.TryGetValue(segments[i], out var httpAPINode2))
+                    {
+                        if (!httpAPINode.Children.TryGetValue("/", out httpAPINode2))
+                        {
+                            return ParsedRequest.Error($"Unknown path segment!");
+                        }
+                    }
+
+                    httpAPINode = httpAPINode2;
+
+                    if (httpAPINode.HTTPAPI is not null)
+                    {
+
+                        var newPath          = HTTPPath.Parse(segments.AggregateWith('/')[(httpAPINode.HTTPAPI.RootPath.ToString().Length - 1)..]);
+                        var parsedRouteNode  = httpAPINode.HTTPAPI.GetRequestHandle(newPath);
+
+                        if (parsedRouteNode.RouteNode is not null)
+                        {
+
+                            if (!parsedRouteNode.RouteNode.Methods.TryGetValue(Request.HTTPMethod, out var methodNode))
+                                return ParsedRequest.Error(
+                                           HTTPStatusCode.MethodNotAllowed,
+                                           "Method not allowed!"
+                                       );
+
+                            if (!methodNode.ContentTypes.Any())
+                                return ParsedRequest.Parsed(
+                                           methodNode.RequestHandlers,
+                                           parsedRouteNode.Parameters
+                                       );
+
+                            //var bestMatchingContentType = Request.Accept.BestMatchingContentType([.. methodNode.ContentTypes]);
+
+                            //if (bestMatchingContentType != HTTPContentType.ALL &&
+                            //    methodNode.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
+                            //{
+                            //    return ParsedRequest.Parsed(
+                            //               contentTypeNode,
+                            //               parsedRouteNode.Parameters
+                            //           );
+                            //}
+
+                            if (methodNode.TryGetContentType(
+                                    Request.Accept.BestMatchingContentType([.. methodNode.ContentTypes]),
+                                    out var contentTypeNode
+                                ))
+                            {
+                                return ParsedRequest.Parsed(
+                                           contentTypeNode,
+                                           parsedRouteNode.Parameters
+                                       );
+                            }
+
+                            if (methodNode.ContentTypes.Count() == 1)
+                                return ParsedRequest.Parsed(
+                                           methodNode.HTTPRequestHandlers.First(),
+                                           parsedRouteNode.Parameters
+                                       );
+
+                            #region HTML + JSON
+
+                            if (methodNode.ContentTypes.Contains(HTTPContentType.Text.       HTML_UTF8) &&
+                                methodNode.ContentTypes.Contains(HTTPContentType.Application.JSON_UTF8))
+                            {
+
+                                if (JSONUserAgents.IsMatch(Request.UserAgent ?? "") &&
+                                    methodNode.TryGetContentType(HTTPContentType.Application.JSON_UTF8, out contentTypeNode))
+                                {
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+                                }
+
+                                else if (methodNode.TryGetContentType(HTTPContentType.Text. HTML_UTF8, out contentTypeNode))
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+
+                            }
+
+                            #endregion
+
+                            #region HTML + application/xml
+
+                            if (methodNode.ContentTypes.Contains(HTTPContentType.Text.       HTML_UTF8) &&
+                                methodNode.ContentTypes.Contains(HTTPContentType.Application.XML_UTF8))
+                            {
+
+                                if (JSONUserAgents.IsMatch(Request.UserAgent ?? "") &&
+                                    methodNode.TryGetContentType(HTTPContentType.Application.XML_UTF8, out contentTypeNode))
+                                {
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+                                }
+
+                                else if (methodNode.TryGetContentType(HTTPContentType.Text. HTML_UTF8, out contentTypeNode))
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+
+                            }
+
+                            #endregion
+
+                            #region HTML + text/xml
+
+                            if (methodNode.ContentTypes.Contains(HTTPContentType.Text.HTML_UTF8) &&
+                                methodNode.ContentTypes.Contains(HTTPContentType.Text.XML_UTF8))
+                            {
+
+                                if (JSONUserAgents.IsMatch(Request.UserAgent ?? "") &&
+                                    methodNode.TryGetContentType(HTTPContentType.Text.XML_UTF8, out contentTypeNode))
+                                {
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+                                }
+
+                                else if (methodNode.TryGetContentType(HTTPContentType.Text. HTML_UTF8, out contentTypeNode))
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+
+                            }
+
+                            #endregion
+
+                            #region HTML + application/soap+xml
+
+                            if (methodNode.ContentTypes.Contains(HTTPContentType.Text.       HTML_UTF8) &&
+                                methodNode.ContentTypes.Contains(HTTPContentType.Application.SOAPXML_UTF8))
+                            {
+
+                                if (JSONUserAgents.IsMatch(Request.UserAgent ?? "") &&
+                                    methodNode.TryGetContentType(HTTPContentType.Application.XML_UTF8, out contentTypeNode))
+                                {
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+                                }
+
+                                else if (methodNode.TryGetContentType(HTTPContentType.Text. HTML_UTF8, out contentTypeNode))
+                                    return ParsedRequest.Parsed(
+                                               contentTypeNode,
+                                               parsedRouteNode.Parameters
+                                           );
+
+                            }
+
+                            #endregion
+
+                        }
+
+                    }
+
+                }
+
+            }
+            catch (Exception e)
+            {
+                return ParsedRequest.Error(e.Message + Environment.NewLine + e.StackTrace);
+            }
+
+            return ParsedRequest.Error($"error!");
+
+        }
 
         #endregion
 
@@ -405,20 +649,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return ParsedRequest.Error($"Unknown hostname '{Hostname}'!");
                 }
 
-                var path = "/" + Path.ToString().Trim('/');
-                var list = new List<String>();
-
-                foreach (var httpAPI in host.Children)
-                {
-                    var newPath          = HTTPPath.Parse(path[(httpAPI.Key.Length - 1)..]);
-                //    var parsedRouteNode  = httpAPI.Value. .GetRequestHandle(newPath);
-
-
-                }
-
-
-
-                //var segments  = Path.ToString().Trim('/').Split('/');
                 var segments = ("/" + Path.ToString().Trim('/')).Split('/');
 
                 if (segments[0] == "")
@@ -447,40 +677,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         if (parsedRouteNode.RouteNode is not null)
                         {
 
-                            if (parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodNode))
+                            if (!parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodNode))
+                                return ParsedRequest.Error(
+                                           HTTPStatusCode.MethodNotAllowed,
+                                           "Method not allowed!"
+                                       );
+
+                            if (methodNode.ContentTypes.Any() && HTTPContentTypeSelector is not null)
                             {
 
-                                if (methodNode.ContentTypes.Any() && HTTPContentTypeSelector is not null)
+                                var bestMatchingContentType = HTTPContentTypeSelector([.. methodNode.ContentTypes]);
+
+                                if (bestMatchingContentType != HTTPContentType.ALL)
                                 {
-
-                                    var bestMatchingContentType = HTTPContentTypeSelector([.. methodNode.ContentTypes]);
-
-                                    if (bestMatchingContentType != HTTPContentType.ALL)
-                                    {
-                                        if (methodNode.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
-                                            return ParsedRequest.Parsed(
-                                                       contentTypeNode,
-                                                       parsedRouteNode.Parameters
-                                                   );
-                                    }
-
-                                    if (methodNode.ContentTypes.Count() == 1)
+                                    if (methodNode.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
                                         return ParsedRequest.Parsed(
-                                                   methodNode.HTTPRequestHandlers.First(),
+                                                   contentTypeNode,
                                                    parsedRouteNode.Parameters
                                                );
-
                                 }
 
-                                return ParsedRequest.Parsed(
-                                           methodNode.RequestHandlers,
-                                           parsedRouteNode.Parameters
-                                       );
+                                if (methodNode.ContentTypes.Count() == 1)
+                                    return ParsedRequest.Parsed(
+                                               methodNode.HTTPRequestHandlers.First(),
+                                               parsedRouteNode.Parameters
+                                           );
 
                             }
 
                             return ParsedRequest.Parsed(
-                                       parsedRouteNode.RouteNode.RequestHandlers,
+                                       methodNode.RequestHandlers,
                                        parsedRouteNode.Parameters
                                    );
 
@@ -497,33 +723,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
 
             return ParsedRequest.Error($"error!");
-
-
-
-            //    var bestMatchingContentType = HTTPContentTypeSelector(httpMethodNode.ContentTypes.ToArray());
-
-            //    if (bestMatchingContentType == HTTPContentType.ALL)
-            //    {
-
-            //        // No content types defined...
-            //        if (!httpMethodNode.Any())
-            //            return (HTTPRequestHandleX.FromMethodNode(httpMethodNode), []);
-
-            //        // A single content type is defined...
-            //    //    else if (_HTTPMethodNode.Count() == 1)
-            //            return (HTTPRequestHandleX.FromContentTypeNode(httpMethodNode.First()), []);
-
-            //    //    else
-            //    //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
-
-            //    }
-
-            //    // The requested content type was found...
-            //    else if (httpMethodNode.TryGet(bestMatchingContentType, out var httpContentTypeNode) && httpContentTypeNode is not null)
-            //        return (HTTPRequestHandleX.FromContentTypeNode(httpContentTypeNode), []);
-
-            //    else
-            //        return (HTTPRequestHandleX.FromMethodNode(httpMethodNode), []);
 
         }
 
@@ -886,18 +1085,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     }
 
-                    if (parsedRequest.ErrorResponse == "This HTTP method is not allowed!")
-                        httpResponse = new HTTPResponse.Builder(Request) {
-                                           HTTPStatusCode  = HTTPStatusCode.MethodNotAllowed,
-                                           Server          = Request.Host.ToString(),
-                                           Date            = Timestamp.Now,
-                                           ContentType     = HTTPContentType.Text.PLAIN,
-                                           Content         = parsedRequest.ErrorResponse.ToUTF8Bytes()
-                                 //          Connection      = ConnectionType.Close
-                                       };
+                    //if (parsedRequest.ErrorResponse == "This HTTP method is not allowed!")
+                    //    httpResponse = new HTTPResponse.Builder(Request) {
+                    //                       HTTPStatusCode  = HTTPStatusCode.MethodNotAllowed,
+                    //                       Server          = Request.Host.ToString(),
+                    //                       Date            = Timestamp.Now,
+                    //                       ContentType     = HTTPContentType.Text.PLAIN,
+                    //                       Content         = parsedRequest.ErrorResponse.ToUTF8Bytes()
+                    //             //          Connection      = ConnectionType.Close
+                    //                   };
 
                     httpResponse ??= new HTTPResponse.Builder(Request) {
-                                         HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                         HTTPStatusCode  = parsedRequest.HTTPStatusCode ?? HTTPStatusCode.InternalServerError,
                                          Server          = Request.Host.ToString(),
                                          Date            = Timestamp.Now,
                                          ContentType     = HTTPContentType.Application.JSON_UTF8,

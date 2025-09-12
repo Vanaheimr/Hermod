@@ -1406,6 +1406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Setup Warden
             this.Warden = new Warden.Warden(
+                              ExternalDNSName    ?? $"{nameof(HTTPAPI)}:{HTTPServer.IPPorts.AggregateWith(',')}",
                               WardenInitialDelay ?? TimeSpan.FromMinutes(3),
                               WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
                               DNSClient

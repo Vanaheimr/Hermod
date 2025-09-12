@@ -125,6 +125,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
+        /// 
+        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
+        /// 
+        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
+        /// 
+        /// <param name="ServerCertificateSelector"></param>
+        /// <param name="ClientCertificateValidator"></param>
+        /// <param name="LocalCertificateSelector"></param>
+        /// <param name="AllowedTLSProtocols"></param>
+        /// <param name="ClientCertificateRequired"></param>
+        /// <param name="CheckCertificateRevocation"></param>
+        /// 
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information. If null, the default connection identification will be used.</param>
+        /// <param name="MaxClientConnections">An optional maximum number of concurrent TCP client connections. If null, the default maximum number of concurrent TCP client connections will be used.</param>
+        /// <param name="DNSClient"></param>
+        /// 
+        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
+        /// 
+        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         public AHTTPTestServer(IIPAddress?                                               IPAddress                    = null,
                                IPPort?                                                   TCPPort                      = null,
                                String?                                                   HTTPServerName               = null,
@@ -142,7 +169,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
                                UInt32?                                                   MaxClientConnections         = null,
-                               IDNSClient?                                               DNSClient                    = null)
+                               IDNSClient?                                               DNSClient                    = null,
+
+                               Boolean?                                                  DisableMaintenanceTasks      = false,
+                               TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                               TimeSpan?                                                 MaintenanceEvery             = null,
+
+                               Boolean?                                                  DisableWardenTasks           = false,
+                               TimeSpan?                                                 WardenInitialDelay           = null,
+                               TimeSpan?                                                 WardenCheckEvery             = null)
 
             : base(IPAddress,
                    TCPPort,
@@ -159,7 +194,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                    ConnectionIdBuilder,
                    MaxClientConnections,
-                   DNSClient)
+                   DNSClient,
+
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery)
 
         {
 

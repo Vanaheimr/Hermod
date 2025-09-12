@@ -33,15 +33,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         public HTTPRequestHandlersX?       RequestHandlers    { get; }
         public Dictionary<String, String>  Parameters         { get; }
+        public HTTPStatusCode?             HTTPStatusCode     { get; }
         public String?                     ErrorResponse      { get; }
 
         private ParsedRequest(HTTPRequestHandlersX?       RequestHandlers,
                               Dictionary<String, String>  Parameters,
-                              String?                     ErrorResponse   = null)
+                              HTTPStatusCode?             HTTPStatusCode   = null,
+                              String?                     ErrorResponse    = null)
         {
 
             this.RequestHandlers  = RequestHandlers;
             this.Parameters       = Parameters;
+            this.HTTPStatusCode   = HTTPStatusCode;
             this.ErrorResponse    = ErrorResponse;
 
         }
@@ -60,6 +63,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             => new (
                    null,
                    [],
+                   HTTPStatusCode.InternalServerError,
+                   ErrorResponse
+               );
+
+
+        public static ParsedRequest Error(HTTPStatusCode  HTTPStatusCode,
+                                          String          ErrorResponse)
+
+            => new (
+                   null,
+                   [],
+                   HTTPStatusCode,
                    ErrorResponse
                );
 

@@ -592,7 +592,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                         ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
                         UInt32?                                                   MaxClientConnections         = null,
-                        IDNSClient?                                               DNSClient                    = null)
+                        IDNSClient?                                               DNSClient                    = null,
+
+                        Boolean?                                                  DisableMaintenanceTasks      = false,
+                        TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                        TimeSpan?                                                 MaintenanceEvery             = null,
+
+                        Boolean?                                                  DisableWardenTasks           = false,
+                        TimeSpan?                                                 WardenInitialDelay           = null,
+                        TimeSpan?                                                 WardenCheckEvery             = null)
 
         {
 
@@ -617,6 +625,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                              MaxClientConnections,
                              DNSClient,
 
+                             DisableMaintenanceTasks,
+                             MaintenanceInitialDelay,
+                             MaintenanceEvery,
+
+                             DisableWardenTasks,
+                             WardenInitialDelay,
+                             WardenCheckEvery,
+
                              HTTPAPIX
 
                          );
@@ -637,20 +653,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #region Data
 
         /// <summary>
-        /// The default maintenance interval.
-        /// </summary>
-        public           readonly  TimeSpan       DefaultMaintenanceEvery  = TimeSpan.FromMinutes(1);
-
-        private          readonly  Timer          MaintenanceTimer;
-
-        protected static readonly  TimeSpan       SemaphoreSlimTimeout     = TimeSpan.FromSeconds(5);
-
-        protected static readonly  SemaphoreSlim  MaintenanceSemaphore     = new (1, 1);
-
-        /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public  const              String         HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public  const              String                                  HTTPRoot              = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+
+        private readonly           ConcurrentDictionary<String, PathNode>  routeNodes            = [];
 
         #endregion
 
@@ -680,8 +687,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         public I18NString?                   Description                 { get; }
 
-
-        public Warden.Warden                 Warden                      { get; }
         public ECPrivateKeyParameters?       ServiceCheckPrivateKey      { get; set; }
 
         public ECPublicKeyParameters?        ServiceCheckPublicKey       { get; set; }
@@ -692,16 +697,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// Whether the reload of the system is finished.
         /// </summary>
         public Boolean                       ReloadFinished              { get; protected set; }
-
-        /// <summary>
-        /// The maintenance interval.
-        /// </summary>
-        public TimeSpan                      MaintenanceEvery            { get; }
-
-        /// <summary>
-        /// Disable all maintenance tasks.
-        /// </summary>
-        public Boolean                       DisableMaintenanceTasks     { get; set; }
 
         #endregion
 
@@ -720,14 +715,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         String?                        HTTPServiceName           = null,
                         String?                        APIVersionHash            = null,
                         JObject?                       APIVersionHashes          = null,
-
-                        Boolean?                       DisableMaintenanceTasks   = false,
-                        TimeSpan?                      MaintenanceInitialDelay   = null,
-                        TimeSpan?                      MaintenanceEvery          = null,
-
-                        Boolean?                       DisableWardenTasks        = false,
-                        TimeSpan?                      WardenInitialDelay        = null,
-                        TimeSpan?                      WardenCheckEvery          = null,
 
                         Boolean?                       IsDevelopment             = null,
                         IEnumerable<String>?           DevelopmentServers        = null,
@@ -766,23 +753,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 HTTPHostname.Any,
                 (server, path) => this
             );
-
-            // Setup Maintenance Task
-            this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
-            this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
-            this.MaintenanceTimer         = new Timer(
-                                                DoMaintenanceSync,
-                                                this,
-                                                MaintenanceInitialDelay ?? this.MaintenanceEvery,
-                                                this.MaintenanceEvery
-                                            );
-
-            // Setup Warden
-            this.Warden                   = new Warden.Warden(
-                                                WardenInitialDelay ?? TimeSpan.FromMinutes(3),
-                                                WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
-                                                this.HTTPServer.DNSClient
-                                            );
 
         }
 
@@ -868,8 +838,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-
-        private readonly ConcurrentDictionary<String, PathNode> routeNodes = [];
 
         #region AddHandler(HTTPMethod, URLTemplate, HTTPDelegate, ...
 
@@ -1482,51 +1450,6 @@ Error:
                                                         params Tuple<String, Assembly>[]  ResourceAssemblies)
 
             => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
-
-        #endregion
-
-
-        #region (Timer) DoMaintenance(State)
-
-        private void DoMaintenanceSync(Object? State)
-        {
-            if (ReloadFinished && !DisableMaintenanceTasks)
-                DoMaintenanceAsync(State).ConfigureAwait(false);
-        }
-
-        protected internal virtual Task DoMaintenance(Object? State)
-            => Task.CompletedTask;
-
-        private async Task DoMaintenanceAsync(Object? State)
-        {
-
-            if (await MaintenanceSemaphore.WaitAsync(SemaphoreSlimTimeout).
-                                           ConfigureAwait(false))
-            {
-                try
-                {
-
-                    await DoMaintenance(State);
-
-                }
-                catch (Exception e)
-                {
-
-                    while (e.InnerException is not null)
-                        e = e.InnerException;
-
-                    DebugX.LogException(e);
-
-                }
-                finally
-                {
-                    MaintenanceSemaphore.Release();
-                }
-            }
-            else
-                DebugX.LogT("Could not aquire the maintenance tasks lock!");
-
-        }
 
         #endregion
 

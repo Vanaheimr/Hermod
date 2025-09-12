@@ -2302,14 +2302,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           Byte?                                                      MinNewsBannerIdLength            = null,
                           Byte?                                                      MinFAQIdLength                   = null,
 
-                          Boolean?                                                   DisableMaintenanceTasks          = null,
-                          TimeSpan?                                                  MaintenanceInitialDelay          = null,
-                          TimeSpan?                                                  MaintenanceEvery                 = null,
-
-                          Boolean?                                                   DisableWardenTasks               = null,
-                          TimeSpan?                                                  WardenInitialDelay               = null,
-                          TimeSpan?                                                  WardenCheckEvery                 = null,
-
                           IEnumerable<URLWithAPIKey>?                                RemoteAuthServers                = null,
                           IEnumerable<APIKey_Id>?                                    RemoteAuthAPIKeys                = null,
 
@@ -2345,14 +2337,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    HTTPServiceName ?? DefaultHTTPServiceName,
                    APIVersionHash  ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
                    APIVersionHashes,
-
-                   DisableMaintenanceTasks,
-                   MaintenanceInitialDelay,
-                   MaintenanceEvery,
-
-                   DisableWardenTasks,
-                   WardenInitialDelay,
-                   WardenCheckEvery,
 
                    IsDevelopment,
                    DevelopmentServers,

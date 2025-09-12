@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -92,10 +88,12 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             where TEntity : class
 
-            => Warden.Check((timestamp, serviceproperties) => TimeCheck(timestamp),
-                            SleepTime,
-                            Entity,
-                            ServiceChecker);
+            => Warden.Check(
+                   (timestamp, serviceproperties) => TimeCheck(timestamp),
+                   SleepTime,
+                   Entity,
+                   ServiceChecker
+               );
 
 
         public static Warden Check<TEntity, TResult>(this Warden                                                      Warden,
@@ -411,10 +409,12 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             where TEntity : class
 
-            => Warden.EveryMinutes(Minutes,
-                                   0,
-                                   Entity,
-                                   ServiceChecker);
+            => Warden.EveryMinutes(
+                   Minutes,
+                   0,
+                   Entity,
+                   ServiceChecker
+               );
 
         public static Warden EveryMinutes<TEntity>(this Warden                                             Warden,
                                                    UInt16                                                  Minutes,
@@ -424,10 +424,12 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             where TEntity : class
 
-            => Warden.Check(timestamp => timestamp.Minute % Minutes == Offset,
-                            TimeSpan.FromMinutes(1),
-                            Entity,
-                            ServiceChecker);
+            => Warden.Check(
+                   timestamp => timestamp.Minute % Minutes == Offset,
+                   TimeSpan.FromMinutes(1),
+                   Entity,
+                   ServiceChecker
+               );
 
         public static Warden EveryMinutes<TEntity>(this Warden                                             Warden,
                                                    UInt16                                                  Minutes,

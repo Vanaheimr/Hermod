@@ -29,6 +29,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Warden;
 
 #endregion
 
@@ -50,17 +51,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        public static readonly TimeSpan                               DefaultReceiveTimeout         = TimeSpan.FromSeconds(30);
-        public static readonly TimeSpan                               DefaultSendTimeout            = TimeSpan.FromSeconds(30);
-        public const           UInt32                                 DefaultMaxClientConnections   = 1024;
+        public static readonly     TimeSpan                               DefaultReceiveTimeout         = TimeSpan.FromSeconds(30);
+        public static readonly     TimeSpan                               DefaultSendTimeout            = TimeSpan.FromSeconds(30);
+        public const               UInt32                                 DefaultMaxClientConnections   = 8192;
 
-        private readonly       TcpListener?                           tcpListenerIPv6;
-        private readonly       TcpListener?                           tcpListenerIPv4;
-        private readonly       TCPEchoLoggingDelegate?                loggingHandler;
-        private readonly       CancellationTokenSource                cts;
-        private                Task?                                  serverTask;
+        private readonly           TcpListener?                           tcpListenerIPv6;
+        private readonly           TcpListener?                           tcpListenerIPv4;
+        private readonly           TCPEchoLoggingDelegate?                loggingHandler;
+        private readonly           CancellationTokenSource                cts;
+        private                    Task?                                  serverTask;
 
-        private readonly       ConcurrentDictionary<TcpClient, Task>  activeClients                 = [];
+        private readonly           ConcurrentDictionary<TcpClient, Task>  activeClients                 = [];
+
+        /// <summary>
+        /// The default maintenance interval.
+        /// </summary>
+        public           readonly  TimeSpan                               DefaultMaintenanceEvery       = TimeSpan.FromMinutes(1);
+
+        private          readonly  Timer                                  maintenanceTimer;
+
+        protected static readonly  SemaphoreSlim                          MaintenanceSemaphore          = new (1, 1);
+
+        protected static readonly  TimeSpan                               SemaphoreSlimTimeout          = TimeSpan.FromSeconds(5);
+
+        public           volatile  Boolean                                ReloadFinished                = false;
 
         #endregion
 
@@ -137,6 +151,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public IDNSClient?                       DNSClient                              { get; }
 
+
+
+        public Warden.Warden                     Warden                                 { get; }
+
+
+
+        /// <summary>
+        /// The maintenance interval.
+        /// </summary>
+        public TimeSpan                          MaintenanceEvery                       { get; }
+
+        /// <summary>
+        /// Disable all maintenance tasks.
+        /// </summary>
+        public Boolean                           DisableMaintenanceTasks                { get; set; }
+
         #endregion
 
         #region Events
@@ -188,6 +218,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// 
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information. If null, the default connection identification will be used.</param>
         /// <param name="MaxClientConnections">An optional maximum number of concurrent TCP client connections. If null, the default maximum number of concurrent TCP client connections will be used.</param>
+        /// 
+        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
+        /// 
+        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         public ATCPTestServer(IIPAddress?                                               IPAddress                    = null,
                               IPPort?                                                   TCPPort                      = null,
                               TimeSpan?                                                 ReceiveTimeout               = null,
@@ -203,7 +241,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                               ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
                               UInt32?                                                   MaxClientConnections         = null,
-                              IDNSClient?                                               DNSClient                    = null)
+                              IDNSClient?                                               DNSClient                    = null,
+
+                              Boolean?                                                  DisableMaintenanceTasks      = false,
+                              TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                              TimeSpan?                                                 MaintenanceEvery             = null,
+
+                              Boolean?                                                  DisableWardenTasks           = false,
+                              TimeSpan?                                                 WardenInitialDelay           = null,
+                              TimeSpan?                                                 WardenCheckEvery             = null)
 
         {
 
@@ -273,6 +319,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
             this.CheckCertificateRevocation  = CheckCertificateRevocation ?? false;
             this.DNSClient                   = DNSClient                  ?? new DNSClient();
+
+            // Setup Maintenance Task
+            this.DisableMaintenanceTasks     = DisableMaintenanceTasks ?? false;
+            this.MaintenanceEvery            = MaintenanceEvery        ?? DefaultMaintenanceEvery;
+            this.maintenanceTimer            = new Timer(
+                                                   DoMaintenanceSync,
+                                                   this,
+                                                   MaintenanceInitialDelay ?? this.MaintenanceEvery,
+                                                   this.MaintenanceEvery
+                                               );
+
+            // Setup Warden
+            this.Warden                      = new Warden.Warden(
+                                                   $"TCP Server {IPSocket}",
+                                                   WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+                                                   WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+                                                   this.DNSClient
+                                               );
+
+
+            #region Warden: Check active TCP-clients...
+
+            this.Warden.EveryMinutes(
+                1,
+                activeClients,
+                async (timestamp, tcpClients, ct) => {
+
+                    DebugX.LogT($"TCP Server {IPSocket} Warden: Checking active TCP clients ({activeClients.Count})...");
+
+                    foreach (var tcpClient in tcpClients.Keys.ToList())
+                    {
+                        if (tcpClient.Connected) // .Client?.Connected != true)
+                        {
+                            if (activeClients.TryRemove(tcpClient, out var task))
+                            {
+                                try
+                                {
+                                    tcpClient.Close();
+                                    await task;
+                                    await Log($"Cleaned up stale client {tcpClient.Client?.RemoteEndPoint}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    await Log($"Error cleaning up stale client: {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+                    //await Task.Delay(TimeSpan.FromSeconds(30), token);
+                }
+            );
+
+            #endregion
 
         }
 
@@ -703,6 +802,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
+
+        #region (Timer) DoMaintenance(State)
+
+        private void DoMaintenanceSync(Object? State)
+        {
+            if (ReloadFinished && !DisableMaintenanceTasks)
+                DoMaintenanceAsync(State).ConfigureAwait(false);
+        }
+
+        protected internal virtual Task DoMaintenance(Object? State)
+            => Task.CompletedTask;
+
+        private async Task DoMaintenanceAsync(Object? State)
+        {
+
+            if (await MaintenanceSemaphore.
+                          WaitAsync(SemaphoreSlimTimeout).
+                          ConfigureAwait(false))
+            {
+                try
+                {
+
+                    await DoMaintenance(State);
+
+                }
+                catch (Exception e)
+                {
+
+                    while (e.InnerException is not null)
+                        e = e.InnerException;
+
+                    DebugX.LogException(e);
+
+                }
+                finally
+                {
+                    MaintenanceSemaphore.Release();
+                }
+            }
+            else
+                DebugX.LogT("Could not aquire the maintenance tasks lock!");
+
+        }
+
+        #endregion
 
 
         #region (protected) LogEvent     (Module, Logger, LogHandler, ...)
