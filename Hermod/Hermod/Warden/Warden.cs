@@ -169,6 +169,8 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                     //ToDo: Log exceptions!
 
+                    var allTasks = new List<Task>();
+
                     foreach (var check in allWardenChecks)
                     {
 
@@ -181,7 +183,13 @@ namespace org.GraphDefined.Vanaheimr.Warden
                             {
                                 try
                                 {
-                                    await check.Run(Now, DNSClient, TS.Token);
+                                    allTasks.Add(
+                                        check.Run(
+                                            Now,
+                                            DNSClient,
+                                            TS.Token
+                                        )
+                                    );
                                 }
                                 catch (Exception e)
                                 {
@@ -196,6 +204,8 @@ namespace org.GraphDefined.Vanaheimr.Warden
                         }
 
                     }
+
+                    Task.WaitAll(allTasks);
 
                 }
                 catch (Exception e)

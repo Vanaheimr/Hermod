@@ -661,14 +661,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         protected Boolean IsConnectionClosed
         {
-            get {
+            get
+            {
 
                 var socket = tcpClient?.GetStream().Socket;
 
                 if (socket is null)
                     return true;
 
-                return socket.Poll(0, SelectMode.SelectRead) && (socket.Available == 0);
+                return socket.Poll(0, SelectMode.SelectRead) &&
+                      (socket.Available == 0);
 
             }
         }

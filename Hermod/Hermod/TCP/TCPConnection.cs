@@ -31,6 +31,36 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
+    public static class TCPClientExtensions
+    {
+
+        /// <summary>
+        /// Poll non-blocking for readability
+        /// If poll indicates readable but no data available, it's likely closed (EOF detected)
+        /// </summary>
+        public static Boolean IsConnection__Closed(this TcpClient TCPClient)
+        {
+
+            try
+            {
+
+                var socket = TCPClient.GetStream().Socket;
+
+                if (socket is null)
+                    return true;
+
+                return socket.Poll(0, SelectMode.SelectRead) &&
+                      (socket.Available == 0);
+
+            } catch (Exception)
+            {
+                return true;
+            }
+
+        }
+
+    }
+
     public delegate X509Certificate2 ServerCertificateSelectorDelegate(ITCPServer TCPServer, TcpClient TCPClient);
 
     /// <summary>
@@ -361,6 +391,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
+
+
+        /// <summary>
+        /// Poll non-blocking for readability
+        /// If poll indicates readable but no data available, it's likely closed (EOF detected)
+        /// </summary>
+        public Boolean IsConnectionClosed()
+        {
+
+            var socket = NetworkStream.Socket;
+
+            if (socket is null)
+                return true;
+
+            return socket.Poll(0, SelectMode.SelectRead) &&
+                  (socket.Available == 0);
+
+        }
 
 
         #region Read(SleepingTimeMS = 5, MaxInitialWaitingTimeMS = 500)

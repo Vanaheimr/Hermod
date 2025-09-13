@@ -51,30 +51,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        public static readonly     TimeSpan                               DefaultReceiveTimeout         = TimeSpan.FromSeconds(30);
-        public static readonly     TimeSpan                               DefaultSendTimeout            = TimeSpan.FromSeconds(30);
-        public const               UInt32                                 DefaultMaxClientConnections   = 8192;
+        public static readonly     TimeSpan                                   DefaultReceiveTimeout         = TimeSpan.FromSeconds(30);
+        public static readonly     TimeSpan                                   DefaultSendTimeout            = TimeSpan.FromSeconds(30);
+        public const               UInt32                                     DefaultMaxClientConnections   = 8192;
 
-        private readonly           TcpListener?                           tcpListenerIPv6;
-        private readonly           TcpListener?                           tcpListenerIPv4;
-        private readonly           TCPEchoLoggingDelegate?                loggingHandler;
-        private readonly           CancellationTokenSource                cts;
-        private                    Task?                                  serverTask;
+        private readonly           TcpListener?                               tcpListenerIPv6;
+        private readonly           TcpListener?                               tcpListenerIPv4;
+        private readonly           TCPEchoLoggingDelegate?                    loggingHandler;
+        private readonly           CancellationTokenSource                    cts;
+        private                    Task?                                      serverTask;
 
-        private readonly           ConcurrentDictionary<TcpClient, Task>  activeClients                 = [];
+        private readonly           ConcurrentDictionary<TCPConnection, Task>  activeClients                 = [];
 
         /// <summary>
         /// The default maintenance interval.
         /// </summary>
-        public           readonly  TimeSpan                               DefaultMaintenanceEvery       = TimeSpan.FromMinutes(1);
+        public           readonly  TimeSpan                                   DefaultMaintenanceEvery       = TimeSpan.FromMinutes(1);
 
-        private          readonly  Timer                                  maintenanceTimer;
+        private          readonly  Timer                                      maintenanceTimer;
 
-        protected static readonly  SemaphoreSlim                          MaintenanceSemaphore          = new (1, 1);
+        protected static readonly  SemaphoreSlim                              MaintenanceSemaphore          = new (1, 1);
 
-        protected static readonly  TimeSpan                               SemaphoreSlimTimeout          = TimeSpan.FromSeconds(5);
+        protected static readonly  TimeSpan                                   SemaphoreSlimTimeout          = TimeSpan.FromSeconds(5);
 
-        public           volatile  Boolean                                ReloadFinished                = false;
+        public           volatile  Boolean                                    ReloadFinished                = false;
 
         #endregion
 
@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return an enumeration of sockets of all currently connected clients.
         /// </summary>
         public IEnumerable<IPSocket>             ClientSockets
-            => activeClients.Keys.Select(static client => IPSocket.FromIPEndPoint((client.Client.RemoteEndPoint as IPEndPoint)!));
+            => activeClients.Keys.Select(static tcpConnection => IPSocket.FromIPEndPoint((tcpConnection.TCPClient.Client.RemoteEndPoint as IPEndPoint)!));
 
         /// <summary>
         /// The DNS client used.
@@ -347,24 +347,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 async (timestamp, tcpClients, ct) => {
 
                     DebugX.LogT($"TCP Server {IPSocket} Warden: Checking active TCP clients ({activeClients.Count})...");
+                    await Log($"TCP Server {IPSocket} Warden: Checking active TCP clients ({activeClients.Count})...");
 
-                    foreach (var tcpClient in tcpClients.Keys.ToList())
+                    foreach (var tcpConnection in tcpClients.Keys.ToList())
                     {
-                        if (tcpClient.Connected) // .Client?.Connected != true)
+                        try
                         {
-                            if (activeClients.TryRemove(tcpClient, out var task))
+                            if (tcpConnection.IsConnectionClosed())
                             {
-                                try
+                                if (activeClients.TryRemove(tcpConnection, out var task))
                                 {
-                                    tcpClient.Close();
-                                    await task;
-                                    await Log($"Cleaned up stale client {tcpClient.Client?.RemoteEndPoint}");
-                                }
-                                catch (Exception ex)
-                                {
-                                    await Log($"Error cleaning up stale client: {ex.Message}");
+                                    try
+                                    {
+                                        tcpConnection.TCPClient.Close();
+                                        await task;
+                                        DebugX.LogT($"Cleaned up stale client '{tcpConnection.RemoteSocket}'!");
+                                        await Log($"Cleaned up stale client '{tcpConnection.RemoteSocket}'!");
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        DebugX.LogT($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
+                                        await Log($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
+                                    }
                                 }
                             }
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.LogT($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
+                            await Log($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
                         }
                     }
                     //await Task.Delay(TimeSpan.FromSeconds(30), token);
@@ -484,6 +495,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 client.Close();
 
+                                DebugX.LogT($"Rejected new client connection due to maximum of {MaxClientConnections} concurrent connections reached!");
+
                                 await LogEvent(
                                           OnNewTCPConnectionRejected,
                                           loggingDelegate => loggingDelegate.Invoke(
@@ -502,17 +515,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                             #endregion
 
+                            var tcpConnection  = new TCPConnection(
+                                                     TCPServer:                   this,
+                                                     TCPClient:                   client,
+                                                     ServerCertificateSelector:   ServerCertificateSelector,
+                                                     ClientCertificateValidator:  ClientCertificateValidator,
+                                                     LocalCertificateSelector:    LocalCertificateSelector,
+                                                     AllowedTLSProtocols:         AllowedTLSProtocols,
+                                                     ReadTimeout:                 ReceiveTimeout,
+                                                     WriteTimeout:                SendTimeout
+                                                 );
+
                             activeClients.TryAdd(
-                                client,
+                                tcpConnection,
                                 Task.CompletedTask
                             );
 
-                            var clientTask = HandleNewTCPClientAsync(client);
+                            var clientTask = HandleNewTCPClientAsync(tcpConnection);
 
-                            if (!activeClients.TryUpdate(client, clientTask, Task.CompletedTask))
+                            if (!activeClients.TryUpdate(tcpConnection, clientTask, Task.CompletedTask))
                             {
-                                activeClients.TryRemove(client, out _);
-                                activeClients.TryAdd   (client, clientTask);
+                                activeClients.TryRemove(tcpConnection, out _);
+                                activeClients.TryAdd   (tcpConnection, clientTask);
                             }
 
                         }
@@ -547,31 +571,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (private) HandleNewTCPClientAsync(client)
+        #region (private) HandleNewTCPClientAsync(Connection)
 
-        private async Task HandleNewTCPClientAsync(TcpClient client)
+        private async Task HandleNewTCPClientAsync(TCPConnection Connection)
         {
 
-            TCPConnection? tcpConnection = null;
-
             var eventTrackingId2  = EventTracking_Id.New;
-            var remoteIPEndPoint  = (client.Client.RemoteEndPoint as IPEndPoint)!;
+            var remoteIPEndPoint  = (Connection.TCPClient.Client.RemoteEndPoint as IPEndPoint)!;
             var remoteSocket      = IPSocket.FromIPEndPoint(remoteIPEndPoint);
-            var connectionId      = "";
 
             try
             {
 
-                client.ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds;
-                client.SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds;
-                client.LingerState     = new LingerOption(true, 1);
+                Connection.TCPClient.ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds;
+                Connection.TCPClient.SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds;
+                Connection.TCPClient.LingerState     = new LingerOption(true, 1);
 
                 #region Validate connection
 
                 var status = await ValidateConnection(
                                        Timestamp.Now,
                                        this,
-                                       client,
+                                       Connection,
                                        eventTrackingId2,
                                        cts.Token
                                    );
@@ -584,7 +605,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 {
 
                     // This will/might cause a TCP RST (Reset) packet being send!
-                    client.LingerState = new LingerOption(false, 0);
+                    Connection.TCPClient.LingerState = new LingerOption(false, 0);
 
                     await LogEvent(
                               OnNewTCPConnectionRejected,
@@ -593,7 +614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   DateTimeOffset.UtcNow,
                                   eventTrackingId2,
                                   remoteSocket,
-                                  connectionId,
+                                  Connection.ConnectionId,
                                   status.Reason
                               )
                           );
@@ -605,19 +626,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 else
                 {
 
-                    tcpConnection  = new TCPConnection(
-                                         TCPServer:                   this,
-                                         TCPClient:                   client,
-                                         ServerCertificateSelector:   ServerCertificateSelector,
-                                         ClientCertificateValidator:  ClientCertificateValidator,
-                                         LocalCertificateSelector:    LocalCertificateSelector,
-                                         AllowedTLSProtocols:         AllowedTLSProtocols,
-                                         ReadTimeout:                 ReceiveTimeout,
-                                         WriteTimeout:                SendTimeout
-                                     );
-
-                    connectionId   = tcpConnection.ConnectionId;
-
                     await LogEvent(
                               OnNewTCPConnection,
                               loggingDelegate => loggingDelegate.Invoke(
@@ -625,20 +633,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   DateTimeOffset.UtcNow,
                                   eventTrackingId2,
                                   remoteSocket,
-                                  connectionId,
-                                  tcpConnection
+                                  Connection.ConnectionId,
+                                  Connection
                               )
                           );
 
-                    await HandleConnection(tcpConnection, cts.Token).ConfigureAwait(false);
+                    await HandleConnection(
+                              Connection,
+                              cts.Token
+                          ).ConfigureAwait(false);
 
                 }
 
                 try
                 {
                     // Graceful shutdown after request completes (client EOF received)
-                    if (client.Client?.Connected == true)
-                        client.Client.Shutdown(SocketShutdown.Both);
+                    if (Connection.TCPClient.Client?.Connected == true)
+                        Connection.TCPClient.Client.Shutdown(SocketShutdown.Both);
                 }
                 catch (Exception)
                 { }
@@ -666,12 +677,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 try
                 {
-                    client.Close();
+                    Connection.TCPClient.Close();
                 }
                 catch (Exception)
                 { }
 
-                activeClients.TryRemove(client, out _);
+                DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
+                activeClients.TryRemove(Connection, out _);
 
                 await LogEvent(
                           OnTCPConnectionClosed,
@@ -680,7 +692,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               DateTimeOffset.UtcNow,
                               eventTrackingId2,
                               remoteSocket,
-                              connectionId,
+                              Connection.ConnectionId,
                               ConnectionClosedBy.Client
                           )
                       );
@@ -702,7 +714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="CancellationToken">A cancellation token to cancel the validation.</param>
         public virtual Task<ConnectionFilterResponse> ValidateConnection(DateTimeOffset     Timestamp,
                                                                          ITCPServer         Server,
-                                                                         TcpClient          Connection,
+                                                                         TCPConnection      Connection,
                                                                          EventTracking_Id   EventTrackingId,
                                                                          CancellationToken  CancellationToken)
         {
