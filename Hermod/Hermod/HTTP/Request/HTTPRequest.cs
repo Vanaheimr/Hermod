@@ -1145,7 +1145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region User
 
         /// <summary>
-        /// This is an internal HTTP request field to idicate the HTTP user.
+        /// This is an internal HTTP request field to indicate the HTTP user.
         /// </summary>
         public IUser? User { get; set; }
 

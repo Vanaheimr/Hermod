@@ -17,10 +17,8 @@
 
 #region Usings
 
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -31,10 +29,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     //                                           NetworkStream      Stream,
     //                                           CancellationToken  CancellationToken);
 
-    public class HTTPAuthPipeline(IUser? DefaultUser = null) : AHTTPPipeline()
+
+    public static class HTTPAuthPipelineExtension
     {
 
-        public IUser? DefaultUser { get; } = DefaultUser;
+        public static void AddHTTPAuthPipeline(this HTTPExtAPIX  HTTPAPI,
+                                               IUser?            DefaultUser                    = null,
+                                               Byte?             RemoteAuthServersMaxHopCount   = null)
+
+            => HTTPAPI.HTTPServer.AddPipeline(
+                   new HTTPAuthPipeline(
+                       HTTPAPI,
+                       DefaultUser,
+                       RemoteAuthServersMaxHopCount
+                   )
+               );
+
+    }
+
+
+    public class HTTPAuthPipeline(HTTPExtAPIX  HTTPAPI,
+                                  IUser?       DefaultUser                    = null,
+                                  Byte?        RemoteAuthServersMaxHopCount   = null) : AHTTPPipeline()
+    {
+
+        #region Data
+
+        private readonly HTTPExtAPIX HTTPAPI = HTTPAPI;
+
+        #endregion
+
+        #region Properties
+
+        public IUser? DefaultUser                     { get; } = DefaultUser;
+        public Byte   RemoteAuthServersMaxHopCount    { get; } = RemoteAuthServersMaxHopCount ?? 0;
+
+        #endregion
 
 
         #region (override) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
@@ -46,6 +76,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            var user = await HTTPAPI.CheckHTTPCookie(
+                                 Request,
+                                 RemoteAuthServersMaxHopCount
+                             );
+
+            user ??= HTTPAPI.CheckHTTPAPIKey   (Request) ??
+                     HTTPAPI.CheckHTTPBasicAuth(Request);
+
+            Request.User = user ?? DefaultUser;
+
             //=> LogEvent(
             //       OnHTTPRequest,
             //       loggingDelegate => loggingDelegate.Invoke(
@@ -54,10 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             //           CancellationToken
             //       )
             //   );
-
-            Request.User = DefaultUser;
-
-            await Task.Delay(1, CancellationToken);
 
             return (Request, null);
 

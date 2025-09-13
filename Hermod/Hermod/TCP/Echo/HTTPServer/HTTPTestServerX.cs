@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     /// <summary>
     /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
     /// </summary>
-        public class HTTPTestServerX : AHTTPTestServer
+    public class HTTPTestServerX : AHTTPTestServer
     {
 
         #region Data

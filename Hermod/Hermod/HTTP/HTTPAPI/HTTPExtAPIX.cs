@@ -13489,8 +13489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 userId = securityToken.UserId;
             }
 
-            //if (userId is null && RemoteAuthServersMaxHopCount > 0)
-            if (RemoteAuthServersMaxHopCount > 0)
+            if (userId is null && RemoteAuthServersMaxHopCount > 0)
             {
                 try
                 {
