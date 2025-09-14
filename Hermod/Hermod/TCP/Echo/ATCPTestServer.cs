@@ -51,17 +51,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        public static readonly     TimeSpan                                   DefaultReceiveTimeout         = TimeSpan.FromSeconds(30);
-        public static readonly     TimeSpan                                   DefaultSendTimeout            = TimeSpan.FromSeconds(30);
+        public    static readonly  TimeSpan                                   DefaultReceiveTimeout         = TimeSpan.FromSeconds(30);
+        public    static readonly  TimeSpan                                   DefaultSendTimeout            = TimeSpan.FromSeconds(30);
         public const               UInt32                                     DefaultMaxClientConnections   = 8192;
 
-        private readonly           TcpListener?                               tcpListenerIPv6;
-        private readonly           TcpListener?                               tcpListenerIPv4;
-        private readonly           TCPEchoLoggingDelegate?                    loggingHandler;
-        private readonly           CancellationTokenSource                    cts;
+        private          readonly  TcpListener?                               tcpListenerIPv6;
+        private          readonly  TcpListener?                               tcpListenerIPv4;
+        private          readonly  TCPEchoLoggingDelegate?                    loggingHandler;
+        private          readonly  CancellationTokenSource                    cts;
         private                    Task?                                      serverTask;
 
-        private readonly           ConcurrentDictionary<TCPConnection, Task>  activeClients                 = [];
+        protected        readonly  ConcurrentDictionary<TCPConnection, Task>  activeClients                 = [];
 
         /// <summary>
         /// The default maintenance interval.

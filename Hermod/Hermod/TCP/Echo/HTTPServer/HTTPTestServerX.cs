@@ -65,8 +65,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Data
 
-        private readonly ConcurrentDictionary<HTTPHostname, HostnameNodeX>  hostnameNodes = [];
-        private readonly ConcurrentDictionary<HTTPHostname, HTTPAPINode>    routeNodes = [];
+        private readonly ConcurrentDictionary<HTTPHostname, HostnameNodeX>  hostnameNodes   = [];
+        private readonly ConcurrentDictionary<HTTPHostname, HTTPAPINode>    routeNodes      = [];
+        private readonly List<AHTTPPipeline>                                httpPipelines   = [];
+
+        /// <summary>
+        /// Command-line JSON HTTP clients, libraries, and API tools...
+        /// </summary>
+        private static readonly Regex JSONUserAgents  = new (
+                                                            @"\b(curl|wget|httpie|PostmanRuntime|python-requests|Go-http-client|libcurl|restsharp|okhttp|Apache-HttpClient|Insomnia|Java/\d)\b",
+                                                            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled
+                                                        );
 
         #endregion
 
@@ -221,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        #region StartNew(...)
+        #region (static) StartNew(...)
 
         public static async Task<HTTPTestServerX>
 
@@ -299,8 +308,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
 
         #region HTTP Pipelines
-
-        private readonly List<AHTTPPipeline> httpPipelines = [];
 
         public void AddPipeline(AHTTPPipeline Pipeline)
         {
@@ -412,14 +419,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 }
             }
         }
-
-
-        /// <summary>
-        /// Command-line JSON HTTP clients, libraries, and API tools...
-        /// </summary>
-        private static readonly Regex JSONUserAgents = new(
-            @"\b(curl|wget|httpie|PostmanRuntime|python-requests|Go-http-client|libcurl|restsharp|okhttp|Apache-HttpClient|Insomnia|Java/\d)\b",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
 
         #region (internal) GetRequestHandle(Request)

@@ -1817,22 +1817,7 @@ Error:
                 HTTPDelegate: request => {
 
                     var jsonResponse  = new JArray(
-                                            HTTPServer.ClientConnections.Select(connection =>
-                                                JSONObject.Create(
-
-                                                          new JProperty("socket",             connection.RemoteSocket.ToString()),
-                                                          new JProperty("connectionId",       connection.ConnectionId),
-                                                          new JProperty("isConnected",        connection.IsConnected),
-                                                          new JProperty("created",            connection.Created.ToISO8601()),
-                                                          new JProperty("runtime",   (UInt64) connection.Runtime.TotalSeconds),
-                                                          new JProperty("isTLS",              connection.SSLStream is not null),
-
-                                                    connection.ClientCertificate is not null
-                                                        ? new JProperty("clientCertificate",  connection.ClientCertificate.Subject)
-                                                        : null
-
-                                                )
-                                            )
+                                            HTTPServer.ClientConnections.Select(connection => connection.ToJSON())
                                         );
 
                     return Task.FromResult(

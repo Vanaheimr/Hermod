@@ -25,6 +25,8 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -65,17 +67,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     public delegate X509Certificate2 ServerCertificateSelectorDelegate(ITCPServer TCPServer, TcpClient TCPClient);
 
     /// <summary>
-    /// An abstract class for all TCP connections.
+    /// A TCP connection.
     /// </summary>
-    public class TCPConnection : AReadOnlyLocalRemoteSockets
+    public class TCPConnection : AReadOnlyLocalRemoteSockets,
+                                 IEquatable<TCPConnection>,
+                                 IComparable<TCPConnection>,
+                                 IComparable
     {
 
         #region Data
 
         // For method 'ReadLine(...)'...
-        private          Boolean    SkipNextN   = false;
+        private            Boolean    SkipNextN   = false;
 
-        private readonly Stopwatch  stopwatch   = Stopwatch.StartNew();
+        protected readonly Stopwatch  stopwatch   = Stopwatch.StartNew();
 
         #endregion
 
@@ -84,12 +89,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The associated TCP server.
         /// </summary>
-        public ITCPServer         TCPServer            { get; }
+        public ITCPServer                                                TCPServer                     { get; }
 
         /// <summary>
         /// The associated TCP client.
         /// </summary>
-        public TcpClient          TCPClient            { get; }
+        public TcpClient                                                 TCPClient                     { get; }
+
+        public ServerCertificateSelectorDelegate?                        ServerCertificateSelector     { get; }
+        public RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator    { get; }
+        public LocalCertificateSelectionHandler?                         LocalCertificateSelector      { get; }
+        public SslProtocols?                                             AllowedTLSProtocols           { get; }
+
+        #region ReadTimeout
+
+        private Int32 readTimeoutMS;
+
+        /// <summary>
+        /// Gets or sets the amount of time, that a read operation
+        /// blocks waiting for data. On default the read operation does not time out.
+        /// </summary>
+        public TimeSpan ReadTimeout
+        {
+
+            get
+            {
+                return TimeSpan.FromMilliseconds(readTimeoutMS);
+            }
+
+            set
+            {
+
+                readTimeoutMS                  = (Int32) value.TotalMilliseconds;
+
+                if (NetworkStream is not null)
+                    NetworkStream.ReadTimeout  = readTimeoutMS;
+
+                if (SSLStream     is not null)
+                    SSLStream.    ReadTimeout  = readTimeoutMS;
+
+            }
+
+        }
+
+        #endregion
+
+        #region WriteTimeout
+
+        private Int32 writeTimeoutMS;
+
+        /// <summary>
+        /// Gets or sets the amount of time, that a write operation
+        /// blocks. On default the write operation does not time out.
+        /// </summary>
+        public TimeSpan WriteTimeout
+        {
+
+            get
+            {
+                return TimeSpan.FromMilliseconds(writeTimeoutMS);
+            }
+
+            set
+            {
+
+                writeTimeoutMS                  = (Int32) value.TotalMilliseconds;
+
+                if (NetworkStream is not null)
+                    NetworkStream.WriteTimeout  = writeTimeoutMS;
+
+                if (SSLStream     is not null)
+                    SSLStream.WriteTimeout      = writeTimeoutMS;
+
+            }
+
+        }
+
+        #endregion
+
 
         /// <summary>
         /// The underlying network stream.
@@ -146,14 +223,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 if (TCPClient is null)
                     return false;
 
-                // This is not working as expected! Damn you Microsoft! Perhaps
-                // you better hire some good networking people!
-                //return TCPClientConnection.Connected;
+                try
+                {
 
-                // A better, but not really smart way to check if the
-                // TCP connection is/was closed
-                if (TCPClient.Client.Poll(1, SelectMode.SelectRead) &&
-                    TCPClient.Available == 0)
+                    //return TCPClientConnection.Connected;
+
+                    // A better, but not really smart way to check if the
+                    // TCP connection is/was closed
+                    if (TCPClient.Client.Poll(1, SelectMode.SelectRead) &&
+                        TCPClient.Available == 0)
+                    {
+                        return false;
+                    }
+
+                }
+                catch (Exception)
                 {
                     return false;
                 }
@@ -175,37 +259,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public Boolean DataAvailable
 
             => this.NetworkStream?.DataAvailable == true;
-
-        #endregion
-
-        #region ReadTimeout
-
-        private Int32 readTimeoutMS;
-
-        /// <summary>
-        /// Gets or sets the amount of time, that a read operation
-        /// blocks waiting for data. On default the read operation does not time out.
-        /// </summary>
-        public TimeSpan ReadTimeout
-        {
-
-            get
-            {
-                return TimeSpan.FromMilliseconds(readTimeoutMS);
-            }
-
-            set
-            {
-
-                this.readTimeoutMS              = (Int32) value.TotalMilliseconds;
-                this.NetworkStream.ReadTimeout  = readTimeoutMS;
-
-                if (SSLStream is not null)
-                    SSLStream.ReadTimeout       = readTimeoutMS;
-
-            }
-
-        }
 
         #endregion
 
@@ -286,40 +339,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             : base(new IPSocket(IPAddress.FromDotNet((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
-                                IPPort.   Parse  ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint).Port)),
+                                IPPort.   Parse     ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint).Port)),
                    new IPSocket(IPAddress.FromDotNet((         TCPClient.Client.RemoteEndPoint as IPEndPoint).Address),
-                                IPPort.   Parse  ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint).Port)))
+                                IPPort.   Parse     ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint).Port)))
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 
         {
 
-            this.TCPServer            = TCPServer ?? throw new ArgumentNullException(nameof(TCPServer), "The given TCP server must not be null!");
-            this.TCPClient            = TCPClient ?? throw new ArgumentNullException(nameof(TCPClient), "The given TCP client must not be null!");
-            this.Created              = Timestamp.Now;
-            this.ConnectionId         = TCPServer.ConnectionIdBuilder(
-                                            this,
-                                            this.Created,
-                                            base.LocalSocket,
-                                            base.RemoteSocket
-                                        );
-            this.isClosed             = false;
-            this.NetworkStream        = TCPClient.GetStream();
+            this.TCPServer                       = TCPServer ?? throw new ArgumentNullException(nameof(TCPServer), "The given TCP server must not be null!");
+            this.TCPClient                       = TCPClient ?? throw new ArgumentNullException(nameof(TCPClient), "The given TCP client must not be null!");
+            this.ServerCertificateSelector       = ServerCertificateSelector;
+            this.ClientCertificateValidator      = ClientCertificateValidator;
+            this.LocalCertificateSelector        = LocalCertificateSelector;
 
-            if (ReadTimeout.HasValue)
-            {
-                this.readTimeoutMS               = (Int32) ReadTimeout.Value.TotalMilliseconds;
-                this.NetworkStream.ReadTimeout   = (Int32) ReadTimeout.Value.TotalMilliseconds;
-            }
+            if (ReadTimeout. HasValue)
+                this.ReadTimeout                 = ReadTimeout. Value;
 
             if (WriteTimeout.HasValue)
-            {
-                //this.readTimeoutMS              = (Int32) ReadTimeout.Value.TotalMilliseconds;
-                this.NetworkStream.WriteTimeout  = (Int32) WriteTimeout.Value.TotalMilliseconds;
-            }
+                this.WriteTimeout                = WriteTimeout.Value;
 
-            this.ServerCertificate    = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
+            this.Created                         = Timestamp.Now;
+            this.ConnectionId                    = TCPServer.ConnectionIdBuilder(
+                                                       this,
+                                                       this.Created,
+                                                       base.LocalSocket,
+                                                       base.RemoteSocket
+                                                   );
+            this.isClosed                        = false;
+            this.NetworkStream                   = TCPClient.GetStream();
 
-            if (ServerCertificate is not null)
+            this.ServerCertificate               = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
+            if (this.ServerCertificate is not null)
             {
 
                 try
@@ -384,20 +434,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 }
 
             }
-
-            //_TCPClient.ReceiveTimeout           = (Int32) ConnectionTimeout.TotalMilliseconds;
-            //_TCPConnection.Value.ReadTimeout    = ClientTimeout;
-            //_TCPConnection.Value.StopRequested  = false;
-
-            //Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder is not null)
-            //                                 ? TCPServer.ConnectionThreadsNameBuilder(this,
-            //                                                                          this.ServerTimestamp,
-            //                                                                          base.LocalSocket,
-            //                                                                          base.RemoteSocket)
-            //                                 : "TCP connection from " +
-            //                                         base.RemoteSocket.IPAddress.ToString() +
-            //                                         ":" +
-            //                                         base.RemoteSocket.Port.ToString();
 
         }
 
@@ -893,6 +929,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
+        public virtual JObject ToJSON()
+        {
+
+            return JSONObject.Create(
+
+                             new JProperty("socket",                  RemoteSocket.ToString()),
+                             new JProperty("connectionId",            ConnectionId),
+                             new JProperty("isConnected",             IsConnected),
+                             new JProperty("created",                 Created.ToISO8601()),
+                             new JProperty("runtime",        (UInt64) Runtime.TotalSeconds),
+                             new JProperty("isTLS",                   SSLStream is not null),
+
+                       ClientCertificate is not null
+                           ? new JProperty("clientCertificate",       ClientCertificate.Subject)
+                           : null
+
+                   );
+
+        }
+
+
         #region Flush()
 
         /// <summary>
@@ -973,12 +1030,219 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region IDisposable Members
 
         /// <summary>
-        /// Dispose this connection.
+        /// Dispose this TCP connection.
         /// </summary>
         public void Dispose()
         {
             //Close(ConnectionClosedBy.Server);
         }
+
+        #endregion
+
+
+        #region Operator overloading
+
+        #region Operator == (TCPConnection1, TCPConnection2)
+
+        /// <summary>
+        /// Compares two TCP connections for equality.
+        /// </summary>
+        /// <param name="TCPConnection1">A TCP connection.</param>
+        /// <param name="TCPConnection2">Another TCP connection.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator == (TCPConnection? TCPConnection1,
+                                           TCPConnection? TCPConnection2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (Object.ReferenceEquals(TCPConnection1, TCPConnection2))
+                return true;
+
+            if (TCPConnection1 is null || TCPConnection2 is null)
+                return false;
+
+            return TCPConnection1.Equals(TCPConnection2);
+
+        }
+
+        #endregion
+
+        #region Operator != (TCPConnection1, TCPConnection2)
+
+        /// <summary>
+        /// Compares two TCP connections for inequality.
+        /// </summary>
+        /// <param name="TCPConnection1">A TCP connection.</param>
+        /// <param name="TCPConnection2">Another TCP connection.</param>
+        /// <returns>False if both match; True otherwise.</returns>
+        public static Boolean operator != (TCPConnection? TCPConnection1,
+                                           TCPConnection? TCPConnection2)
+
+            => !(TCPConnection1 == TCPConnection2);
+
+        #endregion
+
+        #region Operator <  (TCPConnection1, TCPConnection2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="TCPConnection1">A TCP connection.</param>
+        /// <param name="TCPConnection2">Another TCP connection.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator < (TCPConnection? TCPConnection1,
+                                          TCPConnection? TCPConnection2)
+        {
+
+            if (TCPConnection1 is null)
+                throw new ArgumentNullException(nameof(TCPConnection1), "The given TCP connection must not be null!");
+
+            return TCPConnection1.CompareTo(TCPConnection2) < 0;
+
+        }
+
+        #endregion
+
+        #region Operator <= (TCPConnection1, TCPConnection2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="TCPConnection1">A TCP connection.</param>
+        /// <param name="TCPConnection2">Another TCP connection.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator <= (TCPConnection? TCPConnection1,
+                                           TCPConnection? TCPConnection2)
+
+            => !(TCPConnection1 > TCPConnection2);
+
+        #endregion
+
+        #region Operator >  (TCPConnection1, TCPConnection2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="TCPConnection1">A TCP connection.</param>
+        /// <param name="TCPConnection2">Another TCP connection.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator > (TCPConnection? TCPConnection1,
+                                          TCPConnection? TCPConnection2)
+        {
+
+            if (TCPConnection1 is null)
+                throw new ArgumentNullException(nameof(TCPConnection1), "The given TCP connection must not be null!");
+
+            return TCPConnection1.CompareTo(TCPConnection2) > 0;
+
+        }
+
+        #endregion
+
+        #region Operator >= (TCPConnection1, TCPConnection2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="TCPConnection1">A TCP connection.</param>
+        /// <param name="TCPConnection2">Another TCP connection.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator >= (TCPConnection? TCPConnection1,
+                                           TCPConnection? TCPConnection2)
+
+            => !(TCPConnection1 < TCPConnection2);
+
+        #endregion
+
+        #endregion
+
+        #region IComparable<TCPConnection> Members
+
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two TCP connections.
+        /// </summary>
+        /// <param name="Object">A TCP connection to compare with.</param>
+        public Int32 CompareTo(Object? Object)
+
+            => Object is TCPConnection tcpConnection
+                   ? CompareTo(tcpConnection)
+                   : throw new ArgumentException("The given object is not a TCP connection!",
+                                                 nameof(Object));
+
+        #endregion
+
+        #region CompareTo(TCPConnection)
+
+        /// <summary>
+        /// Compares two TCP connections.
+        /// </summary>
+        /// <param name="TCPConnection">A TCP connection to compare with.</param>
+        public Int32 CompareTo(TCPConnection? TCPConnection)
+        {
+
+            if (TCPConnection is null)
+                throw new ArgumentNullException(nameof(TCPConnection), "The given TCP connection must not be null!");
+
+            return ConnectionId.CompareTo(TCPConnection.ConnectionId);
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<TCPConnection> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two TCP connections for equality.
+        /// </summary>
+        /// <param name="Object">A TCP connection to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is TCPConnection tcpConnection &&
+                   Equals(tcpConnection);
+
+        #endregion
+
+        #region Equals(TCPConnection)
+
+        /// <summary>
+        /// Compares two TCP connections for equality.
+        /// </summary>
+        /// <param name="TCPConnection">A TCP connection to compare with.</param>
+        public Boolean Equals(TCPConnection? TCPConnection)
+
+            => TCPConnection is not null &&
+               ConnectionId.Equals(TCPConnection.ConnectionId);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the hash code of this object.
+        /// </summary>
+        /// <returns>The hash code of this object.</returns>
+        public override Int32 GetHashCode()
+
+            => ConnectionId.GetHashCode();
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => ConnectionId;
 
         #endregion
 

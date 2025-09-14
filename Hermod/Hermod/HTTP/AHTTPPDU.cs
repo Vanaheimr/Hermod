@@ -21,6 +21,7 @@ using System.Text;
 using System.Buffers;
 using System.Collections;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
@@ -50,8 +51,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The collection of all HTTP headers.
         /// </summary>
-        protected readonly Dictionary<String, Object?>  headerFields;
-        protected readonly Dictionary<String, Object>   headerFieldsParsed;
+        protected readonly ConcurrentDictionary<String, Object?>  headerFields         = [];
+        protected readonly ConcurrentDictionary<String, Object>   headerFieldsParsed   = [];
 
         protected readonly static String[]  lineSeparator    = ["\n", "\r\n"];
         protected readonly static Char[]    colonSeparator   = [':'  ];
@@ -562,8 +563,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Timestamp                  = Illias.Timestamp.Now;
-            this.headerFields               = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
-            this.headerFieldsParsed         = new Dictionary<String, Object> (StringComparer.OrdinalIgnoreCase);
             this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
             this.RawHTTPHeader              = "";
             this.RawPDU                     = "";
@@ -603,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (HTTPPDU.headerFields is not null)
                 foreach (var field in HTTPPDU.headerFields)
-                    headerFields.Add(field.Key, field.Value);
+                    headerFields.TryAdd(field.Key, field.Value);
 
         }
 
@@ -681,7 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 // Not valid for every HTTP header... but at least for most...
                 if (keyValuePair.Length == 1)
-                    headerFields.Add(keyValuePair[0].Trim(), String.Empty);
+                    headerFields.TryAdd(keyValuePair[0].Trim(), String.Empty);
 
                 else
                 {
@@ -692,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         if (!headerFields.ContainsKey(key))
-                            headerFields.Add(key, keyValuePair[1].Trim());
+                            headerFields.TryAdd(key, keyValuePair[1].Trim());
 
                         else
                         {
@@ -1168,8 +1167,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HeaderField.StringParser(text, out var valueT) &&
                         valueT is not null)
                     {
-                        headerFieldsParsed.Remove(HeaderField.Name);
-                        headerFieldsParsed.TryAdd(HeaderField.Name, valueT);
+                        headerFieldsParsed.TryRemove(HeaderField.Name, out _);
+                        headerFieldsParsed.TryAdd   (HeaderField.Name, valueT);
                         return valueT;
                     }
 
@@ -1213,7 +1212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HeaderField.StringParser(text2, out var listOfValues) &&
                         listOfValues is not null)
                     {
-                        headerFieldsParsed.Add(HeaderField.Name, listOfValues);
+                        headerFieldsParsed.TryAdd(HeaderField.Name, listOfValues);
                         return listOfValues;
                     }
 
@@ -1237,7 +1236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected internal void RemoveHeaderField(String FieldName)
         {
             if (headerFields.ContainsKey(FieldName))
-                headerFields.Remove(FieldName);
+                headerFields.TryRemove  (FieldName, out _);
         }
 
         #endregion
@@ -1260,12 +1259,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (headerFields.ContainsKey(FieldName))
                     headerFields[FieldName] = Value;
                 else
-                    headerFields.Add(FieldName, Value);
+                    headerFields.TryAdd(FieldName, Value);
 
             }
 
             else
-                headerFields.Remove(FieldName);
+                headerFields.TryRemove(FieldName, out _);
 
         }
 
@@ -1288,13 +1287,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (headerFields.ContainsKey(HeaderField.Name))
                     headerFields[HeaderField.Name] = Value;
                 else
-                    headerFields.Add(HeaderField.Name, Value);
+                    headerFields.TryAdd(HeaderField.Name, Value);
 
             }
 
             else
                 if (headerFields.ContainsKey(HeaderField.Name))
-                    headerFields.Remove(HeaderField.Name);
+                    headerFields.TryRemove(HeaderField.Name, out _);
 
 
             //// New collection...

@@ -235,11 +235,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region HandleConnection(Connection, CancellationToken = default)
+        #region HandleConnection(TCPConnection, CancellationToken = default)
 
-        protected override async Task HandleConnection(TCPConnection      Connection,
+        protected override async Task HandleConnection(TCPConnection      TCPConnection,
                                                        CancellationToken  CancellationToken   = default)
         {
+
+            var connection = new HTTPConnection(TCPConnection);
+
+            if (activeClients.TryRemove(TCPConnection, out var task))
+                activeClients.TryAdd   (connection,    task);
 
             try
             {
@@ -247,8 +252,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 #region Data
 
                 Int32           bufferSize     = (Int32) BufferSize;
-                var             networkstream  = Connection.TCPClient.GetStream();
-                await using var stream         = (Connection.SSLStream as Stream) ?? networkstream
+                var             networkstream  = connection.TCPClient.GetStream();
+                await using var stream         = (connection.SSLStream as Stream) ?? networkstream
                                                      ?? throw new InvalidOperationException("Stream is not a NetworkStream.");
                 using var       bufferOwner    = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
                 var             buffer         = bufferOwner.Memory;
@@ -296,14 +301,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     #region Parse HTTP Request
 
-                    var request        = HTTPRequest.Parse(
-                                             Timestamp.Now,
-                                             httpSource,
-                                             localSocket,
-                                             remoteSocket,
-                                             Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
-                                             CancellationToken: CancellationToken
-                                         );
+                    var request  = HTTPRequest.Parse(
+                                       Timestamp.Now,
+                                       httpSource,
+                                       localSocket,
+                                       remoteSocket,
+                                       Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
+                                       CancellationToken: CancellationToken
+                                   );
+
+                    connection.IsHTTPKeepAlive        = request.IsKeepAlive;
+                    connection.IncrementKeepAliveMessageCount();
+                    request.   KeepAliveMessageCount  = connection.KeepAliveMessageCount;
 
                     #endregion
 
@@ -406,7 +415,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     #region Fire & Forget the worker for chunked HTTP respones
 
-                    if (httpResponse.ChunkWorker is not null && httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
+                    if (httpResponse.ChunkWorker    is not null &&
+                        httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
                     {
                         try
                         {
@@ -427,32 +437,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         break;
 
                 }
+
             }
             catch (OperationCanceledException)
             {
                 // The operation was cancelled, e.g. by a timeout.
                 DebugX.LogT("HTTPTestServer.HandleConnection(...) was cancelled!");
             }
+            catch (ObjectDisposedException)
+            {
+                // The connection was disposed, e.g. by the client closing the connection.
+                //DebugX.LogT("ObjectDisposedException in HTTPTestServer.HandleConnection(...)!");
+            }
             catch (IOException ie)
             {
                 // An I/O error occurred, e.g. the connection was closed by the client.
-                DebugX.LogException(ie, "IOException in HTTPTestServer.HandleConnection(...)!");
+                DebugX.LogException(ie, "IOException in HTTPTestServer.HandleConnection(...)");
             }
             catch (Exception e)
             {
-                DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...)!");
+                DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...)");
             }
             finally
             {
                 try
                 {
-                    Connection.IsClosed = true;
+                    connection.IsClosed = true;
                     //await Connection.DisposeAsync();
-                    Connection.Dispose();
+                    connection.Dispose();
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...).Dispose()!");
+                    DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...).Dispose()");
                 }
             }
 
@@ -460,6 +476,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
+        #region (protected) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
 
         /// <summary>
         /// Process the given HTTP request.
@@ -471,6 +489,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                  Stream             Stream,
                                                                  CancellationToken  CancellationToken   = default);
 
+        #endregion
+
+        #region (protected) SendResponse(Stream, Response, CancellationToken = default)
 
         protected static async Task SendResponse(Stream             Stream,
                                                  HTTPResponse       Response,
@@ -499,10 +520,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
             catch (Exception e)
             {
+                DebugX.LogException(e, "Exception in AHTTPTestServer.SendResponse(...)");
             }
 
         }
 
+        #endregion
 
 
         #region (private) LogEvent (Logger, LogHandler, ...)
@@ -523,7 +546,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                );
 
         #endregion
-
 
         #region (override) ToString()
 

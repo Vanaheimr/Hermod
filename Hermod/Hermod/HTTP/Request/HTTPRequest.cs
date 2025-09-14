@@ -1142,14 +1142,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker             { get; set; } = (request, stream) => Task.CompletedTask;
 
 
-        #region User
+        public volatile UInt32 KeepAliveMessageCount;
 
         /// <summary>
         /// This is an internal HTTP request field to indicate the HTTP user.
         /// </summary>
         public IUser? User { get; set; }
-
-        #endregion
 
         #endregion
 
@@ -1172,29 +1170,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        public HTTPRequest(DateTimeOffset               Timestamp,
-                           HTTPSource                   HTTPSource,
-                           IPSocket                     LocalSocket,
-                           IPSocket                     RemoteSocket,
+        public HTTPRequest(DateTimeOffset                         Timestamp,
+                           HTTPSource                             HTTPSource,
+                           IPSocket                               LocalSocket,
+                           IPSocket                               RemoteSocket,
 
-                           String                       HTTPHeader,
-                           HTTPMethod                   HTTPMethod,
-                           HTTPPath                     Path,
-                           String                       ProtocolName,
-                           HTTPVersion                  ProtocolVersion,
-                           Dictionary<String, Object?>  HTTPHeaderFields,
+                           String                                 HTTPHeader,
+                           HTTPMethod                             HTTPMethod,
+                           HTTPPath                               Path,
+                           String                                 ProtocolName,
+                           HTTPVersion                            ProtocolVersion,
+                           ConcurrentDictionary<String, Object?>  HTTPHeaderFields,
 
-                           QueryString?                 QueryString                 = null,
-                           Byte[]?                      HTTPBody                    = null,
-                           Stream?                      HTTPBodyStream              = null,
-                           HTTPServer?                  HTTPServer                  = null,
-                           HTTPTestServerX?             HTTPServerX                 = null,
-                           X509Certificate2?            ServerCertificate           = null,
-                           X509Certificate2?            ClientCertificate           = null,
+                           QueryString?                           QueryString                 = null,
+                           Byte[]?                                HTTPBody                    = null,
+                           Stream?                                HTTPBodyStream              = null,
+                           HTTPServer?                            HTTPServer                  = null,
+                           HTTPTestServerX?                       HTTPServerX                 = null,
+                           X509Certificate2?                      ServerCertificate           = null,
+                           X509Certificate2?                      ClientCertificate           = null,
 
-                           UInt32                       HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                           EventTracking_Id?            EventTrackingId             = null,
-                           CancellationToken            CancellationToken           = default)
+                           UInt32                                 HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                           EventTracking_Id?                      EventTrackingId             = null,
+                           CancellationToken                      CancellationToken           = default)
 
             : base(Timestamp,
                    HTTPSource,
@@ -1223,7 +1221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.headerFields.Clear();
             foreach (var kvp in HTTPHeaderFields)
-                this.headerFields.Add(kvp.Key, kvp.Value);
+                this.headerFields.TryAdd(kvp.Key, kvp.Value);
 
         }
 
@@ -1662,7 +1660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region ...process all other header lines
 
-            var headerFields = new Dictionary<String, Object?>();
+            var headerFields = new ConcurrentDictionary<String, Object?>();
 
             foreach (var headerLine in allLines.Skip(1))
             {
@@ -1674,7 +1672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 // Not valid for every HTTP header... but at least for most...
                 if (keyValuePair.Length == 1)
-                    headerFields.Add(keyValuePair[0].Trim(), String.Empty);
+                    headerFields.TryAdd(keyValuePair[0].Trim(), String.Empty);
 
                 else
                 {
@@ -1685,7 +1683,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         if (!headerFields.ContainsKey(key))
-                            headerFields.Add(key, keyValuePair[1].Trim());
+                            headerFields.TryAdd(key, keyValuePair[1].Trim());
 
                         else
                         {
