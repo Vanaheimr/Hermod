@@ -380,8 +380,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         }
                         catch (Exception e)
                         {
-                            DebugX.LogT($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
-                            await Log($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
+                            DebugX.LogT($"Error checking ConnectionClosed for client '{tcpConnection.RemoteSocket}': {e.Message}");
+                            await Log($"Error checking ConnectionClosed for client '{tcpConnection.RemoteSocket}': {e.Message}");
                         }
                     }
                     //await Task.Delay(TimeSpan.FromSeconds(30), token);

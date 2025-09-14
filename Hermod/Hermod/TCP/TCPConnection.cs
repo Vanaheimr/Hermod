@@ -410,15 +410,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public Boolean IsConnectionClosed()
         {
+            try
+            {
 
-            var socket = NetworkStream.Socket;
+                var socket = NetworkStream.Socket;
 
-            if (socket is null)
+                if (socket is null)
+                    return true;
+
+                return socket.Poll(0, SelectMode.SelectRead) &&
+                      (socket.Available == 0);
+
+            }
+            catch (Exception)
+            {
                 return true;
-
-            return socket.Poll(0, SelectMode.SelectRead) &&
-                  (socket.Available == 0);
-
+            }
         }
 
 
