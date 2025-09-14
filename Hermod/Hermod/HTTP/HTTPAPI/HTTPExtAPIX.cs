@@ -20,28 +20,25 @@
 using System.Text;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Diagnostics;
-using System.Security.Authentication;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
 
-using Org.BouncyCastle.Asn1.Sec;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.X509;
 using Org.BouncyCastle.Asn1.X9;
-using Org.BouncyCastle.Bcpg.OpenPgp;
+using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Security;
-using Org.BouncyCastle.X509;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Warden;
 using org.GraphDefined.Vanaheimr.Aegir;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.BouncyCastle;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -49,10 +46,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using System.Reflection;
 
 #endregion
 
@@ -2069,125 +2063,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                         CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationNotificationsResponse.WhenAll(
-                   Timestamp,
-                   HTTPAPI,
-                   Request,
-                   Response,
-                   CancellationToken
-               );
-
-        #endregion
-
-
-        // ---------------------------------------------------------------------
-
-
-        #region (protected internal) RestartRequest (Request)
-
-        /// <summary>
-        /// An event sent whenever a restart request was received.
-        /// </summary>
-        public HTTPRequestLogEventX OnRestartHTTPRequest = new();
-
-        /// <summary>
-        /// An event sent whenever a restart request was received.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">An HTTP request.</param>
-        protected internal Task RestartRequest(DateTimeOffset     Timestamp,
-                                               HTTPAPIX           HTTPAPI,
-                                               HTTPRequest        Request,
-                                               CancellationToken  CancellationToken)
-
-            => OnRestartHTTPRequest.WhenAll(
-                   Timestamp,
-                   HTTPAPI,
-                   Request,
-                   CancellationToken
-               );
-
-        #endregion
-
-        #region (protected internal) RestartResponse(Response)
-
-        /// <summary>
-        /// An event sent whenever a restart response was sent.
-        /// </summary>
-        public HTTPResponseLogEventX OnRestartHTTPResponse = new();
-
-        /// <summary>
-        /// An event sent whenever a restart response was sent.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">An HTTP request.</param>
-        /// <param name="Response">An HTTP response.</param>
-        protected internal Task RestartResponse(DateTimeOffset     Timestamp,
-                                                HTTPAPIX           HTTPAPI,
-                                                HTTPRequest        Request,
-                                                HTTPResponse       Response,
-                                                CancellationToken  CancellationToken)
-
-            => OnRestartHTTPResponse.WhenAll(
-                   Timestamp,
-                   HTTPAPI,
-                   Request,
-                   Response,
-                   CancellationToken
-               );
-
-        #endregion
-
-
-        #region (protected internal) StopRequest (Request)
-
-        /// <summary>
-        /// An event sent whenever a stop request was received.
-        /// </summary>
-        public HTTPRequestLogEventX OnStopHTTPRequest = new();
-
-        /// <summary>
-        /// An event sent whenever a stop request was received.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">An HTTP request.</param>
-        protected internal Task StopRequest(DateTimeOffset     Timestamp,
-                                            HTTPAPIX           HTTPAPI,
-                                            HTTPRequest        Request,
-                                            CancellationToken  CancellationToken)
-
-            => OnStopHTTPRequest.WhenAll(
-                   Timestamp,
-                   HTTPAPI,
-                   Request,
-                   CancellationToken
-               );
-
-        #endregion
-
-        #region (protected internal) StopResponse(Response)
-
-        /// <summary>
-        /// An event sent whenever a stop response was sent.
-        /// </summary>
-        public HTTPResponseLogEventX OnStopHTTPResponse = new();
-
-        /// <summary>
-        /// An event sent whenever a stop response was sent.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">An HTTP request.</param>
-        /// <param name="Response">An HTTP response.</param>
-        protected internal Task StopResponse(DateTimeOffset     Timestamp,
-                                             HTTPAPIX           HTTPAPI,
-                                             HTTPRequest        Request,
-                                             HTTPResponse       Response,
-                                             CancellationToken  CancellationToken)
-
-            => OnStopHTTPResponse.WhenAll(
                    Timestamp,
                    HTTPAPI,
                    Request,
@@ -10427,227 +10302,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             #endregion
 
 
-            #region GET   ~/serviceCheck
-
-            // -----------------------------------------
-            // curl http://127.0.0.1:2000/serviceCheck
-            // -----------------------------------------
-            AddHandler(
-                HTTPMethod.GET,
-                URLPathPrefix + "serviceCheck",
-                HTTPDelegate: Request => {
-
-                    var jsonResponse  = JSONObject.Create(
-                                            new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPServer.HTTPServerName),
-                                            new JProperty("instance",   Environment.MachineName),
-                                            new JProperty("content",    RandomExtensions.RandomString(20))
-                                        );
-
-                    if (ServiceCheckPublicKey is not null)
-                    {
-
-                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
-
-                        if (ServiceCheckPrivateKey is not null)
-                        {
-
-                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckPrivateKey);
-                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                            var signature   = signer.GenerateSignature().ToHexString();
-
-                            jsonResponse.Add("signature", signature);
-
-                        }
-
-                    }
-
-                    return Task.FromResult(
-                               new HTTPResponse.Builder(Request) {
-                                   HTTPStatusCode             = HTTPStatusCode.OK,
-                                   Server                     = HTTPServer?.HTTPServerName,
-                                   Date                       = Timestamp.Now,
-                                   AccessControlAllowOrigin   = "*",
-                                   AccessControlAllowMethods  = [ "POST" ],
-                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
-                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                   Content                    = jsonResponse.ToUTF8Bytes(),
-                                   CacheControl               = "no-cache",
-                                   Connection                 = ConnectionType.KeepAlive
-                               }.AsImmutable);
-
-                },
-                AllowReplacement: URLReplacement.Allow
-            );
-
-            #endregion
-
-            #region POST  ~/serviceCheck
-
-            // -----------------------------------------------------------------------------------------------------------------
-            // curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"123\"}" http://127.0.0.1:2000/serviceCheck
-            // -----------------------------------------------------------------------------------------------------------------
-            AddHandler(
-                HTTPMethod.POST,
-                URLPathPrefix + "serviceCheck",
-                HTTPContentType.Application.JSON_UTF8,
-                HTTPDelegate: Request => {
-
-                    var content = String.Empty;
-
-                    #region Try to parse a text HTTP body...
-
-                    HTTPResponse.Builder? httpResponse = null;
-
-                    if (Request.ContentType == HTTPContentType.Text.PLAIN &&
-                        Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
-                    {
-                        
-                    }
-
-                    #endregion
-
-                    #region ...or parse a JSON HTTP body
-
-                    else if (Request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
-                        Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
-                        jsonRequest is not null)
-                    {
-                        content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
-                    }
-
-                    if (httpResponse is not null)
-                        return Task.FromResult(httpResponse.AsImmutable);
-
-                    #endregion
-
-
-                    var jsonResponse  = JSONObject.Create(
-                                            new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPServer.HTTPServerName),
-                                            new JProperty("instance",   Environment.MachineName),
-                                            new JProperty("content",    content?.Reverse())
-                                        );
-
-                    if (ServiceCheckPublicKey is not null)
-                    {
-
-                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
-
-                        if (ServiceCheckPrivateKey is not null)
-                        {
-
-                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckPrivateKey);
-                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                            var signature   = signer.GenerateSignature().ToHexString();
-
-                            jsonResponse.Add("signature", signature);
-
-                        }
-
-                    }
-
-                    return Task.FromResult(
-                        new HTTPResponse.Builder(Request) {
-                            HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPServer?.HTTPServerName,
-                            Date                       = Timestamp.Now,
-                            AccessControlAllowOrigin   = "*",
-                            AccessControlAllowMethods  = [ "POST" ],
-                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
-                            ContentType                = HTTPContentType.Application.JSON_UTF8,
-                            Content                    = jsonResponse.ToUTF8Bytes(),
-                            CacheControl               = "no-cache",
-                            Connection                 = ConnectionType.KeepAlive
-                        }.AsImmutable);
-
-                },
-                AllowReplacement: URLReplacement.Allow
-            );
-
-            #endregion
-
-            #region GET   ~/monitoring
-
-            // ---------------------------------------
-            // curl http://127.0.0.1:2000/monitoring
-            // ---------------------------------------
-            AddHandler(
-                HTTPMethod.GET,
-                URLPathPrefix + "monitoring",
-                HTTPDelegate: Request => {
-
-                    var process           = Process.GetCurrentProcess();
-                    process.Refresh();
-
-                    var freeSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-                                            RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                                                ? ResourcesMonitor.GetMemoryMetricsOnUnix()
-                                                : ResourcesMonitor.GetMemoryMetricsOnWindows();
-
-                    var driveInfo         = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
-                    var freeDiscSpace     = (Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100;
-
-                    var jsonResponse      = JSONObject.Create(
-                                                new JProperty("timestamp",  Timestamp.Now),
-                                                new JProperty("service",    HTTPServer.HTTPServerName),
-                                                new JProperty("instance",   Environment.MachineName),
-                                                new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
-                                                new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
-                                                new JProperty("content",    RandomExtensions.RandomString(20))
-                                            );
-
-                    if (ServiceCheckPublicKey is not null)
-                    {
-
-                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
-
-                        if (ServiceCheckPrivateKey is not null)
-                        {
-
-                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckPrivateKey);
-                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                            var signature   = signer.GenerateSignature().ToHexString();
-
-                            jsonResponse.Add("signature", signature);
-
-                        }
-
-                    }
-
-                    return Task.FromResult(
-                        new HTTPResponse.Builder(Request) {
-                            HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPServer?.HTTPServerName,
-                            Date                       = Timestamp.Now,
-                            AccessControlAllowOrigin   = "*",
-                            AccessControlAllowMethods  = new[] { "POST" },
-                            AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                            ContentType                = HTTPContentType.Application.JSON_UTF8,
-                            Content                    = jsonResponse.ToUTF8Bytes(),
-                            CacheControl               = "no-cache",
-                            Connection                 = ConnectionType.KeepAlive
-                        }.AsImmutable);
-
-                },
-                AllowReplacement: URLReplacement.Allow
-            );
-
-            #endregion
-
-
             #region /hashimage
 
             AddHandler(
@@ -10703,101 +10357,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 }
             );
-
-            #endregion
-
-
-            // Manage this HTTP service...
-
-            #region /restart
-
-            // -----------------------------------------------
-            // curl -v -X POST http://127.0.0.1:2000/restart
-            // -----------------------------------------------
-            AddHandler(
-                              HTTPMethod.POST,
-                              URLPathPrefix + "/restart",
-                              HTTPRequestLogger:   RestartRequest,
-                              HTTPResponseLogger:  RestartResponse,
-                              HTTPDelegate:        Request => {
-
-                                  #region Try to get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.Admin,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                     !httpOrganizations.Any())
-                                  {
-                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  //Task.Run(() => {
-                                  //    Task.Delay(10000);
-                                      Environment.Exit(1000);
-                                  //});
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode  = HTTPStatusCode.OK,
-                                          Server          = HTTPServer?.HTTPServerName,
-                                          Connection      = ConnectionType.KeepAlive
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region /stop
-
-            // --------------------------------------------
-            // curl -v -X POST http://127.0.0.1:2000/stop
-            // --------------------------------------------
-            AddHandler(
-                              HTTPMethod.POST,
-                              URLPathPrefix + "/stop",
-                              HTTPRequestLogger:   StopRequest,
-                              HTTPResponseLogger:  StopResponse,
-                              HTTPDelegate:        Request => {
-
-                                  #region Try to get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.Admin,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                     !httpOrganizations.Any())
-                                  {
-                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  //Task.Run(() => {
-                                  //    Task.Delay(1000);
-                                  Environment.Exit(0);
-                                  //});
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode  = HTTPStatusCode.OK,
-                                          Server          = HTTPServer?.HTTPServerName,
-                                          Connection      = ConnectionType.KeepAlive
-                                      }.AsImmutable);
-
-                              });
 
             #endregion
 

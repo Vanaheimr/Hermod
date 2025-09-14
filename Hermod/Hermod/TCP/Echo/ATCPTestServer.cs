@@ -141,10 +141,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => (UInt32) activeClients.Count;
 
         /// <summary>
-        /// Return an enumeration of sockets of all currently connected clients.
+        /// Return an enumeration of the TCP sockets of all currently connected clients.
         /// </summary>
         public IEnumerable<IPSocket>             ClientSockets
-            => activeClients.Keys.Select(static tcpConnection => IPSocket.FromIPEndPoint((tcpConnection.TCPClient.Client.RemoteEndPoint as IPEndPoint)!));
+            => activeClients.Keys.Select(static tcpConnection => tcpConnection.RemoteSocket);
+
+        /// <summary>
+        /// Return an enumeration of the TCP connections of all currently connected clients.
+        /// </summary>
+        public IEnumerable<TCPConnection>        ClientConnections
+            => activeClients.Keys;
 
         /// <summary>
         /// The DNS client used.

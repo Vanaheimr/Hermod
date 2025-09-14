@@ -505,7 +505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                         // If this event closes the TCP connection the OnNotification event will never be fired!
                                         // Therefore you can use this event for filtering connection initiation requests.
                                         OnNewConnection?.Invoke(newTCPConnection.TCPServer,
-                                                                newTCPConnection.ServerTimestamp,
+                                                                newTCPConnection.Created,
                                                                 EventTracking_Id.New,
                                                                 newTCPConnection.RemoteSocket,
                                                                 newTCPConnection.ConnectionId,

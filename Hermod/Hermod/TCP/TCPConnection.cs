@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Text;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -72,7 +73,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region Data
 
         // For method 'ReadLine(...)'...
-        private Boolean SkipNextN = false;
+        private          Boolean    SkipNextN   = false;
+
+        private readonly Stopwatch  stopwatch   = Stopwatch.StartNew();
 
         #endregion
 
@@ -114,9 +117,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public SslStream?         SSLStream            { get; }
 
         /// <summary>
-        /// The timestamp of the packet.
+        /// The timestamp when the TCP connection has been created.
         /// </summary>
-        public DateTimeOffset     ServerTimestamp      { get; }
+        public DateTimeOffset     Created              { get; }
+
+        /// <summary>
+        /// The runtime of this TCP connection.
+        /// </summary>
+        public TimeSpan           Runtime
+            => stopwatch.Elapsed;
 
         /// <summary>
         /// The TCP connection identification.
@@ -228,7 +237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The connection is keepalive
         /// </summary>
-        public Boolean KeepAlive { get; set; }
+        public Boolean            KeepAlive            { get; set; }
 
         #endregion
 
@@ -237,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Server was requested to stop.
         /// </summary>
-        public Boolean StopRequested { get; set; }
+        public Boolean            StopRequested        { get; set; }
 
         #endregion
 
@@ -286,11 +295,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             this.TCPServer            = TCPServer ?? throw new ArgumentNullException(nameof(TCPServer), "The given TCP server must not be null!");
             this.TCPClient            = TCPClient ?? throw new ArgumentNullException(nameof(TCPClient), "The given TCP client must not be null!");
-            this.ServerTimestamp      = Timestamp.Now;
-            this.ConnectionId         = TCPServer.ConnectionIdBuilder(this,
-                                                                      this.ServerTimestamp,
-                                                                      base.LocalSocket,
-                                                                      base.RemoteSocket);
+            this.Created              = Timestamp.Now;
+            this.ConnectionId         = TCPServer.ConnectionIdBuilder(
+                                            this,
+                                            this.Created,
+                                            base.LocalSocket,
+                                            base.RemoteSocket
+                                        );
             this.isClosed             = false;
             this.NetworkStream        = TCPClient.GetStream();
 
