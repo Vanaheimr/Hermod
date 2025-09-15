@@ -666,7 +666,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Events
 
-        #region (protected internal) RestartRequest (Request)
+        #region (protected internal) RestartRequest  (Request)
 
         /// <summary>
         /// An event sent whenever a restart request was received.
@@ -693,7 +693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region (protected internal) RestartResponse(Response)
+        #region (protected internal) RestartResponse (Response)
 
         /// <summary>
         /// An event sent whenever a restart response was sent.
@@ -724,7 +724,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        #region (protected internal) StopRequest (Request)
+        #region (protected internal) StopRequest  (Request)
 
         /// <summary>
         /// An event sent whenever a stop request was received.
@@ -751,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region (protected internal) StopResponse(Response)
+        #region (protected internal) StopResponse (Response)
 
         /// <summary>
         /// An event sent whenever a stop response was sent.
@@ -1843,7 +1843,7 @@ Error:
             #endregion
 
 
-            #region /restart
+            #region POST  ~/restart
 
             // -----------------------------------------------
             // curl -v -X POST http://127.0.0.1:2000/restart
@@ -1890,7 +1890,7 @@ Error:
 
             #endregion
 
-            #region /stop
+            #region POST  ~/stop
 
             // --------------------------------------------
             // curl -v -X POST http://127.0.0.1:2000/stop

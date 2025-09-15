@@ -5536,7 +5536,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                        AccessLevel: Access_Levels.ReadWrite,
                                                        Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return responseBuilder;
                                   }
