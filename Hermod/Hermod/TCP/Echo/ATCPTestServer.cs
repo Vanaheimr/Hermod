@@ -670,24 +670,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 if (activeClients.TryRemove(Connection, out _))
                 {
+
                     try
                     {
-
                         if (Connection.TCPClient.Client?.Connected == true)
                             Connection.TCPClient.Client.Shutdown(SocketShutdown.Both);
-
-                        Connection.Dispose(); // Explicitly dispose TCPConnection
-
-                        await Log($"Closed connection {Connection.ConnectionId}");
-                        DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
-
                     }
                     catch (Exception)
                     { }
 
+                    try
+                    {
+                        Connection.Dispose();
+                    }
+                    catch (Exception)
+                    { }
+
+                    await Log($"Closed connection {Connection.ConnectionId}");
 
                     DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
-
 
                     await LogEvent(
                               OnTCPConnectionClosed,
