@@ -539,11 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                             var clientTask = HandleNewTCPClientAsync(tcpConnection);
 
-                            if (!activeClients.TryUpdate(tcpConnection, clientTask, Task.CompletedTask))
-                            {
-                                activeClients.TryRemove(tcpConnection, out _);
-                                activeClients.TryAdd   (tcpConnection, clientTask);
-                            }
+                            activeClients.TryUpdate(tcpConnection, clientTask, Task.CompletedTask);
 
                         }
                         catch (OperationCanceledException) {
@@ -567,9 +563,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 TaskScheduler.Default);
 
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                await Log($"Error starting ATCPTestServer: {ex.Message}");
+                await Log($"Error starting ATCPTestServer: {e.Message}");
                 throw;
             }
 
@@ -651,15 +647,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 }
 
-                try
-                {
-                    // Graceful shutdown after request completes (client EOF received)
-                    if (Connection.TCPClient.Client?.Connected == true)
-                        Connection.TCPClient.Client.Shutdown(SocketShutdown.Both);
-                }
-                catch (Exception)
-                { }
-
             }
             catch (OperationCanceledException)
             {
@@ -681,27 +668,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             finally
             {
 
-                try
+                if (activeClients.TryRemove(Connection, out _))
                 {
-                    Connection.TCPClient.Close();
+                    try
+                    {
+
+                        if (Connection.TCPClient.Client?.Connected == true)
+                            Connection.TCPClient.Client.Shutdown(SocketShutdown.Both);
+
+                        Connection.Dispose(); // Explicitly dispose TCPConnection
+
+                        await Log($"Closed connection {Connection.ConnectionId}");
+                        DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
+
+                    }
+                    catch (Exception)
+                    { }
+
+
+                    DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
+
+
+                    await LogEvent(
+                              OnTCPConnectionClosed,
+                              loggingDelegate => loggingDelegate.Invoke(
+                                  this,
+                                  DateTimeOffset.UtcNow,
+                                  eventTrackingId2,
+                                  remoteSocket,
+                                  Connection.ConnectionId,
+                                  ConnectionClosedBy.Client
+                              )
+                          );
+
                 }
-                catch (Exception)
-                { }
-
-                DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
-                activeClients.TryRemove(Connection, out _);
-
-                await LogEvent(
-                          OnTCPConnectionClosed,
-                          loggingDelegate => loggingDelegate.Invoke(
-                              this,
-                              DateTimeOffset.UtcNow,
-                              eventTrackingId2,
-                              remoteSocket,
-                              Connection.ConnectionId,
-                              ConnectionClosedBy.Client
-                          )
-                      );
 
             }
         }
@@ -967,6 +967,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public async ValueTask DisposeAsync()
         {
             await Stop();
+            maintenanceTimer?.Dispose();
+            await Warden.DisposeAsync();
             cts.Dispose();
             GC.SuppressFinalize(this);
         }

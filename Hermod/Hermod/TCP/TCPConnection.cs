@@ -72,7 +72,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     public class TCPConnection : AReadOnlyLocalRemoteSockets,
                                  IEquatable<TCPConnection>,
                                  IComparable<TCPConnection>,
-                                 IComparable
+                                 IComparable,
+                                 IDisposable
+                               //  IAsyncDisposable
     {
 
         #region Data
@@ -975,53 +977,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (!isClosed)
             {
-
-                //DebugX.Log($" [TCPServer:{LocalPort}] TCP closing connection with {RemoteSocket}!");
-
-                var stream = TCPClient?.GetStream();
-                if (stream is not null)
+                try
                 {
 
-                    if (stream.DataAvailable)
+                    if (NetworkStream is not null && NetworkStream.DataAvailable)
                     {
+
                         var buffer = new Byte[1024];
+
                         do
                         {
-
                             try
                             {
-
-                                var read = stream.Read(buffer, 0, buffer.Length);
-
-                                //DebugX.Log($"Read {read} unexpected byte(s) before closing the TCP stream!");
-
+                                var read = NetworkStream.Read(buffer, 0, buffer.Length);
                             }
                             catch (Exception e)
                             {
-                                DebugX.Log($"Exception occured while reading unexpected byte(s) before closing the TCP stream: {e.Message}!");
+                                DebugX.Log($"Error reading before closing {ConnectionId}: {e.Message}");
                             }
+                        } while (NetworkStream.DataAvailable);
 
-                        } while (stream.DataAvailable);
+                        NetworkStream.Close();
+                        NetworkStream.Dispose();
+
                     }
 
-                    stream.Close();
+                    if (SSLStream is not null)
+                    {
+                        SSLStream.Close();
+                        SSLStream.Dispose();
+                    }
+
+                    if (TCPClient?.Client?.Connected == true)
+                    {
+                        TCPClient.Client.Shutdown(SocketShutdown.Both);
+                    }
+
+                    TCPClient?.Close();
+                    TCPClient?.Dispose();
+                    TCPServer.SendConnectionClosed(
+                        Timestamp.Now,
+                        EventTrackingId ?? EventTracking_Id.New,
+                        RemoteSocket,
+                        ConnectionId,
+                        ClosedBy
+                    );
+
+                    isClosed = true;
 
                 }
-
-                TCPClient?.Close();
-
-                TCPServer.SendConnectionClosed(
-                    Timestamp.Now,
-                    EventTrackingId ?? EventTracking_Id.New,
-                    RemoteSocket,
-                    ConnectionId,
-                    ClosedBy
-                );
-
-                isClosed = true;
-
-                //DebugX.Log($" [TCPServer:{LocalPort}] TCP connection with {RemoteSocket} closed!");
-
+                catch (Exception ex)
+                {
+                    DebugX.Log($"Error closing TCPConnection {ConnectionId}: {ex.Message}");
+                }
             }
         }
 
@@ -1034,7 +1042,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public void Dispose()
         {
-            //Close(ConnectionClosedBy.Server);
+            if (!isClosed)
+            {
+                try
+                {
+
+                    if (SSLStream     is not null)
+                    {
+                        SSLStream.Close();
+                        SSLStream.Dispose();
+                    }
+
+                    if (NetworkStream is not null)
+                    {
+                        NetworkStream.Close();
+                        NetworkStream.Dispose();
+                    }
+
+                    if (TCPClient     is not null)
+                    {
+                        TCPClient.Close();
+                        TCPClient.Dispose();
+                    }
+
+                    TCPServer.SendConnectionClosed(
+                        Timestamp.Now,
+                        EventTracking_Id.New,
+                        RemoteSocket,
+                        ConnectionId,
+                        ConnectionClosedBy.Server
+                    );
+
+                    isClosed = true;
+
+                }
+                catch (Exception ex)
+                {
+                    DebugX.Log($"Error disposing TCPConnection {ConnectionId}: {ex.Message}");
+                }
+            }
+            GC.SuppressFinalize(this);
         }
 
         #endregion

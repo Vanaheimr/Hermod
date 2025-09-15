@@ -28,12 +28,11 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// <summary>
     /// A warden for service checking and monitoring.
     /// </summary>
-    public partial class Warden : IDisposable
+    public partial class Warden : IDisposable,
+                                  IAsyncDisposable
     {
 
         #region Data
-
-        
 
         private readonly        List<IWardenCheck>   allWardenChecks;
 
@@ -445,14 +444,68 @@ namespace org.GraphDefined.Vanaheimr.Warden
         }
 
 
+
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsync(true).ConfigureAwait(false);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual async ValueTask DisposeAsync(Boolean disposing)
+        {
+
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                try
+                {
+                    // Stop new callbacks
+                    ServiceCheckTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+                }
+                catch
+                {
+                    // Ignore timer change exceptions during disposal
+                }
+
+                // Ensure all timer callbacks are completed before continuing
+                if (ServiceCheckTimer is IAsyncDisposable asyncTimer)
+                {
+                    await asyncTimer.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    using var mre = new ManualResetEvent(false);
+                    ServiceCheckTimer?.Dispose(mre);
+                    await Task.Run(() => mre.WaitOne()).ConfigureAwait(false);
+                }
+
+                // Dispose DNS client
+                if (DNSClient is IAsyncDisposable asyncDNSClient)
+                    await asyncDNSClient.DisposeAsync().ConfigureAwait(false);
+                else
+                    DNSClient?.Dispose();
+
+                // Dispose semaphore
+                ServiceCheckLock?.Dispose();
+
+            }
+
+            disposed = true;
+        }
+
+
+
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected virtual void Dispose(Boolean disposing)
         {
+
             if (disposed)
                 return;
 
@@ -460,13 +513,14 @@ namespace org.GraphDefined.Vanaheimr.Warden
             {
                 // Dispose managed resources
                 ServiceCheckTimer?.Dispose(new ManualResetEvent(true)); // Wait for callbacks to complete
-                ServiceCheckLock?.Dispose();
+                ServiceCheckLock?. Dispose();
             }
 
             // No unmanaged resources to clean up in this case
             // If DNSClient or allWardenChecks hold unmanaged resources, dispose them here
 
             disposed = true;
+
         }
 
         ~Warden()
