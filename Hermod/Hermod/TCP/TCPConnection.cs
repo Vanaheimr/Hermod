@@ -336,6 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                              RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
                              LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
                              SslProtocols?                                             AllowedTLSProtocols          = null,
+                             SslStream?                                                SSLStream                    = null,
                              TimeSpan?                                                 ReadTimeout                  = null,
                              TimeSpan?                                                 WriteTimeout                 = null)
 
@@ -370,8 +371,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.isClosed                        = false;
             this.NetworkStream                   = TCPClient.GetStream();
 
+            this.SSLStream                       = SSLStream;
             this.ServerCertificate               = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
-            if (this.ServerCertificate is not null)
+
+            if (this.SSLStream is null &&
+                this.ServerCertificate is not null)
             {
 
                 try

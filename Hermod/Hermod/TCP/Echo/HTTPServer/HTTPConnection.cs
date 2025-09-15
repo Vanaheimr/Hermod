@@ -67,6 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    Connection.ClientCertificateValidator,
                    Connection.LocalCertificateSelector,
                    Connection.AllowedTLSProtocols,
+                   Connection.SSLStream,
                    Connection.ReadTimeout,
                    Connection.WriteTimeout)
 
