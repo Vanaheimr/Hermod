@@ -679,7 +679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(APIKey)
 
         /// <summary>
-        /// Compares two API keys informations for equality.
+        /// Compares two API keys information for equality.
         /// </summary>
         /// <param name="APIKey">An API key to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>

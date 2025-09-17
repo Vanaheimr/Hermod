@@ -76,11 +76,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Target">The target of the edge</param>
         /// <param name="PrivacyLevel">The level of privacy of this edge.</param>
         /// <param name="Created">The creation timestamp of the miniedge.</param>
-        public MiniEdge(TSource       Source,
-                        TEdge         EdgeLabel,
-                        TTarget       Target,
-                        PrivacyLevel  PrivacyLevel  = PrivacyLevel.Private,
-                        DateTime?     Created       = null)
+        public MiniEdge(TSource          Source,
+                        TEdge            EdgeLabel,
+                        TTarget          Target,
+                        PrivacyLevel     PrivacyLevel  = PrivacyLevel.Private,
+                        DateTimeOffset?  Created       = null)
         {
 
             #region Initial checks

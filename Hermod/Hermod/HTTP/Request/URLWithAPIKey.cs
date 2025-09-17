@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(URLWithAPIKeyId)
 
         /// <summary>
-        /// Compares two API keys informations for equality.
+        /// Compares two API keys information for equality.
         /// </summary>
         /// <param name="URLWithAPIKeyId">An API keyrmation to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
