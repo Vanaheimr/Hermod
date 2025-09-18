@@ -2180,6 +2180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           IEnumerable<URLWithAPIKey>?                                RemoteAuthServers                = null,
                           IEnumerable<APIKey_Id>?                                    RemoteAuthAPIKeys                = null,
 
+                          ServiceCheckKeys?                                          ServiceCheckKeys                 = null,
+
                           Boolean?                                                   IsDevelopment                    = null,
                           IEnumerable<String>?                                       DevelopmentServers               = null,
                           Boolean                                                    SkipURLTemplates                 = false,
@@ -2212,6 +2214,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    HTTPServiceName ?? DefaultHTTPServiceName,
                    APIVersionHash  ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
                    APIVersionHashes,
+
+                   ServiceCheckKeys,
 
                    IsDevelopment,
                    DevelopmentServers,

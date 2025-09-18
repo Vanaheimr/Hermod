@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize  ?? 512,
+                   BufferSize  ?? 8192,
                    LoggingHandler,
                    DNSClient)
 

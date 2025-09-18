@@ -211,6 +211,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public String             ConnectionId         { get;}
 
+        /// <summary>
+        /// The connection is keepalive
+        /// </summary>
+        public Boolean            KeepAlive            { get; set; }
+
+        /// <summary>
+        /// Server was requested to stop.
+        /// </summary>
+        public Boolean            StopRequested        { get; set; }
+
+        /// <summary>
+        /// Gets a value that indicates whether data is available
+        /// on the System.Net.Sockets.NetworkStream to be read.
+        /// </summary>
+        public Boolean DataAvailable
+            => NetworkStream?.DataAvailable == true;
+
         #region IsConnected
 
         /// <summary>
@@ -252,18 +269,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region DataAvailable
-
-        /// <summary>
-        /// Gets a value that indicates whether data is available
-        /// on the System.Net.Sockets.NetworkStream to be read.
-        /// </summary>
-        public Boolean DataAvailable
-
-            => this.NetworkStream?.DataAvailable == true;
-
-        #endregion
-
         #region NoDelay
 
         /// <summary>
@@ -284,24 +289,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
 
         }
-
-        #endregion
-
-        #region KeepAlive
-
-        /// <summary>
-        /// The connection is keepalive
-        /// </summary>
-        public Boolean            KeepAlive            { get; set; }
-
-        #endregion
-
-        #region StopRequested
-
-        /// <summary>
-        /// Server was requested to stop.
-        /// </summary>
-        public Boolean            StopRequested        { get; set; }
 
         #endregion
 
@@ -349,30 +336,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         {
 
-            this.TCPServer                       = TCPServer ?? throw new ArgumentNullException(nameof(TCPServer), "The given TCP server must not be null!");
-            this.TCPClient                       = TCPClient ?? throw new ArgumentNullException(nameof(TCPClient), "The given TCP client must not be null!");
-            this.ServerCertificateSelector       = ServerCertificateSelector;
-            this.ClientCertificateValidator      = ClientCertificateValidator;
-            this.LocalCertificateSelector        = LocalCertificateSelector;
+            this.TCPServer                   = TCPServer ?? throw new ArgumentNullException(nameof(TCPServer), "The given TCP server must not be null!");
+            this.TCPClient                   = TCPClient ?? throw new ArgumentNullException(nameof(TCPClient), "The given TCP client must not be null!");
+            this.ServerCertificateSelector   = ServerCertificateSelector;
+            this.ClientCertificateValidator  = ClientCertificateValidator;
+            this.LocalCertificateSelector    = LocalCertificateSelector;
 
             if (ReadTimeout. HasValue)
-                this.ReadTimeout                 = ReadTimeout. Value;
+                this.ReadTimeout             = ReadTimeout. Value;
 
             if (WriteTimeout.HasValue)
-                this.WriteTimeout                = WriteTimeout.Value;
+                this.WriteTimeout            = WriteTimeout.Value;
 
-            this.Created                         = Timestamp.Now;
-            this.ConnectionId                    = TCPServer.ConnectionIdBuilder(
-                                                       this,
-                                                       this.Created,
-                                                       base.LocalSocket,
-                                                       base.RemoteSocket
-                                                   );
-            this.isClosed                        = false;
-            this.NetworkStream                   = TCPClient.GetStream();
+            this.Created                     = Timestamp.Now;
+            this.ConnectionId                = TCPServer.ConnectionIdBuilder(
+                                                   this,
+                                                   this.Created,
+                                                   base.LocalSocket,
+                                                   base.RemoteSocket
+                                               );
+            this.isClosed                    = false;
+            this.NetworkStream               = TCPClient.GetStream();
 
-            this.SSLStream                       = SSLStream;
-            this.ServerCertificate               = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
+            this.SSLStream                   = SSLStream;
+            this.ServerCertificate           = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
 
             if (this.SSLStream is null &&
                 this.ServerCertificate is not null)
@@ -421,10 +408,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                           );
 
                     this.SSLStream.AuthenticateAsServer(
-                        serverCertificate:            ServerCertificate,
-                        clientCertificateRequired:    ClientCertificateValidator is not null,
-                        enabledSslProtocols:          AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
-                        checkCertificateRevocation:   false
+                        serverCertificate:           ServerCertificate,
+                        clientCertificateRequired:   ClientCertificateValidator is not null,
+                        enabledSslProtocols:         AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
+                        checkCertificateRevocation:  false
                     );
 
                     if (this.SSLStream.RemoteCertificate is not null)

@@ -36,7 +36,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
-#endregion
+#endregion 
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 {
@@ -809,9 +809,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         public I18NString?                   Description                 { get; }
 
-        public ECPrivateKeyParameters?       ServiceCheckPrivateKey      { get; set; }
+        public ServiceCheckKeys?             ServiceCheckKeys            { get; }
 
-        public ECPublicKeyParameters?        ServiceCheckPublicKey       { get; set; }
+    //    public ECPrivateKeyParameters?       ServiceCheckPrivateKey      { get; set; }
+
+    //    public ECPublicKeyParameters?        ServiceCheckPublicKey       { get; set; }
         public System_Id?                    SystemId                    { get; set; }
 
 
@@ -837,6 +839,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         String?                        HTTPServiceName           = null,
                         String?                        APIVersionHash            = null,
                         JObject?                       APIVersionHashes          = null,
+
+                        ServiceCheckKeys?              ServiceCheckKeys          = null,
 
                         Boolean?                       IsDevelopment             = null,
                         IEnumerable<String>?           DevelopmentServers        = null,
@@ -864,10 +868,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         {
 
-            this.HTTPServer               = HTTPServer;
-            this.Hostnames                = Hostnames?.       Distinct() ?? [];
-            this.HTTPContentTypes         = HTTPContentTypes?.Distinct() ?? [];
-            this.Description              = Description                  ?? I18NString.Empty;
+            this.HTTPServer        = HTTPServer;
+            this.Hostnames         = Hostnames?.       Distinct() ?? [];
+            this.HTTPContentTypes  = HTTPContentTypes?.Distinct() ?? [];
+            this.Description       = Description                  ?? I18NString.Empty;
+
+            this.ServiceCheckKeys  = ServiceCheckKeys;
 
             RegisterURLTemplates();
 
@@ -1603,19 +1609,19 @@ Error:
                                             new JProperty("content",    RandomExtensions.RandomString(20))
                                         );
 
-                    if (ServiceCheckPublicKey is not null)
+                    if (ServiceCheckKeys?.PublicKey is not null)
                     {
 
-                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
 
-                        if (ServiceCheckPrivateKey is not null)
+                        if (ServiceCheckKeys.PrivateKey is not null)
                         {
 
                             var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
                             var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
                             var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckPrivateKey);
+                            signer.Init(true, ServiceCheckKeys.PrivateKey);
                             signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
                             var signature   = signer.GenerateSignature().ToHexString();
 
@@ -1692,19 +1698,19 @@ Error:
                                             new JProperty("content",    content?.Reverse())
                                         );
 
-                    if (ServiceCheckPublicKey is not null)
+                    if (ServiceCheckKeys?.PublicKey is not null)
                     {
 
-                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
 
-                        if (ServiceCheckPrivateKey is not null)
+                        if (ServiceCheckKeys.PrivateKey is not null)
                         {
 
                             var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
                             var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
                             var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckPrivateKey);
+                            signer.Init(true, ServiceCheckKeys.PrivateKey);
                             signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
                             var signature   = signer.GenerateSignature().ToHexString();
 
@@ -1764,19 +1770,19 @@ Error:
                                                 new JProperty("content",    RandomExtensions.RandomString(20))
                                             );
 
-                    if (ServiceCheckPublicKey is not null)
+                    if (ServiceCheckKeys?.PublicKey is not null)
                     {
 
-                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
 
-                        if (ServiceCheckPrivateKey is not null)
+                        if (ServiceCheckKeys.PrivateKey is not null)
                         {
 
                             var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
                             var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
                             var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckPrivateKey);
+                            signer.Init(true, ServiceCheckKeys.PrivateKey);
                             signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
                             var signature   = signer.GenerateSignature().ToHexString();
 
@@ -1940,6 +1946,7 @@ Error:
         }
 
         #endregion
+
 
 
         #region (override) ToString()
