@@ -81,8 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               TimeSpan?                                                     SendTimeout                      = null,
                               TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
                               UInt16?                                                       MaxNumberOfRetries               = null,
-                              UInt32?                                                       BufferSize                       = null,
-                              TCPEchoLoggingDelegate?                                       LoggingHandler                   = null)
+                              UInt32?                                                       BufferSize                       = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
@@ -121,9 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
-                   LoggingHandler)
-
+                   BufferSize ?? 512)
         { }
 
         #endregion
@@ -153,7 +150,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
                               UInt16?                                                       MaxNumberOfRetries               = null,
                               UInt32?                                                       BufferSize                       = null,
-                              TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
                               IDNSClient?                                                   DNSClient                        = null)
 
             : base(URL,
@@ -194,7 +190,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize  ?? 8192,
-                   LoggingHandler,
                    DNSClient)
 
         { }
@@ -271,7 +266,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient)
 
         { }
@@ -345,8 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              SendTimeout,
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
-                             BufferSize,
-                             LoggingHandler
+                             BufferSize
                          );
 
         #endregion
@@ -389,8 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan?                                                     SendTimeout                      = null,
                        TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
                        UInt16?                                                       MaxNumberOfRetries               = null,
-                       UInt32?                                                       BufferSize                       = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler                   = null)
+                       UInt32?                                                       BufferSize                       = null)
 
         {
 
@@ -419,8 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              SendTimeout,
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
-                             BufferSize,
-                             LoggingHandler
+                             BufferSize
                          );
 
             await client.ConnectAsync();
@@ -467,7 +458,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
                        UInt16?                                                       MaxNumberOfRetries               = null,
                        UInt32?                                                       BufferSize                       = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
                        DNSClient?                                                    DNSClient                        = null)
 
         {
@@ -496,7 +486,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
                              BufferSize,
-                             LoggingHandler,
                              DNSClient
                          );
 

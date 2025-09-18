@@ -110,8 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               TimeSpan?                                                     SendTimeout                          = null,
                               TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                               UInt16?                                                       MaxNumberOfRetries                   = null,
-                              UInt32?                                                       BufferSize                           = null,
-                              TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
+                              UInt32?                                                       BufferSize                           = null)
 
             : base(IPvXAddress.Localhost,
                    TCPPort,
@@ -149,8 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
-                   LoggingHandler)
+                   BufferSize ?? 512)
 
         {
 
@@ -191,8 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               TimeSpan?                                                     SendTimeout                          = null,
                               TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                               UInt16?                                                       MaxNumberOfRetries                   = null,
-                              UInt32?                                                       BufferSize                           = null,
-                              TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
+                              UInt32?                                                       BufferSize                           = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
@@ -230,8 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
-                   LoggingHandler)
+                   BufferSize ?? 512)
 
         {
 
@@ -272,7 +268,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                               UInt16?                                                       MaxNumberOfRetries                   = null,
                               UInt32?                                                       BufferSize                           = null,
-                              TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                               DNSClient?                                                    DNSClient                            = null)
 
             : base(URL,
@@ -312,7 +307,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize  ?? 512,
-                   LoggingHandler,
                    DNSClient)
 
         {
@@ -367,8 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        TimeSpan?                                                     SendTimeout                          = null,
                        TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                        UInt16?                                                       MaxNumberOfRetries                   = null,
-                       UInt32?                                                       BufferSize                           = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
+                       UInt32?                                                       BufferSize                           = null)
 
         {
 
@@ -396,8 +389,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              SendTimeout,
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
-                             BufferSize,
-                             LoggingHandler
+                             BufferSize
+
                          );
 
             await client.ConnectAsync();
@@ -446,7 +439,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                        UInt16?                                                       MaxNumberOfRetries                   = null,
                        UInt32?                                                       BufferSize                           = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                        DNSClient?                                                    DNSClient                            = null)
 
         {
@@ -475,7 +467,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
                              BufferSize,
-                             LoggingHandler,
                              DNSClient
                          );
 
@@ -679,7 +670,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             UInt16?                                                       MaxNumberOfRetries                   = null,
                                             UInt32?                                                       BufferSize                           = null,
                                             String?                                                       HTTPUserAgent                        = null,
-                                            TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                             DNSClient?                                                    DNSClient                            = null)
 
             => new (
@@ -706,7 +696,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient
                );
 
@@ -735,7 +724,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                         TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                                                         UInt16?                                                       MaxNumberOfRetries                   = null,
                                                         UInt32?                                                       BufferSize                           = null,
-                                                        TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                                         DNSClient?                                                    DNSClient                            = null)
 
             => new (
@@ -762,7 +750,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient
                );
 
@@ -787,7 +774,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                        TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                                                        UInt16?                                                       MaxNumberOfRetries                   = null,
                                                        UInt32?                                                       BufferSize                           = null,
-                                                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                                        DNSClient?                                                    DNSClient                            = null)
 
             => new (
@@ -814,7 +800,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient
                );
 
@@ -839,7 +824,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                        TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
                                                        UInt16?                                                       MaxNumberOfRetries                   = null,
                                                        UInt32?                                                       BufferSize                           = null,
-                                                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                                        DNSClient?                                                    DNSClient                            = null)
 
             => new (
@@ -866,7 +850,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient
                );
 

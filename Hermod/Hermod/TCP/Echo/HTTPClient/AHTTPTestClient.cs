@@ -347,8 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   TimeSpan?                                                      SendTimeout                          = null,
                                   TransmissionRetryDelayDelegate?                                TransmissionRetryDelay               = null,
                                   UInt16?                                                        MaxNumberOfRetries                   = null,
-                                  UInt32?                                                        BufferSize                           = null,
-                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null)
+                                  UInt32?                                                        BufferSize                           = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTP,
@@ -384,8 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
-                   LoggingHandler)
+                   BufferSize)
 
         {
 
@@ -430,7 +428,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   TransmissionRetryDelayDelegate?                                TransmissionRetryDelay               = null,
                                   UInt16?                                                        MaxNumberOfRetries                   = null,
                                   UInt32?                                                        BufferSize                           = null,
-                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
                                   IDNSClient?                                                    DNSClient                            = null)
 
             : base(URL,
@@ -468,7 +465,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient)
 
         {
@@ -514,7 +510,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   TransmissionRetryDelayDelegate?                                TransmissionRetryDelay               = null,
                                   UInt16?                                                        MaxNumberOfRetries                   = null,
                                   UInt32?                                                        BufferSize                           = null,
-                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
                                   IDNSClient?                                                    DNSClient                            = null)
 
             : base(DomainName,
@@ -552,7 +547,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient)
 
         {
@@ -716,13 +710,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                  CancellationToken             CancellationToken   = default)
         {
 
+           // var port           = 
+
             var requestBuilder = DefaultRequestBuilder();
 
-            requestBuilder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-          //  builder.Host        = HTTPHostname.Parse((RemoteURL?.Hostname ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
-          //                                           (RemoteURL?.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
-          //                                                ? ":" + RemoteURL.Port.ToString()
-          //                                                : String.Empty));
+            //requestBuilder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
+            requestBuilder.Host        = HTTPHostname.Parse((RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
+                                                     (RemoteURL?.Port.HasValue == true && RemoteURL.Value.Port != IPPort.HTTP && RemoteURL.Value.Port != IPPort.HTTPS
+                                                          ? ":" + RemoteURL.Value.Port.ToString()
+                                                          : String.Empty));
             requestBuilder.HTTPMethod  = HTTPMethod;
             requestBuilder.Path        = HTTPPath;
 

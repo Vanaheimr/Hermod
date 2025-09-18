@@ -90,8 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             TimeSpan?                                                   SendTimeout                          = null,
                             TransmissionRetryDelayDelegate?                             TransmissionRetryDelay               = null,
                             UInt16?                                                     MaxNumberOfRetries                   = null,
-                            UInt32?                                                     BufferSize                           = null,
-                            TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
+                            UInt32?                                                     BufferSize                           = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.DNS_TLS,
@@ -127,8 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
-                   LoggingHandler)
+                   BufferSize ?? 512)
 
         {
 
@@ -202,8 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
-                   LoggingHandler)
+                   BufferSize ?? 512)
 
         {
 

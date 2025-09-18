@@ -115,7 +115,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public const              UInt32                   DefaultBufferSize                = 4096;
 
-        protected readonly        TCPEchoLoggingDelegate?  loggingHandler;
         protected                 TcpClient?               tcpClient;
         protected                 CancellationTokenSource  clientCancellationTokenSource;
 
@@ -244,6 +243,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region Events
+
+        public event TCPEchoLoggingDelegate?  OnLogs;
+
+        #endregion
+
         #region Constructor(s)
 
         #region (private)   ATCPTestClient(...)
@@ -256,7 +261,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                                UInt16?                          MaxNumberOfRetries       = null,
                                UInt32?                          BufferSize               = null,
-                               TCPEchoLoggingDelegate?          LoggingHandler           = null,
                                IDNSClient?                      DNSClient                = null)
         {
 
@@ -281,7 +285,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.SendTimeout                    = SendTimeout            ?? DefaultSendTimeout;
             this.TransmissionRetryDelay         = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries             = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
-            this.loggingHandler                 = LoggingHandler;
             this.clientCancellationTokenSource  = new CancellationTokenSource();
             this.DNSClient                      = DNSClient              ?? new DNSClient();
 
@@ -300,8 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TimeSpan?                        SendTimeout              = null,
                                  TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                                  UInt16?                          MaxNumberOfRetries       = null,
-                                 UInt32?                          BufferSize               = null,
-                                 TCPEchoLoggingDelegate?          LoggingHandler           = null)
+                                 UInt32?                          BufferSize               = null)
 
             : this(Description,
                    PreferIPv4,
@@ -310,8 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
-                   LoggingHandler)
+                   BufferSize)
 
         {
 
@@ -334,7 +335,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                                  UInt16?                          MaxNumberOfRetries       = null,
                                  UInt32?                          BufferSize               = null,
-                                 TCPEchoLoggingDelegate?          LoggingHandler           = null,
                                  IDNSClient?                      DNSClient                = null)
 
             : this(Description,
@@ -345,7 +345,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient)
 
         {
@@ -369,7 +368,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                                  UInt16?                          MaxNumberOfRetries       = null,
                                  UInt32?                          BufferSize               = null,
-                                 TCPEchoLoggingDelegate?          LoggingHandler           = null,
                                  IDNSClient?                      DNSClient                = null)
 
             : this(Description,
@@ -380,7 +378,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   LoggingHandler,
                    DNSClient)
 
         {
@@ -758,16 +755,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
         #region (protected) Log        (Message)
 
         protected Task Log(String Message)
         {
 
-            if (loggingHandler is not null)
+            var onLogs = OnLogs;
+            if (onLogs is not null)
             {
                 try
                 {
-                    return loggingHandler(Message);
+                    return onLogs(Message);
                 }
                 catch (Exception e)
                 {
@@ -792,15 +791,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (IsConnected)
             {
+
                 try
                 {
-                    tcpClient.Client.Shutdown(SocketShutdown.Both);
+                    tcpClient?.Client.Shutdown(SocketShutdown.Both);
+                    tcpClient?.Close();
                 }
                 catch { }
-                tcpClient.Close();
+
                 await Log("Client closed!");
+
             }
 
+            RemoteIPAddress = null;
             clientCancellationTokenSource.Cancel();
 
         }

@@ -46,8 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               TimeSpan?                        SendTimeout              = null,
                               TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                               UInt16?                          MaxNumberOfRetries       = null,
-                              UInt32?                          BufferSize               = null,
-                              TCPEchoLoggingDelegate?          LoggingHandler           = null)
+                              UInt32?                          BufferSize               = null)
 
             : base(Address,
                    TCPPort,
@@ -59,8 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
-                   LoggingHandler)
+                   BufferSize)
 
         { }
 
@@ -89,8 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan?                        SendTimeout              = null,
                        UInt32?                          BufferSize               = null,
                        TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                       UInt16?                          MaxNumberOfRetries       = null,
-                       TCPEchoLoggingDelegate?          LoggingHandler           = null)
+                       UInt16?                          MaxNumberOfRetries       = null)
 
                 => await ConnectNew(
                              IPvXAddress.Localhost,
@@ -103,8 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              SendTimeout,
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
-                             BufferSize,
-                             LoggingHandler
+                             BufferSize
                          );
 
         #endregion
@@ -133,8 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan?                        SendTimeout              = null,
                        TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                        UInt16?                          MaxNumberOfRetries       = null,
-                       UInt32?                          BufferSize               = null,
-                       TCPEchoLoggingDelegate?          LoggingHandler           = null)
+                       UInt32?                          BufferSize               = null)
 
         {
 
@@ -149,8 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              SendTimeout,
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
-                             BufferSize,
-                             LoggingHandler
+                             BufferSize
                          );
 
             await client.ConnectAsync();
