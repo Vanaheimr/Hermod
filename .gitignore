@@ -9,6 +9,7 @@
 */TestResult.xml
 */obj
 */bin
-NET6/*/obj
-NET6/*/bin
-Vanaheimr
+**/obj
+**/bin
+[Oo]bj/
+[Bb]in/
