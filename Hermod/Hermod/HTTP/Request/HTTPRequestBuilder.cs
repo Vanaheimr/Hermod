@@ -614,12 +614,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Cookie
 
-            public HTTPCookies? Cookie
+            public HTTPCookies Cookie
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPRequestHeaderField.Cookie);
+                    return GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
                 }
 
                 set

@@ -1097,24 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        #region GetSecurityTokenFromCookie(this Request, SessionCookieName)
-
-        public static SecurityToken_Id? GetSecurityTokenIdFromCookie(this HTTPRequest  Request,
-                                                                     HTTPCookieName    SessionCookieName)
-        {
-
-            if (Request.Cookies  is not null &&
-                Request.Cookies. TryGet  (SessionCookieName,           out var cookie) &&
-                SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out var securityTokenId))
-            {
-                return securityTokenId;
-            }
-
-            return null;
-
-        }
-
-        #endregion
+        
 
     }
 

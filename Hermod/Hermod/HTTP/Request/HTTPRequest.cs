@@ -1033,9 +1033,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// HTTP cookies.
         /// </summary>
-        public HTTPCookies? Cookies
-
-            => GetHeaderField(HTTPRequestHeaderField.Cookie);
+        public HTTPCookies Cookies { get; }
 
         #endregion
 
@@ -1386,6 +1384,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new Exception("Invalid HTTP host header!");
 
             #endregion
+
+
+            this.Cookies = GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
 
         }
 
@@ -2567,6 +2568,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+
+
+
+        #region GetSecurityTokenFromCookie(this Request, SessionCookieName)
+
+        public SecurityToken_Id? GetSecurityTokenIdFromCookie(HTTPCookieName    SessionCookieName)
+        {
+
+            if (Cookies is not null &&
+                Cookies.         TryGet  (SessionCookieName,           out var cookie) &&
+                SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out var securityTokenId))
+            {
+                return securityTokenId;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+
+
 
 
         #region (override) ToString()

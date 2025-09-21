@@ -1104,7 +1104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetSecurityTokenFromCookie(this Request, SessionCookieName)
 
-        public static SecurityToken_Id? GetSecurityTokenIdFromCookie(this HTTPRequest  Request,
+        public static SecurityToken_Id? GetSecurityTokenIdsFromCookie(this HTTPRequest  Request,
                                                                      HTTPCookieName    SessionCookieName)
         {
 
@@ -4827,7 +4827,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                     = HTTPServer.DefaultServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
+                                                   AccessControlAllowMethods  = [ "SET" ],
                                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
@@ -4850,7 +4850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                     = HTTPServer.DefaultServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
+                                                   AccessControlAllowMethods  = [ "SET" ],
                                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                = HTTPContentType.Application.JSONLD_UTF8,
                                                    Content                    = JSONObject.Create(

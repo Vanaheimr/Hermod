@@ -20,6 +20,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -46,27 +47,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPCookies(Cookies)
-
         /// <summary>
         /// Create a new collection of HTTP cookies.
         /// </summary>
         /// <param name="Cookies">An enumeration of HTTP cookies.</param>
-        public HTTPCookies(IEnumerable<HTTPCookie> Cookies)
-
-            : this([.. Cookies])
-
-        { }
-
-        #endregion
-
-        #region HTTPCookies(params Cookies)
-
-        /// <summary>
-        /// Create a new collection of HTTP cookies.
-        /// </summary>
-        /// <param name="Cookies">An array of HTTP cookies.</param>
-        public HTTPCookies(params HTTPCookie[] Cookies)
+        public HTTPCookies(params IEnumerable<HTTPCookie> Cookies)
         {
 
             // There is no guarantee, that cookie.Name is unique within a HTTP request!
@@ -80,8 +65,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
         }
-
-        #endregion
 
         #endregion
 
