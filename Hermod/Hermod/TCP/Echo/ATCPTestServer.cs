@@ -255,7 +255,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                               Boolean?                                                  DisableWardenTasks           = false,
                               TimeSpan?                                                 WardenInitialDelay           = null,
-                              TimeSpan?                                                 WardenCheckEvery             = null)
+                              TimeSpan?                                                 WardenCheckEvery             = null,
+
+                              Boolean?                                                  AutoStart                    = false)
 
         {
 
@@ -389,6 +391,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             );
 
             #endregion
+
+            if (AutoStart ?? false)
+                Start().GetAwaiter().GetResult();
 
         }
 

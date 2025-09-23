@@ -166,7 +166,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                TimeSpan?                                                 WardenInitialDelay           = null,
                                TimeSpan?                                                 WardenCheckEvery             = null,
 
-                               HTTPAPIX?                                                 DefaultAPI                   = null)
+                               HTTPAPIX?                                                 DefaultAPI                   = null,
+                               Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    TCPPort,
@@ -193,7 +194,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                    DisableWardenTasks,
                    WardenInitialDelay,
-                   WardenCheckEvery)
+                   WardenCheckEvery,
+
+                   AutoStart: false)
 
         {
 
@@ -224,6 +227,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 DefaultAPI.HTTPServer = this;
 
             }
+
+            if (AutoStart ?? false)
+                Start().GetAwaiter().GetResult();
 
         }
 
@@ -294,7 +300,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                              WardenInitialDelay,
                              WardenCheckEvery,
 
-                             DefaultAPI
+                             DefaultAPI,
+
+                             AutoStart: false
 
                          );
 
