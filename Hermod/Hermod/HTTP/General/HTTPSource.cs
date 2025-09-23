@@ -102,11 +102,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Text.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Text), "The given text must not be null or empty!");
 
-            var Socket = IPSocket.Parse(Text);
-
-            return new HTTPSource(Socket);
+            return new HTTPSource(
+                       IPSocket.Parse(Text)
+                   );
 
         }
+
+        #endregion
+
+        #region From(Socket)
+
+        /// <summary>
+        /// Create a new HTTP source from the given IP socket.
+        /// </summary>
+        /// <param name="Socket">An IP socket.</param>
+        public static HTTPSource From(IPSocket Socket)
+
+            => new (Socket);
 
         #endregion
 

@@ -51,8 +51,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The collection of all HTTP headers.
         /// </summary>
-        protected readonly ConcurrentDictionary<String, Object?>  headerFields         = [];
-        protected readonly ConcurrentDictionary<String, Object>   headerFieldsParsed   = [];
+        protected readonly ConcurrentDictionary<String, Object?>  headerFields         = new (StringComparer.OrdinalIgnoreCase);
+        protected readonly ConcurrentDictionary<String, Object>   headerFieldsParsed   = new (StringComparer.OrdinalIgnoreCase);
 
         protected readonly static String[]  lineSeparator    = ["\n", "\r\n"];
         protected readonly static Char[]    colonSeparator   = [':'  ];
