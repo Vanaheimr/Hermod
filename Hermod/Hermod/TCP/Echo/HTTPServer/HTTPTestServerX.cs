@@ -615,6 +615,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                             #endregion
 
+
+                            #region Text
+
+                            if (methodNode.TryGetContentType(HTTPContentType.Text.PLAIN, out contentTypeNode))
+                                return ParsedRequest.Parsed(
+                                           contentTypeNode,
+                                           parsedRouteNode.Parameters
+                                       );
+
+                            #endregion
+
                         }
 
                     }
@@ -1035,7 +1046,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                 httpResponse = new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                                  // Server          = DefaultServerName,
+                                                   Server          = HTTPServerName,
                                                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                    Content         = JSONObject.Create(
                                                                          new JProperty("request",      Request.FirstPDULine),
@@ -1044,7 +1055,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                          new JProperty("source",       e.TargetSite?.Module.Name),
                                                                          new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
                                                                      ).ToUTF8Bytes(),
-                                                   Connection      = ConnectionType.Close
+                                                   Connection      = ConnectionType.KeepAlive
                                                };
 
                             }
@@ -1053,24 +1064,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         else
                             httpResponse = new HTTPResponse.Builder(Request) {
                                                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                            //   Server          = DefaultServerName,
+                                               Server          = HTTPServerName,
                                                ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                Content         = JSONObject.Create(
                                                                        new JProperty("request",       Request.FirstPDULine),
                                                                        new JProperty("description",  "HTTP request handler must not be null!")
                                                                    ).ToUTF8Bytes(),
-                                               Connection      = ConnectionType.Close
+                                               Connection      = ConnectionType.KeepAlive
                                            };
 
                         httpResponse ??= new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                          //   Server          = DefaultServerName,
+                                             Server          = HTTPServerName,
                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                              Content         = JSONObject.Create(
                                                                      new JProperty("request",       Request.FirstPDULine),
                                                                      new JProperty("description",  "HTTP response must not be null!")
                                                                  ).ToUTF8Bytes(),
-                                             Connection      = ConnectionType.Close
+                                             Connection      = ConnectionType.KeepAlive
                                          };
 
                         #endregion
@@ -1099,19 +1110,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     //                       Date            = Timestamp.Now,
                     //                       ContentType     = HTTPContentType.Text.PLAIN,
                     //                       Content         = parsedRequest.ErrorResponse.ToUTF8Bytes()
-                    //             //          Connection      = ConnectionType.Close
+                    //             //          Connection      = ConnectionType.KeepAlive
                     //                   };
 
                     httpResponse ??= new HTTPResponse.Builder(Request) {
                                          HTTPStatusCode  = parsedRequest.HTTPStatusCode ?? HTTPStatusCode.InternalServerError,
-                                         Server          = Request.Host.ToString(),
+                                         Server          = HTTPServerName,
                                          Date            = Timestamp.Now,
                                          ContentType     = HTTPContentType.Application.JSON_UTF8,
                                          Content         = JSONObject.Create(
                                                                new JProperty("request",      Request.FirstPDULine),
                                                                new JProperty("description",  parsedRequest.ErrorResponse)
                                                            ).ToUTF8Bytes()
-                                      //   Connection      = ConnectionType.Close
+                                      //   Connection      = ConnectionType.KeepAlive
                                      };
 
                 }
@@ -1159,7 +1170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             {
                 return new HTTPResponse.Builder(Request) {
                            HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                        //   Server          = DefaultServerName,
+                           Server          = HTTPServerName,
                            ContentType     = HTTPContentType.Application.JSON_UTF8,
                            Content         = JSONObject.Create(
                                                  new JProperty("request",      Request?.FirstPDULine ?? "null"),
@@ -1168,7 +1179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  new JProperty("source",       e.TargetSite?.Module.Name),
                                                  new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
                                              ).ToUTF8Bytes(),
-                           Connection      = ConnectionType.Close
+                           Connection      = ConnectionType.KeepAlive
                        };
             }
 

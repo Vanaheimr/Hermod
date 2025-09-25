@@ -374,6 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             HTTPStatusCode   = HTTPStatusCode.NotFound,
                                             Server           = DefaultServerName,
                                             Date             = Timestamp.Now,
+                                            ContentLength    = 0,
                                             CacheControl     = "no-cache",
                                             Connection       = ConnectionType.KeepAlive
                                         }.AsImmutable
