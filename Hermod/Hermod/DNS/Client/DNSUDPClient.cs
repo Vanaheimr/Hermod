@@ -190,27 +190,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, ...)
+        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                   Boolean                              RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             BypassCache         = false,
                                    CancellationToken                    CancellationToken   = default)
 
             => Query(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
                    RecursionDesired,
+                   BypassCache,
                    CancellationToken
                );
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
 
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                         Boolean                              RecursionDesired    = true,
+                                         Boolean?                             RecursionDesired    = true,
+                                         Boolean?                             BypassCache         = false,
                                          CancellationToken                    CancellationToken   = default)
         {
 
@@ -246,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
-                               this.RecursionDesired ?? RecursionDesired,
+                               this.RecursionDesired ?? RecursionDesired ?? true,
                                [.. resourceRecordTypes]
                            );
 

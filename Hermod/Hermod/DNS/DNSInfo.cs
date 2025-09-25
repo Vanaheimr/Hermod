@@ -18,8 +18,9 @@
 #region Usings
 
 using System.Reflection;
-using System.Diagnostics;
 using System.Collections.Concurrent;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -88,8 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public class DNSInfo
     {
 
-        private static readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DomainName = [];
-        private static readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DNSServiceName = [];
+        private static readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DomainName       = [];
+        private static readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DNSServiceName   = [];
 
 
 
@@ -195,21 +196,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        TimeSpan                         Timeout)
         {
 
-            this.Origin              = Origin;
-            this.QueryId             = QueryId;
-            this.AuthoritativeAnswer   = IsAuthoritativeAnswer;
-            this.IsTruncated         = IsTruncated;
-            this.RecursionRequested  = RecursionDesired;
-            this.RecursionAvailable  = RecursionAvailable;
-            this.ResponseCode        = ResponseCode;
+            this.Origin               = Origin;
+            this.QueryId              = QueryId;
+            this.AuthoritativeAnswer  = IsAuthoritativeAnswer;
+            this.IsTruncated          = IsTruncated;
+            this.RecursionRequested   = RecursionDesired;
+            this.RecursionAvailable   = RecursionAvailable;
+            this.ResponseCode         = ResponseCode;
 
-            this.answers             = [.. Answers];
-            this.authorities         = [.. Authorities];
-            this.additionalRecords   = [.. AdditionalRecords];
+            this.answers              = [.. Answers];
+            this.authorities          = [.. Authorities];
+            this.additionalRecords    = [.. AdditionalRecords];
 
-            this.IsValid             = IsValid;
-            this.IsTimeout           = IsTimeout;
-            this.Timeout             = Timeout;
+            this.IsValid              = IsValid;
+            this.IsTimeout            = IsTimeout;
+            this.Timeout              = Timeout;
 
         }
 
@@ -338,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                 DNSStream
                                             ]);
 
-            Debug.WriteLine($"Unknown DNS resource record '{typeId}' for '{resourceName}' received!");
+            DebugX.LogT($"Unknown DNS resource record '{typeId}' for '{resourceName}' received!");
 
             return null;
 

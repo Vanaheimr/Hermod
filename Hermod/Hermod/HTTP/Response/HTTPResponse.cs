@@ -590,7 +590,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.HTTPRequest          = HTTPRequest;
 
-            var statusCodeLine        = FirstPDULine.Split(new Char[] { ' ' }, 3);
+            var statusCodeLine        = FirstPDULine.Split([' '], 3);
             if (statusCodeLine.Length != 2 && statusCodeLine.Length != 3)
                 throw new ArgumentException($"Invalid HTTP response status code line: '{FirstPDULine}'!");
 
@@ -690,7 +690,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          Byte                NumberOfRetries       = 0,
                                          CancellationToken   CancellationToken     = default)
 
-            => new (Timestamp.Date,
+            => new (Timestamp,
                     HTTPSource,
                     LocalSocket,
                     RemoteSocket,

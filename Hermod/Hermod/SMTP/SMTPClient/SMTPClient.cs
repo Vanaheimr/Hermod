@@ -685,7 +685,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         }
 
-                                        //Debug.WriteLine(_RcptToResponse);
+                                        //DebugX.LogT(_RcptToResponse);
 
                                     });
 

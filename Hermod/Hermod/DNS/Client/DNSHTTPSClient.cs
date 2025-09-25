@@ -336,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<DNSHTTPSClient>
+        public static async Task<(DNSHTTPSClient?, List<String>)>
 
             ConnectNew(IIPAddress                                                    IPAddress,
                        IPPort?                                                       TCPPort                              = null,
@@ -393,9 +393,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                          );
 
-            await client.ConnectAsync();
+            var response = await client.ConnectAsync();
 
-            return client;
+            return response.Item1
+                       ? (client, [])
+                       : (null,   response.Item2);
 
         }
 
@@ -413,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<DNSHTTPSClient>
+        public static async Task<(DNSHTTPSClient?, List<String>)>
 
             ConnectNew(URL                                                           URL,
                        SRV_Spec?                                                     DNSService                           = null,
@@ -472,24 +474,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             await client.ConnectAsync();
 
-            return client;
+            var response = await client.ConnectAsync();
+
+            return response.Item1
+                       ? (client, [])
+                       : (null,   response.Item2);
 
         }
 
         #endregion
 
 
-        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, ...)
+        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                   Boolean                              RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             BypassCache         = false,
                                    CancellationToken                    CancellationToken   = default)
 
             => QueryHTTP(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
                    RecursionDesired,
+                   BypassCache,
                    null,
                    null,
                    CancellationToken
@@ -498,7 +506,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public Task<DNSInfo> QueryHTTP(DomainName                           DomainName,
                                        IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                       Boolean                              RecursionDesired          = true,
+                                       Boolean?                             RecursionDesired          = true,
+                                       Boolean?                             BypassCache               = false,
                                        ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,
                                        ClientResponseLogHandler?            HTTPResponseLogDelegate   = null,
                                        CancellationToken                    CancellationToken         = default)
@@ -507,6 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
                    RecursionDesired,
+                   BypassCache,
                    HTTPRequestLogDelegate,
                    HTTPResponseLogDelegate,
                    CancellationToken
@@ -514,17 +524,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
 
         public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                   Boolean                              RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             BypassCache         = false,
                                    CancellationToken                    CancellationToken   = default)
 
             => QueryHTTP(
                    DNSServiceName,
                    ResourceRecordTypes,
                    RecursionDesired,
+                   BypassCache,
                    null,
                    null,
                    CancellationToken
@@ -532,7 +544,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public async Task<DNSInfo> QueryHTTP(DNSServiceName                       DNSServiceName,
                                              IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                             Boolean                              RecursionDesired          = true,
+                                             Boolean?                             RecursionDesired          = true,
+                                             Boolean?                             BypassCache               = false,
                                              ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,
                                              ClientResponseLogHandler?            HTTPResponseLogDelegate   = null,
                                              CancellationToken                    CancellationToken         = default)
@@ -550,7 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery  = DNSPacket.Query(
                                 DNSServiceName,
-                                this.RecursionDesired ?? RecursionDesired,
+                                this.RecursionDesired ?? RecursionDesired ?? true,
                                 [.. resourceRecordTypes]
                             );
 
@@ -639,8 +652,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (Exception ex)
             {
-                await Log($"Error in SendBinary: {ex.Message}");
+
+                await Log($"Error in {nameof(QueryHTTP)}: {ex.Message}");
+
                 return null;
+
             }
 
         }

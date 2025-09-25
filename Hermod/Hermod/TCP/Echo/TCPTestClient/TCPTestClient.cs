@@ -167,9 +167,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ConnectAsync()
 
-        public async Task ConnectAsync()
+        public async Task<(Boolean, List<String>)> ConnectAsync()
         {
-            await base.ConnectAsync().ConfigureAwait(false);
+
+            return await base.ConnectAsync();
+
         }
 
         #endregion

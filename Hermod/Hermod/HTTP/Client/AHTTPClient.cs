@@ -980,11 +980,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                 var IPv4AddressLookupTask = DNSClient.
-                                                                Query<A>   (DNSServiceName.Parse(RemoteURL.Hostname.Name), true, CancellationToken).
+                                                                Query<A>   (DNSServiceName.Parse(RemoteURL.Hostname.Name), true, true, CancellationToken).
                                                                 ContinueWith(query => query.Result.FilteredAnswers.Select(ARecord    => ARecord.   IPv4Address));
 
                                 var IPv6AddressLookupTask = DNSClient.
-                                                                Query<AAAA>(DNSServiceName.Parse(RemoteURL.Hostname.Name), true, CancellationToken).
+                                                                Query<AAAA>(DNSServiceName.Parse(RemoteURL.Hostname.Name), true, true, CancellationToken).
                                                                 ContinueWith(query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address));
 
                                 await Task.WhenAll(IPv4AddressLookupTask,

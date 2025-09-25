@@ -413,7 +413,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine($"Error in logging handler: {e.Message}");
+                    DebugX.LogT($"Error in logging handler: {e.Message}");
                 }
             }
 

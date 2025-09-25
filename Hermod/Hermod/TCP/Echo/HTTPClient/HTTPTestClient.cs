@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as HTTPTestClient,
+                                              (tlsClient as HTTPTestClient)!,
                                                policyErrors
                                            )
                        : null,
@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<HTTPTestClient>
+        public static async Task<(HTTPTestClient?, List<String>)>
 
             ConnectNew(IPPort                                                        TCPPort,
                        I18NString?                                                   Description                      = null,
@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<HTTPTestClient>
+        public static async Task<(HTTPTestClient?, List<String>)>
 
             ConnectNew(IIPAddress                                                    IPAddress,
                        IPPort                                                        TCPPort,
@@ -414,9 +414,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              BufferSize
                          );
 
-            await client.ConnectAsync();
+            var response = await client.ConnectAsync();
 
-            return client;
+            return response.Item1
+                       ? (client, [])
+                       : (null,   response.Item2);
 
         }
 

@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 Where(line => line.IsNotNullOrEmpty()).
                 ForEachCounted((response, i) => {
                     TCPConn.WriteLineToResponseStream(((Int32) StatusCode) + (i < n ? "-" : " ") + response);
-                    Debug.WriteLine(">> " +           ((Int32) StatusCode) + (i < n ? "-" : " ") + response);
+                    DebugX.LogT(">> " +           ((Int32) StatusCode) + (i < n ? "-" : " ") + response);
                 });
 
             TCPConn.Flush();

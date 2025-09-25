@@ -394,22 +394,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync(CancellationToken = default)
 
-        public virtual async Task ReconnectAsync(CancellationToken CancellationToken = default)
+        public virtual async Task<(Boolean, List<String>)>
+
+            ReconnectAsync(CancellationToken CancellationToken = default)
+
         {
 
             try
             {
+
                 clientCancellationTokenSource?.Cancel();
                 tcpClient?.Close();
                 clientCancellationTokenSource?.Dispose();
+
             }
             catch (Exception e)
             {
-                DebugX.LogException(e);
+
+                await Log(e.Message);
+
+                if (e.StackTrace is not null)
+                    await Log(e.StackTrace);
+
             }
 
             // recreates _cts and tcpClient
-            await ConnectAsync(CancellationToken);
+            return await ConnectAsync(CancellationToken);
 
         }
 
@@ -417,7 +427,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected virtual async Task ConnectAsync(CancellationToken CancellationToken = default)
+        protected virtual async Task<(Boolean, List<String>)>
+
+            ConnectAsync(CancellationToken CancellationToken = default)
+
         {
 
             var timings = new HTTPClientConnectTimings();
@@ -460,8 +473,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         // Look up the DNS Name or the hostname of the URL...
                         var serviceRecords         = await DNSClient.Query_DNSService(
-                                                               DNSServiceName.Parse($"{DNSService}.{hostname}"),
-                                                               CancellationToken: CancellationToken
+                                                               DNSServiceName:     DNSServiceName.Parse($"{DNSService}.{hostname}"),
+                                                               RecursionDesired:   true,
+                                                               BypassCache:        false,
+                                                               CancellationToken:  CancellationToken
                                                            ).ConfigureAwait(false);
 
                         DebugX.LogT($"DNS SRV: {serviceRecords.Count()} service records found:" + serviceRecords.Select(serviceRecord => serviceRecord.ToString()).AggregateWith(", "));
@@ -511,8 +526,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         DebugX.LogT($"DNS A/AAAA queries for '{remote}'...");
 
                         // Look up the DNS SRV remote host or the hostname of the URL...
-                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(dnsSRVRemoteHost ?? DomainName.Parse(hostname), CancellationToken: CancellationToken);
-                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(dnsSRVRemoteHost ?? DomainName.Parse(hostname), CancellationToken: CancellationToken);
+                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(
+                                                        dnsSRVRemoteHost ?? DomainName.Parse(hostname),
+                                                        RecursionDesired:   true,
+                                                        BypassCache:        false,
+                                                        CancellationToken:  CancellationToken
+                                                    );
+
+                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(
+                                                        dnsSRVRemoteHost ?? DomainName.Parse(hostname),
+                                                        RecursionDesired:   true,
+                                                        BypassCache:        false,
+                                                        CancellationToken:  CancellationToken
+                                                    );
 
                         await Task.WhenAll(
                                   ipv4AddressLookupTask,
@@ -553,10 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     var remotePort   = RemoteURL?.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
-                    {
-                        await Log("The remote TCP port must not be null!");
-                        throw new Exception("The remote TCP port must not be null!");
-                    }
+                        return (false, new List<String>() { "The remote TCP port must not be null!" });
 
                     RemotePort     ??= remotePort;
 
@@ -604,8 +627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     }
                     catch (OperationCanceledException)
                     {
-                        await Log("Connection timeout!");
-                        throw new TimeoutException("Connection timeout!");
+                        return (false, new List<String>() { "Connection timeout!" });
                     }
                     finally
                     {
@@ -619,17 +641,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
 
                 else
-                {
-                    await Log("The remote IP address must not be null!");
-                    throw new Exception("The remote IP address must not be null!");
-                }
+                    return (false, new List<String>() { "The remote IP address must not be null!" });
 
             }
             catch (Exception ex)
             {
-                await Log($"Error connecting ATCPTestClient: {ex.Message}");
-                throw;
+                return (false, new List<String>() { $"Error connecting {nameof(ATCPTestClient)}: {ex.Message}" });
             }
+
+            return (true, []);
 
         }
 
@@ -770,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine($"Error in logging handler: {e.Message}");
+                    DebugX.LogT($"Error in logging handler: {e.Message}");
                 }
             }
 

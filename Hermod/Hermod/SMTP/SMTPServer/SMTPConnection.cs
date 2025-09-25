@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         SMTPCommand = Encoding.UTF8.GetString(MemoryStream.ToArray()).Trim();
 
-                                        Debug.WriteLine("<< " + SMTPCommand);
+                                        DebugX.LogT("<< " + SMTPCommand);
 
                                     }
                                     catch (Exception e)
@@ -497,7 +497,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                 if (MailLine is not null && MailLine != ".")
                                                 {
                                                     MailText.Add(MailLine);
-                                                    Debug.WriteLine("<<< " + MailLine);
+                                                    DebugX.LogT("<<< " + MailLine);
                                                 }
 
                                             } while (MailLine != ".");
@@ -520,8 +520,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                                 TCPConnection.WriteLineSMTP(SMTPStatusCode.TransactionFailed, "The e-mail could not be parsed!");
 
-                                                Debug.WriteLine("[" + Timestamp.Now + "] Incoming e-mail could not be parsed!");
-                                                Debug.WriteLine(MailText.AggregateWith(Environment.NewLine));
+                                                DebugX.LogT("[" + Timestamp.Now + "] Incoming e-mail could not be parsed!");
+                                                DebugX.LogT(MailText.AggregateWith(Environment.NewLine));
 
                                             }
 

@@ -18,8 +18,8 @@
 #region Usings
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Data
 
         private readonly ConcurrentDictionary<DNSServiceName, DNSCacheEntry>  dnsCache = [];
-        private readonly Timer                                            cleanUpTimer;
+        private readonly Timer                                                cleanUpTimer;
 
         #endregion
 
@@ -116,13 +116,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
-            cleanUpTimer = new Timer(
-                               RemoveExpiredCacheEntries,
-                               null,
-                               // Delayed start...
-                               CleanUpEvery ?? TimeSpan.FromMinutes(1),
-                               CleanUpEvery ?? TimeSpan.FromMinutes(1)
-                           );
+            cleanUpTimer  = new Timer(
+                                RemoveExpiredCacheEntries,
+                                null,
+                                // Delayed start...
+                                CleanUpEvery ?? TimeSpan.FromSeconds(10),
+                                CleanUpEvery ?? TimeSpan.FromSeconds(10)
+                            );
 
         }
 
@@ -141,12 +141,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             if (!dnsCache.TryAdd(
-                DomainName,
-                new DNSCacheEntry(
-                    Timestamp.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                    Timestamp.Now + DNSInformation.Answers.First().TimeToLive,
-                    DNSInformation
-                )))
+                    DomainName,
+                    new DNSCacheEntry(
+                        Timestamp.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                        Timestamp.Now + DNSInformation.Answers.First().TimeToLive,
+                        DNSInformation
+                    )
+               ))
             {
 
                 if (DNSInformation.Answers.Any())
@@ -248,8 +249,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSInfo? GetDNSInfo(DNSServiceName DomainName)
         {
 
-            if (dnsCache.TryGetValue(DomainName, out var cacheEntry))
-                return cacheEntry.DNSInfo;
+            if (dnsCache.TryGetValue(DomainName, out var dnsCacheEntry))
+                return dnsCacheEntry.DNSInfo;
 
             return null;
 
@@ -263,13 +264,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Get the cached DNS information from the DNS cache.
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
-        public Boolean TryGetDNSInfo(DNSServiceName                        DomainName,
+        public Boolean TryGetDNSInfo(DNSServiceName                    DomainName,
                                      [NotNullWhen(true)] out DNSInfo?  DNSInfo)
         {
 
-            if (dnsCache.TryGetValue(DomainName, out var cacheEntry))
+            if (dnsCache.TryGetValue(DomainName, out var dnsCacheEntry))
             {
-                DNSInfo = cacheEntry.DNSInfo;
+                DNSInfo = dnsCacheEntry.DNSInfo;
                 return true;
             }
 
@@ -299,13 +300,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                               Where(entry => entry.Value.EndOfLife < now).
                                               ToArray();
 
-                    expiredEntries.ForEach(entry => dnsCache.TryRemove(entry.Key, out _));
+                    foreach (var expiredEntry in expiredEntries)
+                    {
+                        DebugX.LogT($"Removed '{expiredEntry.Key}' from DNS cache!");
+                        dnsCache.TryRemove(expiredEntry.Key, out _);
+                    }
 
                 }
 
                 catch (Exception e)
                 {
-                    Debug.WriteLine($"[{Timestamp.Now}] An exception occured during DNS cache clean up: " + e.Message);
+                    DebugX.LogException(e, "During DNS cache clean up!");
                 }
 
                 finally

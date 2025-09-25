@@ -570,10 +570,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync()
 
-        public async Task ReconnectAsync()
+        public async Task<(Boolean, List<String>)> ReconnectAsync()
         {
 
-            await base.ReconnectAsync().ConfigureAwait(false);
+            return await base.ReconnectAsync();
 
         }
 
@@ -581,10 +581,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected override async Task ConnectAsync(CancellationToken CancellationToken = default)
+        protected override async Task<(Boolean, List<String>)>
+
+            ConnectAsync(CancellationToken CancellationToken = default)
+
         {
 
-            await base.ConnectAsync(CancellationToken);
+            var response = await base.ConnectAsync(CancellationToken);
+
+            if (!response.Item1)
+                return response;
 
             httpStream = tcpClient?.GetStream();
 
@@ -593,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
 
                 if (tlsStream is null || tlsStream.IsAuthenticated == false)
-                    throw new Exception("TLS Authentication failed!");
+                    return (false, new List<string>() { "TLS Authentication failed!" });
 
                 httpStream = tlsStream;
 
@@ -601,6 +607,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             IsHTTPConnected        = true;
             KeepAliveMessageCount  = 0;
+
+            return response;
 
         }
 
@@ -846,7 +854,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         {
                             try
                             {
-                                await ReconnectAsync().ConfigureAwait(false);
+
+                                var connectionResult = await ReconnectAsync();
+
+                                if (!connectionResult.Item1)
+                                {
+                                    await Log($"Error in SendRequest: {connectionResult.Item2.AggregateWith(", ")}");
+                                    DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: {connectionResult.Item2.AggregateWith(", ")}");
+                                    IsHTTPConnected = false;
+                                    retry++;
+                                    continue;
+                                }
+
                             }
                             catch (Exception ex)
                             {
