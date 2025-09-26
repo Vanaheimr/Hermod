@@ -17,8 +17,8 @@
 
 #region Usings
 
-using System.Net.Sockets;
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
@@ -29,7 +29,6 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using System.Text.RegularExpressions;
 
 #endregion
 
@@ -1121,14 +1120,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                          Content         = JSONObject.Create(
                                                                new JProperty("request",      Request.FirstPDULine),
                                                                new JProperty("description",  parsedRequest.ErrorResponse)
-                                                           ).ToUTF8Bytes()
-                                      //   Connection      = ConnectionType.KeepAlive
+                                                           ).ToUTF8Bytes(),
+                                         Connection      = ConnectionType.KeepAlive
                                      };
 
                 }
 
 
-                #region Status Code 4xx or 5xx => Log HTTP Error Response...
+                #region Log HTTP Response
+
+                await LogEvent(
+                          OnHTTPResponse,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              this,
+                              Request,
+                              httpResponse,
+                              CancellationToken
+                          )
+                      );
+
+                #endregion
+
+                #region Status Code 4xx or 5xx => Log HTTP Error Response
 
                 if (httpResponse.HTTPStatusCode.Code >  400 &&
                     httpResponse.HTTPStatusCode.Code <= 599)
@@ -1147,21 +1160,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 }
 
                 #endregion
-
-                #region ...else log HTTP Response
-
-                await LogEvent(
-                          OnHTTPResponse,
-                          loggingDelegate => loggingDelegate.Invoke(
-                              this,
-                              Request,
-                              httpResponse,
-                              CancellationToken
-                          )
-                      );
-
-                #endregion
-
 
                 return httpResponse;
 
