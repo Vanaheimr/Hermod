@@ -283,6 +283,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public UInt64                         KeepAliveMessageCount    { get; private set; } = 0;
 
+        public Boolean                        IsBusy;
+
+        public TimeSpan                       MaxSemaphoreWaitTime     { get; set; }         = TimeSpan.FromSeconds(30);
+
+
 
         URL IHTTPClient.RemoteURL => throw new NotImplementedException();
 
@@ -811,6 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        ).AsImmutable,
                        RequestLogDelegate,
                        ResponseLogDelegate,
+                       null, // MaxSemaphoreWaitTime
                        CancellationToken
                    );
 
@@ -826,14 +832,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public async Task<HTTPResponse>
 
             SendRequest(HTTPRequest                Request,
-                        ClientRequestLogHandler?   RequestLogDelegate    = null,
-                        ClientResponseLogHandler?  ResponseLogDelegate   = null,
-                        CancellationToken          CancellationToken     = default)
+                        ClientRequestLogHandler?   RequestLogDelegate     = null,
+                        ClientResponseLogHandler?  ResponseLogDelegate    = null,
+                        TimeSpan?                  MaxSemaphoreWaitTime   = null,
+                        CancellationToken          CancellationToken      = default)
 
         {
 
             var success = await sendRequestSemaphore.WaitAsync(
-                                    TimeSpan.FromSeconds(30),
+                                    MaxSemaphoreWaitTime ?? this.MaxSemaphoreWaitTime,
                                     CancellationToken
                                 );
 

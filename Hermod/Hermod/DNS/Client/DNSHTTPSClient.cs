@@ -611,6 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                               httpRequestBuilder.AsImmutable,
                                               HTTPRequestLogDelegate,
                                               HTTPResponseLogDelegate,
+                                              null,
                                               CancellationToken
                                           );
 
