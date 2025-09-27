@@ -37,6 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     public delegate HTTPRequest.Builder DefaultRequestBuilderDelegate();
+    //public delegate HTTPRequest.Builder DefaultRequestBuilder2Delegate(AHTTPTestClient HTTPClient);
 
 
     public static class HTTPTestClientExtensions
@@ -306,8 +307,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public ConnectionType? Connection => throw new NotImplementedException();
 
         public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-        public TransmissionRetryDelayDelegate TransmissionRetryDelay => throw new NotImplementedException();
 
         public Boolean UseHTTPPipelining => throw new NotImplementedException();
 
@@ -722,8 +721,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
                                                  CancellationToken             CancellationToken   = default)
         {
-
-           // var port           = 
 
             var requestBuilder = DefaultRequestBuilder();
 
@@ -1146,7 +1143,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 finally
                 {
+
+                    while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
+                    {
+                        DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
+                        Thread.Sleep(1);
+                    }
+
                     sendRequestSemaphore.Release();
+
                 }
             }
 

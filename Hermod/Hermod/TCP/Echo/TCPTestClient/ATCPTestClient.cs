@@ -134,9 +134,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The local IP socket.
         /// </summary>
         public IPSocket?    LocalSocket
-            => tcpClient is not null
-                   ? IPSocket.FromIPEndPoint(tcpClient.Client.LocalEndPoint)
+        {
+            get
+            {
+
+                var socket = tcpClient?.Client;
+
+                return socket is not null
+                   ? IPSocket.FromIPEndPoint(socket.LocalEndPoint)
                    : null;
+
+            }
+        }
 
         /// <summary>
         /// The local IP end point.
@@ -170,15 +179,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The remote IP socket.
         /// </summary>
         public IPSocket?    RemoteSocket
-            => tcpClient is not null
-                   ? IPSocket.FromIPEndPoint(tcpClient.Client.RemoteEndPoint)
+        {
+            get
+            {
+
+                var socket = tcpClient?.Client;
+
+                return socket is not null
+                   ? IPSocket.FromIPEndPoint(socket.RemoteEndPoint)
                    : null;
+
+            }
+        }
 
         /// <summary>
         /// The remote IP end point.
         /// </summary>
         public IPEndPoint?  CurrentRemoteEndPoint
-            => tcpClient?.Client.RemoteEndPoint as IPEndPoint;
+            => tcpClient?.Client?.RemoteEndPoint as IPEndPoint;
 
         /// <summary>
         /// The remote TCP port.

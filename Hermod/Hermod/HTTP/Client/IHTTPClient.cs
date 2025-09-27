@@ -149,6 +149,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //void Close();
 
 
+
+
+        //Task<HTTPResponse> Execute(Func<AHTTPClient, HTTPRequest>  HTTPRequestDelegate,
+        //                           ClientRequestLogHandler?        RequestLogDelegate    = null,
+        //                           ClientResponseLogHandler?       ResponseLogDelegate   = null,
+
+        //                           EventTracking_Id?               EventTrackingId       = null,
+        //                           TimeSpan?                       RequestTimeout        = null,
+        //                           Byte                            NumberOfRetry         = 0,
+        //                           CancellationToken               CancellationToken     = default);
+
+        //Task<HTTPResponse> Execute(HTTPRequest                     Request,
+        //                           ClientRequestLogHandler?        RequestLogDelegate    = null,
+        //                           ClientResponseLogHandler?       ResponseLogDelegate   = null,
+
+        //                           EventTracking_Id?               EventTrackingId       = null,
+        //                           TimeSpan?                       RequestTimeout        = null,
+        //                           Byte                            NumberOfRetry         = 0,
+        //                           CancellationToken               CancellationToken     = default);
+
+
     }
 
 }
