@@ -590,7 +590,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override string ToString()
 
-            => $"{nameof(HTTPTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
+            => $"{nameof(HTTPTestClient)}: {LocalSocket} -> {RemoteSocket} (Connected: {IsConnected})";
 
         #endregion
 

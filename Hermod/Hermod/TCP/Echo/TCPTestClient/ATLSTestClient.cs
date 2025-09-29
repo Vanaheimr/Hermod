@@ -414,7 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(ATLSTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
+            => $"{nameof(ATLSTestClient)}: {LocalSocket} -> {RemoteSocket} (Connected: {IsConnected})";
 
         #endregion
 

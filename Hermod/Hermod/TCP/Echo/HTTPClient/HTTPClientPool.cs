@@ -17,11 +17,7 @@
 
 #region Usings
 
-using System.Text;
-using System.Buffers;
-using System.Diagnostics;
 using System.Net.Security;
-using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -37,8 +33,458 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    public static class IHTTPClientExtensions
+    {
+
+        #region GET_Text        (this HTTPClientPool, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static async Task<HTTPResponse<String>>
+
+            GET_Text(this HTTPClientPool           HTTPClientPool,
+                     HTTPPath                      HTTPPath,
+                     QueryString?                  QueryString           = null,
+                     AcceptTypes?                  Accept                = null,
+                     IHTTPAuthentication?          Authentication        = null,
+                     Byte[]?                       Content               = null,
+                     HTTPContentType?              ContentType           = null,
+                     String?                       UserAgent             = null,
+                     ConnectionType?               Connection            = null,
+                     Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                     ClientRequestLogHandler?      RequestLogDelegate    = null,
+                     ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                     CancellationToken             CancellationToken     = default)
+
+        {
+
+            var response = await HTTPClientPool.RunRequest(
+                                     HTTPMethod.GET,
+                                     HTTPPath,
+                                     QueryString,
+                                     Accept     ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.PLAIN),
+                                     Authentication,
+                                     Content,
+                                     ContentType,
+                                     UserAgent,
+                                     Connection ?? ConnectionType.KeepAlive,
+                                     RequestBuilder,
+                                     RequestLogDelegate,
+                                     ResponseLogDelegate,
+                                     CancellationToken
+                                 );
+
+            return new HTTPResponse<String>(
+                       response,
+                       response.HTTPBodyAsUTF8String ?? String.Empty
+                   );
+
+        }
+
+        #endregion
+
+        #region GET_JSONObject  (this HTTPClientPool, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static async Task<HTTPResponse<JObject>>
+
+            GET_JSONObject(this HTTPClientPool           HTTPClientPool,
+                           HTTPPath                      HTTPPath,
+                           QueryString?                  QueryString           = null,
+                           AcceptTypes?                  Accept                = null,
+                           IHTTPAuthentication?          Authentication        = null,
+                           Byte[]?                       Content               = null,
+                           HTTPContentType?              ContentType           = null,
+                           String?                       UserAgent             = null,
+                           ConnectionType?               Connection            = null,
+                           Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                           ClientRequestLogHandler?      RequestLogDelegate    = null,
+                           ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                           CancellationToken             CancellationToken     = default)
+
+        {
+
+            var response  = await HTTPClientPool.RunRequest(
+                                      HTTPMethod.GET,
+                                      HTTPPath,
+                                      QueryString,
+                                      Accept     ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
+                                      Authentication,
+                                      Content,
+                                      ContentType,
+                                      UserAgent,
+                                      Connection ?? ConnectionType.KeepAlive,
+                                      RequestBuilder,
+                                      RequestLogDelegate,
+                                      ResponseLogDelegate,
+                                      CancellationToken
+                                  );
+
+            try
+            {
+
+                var text = response.HTTPBodyAsUTF8String;
+
+                if (text.IsNotNullOrEmpty())
+                {
+
+                    var json = JObject.Parse(text);
+
+                    return new HTTPResponse<JObject>(
+                               response,
+                               json
+                           );
+
+                }
+
+                return text.IsNotNullOrEmpty()
+                           ? new HTTPResponse<JObject>(response, JObject.Parse(text))
+                           : new HTTPResponse<JObject>(response, IsFault: true);
+
+            }
+            catch (Exception e)
+            {
+                return new HTTPResponse<JObject>(
+                           response,
+                           e
+                       );
+            }
+
+        }
+
+        #endregion
+
+        #region GET_JSONArray   (this HTTPClientPool, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static async Task<HTTPResponse<JArray>>
+
+            GET_JSONArray(this HTTPClientPool           HTTPClientPool,
+                          HTTPPath                      HTTPPath,
+                          QueryString?                  QueryString           = null,
+                          AcceptTypes?                  Accept                = null,
+                          IHTTPAuthentication?          Authentication        = null,
+                          Byte[]?                       Content               = null,
+                          HTTPContentType?              ContentType           = null,
+                          String?                       UserAgent             = null,
+                          ConnectionType?               Connection            = null,
+                          Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                          ClientRequestLogHandler?      RequestLogDelegate    = null,
+                          ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                          CancellationToken             CancellationToken     = default)
+
+        {
+
+            var response  = await HTTPClientPool.RunRequest(
+                                      HTTPMethod.GET,
+                                      HTTPPath,
+                                      QueryString,
+                                      Accept     ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
+                                      Authentication,
+                                      Content,
+                                      ContentType,
+                                      UserAgent,
+                                      Connection ?? ConnectionType.KeepAlive,
+                                      RequestBuilder,
+                                      RequestLogDelegate,
+                                      ResponseLogDelegate,
+                                      CancellationToken
+                                  );
+
+            try
+            {
+
+                var text = response.HTTPBodyAsUTF8String;
+
+                if (text.IsNotNullOrEmpty())
+                {
+
+                    var json = JArray.Parse(text);
+
+                    return new HTTPResponse<JArray>(
+                               response,
+                               json
+                           );
+
+                }
+
+                return text.IsNotNullOrEmpty()
+                           ? new HTTPResponse<JArray>(response, JArray.Parse(text))
+                           : new HTTPResponse<JArray>(response, IsFault: true);
+
+            }
+            catch (Exception e)
+            {
+                return new HTTPResponse<JArray>(
+                           response,
+                           e
+                       );
+            }
+
+        }
+
+        #endregion
+
+
+        #region POST_Text       (this HTTPClientPool, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static async Task<HTTPResponse<String>>
+
+            POST_Text(this HTTPClientPool           HTTPClientPool,
+                      HTTPPath                      HTTPPath,
+                      QueryString?                  QueryString           = null,
+                      AcceptTypes?                  Accept                = null,
+                      IHTTPAuthentication?          Authentication        = null,
+                      Byte[]?                       Content               = null,
+                      HTTPContentType?              ContentType           = null,
+                      String?                       UserAgent             = null,
+                      ConnectionType?               Connection            = null,
+                      Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                      ClientRequestLogHandler?      RequestLogDelegate    = null,
+                      ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                      CancellationToken             CancellationToken     = default)
+
+        {
+
+            var response = await HTTPClientPool.RunRequest(
+                                     HTTPMethod.POST,
+                                     HTTPPath,
+                                     QueryString,
+                                     Accept      ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.PLAIN),
+                                     Authentication,
+                                     Content,
+                                     ContentType ?? HTTPContentType.Text.PLAIN,
+                                     UserAgent,
+                                     Connection  ?? ConnectionType.KeepAlive,
+                                     RequestBuilder,
+                                     RequestLogDelegate,
+                                     ResponseLogDelegate,
+                                     CancellationToken
+                                 );
+
+            return new HTTPResponse<String>(
+                       response,
+                       response.HTTPBodyAsUTF8String ?? String.Empty
+                   );
+
+        }
+
+        #endregion
+
+        #region POST_JSONObject (this HTTPClientPool, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static async Task<HTTPResponse<JObject>>
+
+            POST_JSONObject(this HTTPClientPool           HTTPClientPool,
+                            HTTPPath                      HTTPPath,
+                            Byte[]                        Content,
+                            QueryString?                  QueryString           = null,
+                            AcceptTypes?                  Accept                = null,
+                            IHTTPAuthentication?          Authentication        = null,
+                            HTTPContentType?              ContentType           = null,
+                            String?                       UserAgent             = null,
+                            ConnectionType?               Connection            = null,
+                            Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                            ClientRequestLogHandler?      RequestLogDelegate    = null,
+                            ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                            CancellationToken             CancellationToken     = default)
+
+        {
+
+            var response  = await HTTPClientPool.RunRequest(
+                                      HTTPMethod.POST,
+                                      HTTPPath,
+                                      QueryString,
+                                      Accept      ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
+                                      Authentication,
+                                      Content,
+                                      ContentType ?? HTTPContentType.Application.JSONLD_UTF8,
+                                      UserAgent,
+                                      Connection  ?? ConnectionType.KeepAlive,
+                                      RequestBuilder,
+                                      RequestLogDelegate,
+                                      ResponseLogDelegate,
+                                      CancellationToken
+                                  );
+
+            try
+            {
+
+                var text = response.HTTPBodyAsUTF8String;
+
+                if (text.IsNotNullOrEmpty())
+                {
+
+                    var json = JObject.Parse(text);
+
+                    return new HTTPResponse<JObject>(
+                               response,
+                               json
+                           );
+
+                }
+
+                return text.IsNotNullOrEmpty()
+                           ? new HTTPResponse<JObject>(response, JObject.Parse(text))
+                           : new HTTPResponse<JObject>(response, IsFault: true);
+
+            }
+            catch (Exception e)
+            {
+                return new HTTPResponse<JObject>(
+                           response,
+                           e
+                       );
+            }
+
+        }
+
+        #endregion
+
+        #region POST_JSONArray  (this HTTPClientPool, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static async Task<HTTPResponse<JArray>>
+
+            POST_JSONArray(this HTTPClientPool           HTTPClientPool,
+                           HTTPPath                      HTTPPath,
+                           Byte[]                        Content,
+                           QueryString?                  QueryString           = null,
+                           AcceptTypes?                  Accept                = null,
+                           IHTTPAuthentication?          Authentication        = null,
+                           HTTPContentType?              ContentType           = null,
+                           String?                       UserAgent             = null,
+                           ConnectionType?               Connection            = null,
+                           Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                           ClientRequestLogHandler?      RequestLogDelegate    = null,
+                           ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                           CancellationToken             CancellationToken     = default)
+
+        {
+
+            var response  = await HTTPClientPool.RunRequest(
+                                      HTTPMethod.POST,
+                                      HTTPPath,
+                                      QueryString,
+                                      Accept      ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
+                                      Authentication,
+                                      Content,
+                                      ContentType ?? HTTPContentType.Application.JSONLD_UTF8,
+                                      UserAgent,
+                                      Connection  ?? ConnectionType.KeepAlive,
+                                      RequestBuilder,
+                                      RequestLogDelegate,
+                                      ResponseLogDelegate,
+                                      CancellationToken
+                                  );
+
+            try
+            {
+
+                var text = response.HTTPBodyAsUTF8String;
+
+                if (text.IsNotNullOrEmpty())
+                {
+
+                    var json = JArray.Parse(text);
+
+                    return new HTTPResponse<JArray>(
+                               response,
+                               json
+                           );
+
+                }
+
+                return text.IsNotNullOrEmpty()
+                           ? new HTTPResponse<JArray>(response, JArray.Parse(text))
+                           : new HTTPResponse<JArray>(response, IsFault: true);
+
+            }
+            catch (Exception e)
+            {
+                return new HTTPResponse<JArray>(
+                           response,
+                           e
+                       );
+            }
+
+        }
+
+        #endregion
+
+    }
+
+
+
     /// <summary>
-    /// A simple TCP echo test client that can connect to a TCP echo server,
+    /// A pool of HTTP clients, that use HTTP Keep-Alive and HTTP Pipelining.
     /// </summary>
     public class HTTPClientPool : IHTTPClient,
                                   IDisposable,
@@ -47,14 +493,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        private readonly  ConcurrentBag<HTTPTestClient>  httpClientPool         = [];
+        private static UInt64 clientCounter = 0;
 
-        private readonly  SemaphoreSlim                  MaxNumberOfClientsSemaphore;
+        private readonly  ConcurrentDictionary<UInt64, HTTPTestClient>  httpClientPool         = [];
+
+        private readonly  SemaphoreSlim                                 MaxNumberOfClientsSemaphore;
 
         /// <summary>
         /// The default HTTP user agent.
         /// </summary>
-        public  const     String                         DefaultHTTPUserAgent   = "Hermod HTTP Client Pool";
+        public  const     String                                        DefaultHTTPUserAgent   = "Hermod HTTP Client Pool";
 
         #endregion
 
@@ -442,19 +890,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             foreach (var httpClient in httpClientPool)
             {
-                if (httpClient.IsConnected && !httpClient.IsBusy)// && DateTime.UtcNow - httpClient.LastUsed < _httpClientLifetime)
+
+                if (httpClient.Value.IsConnected     &&
+                    httpClient.Value.IsHTTPConnected &&
+                   !httpClient.Value.IsBusy)// && DateTime.UtcNow - httpClient.LastUsed < _httpClientLifetime)
                 {
-                    if (Interlocked.CompareExchange(ref httpClient.IsBusy, true, false) == false)
+                    if (Interlocked.CompareExchange(ref httpClient.Value.IsBusy, true, false) == false)
                     {
-                        return httpClient;
+                        return httpClient.Value;
                     }
                 }
+
+                if (!httpClient.Value.IsConnected)
+                    httpClientPool.Remove(httpClient.Key, out _);
+
             }
 
             return null;
 
         }
-
 
 
 
@@ -575,8 +1029,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 {
                     if (httpClientPool.Count < MaxNumberOfClients)
                     {
-                        httpClient = httpClientBuilder($"#{httpClientPool.Count + 1}");
-                        httpClientPool.Add(httpClient);
+                        Interlocked.Increment      (ref clientCounter);
+                        httpClient = httpClientBuilder($"#{clientCounter}");
+                        httpClientPool.TryAdd(clientCounter, httpClient);
                         Interlocked.CompareExchange(ref httpClient.IsBusy, true, false);
                     }
                     else
@@ -626,11 +1081,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        //#region RunRequest    (HTTPMethod, HTTPPath, ...)
 
+        ///// <summary>
+        ///// Create a new HTTP request.
+        ///// </summary>u
+        ///// <param name="HTTPPath">An HTTP path.</param>
+        ///// <param name="QueryString">An optional HTTP Query String.</param>
+        ///// <param name="Accept">An optional HTTP accept header.</param>
+        ///// <param name="Authentication">An optional HTTP authentication.</param>
+        ///// <param name="UserAgent">An optional HTTP user agent.</param>
+        ///// <param name="Connection">An optional HTTP connection type.</param>
+        ///// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        ///// <param name="CancellationToken">An optional cancellation token.</param>
+        //public async Task<HTTPResponse<String>>
 
+        //    GetText(HTTPPath                      HTTPPath,
+        //            QueryString?                  QueryString           = null,
+        //            AcceptTypes?                  Accept                = null,
+        //            IHTTPAuthentication?          Authentication        = null,
+        //            Byte[]?                       Content               = null,
+        //            HTTPContentType?              ContentType           = null,
+        //            String?                       UserAgent             = null,
+        //            ConnectionType?               Connection            = null,
+        //            Action<HTTPRequest.Builder>?  RequestBuilder        = null,
 
+        //            ClientRequestLogHandler?      RequestLogDelegate    = null,
+        //            ClientResponseLogHandler?     ResponseLogDelegate   = null,
+        //            CancellationToken             CancellationToken     = default)
 
+        //{
 
+        //    var response = await RunRequest(
+        //                         HTTPMethod.GET,
+        //                         HTTPPath,
+        //                         QueryString,
+        //                         Accept,
+        //                         Authentication,
+        //                         Content,
+        //                         ContentType,
+        //                         UserAgent,
+        //                         Connection,
+        //                         RequestBuilder,
+        //                         RequestLogDelegate,
+        //                         ResponseLogDelegate,
+        //                         CancellationToken
+        //                     );
+
+        //    return new HTTPResponse<String>(
+        //               response,
+        //               response.HTTPBodyAsUTF8String ?? String.Empty
+        //           );
+
+        //}
+
+        //#endregion
 
 
         #region (private)   LogEvent     (Logger, LogHandler, ...)

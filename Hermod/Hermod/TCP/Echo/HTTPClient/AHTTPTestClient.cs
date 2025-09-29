@@ -1066,7 +1066,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 if (response.IsConnectionClose)
                                 {
-                                    IsHTTPConnected = false;  // Mark connection for closure after response handling
+
+                                    // An optional close action after the HTTP body stream has been read!
+                                    response.CloseActionAfterBodyWasRead = () => {
+                                        try
+                                        {
+                                            httpStream.Close();
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.LogException(e, $"while closing {RemoteSocket}!");
+                                        }
+                                    };
+
+                                    // Mark connection for closure after response handling!
+                                    IsHTTPConnected = false;
+
                                 }
 
                                 #region Log HTTP Response
@@ -1143,6 +1158,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 finally
                 {
+
+                    //try
+                    //{
+                    //    if (!IsHTTPConnected)
+                    //    {
+                    //        httpStream?.Close();
+                    //    }
+                    //}
+                    //catch (Exception e)
+                    //{
+                    //    DebugX.LogException(e, "httpStream?.Close()");
+                    //}
 
                     while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
                     {
@@ -1242,10 +1269,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override string ToString()
 
-            => $"{nameof(HTTPTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
+            => $"{nameof(HTTPTestClient)}: {LocalSocket} -> {RemoteSocket} (Connected: {IsConnected})";
 
         #endregion
 
+
+
+        #region HTTPBodyAsUTF8String
+
+        ///// <summary>
+        ///// Return the HTTP body/content as an UTF8 string.
+        ///// </summary>
+        //public String? HTTPBodyAsUTF8String
+        //{
+        //    get
+        //    {
+
+        //        try
+        //        {
+
+        //            TryReadHTTPBodyStream();
+
+        //            if (httpBody?.Length > 0)
+        //                return httpBody.ToUTF8String();
+
+        //        }
+        //        catch
+        //        { }
+
+        //        return null;
+
+        //    }
+        //}
+
+        #endregion
+
+
+
+
+
+        //try
+        //{
+        //    if (!IsHTTPConnected)
+        //        httpStream?.Close();
+        //}
+        //catch (Exception e)
+        //{
+        //    DebugX.LogException(e, "httpStream?.Close()");
+        //}
+        
+        //while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
+        //{
+        //    DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
+        //    Thread.Sleep(1);
+        //}
 
     }
 

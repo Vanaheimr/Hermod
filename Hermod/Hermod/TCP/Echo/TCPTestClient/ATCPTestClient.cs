@@ -133,30 +133,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local IP socket.
         /// </summary>
-        public IPSocket?    LocalSocket
-        {
-            get
-            {
-
-                var socket = tcpClient?.Client;
-
-                return socket is not null
-                   ? IPSocket.FromIPEndPoint(socket.LocalEndPoint)
-                   : null;
-
-            }
-        }
+        public IPSocket?                         LocalSocket               { get; private set; }
 
         /// <summary>
         /// The local IP end point.
         /// </summary>
-        public IPEndPoint?  CurrentLocalEndPoint
-            => tcpClient?.Client.LocalEndPoint as IPEndPoint;
+        public IPEndPoint?                       CurrentLocalEndPoint      { get; private set; }
 
         /// <summary>
         /// The local TCP port.
         /// </summary>
-        public UInt16?      CurrentLocalPort
+        public UInt16?                           CurrentLocalPort
 
             => CurrentLocalEndPoint is not null
                    ? (UInt16) CurrentLocalEndPoint.Port
@@ -165,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local IP address.
         /// </summary>
-        public IIPAddress?  CurrentLocalIPAddress
+        public IIPAddress?                       CurrentLocalIPAddress
 
             => CurrentLocalEndPoint is not null
                    ? IPAddress.Parse(CurrentLocalEndPoint.Address.GetAddressBytes())
@@ -178,30 +165,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote IP socket.
         /// </summary>
-        public IPSocket?    RemoteSocket
-        {
-            get
-            {
-
-                var socket = tcpClient?.Client;
-
-                return socket is not null
-                   ? IPSocket.FromIPEndPoint(socket.RemoteEndPoint)
-                   : null;
-
-            }
-        }
+        public IPSocket?                         RemoteSocket              { get; private set; }
 
         /// <summary>
         /// The remote IP end point.
         /// </summary>
-        public IPEndPoint?  CurrentRemoteEndPoint
-            => tcpClient?.Client?.RemoteEndPoint as IPEndPoint;
+        public IPEndPoint?                       CurrentRemoteEndPoint     { get; private set; }
 
         /// <summary>
         /// The remote TCP port.
         /// </summary>
-        public UInt16?      CurrentRemotePort
+        public UInt16?                           CurrentRemotePort
 
             => CurrentRemoteEndPoint is not null
                    ? (UInt16) CurrentRemoteEndPoint.Port
@@ -210,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote IP address.
         /// </summary>
-        public IIPAddress?  CurrentRemoteIPAddress
+        public IIPAddress?                       CurrentRemoteIPAddress
 
             => CurrentRemoteEndPoint is not null
                    ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
@@ -336,6 +310,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.RemotePort       = TCPPort;
             this.RemoteIPAddress  = IPAddress;
+
+            this.RemoteSocket     = new IPSocket(
+                                        RemoteIPAddress,
+                                        TCPPort
+                                    );
 
         }
 
@@ -654,6 +633,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                             tcpClient.Dispose();
                     }
 
+                    if (!tcpClient.Connected)
+                        return (false, new List<String>() { $"Error connecting {nameof(ATCPTestClient)}" });
+
+                    var localEndpoint = tcpClient.Client.LocalEndPoint;
+                    if (localEndpoint is not null)
+                    {
+                        this.CurrentLocalEndPoint   = (localEndpoint as IPEndPoint)!;
+                        this.LocalSocket            = IPSocket.FromIPEndPoint(localEndpoint)!.Value;
+                    }
+
+                    var remoteEndpoint = tcpClient.Client.RemoteEndPoint;
+                    if (remoteEndpoint is not null)
+                    {
+                        this.CurrentRemoteEndPoint  = (remoteEndpoint as IPEndPoint)!;
+                        this.RemoteSocket           = IPSocket.FromIPEndPoint(remoteEndpoint)!.Value;
+                    }
+
                     await Log("Client connected!");
 
                 }
@@ -856,7 +852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(ATCPTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
+            => $"{nameof(ATCPTestClient)}: {LocalSocket} -> {RemoteSocket} (Connected: {IsConnected})";
 
         #endregion
 
