@@ -36,7 +36,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public static class IHTTPClientExtensions
     {
 
-        #region GET_Text        (this HTTPClientPool, HTTPPath, ...)
+        #region GET             (this HTTPClientPool, Path, ...)
+
+        /// <summary>
+        /// Create a new HTTP GET request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static Task<HTTPResponse>
+
+            GET(this HTTPClientPool           HTTPClientPool,
+                HTTPPath                      Path,
+                QueryString?                  QueryString           = null,
+                AcceptTypes?                  Accept                = null,
+                IHTTPAuthentication?          Authentication        = null,
+                String?                       UserAgent             = null,
+                ConnectionType?               Connection            = null,
+                TimeSpan?                     RequestTimeout        = null,
+                EventTracking_Id?             EventTrackingId       = null,
+                Byte                          NumberOfRetry         = 0,
+                Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                ClientRequestLogHandler?      RequestLogDelegate    = null,
+                ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                CancellationToken             CancellationToken     = default)
+
+            => HTTPClientPool.RunRequest(
+                   HTTPMethod.GET,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null, //Content,
+                   null, //ContentType,
+                   UserAgent,
+                   Connection ?? ConnectionType.KeepAlive,
+                   RequestBuilder,
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region GET_Text        (this HTTPClientPool, Path, ...)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -52,14 +101,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPResponse<String>>
 
             GET_Text(this HTTPClientPool           HTTPClientPool,
-                     HTTPPath                      HTTPPath,
+                     HTTPPath                      Path,
                      QueryString?                  QueryString           = null,
                      AcceptTypes?                  Accept                = null,
                      IHTTPAuthentication?          Authentication        = null,
-                     Byte[]?                       Content               = null,
-                     HTTPContentType?              ContentType           = null,
                      String?                       UserAgent             = null,
                      ConnectionType?               Connection            = null,
+                     TimeSpan?                     RequestTimeout        = null,
+                     EventTracking_Id?             EventTrackingId       = null,
+                     Byte                          NumberOfRetry         = 0,
                      Action<HTTPRequest.Builder>?  RequestBuilder        = null,
 
                      ClientRequestLogHandler?      RequestLogDelegate    = null,
@@ -70,12 +120,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response = await HTTPClientPool.RunRequest(
                                      HTTPMethod.GET,
-                                     HTTPPath,
+                                     Path,
                                      QueryString,
                                      Accept     ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.PLAIN),
                                      Authentication,
-                                     Content,
-                                     ContentType,
+                                     null, //Content,
+                                     null, //ContentType,
                                      UserAgent,
                                      Connection ?? ConnectionType.KeepAlive,
                                      RequestBuilder,
@@ -93,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GET_JSONObject  (this HTTPClientPool, HTTPPath, ...)
+        #region GET_JSONObject  (this HTTPClientPool, Path, ...)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -109,14 +159,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPResponse<JObject>>
 
             GET_JSONObject(this HTTPClientPool           HTTPClientPool,
-                           HTTPPath                      HTTPPath,
+                           HTTPPath                      Path,
                            QueryString?                  QueryString           = null,
                            AcceptTypes?                  Accept                = null,
                            IHTTPAuthentication?          Authentication        = null,
-                           Byte[]?                       Content               = null,
-                           HTTPContentType?              ContentType           = null,
                            String?                       UserAgent             = null,
                            ConnectionType?               Connection            = null,
+                           TimeSpan?                     RequestTimeout        = null,
+                           EventTracking_Id?             EventTrackingId       = null,
+                           Byte                          NumberOfRetry         = 0,
                            Action<HTTPRequest.Builder>?  RequestBuilder        = null,
 
                            ClientRequestLogHandler?      RequestLogDelegate    = null,
@@ -127,12 +178,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response  = await HTTPClientPool.RunRequest(
                                       HTTPMethod.GET,
-                                      HTTPPath,
+                                      Path,
                                       QueryString,
                                       Accept     ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
                                       Authentication,
-                                      Content,
-                                      ContentType,
+                                      null, //Content,
+                                      null, //ContentType,
                                       UserAgent,
                                       Connection ?? ConnectionType.KeepAlive,
                                       RequestBuilder,
@@ -175,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GET_JSONArray   (this HTTPClientPool, HTTPPath, ...)
+        #region GET_JSONArray   (this HTTPClientPool, Path, ...)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -191,14 +242,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPResponse<JArray>>
 
             GET_JSONArray(this HTTPClientPool           HTTPClientPool,
-                          HTTPPath                      HTTPPath,
+                          HTTPPath                      Path,
                           QueryString?                  QueryString           = null,
                           AcceptTypes?                  Accept                = null,
                           IHTTPAuthentication?          Authentication        = null,
-                          Byte[]?                       Content               = null,
-                          HTTPContentType?              ContentType           = null,
                           String?                       UserAgent             = null,
                           ConnectionType?               Connection            = null,
+                          TimeSpan?                     RequestTimeout        = null,
+                          EventTracking_Id?             EventTrackingId       = null,
+                          Byte                          NumberOfRetry         = 0,
                           Action<HTTPRequest.Builder>?  RequestBuilder        = null,
 
                           ClientRequestLogHandler?      RequestLogDelegate    = null,
@@ -209,12 +261,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response  = await HTTPClientPool.RunRequest(
                                       HTTPMethod.GET,
-                                      HTTPPath,
+                                      Path,
                                       QueryString,
                                       Accept     ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
                                       Authentication,
-                                      Content,
-                                      ContentType,
+                                      null, //Content,
+                                      null, //ContentType,
                                       UserAgent,
                                       Connection ?? ConnectionType.KeepAlive,
                                       RequestBuilder,
@@ -258,7 +310,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region POST_Text       (this HTTPClientPool, HTTPPath, ...)
+        #region POST            (this HTTPClientPool, Path, ...)
+
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>u
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static Task<HTTPResponse>
+
+            POST(this HTTPClientPool           HTTPClientPool,
+                 HTTPPath                      Path,
+                 Byte[]                        Content,
+                 HTTPContentType?              ContentType           = null,
+                 QueryString?                  QueryString           = null,
+                 AcceptTypes?                  Accept                = null,
+                 IHTTPAuthentication?          Authentication        = null,
+                 String?                       UserAgent             = null,
+                 ConnectionType?               Connection            = null,
+                 TimeSpan?                     RequestTimeout        = null,
+                 EventTracking_Id?             EventTrackingId       = null,
+                 Byte                          NumberOfRetry         = 0,
+                 Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                 ClientRequestLogHandler?      RequestLogDelegate    = null,
+                 ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                 CancellationToken             CancellationToken     = default)
+
+            => HTTPClientPool.RunRequest(
+                   HTTPMethod.POST,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   UserAgent,
+                   Connection  ?? ConnectionType.KeepAlive,
+                   RequestBuilder,
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region POST_Text       (this HTTPClientPool, Path, ...)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -274,14 +377,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPResponse<String>>
 
             POST_Text(this HTTPClientPool           HTTPClientPool,
-                      HTTPPath                      HTTPPath,
+                      HTTPPath                      Path,
+                      Byte[]                        Content,
+                      HTTPContentType?              ContentType           = null,
                       QueryString?                  QueryString           = null,
                       AcceptTypes?                  Accept                = null,
                       IHTTPAuthentication?          Authentication        = null,
-                      Byte[]?                       Content               = null,
-                      HTTPContentType?              ContentType           = null,
                       String?                       UserAgent             = null,
                       ConnectionType?               Connection            = null,
+                      TimeSpan?                     RequestTimeout        = null,
+                      EventTracking_Id?             EventTrackingId       = null,
+                      Byte                          NumberOfRetry         = 0,
                       Action<HTTPRequest.Builder>?  RequestBuilder        = null,
 
                       ClientRequestLogHandler?      RequestLogDelegate    = null,
@@ -292,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response = await HTTPClientPool.RunRequest(
                                      HTTPMethod.POST,
-                                     HTTPPath,
+                                     Path,
                                      QueryString,
                                      Accept      ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.PLAIN),
                                      Authentication,
@@ -315,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region POST_JSONObject (this HTTPClientPool, HTTPPath, ...)
+        #region POST_JSONObject (this HTTPClientPool, Path, ...)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -331,14 +437,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPResponse<JObject>>
 
             POST_JSONObject(this HTTPClientPool           HTTPClientPool,
-                            HTTPPath                      HTTPPath,
+                            HTTPPath                      Path,
                             Byte[]                        Content,
+                            HTTPContentType?              ContentType           = null,
                             QueryString?                  QueryString           = null,
                             AcceptTypes?                  Accept                = null,
                             IHTTPAuthentication?          Authentication        = null,
-                            HTTPContentType?              ContentType           = null,
                             String?                       UserAgent             = null,
                             ConnectionType?               Connection            = null,
+                            TimeSpan?                     RequestTimeout        = null,
+                            EventTracking_Id?             EventTrackingId       = null,
+                            Byte                          NumberOfRetry         = 0,
                             Action<HTTPRequest.Builder>?  RequestBuilder        = null,
 
                             ClientRequestLogHandler?      RequestLogDelegate    = null,
@@ -349,7 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response  = await HTTPClientPool.RunRequest(
                                       HTTPMethod.POST,
-                                      HTTPPath,
+                                      Path,
                                       QueryString,
                                       Accept      ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
                                       Authentication,
@@ -397,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region POST_JSONArray  (this HTTPClientPool, HTTPPath, ...)
+        #region POST_JSONArray  (this HTTPClientPool, Path, ...)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -413,14 +522,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPResponse<JArray>>
 
             POST_JSONArray(this HTTPClientPool           HTTPClientPool,
-                           HTTPPath                      HTTPPath,
+                           HTTPPath                      Path,
                            Byte[]                        Content,
+                           HTTPContentType?              ContentType           = null,
                            QueryString?                  QueryString           = null,
                            AcceptTypes?                  Accept                = null,
                            IHTTPAuthentication?          Authentication        = null,
-                           HTTPContentType?              ContentType           = null,
                            String?                       UserAgent             = null,
                            ConnectionType?               Connection            = null,
+                           TimeSpan?                     RequestTimeout        = null,
+                           EventTracking_Id?             EventTrackingId       = null,
+                           Byte                          NumberOfRetry         = 0,
                            Action<HTTPRequest.Builder>?  RequestBuilder        = null,
 
                            ClientRequestLogHandler?      RequestLogDelegate    = null,
@@ -431,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response  = await HTTPClientPool.RunRequest(
                                       HTTPMethod.POST,
-                                      HTTPPath,
+                                      Path,
                                       QueryString,
                                       Accept      ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSONLD_UTF8),
                                       Authentication,
@@ -763,7 +875,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      URL,
                                                                      Description,
                                                                      HTTPUserAgent + description,
-                                                                     null, //DefaultRequestBuilder,
+                                                                     this.DefaultRequestBuilder,
 
                                                                      RemoteCertificateValidator,
                                                                      LocalCertificateSelector,
@@ -893,7 +1005,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 if (httpClient.Value.IsConnected     &&
                     httpClient.Value.IsHTTPConnected &&
-                   !httpClient.Value.IsBusy)// && DateTime.UtcNow - httpClient.LastUsed < _httpClientLifetime)
+                   !httpClient.Value.IsBusy)
                 {
                     if (Interlocked.CompareExchange(ref httpClient.Value.IsBusy, true, false) == false)
                     {
@@ -911,7 +1023,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
 
-
         #region CreateRequest (HTTPMethod, HTTPPath, ...)
 
         /// <summary>
@@ -926,8 +1037,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Connection">An optional HTTP connection type.</param>
         /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
-        public HTTPRequest.Builder CreateRequest(//AHTTPTestClient               Client,
-                                                 HTTPMethod                    HTTPMethod,
+        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
                                                  HTTPPath                      HTTPPath,
                                                  QueryString?                  QueryString         = null,
                                                  AcceptTypes?                  Accept              = null,
@@ -1079,63 +1189,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         #endregion
-
-
-        //#region RunRequest    (HTTPMethod, HTTPPath, ...)
-
-        ///// <summary>
-        ///// Create a new HTTP request.
-        ///// </summary>u
-        ///// <param name="HTTPPath">An HTTP path.</param>
-        ///// <param name="QueryString">An optional HTTP Query String.</param>
-        ///// <param name="Accept">An optional HTTP accept header.</param>
-        ///// <param name="Authentication">An optional HTTP authentication.</param>
-        ///// <param name="UserAgent">An optional HTTP user agent.</param>
-        ///// <param name="Connection">An optional HTTP connection type.</param>
-        ///// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
-        ///// <param name="CancellationToken">An optional cancellation token.</param>
-        //public async Task<HTTPResponse<String>>
-
-        //    GetText(HTTPPath                      HTTPPath,
-        //            QueryString?                  QueryString           = null,
-        //            AcceptTypes?                  Accept                = null,
-        //            IHTTPAuthentication?          Authentication        = null,
-        //            Byte[]?                       Content               = null,
-        //            HTTPContentType?              ContentType           = null,
-        //            String?                       UserAgent             = null,
-        //            ConnectionType?               Connection            = null,
-        //            Action<HTTPRequest.Builder>?  RequestBuilder        = null,
-
-        //            ClientRequestLogHandler?      RequestLogDelegate    = null,
-        //            ClientResponseLogHandler?     ResponseLogDelegate   = null,
-        //            CancellationToken             CancellationToken     = default)
-
-        //{
-
-        //    var response = await RunRequest(
-        //                         HTTPMethod.GET,
-        //                         HTTPPath,
-        //                         QueryString,
-        //                         Accept,
-        //                         Authentication,
-        //                         Content,
-        //                         ContentType,
-        //                         UserAgent,
-        //                         Connection,
-        //                         RequestBuilder,
-        //                         RequestLogDelegate,
-        //                         ResponseLogDelegate,
-        //                         CancellationToken
-        //                     );
-
-        //    return new HTTPResponse<String>(
-        //               response,
-        //               response.HTTPBodyAsUTF8String ?? String.Empty
-        //           );
-
-        //}
-
-        //#endregion
 
 
         #region (private)   LogEvent     (Logger, LogHandler, ...)

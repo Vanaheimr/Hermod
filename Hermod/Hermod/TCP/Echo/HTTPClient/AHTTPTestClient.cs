@@ -79,6 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
         #region GET     (Path, ...)
 
         public static Task<HTTPResponse> GET(this AHTTPTestClient          HTTPTestClient,
@@ -88,6 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                              QueryString?                  QueryString           = null,
                                              AcceptTypes?                  Accept                = null,
                                              IHTTPAuthentication?          Authentication        = null,
+                                             String?                       UserAgent             = null,
                                              ConnectionType?               Connection            = null,
                                              TimeSpan?                     RequestTimeout        = null,
                                              EventTracking_Id?             EventTrackingId       = null,
@@ -105,10 +107,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    QueryString,
                    Accept,
                    Authentication,
-                   null, //UserAgent
                    null, //Content,
                    null, //ContentType,
-                   Connection,
+                   UserAgent,
+                   Connection ?? ConnectionType.KeepAlive,
                    RequestBuilder,
 
                    RequestLogDelegate,
@@ -117,29 +119,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                );
 
-            //  => HTTPClientCommand.Execute(
-            //         client => client.CreateRequest(
-            //                       HTTPMethod.POST,
-            //                       Path,
-            //                       Content,
-            //                       ContentType    ?? HTTPClientCommand.ContentType,
-            //                       QueryString,
-            //                       Accept         ?? HTTPClientCommand.Accept,
-            //                       Authentication ?? HTTPClientCommand.Authentication,
-            //                       UserAgent      ?? HTTPClientCommand.HTTPUserAgent,
-            //                       Connection     ?? HTTPClientCommand.Connection,
-            //                       RequestBuilder,
-            //                       CancellationToken
-            //                   ).SetContentLength(0), // Always send a Content-Length header, even when it's value is zero!
-            //         RequestLogDelegate,
-            //         ResponseLogDelegate,
-            //         EventTrackingId,
-            //         RequestTimeout,
-            //         NumberOfRetry,
-            //         CancellationToken
-            //     );
-
         #endregion
+
 
         #region POST    (Path, Content, ...)
 
@@ -1159,22 +1140,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 finally
                 {
 
-                    //try
-                    //{
-                    //    if (!IsHTTPConnected)
-                    //    {
-                    //        httpStream?.Close();
-                    //    }
-                    //}
-                    //catch (Exception e)
-                    //{
-                    //    DebugX.LogException(e, "httpStream?.Close()");
-                    //}
-
-                    while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
+                    // Was "booked" by a connection pool...
+                    if (IsBusy)
                     {
-                        DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
-                        Thread.Sleep(1);
+                        while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
+                        {
+                            DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
+                            Thread.Sleep(1);
+                        }
                     }
 
                     sendRequestSemaphore.Release();
