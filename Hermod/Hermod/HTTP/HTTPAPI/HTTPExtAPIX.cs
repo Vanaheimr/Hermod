@@ -1096,9 +1096,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-
-        
-
     }
 
 
