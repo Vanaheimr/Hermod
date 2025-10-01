@@ -37,6 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     public delegate HTTPRequest.Builder DefaultRequestBuilderDelegate();
+    //public delegate HTTPRequest.Builder DefaultRequestBuilder2Delegate(AHTTPTestClient HTTPClient);
 
 
     public static class HTTPTestClientExtensions
@@ -78,6 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
         #region GET     (Path, ...)
 
         public static Task<HTTPResponse> GET(this AHTTPTestClient          HTTPTestClient,
@@ -87,6 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                              QueryString?                  QueryString           = null,
                                              AcceptTypes?                  Accept                = null,
                                              IHTTPAuthentication?          Authentication        = null,
+                                             String?                       UserAgent             = null,
                                              ConnectionType?               Connection            = null,
                                              TimeSpan?                     RequestTimeout        = null,
                                              EventTracking_Id?             EventTrackingId       = null,
@@ -104,10 +107,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    QueryString,
                    Accept,
                    Authentication,
-                   null, //UserAgent
                    null, //Content,
                    null, //ContentType,
-                   Connection,
+                   UserAgent,
+                   Connection ?? ConnectionType.KeepAlive,
                    RequestBuilder,
 
                    RequestLogDelegate,
@@ -116,29 +119,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                );
 
-            //  => HTTPClientCommand.Execute(
-            //         client => client.CreateRequest(
-            //                       HTTPMethod.POST,
-            //                       Path,
-            //                       Content,
-            //                       ContentType    ?? HTTPClientCommand.ContentType,
-            //                       QueryString,
-            //                       Accept         ?? HTTPClientCommand.Accept,
-            //                       Authentication ?? HTTPClientCommand.Authentication,
-            //                       UserAgent      ?? HTTPClientCommand.HTTPUserAgent,
-            //                       Connection     ?? HTTPClientCommand.Connection,
-            //                       RequestBuilder,
-            //                       CancellationToken
-            //                   ).SetContentLength(0), // Always send a Content-Length header, even when it's value is zero!
-            //         RequestLogDelegate,
-            //         ResponseLogDelegate,
-            //         EventTrackingId,
-            //         RequestTimeout,
-            //         NumberOfRetry,
-            //         CancellationToken
-            //     );
-
         #endregion
+
 
         #region POST    (Path, Content, ...)
 
@@ -283,6 +265,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public UInt64                         KeepAliveMessageCount    { get; private set; } = 0;
 
+        public Boolean                        IsBusy;
+
+        public TimeSpan                       MaxSemaphoreWaitTime     { get; set; }         = TimeSpan.FromSeconds(30);
+
+
 
         URL IHTTPClient.RemoteURL => throw new NotImplementedException();
 
@@ -301,8 +288,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public ConnectionType? Connection => throw new NotImplementedException();
 
         public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-        public TransmissionRetryDelayDelegate TransmissionRetryDelay => throw new NotImplementedException();
 
         public Boolean UseHTTPPipelining => throw new NotImplementedException();
 
@@ -718,8 +703,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                  CancellationToken             CancellationToken   = default)
         {
 
-           // var port           = 
-
             var requestBuilder = DefaultRequestBuilder();
 
             //requestBuilder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
@@ -811,6 +794,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        ).AsImmutable,
                        RequestLogDelegate,
                        ResponseLogDelegate,
+                       null, // MaxSemaphoreWaitTime
                        CancellationToken
                    );
 
@@ -826,14 +810,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public async Task<HTTPResponse>
 
             SendRequest(HTTPRequest                Request,
-                        ClientRequestLogHandler?   RequestLogDelegate    = null,
-                        ClientResponseLogHandler?  ResponseLogDelegate   = null,
-                        CancellationToken          CancellationToken     = default)
+                        ClientRequestLogHandler?   RequestLogDelegate     = null,
+                        ClientResponseLogHandler?  ResponseLogDelegate    = null,
+                        TimeSpan?                  MaxSemaphoreWaitTime   = null,
+                        CancellationToken          CancellationToken      = default)
 
         {
 
             var success = await sendRequestSemaphore.WaitAsync(
-                                    TimeSpan.FromSeconds(30),
+                                    MaxSemaphoreWaitTime ?? this.MaxSemaphoreWaitTime,
                                     CancellationToken
                                 );
 
@@ -1062,7 +1047,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 if (response.IsConnectionClose)
                                 {
-                                    IsHTTPConnected = false;  // Mark connection for closure after response handling
+
+                                    // An optional close action after the HTTP body stream has been read!
+                                    response.CloseActionAfterBodyWasRead = () => {
+                                        try
+                                        {
+                                            httpStream.Close();
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.LogException(e, $"while closing {RemoteSocket}!");
+                                        }
+                                    };
+
+                                    // Mark connection for closure after response handling!
+                                    IsHTTPConnected = false;
+
                                 }
 
                                 #region Log HTTP Response
@@ -1139,7 +1139,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 finally
                 {
+
+                    // Was "booked" by a connection pool...
+                    if (IsBusy)
+                    {
+                        while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
+                        {
+                            DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
+                            Thread.Sleep(1);
+                        }
+                    }
+
                     sendRequestSemaphore.Release();
+
                 }
             }
 
@@ -1230,10 +1242,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override string ToString()
 
-            => $"{nameof(HTTPTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
+            => $"{nameof(HTTPTestClient)}: {LocalSocket} -> {RemoteSocket} (Connected: {IsConnected})";
 
         #endregion
 
+
+
+        #region HTTPBodyAsUTF8String
+
+        ///// <summary>
+        ///// Return the HTTP body/content as an UTF8 string.
+        ///// </summary>
+        //public String? HTTPBodyAsUTF8String
+        //{
+        //    get
+        //    {
+
+        //        try
+        //        {
+
+        //            TryReadHTTPBodyStream();
+
+        //            if (httpBody?.Length > 0)
+        //                return httpBody.ToUTF8String();
+
+        //        }
+        //        catch
+        //        { }
+
+        //        return null;
+
+        //    }
+        //}
+
+        #endregion
+
+
+
+
+
+        //try
+        //{
+        //    if (!IsHTTPConnected)
+        //        httpStream?.Close();
+        //}
+        //catch (Exception e)
+        //{
+        //    DebugX.LogException(e, "httpStream?.Close()");
+        //}
+        
+        //while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
+        //{
+        //    DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
+        //    Thread.Sleep(1);
+        //}
 
     }
 

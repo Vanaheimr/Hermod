@@ -1659,7 +1659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The parsed content.
         /// </summary>
-        public TContent    Content      { get; }
+        public TContent?   Content      { get; }
 
         /// <summary>
         /// An exception during parsing.
@@ -1669,7 +1669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An error during parsing.
         /// </summary>
-        public Boolean HasErrors
+        public Boolean     HasErrors
             => Exception is not null && !isFault;
 
         #endregion
@@ -1679,7 +1679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (private) HTTPResponse(Response, Content, IsFault = false, NumberOfTransmissionRetries = 0, Exception = null)
 
         private HTTPResponse(HTTPResponse  Response,
-                             TContent      Content,
+                             TContent?     Content,
                              Boolean?      IsFault     = false,
                              Exception?    Exception   = null)
 
@@ -1760,7 +1760,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private HTTPResponse(HTTPRequest  Request,
                              TContent     Content)
 
-            : this(Builder.OK(Request), Content, false)
+            : this(Builder.OK(Request),
+                   Content,
+                   false)
 
         { }
 
@@ -1799,8 +1801,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter),  "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(this.Content));
+            return new HTTPResponse<TResult>(
+                       this,
+                       ContentConverter(this.Content)
+                   );
 
         }
 
@@ -1822,9 +1826,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(this.Content,
-                                                              OnException));
+            return new HTTPResponse<TResult>(
+                       this,
+                       ContentConverter(
+                           this.Content,
+                           OnException
+                       )
+                   );
 
         }
 
@@ -1848,9 +1856,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(Request,
-                                                              this.Content));
+            return new HTTPResponse<TResult>(
+                       this,
+                       ContentConverter(
+                           Request,
+                           this.Content
+                       )
+                   );
 
         }
 
@@ -1875,10 +1887,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(Request,
-                                                              this.Content,
-                                                              OnException));
+            return new HTTPResponse<TResult>(
+                       this,
+                       ContentConverter(
+                           Request,
+                           this.Content,
+                           OnException
+                       )
+                   );
 
         }
 
@@ -1903,11 +1919,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(Request,
-                                                              Content,
-                                                              this,
-                                                              OnException));
+            return new HTTPResponse<TResult>(
+                       this,
+                       ContentConverter(
+                           Request,
+                           Content,
+                           this,
+                           OnException
+                       )
+                   );
 
         }
 

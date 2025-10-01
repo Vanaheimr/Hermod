@@ -17,8 +17,9 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
 using System.Text;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -766,6 +767,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             #endregion
+
 
             #region HTTPRequestBuilder(Request)
 

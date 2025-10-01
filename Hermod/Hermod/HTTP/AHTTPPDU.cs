@@ -492,7 +492,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     TryReadHTTPBodyStream();
 
                     if (httpBody?.Length > 0)
-                        return JObject.Parse(httpBody.ToUTF8String());
+                    {
+
+                        var text = httpBody?.ToUTF8String();
+
+                        if (text.IsNotNullOrEmpty())
+                            return JObject.Parse(text);
+
+                    }
 
                 }
                 catch
@@ -521,7 +528,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     TryReadHTTPBodyStream();
 
                     if (httpBody?.Length > 0)
-                        return JArray.Parse(httpBody.ToUTF8String());
+                    {
+
+                        var text = httpBody?.ToUTF8String();
+
+                        if (text.IsNotNullOrEmpty())
+                            return JArray.Parse(text);
+
+                    }
 
                 }
                 catch
@@ -549,6 +563,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The size of the HTTP body receive buffer.
         /// </summary>
         public UInt32  HTTPBodyReceiveBufferSize   { get; }
+
+        #endregion
+
+        #region CloseActionAfterBodyWasRead
+
+        /// <summary>
+        /// Shall the underlying connection be closed after the body was read?
+        /// </summary>
+        public Action  CloseActionAfterBodyWasRead    { get; internal set; }
 
         #endregion
 
@@ -1404,6 +1427,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                 }
+
+
+                CloseActionAfterBodyWasRead?.Invoke();
 
 
                 if (position == httpBody.Length)

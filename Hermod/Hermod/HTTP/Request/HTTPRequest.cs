@@ -1221,6 +1221,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             foreach (var kvp in HTTPHeaderFields)
                 this.headerFields.TryAdd(kvp.Key, kvp.Value);
 
+            this.Cookies = GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
+
         }
 
         #endregion
@@ -1409,6 +1411,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             ParsedURLParameters     = Request.ParsedURLParameters;
             QueryString             = Request.QueryString;
             BestMatchingAcceptType  = Request.BestMatchingAcceptType;
+
+            this.Cookies = GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
 
         }
 

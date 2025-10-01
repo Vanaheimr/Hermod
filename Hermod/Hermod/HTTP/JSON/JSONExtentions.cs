@@ -919,7 +919,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             PropertyDescription,
                                             Mapper,
                                             out Value,
-                                            out String ErrorResponse);
+                                            out var ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
