@@ -17,10 +17,11 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
@@ -212,11 +213,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (static) TryParse(JSON, ..., out APIKey, out ErrorResponse)
 
-        public static Boolean TryParse(JObject               JSON,
-                                       UserProviderDelegate  UserProvider,
-                                       out APIKey?           APIKey,
-                                       out String?           ErrorResponse,
-                                       APIKey_Id?            APIKeyURI = null)
+        public static Boolean TryParse(JObject                           JSON,
+                                       UserProviderDelegate              UserProvider,
+                                       [NotNullWhen(true)]  out APIKey?  APIKey,
+                                       [NotNullWhen(false)] out String?  ErrorResponse,
+                                       APIKey_Id?                        APIKeyURI = null)
         {
 
             APIKey = null;

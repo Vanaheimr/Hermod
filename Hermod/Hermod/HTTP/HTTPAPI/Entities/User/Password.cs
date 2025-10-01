@@ -22,6 +22,7 @@ using System.Security;
 using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -45,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Indicates whether this password is null or empty.
         /// </summary>
         /// <param name="Password">A password.</param>
-        public static Boolean IsNotNullOrEmpty(this Password? Password)
+        public static Boolean IsNotNullOrEmpty([NotNullWhen(true)] this Password? Password)
             => Password.HasValue && Password.Value.IsNotNullOrEmpty;
 
     }

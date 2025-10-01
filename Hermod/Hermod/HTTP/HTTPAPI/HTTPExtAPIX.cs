@@ -1139,7 +1139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public  const              String         HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public new const           String         HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
         ///// <summary>
         ///// The default HTTP server port.
@@ -1148,19 +1148,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         public const               String         DefaultHTTPExtAPIX_DatabaseFileName   = "HTTPExtAPIX.db";
         public const               String         DefaultHTTPExtAPIX_LogfileName        = "HTTPExtAPIX.log";
-        public const               String         DefaultPasswordFile                  = "passwords.db";
-        public const               String         DefaultHTTPCookiesFile               = "HTTPCookies.db";
-        public const               String         DefaultPasswordResetsFile            = "passwordResets.db";
+        public const               String         DefaultPasswordFile                   = "passwords.db";
+        public const               String         DefaultHTTPCookiesFile                = "HTTPCookies.db";
+        public const               String         DefaultPasswordResetsFile             = "passwordResets.db";
 
-        protected static readonly  SemaphoreSlim  LogFileSemaphore                     = new (1, 1);
-        protected static readonly  SemaphoreSlim  UsersSemaphore                       = new (1, 1);
-        protected static readonly  SemaphoreSlim  UserGroupsSemaphore                  = new (1, 1);
-        protected static readonly  SemaphoreSlim  APIKeysSemaphore                     = new (1, 1);
-        protected static readonly  SemaphoreSlim  OrganizationsSemaphore               = new (1, 1);
-        protected static readonly  SemaphoreSlim  OrganizationGroupsSemaphore          = new (1, 1);
-        protected static readonly  SemaphoreSlim  NotificationMessagesSemaphore        = new (1, 1);
+        protected static readonly  SemaphoreSlim  LogFileSemaphore                      = new (1, 1);
+        protected static readonly  SemaphoreSlim  UsersSemaphore                        = new (1, 1);
+        protected static readonly  SemaphoreSlim  UserGroupsSemaphore                   = new (1, 1);
+        protected static readonly  SemaphoreSlim  APIKeysSemaphore                      = new (1, 1);
+        protected static readonly  SemaphoreSlim  OrganizationsSemaphore                = new (1, 1);
+        protected static readonly  SemaphoreSlim  OrganizationGroupsSemaphore           = new (1, 1);
+        protected static readonly  SemaphoreSlim  NotificationMessagesSemaphore         = new (1, 1);
 
-        protected static readonly  TimeSpan       SemaphoreSlimTimeout                 = TimeSpan.FromSeconds(30);
+        protected static readonly  TimeSpan       SemaphoreSlimTimeout                  = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// The default language of the API.
@@ -1235,7 +1235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// The virtual 'robot' user.
         /// </summary>
-        public User                           Robot                              { get; }
+        public User?                          Robot                              { get; }
 
         /// <summary>
         /// The passphrase of the PGP/GPG secret key of the API.
@@ -1324,22 +1324,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public Boolean                        DisableNotifications               { get; set; }
 
 
-        private readonly HashSet<URLWithAPIKey>  remoteAuthServers;
+        private readonly ConcurrentDictionary<String, URLWithAPIKey>  remoteAuthServers = [];
 
         /// <summary>
         /// Servers for remote authorization.
         /// </summary>
         public IEnumerable<URLWithAPIKey>     RemoteAuthServers
-            => remoteAuthServers;
+            => remoteAuthServers.Values;
 
 
-        private readonly HashSet<APIKey_Id>  remoteAuthAPIKeys;
+        private readonly ConcurrentDictionary<String, APIKey_Id>   remoteAuthAPIKeys = [];
 
         /// <summary>
         /// API key for incoming remote authorizations.
         /// </summary>
         public IEnumerable<APIKey_Id>         RemoteAuthAPIKeys
-            => remoteAuthAPIKeys;
+            => remoteAuthAPIKeys.Values;
 
         #endregion
 
@@ -2077,7 +2077,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// 
         /// <param name="HTTPServiceName">The name of the HTTP service.</param>
-        /// <param name="HTMLTemplate">An optional HTML template.</param>
         /// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
         /// 
         /// <param name="AdminOrganizationId">The admins' organization identification.</param>
@@ -2096,14 +2095,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="MinUserGroupIdLength">The minimal user group identification length.</param>
         /// <param name="MinAPIKeyLength">The minimal API key length.</param>
         /// 
-        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
-        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance interval.</param>
-        /// 
-        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
-        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden interval.</param>
-        /// 
         /// <param name="RemoteAuthServers">Servers for remote authorization.</param>
         /// <param name="RemoteAuthAPIKeys">API keys for incoming remote authorizations.</param>
         /// 
@@ -2117,71 +2108,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         public HTTPExtAPIX(HTTPTestServerX                HTTPServer,
-                           IEnumerable<HTTPHostname>?     Hostnames          = null,
-                           HTTPPath?                      RootPath           = null,
-                           IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
-                           I18NString?                    Description        = null,
+                           IEnumerable<HTTPHostname>?     Hostnames                        = null,
+                           HTTPPath?                      RootPath                         = null,
+                           IEnumerable<HTTPContentType>?  HTTPContentTypes                 = null,
+                           I18NString?                    Description                      = null,
 
-                           String?                                                    ExternalDNSName                  = null,
-                           HTTPPath?                                                  BasePath                         = null,
+                           String?                        ExternalDNSName                  = null,
+                           HTTPPath?                      BasePath                         = null,
 
-                           String?                                                    HTTPServerName                   = DefaultHTTPServerName,
-                           String?                                                    HTTPServiceName                  = DefaultHTTPServiceName,
-                           String?                                                    APIVersionHash                   = null,
-                           JObject?                                                   APIVersionHashes                 = null,
+                           String?                        HTTPServerName                   = DefaultHTTPServerName,
+                           String?                        HTTPServiceName                  = DefaultHTTPServiceName,
+                           String?                        APIVersionHash                   = null,
+                           JObject?                       APIVersionHashes                 = null,
 
-                          //HTTPHostname?                                              HTTPHostname                     = null,
-                          //IPPort?                                                    HTTPServerPort                   = null,
-                          //HTTPPath?                                                  BasePath                         = null,
-                          //HTTPPath?                                                  URLPathPrefix                    = null,
+                           //HTTPHostname?                  HTTPHostname                     = null,
+                           //HTTPPath?                      BasePath                         = null,
+                           //HTTPPath?                      URLPathPrefix                    = null,
 
-                          String?                                                    HTMLTemplate                     = null,
+                           Organization_Id?               AdminOrganizationId              = null,
+                           EMailAddress?                  APIRobotEMailAddress             = null,
+                           String?                        APIRobotGPGPassphrase            = null,
+                           ISMTPClient?                   SMTPClient                       = null,
 
-                          Organization_Id?                                           AdminOrganizationId              = null,
-                          EMailAddress?                                              APIRobotEMailAddress             = null,
-                          String?                                                    APIRobotGPGPassphrase            = null,
-                          ISMTPClient?                                               SMTPClient                       = null,
+                           PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
+                           HTTPCookieName?                CookieName                       = null,
+                           Boolean                        UseSecureCookies                 = true,
+                           TimeSpan?                      MaxSignInSessionLifetime         = null,
+                           Languages?                     DefaultLanguage                  = null,
+                           Byte?                          MinUserIdLength                  = null,
+                           Byte?                          MinRealmLength                   = null,
+                           Byte?                          MinUserNameLength                = null,
+                           Byte?                          MinUserGroupIdLength             = null,
+                           UInt16?                        MinAPIKeyLength                  = null,
+                           Byte?                          MinOrganizationIdLength          = null,
+                           Byte?                          MinOrganizationGroupIdLength     = null,
+                           Byte?                          MinNotificationMessageIdLength   = null,
 
-                          PasswordQualityCheckDelegate?                              PasswordQualityCheck             = null,
-                          HTTPCookieName?                                            CookieName                       = null,
-                          Boolean                                                    UseSecureCookies                 = true,
-                          TimeSpan?                                                  MaxSignInSessionLifetime         = null,
-                          Languages?                                                 DefaultLanguage                  = null,
-                          Byte?                                                      MinUserIdLength                  = null,
-                          Byte?                                                      MinRealmLength                   = null,
-                          Byte?                                                      MinUserNameLength                = null,
-                          Byte?                                                      MinUserGroupIdLength             = null,
-                          UInt16?                                                    MinAPIKeyLength                  = null,
-                          Byte?                                                      MinMessageIdLength               = null,
-                          Byte?                                                      MinOrganizationIdLength          = null,
-                          Byte?                                                      MinOrganizationGroupIdLength     = null,
-                          Byte?                                                      MinNotificationMessageIdLength   = null,
-                          Byte?                                                      MinNewsPostingIdLength           = null,
-                          Byte?                                                      MinNewsBannerIdLength            = null,
-                          Byte?                                                      MinFAQIdLength                   = null,
+                           IEnumerable<URLWithAPIKey>?    RemoteAuthServers                = null,
+                           IEnumerable<APIKey_Id>?        RemoteAuthAPIKeys                = null,
 
-                          IEnumerable<URLWithAPIKey>?                                RemoteAuthServers                = null,
-                          IEnumerable<APIKey_Id>?                                    RemoteAuthAPIKeys                = null,
+                           ServiceCheckKeys?              ServiceCheckKeys                 = null,
 
-                          ServiceCheckKeys?                                          ServiceCheckKeys                 = null,
-
-                          Boolean?                                                   IsDevelopment                    = null,
-                          IEnumerable<String>?                                       DevelopmentServers               = null,
-                          Boolean                                                    SkipURLTemplates                 = false,
-                          String?                                                    DatabaseFileName                 = DefaultHTTPExtAPIX_DatabaseFileName,
-                          Boolean?                                                   DisableNotifications             = false,
-                          //Boolean                                                    DisableLogging                   = false,
-                          //String?                                                    LoggingPath                      = null,
-                          //String?                                                    LogfileName                      = DefaultHTTPExtAPIX_LogfileName,
-                          //LogfileCreatorDelegate?                                    LogfileCreator                   = null,
-                          //DNSClient?                                                 DNSClient                        = null,
-                          //Boolean                                                    AutoStart                        = false)
-
-                          Boolean?                       DisableLogging     = false,
-                          String?                        LoggingPath        = null, //DefaultHTTPExtAPIX_LoggingPath,
-                          String?                        LoggingContext     = null, //DefaultHTTPExtAPIX_LoggingContext,
-                          String?                        LogfileName        = DefaultHTTPExtAPIX_LogfileName,
-                          LogfileCreatorDelegate?        LogfileCreator     = null)
+                           Boolean?                       IsDevelopment                    = null,
+                           IEnumerable<String>?           DevelopmentServers               = null,
+                           Boolean                        SkipURLTemplates                 = false,
+                           String?                        DatabaseFileName                 = DefaultHTTPExtAPIX_DatabaseFileName,
+                           Boolean?                       DisableNotifications             = false,
+                           Boolean?                       DisableLogging                   = false,
+                           String?                        LoggingPath                      = null, //DefaultHTTPExtAPIX_LoggingPath,
+                           String?                        LoggingContext                   = null, //DefaultHTTPExtAPIX_LoggingContext,
+                           String?                        LogfileName                      = DefaultHTTPExtAPIX_LogfileName,
+                           LogfileCreatorDelegate?        LogfileCreator                   = null)
 
 
             : base(HTTPServer,
@@ -2210,19 +2187,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         {
 
-            #region Inital checks
-
-            if (APIRobotEMailAddress is null)
-                throw new ArgumentNullException(nameof(APIRobotEMailAddress),   "The given API robot e-mail address must not be null!");
-
-            //if (APIRobotGPGPassphrase is null)
-            //    throw new ArgumentNullException(nameof(APIRobotGPGPassphrase),  "The given API robot PGP/GPG passphrase must not be null!");
-
-            #endregion
-
             #region Init data
 
-            this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim();
+            this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim() ?? "";
 
             if (this.APIVersionHash.IsNullOrEmpty())
                 this.APIVersionHash              = "unknown";
@@ -2241,21 +2208,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 Directory.CreateDirectory(this.SMTPLoggingPath);
             }
 
-            this.Robot                           = new User(
-                                                       Id:               User_Id.Parse("robot"),
-                                                       EMail:            APIRobotEMailAddress.Address,
-                                                       Name:            (APIRobotEMailAddress.OwnerName ?? "Robot").ToI18NString(),
-                                                       PublicKeyRing:    APIRobotEMailAddress.PublicKeyRing,
-                                                       SecretKeyRing:    APIRobotEMailAddress.SecretKeyRing,
-                                                       Description:      "The HTTP API robot".ToI18NString(),
-                                                       IsAuthenticated:  true
-                                                   );
-
-            CurrentAsyncLocalUserId.Value        = Robot.Id;
+            var  apiRobotEMailAddress            = APIRobotEMailAddress           ?? SimpleEMailAddress.Parse("robot@example.org");
+            this.APIRobotGPGPassphrase           = APIRobotGPGPassphrase          ?? "";
+            this.Robot                           = APIRobotEMailAddress is not null
+                                                       ? new User(
+                                                             Id:               User_Id.Parse("robot"),
+                                                             EMail:            apiRobotEMailAddress.Address,
+                                                             Name:            (apiRobotEMailAddress.OwnerName ?? "Robot").ToI18NString(),
+                                                             PublicKeyRing:    apiRobotEMailAddress.PublicKeyRing,
+                                                             SecretKeyRing:    apiRobotEMailAddress.SecretKeyRing,
+                                                             Description:      "The HTTP API robot".ToI18NString(),
+                                                             IsAuthenticated:  true
+                                                         )
+                                                       : null;
+            CurrentAsyncLocalUserId.Value        = Robot?.Id;
 
             this.AdminOrganizationId             = AdminOrganizationId            ?? DefaultAdminOrganizationId;
-            this.APIRobotGPGPassphrase           = APIRobotGPGPassphrase;
-            this.SMTPClient                      = SMTPClient                     ?? throw new ArgumentNullException(nameof(SMTPClient), "The given API SMTP client must not be null!");
+            this.SMTPClient                      = SMTPClient                     ?? new NullMailer();
 
             this.CookieName                      = CookieName                     ?? DefaultCookieName;
             this.SessionCookieName               = this.CookieName + "Session";
@@ -2276,8 +2245,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             this.CurrentDatabaseHashValue        = "";
 
-            this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
-            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
+            foreach (var remoteAuthServer in RemoteAuthServers ?? [])
+            {
+                remoteAuthServers.TryAdd(
+                    remoteAuthServer.URL.ToString(),
+                    remoteAuthServer
+                );
+            }
+
+            foreach (var remoteAuthAPIKey in RemoteAuthAPIKeys ?? [])
+            {
+                remoteAuthAPIKeys.TryAdd(
+                    remoteAuthAPIKey.ToString(),
+                    remoteAuthAPIKey
+                );
+            }
 
             #endregion
 
@@ -3577,8 +3559,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
 
 
-
-
         #region (private) RegisterURLTemplates()
 
         #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
@@ -4458,8 +4438,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     #endregion
 
 
-                    var result = await ResetPassword(users,
-                                                     EventTrackingId: Request.EventTrackingId);
+                    var result = await ResetPassword(
+                                           users,
+                                           EventTrackingId: Request.EventTrackingId
+                                       );
 
 
                     return result.Result == CommandResult.Success
@@ -4469,7 +4451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      Server                     = HTTPServer?.HTTPServerName,
                                      Date                       = Timestamp.Now,
                                      AccessControlAllowOrigin   = "*",
-                                     AccessControlAllowMethods  = new[] { "SET" },
+                                     AccessControlAllowMethods  = [ "SET" ],
                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                      ContentType                = HTTPContentType.Application.JSON_UTF8,
                                      Content                    = JSONObject.Create(
@@ -4483,7 +4465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      Server                     = HTTPServer?.HTTPServerName,
                                      Date                       = Timestamp.Now,
                                      AccessControlAllowOrigin   = "*",
-                                     AccessControlAllowMethods  = new[] { "SET" },
+                                     AccessControlAllowMethods  = [ "SET" ],
                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                      ContentType                = HTTPContentType.Application.JSON_UTF8,
                                      Content                    = JSONObject.Create(
@@ -4623,11 +4605,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     #endregion
 
 
-                    var result = await ResetPassword(SecurityTokenId1,
-                                                     NewPassword,
-                                                     SecurityTokenId2,
-                                                     Request.EventTrackingId,
-                                                     Robot.Id);
+                    var result = await ResetPassword(
+                                           SecurityTokenId1,
+                                           NewPassword,
+                                           SecurityTokenId2,
+                                           Request.EventTrackingId,
+                                           Robot?.Id
+                                       );
 
 
                     return result.Result == CommandResult.Success
@@ -4706,8 +4690,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             Server                     = HTTPServer?.HTTPServerName,
                             Date                       = Timestamp.Now,
                             AccessControlAllowOrigin   = "*",
-                            AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
-                            AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization", "X-App-Version" },
+                            AccessControlAllowMethods  = [ "CHECK", "OPTIONS" ],
+                            AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization", "X-App-Version" ],
                             Connection                 = ConnectionType.KeepAlive
                         }.AsImmutable);
 
@@ -4729,13 +4713,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     #region Check API Key...
 
-                    if (request.API_Key is null || !remoteAuthAPIKeys.Contains(request.API_Key.Value))
+                    if (request.API_Key is null || !remoteAuthAPIKeys.Values.Contains(request.API_Key.Value))
                         return new HTTPResponse.Builder(request) {
                                    HTTPStatusCode             = HTTPStatusCode.Forbidden,
                                    Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
-                                   AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
+                                   AccessControlAllowMethods  = [ "CHECK", "OPTIONS" ],
                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                    Content                    = JSONObject.Create(
@@ -4774,7 +4758,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
-                                   AccessControlAllowMethods  = new[] { "CHECK" },
+                                   AccessControlAllowMethods  = [ "CHECK" ],
                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                    Content                    = JSONObject.Create(
@@ -4801,7 +4785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                        Server                     = HTTPServer?.HTTPServerName,
                                        Date                       = Timestamp.Now,
                                        AccessControlAllowOrigin   = "*",
-                                       AccessControlAllowMethods  = new[] { "CHECK" },
+                                       AccessControlAllowMethods  = [ "CHECK" ],
                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                        ContentType                = HTTPContentType.Application.JSON_UTF8,
                                        Content                    = JSONObject.Create(
@@ -4825,7 +4809,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    Server                      = HTTPServer?.HTTPServerName,
                                    Date                        = Timestamp.Now,
                                    AccessControlAllowOrigin    = "*",
-                                   AccessControlAllowMethods   = new[] { "CHECK" },
+                                   AccessControlAllowMethods   = [ "CHECK" ],
                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                    Content                     = JSONObject.Create(
@@ -4847,7 +4831,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                    Server                      = HTTPServer?.HTTPServerName,
                                    Date                        = Timestamp.Now,
                                    AccessControlAllowOrigin    = "*",
-                                   AccessControlAllowMethods   = new[] { "CHECK" },
+                                   AccessControlAllowMethods   = [ "CHECK" ],
                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                    Connection                  = ConnectionType.KeepAlive
                                }.AsImmutable;
@@ -4878,7 +4862,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             Server                     = HTTPServer?.HTTPServerName,
                             Date                       = Timestamp.Now,
                             AccessControlAllowOrigin   = "*",
-                            AccessControlAllowMethods  = new[] { "ADD", "SET", "GET" },
+                            AccessControlAllowMethods  = [ "ADD", "SET", "GET" ],
                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                             AccessControlMaxAge        = 3600,
                             CacheControl               = "public",
@@ -5319,7 +5303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                        AccessLevel: Access_Levels.ReadOnly,
                                                        Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return Task.FromResult(responseBuilder.AsImmutable);
                                   }
@@ -5331,7 +5315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   var includeFilter        = Request.QueryString.CreateStringFilter<IUser>("match",
                                                                                                            (user, include) => user.Id.   ToString().Contains(include, StringComparison.OrdinalIgnoreCase) ||
                                                                                                                               user.Name.FirstText().Contains(include, StringComparison.OrdinalIgnoreCase) ||
-                                                                                                                              user.Description.     Matches (include, IgnoreCase: true));
+                                                                                                                              user.Description.     Matches (include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                 = Request.QueryString.GetUInt64 ("skip");
                                   var take                 = Request.QueryString.GetUInt64 ("take");
@@ -6322,7 +6306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   false,
                                   null,
                                   request.EventTrackingId,
-                                  Robot.Id
+                                  Robot?.Id
                               );
 
                     }
@@ -7815,8 +7799,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   var withMetadata           = Request.QueryString.GetBoolean("withMetadata", false);
                                   var matchFilter            = Request.QueryString.CreateStringFilter<IUserGroup>("match",
                                                                                                                   (group, include) => group.Id.ToString().IndexOf(include) >= 0 ||
-                                                                                                                                      group.Name.       Matches(include, IgnoreCase: true) ||
-                                                                                                                                      group.Description.Matches(include, IgnoreCase: true));
+                                                                                                                                      group.Name.       Matches(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                                      group.Description.Matches(include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                   = Request.QueryString.GetUInt64 ("skip");
                                   var take                   = Request.QueryString.GetUInt64 ("take");
@@ -7985,8 +7969,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   var withMetadata            = Request.QueryString.GetBoolean("withMetadata", false);
                                   var includeFilter           = Request.QueryString.CreateStringFilter<IOrganization>("match",
                                                                                                                       (organization, include) => organization.Id.ToString().IndexOf(include)               > 0 ||
-                                                                                                                                                 organization.Name.         Matches(include, IgnoreCase: true) ||
-                                                                                                                                                 organization.Description.  Matches(include, IgnoreCase: true));
+                                                                                                                                                 organization.Name.         Matches(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                                                 organization.Description.  Matches(include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                    = Request.QueryString.GetUInt64 ("skip");
                                   var take                    = Request.QueryString.GetUInt64 ("take");
@@ -10098,8 +10082,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   var withMetadata           = Request.QueryString.GetBoolean("withMetadata", false);
                                   var includeFilter          = Request.QueryString.CreateStringFilter<OrganizationGroup>("match",
                                                                                                                          (group, include) => group.Id.ToString().IndexOf(include) >= 0 ||
-                                                                                                                                             group.Name.       Matches(include, IgnoreCase: true) ||
-                                                                                                                                             group.Description.Matches(include, IgnoreCase: true));
+                                                                                                                                             group.Name.       Matches(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                                             group.Description.Matches(include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                   = Request.QueryString.GetUInt64 ("skip");
                                   var take                   = Request.QueryString.GetUInt64 ("take");
@@ -10386,7 +10370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   #region Check API Key...
 
-                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
+                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Values.Contains(Request.API_Key.Value))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
                                                  Server                     = HTTPServer?.HTTPServerName,
@@ -10890,24 +10874,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 #region Get change sets from remote API
 
-                var retries     = -1;
-                var maxRetries  = 3;
-
-                var _remoteAuthServers = Array.Empty<URLWithAPIKey>();
-
-                lock (remoteAuthServers)
-                {
-                    _remoteAuthServers = remoteAuthServers.ToArray();
-                }
-
-                var usedRemoteAuthServer = _remoteAuthServers.FirstOrDefault();
+                var retries               = -1;
+                var maxRetries            = 3;
+                var usedRemoteAuthServer  = remoteAuthServers.Values.First();
 
                 do
                 {
 
                     retries++;
 
-                    foreach (var remoteAuthServer in _remoteAuthServers)
+                    foreach (var remoteAuthServer in remoteAuthServers.Values)
                     {
 
                         try
@@ -10957,7 +10933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             if (httpresult.HTTPStatusCode == HTTPStatusCode.OK)
                             {
 
-                                jsonChangeSets        = JArray.Parse(httpresult.HTTPBody.ToUTF8String());
+                                jsonChangeSets        = httpresult.HTTPBodyAsJSONArray ?? [];
                                 usedRemoteAuthServer  = remoteAuthServer;
 
                                 DebugX.Log("Loaded " + jsonChangeSets.Count + " remote change sets from '" + remoteAuthServer.URL.ToString() + (LastKnownSHA256HashValue is not null ? "/changeSets?skipUntil=" + LastKnownSHA256HashValue : "/changeSets"));
@@ -11414,12 +11390,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                         out errorResponse) && apiKey is not null)
                     {
 
-                        if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))
-                        {
-                            apiKeys.Remove(OldAPIKey.Id);
-                        }
-
-                        apiKeys.Add(apiKey.Id, apiKey);
+                        apiKeys.TryRemove(apiKey.Id, out var OldAPIKey);
+                        apiKeys.TryAdd   (apiKey.Id, apiKey);
                         apiKey.APIX = this;
 
                     }
@@ -11440,12 +11412,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                         out apiKey,
                                         out errorResponse) && apiKey is not null)
                     {
-
-                        if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))
+                        if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))// && OldAPIKey is not null)
                         {
-                            apiKeys.Remove(OldAPIKey.Id);
+                            apiKeys.TryUpdate(apiKey.Id, apiKey, OldAPIKey);
                             apiKey.APIX = this;
-                            apiKeys.Add(apiKey.Id, apiKey);
                         }
 
                     }
@@ -11466,7 +11436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                         out apiKey,
                                         out errorResponse) && apiKey is not null)
                     {
-                        apiKeys.Remove(apiKey.Id);
+                        apiKeys.TryRemove(apiKey.Id, out _);
                     }
 
                     else
@@ -12290,7 +12260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                           NotificationMessageType  MessageType,
                                                           JObject                  JSONData,
                                                           EventTracking_Id?        EventTrackingId,
-                                                          User_Id?                 CurrentUserId     = null)
+                                                          User_Id?                 CurrentUserId   = null)
         {
 
             if (!DisableLogging || !DisableNotifications)
@@ -12299,26 +12269,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    var Now          = Timestamp.Now;
+                    var now                   = Timestamp.Now;
+                    var userId                = CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot?.Id;
 
-                    var JSONMessage  = new JObject(
-                                           new JProperty(MessageType.ToString(),  JSONData),
-                                           new JProperty("eventTrackingId",       (EventTrackingId ?? EventTracking_Id.New).ToString()),
-                                           new JProperty("userId",                (CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot.Id).ToString()),
-                                           new JProperty("systemId",              SystemId.ToString()),
-                                           new JProperty("timestamp",             Now.ToISO8601()),
-                                           new JProperty("sha256hash",            new JObject(
-                                               new JProperty("nonce",                 Guid.NewGuid().ToString().Replace("-", "")),
-                                               new JProperty("parentHash",            CurrentDatabaseHashValue)
-                                           ))
-                                       );
+                    var jsonMessage           = JSONObject.Create(
 
-                    var SHA256                = new SHA256Managed();
-                    CurrentDatabaseHashValue  = SHA256.ComputeHash(Encoding.Unicode.GetBytes(JSONMessage.ToString(Newtonsoft.Json.Formatting.None))).
-                                                       Select(value => String.Format("{0:x2}", value)).
-                                                       Aggregate();
+                                                          new JProperty(MessageType.ToString(),  JSONData),
+                                                          new JProperty("eventTrackingId",       (EventTrackingId ?? EventTracking_Id.New).ToString()),
 
-                    (JSONMessage["sha256hash"] as JObject)?.Add(new JProperty("hashValue",  CurrentDatabaseHashValue));
+                                                    userId.HasValue
+                                                        ? new JProperty("userId",                userId.Value.ToString())
+                                                        : null,
+
+                                                          new JProperty("systemId",              SystemId.    ToString()),
+                                                          new JProperty("timestamp",             now.ToISO8601()),
+
+                                                          new JProperty("sha256hash",            JSONObject.Create(
+                                                              new JProperty("nonce",                 Guid.NewGuid().ToString().Replace("-", "")),
+                                                              new JProperty("parentHash",            CurrentDatabaseHashValue)
+                                                          ))
+
+                                                );
+
+                    CurrentDatabaseHashValue  = SHA256.HashData(
+                                                    Encoding.Unicode.GetBytes(jsonMessage.ToString(Newtonsoft.Json.Formatting.None))
+                                                ).Select(value => String.Format("{0:x2}", value)).
+                                                  Aggregate();
+
+                    (jsonMessage["sha256hash"] as JObject)?.Add(new JProperty("hashValue",  CurrentDatabaseHashValue));
 
 
                     #region Write to database file
@@ -12340,21 +12318,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                 try
                                 {
 
-                                    File.AppendAllText(DatabaseFile ?? DatabaseFileName,
-                                                       JSONMessage.ToString(Newtonsoft.Json.Formatting.None) + Environment.NewLine);
+                                    File.AppendAllText(
+                                        DatabaseFile ?? DatabaseFileName,
+                                        jsonMessage.ToString(Newtonsoft.Json.Formatting.None) + Environment.NewLine
+                                    );
 
                                     retry = maxRetries;
 
                                 }
                                 catch (IOException ioEx)
                                 {
-                                    DebugX.Log("Retry " + retry + ": Could not write message '" + MessageType + "' to logfile '" + DatabaseFile + "': " + ioEx.Message);
+                                    DebugX.Log($"Retry {retry}: Could not write message '{MessageType}' to logfile '{DatabaseFile}': " + ioEx.Message);
                                     await Task.Delay(10);
                                     retry++;
                                 }
                                 catch (Exception e)
                                 {
-                                    DebugX.Log("Retry " + retry + ": Could not write message '" + MessageType + "' to logfile '" + DatabaseFile + "': " + e.Message);
+                                    DebugX.Log($"Retry {retry}: Could not write message '{MessageType}' to logfile '{DatabaseFile}': " + e.Message);
                                     await Task.Delay(10);
                                     retry++;
                                 }
@@ -12432,13 +12412,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                 }
                                 catch (IOException ioEx)
                                 {
-                                    DebugX.Log("Retry " + retry + ": Could not write comment '" + Comment + "' to logfile '" + DatabaseFile + "': " + ioEx.Message);
+                                    DebugX.Log($"Retry {retry}: Could not write comment '{Comment}' to logfile '{DatabaseFile}': " + ioEx.Message);
                                     await Task.Delay(10);
                                     retry++;
                                 }
                                 catch (Exception e)
                                 {
-                                    DebugX.Log("Retry " + retry + ": Could not write comment '" + Comment + "' to logfile '" + DatabaseFile + "': " + e.Message);
+                                    DebugX.Log($"Retry {retry}: Could not write comment '{Comment}' to logfile '{DatabaseFile}': " + e.Message);
                                     await Task.Delay(10);
                                     retry++;
                                 }
@@ -12971,44 +12951,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region AddRemoteAuthServer(URLWithAPIKeyId)
 
-        public void AddRemoteAuthServer(URLWithAPIKey URLWithAPIKeyId)
-        {
-            lock (remoteAuthServers)
-            {
-                remoteAuthServers.Add(URLWithAPIKeyId);
-            }
-        }
+        public Boolean AddRemoteAuthServer(URLWithAPIKey URLWithAPIKeyId)
+
+            => remoteAuthServers.TryAdd(
+                   URLWithAPIKeyId.ToString(),
+                   URLWithAPIKeyId
+               );
 
         #endregion
 
         #region AddRemoteAuthServer(URL, APIKeyId)
 
-        public void AddRemoteAuthServer(URL        URL,
-                                        APIKey_Id  APIKeyId)
-        {
-            lock (remoteAuthServers)
-            {
-                remoteAuthServers.Add(new URLWithAPIKey(URL, APIKeyId));
-            }
-        }
+        public Boolean AddRemoteAuthServer(URL        URL,
+                                           APIKey_Id  APIKeyId)
+
+            => remoteAuthServers.TryAdd(
+                   URL.ToString(),
+                   new URLWithAPIKey(
+                       URL,
+                       APIKeyId
+                   )
+               );
 
         #endregion
 
 
-        #region CheckHTTPCookie(Request,         RemoteAuthServersMaxHopCount = 0)
+        #region CheckHTTPCookie (Request,         RemoteAuthServersMaxHopCount = 0)
 
-        public async Task<IUser?> CheckHTTPCookie(HTTPRequest Request,
-                                                  Byte?       RemoteAuthServersMaxHopCount = 0)
+        public async Task<IUser?> CheckHTTPCookie(HTTPRequest  Request,
+                                                  Byte?        RemoteAuthServersMaxHopCount = 0)
         {
 
             if (TryGetSecurityTokenFromCookie(Request, out var securityTokenId))
             {
 
-                var securityToken = await CheckHTTPCookie(securityTokenId,
-                                                          RemoteAuthServersMaxHopCount);
+                var securityToken = await CheckHTTPCookie(
+                                              securityTokenId,
+                                              RemoteAuthServersMaxHopCount
+                                          );
 
                 if (securityToken is not null &&
-                    _TryGetUser(securityToken.UserId, out var user))
+                    TryGetUser(securityToken.UserId, out var user))
                 {
                     return user;
                 }
@@ -13021,10 +13004,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region CheckHTTPCookie(SecurityTokenId, RemoteAuthServersMaxHopCount = 0)
+        #region CheckHTTPCookie (SecurityTokenId, RemoteAuthServersMaxHopCount = 0)
 
-        public async Task<SecurityToken?> CheckHTTPCookie(SecurityToken_Id SecurityTokenId,
-                                                          Byte?            RemoteAuthServersMaxHopCount = 0)
+        public async Task<SecurityToken?> CheckHTTPCookie(SecurityToken_Id  SecurityTokenId,
+                                                          Byte?             RemoteAuthServersMaxHopCount = 0)
         {
 
             User_Id? userId = null;
@@ -13040,19 +13023,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    var jsonRequest         = JSONObject.Create(
-                                                  new JProperty("securityTokenId",  SecurityTokenId.ToString()),
-                                                  new JProperty("maxHopCount",      RemoteAuthServersMaxHopCount - 1)
-                                              ).ToUTF8Bytes();
+                    var jsonRequest = JSONObject.Create(
+                                          new JProperty("securityTokenId",  SecurityTokenId.ToString()),
+                                          new JProperty("maxHopCount",      RemoteAuthServersMaxHopCount - 1)
+                                      ).ToUTF8Bytes();
 
-                    var _remoteAuthServers  = Array.Empty<URLWithAPIKey>();
-
-                    lock (remoteAuthServers)
-                    {
-                        _remoteAuthServers = remoteAuthServers.ToArray();
-                    }
-
-                    foreach (var remoteAuthServer in _remoteAuthServers)
+                    foreach (var remoteAuthServer in remoteAuthServers.Values)
                     {
 
                         #region Upstream HTTP(S) request...
@@ -13094,61 +13070,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         if (httpresult.HTTPStatusCode == HTTPStatusCode.OK)
                         {
 
-                            var JSONResponse = JObject.Parse(httpresult.HTTPBody.ToUTF8String());
+                            var jsonResponse = httpresult.HTTPBodyAsJSONObject;
 
-                            #region Parse userId       [mandatory]
-
-                            if (JSONResponse.ParseMandatory("userId",
-                                                            "user identificcation",
-                                                            User_Id.TryParse,
-                                                            out User_Id _userId,
-                                                            out String  errorDescription))
-                            {
-                                userId = _userId;
-                            }
-
-                            #endregion
-
-                            #region Parse expires      [optional]
-
-                            if (JSONResponse.ParseOptional("expires",
-                                                           "security token expires",
-                                                           out DateTime? expires,
-                                                           out           errorDescription))
-                            { }
-
-                            #endregion
-
-                            #region Parse superuser    [optional]
-
-                            User_Id? superuserId = null;
-
-                            if (JSONResponse.ParseOptional("superUserId",
-                                                           "super user identificcation",
-                                                           User_Id.TryParse,
-                                                           out User_Id _superuserId,
-                                                           out         errorDescription))
-                            {
-                                if (errorDescription is not null)
-                                    superuserId = _superuserId;
-                            }
-
-                            #endregion
-
-
-                            if (userId.HasValue && expires.HasValue)
+                            if (jsonResponse is not null)
                             {
 
-                                lock (httpCookies)
+                                #region Parse userId       [mandatory]
+
+                                if (jsonResponse.ParseMandatory("userId",
+                                                                "user identificcation",
+                                                                User_Id.TryParse,
+                                                                out User_Id _userId,
+                                                                out String  errorDescription))
                                 {
-                                    if (!httpCookies.ContainsKey(SecurityTokenId))
-                                        httpCookies.TryAdd(SecurityTokenId,
-                                                           new SecurityToken(userId.Value,
-                                                                             expires.Value,
-                                                                             superuserId));
+                                    userId = _userId;
                                 }
 
-                                break;
+                                #endregion
+
+                                #region Parse expires      [optional]
+
+                                if (jsonResponse.ParseOptional("expires",
+                                                               "security token expires",
+                                                               out DateTime? expires,
+                                                               out           errorDescription))
+                                { }
+
+                                #endregion
+
+                                #region Parse superuser    [optional]
+
+                                User_Id? superuserId = null;
+
+                                if (jsonResponse.ParseOptional("superUserId",
+                                                               "super user identificcation",
+                                                               User_Id.TryParse,
+                                                               out User_Id _superuserId,
+                                                               out         errorDescription))
+                                {
+                                    if (errorDescription is not null)
+                                        superuserId = _superuserId;
+                                }
+
+                                #endregion
+
+
+                                if (userId.HasValue && expires.HasValue)
+                                {
+
+                                    httpCookies.TryAdd(
+                                        SecurityTokenId,
+                                        new SecurityToken(
+                                            userId.Value,
+                                            expires.Value,
+                                            superuserId
+                                        )
+                                    );
+
+                                    break;
+
+                                }
 
                             }
 
@@ -13234,7 +13215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             if (Request.API_Key.HasValue &&
                 TryGetAPIKey(Request.API_Key.Value, out var apiKey) &&
                 APIKeyIsValid(apiKey!) &&
-                _TryGetUser(apiKey!.UserId, out var user))
+                TryGetUser(apiKey!.UserId, out var user))
             {
                 return user;
             }
@@ -13255,27 +13236,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An enumeration of all users.
         /// </summary>
-        protected internal readonly  ConcurrentDictionary<User_Id, IUser>                    users                = new();
+        protected internal readonly  ConcurrentDictionary<User_Id, IUser>                    users                = [];
 
         /// <summary>
         /// All logins and passwords.
         /// </summary>
-        protected          readonly  ConcurrentDictionary<User_Id, LoginPassword>            loginPasswords       = new();
+        protected          readonly  ConcurrentDictionary<User_Id, LoginPassword>            loginPasswords       = [];
 
         /// <summary>
         /// All verification tokens.
         /// </summary>
-        protected          readonly  ConcurrentDictionary<VerificationToken, IUser>          verificationTokens   = new();
+        protected          readonly  ConcurrentDictionary<VerificationToken, IUser>          verificationTokens   = [];
 
         /// <summary>
         /// All HTTP cookies.
         /// </summary>
-        protected          readonly  ConcurrentDictionary<SecurityToken_Id, SecurityToken>   httpCookies          = new();
+        protected          readonly  ConcurrentDictionary<SecurityToken_Id, SecurityToken>   httpCookies          = [];
 
         /// <summary>
         /// All password resets.
         /// </summary>
-        protected          readonly  ConcurrentDictionary<SecurityToken_Id, PasswordReset>   passwordResets       = new();
+        protected          readonly  ConcurrentDictionary<SecurityToken_Id, PasswordReset>   passwordResets       = [];
 
 
         /// <summary>
@@ -13295,16 +13276,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public class UserContext : IDisposable
         {
 
+            #region Properties
+
             /// <summary>
             /// The current user identification.
             /// </summary>
-            public User_Id  Current    { get; }
+            public User_Id   Current     { get; }
 
             /// <summary>
-            /// The privious user identification.
+            /// The previous user identification.
             /// </summary>
-            public User_Id? Previous   { get; }
+            public User_Id?  Previous    { get; }
 
+            #endregion
+
+            #region Constructor(s)
 
             /// <summary>
             /// Create a new user context.
@@ -13317,13 +13303,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 CurrentAsyncLocalUserId.Value  = UserId;
             }
 
+            #endregion
+
+            #region IDisposable Members
+
+            private Boolean disposed = false;
+
             /// <summary>
             /// Dispose this object.
             /// </summary>
             public void Dispose()
             {
+
+                if (disposed)
+                    return;
+
                 CurrentAsyncLocalUserId.Value = Previous;
+                disposed = true;
+
             }
+
+            #endregion
 
         }
 
@@ -13904,7 +13904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        #region AddUser           (User,      (Membership, Organization), ..., OnAdded = null, ...)
+        #region AddUser            (User,      (Membership, Organization), ..., OnAdded = null, ...)
 
         /// <summary>
         /// A delegate called whenever a user was added.
@@ -13998,10 +13998,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             User.APIX = this;
 
 
-            await WriteToDatabaseFile(addUser_MessageType,
-                                      User.ToJSON(false),
-                                      eventTrackingId,
-                                      CurrentUserId);
+            await WriteToDatabaseFile(
+                      addUser_MessageType,
+                      User.ToJSON(false),
+                      eventTrackingId,
+                      CurrentUserId
+                  );
 
             users.TryAdd(User.Id, User);
             var now = Timestamp.Now;
@@ -14017,52 +14019,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                   SelectMany(description => description.Messages).
                                                                   ToSafeHashSet();
 
-                if (newUserDefaultNotificationMessageGroups.Any())
-                    await addNotification(User,
-                                           new EMailNotification(User.EMail,
-                                                                 "",
-                                                                 "",
-                                                                 "",
-                                                                 newUserDefaultNotificationMessageGroups,
-                                                                 "Default notifications for new users"),
-                                           eventTrackingId,
-                                           CurrentUserId);
+                if (newUserDefaultNotificationMessageGroups.Count != 0)
+                    await addNotification(
+                              User,
+                              new EMailNotification(
+                                  User.EMail,
+                                  "",
+                                  "",
+                                  "",
+                                  newUserDefaultNotificationMessageGroups,
+                                  "Default notifications for new users"
+                              ),
+                              eventTrackingId,
+                              CurrentUserId
+                          );
 
             }
 
             #endregion
 
 
-            OnAdded?.Invoke(now,
-                            User,
-                            eventTrackingId,
-                            CurrentUserId);
+            OnAdded?.Invoke(
+                now,
+                User,
+                eventTrackingId,
+                CurrentUserId
+            );
 
             var OnUserAddedLocal = OnUserAdded;
             if (OnUserAddedLocal is not null)
-                await OnUserAddedLocal.Invoke(now,
-                                              User,
-                                              eventTrackingId,
-                                              CurrentUserId);
+                await OnUserAddedLocal.Invoke(
+                          now,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
-            var resetPasswordResult = await _ResetPassword(User,
-                                                           SuppressNotifications:  true,
-                                                           EventTrackingId:        eventTrackingId);
+            var resetPasswordResult = await _ResetPassword(
+                                                User,
+                                                SuppressNotifications:  true,
+                                                EventTrackingId:        eventTrackingId
+                                            );
 
             if (!SkipNewUserEMail)
-                await SMTPClient.Send(NewUserSignUpEMailCreator(User,
-                                                                User.EMail,
-                                                                resetPasswordResult.PasswordReset.SecurityToken1,
-                                                                User.MobilePhone.HasValue,
-                                                                DefaultLanguage,
-                                                                eventTrackingId));
+                await SMTPClient.Send(
+                          NewUserSignUpEMailCreator(
+                              User,
+                              User.EMail,
+                              resetPasswordResult.PasswordReset.SecurityToken1,
+                              User.MobilePhone.HasValue,
+                              DefaultLanguage,
+                              eventTrackingId
+                          )
+                      );
 
             if (!SkipNewUserNotifications)
-                await SendNotifications(User,
-                                        addUser_MessageType,
-                                        null,
-                                        eventTrackingId,
-                                        CurrentUserId);
+                await SendNotifications(
+                          User,
+                          addUser_MessageType,
+                          null,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
 
             return AddUserResult.Success(
@@ -14104,13 +14122,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await addUser(User,
-                                          SkipDefaultNotifications,
-                                          SkipNewUserEMail,
-                                          SkipNewUserNotifications,
-                                          OnAdded,
-                                          eventTrackingId,
-                                          CurrentUserId);
+                    return await addUser(
+                                     User,
+                                     SkipDefaultNotifications,
+                                     SkipNewUserEMail,
+                                     SkipNewUserNotifications,
+                                     OnAdded,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -14185,37 +14205,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     try
                     {
 
-                        var result = await addUser(User,
-                                                    SkipDefaultNotifications,
-                                                    SkipNewUserEMail,
-                                                    SkipNewUserNotifications,
-                                                    async(_timestamp, _user, _eventTrackingId, _currentUserId) => {
+                        var result = await addUser(
+                                               User,
+                                               SkipDefaultNotifications,
+                                               SkipNewUserEMail,
+                                               SkipNewUserNotifications,
+                                               async(_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                        await addUserToOrganization(_user,
-                                                                                     AccessRight,
-                                                                                     Organization,
-                                                                                     _eventTrackingId,
-                                                                                     SuppressNotifications:  true,
-                                                                                     CurrentUserId:          _currentUserId);
+                                                   await addUserToOrganization(
+                                                             _user,
+                                                             AccessRight,
+                                                             Organization,
+                                                             _eventTrackingId,
+                                                             SuppressNotifications:  true,
+                                                             CurrentUserId:          _currentUserId
+                                                         );
 
-                                                        OnAdded?.Invoke(_timestamp,
-                                                                        _user,
-                                                                        _eventTrackingId,
-                                                                        _currentUserId);
+                                                   OnAdded?.Invoke(
+                                                       _timestamp,
+                                                       _user,
+                                                       _eventTrackingId,
+                                                       _currentUserId
+                                                   );
 
-                                                    },
-                                                    eventTrackingId ?? EventTracking_Id.New,
-                                                    CurrentUserId);
+                                               },
+                                               eventTrackingId ?? EventTracking_Id.New,
+                                               CurrentUserId
+                                           );
 
                         result.Organization = Organization;
 
                         if (result.Result == CommandResult.Success)
-                            await SendNotifications(User,
-                                                    AccessRight,
-                                                    Organization,
-                                                    addUserToOrganization_MessageType,
-                                                    eventTrackingId,
-                                                    CurrentUserId);
+                            await SendNotifications(
+                                      User,
+                                      AccessRight,
+                                      Organization,
+                                      addUserToOrganization_MessageType,
+                                      eventTrackingId,
+                                      CurrentUserId
+                                  );
 
                         return result;
 
@@ -14310,28 +14338,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     try
                     {
 
-                        var result = await addUser(User,
-                                                    SkipDefaultNotifications,
-                                                    SkipNewUserEMail,
-                                                    SkipNewUserNotifications,
-                                                    async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+                        var result = await addUser(
+                                               User,
+                                               SkipDefaultNotifications,
+                                               SkipNewUserEMail,
+                                               SkipNewUserNotifications,
+                                               async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                        foreach (var accessRight in AccessRights)
-                                                            await addUserToOrganization(_user,
-                                                                                         accessRight.Item1,
-                                                                                         accessRight.Item2,
-                                                                                         _eventTrackingId,
-                                                                                         SuppressNotifications:  true,
-                                                                                         CurrentUserId:          _currentUserId);
+                                                   foreach (var accessRight in AccessRights)
+                                                       await addUserToOrganization(
+                                                                 _user,
+                                                                 accessRight.Item1,
+                                                                 accessRight.Item2,
+                                                                 _eventTrackingId,
+                                                                 SuppressNotifications:  true,
+                                                                 CurrentUserId:          _currentUserId
+                                                             );
 
-                                                        OnAdded?.Invoke(_timestamp,
-                                                                        _user,
-                                                                        _eventTrackingId,
-                                                                        _currentUserId);
+                                                   OnAdded?.Invoke(
+                                                       _timestamp,
+                                                       _user,
+                                                       _eventTrackingId,
+                                                       _currentUserId
+                                                   );
 
-                                                    },
-                                                    eventTrackingId ?? EventTracking_Id.New,
-                                                    CurrentUserId);
+                                               },
+                                               eventTrackingId ?? EventTracking_Id.New,
+                                               CurrentUserId
+                                           );
 
                         result.Organization = AccessRights.First().Item2;
 
@@ -14396,7 +14430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region AddUserIfNotExists(User,      (Membership, Organization), ..., OnAdded = null, ...)
+        #region AddUserIfNotExists (User,      (Membership, Organization), ..., OnAdded = null, ...)
 
         #region (protected internal) addUserIfNotExists(User,                            SkipDefaultNotifications = false, OnAdded = null, ...)
 
@@ -14413,12 +14447,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         protected internal async Task<AddUserResult>
 
             addUserIfNotExists(IUser                 User,
-                                Boolean               SkipDefaultNotifications   = false,
-                                Boolean               SkipNewUserEMail           = false,
-                                Boolean               SkipNewUserNotifications   = false,
-                                OnUserAddedDelegate?  OnAdded                    = null,
-                                EventTracking_Id?     EventTrackingId            = null,
-                                User_Id?              CurrentUserId              = null)
+                               Boolean               SkipDefaultNotifications   = false,
+                               Boolean               SkipNewUserEMail           = false,
+                               Boolean               SkipNewUserNotifications   = false,
+                               OnUserAddedDelegate?  OnAdded                    = null,
+                               EventTracking_Id?     EventTrackingId            = null,
+                               User_Id?              CurrentUserId              = null)
 
         {
 
@@ -14471,10 +14505,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             User.APIX = this;
 
 
-            await WriteToDatabaseFile(addUserIfNotExists_MessageType,
-                                      User.ToJSON(false),
-                                      eventTrackingId,
-                                      CurrentUserId);
+            await WriteToDatabaseFile(
+                      addUserIfNotExists_MessageType,
+                      User.ToJSON(false),
+                      eventTrackingId,
+                      CurrentUserId
+                  );
 
             users.TryAdd(User.Id, User);
 
@@ -14489,16 +14525,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                     SelectMany(description => description.Messages).
                                                                     ToSafeHashSet();
 
-                if (newUserDefaultNotificationMessageGroups.Any())
-                    await addNotification(User,
-                                           new EMailNotification(User.EMail,
-                                                                 "",
-                                                                 "",
-                                                                 "",
-                                                                 newUserDefaultNotificationMessageGroups,
-                                                                 "Default notifications for new users"),
-                                           eventTrackingId,
-                                           CurrentUserId);
+                if (newUserDefaultNotificationMessageGroups.Count != 0)
+                    await addNotification(
+                              User,
+                              new EMailNotification(
+                                  User.EMail,
+                                  "",
+                                  "",
+                                  "",
+                                  newUserDefaultNotificationMessageGroups,
+                                  "Default notifications for new users"
+                              ),
+                              eventTrackingId,
+                              CurrentUserId
+                          );
 
             }
 
@@ -14513,29 +14553,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             var OnUserAddedLocal = OnUserAdded;
             if (OnUserAddedLocal is not null)
-                await OnUserAddedLocal.Invoke(now,
-                                              User,
-                                              eventTrackingId,
-                                              CurrentUserId);
+                await OnUserAddedLocal.Invoke(
+                          now,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
-            var resetPasswordResult = await _ResetPassword(User,
-                                                           SuppressNotifications: true,
-                                                           EventTrackingId:       eventTrackingId);
+            var resetPasswordResult = await _ResetPassword(
+                                                User,
+                                                SuppressNotifications:  true,
+                                                EventTrackingId:        eventTrackingId
+                                            );
 
             if (!SkipNewUserEMail)
-                await SMTPClient.Send(NewUserSignUpEMailCreator(User,
-                                                                User.EMail,
-                                                                resetPasswordResult.PasswordReset.SecurityToken1,
-                                                                User.MobilePhone.HasValue,
-                                                                DefaultLanguage,
-                                                                eventTrackingId));
+                await SMTPClient.Send(
+                          NewUserSignUpEMailCreator(
+                              User,
+                              User.EMail,
+                              resetPasswordResult.PasswordReset.SecurityToken1,
+                              User.MobilePhone.HasValue,
+                              DefaultLanguage,
+                              eventTrackingId
+                          )
+                      );
 
             if (!SkipNewUserNotifications)
-                await SendNotifications(User,
-                                        addUserIfNotExists_MessageType,
-                                        null,
-                                        eventTrackingId,
-                                        CurrentUserId);
+                await SendNotifications(
+                          User,
+                          addUserIfNotExists_MessageType,
+                          null,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
 
             return AddUserResult.Success(
@@ -14580,13 +14630,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await addUserIfNotExists(User,
-                                                     SkipDefaultNotifications,
-                                                     SkipNewUserEMail,
-                                                     SkipNewUserNotifications,
-                                                     OnAdded,
-                                                     eventTrackingId,
-                                                     CurrentUserId);
+                    return await addUserIfNotExists(
+                                     User,
+                                     SkipDefaultNotifications,
+                                     SkipNewUserEMail,
+                                     SkipNewUserNotifications,
+                                     OnAdded,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -14661,37 +14713,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     try
                     {
 
-                        var result = await addUserIfNotExists(User,
-                                                               SkipDefaultNotifications,
-                                                               SkipNewUserEMail,
-                                                               SkipNewUserNotifications,
-                                                               async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+                        var result = await addUserIfNotExists(
+                                               User,
+                                               SkipDefaultNotifications,
+                                               SkipNewUserEMail,
+                                               SkipNewUserNotifications,
+                                               async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                                   await addUserToOrganization(_user,
-                                                                                               AccessRight,
-                                                                                               Organization,
-                                                                                               _eventTrackingId,
-                                                                                               SuppressNotifications:  true,
-                                                                                               CurrentUserId:          CurrentUserId);
+                                                   await addUserToOrganization(
+                                                             _user,
+                                                             AccessRight,
+                                                             Organization,
+                                                             _eventTrackingId,
+                                                             SuppressNotifications:  true,
+                                                             CurrentUserId:          CurrentUserId
+                                                         );
 
-                                                                   OnAdded?.Invoke(_timestamp,
-                                                                                   _user,
-                                                                                   _eventTrackingId,
-                                                                                   _currentUserId);
+                                                   OnAdded?.Invoke(
+                                                       _timestamp,
+                                                       _user,
+                                                       _eventTrackingId,
+                                                       _currentUserId
+                                                   );
 
-                                                               },
-                                                               eventTrackingId,
-                                                               CurrentUserId);
+                                               },
+                                               eventTrackingId,
+                                               CurrentUserId
+                                           );
 
                         result.Organization = Organization;
 
                         if (result.Result == CommandResult.Success)
-                            await SendNotifications(User,
-                                                    AccessRight,
-                                                    Organization,
-                                                    addUserToOrganization_MessageType,
-                                                    eventTrackingId,
-                                                    CurrentUserId);
+                            await SendNotifications(
+                                      User,
+                                      AccessRight,
+                                      Organization,
+                                      addUserToOrganization_MessageType,
+                                      eventTrackingId,
+                                      CurrentUserId
+                                  );
 
                         return result;
 
@@ -14786,40 +14846,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     try
                     {
 
-                        var result = await addUserIfNotExists(User,
-                                                               SkipDefaultNotifications,
-                                                               SkipNewUserEMail,
-                                                               SkipNewUserNotifications,
-                                                               async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+                        var result = await addUserIfNotExists(
+                                               User,
+                                               SkipDefaultNotifications,
+                                               SkipNewUserEMail,
+                                               SkipNewUserNotifications,
+                                               async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                                   foreach (var accessRight in AccessRights)
-                                                                       await addUserToOrganization(_user,
-                                                                                                    accessRight.Item1,
-                                                                                                    accessRight.Item2,
-                                                                                                    _eventTrackingId,
-                                                                                                    SuppressNotifications:  true,
-                                                                                                    CurrentUserId:          CurrentUserId);
+                                                   foreach (var accessRight in AccessRights)
+                                                       await addUserToOrganization(
+                                                                 _user,
+                                                                 accessRight.Item1,
+                                                                 accessRight.Item2,
+                                                                 _eventTrackingId,
+                                                                 SuppressNotifications:  true,
+                                                                 CurrentUserId:          CurrentUserId
+                                                             );
 
-                                                                   OnAdded?.Invoke(_timestamp,
-                                                                                   _user,
-                                                                                   _eventTrackingId,
-                                                                                   _currentUserId);
+                                                   OnAdded?.Invoke(
+                                                       _timestamp,
+                                                       _user,
+                                                       _eventTrackingId,
+                                                       _currentUserId
+                                                   );
 
-                                                               },
-                                                               eventTrackingId,
-                                                               CurrentUserId);
+                                               },
+                                               eventTrackingId,
+                                               CurrentUserId
+                                           );
 
                         result.Organization = AccessRights.First().Item2;
 
                         if (result.Result == CommandResult.Success)
                         {
                             foreach (var accessRight in AccessRights)
-                                await SendNotifications(User,
-                                                        accessRight.Item1,
-                                                        accessRight.Item2,
-                                                        addUserToOrganization_MessageType,
-                                                        eventTrackingId,
-                                                        CurrentUserId);
+                                await SendNotifications(
+                                          User,
+                                          accessRight.Item1,
+                                          accessRight.Item2,
+                                          addUserToOrganization_MessageType,
+                                          eventTrackingId,
+                                          CurrentUserId
+                                      );
                         }
 
 
@@ -14873,7 +14941,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region AddOrUpdateUser   (User,      (Membership, Organization), ..., OnAdded = null, OnUpdated = null, ...)
+        #region AddOrUpdateUser    (User,      (Membership, Organization), ..., OnAdded = null, OnUpdated = null, ...)
 
         #region (protected internal) addOrUpdateUser(User,                            SkipDefaultNotifications = false, OnAdded = null, OnUpdated = null, ...)
 
@@ -14892,14 +14960,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         protected internal async Task<AddOrUpdateUserResult>
 
             addOrUpdateUser(IUser                   User,
-                             Boolean                 SkipDefaultNotifications       = false,
-                             Boolean                 SkipNewUserEMail               = false,
-                             Boolean                 SkipNewUserNotifications       = false,
-                             Boolean                 SkipUserUpdatedNotifications   = false,
-                             OnUserAddedDelegate?    OnAdded                        = null,
-                             OnUserUpdatedDelegate?  OnUpdated                      = null,
-                             EventTracking_Id?       EventTrackingId                = null,
-                             User_Id?                CurrentUserId                  = null)
+                            Boolean                 SkipDefaultNotifications       = false,
+                            Boolean                 SkipNewUserEMail               = false,
+                            Boolean                 SkipNewUserNotifications       = false,
+                            Boolean                 SkipUserUpdatedNotifications   = false,
+                            OnUserAddedDelegate?    OnAdded                        = null,
+                            OnUserUpdatedDelegate?  OnUpdated                      = null,
+                            EventTracking_Id?       EventTrackingId                = null,
+                            User_Id?                CurrentUserId                  = null)
 
         {
 
@@ -14944,16 +15012,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             User.APIX = this;
 
 
-            await WriteToDatabaseFile(addOrUpdateUser_MessageType,
-                                      User.ToJSON(false),
-                                      eventTrackingId,
-                                      CurrentUserId);
+            await WriteToDatabaseFile(
+                      addOrUpdateUser_MessageType,
+                      User.ToJSON(false),
+                      eventTrackingId,
+                      CurrentUserId
+                  );
 
-            if (users.TryGetValue(User.Id, out var oldUser) && oldUser is not null)
-            {
-                users.TryRemove(oldUser.Id, out _);
+            if (users.TryRemove(User.Id, out var oldUser))
                 User.CopyAllLinkedDataFrom(oldUser);
-            }
 
             users.TryAdd(User.Id, User);
             var now = Timestamp.Now;
@@ -14972,51 +15039,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                         SelectMany(description => description.Messages).
                                                                         ToSafeHashSet();
 
-                    if (newUserDefaultNotificationMessageGroups.Any())
-                        await addNotification(User,
-                                               new EMailNotification(User.EMail,
-                                                                     "",
-                                                                     "",
-                                                                     "",
-                                                                     newUserDefaultNotificationMessageGroups,
-                                                                     "Default notifications for new users"),
-                                               eventTrackingId,
-                                               CurrentUserId);
+                    if (newUserDefaultNotificationMessageGroups.Count != 0)
+                        await addNotification(
+                                  User,
+                                  new EMailNotification(
+                                      User.EMail,
+                                      "",
+                                      "",
+                                      "",
+                                      newUserDefaultNotificationMessageGroups,
+                                      "Default notifications for new users"
+                                  ),
+                                  eventTrackingId,
+                                  CurrentUserId
+                              );
 
                 }
 
                 #endregion
 
-                OnAdded?.Invoke(now,
-                                User,
-                                eventTrackingId,
-                                CurrentUserId);
+                OnAdded?.Invoke(
+                    now,
+                    User,
+                    eventTrackingId,
+                    CurrentUserId
+                );
 
                 var OnUserAddedLocal = OnUserAdded;
                 if (OnUserAddedLocal is not null)
-                    await OnUserAddedLocal.Invoke(now,
-                                                  User,
-                                                  eventTrackingId,
-                                                  CurrentUserId);
+                    await OnUserAddedLocal.Invoke(
+                        now,
+                        User,
+                        eventTrackingId,
+                        CurrentUserId
+                    );
 
-                var resetPasswordResult = await _ResetPassword(User,
-                                                               SuppressNotifications: true,
-                                                               EventTrackingId:       eventTrackingId);
+                var resetPasswordResult = await _ResetPassword(
+                                                    User,
+                                                    SuppressNotifications:  true,
+                                                    EventTrackingId:        eventTrackingId
+                                                );
 
                 if (!SkipNewUserEMail)
-                    await SMTPClient.Send(NewUserSignUpEMailCreator(User,
-                                                                    User.EMail,
-                                                                    resetPasswordResult.PasswordReset.SecurityToken1,
-                                                                    User.MobilePhone.HasValue,
-                                                                    DefaultLanguage,
-                                                                    eventTrackingId));
+                    await SMTPClient.Send(
+                              NewUserSignUpEMailCreator(
+                                  User,
+                                  User.EMail,
+                                  resetPasswordResult.PasswordReset.SecurityToken1,
+                                  User.MobilePhone.HasValue,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
                 if (!SkipNewUserNotifications)
-                    await SendNotifications(User,
-                                            addUser_MessageType,
-                                            null,
-                                            eventTrackingId,
-                                            CurrentUserId);
+                    await SendNotifications(
+                              User,
+                              addUser_MessageType,
+                              null,
+                              eventTrackingId,
+                              CurrentUserId
+                          );
 
                 return AddOrUpdateUserResult.Added(
                            User,
@@ -15029,26 +15112,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
 
 
-            OnUpdated?.Invoke(now,
-                              User,
-                              oldUser,
-                              eventTrackingId,
-                              CurrentUserId);
+            OnUpdated?.Invoke(
+                now,
+                User,
+                oldUser,
+                eventTrackingId,
+                CurrentUserId
+            );
 
             var OnUserUpdatedLocal = OnUserUpdated;
             if (OnUserUpdatedLocal is not null)
-                await OnUserUpdatedLocal.Invoke(Timestamp.Now,
-                                                User,
-                                                oldUser,
-                                                eventTrackingId,
-                                                CurrentUserId);
+                await OnUserUpdatedLocal.Invoke(
+                          Timestamp.Now,
+                          User,
+                          oldUser,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
             if (!SkipUserUpdatedNotifications)
-                await SendNotifications(User,
-                                        updateUser_MessageType,
-                                        oldUser,
-                                        eventTrackingId,
-                                        CurrentUserId);
+                await SendNotifications(
+                          User,
+                          updateUser_MessageType,
+                          oldUser,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
             return AddOrUpdateUserResult.Updated(
                        User,
@@ -15095,15 +15184,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await addOrUpdateUser(User,
-                                                  SkipDefaultNotifications,
-                                                  SkipNewUserEMail,
-                                                  SkipNewUserNotifications,
-                                                  SkipUserUpdatedNotifications,
-                                                  OnAdded,
-                                                  OnUpdated,
-                                                  eventTrackingId,
-                                                  CurrentUserId);
+                    return await addOrUpdateUser(
+                                     User,
+                                     SkipDefaultNotifications,
+                                     SkipNewUserEMail,
+                                     SkipNewUserNotifications,
+                                     SkipUserUpdatedNotifications,
+                                     OnAdded,
+                                     OnUpdated,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -15179,39 +15270,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     try
                     {
 
-                        var result = await addOrUpdateUser(User,
-                                                            SkipDefaultNotifications,
-                                                            SkipNewUserEMail,
-                                                            SkipNewUserNotifications,
-                                                            SkipUserUpdatedNotifications,
-                                                            async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+                        var result = await addOrUpdateUser(
+                                               User,
+                                               SkipDefaultNotifications,
+                                               SkipNewUserEMail,
+                                               SkipNewUserNotifications,
+                                               SkipUserUpdatedNotifications,
+                                               async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                                await addUserToOrganization(_user,
-                                                                                             AccessRight,
-                                                                                             Organization,
-                                                                                             _eventTrackingId,
-                                                                                             SuppressNotifications:  true,
-                                                                                             CurrentUserId:          CurrentUserId);
+                                                   await addUserToOrganization(
+                                                             _user,
+                                                             AccessRight,
+                                                             Organization,
+                                                             _eventTrackingId,
+                                                             SuppressNotifications:  true,
+                                                             CurrentUserId:          CurrentUserId
+                                                         );
 
-                                                                OnAdded?.Invoke(_timestamp,
-                                                                                _user,
-                                                                                _eventTrackingId,
-                                                                                _currentUserId);
+                                                   OnAdded?.Invoke(
+                                                       _timestamp,
+                                                       _user,
+                                                       _eventTrackingId,
+                                                       _currentUserId
+                                                   );
 
-                                                            },
-                                                            OnUpdated,
-                                                            eventTrackingId,
-                                                            CurrentUserId);
+                                               },
+                                               OnUpdated,
+                                               eventTrackingId,
+                                               CurrentUserId
+                                           );
 
                         result.Organization = Organization;
 
                         if (result.Result == CommandResult.Success)
-                            await SendNotifications(User,
-                                                    AccessRight,
-                                                    Organization,
-                                                    addUserToOrganization_MessageType,
-                                                    eventTrackingId,
-                                                    CurrentUserId);
+                            await SendNotifications(
+                                      User,
+                                      AccessRight,
+                                      Organization,
+                                      addUserToOrganization_MessageType,
+                                      eventTrackingId,
+                                      CurrentUserId
+                                  );
 
                         return result;
 
@@ -15263,7 +15362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region UpdateUser        ((New)User, ...,                                             OnUpdated = null, ...)
+        #region UpdateUser         ((New)User, ...,                                             OnUpdated = null, ...)
 
         /// <summary>
         /// A delegate called whenever a user was updated.
@@ -15298,16 +15397,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         protected internal async Task<UpdateUserResult>
 
             updateUser(IUser                   NewUser,
-                        Boolean                 SkipUserUpdatedNotifications   = false,
-                        OnUserUpdatedDelegate?  OnUpdated                      = null,
-                        EventTracking_Id?       EventTrackingId                = null,
-                        User_Id?                CurrentUserId                  = null)
+                       Boolean                 SkipUserUpdatedNotifications   = false,
+                       OnUserUpdatedDelegate?  OnUpdated                      = null,
+                       EventTracking_Id?       EventTrackingId                = null,
+                       User_Id?                CurrentUserId                  = null)
 
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (!_TryGetUser(NewUser.Id, out var OldUser))
+            if (!TryGetUser(NewUser.Id, out var OldUser))
                 return UpdateUserResult.ArgumentError(
                            NewUser,
                            $"The given user '{NewUser.Id}' does not exists in this API!".ToI18NString(),
@@ -15328,10 +15427,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             NewUser.APIX = this;
 
 
-            await WriteToDatabaseFile(updateUser_MessageType,
-                                      NewUser.ToJSON(),
-                                      eventTrackingId,
-                                      CurrentUserId);
+            await WriteToDatabaseFile(
+                      updateUser_MessageType,
+                      NewUser.ToJSON(),
+                      eventTrackingId,
+                      CurrentUserId
+                  );
 
             users.TryRemove(OldUser.Id, out _);
             NewUser.CopyAllLinkedDataFrom(OldUser);
@@ -15339,26 +15440,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             var now = Timestamp.Now;
 
-            OnUpdated?.Invoke(now,
-                              NewUser,
-                              OldUser,
-                              eventTrackingId,
-                              CurrentUserId);
+            OnUpdated?.Invoke(
+                now,
+                NewUser,
+                OldUser,
+                eventTrackingId,
+                CurrentUserId
+            );
 
             var OnUserUpdatedLocal = OnUserUpdated;
             if (OnUserUpdatedLocal is not null)
-                await OnUserUpdatedLocal.Invoke(now,
-                                                NewUser,
-                                                OldUser,
-                                                eventTrackingId,
-                                                CurrentUserId);
+                await OnUserUpdatedLocal.Invoke(
+                          now,
+                          NewUser,
+                          OldUser,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
             if (!SkipUserUpdatedNotifications)
-                await SendNotifications(NewUser,
-                                        updateUser_MessageType,
-                                        OldUser,
-                                        eventTrackingId,
-                                        CurrentUserId);
+                await SendNotifications(
+                          NewUser,
+                          updateUser_MessageType,
+                          OldUser,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
             return UpdateUserResult.Success(
                        NewUser,
@@ -15398,11 +15505,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await updateUser(NewUser,
-                                             SkipUserUpdatedNotifications,
-                                             OnUpdated,
-                                             EventTrackingId,
-                                             CurrentUserId);
+                    return await updateUser(
+                                     NewUser,
+                                     SkipUserUpdatedNotifications,
+                                     OnUpdated,
+                                     EventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -15455,17 +15564,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         protected internal async Task<UpdateUserResult>
 
             updateUser(IUser                   User,
-                        Action<User.Builder>    UpdateDelegate,
-                        Boolean                 SkipUserUpdatedNotifications   = false,
-                        OnUserUpdatedDelegate?  OnUpdated                      = null,
-                        EventTracking_Id?       EventTrackingId                = null,
-                        User_Id?                CurrentUserId                  = null)
+                       Action<User.Builder>    UpdateDelegate,
+                       Boolean                 SkipUserUpdatedNotifications   = false,
+                       OnUserUpdatedDelegate?  OnUpdated                      = null,
+                       EventTracking_Id?       EventTrackingId                = null,
+                       User_Id?                CurrentUserId                  = null)
 
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (!_UserExists(User.Id))
+            if (!UserExists(User.Id))
                 return UpdateUserResult.ArgumentError(
                            User,
                            $"The given user '{User.Id}' does not exists in this API!".ToI18NString(),
@@ -15497,10 +15606,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             UpdateDelegate(builder);
             var updatedUser = builder.ToImmutable;
 
-            await WriteToDatabaseFile(updateUser_MessageType,
-                                      updatedUser.ToJSON(),
-                                      eventTrackingId,
-                                      CurrentUserId);
+            await WriteToDatabaseFile(
+                      updateUser_MessageType,
+                      updatedUser.ToJSON(),
+                      eventTrackingId,
+                      CurrentUserId
+                  );
 
             users.TryRemove(User.Id, out _);
             updatedUser.CopyAllLinkedDataFrom(User);
@@ -15508,26 +15619,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             var now = Timestamp.Now;
 
-            OnUpdated?.Invoke(now,
-                              updatedUser,
-                              User,
-                              eventTrackingId,
-                              CurrentUserId);
+            OnUpdated?.Invoke(
+                now,
+                updatedUser,
+                User,
+                eventTrackingId,
+                CurrentUserId
+            );
 
             var OnUserUpdatedLocal = OnUserUpdated;
             if (OnUserUpdatedLocal is not null)
-                await OnUserUpdatedLocal.Invoke(now,
-                                                updatedUser,
-                                                User,
-                                                eventTrackingId,
-                                                CurrentUserId);
+                await OnUserUpdatedLocal.Invoke(
+                          now,
+                          updatedUser,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
             if (!SkipUserUpdatedNotifications)
-                await SendNotifications(updatedUser,
-                                        updateUser_MessageType,
-                                        User,
-                                        eventTrackingId,
-                                        CurrentUserId);
+                await SendNotifications(
+                          updatedUser,
+                          updateUser_MessageType,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
             return UpdateUserResult.Success(
                        User,
@@ -15569,12 +15686,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await updateUser(User,
-                                             UpdateDelegate,
-                                             SkipUserUpdatedNotifications,
-                                             OnUpdated,
-                                             eventTrackingId,
-                                             CurrentUserId);
+                    return await updateUser(
+                                     User,
+                                     UpdateDelegate,
+                                     SkipUserUpdatedNotifications,
+                                     OnUpdated,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -15614,7 +15733,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region DeleteUser        (User,      ...,                                             OnDeleted = null, ...)
+        #region DeleteUser         (User,      ...,                                             OnDeleted = null, ...)
 
         /// <summary>
         /// A delegate called whenever a user was deleted.
@@ -15662,10 +15781,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<DeleteUserResult> deleteUser(IUser                             User,
-                                                                    Boolean                           SkipUserDeletedNotifications   = false,
-                                                                    Action<IUser, EventTracking_Id>?  OnDeleted                      = null,
-                                                                    EventTracking_Id?                 EventTrackingId                = null,
-                                                                    User_Id?                          CurrentUserId                  = null)
+                                                                   Boolean                           SkipUserDeletedNotifications   = false,
+                                                                   Action<IUser, EventTracking_Id>?  OnDeleted                      = null,
+                                                                   EventTracking_Id?                 EventTrackingId                = null,
+                                                                   User_Id?                          CurrentUserId                  = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -15707,10 +15826,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             var parentOrganizations = User.ParentOrganizations().
                                            ToArray();
 
-            await WriteToDatabaseFile(deleteUser_MessageType,
-                                      User.ToJSON(false),
-                                      eventTrackingId,
-                                      CurrentUserId);
+            await WriteToDatabaseFile(
+                      deleteUser_MessageType,
+                      User.ToJSON(false),
+                      eventTrackingId,
+                      CurrentUserId
+                  );
 
 
             // ToDo: Remove incoming edges
@@ -15723,17 +15844,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             var OnUserDeletedLocal = OnUserDeleted;
             if (OnUserDeletedLocal is not null)
-                await OnUserDeletedLocal.Invoke(Timestamp.Now,
-                                                User,
-                                                eventTrackingId,
-                                                CurrentUserId);
+                await OnUserDeletedLocal.Invoke(
+                          Timestamp.Now,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
             if (!SkipUserDeletedNotifications)
-                await SendNotifications(User,
-                                        parentOrganizations,
-                                        deleteUser_MessageType,
-                                        eventTrackingId,
-                                        CurrentUserId);
+                await SendNotifications(
+                          User,
+                          parentOrganizations,
+                          deleteUser_MessageType,
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
 
             return DeleteUserResult.Success(
@@ -15770,11 +15895,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await deleteUser(User,
-                                             SkipUserDeletedNotifications,
-                                             OnDeleted,
-                                             eventTrackingId,
-                                             CurrentUserId);
+                    return await deleteUser(
+                                     User,
+                                     SkipUserDeletedNotifications,
+                                     OnDeleted,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -15815,203 +15942,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        #region UserExists(User)
+        #region UserExists (User/UserId)
 
         /// <summary>
         /// Determines whether the given user exists within this API.
         /// </summary>
-        /// <param name="User">The user.</param>
+        /// <param name="User">A user.</param>
         public Boolean UserExists(IUser User)
-        {
-
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
-
-                    return _UserExists(User.Id);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(UserExists)}({User.Id}, ...)");
-                }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
-
-            return false;
-
-        }
-
-        #endregion
-
-        #region UserExists(UserId)
-
-        /// <summary>
-        /// Determines whether the given user identification exists within this API.
-        /// </summary>
-        /// <param name="UserId">The unique identification of an user.</param>
-        protected internal Boolean _UserExists(User_Id UserId)
-
-            => UserId.IsNotNullOrEmpty &&
-               users.ContainsKey(UserId);
-
-        /// <summary>
-        /// Determines whether the given user identification exists within this API.
-        /// </summary>
-        /// <param name="UserId">The unique identification of an user.</param>
-        protected internal Boolean _UserExists(User_Id? UserId)
-
-            => UserId.HasValue &&
-               UserId.IsNotNullOrEmpty() &&
-               users.ContainsKey(UserId.Value);
-
+            => users.ContainsKey(User.Id);
 
         /// <summary>
         /// Determines whether the given user identification exists within this API.
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         public Boolean UserExists(User_Id UserId)
-        {
-
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
-
-                    return _UserExists(UserId);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(UserExists)}({UserId}, ...)");
-                }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
-
-            return false;
-
-        }
+            => users.ContainsKey(UserId);
 
         /// <summary>
         /// Determines whether the given user identification exists within this API.
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         public Boolean UserExists(User_Id? UserId)
-        {
-
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
-
-                    return _UserExists(UserId);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(UserExists)}({UserId}, ...)");
-                }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
-
-            return false;
-
-        }
+            => UserId.HasValue &&
+               users.ContainsKey(UserId.Value);
 
         #endregion
 
-        #region GetUser   (UserId)
+        #region GetUser    (UserId)
 
         /// <summary>
         /// Get the user having the given unique identification.
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
-        protected internal IUser? _GetUser(User_Id UserId)
+        public IUser? GetUser(User_Id UserId)
         {
 
-            if (!UserId.IsNullOrEmpty &&
-                users.TryGetValue(UserId, out var user))
-            {
+            if (users.TryGetValue(UserId, out var user))
                 return user;
-            }
-
-            return null;
-
-        }
-
-        /// <summary>
-        /// Get the user having the given unique identification.
-        /// </summary>
-        /// <param name="UserId">The unique identification of an user.</param>
-        protected internal IUser? _GetUser(User_Id? UserId)
-        {
-
-            if (UserId.HasValue &&
-                UserId.IsNotNullOrEmpty() &&
-                users.TryGetValue(UserId.Value, out var user))
-            {
-                return user;
-            }
-
-            return null;
-
-        }
-
-
-        /// <summary>
-        /// Get the user having the given unique identification.
-        /// </summary>
-        /// <param name="UserId">The unique identification of an user.</param>
-        public IUser? GetUser(User_Id  UserId)
-        {
-
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
-
-                    return _GetUser(UserId);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(GetUser)}({UserId}, ...)");
-                }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
 
             return null;
 
@@ -16024,28 +15991,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public IUser? GetUser(User_Id? UserId)
         {
 
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
-
-                    return _GetUser(UserId);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(GetUser)}({UserId}, ...)");
-                }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
+            if (UserId.HasValue && users.TryGetValue(UserId.Value, out var user))
+                return user;
 
             return null;
 
@@ -16053,51 +16000,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region TryGetUser(UserId, out User)
-
-        /// <summary>
-        /// Try to get the user having the given unique identification.
-        /// </summary>
-        /// <param name="UserId">The unique identification of an user.</param>
-        /// <param name="User">The user.</param>
-        protected internal Boolean _TryGetUser(User_Id                         UserId,
-                                               [NotNullWhen(true)] out IUser?  User)
-        {
-
-            if (!UserId.IsNullOrEmpty &&
-                users.TryGetValue(UserId, out var user))
-            {
-                User = user;
-                return true;
-            }
-
-            User = null;
-            return false;
-
-        }
-
-        /// <summary>
-        /// Try to get the user having the given unique identification.
-        /// </summary>
-        /// <param name="UserId">The unique identification of an user.</param>
-        /// <param name="User">The user.</param>
-        protected internal Boolean _TryGetUser(User_Id?                        UserId,
-                                               [NotNullWhen(true)] out IUser?  User)
-        {
-
-            if (UserId.HasValue &&
-                UserId.IsNotNullOrEmpty() &&
-                users.TryGetValue(UserId.Value, out var user))
-            {
-                User = user;
-                return true;
-            }
-
-            User = null;
-            return false;
-
-        }
-
+        #region TryGetUser (UserId, out User)
 
         /// <summary>
         /// Try to get the user having the given unique identification.
@@ -16106,35 +16009,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="User">The user.</param>
         public Boolean TryGetUser(User_Id                         UserId,
                                   [NotNullWhen(true)] out IUser?  User)
-        {
 
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
+            => users.TryGetValue(UserId, out User);
 
-                    return _TryGetUser(UserId, out User);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(TryGetUser)}({UserId}, ...)");
-                }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
-
-            User = null;
-            return false;
-
-        }
 
         /// <summary>
         /// Try to get the user having the given unique identification.
@@ -16145,138 +16022,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   [NotNullWhen(true)] out IUser?  User)
         {
 
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
+            if (!UserId.HasValue)
             {
-                try
-                {
-
-                    return _TryGetUser(UserId, out User);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(TryGetUser)}({UserId}, ...)");
-                }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
+                User = null;
+                return false;
             }
 
-            User = null;
-            return false;
+            return users.TryGetValue(UserId.Value, out User);
 
         }
 
         #endregion
 
 
-        #region SearchUsersByName   (Username)
-
-        /// <summary>
-        /// Find all users having the given user name.
-        /// </summary>
-        /// <param name="Username">The name of a user (might not be unique).</param>
-        protected internal IEnumerable<IUser> _SearchUsersByName(String Username)
-
-            => users.Values.
-                      Where(user => user.Name.Equals(Username)).
-                      ToArray();
-
+        #region SearchUsersByName    (Username)
 
         /// <summary>
         /// Find all users having the given user name.
         /// </summary>
         /// <param name="Username">The name of a user (might not be unique).</param>
         public IEnumerable<IUser> SearchUsersByName(String Username)
-        {
 
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
-
-                    return _SearchUsersByName(Username);
-
-                }
-                catch
-                { }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
-
-            return Array.Empty<IUser>();
-
-        }
+            => users.Values.Where(user => user.Name.Matches(Username));
 
         #endregion
 
-        #region TrySearchUsersByName(Username, out Users)
+        #region TrySearchUsersByName (Username, out Users)
 
         /// <summary>
         /// Find all users having the given user name.
         /// </summary>
         /// <param name="Username">The name of a user (might not be unique).</param>
         /// <param name="Users">An enumeration of matching users.</param>
-        protected internal Boolean _TrySearchUsersByName(String Username, out IEnumerable<IUser> Users)
+        public Boolean TrySearchUsersByName(String                  Username,
+                                            out IEnumerable<IUser>  Users)
         {
 
-            var foundUsers = new List<IUser>();
+            var matchingUsers = new List<IUser>();
 
             foreach (var user in users.Values)
-                if (user.Name.Equals(Username ?? ""))
-                    foundUsers.Add(user);
+                if (user.Name.Matches(Username))
+                    matchingUsers.Add(user);
 
-            Users = foundUsers;
+            Users = matchingUsers;
 
-            return foundUsers.Any();
-
-        }
-
-
-        /// <summary>
-        /// Find all users having the given user name.
-        /// </summary>
-        /// <param name="Username">The name of a user (might not be unique).</param>
-        /// <param name="Users">An enumeration of matching users.</param>
-        public Boolean TrySearchUsersByName(String Username, out IEnumerable<IUser> Users)
-        {
-
-            if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-            {
-                try
-                {
-
-                    return _TrySearchUsersByName(Username, out Users);
-
-                }
-                catch
-                { }
-                finally
-                {
-                    try
-                    {
-                        UsersSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
-
-            Users = Array.Empty<IUser>();
-            return false;
+            return matchingUsers.Count != 0;
 
         }
 
@@ -16316,8 +16106,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return _VerifyPassword(UserId,
-                                           Password);
+                    return _VerifyPassword(
+                               UserId,
+                               Password
+                           );
 
                 }
                 catch
@@ -16351,19 +16143,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="SuppressNotifications">Do not send 'Password changed e-mails'.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        protected internal async Task<ChangePasswordResult> _ChangePassword(IUser             User,
-                                                                            Password          NewPassword,
-                                                                            Password?         CurrentPassword         = null,
-                                                                            Boolean           SuppressNotifications   = false,
-                                                                            EventTracking_Id? EventTrackingId         = null,
-                                                                            User_Id?          CurrentUserId           = null)
+        protected internal async Task<ChangePasswordResult> _ChangePassword(IUser              User,
+                                                                            Password           NewPassword,
+                                                                            Password?          CurrentPassword         = null,
+                                                                            Boolean            SuppressNotifications   = false,
+                                                                            EventTracking_Id?  EventTrackingId         = null,
+                                                                            User_Id?           CurrentUserId           = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
             if (NewPassword.IsNullOrEmpty)
                 return ChangePasswordResult.ArgumentError(
-                           new[] { User },
+                           [ User ],
                            "The given new password must not be null or empty!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -16372,7 +16164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             if (CurrentPassword.HasValue && CurrentPassword.Value.IsNullOrEmpty)
                 return ChangePasswordResult.ArgumentError(
-                           new[] { User },
+                           [ User ],
                            "The given current password must not be empty!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -16382,36 +16174,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             #region AddPassword
 
-            if (!loginPasswords.TryGetValue(User.Id, out var _LoginPassword))
+            if (!loginPasswords.TryGetValue(User.Id, out var loginPassword))
             {
 
-                await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordFile,
-                                          addPassword_MessageType,
-                                          new JObject(
-                                              new JProperty("login",         User.Id.ToString()),
-                                              new JProperty("newPassword", new JObject(
-                                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
-                                              ))
-                                          ),
-                                          eventTrackingId,
-                                          CurrentUserId);
+                await WriteToDatabaseFile(
+                          HTTPAPIPath + DefaultPasswordFile,
+                          addPassword_MessageType,
+                          new JObject(
+                              new JProperty("login",         User.Id.ToString()),
+                              new JProperty("newPassword", new JObject(
+                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
+                              ))
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
-                loginPasswords.TryAdd(User.Id,
-                                      new LoginPassword(
-                                          User.Id,
-                                          NewPassword
-                                      ));
+                loginPasswords.TryAdd(
+                    User.Id,
+                    new LoginPassword(
+                        User.Id,
+                        NewPassword
+                    )
+                );
 
                 if (!SuppressNotifications)
-                    await SMTPClient.Send(PasswordChangedEMailCreator(User,
-                                                                      User.EMail,
-                                                                      //"https://" + Request.Host.SimpleString,
-                                                                      DefaultLanguage,
-                                                                      eventTrackingId));
+                    await SMTPClient.Send(
+                              PasswordChangedEMailCreator(
+                                  User,
+                                  User.EMail,
+                                  //"https://" + Request.Host.SimpleString,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
                 return ChangePasswordResult.Success(
-                           new[] { User },
+                           [ User ],
                            eventTrackingId,
                            SystemId,
                            this
@@ -16423,36 +16223,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             #region ChangePassword
 
-            else if (CurrentPassword.IsNotNullOrEmpty() && _LoginPassword.VerifyPassword(CurrentPassword.Value))
+            else if (CurrentPassword.IsNotNullOrEmpty() && loginPassword.VerifyPassword(CurrentPassword.Value))
             {
 
-                await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordFile,
-                                          changePassword_MessageType,
-                                          new JObject(
-                                              new JProperty("login",         User.Id.ToString()),
-                                              new JProperty("currentPassword", new JObject(
-                                                  new JProperty("salt",          _LoginPassword.Password.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",  _LoginPassword.Password.UnsecureString)
-                                              )),
-                                              new JProperty("newPassword",     new JObject(
-                                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
-                                              ))
-                                          ),
-                                          eventTrackingId,
-                                          CurrentUserId);
+                await WriteToDatabaseFile(
+                          HTTPAPIPath + DefaultPasswordFile,
+                          changePassword_MessageType,
+                          new JObject(
+                              new JProperty("login",         User.Id.ToString()),
+                              new JProperty("currentPassword", new JObject(
+                                  new JProperty("salt",          loginPassword.Password.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",  loginPassword.Password.UnsecureString)
+                              )),
+                              new JProperty("newPassword",     new JObject(
+                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
+                              ))
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
                 loginPasswords[User.Id] = new LoginPassword(User.Id, NewPassword);
 
                 if (!SuppressNotifications)
-                    await SMTPClient.Send(PasswordChangedEMailCreator(User,
-                                                                      User.EMail,
-                                                                      //"https://" + Request.Host.SimpleString,
-                                                                      DefaultLanguage,
-                                                                      eventTrackingId));
+                    await SMTPClient.Send(
+                              PasswordChangedEMailCreator(
+                                  User,
+                                  User.EMail,
+                                  //"https://" + Request.Host.SimpleString,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
                 return ChangePasswordResult.Success(
-                           new[] { User },
+                           [ User ],
                            eventTrackingId,
                            SystemId,
                            this
@@ -16464,7 +16270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             else
                 return ChangePasswordResult.Error(
-                           new[] { User },
+                           [ User ],
                            "Could not change the password!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -16482,12 +16288,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="SuppressNotifications">Do not send 'Password changed e-mails'.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        public async Task<ChangePasswordResult> ChangePassword(IUser             User,
-                                                               Password          NewPassword,
-                                                               Password?         CurrentPassword         = null,
-                                                               Boolean           SuppressNotifications   = false,
-                                                               EventTracking_Id? EventTrackingId         = null,
-                                                               User_Id?          CurrentUserId           = null)
+        public async Task<ChangePasswordResult> ChangePassword(IUser              User,
+                                                               Password           NewPassword,
+                                                               Password?          CurrentPassword         = null,
+                                                               Boolean            SuppressNotifications   = false,
+                                                               EventTracking_Id?  EventTrackingId         = null,
+                                                               User_Id?           CurrentUserId           = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -16497,19 +16303,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await _ChangePassword(User,
-                                                 NewPassword,
-                                                 CurrentPassword,
-                                                 SuppressNotifications,
-                                                 eventTrackingId,
-                                                 CurrentUserId);
+                    return await _ChangePassword(
+                                     User,
+                                     NewPassword,
+                                     CurrentPassword,
+                                     SuppressNotifications,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
                 {
 
                     return ChangePasswordResult.Error(
-                               new[] { User },
+                               [ User ],
                                e,
                                eventTrackingId,
                                SystemId,
@@ -16530,7 +16338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
 
             return ChangePasswordResult.LockTimeout(
-                       new[] { User },
+                       [ User ],
                        SemaphoreSlimTimeout,
                        eventTrackingId,
                        SystemId,
@@ -16602,35 +16410,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             foreach (var user in Users)
             {
 
-                await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordFile,
-                                          resetPassword_MessageType,
-                                          JSONObject.Create(
+                await WriteToDatabaseFile(
+                          HTTPAPIPath + DefaultPasswordFile,
+                          resetPassword_MessageType,
+                          JSONObject.Create(
 
-                                              new JProperty("login",                 user.Id.ToString()),
+                              new JProperty("login",                 user.Id.ToString()),
 
-                                              new JProperty("newPassword", new JObject(
-                                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
-                                              ))
+                              new JProperty("newPassword", new JObject(
+                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
+                              ))
 
-                                              //new JProperty("securityToken1",        SecurityToken1.ToString()),
+                              //new JProperty("securityToken1",        SecurityToken1.ToString()),
 
-                                              //SecurityToken2.HasValue
-                                              //    ? new JProperty("securityToken2",  SecurityToken2.ToString())
-                                              //    : null
+                              //SecurityToken2.HasValue
+                              //    ? new JProperty("securityToken2",  SecurityToken2.ToString())
+                              //    : null
 
-                                          ),
-                                          eventTrackingId,
-                                          CurrentUserId);
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
                 loginPasswords[user.Id] = new LoginPassword(user.Id, NewPassword);
 
                 if (!SuppressNotifications)
-                    await SMTPClient.Send(PasswordChangedEMailCreator(user,
-                                                                      user.EMail,
-                                                                      //"https://" + Request.Host.SimpleString,
-                                                                      DefaultLanguage,
-                                                                      eventTrackingId));
+                    await SMTPClient.Send(
+                              PasswordChangedEMailCreator(
+                                  user,
+                                  user.EMail,
+                                  //"https://" + Request.Host.SimpleString,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
             }
 
@@ -16667,12 +16481,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await _ChangePassword(Users,
-                                                 NewPassword,
-                                                 CurrentPassword,
-                                                 SuppressNotifications,
-                                                 eventTrackingId,
-                                                 CurrentUserId);
+                    return await _ChangePassword(
+                                     Users,
+                                     NewPassword,
+                                     CurrentPassword,
+                                     SuppressNotifications,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -16724,23 +16540,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                           EventTracking_Id?  EventTrackingId         = null)
         {
 
-            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+            var eventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
 
-            var result = await addPasswordReset(
-                                   new PasswordReset(
-                                       User,
-                                       SecurityToken_Id.Random(40),
-                                       User.Use2AuthFactor == Use2AuthFactor.MobilePhoneSMS && User.MobilePhone.HasValue
-                                           ? SecurityToken_Id.Parse(RandomExtensions.RandomString(5) + "-" + RandomExtensions.RandomString(5))
-                                           : new SecurityToken_Id?(),
-                                       eventTrackingId
-                                   ),
-                                   SuppressNotifications,
-                                   eventTrackingId
-                               );
+            var result           = await addPasswordReset(
+                                             new PasswordReset(
+                                                 User,
+                                                 SecurityToken_Id.Random(40),
+                                                 User.Use2AuthFactor == Use2AuthFactor.MobilePhoneSMS && User.MobilePhone.HasValue
+                                                     ? SecurityToken_Id.Parse(RandomExtensions.RandomString(5) + "-" + RandomExtensions.RandomString(5))
+                                                     : new SecurityToken_Id?(),
+                                                 eventTrackingId
+                                             ),
+                                             SuppressNotifications,
+                                             eventTrackingId
+                                         );
 
             return new ResetPasswordResult(
-                       new[] { User },
+                       [ User ],
                        result.Result,
                        result.EventTrackingId,
                        result.SenderId,
@@ -16825,20 +16641,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                           EventTracking_Id?   EventTrackingId         = null)
         {
 
-            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+            var eventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
 
-            var result = await addPasswordReset(
-                                   new PasswordReset(
-                                       Users,
-                                       SecurityToken_Id.Random(40),
-                                       Users.Any(user => user.Use2AuthFactor == Use2AuthFactor.MobilePhoneSMS && user.MobilePhone.HasValue)
-                                           ? SecurityToken_Id.Parse(RandomExtensions.RandomString(5) + "-" + RandomExtensions.RandomString(5))
-                                           : new SecurityToken_Id?(),
-                                       eventTrackingId
-                                   ),
-                                   SuppressNotifications,
-                                   eventTrackingId
-                               );
+            var result           = await addPasswordReset(
+                                             new PasswordReset(
+                                                 Users,
+                                                 SecurityToken_Id.Random(40),
+                                                 Users.Any(user => user.Use2AuthFactor == Use2AuthFactor.MobilePhoneSMS && user.MobilePhone.HasValue)
+                                                     ? SecurityToken_Id.Parse(RandomExtensions.RandomString(5) + "-" + RandomExtensions.RandomString(5))
+                                                     : new SecurityToken_Id?(),
+                                                 eventTrackingId
+                                             ),
+                                             SuppressNotifications,
+                                             eventTrackingId
+                                         );
 
             return new ResetPasswordResult(
                        Users,
@@ -16872,9 +16688,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await _ResetPassword(Users,
-                                                SuppressNotifications,
-                                                eventTrackingId);
+                    return await _ResetPassword(
+                                     Users,
+                                     SuppressNotifications,
+                                     eventTrackingId
+                                 );
 
                 }
                 catch (Exception e)
@@ -16921,20 +16739,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="PasswordReset">A password reset.</param>
         /// <param name="SuppressNotifications">Do not send 'Reset Password e-mails/SMSs'.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        protected internal async Task<AddPasswordResetResult> addPasswordReset(PasswordReset     PasswordReset,
-                                                                                Boolean           SuppressNotifications   = false,
-                                                                                EventTracking_Id? EventTrackingId         = null)
+        protected internal async Task<AddPasswordResetResult> addPasswordReset(PasswordReset      PasswordReset,
+                                                                               Boolean            SuppressNotifications   = false,
+                                                                               EventTracking_Id?  EventTrackingId         = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordResetsFile,
-                                      addToPasswordFile,
-                                      PasswordReset.ToJSON(),
-                                      eventTrackingId);
+            await WriteToDatabaseFile(
+                      HTTPAPIPath + DefaultPasswordResetsFile,
+                      addToPasswordFile,
+                      PasswordReset.ToJSON(),
+                      eventTrackingId
+                  );
 
-            this.passwordResets.TryAdd(PasswordReset.SecurityToken1,
-                                       PasswordReset);
+            passwordResets.TryAdd(
+                PasswordReset.SecurityToken1,
+                PasswordReset
+            );
 
 
             foreach (var user in PasswordReset.Users)
@@ -16942,12 +16764,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 if (!SuppressNotifications)
                 {
 
-                    await SMTPClient.Send(ResetPasswordEMailCreator(user,
-                                                                    user.EMail,
-                                                                    PasswordReset.SecurityToken1,
-                                                                    user.Use2AuthFactor == Use2AuthFactor.MobilePhoneSMS && user.MobilePhone.HasValue,
-                                                                    DefaultLanguage,
-                                                                    eventTrackingId));
+                    await SMTPClient.Send(
+                              ResetPasswordEMailCreator(
+                                  user,
+                                  user.EMail,
+                                  PasswordReset.SecurityToken1,
+                                  user.Use2AuthFactor == Use2AuthFactor.MobilePhoneSMS && user.MobilePhone.HasValue,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
                     //if (SMSClient is not null &&
                     //    PasswordReset.SecurityToken2.HasValue &&
@@ -16975,9 +16801,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="PasswordReset">A password reset.</param>
         /// <param name="SuppressNotifications">Do not send 'Reset Password e-mails/SMSs'.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        public async Task<AddPasswordResetResult> AddPasswordReset(PasswordReset     PasswordReset,
-                                                                   Boolean           SuppressNotifications   = false,
-                                                                   EventTracking_Id? EventTrackingId         = null)
+        public async Task<AddPasswordResetResult> AddPasswordReset(PasswordReset      PasswordReset,
+                                                                   Boolean            SuppressNotifications   = false,
+                                                                   EventTracking_Id?  EventTrackingId         = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -16987,9 +16813,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await addPasswordReset(PasswordReset,
-                                                   SuppressNotifications,
-                                                   eventTrackingId);
+                    return await addPasswordReset(
+                                     PasswordReset,
+                                     SuppressNotifications,
+                                     eventTrackingId
+                                 );
 
                 }
                 catch (Exception e)
@@ -17049,7 +16877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             if (SecurityTokenId1.IsNullOrEmpty)
                 return ResetPasswordResult.ArgumentError(
-                           Array.Empty<IUser>(),
+                           [],
                            "The given first security token must not be null or empty!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -17058,7 +16886,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             if (!passwordResets.TryGetValue(SecurityTokenId1, out var passwordReset))
                 return ResetPasswordResult.ArgumentError(
-                           Array.Empty<IUser>(),
+                           [],
                            "Invalid security token(s)!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -17067,7 +16895,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             if (NewPassword.IsNullOrEmpty)
                 return ResetPasswordResult.ArgumentError(
-                           Array.Empty<IUser>(),
+                           [],
                            "The given new password must not be null or empty!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -17076,7 +16904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
                 return ResetPasswordResult.ArgumentError(
-                           Array.Empty<IUser>(),
+                           [],
                            "The chosen password does not match the password quality criteria!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -17085,7 +16913,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             if (SecurityTokenId2.HasValue && SecurityTokenId2.Value.IsNullOrEmpty)
                 return ResetPasswordResult.ArgumentError(
-                           Array.Empty<IUser>(),
+                           [],
                            "The given second security token must not be null or empty!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -17095,7 +16923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             if ((SecurityTokenId2.HasValue != passwordReset.SecurityToken2.HasValue) ||
                 (SecurityTokenId2.HasValue && passwordReset.SecurityToken2.HasValue && SecurityTokenId2.Value != passwordReset.SecurityToken2.Value))
                 return ResetPasswordResult.ArgumentError(
-                           Array.Empty<IUser>(),
+                           [],
                            "Invalid security token(s)!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
@@ -17106,39 +16934,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             foreach (var user in passwordReset.Users)
             {
 
-                await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordFile,
-                                          resetPassword_MessageType,
-                                          JSONObject.Create(
+                await WriteToDatabaseFile(
+                          HTTPAPIPath + DefaultPasswordFile,
+                          resetPassword_MessageType,
+                          JSONObject.Create(
 
-                                              new JProperty("login",                 user.Id.ToString()),
+                              new JProperty("login",                 user.Id.ToString()),
 
-                                              new JProperty("newPassword", new JObject(
-                                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
-                                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
-                                              ))
+                              new JProperty("newPassword", new JObject(
+                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
+                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
+                              ))
 
-                                              //new JProperty("securityToken1",        SecurityToken1.ToString()),
+                              //new JProperty("securityToken1",        SecurityToken1.ToString()),
 
-                                              //SecurityToken2.HasValue
-                                              //    ? new JProperty("securityToken2",  SecurityToken2.ToString())
-                                              //    : null
+                              //SecurityToken2.HasValue
+                              //    ? new JProperty("securityToken2",  SecurityToken2.ToString())
+                              //    : null
 
-                                          ),
-                                          eventTrackingId,
-                                          CurrentUserId);
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
 
                 loginPasswords[user.Id] = new LoginPassword(user.Id, NewPassword);
 
-                await SMTPClient.Send(PasswordChangedEMailCreator(user,
-                                                                  user.EMail,
-                                                                  //"https://" + Request.Host.SimpleString,
-                                                                  DefaultLanguage,
-                                                                  eventTrackingId));
+                await SMTPClient.Send(
+                          PasswordChangedEMailCreator(
+                              user,
+                              user.EMail,
+                              //"https://" + Request.Host.SimpleString,
+                              DefaultLanguage,
+                              eventTrackingId
+                          )
+                      );
 
             }
 
-            await deletePasswordReset(passwordReset,
-                                       eventTrackingId);
+            await deletePasswordReset(
+                      passwordReset,
+                      eventTrackingId
+                  );
 
             return ResetPasswordResult.Success(
                        Users,
@@ -17171,18 +17007,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await _ResetPassword(SecurityTokenId1,
-                                                NewPassword,
-                                                SecurityTokenId2,
-                                                eventTrackingId,
-                                                CurrentUserId);
+                    return await _ResetPassword(
+                                     SecurityTokenId1,
+                                     NewPassword,
+                                     SecurityTokenId2,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
                 {
 
                     return ResetPasswordResult.Error(
-                               Array.Empty<IUser>(),
+                               [],
                                e,
                                eventTrackingId,
                                SystemId,
@@ -17203,7 +17041,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
 
             return ResetPasswordResult.LockTimeout(
-                       Array.Empty<IUser>(),
+                       [],
                        SemaphoreSlimTimeout,
                        eventTrackingId,
                        SystemId,
@@ -17227,11 +17065,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                     User_Id?          CurrentUserId     = null)
         {
 
-            await WriteToDatabaseFile(HTTPAPIPath + DefaultPasswordResetsFile,
-                                      removeFromPasswordFile,
-                                      PasswordReset.ToJSON(),
-                                      EventTrackingId ?? EventTracking_Id.New,
-                                      CurrentUserId);
+            await WriteToDatabaseFile(
+                      HTTPAPIPath + DefaultPasswordResetsFile,
+                      removeFromPasswordFile,
+                      PasswordReset.ToJSON(),
+                      EventTrackingId ?? EventTracking_Id.New,
+                      CurrentUserId
+                  );
 
             passwordResets.TryRemove(PasswordReset.SecurityToken1, out _);
 
@@ -17258,9 +17098,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return await deletePasswordReset(PasswordReset,
-                                                      eventTrackingId,
-                                                      CurrentUserId);
+                    return await deletePasswordReset(
+                                     PasswordReset,
+                                     eventTrackingId,
+                                     CurrentUserId
+                                 );
 
                 }
                 catch (Exception e)
@@ -17296,39 +17138,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An enumeration of all API keys.
         /// </summary>
-        protected internal readonly Dictionary<APIKey_Id, APIKey> apiKeys = new();
+        protected internal readonly ConcurrentDictionary<APIKey_Id, APIKey> apiKeys = [];
 
         /// <summary>
         /// An enumeration of all API keys.
         /// </summary>
         public IEnumerable<APIKey> APIKeys
-        {
-            get
-            {
-
-                if (APIKeysSemaphore.Wait(SemaphoreSlimTimeout))
-                {
-                    try
-                    {
-
-                        return apiKeys.Values.ToArray();
-
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            APIKeysSemaphore.Release();
-                        }
-                        catch
-                        { }
-                    }
-                }
-
-                return Array.Empty<APIKey>();
-
-            }
-        }
+            => apiKeys.Values;
 
         #endregion
 
@@ -17521,7 +17337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       eventTrackingId,
                                       CurrentUserId);
 
-            apiKeys.Add(APIKey.Id, APIKey);
+            apiKeys.TryAdd(APIKey.Id, APIKey);
 
             OnAdded?.Invoke(APIKey,
                             eventTrackingId);
@@ -17668,7 +17484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       eventTrackingId,
                                       CurrentUserId);
 
-            apiKeys.Add(APIKey.Id, APIKey);
+            apiKeys.TryAdd(APIKey.Id, APIKey);
 
             OnAdded?.Invoke(APIKey,
                             eventTrackingId);
@@ -17809,13 +17625,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       eventTrackingId,
                                       CurrentUserId);
 
-            if (apiKeys.TryGetValue(APIKey.Id, out var OldAPIKey))
+            if (apiKeys.TryRemove(APIKey.Id, out var OldAPIKey))
             {
-                apiKeys.Remove(OldAPIKey.Id);
                 //APIKey.CopyAllLinkedDataFrom(OldAPIKey);
             }
 
-            apiKeys.Add(APIKey.Id, APIKey);
+            apiKeys.TryAdd(APIKey.Id, APIKey);
 
 
             if (OldAPIKey is not null)
@@ -17975,9 +17790,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional API key identification initiating this command/request.</param>
         protected internal async Task<UpdateAPIKeyResult> updateAPIKey(APIKey                             APIKey,
-                                                                        Action<APIKey, EventTracking_Id>?  OnUpdated         = null,
-                                                                        EventTracking_Id?                  EventTrackingId   = null,
-                                                                        User_Id?                           CurrentUserId     = null)
+                                                                       Action<APIKey, EventTracking_Id>?  OnUpdated         = null,
+                                                                       EventTracking_Id?                  EventTrackingId   = null,
+                                                                       User_Id?                           CurrentUserId     = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -18008,9 +17823,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       eventTrackingId,
                                       CurrentUserId);
 
-            apiKeys.Remove(OldAPIKey.Id);
+            apiKeys.TryRemove(OldAPIKey.Id, out _);
             //APIKey.CopyAllLinkedDataFrom(OldAPIKey);
-            apiKeys.Add(APIKey.Id, APIKey);
+            apiKeys.TryAdd(APIKey.Id, APIKey);
 
             OnUpdated?.Invoke(APIKey,
                               eventTrackingId);
@@ -18063,9 +17878,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 {
 
                     return await updateAPIKey(APIKey,
-                                               OnUpdated,
-                                               EventTrackingId,
-                                               CurrentUserId);
+                                              OnUpdated,
+                                              EventTrackingId,
+                                              CurrentUserId);
 
                 }
                 catch (Exception e)
@@ -18160,9 +17975,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       eventTrackingId,
                                       CurrentUserId);
 
-            apiKeys.Remove(APIKey.Id);
+            apiKeys.TryRemove(APIKey.Id, out _);
             //updatedAPIKey.CopyAllLinkedDataFrom(APIKey);
-            apiKeys.Add(updatedAPIKey.Id, updatedAPIKey);
+            apiKeys.TryAdd(updatedAPIKey.Id, updatedAPIKey);
 
             OnUpdated?.Invoke(updatedAPIKey,
                               eventTrackingId);
@@ -18321,7 +18136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       eventTrackingId,
                                       CurrentUserId);
 
-            apiKeys.Remove(APIKey.Id);
+            apiKeys.TryRemove(APIKey.Id, out _);
 
             OnRemoved?.Invoke(APIKey,
                               eventTrackingId);
@@ -25375,13 +25190,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         /// <param name="OrganizationName">The name of a organization (might not be unique).</param>
         /// <param name="IgnoreCase">Ignore the case of the organization name.</param>
-        protected internal IEnumerable<IOrganization> _SearchOrganizationsByName(String   OrganizationName,
-                                                                                 Boolean  IgnoreCase   = false)
+        protected internal IEnumerable<IOrganization> _SearchOrganizationsByName(String            OrganizationName,
+                                                                                 StringComparison  ComparisonType   = StringComparison.OrdinalIgnoreCase)
 
             => organizations.Values.
-                              Where(organization => organization.Name.Matches(OrganizationName,
-                                                                              IgnoreCase)).
-                              ToArray();
+                   Where(organization => organization.Name.Matches(
+                                             OrganizationName,
+                                             ComparisonType));
 
 
         /// <summary>
@@ -25412,7 +25227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 }
             }
 
-            return Array.Empty<Organization>();
+            return [];
 
         }
 
@@ -25421,8 +25236,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         /// <param name="OrganizationName">The name of a organization (might not be unique).</param>
         /// <param name="IgnoreCase">Ignore the case of the organization name.</param>
-        public IEnumerable<IOrganization> SearchOrganizationsByName(String   OrganizationName,
-                                                                    Boolean  IgnoreCase   = false)
+        public IEnumerable<IOrganization> SearchOrganizationsByName(String            OrganizationName,
+                                                                    StringComparison  ComparisonType   = StringComparison.OrdinalIgnoreCase)
         {
 
             if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -25430,8 +25245,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 try
                 {
 
-                    return _SearchOrganizationsByName(OrganizationName,
-                                                      IgnoreCase);
+                    return _SearchOrganizationsByName(
+                               OrganizationName,
+                               ComparisonType
+                           );
 
                 }
                 catch
@@ -25484,13 +25301,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="IgnoreCase">Ignore the case of the organization name.</param>
         protected internal Boolean _TrySearchOrganizationsByName(String                          OrganizationName,
                                                                  out IEnumerable<IOrganization>  Organizations,
-                                                                 Boolean                         IgnoreCase = false)
+                                                                 StringComparison                ComparisonType   = StringComparison.OrdinalIgnoreCase)
         {
 
             var foundOrganizations = new List<IOrganization>();
 
             foreach (var organization in organizations.Values)
-                if (organization.Name.Matches(OrganizationName, IgnoreCase))
+                if (organization.Name.Matches(OrganizationName, ComparisonType))
                     foundOrganizations.Add(organization);
 
             Organizations = foundOrganizations;
@@ -25542,7 +25359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Organizations">An enumeration of matching organizations.</param>
         public Boolean TrySearchOrganizationsByName(String                          OrganizationName,
                                                     out IEnumerable<IOrganization>  Organizations,
-                                                    Boolean                         IgnoreCase = false)
+                                                    StringComparison                ComparisonType   = StringComparison.OrdinalIgnoreCase)
         {
 
             if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -25552,7 +25369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     return _TrySearchOrganizationsByName(OrganizationName,
                                                          out Organizations,
-                                                         IgnoreCase);
+                                                         ComparisonType);
 
                 }
                 catch
@@ -29273,7 +29090,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 WriteToDatabaseFile(NotificationMessageType.Parse("createDataLicense"),
                                     DataLicense.ToJSON(),
                                     EventTracking_Id.New,
-                                    Robot.Id);
+                                    Robot?.Id);
 
                 return dataLicenses.AddAndReturnValue(DataLicense.Id, DataLicense);
 
@@ -29417,7 +29234,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         }
 
         #endregion
-
 
 
     }

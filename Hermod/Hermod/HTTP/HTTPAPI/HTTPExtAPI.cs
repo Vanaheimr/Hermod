@@ -5517,7 +5517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   var includeFilter        = Request.QueryString.CreateStringFilter<IUser>("match",
                                                                                                            (user, include) => user.Id.   ToString().Contains(include, StringComparison.OrdinalIgnoreCase) ||
                                                                                                                               user.Name.FirstText().Contains(include, StringComparison.OrdinalIgnoreCase) ||
-                                                                                                                              user.Description.     Matches (include, IgnoreCase: true));
+                                                                                                                              user.Description.     Matches (include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                 = Request.QueryString.GetUInt64 ("skip");
                                   var take                 = Request.QueryString.GetUInt64 ("take");
@@ -7946,8 +7946,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   var withMetadata           = Request.QueryString.GetBoolean("withMetadata", false);
                                   var matchFilter            = Request.QueryString.CreateStringFilter<IUserGroup>("match",
                                                                                                                   (group, include) => group.Id.ToString().IndexOf(include) >= 0 ||
-                                                                                                                                      group.Name.       Matches(include, IgnoreCase: true) ||
-                                                                                                                                      group.Description.Matches(include, IgnoreCase: true));
+                                                                                                                                      group.Name.       Matches(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                                      group.Description.Matches(include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                   = Request.QueryString.GetUInt64 ("skip");
                                   var take                   = Request.QueryString.GetUInt64 ("take");
@@ -8116,8 +8116,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   var withMetadata            = Request.QueryString.GetBoolean("withMetadata", false);
                                   var includeFilter           = Request.QueryString.CreateStringFilter<IOrganization>("match",
                                                                                                                       (organization, include) => organization.Id.ToString().IndexOf(include)               > 0 ||
-                                                                                                                                                 organization.Name.         Matches(include, IgnoreCase: true) ||
-                                                                                                                                                 organization.Description.  Matches(include, IgnoreCase: true));
+                                                                                                                                                 organization.Name.         Matches(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                                                 organization.Description.  Matches(include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                    = Request.QueryString.GetUInt64 ("skip");
                                   var take                    = Request.QueryString.GetUInt64 ("take");
@@ -10229,8 +10229,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   var withMetadata           = Request.QueryString.GetBoolean("withMetadata", false);
                                   var includeFilter          = Request.QueryString.CreateStringFilter<OrganizationGroup>("match",
                                                                                                                          (group, include) => group.Id.ToString().IndexOf(include) >= 0 ||
-                                                                                                                                             group.Name.       Matches(include, IgnoreCase: true) ||
-                                                                                                                                             group.Description.Matches(include, IgnoreCase: true));
+                                                                                                                                             group.Name.       Matches(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                                             group.Description.Matches(include, StringComparison.OrdinalIgnoreCase));
 
                                   var skip                   = Request.QueryString.GetUInt64 ("skip");
                                   var take                   = Request.QueryString.GetUInt64 ("take");
@@ -25904,8 +25904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                  Boolean  IgnoreCase   = false)
 
             => organizations.Values.
-                              Where(organization => organization.Name.Matches(OrganizationName,
-                                                                              IgnoreCase)).
+                              Where(organization => organization.Name.Matches(OrganizationName)).
                               ToArray();
 
 
@@ -26009,13 +26008,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IgnoreCase">Ignore the case of the organization name.</param>
         protected internal Boolean _TrySearchOrganizationsByName(String                          OrganizationName,
                                                                  out IEnumerable<IOrganization>  Organizations,
-                                                                 Boolean                         IgnoreCase = false)
+                                                                 StringComparison                ComparisonType   = StringComparison.OrdinalIgnoreCase)
         {
 
             var foundOrganizations = new List<IOrganization>();
 
             foreach (var organization in organizations.Values)
-                if (organization.Name.Matches(OrganizationName, IgnoreCase))
+                if (organization.Name.Matches(OrganizationName))
                     foundOrganizations.Add(organization);
 
             Organizations = foundOrganizations;
@@ -26067,7 +26066,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Organizations">An enumeration of matching organizations.</param>
         public Boolean TrySearchOrganizationsByName(String                          OrganizationName,
                                                     out IEnumerable<IOrganization>  Organizations,
-                                                    Boolean                         IgnoreCase = false)
+                                                    StringComparison                ComparisonType   = StringComparison.OrdinalIgnoreCase)
         {
 
             if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -26077,7 +26076,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     return _TrySearchOrganizationsByName(OrganizationName,
                                                          out Organizations,
-                                                         IgnoreCase);
+                                                         ComparisonType);
 
                 }
                 catch
