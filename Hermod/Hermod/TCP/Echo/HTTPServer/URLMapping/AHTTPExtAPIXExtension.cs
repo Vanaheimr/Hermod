@@ -21,6 +21,7 @@ using System.Reflection;
 
 using Newtonsoft.Json.Linq;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
@@ -55,10 +56,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">An HTTP API.</param>
         /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
         /// <param name="APIVersionHash">An optional API version hash (git commit hash value).</param>
-        public AHTTPExtAPIXExtension(THTTPAPI                 HTTPAPI,
+        public AHTTPExtAPIXExtension(I18NString               Description,
+                                     THTTPAPI                 HTTPAPI,
                                      HTTPPath?                URLPathPrefix        = null,
                                      HTTPPath?                BasePath             = null,
-                                     //String?                  HTMLTemplate         = null,
 
                                      String?                  ExternalDNSName      = null,
                                      String?                  HTTPServerName       = DefaultHTTPServerName,
@@ -73,9 +74,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      String?                  LogfileName          = DefaultHTTPAPI_LogfileName,
                                      LogfileCreatorDelegate?  LogfileCreator       = null)
 
-            : base(URLPathPrefix,
+            : base(Description,
+                   URLPathPrefix,
                    BasePath,
-                   //HTMLTemplate,
 
                    ExternalDNSName,
                    HTTPServerName,
@@ -211,8 +212,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public AHTTPExtAPIXExtension2(THTTPAPI2               HTTPAPI,
                                       HTTPPath?                URLPathPrefix        = null,
                                       HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
-                                     //String?                  HTMLTemplate         = null,
 
+                                     I18NString?              Description          = null,
                                      String?                  ExternalDNSName      = null,
                                      String?                  HTTPServerName       = DefaultHTTPServerName,
                                      String?                  HTTPServiceName      = DefaultHTTPServiceName,
@@ -226,7 +227,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      String?                  LogfileName          = DefaultHTTPAPI_LogfileName,
                                      LogfileCreatorDelegate?  LogfileCreator       = null)
 
-            : base(URLPathPrefix,
+            : base(Description ?? I18NString.Create("AHTTPExtAPIXExtension2"),
+                   URLPathPrefix,
                    BasePath,
                    //HTMLTemplate,
 

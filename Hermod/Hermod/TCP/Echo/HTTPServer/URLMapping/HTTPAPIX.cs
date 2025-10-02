@@ -850,7 +850,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         String?                        LogfileName               = DefaultHTTPAPI_LogfileName,
                         LogfileCreatorDelegate?        LogfileCreator            = null)
 
-            : base(RootPath,
+            : base(Description ?? I18NString.Create("HTTPAPIX"),
+                   RootPath,
                    BasePath,
 
                    ExternalDNSName,

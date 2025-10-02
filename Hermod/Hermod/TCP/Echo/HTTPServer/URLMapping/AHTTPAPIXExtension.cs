@@ -21,6 +21,7 @@ using System.Reflection;
 
 using Newtonsoft.Json.Linq;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
@@ -60,6 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
                                   //String?                  HTMLTemplate         = null,
 
+                                  I18NString?              Description          = null,
                                   String?                  ExternalDNSName      = null,
                                   String?                  HTTPServerName       = DefaultHTTPServerName,
                                   String?                  HTTPServiceName      = DefaultHTTPServiceName,
@@ -73,7 +75,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   String?                  LogfileName          = DefaultHTTPAPI_LogfileName,
                                   LogfileCreatorDelegate?  LogfileCreator       = null)
 
-            : base(URLPathPrefix,
+            : base(Description ?? I18NString.Create("AHTTPAPIXExtension"),
+                   URLPathPrefix,
                    BasePath,
                    //HTMLTemplate,
 
