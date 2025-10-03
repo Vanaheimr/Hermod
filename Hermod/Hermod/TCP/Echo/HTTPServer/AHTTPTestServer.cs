@@ -309,12 +309,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #region Parse HTTP Request
 
                     var request  = HTTPRequest.Parse(
+
                                        Timestamp.Now,
                                        httpSource,
                                        localSocket,
                                        remoteSocket,
-                                       Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
-                                       CancellationToken: CancellationToken
+
+                                       HTTPHeader:                 Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
+                                       HTTPBody:                   null,
+                                       HTTPBodyStream:             null,
+                                       HTTPServer:                 null,
+                                       HTTPServerX:                this,
+                                       ServerCertificate:          TCPConnection.ServerCertificate,
+                                       ClientCertificate:          TCPConnection.ClientCertificate,
+
+                                       //HTTPBodyReceiveBufferSize:  null,
+                                       EventTrackingId:            EventTracking_Id.New,
+                                       CancellationToken:          CancellationToken
+
                                    );
 
                     connection.IsHTTPKeepAlive        = request.IsKeepAlive;

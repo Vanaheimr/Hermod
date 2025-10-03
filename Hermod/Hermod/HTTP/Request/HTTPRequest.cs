@@ -746,7 +746,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPServer?        HTTPServer                { get; }
 
-        public HTTPTestServerX?   HTTPServerX               { get; }
+        public AHTTPTestServer?   HTTPServerX               { get; }
 
         public X509Certificate2?  ServerCertificate         { get; }
 
@@ -1184,7 +1184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Byte[]?                                HTTPBody                    = null,
                            Stream?                                HTTPBodyStream              = null,
                            HTTPServer?                            HTTPServer                  = null,
-                           HTTPTestServerX?                       HTTPServerX                 = null,
+                           AHTTPTestServer?                       HTTPServerX                 = null,
                            X509Certificate2?                      ServerCertificate           = null,
                            X509Certificate2?                      ClientCertificate           = null,
 
@@ -1640,7 +1640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         Byte[]?            HTTPBody                    = null,
                                         Stream?            HTTPBodyStream              = null,
                                         HTTPServer?        HTTPServer                  = null,
-                                        HTTPTestServerX?   HTTPServerX                 = null,
+                                        AHTTPTestServer?   HTTPServerX                 = null,
                                         X509Certificate2?  ServerCertificate           = null,
                                         X509Certificate2?  ClientCertificate           = null,
 
