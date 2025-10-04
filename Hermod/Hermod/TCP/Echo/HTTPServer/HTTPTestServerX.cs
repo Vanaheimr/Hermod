@@ -35,14 +35,14 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 {
 
-    public delegate Task OnHTTPRequestLogDelegate (HTTPTestServerX    HTTPServer,
-                                                   HTTPRequest        Request,
-                                                   CancellationToken  CancellationToken);
+    public delegate Task OnHTTPRequestLogDelegate  (HTTPTestServerX    HTTPServer,
+                                                    HTTPRequest        Request,
+                                                    CancellationToken  CancellationToken);
 
-    public delegate Task OnHTTPResponseLogDelegate(HTTPTestServerX    HTTPServer,
-                                                   HTTPRequest        Request,
-                                                   HTTPResponse       Response,
-                                                   CancellationToken  CancellationToken);
+    public delegate Task OnHTTPResponseLogDelegate (HTTPTestServerX    HTTPServer,
+                                                    HTTPRequest        Request,
+                                                    HTTPResponse       Response,
+                                                    CancellationToken  CancellationToken);
 
     public delegate Task OnHTTPRequestLogDelegate2 (DateTimeOffset     Timestamp,
                                                     HTTPAPIX           API,
@@ -75,6 +75,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                             @"\b(curl|wget|httpie|PostmanRuntime|python-requests|Go-http-client|libcurl|restsharp|okhttp|Apache-HttpClient|Insomnia|Java/\d)\b",
                                                             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled
                                                         );
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The default HTTP API at '/'.
+        /// </summary>
+        public HTTPAPIX DefaultAPI
+
+            => routeNodes[HTTPHostname.Any]?.Children["/"]?.HTTPAPI
+                   ?? throw new InvalidOperationException("The main API '/' is not registered!");
 
         #endregion
 
@@ -324,11 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        public HTTPAPIX DefaultAPI
-
-            => routeNodes[HTTPHostname.Any]?.Children["/"]?.HTTPAPI
-                   ?? throw new InvalidOperationException("The main API '/' is not registered!");
-
+        #region AddHTTPAPI(Path = null, Hostname = null, HTTPAPICreator = null)
 
         public HTTPAPIX AddHTTPAPI(HTTPPath?                                   Path             = null,
                                    HTTPHostname?                               Hostname         = null,
@@ -413,20 +421,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         }
 
+        #endregion
 
 
-        private void FindMatch(String Path, ref List<String> Matches)
-        {
-            foreach (var child in routeNodes.Values)
-            {
-                if (Path.StartsWith(child.Path))
-                {
-                    Matches.Add(child.Path);
-                    //child.FindMatch(Path[(child.Path.Length - 1)..], ref Matches);
-                }
-            }
-        }
-
+        //private void FindMatch(String Path, ref List<String> Matches)
+        //{
+        //    foreach (var child in routeNodes.Values)
+        //    {
+        //        if (Path.StartsWith(child.Path))
+        //        {
+        //            Matches.Add(child.Path);
+        //            //child.FindMatch(Path[(child.Path.Length - 1)..], ref Matches);
+        //        }
+        //    }
+        //}
 
         #region (internal) GetRequestHandle(Request)
 
@@ -459,7 +467,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     {
                         if (!httpAPINode.Children.TryGetValue("/", out httpAPINode2))
                         {
-                            return ParsedRequest.Error($"Unknown path segment!");
+                            return ParsedRequest.Error(
+                                       HTTPStatusCode.NotFound,
+                                       $"Unknown path segment!"
+                                   );
                         }
                     }
 
@@ -679,7 +690,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     {
                         if (!host.Children.TryGetValue("/", out __routeNode))
                         {
-                            return ParsedRequest.Error($"Unknown path segment!");
+                            return ParsedRequest.Error(
+                                       HTTPStatusCode.NotFound,
+                                       $"Unknown path segment!"
+                                   );
                         }
                     }
 
@@ -1034,8 +1048,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                  Request.ParsedURLParametersX  = parsedRequest.Parameters;
                                  Request.NetworkStream         = Stream;
-
-                                 DebugX.Log(Request.HTTPMethod + " " + Request.Path);
 
                                  httpResponse                  = await httpDelegate(Request);
 

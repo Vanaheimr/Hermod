@@ -792,26 +792,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public HTTPServerLoggerX(HTTPTestServerX                 HTTPServer,
-                                String                       LoggingPath,
-                                String                       Context,
+        public HTTPServerLoggerX(HTTPTestServerX              HTTPServer,
+                                 String                       LoggingPath,
+                                 String                       Context,
 
-                                HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
-                                HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
-                                HTTPRequestLoggerDelegate?   LogHTTPRequest_toDisc       = null,
-                                HTTPResponseLoggerDelegate?  LogHTTPResponse_toDisc      = null,
+                                 HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
+                                 HTTPRequestLoggerDelegate?   LogHTTPRequest_toDisc       = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPResponse_toDisc      = null,
 
-                                HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
-                                HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
-                                HTTPRequestLoggerDelegate?   LogHTTPRequest_toHTTPSSE    = null,
-                                HTTPResponseLoggerDelegate?  LogHTTPResponse_toHTTPSSE   = null,
+                                 HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
+                                 HTTPRequestLoggerDelegate?   LogHTTPRequest_toHTTPSSE    = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPResponse_toHTTPSSE   = null,
 
-                                HTTPResponseLoggerDelegate?  LogHTTPError_toConsole      = null,
-                                HTTPResponseLoggerDelegate?  LogHTTPError_toDisc         = null,
-                                HTTPResponseLoggerDelegate?  LogHTTPError_toNetwork      = null,
-                                HTTPResponseLoggerDelegate?  LogHTTPError_toHTTPSSE      = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPError_toConsole      = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPError_toDisc         = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPError_toNetwork      = null,
+                                 HTTPResponseLoggerDelegate?  LogHTTPError_toHTTPSSE      = null,
 
-                                LogfileCreatorDelegate?      LogfileCreator              = null)
+                                 LogfileCreatorDelegate?      LogfileCreator              = null)
 
             : base(LoggingPath,
                    Context,
@@ -887,7 +887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         logEventNames.Add(LogEventName);
 
                     else
-                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>([ LogEventName ]));
 
                 }
 
@@ -912,10 +912,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerRequestLogger2 RegisterEvent2(String                         LogEventName,
+        protected HTTPServerRequestLogger2 RegisterEvent2(String                          LogEventName,
                                                           Action<HTTPRequestLogHandlerX>  SubscribeToEventDelegate,
                                                           Action<HTTPRequestLogHandlerX>  UnsubscribeFromEventDelegate,
-                                                          params String[]                GroupTags)
+                                                          params String[]                 GroupTags)
         {
 
             #region Initial checks
@@ -943,7 +943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         logEventNames.Add(LogEventName);
 
                     else
-                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>([ LogEventName ]));
 
                 }
 
@@ -976,6 +976,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
+            LogEventName = LogEventName.Trim();
+
             if (LogEventName.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
 
@@ -997,7 +999,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         logEventNames.Add(LogEventName);
 
                     else
-                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>([ LogEventName ]));
 
                 }
 
@@ -1022,13 +1024,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerResponseLogger2 RegisterEvent2(String                          LogEventName,
+        protected HTTPServerResponseLogger2 RegisterEvent2(String                           LogEventName,
                                                            Action<HTTPResponseLogHandlerX>  SubscribeToEventDelegate,
                                                            Action<HTTPResponseLogHandlerX>  UnsubscribeFromEventDelegate,
-                                                           params String[]                 GroupTags)
+                                                           params String[]                  GroupTags)
         {
 
             #region Initial checks
+
+            LogEventName = LogEventName.Trim();
 
             if (LogEventName.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
@@ -1051,7 +1055,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         logEventNames.Add(LogEventName);
 
                     else
-                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>([ LogEventName ]));
 
                 }
 

@@ -17,10 +17,9 @@
 
 #region Usings
 
+using System.Net;
 using System.Text;
 using System.Buffers;
-using System.Net;
-using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
@@ -42,8 +41,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="Timestamp">The timestamp of the TCP server started event.</param>
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="Message">An optional message.</param>
-    public delegate Task HTTPServerStartedDelegate(AHTTPTestServer   HTTPServer,
-                                                   DateTimeOffset    Timestamp,
+    public delegate Task HTTPServerStartedDelegate(DateTimeOffset    Timestamp,
+                                                   AHTTPTestServer   HTTPServer,
                                                    EventTracking_Id  EventTrackingId,
                                                    String?           Message   = null);
 
@@ -54,8 +53,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="Timestamp">The timestamp of the TCP server stopped event.</param>
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="Message">An optional message.</param>
-    public delegate Task HTTPServerStoppedDelegate(AHTTPTestServer   HTTPServer,
-                                                   DateTimeOffset    Timestamp,
+    public delegate Task HTTPServerStoppedDelegate(DateTimeOffset    Timestamp,
+                                                   AHTTPTestServer   HTTPServer,
                                                    EventTracking_Id  EventTrackingId,
                                                    String?           Message   = null);
 
@@ -224,12 +223,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             base.OnTCPServerStarted += async (sender, timestamp, eventTrackingId, message) => {
                 if (OnHTTPServerStarted is not null)
-                    await OnHTTPServerStarted(this, timestamp, eventTrackingId, message);
+                    await OnHTTPServerStarted(timestamp, this, eventTrackingId, message);
             };
 
             base.OnTCPServerStopped += async (sender, timestamp, eventTrackingId, message) => {
                 if (OnHTTPServerStopped is not null)
-                    await OnHTTPServerStopped(this, timestamp, eventTrackingId, message);
+                    await OnHTTPServerStopped(timestamp, this, eventTrackingId, message);
             };
 
             #endregion

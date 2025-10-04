@@ -18,11 +18,6 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using static org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPServer;
 
 #endregion
 

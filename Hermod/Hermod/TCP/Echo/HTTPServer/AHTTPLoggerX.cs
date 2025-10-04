@@ -159,24 +159,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
         public AHTTPLoggerX(String?                      LoggingPath                 = null,
-                           String?                      Context                     = null,
+                            String?                      Context                     = null,
 
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toDisc       = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toDisc      = null,
+                            HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
+                            HTTPRequestLoggerDelegate?   LogHTTPRequest_toDisc       = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPResponse_toDisc      = null,
 
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toHTTPSSE    = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toHTTPSSE   = null,
+                            HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
+                            HTTPRequestLoggerDelegate?   LogHTTPRequest_toHTTPSSE    = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPResponse_toHTTPSSE   = null,
 
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toConsole      = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toDisc         = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toNetwork      = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toHTTPSSE      = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPError_toConsole      = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPError_toDisc         = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPError_toNetwork      = null,
+                            HTTPResponseLoggerDelegate?  LogHTTPError_toHTTPSSE      = null,
 
-                           LogfileCreatorDelegate?      LogfileCreator              = null)
+                            LogfileCreatorDelegate?      LogfileCreator              = null)
 
         {
 
@@ -202,12 +202,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //        Directory.CreateDirectory(this.LoggingPath);
             //}
 
-            this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                           context is not null ? context + "_" : String.Empty,
-                                                                                                           logfileName, "_",
-                                                                                                           Timestamp.Now.Year, "-",
-                                                                                                           Timestamp.Now.Month.ToString("D2"),
-                                                                                                           ".log"));
+            this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(
+                                                                                                 loggingPath,
+                                                                                                 context is not null ? context + "_" : String.Empty,
+                                                                                                 logfileName, "_",
+                                                                                                 Timestamp.Now.Year, "-",
+                                                                                                 Timestamp.Now.Month.ToString("D2"),
+                                                                                                 ".log"
+                                                                                             ));
 
             #endregion
 
@@ -220,7 +222,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             cancellationTokenSource  = new CancellationTokenSource();
 
 
-            // cli
+            #region CLI Logging
+
             _ = Task.Factory.StartNew(async () => {
 
                 var logfilePath = Path.Combine(AppContext.BaseDirectory, "cliRequestChannel.log");
@@ -376,8 +379,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                TaskCreationOptions.LongRunning,
                TaskScheduler.Default);
 
+            #endregion
 
-            // disc
+            #region Disc Logging
+
             _ = Task.Factory.StartNew(async () => {
 
                 var logfilePath = Path.Combine(AppContext.BaseDirectory, "discRequestChannel.log");
@@ -609,6 +614,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }, cancellationTokenSource.Token,
                TaskCreationOptions.LongRunning,
                TaskScheduler.Default);
+
+            #endregion
+
 
         }
 
