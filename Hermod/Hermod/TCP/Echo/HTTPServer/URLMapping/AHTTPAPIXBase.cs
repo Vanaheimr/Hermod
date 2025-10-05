@@ -169,12 +169,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             this.LoggingContext      = LoggingContext ?? DefaultLoggingContext;
             this.LogfileName         = LogfileName    ?? DefaultHTTPAPI_LogfileName;
-            this.LogfileCreator      = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                               context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : String.Empty,
-                                                                                                               logfileName.Replace(".log", ""), "_",
-                                                                                                               DateTime.Now.Year, "-",
-                                                                                                               DateTime.Now.Month.ToString("D2"),
-                                                                                                               ".log"));
+            this.LogfileCreator      = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(
+                                                                                                     loggingPath,
+                                                                                                     context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : String.Empty,
+                                                                                                     logfileName.Replace(".log", ""), "_",
+                                                                                                     DateTime.Now.Year, "-",
+                                                                                                     DateTime.Now.Month.ToString("D2"),
+                                                                                                     ".log"
+                                                                                                 ));
 
         }
 
