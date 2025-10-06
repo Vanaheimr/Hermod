@@ -282,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt32                                                     InternalBufferSize            { get; }
 
         /// <summary>
-        /// The maximum number of retries when communicationg with the remote HTTP service.
+        /// The maximum number of retries when communicating with the remote HTTP service.
         /// </summary>
         public UInt16                                                     MaxNumberOfRetries            { get; }
 

@@ -170,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public TransmissionRetryDelayDelegate                                 TransmissionRetryDelay        { get; }
 
         /// <summary>
-        /// The maximum number of retries when communicationg with a remote Modbus device to connect to.
+        /// The maximum number of retries when communicating with a remote Modbus device to connect to.
         /// </summary>
         public UInt16                                                         MaxNumberOfRetries            { get; }
 

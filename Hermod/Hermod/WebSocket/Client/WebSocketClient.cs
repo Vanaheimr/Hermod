@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public TransmissionRetryDelayDelegate                                  TransmissionRetryDelay                    { get; }
 
         /// <summary>
-        /// The maximum number of retries when communicationg with the remote OICP service.
+        /// The maximum number of retries when communicating with the remote OICP service.
         /// </summary>
         public UInt16                                                          MaxNumberOfRetries                        { get; }
 
