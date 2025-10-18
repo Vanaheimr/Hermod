@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Key">The parameter key.</param>
         /// <param name="Value">The parameter value.</param>
         public SVCParameter(UInt16  Key,
-                        Byte[]  Value)
+                            Byte[]  Value)
         {
 
             this.Key    = Key;
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    4  => "ipv4hint",
                    6  => "ipv6hint",
                    _  => "key" + Key
-            };
+               };
 
         #endregion
 
@@ -367,15 +367,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             foreach (var b in Value)
             {
 
-                if (b >= 32 && b <= 126 && b != (byte) '\\' && b != (byte) '"')
-                    sb.Append((char) b);
+                if (b >= 32 && b <= 126 && b != (Byte) '\\' && b != (Byte) '"')
+                    sb.Append((Char) b);
 
                 else
                 {
                     sb.Append('\\');
-                    sb.Append((b / 100).ToString("D1"));
-                    sb.Append(((b / 10) % 10).ToString("D1"));
-                    sb.Append((b % 10).ToString("D1"));
+                    sb.Append( (b / 100).      ToString("D1"));
+                    sb.Append(((b /  10) % 10).ToString("D1"));
+                    sb.Append( (b        % 10).ToString("D1"));
                 }
 
             }

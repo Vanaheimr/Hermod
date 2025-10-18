@@ -21,6 +21,10 @@ using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Security.Authentication;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
@@ -46,22 +50,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
     /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
     /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-    public class HTTPTestServer(IIPAddress?              IPAddress        = null,
-                                IPPort?                  TCPPort          = null,
-                                String?                  HTTPServerName   = null,
-                                UInt32?                  BufferSize       = null,
-                                TimeSpan?                ReceiveTimeout   = null,
-                                TimeSpan?                SendTimeout      = null,
-                                TCPEchoLoggingDelegate?  LoggingHandler   = null)
+    public class HTTPTestServer(IIPAddress?                                               IPAddress                    = null,
+                                IPPort?                                                   TCPPort                      = null,
+                                String?                                                   HTTPServerName               = null,
+                                UInt32?                                                   BufferSize                   = null,
+                                TimeSpan?                                                 ReceiveTimeout               = null,
+                                TimeSpan?                                                 SendTimeout                  = null,
+                                TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+
+                                ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                                RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                                LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                                SslProtocols?                                             AllowedTLSProtocols          = null,
+                                Boolean?                                                  ClientCertificateRequired    = null,
+                                Boolean?                                                  CheckCertificateRevocation   = null,
+
+                                ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                                UInt32?                                                   MaxClientConnections         = null,
+                                IDNSClient?                                               DNSClient                    = null,
+
+                                Boolean?                                                  DisableMaintenanceTasks      = false,
+                                TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                                TimeSpan?                                                 MaintenanceEvery             = null,
+
+                                Boolean?                                                  DisableWardenTasks           = false,
+                                TimeSpan?                                                 WardenInitialDelay           = null,
+                                TimeSpan?                                                 WardenCheckEvery             = null,
+
+                                Boolean?                                                  AutoStart                    = false)
 
         : AHTTPTestServer(
+
               IPAddress,
               TCPPort,
               HTTPServerName,
               BufferSize,
               ReceiveTimeout,
               SendTimeout,
-              LoggingHandler
+              LoggingHandler,
+
+              ServerCertificateSelector,
+              ClientCertificateValidator,
+              LocalCertificateSelector,
+              AllowedTLSProtocols,
+              ClientCertificateRequired,
+              CheckCertificateRevocation,
+
+              ConnectionIdBuilder,
+              MaxClientConnections,
+              DNSClient,
+
+              DisableMaintenanceTasks,
+              MaintenanceInitialDelay,
+              MaintenanceEvery,
+
+              DisableWardenTasks,
+              WardenInitialDelay,
+              WardenCheckEvery,
+
+              AutoStart
+
           )
 
     {

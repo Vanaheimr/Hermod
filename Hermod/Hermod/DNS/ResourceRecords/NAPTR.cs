@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-using System.Text.RegularExpressions;
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -230,7 +228,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
-
 
 
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)

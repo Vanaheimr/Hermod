@@ -325,15 +325,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             foreach (var b in Value)
             {
-                if (b >= 32 && b <= 126 && b != (byte)'\\' && b != (byte)'"')
-                    sb.Append((char) b);
+
+                if (b >= 32 && b <= 126 && b != (Byte)'\\' && b != (Byte)'"')
+                    sb.Append((Char) b);
+
                 else
                 {
                     sb.Append('\\');
-                    sb.Append((b / 100).ToString("D1"));
-                    sb.Append(((b / 10) % 10).ToString("D1"));
-                    sb.Append((b % 10).ToString("D1"));
+                    sb.Append( (b / 100).      ToString("D1"));
+                    sb.Append(((b /  10) % 10).ToString("D1"));
+                    sb.Append( (b        % 10).ToString("D1"));
                 }
+
             }
 
             return sb.ToString();
