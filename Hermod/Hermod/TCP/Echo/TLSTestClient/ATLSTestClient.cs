@@ -273,7 +273,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 RemoteURL?.Protocol == URLProtocols.https ||
                 RemoteURL?.Protocol == URLProtocols.wss)
             {
-                return await StartTLS(CancellationToken);
+
+                var startTLSResult = await StartTLS(CancellationToken);
+
+                if (startTLSResult.Item1 == false)
+                {
+                    await Log("StartTLS failed, closing the entire TCP connection!");
+                    await Close();
+                }
+
+                return startTLSResult;
+
             }
 
             return response;
@@ -293,91 +303,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (tcpClient is null)
                 return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpClient)} is null!" });
 
-            var tcpStream = tcpClient.GetStream();
+            if (RemoteCertificateValidationHandler is null)
+                return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidationHandler)} is null!" });
 
-            if (tcpStream is null)
-                return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!" });
-
-            tlsStream = new SslStream(
-                            tcpStream,
-                            leaveInnerStreamOpen: false
-                        );
-
-            var authenticationOptions  = new SslClientAuthenticationOptions {
-                                             ApplicationProtocols            = ApplicationProtocols.IsNeitherNullNorEmpty()
-                                                                                   ? ApplicationProtocols?.ToList()
-                                                                                   : null,
-                                             AllowRenegotiation              = AllowRenegotiation ?? true,
-                                             AllowTlsResume                  = AllowTLSResume     ?? true,
-                                             TargetHost                      = RemoteURL?.Hostname.ToString() ?? //SNI!
-                                                                               DomainName?.        ToString() ??
-                                                                               RemoteIPAddress?.   ToString(),
-                                             ClientCertificates              = ClientCertificateChain.IsNeitherNullNorEmpty()
-                                                                                   ? [.. ClientCertificateChain.ToArray()]
-                                                                                   : null,
-                                             ClientCertificateContext        = null,
-                                             CertificateRevocationCheckMode  = X509RevocationMode.NoCheck,
-                                             EncryptionPolicy                = EncryptionPolicy.RequireEncryption,
-                                             EnabledSslProtocols             = TLSProtocols,
-                                             CipherSuitesPolicy              = CipherSuitesPolicy,
-                                             CertificateChainPolicy          = CertificateChainPolicy,
-                                         };
-
-            if (RemoteCertificateValidationHandler is not null)
-            {
-                authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
-
-                    var result = RemoteCertificateValidationHandler(
-                                     sender,
-                                     certificate is not null
-                                         ? new X509Certificate2(certificate)
-                                         : null,
-                                     chain,
-                                     this,
-                                     policyErrors
-                                 );
-
-                    return result.Item1;
-
-                };
-            }
-            else
-            {
-                authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
-
-                    // Perhaps this should be false?
-                    return true;
-
-                };
-            }
-
-
-            if (LocalCertificateSelector is not null)
-            {
-                authenticationOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => {
-                    return LocalCertificateSelector(
-                               sender,
-                               targetHost,
-                               localCertificates.Cast<X509Certificate2>(),
-                               remoteCertificate is not null
-                                   ? new X509Certificate2(remoteCertificate)
-                                   : null,
-                               acceptableIssuers
-                           );
-                };
-            }
-
+            var remoteCertificateValidationErrors = new List<String>();
 
             try
             {
+
+                var tcpStream = tcpClient.GetStream();
+
+                if (tcpStream is null)
+                    return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!" });
+
+                tlsStream = new SslStream(
+                                tcpStream,
+                                leaveInnerStreamOpen: false
+                            );
+
+                var authenticationOptions = new SslClientAuthenticationOptions {
+
+                                                ApplicationProtocols                  = ApplicationProtocols.IsNeitherNullNorEmpty()
+                                                                                            ? ApplicationProtocols?.ToList()
+                                                                                            : null,
+                                                AllowRenegotiation                    = AllowRenegotiation ?? true,
+                                                AllowTlsResume                        = AllowTLSResume     ?? true,
+                                                TargetHost                            = RemoteURL?.Hostname.ToString() ?? //SNI!
+                                                                                        DomainName?.        ToString() ??
+                                                                                        RemoteIPAddress?.   ToString(),
+                                                ClientCertificates                    = ClientCertificateChain.IsNeitherNullNorEmpty()
+                                                                                            ? [.. ClientCertificateChain.ToArray()]
+                                                                                            : null,
+                                                ClientCertificateContext              = null,
+                                                CertificateRevocationCheckMode        = X509RevocationMode.NoCheck,
+                                                EncryptionPolicy                      = EncryptionPolicy.RequireEncryption,
+                                                EnabledSslProtocols                   = TLSProtocols,
+                                                CipherSuitesPolicy                    = CipherSuitesPolicy,
+                                                CertificateChainPolicy                = CertificateChainPolicy,
+                                                RemoteCertificateValidationCallback   = (sender, certificate, chain, policyErrors) => {
+
+                                                                                            var result = RemoteCertificateValidationHandler(
+                                                                                                             sender,
+                                                                                                             certificate is not null
+                                                                                                                 ? new X509Certificate2(certificate)
+                                                                                                                 : null,
+                                                                                                             chain,
+                                                                                                             this,
+                                                                                                             policyErrors
+                                                                                                         );
+
+                                                                                            remoteCertificateValidationErrors = [.. result.Item2];
+
+                                                                                            return result.Item1;
+
+                                                                                        }
+
+                                            };
+
+                if (LocalCertificateSelector is not null)
+                {
+                    authenticationOptions.LocalCertificateSelectionCallback = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => {
+                        return LocalCertificateSelector(
+                                   sender,
+                                   targetHost,
+                                   localCertificates.Cast<X509Certificate2>(),
+                                   remoteCertificate is not null
+                                       ? new X509Certificate2(remoteCertificate)
+                                       : null,
+                                   acceptableIssuers
+                               );
+                    };
+                }
+
                 await tlsStream.AuthenticateAsClientAsync(
                           authenticationOptions,
                           CancellationToken
                       );
+
             }
             catch (Exception e)
             {
-                return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.tlsStream.{nameof(tlsStream.AuthenticateAsClientAsync)}: {e.Message}" });
+
+                var errors  = new List<String>() {
+                                  $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.tlsStream.{nameof(tlsStream.AuthenticateAsClientAsync)}: {e.Message}"
+                              };
+
+                if (remoteCertificateValidationErrors.Count > 0)
+                    errors.AddRange($"Remote Certificate Validation Errors: {remoteCertificateValidationErrors.AggregateWith(", ")}");
+
+                return (false, errors);
+
             }
 
             return (true, []);

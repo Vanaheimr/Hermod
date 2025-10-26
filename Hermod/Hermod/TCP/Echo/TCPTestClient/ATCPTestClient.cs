@@ -20,7 +20,6 @@
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -125,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The description of this TCP client.
         /// </summary>
-        public I18NString                        Description               { get; }
+        public I18NString                       Description               { get; }
 
 
         #region Local Socket
@@ -133,17 +132,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local IP socket.
         /// </summary>
-        public IPSocket?                         LocalSocket               { get; private set; }
+        public IPSocket?                        LocalSocket               { get; private set; }
 
         /// <summary>
         /// The local IP end point.
         /// </summary>
-        public IPEndPoint?                       CurrentLocalEndPoint      { get; private set; }
+        public IPEndPoint?                      CurrentLocalEndPoint      { get; private set; }
 
         /// <summary>
         /// The local TCP port.
         /// </summary>
-        public UInt16?                           CurrentLocalPort
+        public UInt16?                          CurrentLocalPort
 
             => CurrentLocalEndPoint is not null
                    ? (UInt16) CurrentLocalEndPoint.Port
@@ -152,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local IP address.
         /// </summary>
-        public IIPAddress?                       CurrentLocalIPAddress
+        public IIPAddress?                      CurrentLocalIPAddress
 
             => CurrentLocalEndPoint is not null
                    ? IPAddress.Parse(CurrentLocalEndPoint.Address.GetAddressBytes())
@@ -165,17 +164,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote IP socket.
         /// </summary>
-        public IPSocket?                         RemoteSocket              { get; private set; }
+        public IPSocket?                        RemoteSocket              { get; private set; }
 
         /// <summary>
         /// The remote IP end point.
         /// </summary>
-        public IPEndPoint?                       CurrentRemoteEndPoint     { get; private set; }
+        public IPEndPoint?                      CurrentRemoteEndPoint     { get; private set; }
 
         /// <summary>
         /// The remote TCP port.
         /// </summary>
-        public UInt16?                           CurrentRemotePort
+        public UInt16?                          CurrentRemotePort
 
             => CurrentRemoteEndPoint is not null
                    ? (UInt16) CurrentRemoteEndPoint.Port
@@ -184,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote IP address.
         /// </summary>
-        public IIPAddress?                       CurrentRemoteIPAddress
+        public IIPAddress?                      CurrentRemoteIPAddress
 
             => CurrentRemoteEndPoint is not null
                    ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
@@ -193,45 +192,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        public  URL?                             RemoteURL                 { get; }
-        public  IIPAddress?                      RemoteIPAddress           { get; private   set; }
-        public  IPPort?                          RemotePort                { get; protected set; }
+        public  URL?                            RemoteURL                 { get; }
+        public  IIPAddress?                     RemoteIPAddress           { get; private   set; }
+        public  IPPort?                         RemotePort                { get; protected set; }
 
 
         /// <summary>
         /// The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public  DomainName?                      DomainName                { get; }
+        public  DomainName?                     DomainName                { get; }
 
         /// <summary>
         /// The DNS Service to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public  SRV_Spec?                        DNSService                { get; }
+        public  SRV_Spec?                       DNSService                { get; }
 
 
         /// <summary>
         /// Whether the client is currently connected to the.
         /// </summary>
-        public  Boolean                          IsConnected
+        public  Boolean                         IsConnected
             => tcpClient?.Connected ?? false;
 
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public  Boolean                          PreferIPv4                { get; }
-        public  TimeSpan                         ConnectTimeout            { get; }
-        public  TimeSpan                         ReceiveTimeout            { get; }
-        public  TimeSpan                         SendTimeout               { get; }
-        public  TransmissionRetryDelayDelegate?  TransmissionRetryDelay    { get; }
-        public  UInt16                           MaxNumberOfRetries        { get; } = 3;
-        public  UInt32                           BufferSize                { get; }
+        public  Boolean                         PreferIPv4                { get; }
+        public  TimeSpan                        ConnectTimeout            { get; }
+        public  TimeSpan                        ReceiveTimeout            { get; }
+        public  TimeSpan                        SendTimeout               { get; }
+        public  TransmissionRetryDelayDelegate  TransmissionRetryDelay    { get; }
+        public  UInt16                          MaxNumberOfRetries        { get; } = 3;
+        public  UInt32                          BufferSize                { get; }
 
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public  IDNSClient?                      DNSClient                 { get; }
+        public  IDNSClient?                     DNSClient                 { get; }
 
         #endregion
 
@@ -818,7 +817,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Close()
 
         /// <summary>
-        /// Close the TCP connection to the.
+        /// Close the TCP connection.
         /// </summary>
         public async Task Close()
         {
@@ -833,7 +832,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 catch { }
 
-                await Log("Client closed!");
+                await Log("TCP Client closed!");
 
             }
 

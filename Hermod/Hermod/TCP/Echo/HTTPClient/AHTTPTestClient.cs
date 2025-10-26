@@ -599,82 +599,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (protected) StartTLS(CancellationToken = default)
-
-        //protected async Task StartTLS(CancellationToken CancellationToken = default)
-        //{
-
-        //    if (httpStream is not null)
-        //    {
-
-        //        tlsStream   = new SslStream(
-        //                          httpStream,
-        //                          leaveInnerStreamOpen: false
-        //                      );
-
-        //        var authenticationOptions  = new SslClientAuthenticationOptions {
-        //                                            //ApplicationProtocols                = new List<SslApplicationProtocol> {
-        //                                            //                                          SslApplicationProtocol.Http2,  // Example: Add HTTP/2   protocol
-        //                                            //                                          SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
-        //                                            //                                      },
-        //                                            AllowRenegotiation                  = AllowRenegotiation ?? true,
-        //                                            AllowTlsResume                      = AllowTLSResume     ?? true,
-        //                                            LocalCertificateSelectionCallback   = null,
-        //                                            TargetHost                          = RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString(), //SNI!
-        //                                            ClientCertificates                  = null,
-        //                                            ClientCertificateContext            = null,
-        //                                            CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
-        //                                            EncryptionPolicy                    = EncryptionPolicy.RequireEncryption,
-        //                                            EnabledSslProtocols                 = SslProtocols.Tls12 | SslProtocols.Tls13,
-        //                                            CipherSuitesPolicy                  = null, // new CipherSuitesPolicy(TlsCipherSuite.),
-        //                                            CertificateChainPolicy              = null, // new X509ChainPolicy()
-        //                                        };
-
-        //        if (RemoteCertificateValidationHandler is not null)
-        //        {
-        //            authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
-
-        //                var result = RemoteCertificateValidationHandler(
-        //                                    sender,
-        //                                    certificate is not null
-        //                                        ? new X509Certificate2(certificate)
-        //                                        : null,
-        //                                    chain,
-        //                                    this,
-        //                                    policyErrors
-        //                                );
-
-        //                return result.Item1;
-
-        //            };
-        //        }
-        //        else
-        //        {
-        //            authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
-        //                return true;
-        //            };
-        //        }
-
-        //        try
-        //        {
-        //            await tlsStream.AuthenticateAsClientAsync(
-        //                        authenticationOptions,
-        //                        CancellationToken
-        //                    );
-        //        }
-        //        catch (Exception e)
-        //        {
-        //            DebugX.Log($"Error during TLS authentication: {e.Message}");
-        //        }
-
-        //        httpStream       = tlsStream;
-
-        //    }
-
-        //}
-
-        #endregion
-
 
         #region CreateRequest (HTTPMethod, HTTPPath, ...)
 
@@ -1246,56 +1170,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-
-
-        #region HTTPBodyAsUTF8String
-
-        ///// <summary>
-        ///// Return the HTTP body/content as an UTF8 string.
-        ///// </summary>
-        //public String? HTTPBodyAsUTF8String
-        //{
-        //    get
-        //    {
-
-        //        try
-        //        {
-
-        //            TryReadHTTPBodyStream();
-
-        //            if (httpBody?.Length > 0)
-        //                return httpBody.ToUTF8String();
-
-        //        }
-        //        catch
-        //        { }
-
-        //        return null;
-
-        //    }
-        //}
-
-        #endregion
-
-
-
-
-
-        //try
-        //{
-        //    if (!IsHTTPConnected)
-        //        httpStream?.Close();
-        //}
-        //catch (Exception e)
-        //{
-        //    DebugX.LogException(e, "httpStream?.Close()");
-        //}
-        
-        //while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
-        //{
-        //    DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
-        //    Thread.Sleep(1);
-        //}
 
     }
 

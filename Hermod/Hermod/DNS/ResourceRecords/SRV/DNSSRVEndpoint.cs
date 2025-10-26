@@ -18,8 +18,6 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Immutable;
-using System.Net.Sockets;
 
 #endregion
 
@@ -29,13 +27,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A DNS SRV endpoint, which is used to specify the location and availability of a service.
     /// </summary>
-    /// <param name="Target">The target hostname of this SRV endpoint.</param>
-    /// <param name="Priority">The priority of this SRV endpoint.</param>
-    /// <param name="Weight">The weight of this SRV endpoint for load balancing.</param>
-    /// <param name="Port">The TCP/IP port number of this SRV endpoint.</param>
-    /// <param name="TTL">The Time To Live (TTL) for this SRV endpoint.</param>
-    /// <param name="ResolvedAddresses">An enumeration of resolved IP addresses (A/AAAA) for this SRV endpoint.</param>
-    /// <param name="IsHealthy">An optional health status for this SRV endpoint.</param>
     public class DNSSRVEndpoint : IEquatable<DNSSRVEndpoint>,
                                   IComparable<DNSSRVEndpoint>,
                                   IComparable
@@ -82,6 +73,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
+        /// <summary>
+        /// Create a new DNS SRV endpoint.
+        /// </summary>
+        /// <param name="Target">The target hostname of this SRV endpoint.</param>
+        /// <param name="Priority">The priority of this SRV endpoint.</param>
+        /// <param name="Weight">The weight of this SRV endpoint for load balancing.</param>
+        /// <param name="Port">The TCP/IP port number of this SRV endpoint.</param>
+        /// <param name="TTL">The Time To Live (TTL) for this SRV endpoint.</param>
+        /// <param name="ResolvedAddresses">An enumeration of resolved IP addresses (A/AAAA) for this SRV endpoint.</param>
+        /// <param name="IsHealthy">An optional health status for this SRV endpoint.</param>
         public DNSSRVEndpoint(String                    Target,
                               UInt16                    Priority,
                               UInt16                    Weight,
@@ -113,7 +114,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         #endregion
-
 
 
         #region Operator overloading
@@ -305,7 +305,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                );
 
         #endregion
-
 
     }
 
