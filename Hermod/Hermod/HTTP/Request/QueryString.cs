@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new query string based on the optional given string repesentation.
+        /// Create a new query string based on the optional given string representation.
         /// </summary>
         /// <param name="Text">An optional text to parse.</param>
         private QueryString(String? Text = null)
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) Parse(Text)
 
         /// <summary>
-        ///  Parse the given string repesentation of a HTTP Query String.
+        ///  Parse the given string representation of a HTTP Query String.
         /// </summary>
         /// <param name="Text">The text to parse.</param>
         public static QueryString Parse(String Text)

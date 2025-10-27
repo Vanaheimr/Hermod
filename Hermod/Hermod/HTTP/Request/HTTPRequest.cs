@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Xml.Linq;
-using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
@@ -27,7 +26,6 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.MIME;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -1651,8 +1649,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Process first line...
 
-            var allLines = HTTPHeader.Split(lineSeparator,
-                                            StringSplitOptions.RemoveEmptyEntries);
+            var allLines = HTTPHeader.Split(
+                               lineSeparator,
+                               StringSplitOptions.RemoveEmptyEntries
+                           );
 
             if (allLines is null || allLines.Length < 2)
                 throw new Exception("Bad request");
