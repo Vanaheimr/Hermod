@@ -774,7 +774,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPMethod                  HTTPMethod              { get; } = HTTPMethod.GET;
 
         /// <summary>
-        /// The minimal URL (this means e.g. without the query string).
+        /// The HTTP request-target.
+        /// </summary>
+        public String                      RequestTarget           { get; private set; }
+
+        /// <summary>
+        /// The HTTP path (the HTTP request-target without the query string).
         /// </summary>
         public HTTPPath                    Path                    { get; private set; }
 
@@ -1123,6 +1128,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region TOTP
+
+        /// <summary>
+        /// The Time-Based One-Time Password (TOTP).
+        /// </summary>
+        public String? TOTP
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPRequestHeaderField.TOTP);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPRequestHeaderField.TOTP, value);
+            }
+
+        }
+
+        #endregion
+
         #endregion
 
         #region Internal     request header fields
@@ -1282,40 +1310,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Parse method
 
-            var httpMethodHeader    = FirstPDULine.Split(spaceSeparator,
-                                                         StringSplitOptions.RemoveEmptyEntries);
+            var firstPDULine        = FirstPDULine.Split(
+                                          spaceSeparator,
+                                          StringSplitOptions.RemoveEmptyEntries
+                                      ).
+                                      Select (element => element.Trim()).
+                                      ToArray();
 
             // e.g: PROPFIND /file/file Name HTTP/1.1
-            if (httpMethodHeader.Length != 3)
+            if (firstPDULine.Length != 3)
                 throw new Exception("Invalid first HTTP PDU line!");
 
             // Parse HTTP method
             // Probably not useful to define here, as we can not send a response having an "Allow-header" here!
-            this.HTTPMethod = HTTPMethod.TryParse(httpMethodHeader[0]) ??
-                                  throw new Exception("Invalid HTTP method!");
+            this.HTTPMethod         = HTTPMethod.TryParse(firstPDULine[0]) ??
+                                          throw new Exception("Invalid HTTP method!");
 
             #endregion
 
             #region Parse protocol name and -version
 
-            var protocolArray       = httpMethodHeader[2].Split(slashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
+            var protocolArray       = firstPDULine[2].Split(
+                                          slashSeparator,
+                                          2,
+                                          StringSplitOptions.RemoveEmptyEntries
+                                      );
+
             this.ProtocolName       = protocolArray[0].ToUpper();
 
             if (!String.Equals(ProtocolName, "HTTP", StringComparison.CurrentCultureIgnoreCase))
-                throw new Exception("Invalid protocol!");
+                throw new Exception($"Invalid protocol '{ProtocolName}'!");
 
             if (HTTPVersion.TryParse(protocolArray[1], out var httpVersion))
                 this.ProtocolVersion  = httpVersion;
 
             if (ProtocolVersion != HTTPVersion.HTTP_1_0 && ProtocolVersion != HTTPVersion.HTTP_1_1)
-                throw new Exception("HTTP version not supported!");
+                throw new Exception($"HTTP version '{ProtocolVersion}' is not supported!");
 
             #endregion
 
-            #region Parse Path
+            #region Parse Request-Target and Path
 
-            var rawURL      = httpMethodHeader[1];
-            var parsedURL   = rawURL.Split(urlSeparator, 2, StringSplitOptions.None);
+            RequestTarget   = firstPDULine[1].Trim();
+            var parsedURL   = RequestTarget.Split(urlSeparator, 2, StringSplitOptions.None);
             this.Path       = HTTPPath.Parse(parsedURL[0]);
 
             //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
@@ -1333,7 +1370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Parse QueryString (optional)
 
             // Parse QueryString after '?'
-            if (rawURL.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
+            if (RequestTarget.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
                 QueryString = QueryString.Parse(parsedURL[1]);
             else
                 QueryString = QueryString.Empty;

@@ -3316,8 +3316,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              RemoteCertificateValidator:  notification.RemoteURL.Protocol == URLProtocols.https
                                                                                               ? (sender, certificate, chain, server, policyErrors) => (true, Array.Empty<String>())
                                                                                               : null,
-                                                             LocalCertificateSelector:   null,
-                                                             ClientCert:                  null,
+                                                             LocalCertificateSelector:    null,
+                                                             ClientCertificate:           null,
                                                              HTTPUserAgent:               null,
                                                              RequestTimeout:              null,
                                                              DNSClient:                   DNSClient

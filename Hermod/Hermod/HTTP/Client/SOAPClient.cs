@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
@@ -108,11 +108,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                          X509Certificate?                                           ClientCert                   = null,
+                          X509Certificate2?                                          ClientCertificate            = null,
                           SslProtocols?                                              TLSProtocol                  = null,
                           HTTPContentType?                                           ContentType                  = null,
                           AcceptTypes?                                               Accept                       = null,
                           IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                          TOTPConfig?                                                TOTPConfig                   = null,
                           String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
                           HTTPPath?                                                  URLPathPrefix                = null,
                           Tuple<String, String>?                                     WSSLoginPassword             = null,
@@ -132,11 +133,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    PreferIPv4,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificate,
                    TLSProtocol,
                    ContentType,
                    Accept,
                    HTTPAuthentication,
+                   TOTPConfig,
                    HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,
@@ -382,7 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
@@ -404,11 +406,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                          X509Certificate?                                           ClientCert                   = null,
+                          X509Certificate2?                                          ClientCertificate            = null,
                           SslProtocols?                                              TLSProtocol                  = null,
                           HTTPContentType?                                           ContentType                  = null,
                           AcceptTypes?                                               Accept                       = null,
                           IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                          TOTPConfig?                                                TOTPConfig                   = null,
                           String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
                           HTTPPath?                                                  URLPathPrefix                = null,
                           Tuple<String, String>?                                     WSSLoginPassword             = null,
@@ -428,11 +431,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    PreferIPv4,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificate,
                    TLSProtocol,
                    ContentType,
                    Accept,
                    HTTPAuthentication,
+                   TOTPConfig,
                    HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,

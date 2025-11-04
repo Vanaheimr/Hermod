@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -111,11 +111,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                              X509Certificate?                                           ClientCert                   = null,
+                              X509Certificate2?                                          ClientCertificate            = null,
                               SslProtocols?                                              TLSProtocol                  = null,
                               HTTPContentType?                                           ContentType                  = null,
                               AcceptTypes?                                               Accept                       = null,
                               IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                              TOTPConfig?                                                TOTPConfig                   = null,
                               String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
                               ConnectionType?                                            Connection                   = null,
                               TimeSpan?                                                  RequestTimeout               = null,
@@ -131,11 +132,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    PreferIPv4,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificate,
                    TLSProtocol,
                    ContentType ?? HTTPContentType.Application.JSON_UTF8,
                    Accept,
                    HTTPAuthentication,
+                   TOTPConfig,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
                    Connection,
                    RequestTimeout,

@@ -222,9 +222,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public LocalCertificateSelectionHandler?                          LocalCertificateSelector      { get; }
 
         /// <summary>
-        /// The TLS client certificate to use of HTTP authentication.
+        /// The TLS client certificate to use for HTTP authentication.
         /// </summary>
-        public X509Certificate?                                           ClientCert                    { get; }
+        public X509Certificate2?                                          ClientCertificate             { get; }
 
         /// <summary>
         /// The TLS protocol to use.
@@ -247,19 +247,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AcceptTypes?                                               Accept                        { get; }
 
         /// <summary>
-        /// The optional HTTP authentication to use.
+        /// The optional HTTP authentication.
         /// </summary>
-        public IHTTPAuthentication?                                       Authentication                { get; }
+        public IHTTPAuthentication?                                       HTTPAuthentication            { get; set; }
+
+        /// <summary>
+        /// The optional Time-Based One-Time Password (TOTP) generator configuration.
+        /// </summary>
+        public TOTPConfig?                                                TOTPConfig                    { get; set; }
 
         /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
         public String                                                     HTTPUserAgent                 { get; }
-
-        ///// <summary>
-        ///// The optional HTTP authentication to use, e.g. HTTP Basic Auth.
-        ///// </summary>
-        //public IHTTPAuthentication?                                       HTTPAuthentication            { get; }
 
         /// <summary>
         /// The optional HTTP connection type.
@@ -569,11 +569,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="ClientCertificate">The TLS client certificate to use for HTTP authentication.</param>
+        /// <param name="TLSProtocols">The TLS protocol to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use.</param>
+        /// <param name="TOTPConfig">The optional Time-Based One-Time Password (TOTP) generator configuration.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="Connection">The optional HTTP connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
@@ -590,11 +591,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                              X509Certificate?                                           ClientCert                   = null,
-                              SslProtocols?                                              TLSProtocol                  = null,
+                              X509Certificate2?                                          ClientCertificate            = null,
+                              SslProtocols?                                              TLSProtocols                 = null,
                               HTTPContentType?                                           ContentType                  = null,
                               AcceptTypes?                                               Accept                       = null,
                               IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                              TOTPConfig?                                                TOTPConfig                   = null,
                               String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
                               ConnectionType?                                            Connection                   = null,
                               TimeSpan?                                                  RequestTimeout               = null,
@@ -613,11 +615,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
-            this.ClientCert                  = ClientCert;
-            this.TLSProtocols                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
+            this.ClientCertificate           = ClientCertificate;
+            this.TLSProtocols                = TLSProtocols           ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.ContentType                 = ContentType;
             this.Accept                      = Accept;
-            this.Authentication              = HTTPAuthentication;
+            this.HTTPAuthentication          = HTTPAuthentication;
+            this.TOTPConfig                  = TOTPConfig;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
             this.Connection                  = Connection;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
@@ -634,8 +637,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              ? IPPort.HTTP
                                                                              : IPPort.HTTPS);
 
-            if (this.LocalCertificateSelector is null && this.ClientCert is not null)
-                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
+            if (this.LocalCertificateSelector is null && this.ClientCertificate is not null)
+                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCertificate;
+
+        }
+
+        #endregion
+
+
+        #region GenerateCurrentTOTP()
+
+        /// <summary>
+        /// Generate the current Time-Based One-Time Password (TOTP).
+        /// </summary>
+        public String? GenerateCurrentTOTP()
+        {
+
+            if (TOTPConfig is null)
+                return null;
+
+            var (current, _, _)  = TOTPGenerator.GenerateTOTP(
+                                       TOTPConfig.SharedSecret,
+                                       TOTPConfig.ValidityTime,
+                                       TOTPConfig.Length,
+                                       TOTPConfig.Alphabet
+                                   );
+
+            return current;
 
         }
 
@@ -661,6 +689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  QueryString?                  QueryString         = null,
                                                  AcceptTypes?                  Accept              = null,
                                                  IHTTPAuthentication?          Authentication      = null,
+                                                 TOTPConfig?                   TOTPConfig          = null,
                                                  String?                       UserAgent           = null,
                                                  ConnectionType?               Connection          = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
@@ -671,9 +700,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
                               HTTPMethod     = HTTPMethod,
                               Path           = HTTPPath,
-                              QueryString    = QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication,
-                              UserAgent      = UserAgent   ?? HTTPUserAgent,
+                              QueryString    = QueryString    ?? QueryString.Empty,
+                              Authorization  = Authentication ?? HTTPAuthentication,
+                              TOTPConfig     = TOTPConfig,
+                              UserAgent      = UserAgent      ?? HTTPUserAgent,
                               Connection     = Connection
                           };
 
@@ -711,6 +741,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  QueryString?                  QueryString         = null,
                                                  AcceptTypes?                  Accept              = null,
                                                  IHTTPAuthentication?          Authentication      = null,
+                                                 TOTPConfig?                   TOTPConfig          = null,
                                                  String?                       UserAgent           = null,
                                                  ConnectionType?               Connection          = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
@@ -721,11 +752,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
                               HTTPMethod     = HTTPMethod,
                               Path           = HTTPPath,
-                              QueryString    = QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication,
+                              QueryString    = QueryString    ?? QueryString.Empty,
+                              Authorization  = Authentication ?? HTTPAuthentication,
+                              TOTPConfig     = TOTPConfig,
                               Content        = Content,
                               ContentType    = ContentType,
-                              UserAgent      = UserAgent   ?? HTTPUserAgent,
+                              UserAgent      = UserAgent      ?? HTTPUserAgent,
                               Connection     = Connection
                           };
 
@@ -757,6 +789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  URL                           RequestURL,
                                                  AcceptTypes?                  Accept              = null,
                                                  IHTTPAuthentication?          Authentication      = null,
+                                                 TOTPConfig?                   TOTPConfig          = null,
                                                  String?                       UserAgent           = null,
                                                  ConnectionType?               Connection          = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
@@ -768,7 +801,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPMethod     = HTTPMethod,
                               Path           = RequestURL.Path,
                               QueryString    = RequestURL.QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication,
+                              Authorization  = Authentication         ?? HTTPAuthentication,
+                              TOTPConfig     = TOTPConfig,
                               UserAgent      = UserAgent              ?? HTTPUserAgent,
                               Connection     = Connection
                           };
@@ -805,6 +839,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  HTTPContentType               ContentType,
                                                  AcceptTypes?                  Accept              = null,
                                                  IHTTPAuthentication?          Authentication      = null,
+                                                 TOTPConfig?                   TOTPConfig          = null,
                                                  String?                       UserAgent           = null,
                                                  ConnectionType?               Connection          = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
@@ -816,12 +851,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPMethod     = HTTPMethod,
                               Path           = RequestURL.Path,
                               QueryString    = RequestURL.QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication,
+                              Authorization  = Authentication         ?? HTTPAuthentication,
+                              TOTPConfig     = TOTPConfig,
                               Content        = Content,
                               ContentType    = ContentType,
                               UserAgent      = UserAgent              ?? HTTPUserAgent,
                               Connection     = Connection
-            };
+                          };
 
             if (Accept is not null)
                 builder.Accept = Accept;
@@ -1198,6 +1234,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (httpStream is not null)
                 {
+
+                    #region Set optional Time-Based One-Time Password (TOTP)
+
+                    if (TOTPConfig is not null)
+                        Request.TOTP = GenerateCurrentTOTP();
+
+                    #endregion
 
                     #region Send request header
 

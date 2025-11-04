@@ -1561,6 +1561,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region TOTP
+
+        /// <summary>
+        /// A Time-Based One-Time Password for 2nd factor authentication.
+        /// </summary>
+        /// <example>TOTP: cGVuIHQWxhFtZQZGRpbjpvNlc2</example>
+        public static readonly HTTPRequestHeaderField<String?> TOTP = new ("TOTP",
+                                                                           RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+
     }
 
     #endregion

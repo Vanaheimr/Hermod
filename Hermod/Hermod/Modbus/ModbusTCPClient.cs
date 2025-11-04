@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public LocalCertificateSelectionHandler?                              LocalCertificateSelector     { get; }
 
         /// <summary>
-        /// The TLS client certificate to use of HTTP authentication.
+        /// The TLS client certificate to use for HTTP authentication.
         /// </summary>
         public X509Certificate?                                               ClientCert                    { get; }
 

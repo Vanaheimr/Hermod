@@ -130,14 +130,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public LocalCertificateSelectionHandler?                               LocalCertificateSelector                  { get; }
 
         /// <summary>
-        /// The TLS client certificate to use of HTTP authentication.
+        /// The TLS client certificate to use for HTTP authentication.
         /// </summary>
-        public X509Certificate?                                                ClientCert                                { get; }
+        public X509Certificate2?                                               ClientCertificate                         { get; }
 
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        public SslProtocols                                                    TLSProtocols                               { get; }
+        public SslProtocols                                                    TLSProtocols                              { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
@@ -157,7 +157,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The optional HTTP authentication to use.
         /// </summary>
-        public IHTTPAuthentication?                                            Authentication                            { get; }
+        public IHTTPAuthentication?                                            HTTPAuthentication                        { get; set; }
+
+        /// <summary>
+        /// The optional Time-Based One-Time Password (TOTP) configuration.
+        /// </summary>
+        public TOTPConfig?                                                     TOTPConfig                                { get; set; }
 
         /// <summary>
         /// The HTTP user agent identification.
@@ -388,7 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Description">An optional description of this HTTP/websocket client.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="RequestTimeout">An optional Request timeout.</param>
@@ -405,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean?                                                        PreferIPv4                   = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
-                               X509Certificate?                                                ClientCert                   = null,
+                               X509Certificate2?                                               ClientCertificate            = null,
                                SslProtocols?                                                   TLSProtocol                  = null,
                                String?                                                         HTTPUserAgent                = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                                            HTTPAuthentication           = null,
@@ -436,11 +441,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.Description                        = Description             ?? I18NString.Empty;
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
             this.LocalCertificateSelector           = LocalCertificateSelector;
-            this.ClientCert                         = ClientCert;
+            this.ClientCertificate                  = ClientCertificate;
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
-            this.TLSProtocols                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.TLSProtocols                       = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
-            this.Authentication                     = HTTPAuthentication;
+            this.HTTPAuthentication                     = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
             this.TransmissionRetryDelay             = TransmissionRetryDelay  ?? (retryCount => TimeSpan.FromSeconds(5));
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
@@ -667,8 +672,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             await TLSStream.AuthenticateAsClientAsync(
                                       RemoteURL.Hostname.Name,
-                                      ClientCert is not null
-                                          ? [.. new X509Certificate[] { ClientCert }]
+                                      ClientCertificate is not null
+                                          ? [.. new X509Certificate[] { ClientCertificate }]
                                           : null,
                                       SslProtocols.Tls12 | SslProtocols.Tls13,
                                       false
@@ -870,7 +875,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         var responseTuple     = await SendHTTPRequest(
                                                           HTTPRequestBuilder,
-                                                          Authentication,
+                                                          HTTPAuthentication,
                                                           CancellationToken
                                                       );
 

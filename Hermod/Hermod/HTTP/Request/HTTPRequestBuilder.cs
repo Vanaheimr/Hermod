@@ -211,6 +211,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region TOTPConfig
+
+            public TOTPConfig? TOTPConfig { get; set; }
+
+            #endregion
+
+            #region TOTP
+
+            public String? TOTP
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPRequestHeaderField.TOTP);
+                }
+
+                set
+                {
+                    if (value is not null)
+                        SetHeaderField(HTTPRequestHeaderField.TOTP, value);
+                }
+
+            }
+
+            #endregion
+
             #region Depth
 
             public String? Depth

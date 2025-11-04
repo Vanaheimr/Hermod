@@ -682,7 +682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public RemoteTLSServerCertificateValidationHandler<IHTTPClient>? RemoteCertificateValidator => throw new NotImplementedException();
 
-        public X509Certificate? ClientCert => throw new NotImplementedException();
+        public X509Certificate2? ClientCertificate => throw new NotImplementedException();
 
         public HTTPContentType? ContentType => throw new NotImplementedException();
 
@@ -711,6 +711,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IDNSClient? DNSClient => throw new NotImplementedException();
 
         public UInt64 KeepAliveMessageCount => throw new NotImplementedException();
+
+        public IHTTPAuthentication? HTTPAuthentication { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public TOTPConfig? TOTPConfig { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #endregion
 
@@ -823,7 +826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                               RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
                               LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
-                              IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                              IEnumerable<X509Certificate2>?                                ClientCertificateChain           = null,
                               SslProtocols?                                                 TLSProtocols                     = null,
                               CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
                               X509ChainPolicy?                                              CertificateChainPolicy           = null,

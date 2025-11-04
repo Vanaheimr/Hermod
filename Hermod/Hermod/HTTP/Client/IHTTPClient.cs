@@ -60,9 +60,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; }
 
         /// <summary>
-        /// The TLS client certificate to use of HTTP authentication.
+        /// The TLS client certificate to use for HTTP authentication.
         /// </summary>
-        X509Certificate?                                           ClientCert                    { get; }
+        X509Certificate2?                                          ClientCertificate             { get; }
 
         /// <summary>
         /// The TLS protocol to use.
@@ -87,7 +87,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional HTTP authentication to use.
         /// </summary>
-        IHTTPAuthentication?                                       Authentication                { get; }
+        IHTTPAuthentication?                                       HTTPAuthentication            { get; set; }
+
+        /// <summary>
+        /// The optional Time-Based One-Time Password (TOTP) generator.
+        /// </summary>
+        TOTPConfig?                                                TOTPConfig                    { get; set; }
 
         /// <summary>
         /// The HTTP user agent identification.

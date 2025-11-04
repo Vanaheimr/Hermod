@@ -277,13 +277,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public RemoteTLSServerCertificateValidationHandler<IHTTPClient>? RemoteCertificateValidator => throw new NotImplementedException();
 
-        public X509Certificate? ClientCert => throw new NotImplementedException();
+        public X509Certificate2? ClientCertificate => throw new NotImplementedException();
 
         public HTTPContentType? ContentType => throw new NotImplementedException();
 
         public AcceptTypes? Accept => throw new NotImplementedException();
-
-        public IHTTPAuthentication? Authentication => throw new NotImplementedException();
 
         public ConnectionType? Connection => throw new NotImplementedException();
 
@@ -294,6 +292,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public HTTPClientLogger? HTTPLogger => throw new NotImplementedException();
 
         public Boolean Connected => throw new NotImplementedException();
+
+        public IHTTPAuthentication? HTTPAuthentication { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public TOTPConfig? TOTPConfig { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #endregion
 
