@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
         #endregion
 
 
-        #region GenerateRSAKeyPair(NumberOfBits = 4096)
+        #region GenerateRSAKeyPair   (NumberOfBits = 4096)
 
         /// <summary>
         /// Generate a new RSA key pair.
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
 
         #endregion
 
-        #region GenerateECCKeyPair(ECCName      = "secp256r1")
+        #region GenerateECCKeyPair   (ECCName      = "secp256r1")
 
         /// <summary>
         /// Generate a new ECC key pair.
@@ -222,6 +222,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
         }
 
         #endregion
+
+        #region GenerateMLKEMKeyPair (KEMName      = "ml_kem_768")
+
+        /// <summary>
+        /// Generate a new ML-KEM key pair.
+        /// </summary>
+        /// <param name="KEMName">The optional ML-KEM parameters to use.</param>
+        public static AsymmetricCipherKeyPair GenerateMLKEMKeyPair(String KEMName = "ml_kem_768")
+        {
+
+            var kemKeyPairGenerator = new MLKemKeyPairGenerator();
+
+            kemKeyPairGenerator.Init(
+                new MLKemKeyGenerationParameters(
+                    new SecureRandom(),
+                    KEMName switch {
+                        "ml_kem_512"   => MLKemParameters.ml_kem_512,   // AES-128-Security (NIST Level 1)
+                        "ml_kem_768"   => MLKemParameters.ml_kem_768,   // AES-192-Security (NIST Level 3)
+                        "ml_kem_1024"  => MLKemParameters.ml_kem_1024,  // AES-256-Security (NIST Level 5)
+                        _              => throw new ArgumentException("Invalid ML-KEM parameters!")
+                    }
+                )
+            );
+
+            return kemKeyPairGenerator.GenerateKeyPair();
+
+        }
+
+        #endregion
+
+        #region GenerateMLDSAKeyPair (DSAName      = "ml_dsa_65")
+
+        /// <summary>
+        /// Generate a new ML-DSA key pair.
+        /// </summary>
+        /// <param name="DSAName">The optional ML-DSA parameters to use.</param>
+        public static AsymmetricCipherKeyPair GenerateMLDSAKeyPair(String DSAName = "ml_dsa_65")
+        {
+
+            var dsaKeyPairGenerator = new MLDsaKeyPairGenerator();
+
+            dsaKeyPairGenerator.Init(
+                new MLDsaKeyGenerationParameters(
+                    new SecureRandom(),
+                    DSAName switch {
+                        "ml_dsa_44" => MLDsaParameters.ml_dsa_44,  // AES-128-Security (NIST Level 1)
+                        "ml_dsa_65" => MLDsaParameters.ml_dsa_65,  // AES-192-Security (NIST Level 3)
+                        "ml_dsa_87" => MLDsaParameters.ml_dsa_87,  // AES-256-Security (NIST Level 5)
+                        _ => throw new ArgumentException("Invalid ML-DSA parameters!")
+                    }
+                )
+            );
+
+            return dsaKeyPairGenerator.GenerateKeyPair();
+
+        }
+
+        #endregion
+
+        // ToDo: HybridKeyPair, PqcHybridKeyEncapsulation
+
+        // var generator = new CmsSignedDataGenerator();
+        // generator.AddSigner(eccKeyPair1.Private, "SHA256withECDSA", CmsSignerDigestCalculator);  // Erste ECC-Signatur
+        // generator.AddSigner(eccKeyPair2.Private, "SHA256withECDSA", CmsSignerDigestCalculator);  // Zweite
+        // var signedData = generator.Generate(certBytes, true);                                    // certBytes = serialisiertes X.509
+        // signedData.Verify();
 
 
         #region GenerateCertificate(CertificateType, SubjectName, SubjectKeyPair, Issuer = null, LifeTime = null)
