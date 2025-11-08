@@ -24,8 +24,8 @@ using NUnit.Framework;
 using Org.BouncyCastle.Crypto;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.Tests.TLS;
 
 #endregion
 
@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
             // Root CA
             rootCA_RSAKeyPair           = PKIFactory.GenerateRSAKeyPair(2048);
-            rootCA_X509v3               = PKIFactory.CreateRootCA(
+            rootCA_X509v3               = PKIFactory.CreateRootCACertificate(
                                               rootCA_RSAKeyPair,
                                               "AHTTPSServerTests Root CA"
                                           );

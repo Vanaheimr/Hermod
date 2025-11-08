@@ -23,8 +23,8 @@ using NUnit.Framework;
 
 using Org.BouncyCastle.Crypto;
 
+using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
-using org.GraphDefined.Vanaheimr.Hermod.Tests.TLS;
 
 #endregion
 
@@ -50,13 +50,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
         protected Org.BouncyCastle.X509.X509Certificate   serverCA_X509v3;
 
         protected AsymmetricCipherKeyPair                 serverRSAKeyPair;
-        protected X509Certificate2                        serverCertificate;
+        protected X509Certificate2?                       serverCertificate;
 
         protected AsymmetricCipherKeyPair                 clientCA_RSAKeyPair;
         protected Org.BouncyCastle.X509.X509Certificate   clientCA_X509v3;
 
         protected AsymmetricCipherKeyPair                 clientRSAKeyPair;
-        protected X509Certificate2                        clientCertificate;
+        protected X509Certificate2?                       clientCertificate;
 
         #endregion
 
@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 
             // Root CA
             rootCA_RSAKeyPair           = PKIFactory.GenerateRSAKeyPair(2048);
-            rootCA_X509v3               = PKIFactory.CreateRootCA(
+            rootCA_X509v3               = PKIFactory.CreateRootCACertificate(
                                               rootCA_RSAKeyPair,
                                               "AWebSocketTLSServerTests Root CA"
                                           );
