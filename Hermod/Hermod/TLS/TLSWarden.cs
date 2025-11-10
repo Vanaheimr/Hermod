@@ -103,10 +103,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (chain is not null)
                 {
 
-                    var chainValidator = new X509Chain();
+                    var chainValidator  = new X509Chain();
                     chainValidator.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                    check.IsChainValid = chainValidator.Build(chain.ChainElements[0].Certificate);
-                    check.ChainStatus = chainValidator.ChainStatus;
+                    check.IsChainValid  = chainValidator.Build(chain.ChainElements[0].Certificate);
+                    check.ChainStatus   = chainValidator.ChainStatus;
 
                     if (!check.IsChainValid.HasValue || check.IsChainValid.Value == false)
                     {
@@ -121,15 +121,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     for (var i = 0; i < chain.ChainElements.Count; i++)
                     {
 
-                        var daysUntilExpiry = (UInt32)Math.Floor((chain.ChainElements[i].Certificate.NotAfter - DateTime.Now).TotalDays);
+                        var daysUntilExpiry  = (UInt32)Math.Floor((chain.ChainElements[i].Certificate.NotAfter - DateTime.Now).TotalDays);
 
-                        var certificateInfo = new CertificateInfo(
-                                                   Certificate: chain.ChainElements[i].Certificate,
-                                                   CertType: i == 0 ? CertTypes.Leaf : i == chain.ChainElements.Count - 1 ? CertTypes.Root : CertTypes.Intermediate,
-                                                   DisplayName: GetCertificateDisplayName(chain.ChainElements[i].Certificate, i == 0),
-                                                   ExpiryDate: chain.ChainElements[i].Certificate.NotAfter,
-                                                   DaysUntilExpiry: daysUntilExpiry,
-                                                   IsExpired: daysUntilExpiry <= Check.ExpireOk
+                        var certificateInfo  = new CertificateInfo(
+                                                   Certificate:      chain.ChainElements[i].Certificate,
+                                                   CertType:         i == 0 ? CertTypes.Leaf : i == chain.ChainElements.Count - 1 ? CertTypes.Root : CertTypes.Intermediate,
+                                                   DisplayName:      GetCertificateDisplayName(chain.ChainElements[i].Certificate, i == 0),
+                                                   ExpiryDate:       chain.ChainElements[i].Certificate.NotAfter,
+                                                   DaysUntilExpiry:  daysUntilExpiry,
+                                                   IsExpired:        daysUntilExpiry <= Check.ExpireOk
                                                );
 
                         Check.CertificateInfos.Add(certificateInfo);

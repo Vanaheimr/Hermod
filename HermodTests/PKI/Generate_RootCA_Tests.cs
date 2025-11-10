@@ -19,15 +19,14 @@
 
 using NUnit.Framework;
 
+using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.X509;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509.Extension;
 using Org.BouncyCastle.Crypto.Parameters;
 
-using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -42,20 +41,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
     public class Generate_RootCA_Tests
     {
 
-        #region (private static) ValidateRootCACertificate(RootCACertificate, RootCAKeyPair)
+        #region (private static) ValidateRootCACertificate(RootCACertificate)
 
         /// <summary>
         /// Validate the given rootCA certificate.
         /// </summary>
-        /// <param name="RootCACertificate">A rootCA X.509 certificate.</param>
-        /// <param name="RootCAKeyPair">A rootCA asymmetric key pair.</param>
-        private static void ValidateRootCACertificate(X509Certificate          RootCACertificate,
-                                                      AsymmetricCipherKeyPair  RootCAKeyPair)
+        /// <param name="RootCACertificate">A X.509 rootCA certificate.</param>
+        private static void ValidateRootCACertificate(X509Certificate RootCACertificate)
         {
 
-            Assert.That(RootCAKeyPair,                                                      Is.Not.Null);
-            Assert.That(RootCAKeyPair.Private,                                              Is.Not.Null);
-            Assert.That(RootCAKeyPair.Public,                                               Is.Not.Null);
+            var publicKey = RootCACertificate.GetPublicKey();
+            Assert.That(publicKey,                                                          Is.Not.Null);
 
             Assert.That(RootCACertificate,                                                  Is.Not.Null);
             Assert.That(RootCACertificate.Version,                                          Is.EqualTo(3),                                                         "Must be X.509v3 because of extensions!");
@@ -70,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             RootCACertificate.CheckValidity(Timestamp.Now.DateTime.ToUniversalTime());
 
             // Verify with the subject/issuer (self-signed) public key
-            RootCACertificate.Verify(RootCAKeyPair.Public);
+            RootCACertificate.Verify(publicKey);
 
 
             // Extensions: Criticality Sets
@@ -174,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             Assert.That(parsedCertificate,                                   Is.Not.Null);
             Assert.That(parsedCertificate.SubjectDN.ToString(),              Is.EqualTo(RootCACertificate.SubjectDN.ToString()));
             Assert.That(parsedCertificate.SerialNumber,                      Is.EqualTo(RootCACertificate.SerialNumber));
-            parsedCertificate.Verify(RootCAKeyPair.Public);
+            parsedCertificate.Verify(publicKey);
 
         }
 
@@ -214,15 +210,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          CertificatePolicies:      [
                                                                        new CertificatePolicy(
                                                                            "1.3.6.1.4.1.99999.2.10",
-                                                                           new Uri("https://pki.example.com/cps.html")
+                                                                           URL.Parse("https://pki.example.com/cps.html")
                                                                        )
                                                                    ]
                                      );
 
-            ValidateRootCACertificate(
-                rootCACertificate,
-                rootCAKeyPair
-            );
+            ValidateRootCACertificate(rootCACertificate);
 
 
             // ECDSA-specific certificate checks
@@ -232,7 +225,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             // Verification of the rootCA signature with a different key must fail
             var wrongKeyPair       = PKIFactory.GenerateECCKeyPair();
             Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),             "Verification of the rootCA signature with a different key must fail!");
-
 
         }
 
@@ -271,15 +263,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          CertificatePolicies:      [
                                                                        new CertificatePolicy(
                                                                            "1.3.6.1.4.1.99999.2.10",
-                                                                           new Uri("https://pki.example.com/cps.html")
+                                                                           URL.Parse("https://pki.example.com/cps.html")
                                                                        )
                                                                    ]
                                      );
 
-            ValidateRootCACertificate(
-                rootCACertificate,
-                rootCAKeyPair
-            );
+            ValidateRootCACertificate(rootCACertificate);
 
 
             // ECDSA-specific certificate checks
@@ -289,7 +278,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             // Verification of the rootCA signature with a different key must fail
             var wrongKeyPair       = PKIFactory.GenerateECCKeyPair();
             Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),             "Verification of the rootCA signature with a different key must fail!");
-
 
         }
 
@@ -328,15 +316,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          CertificatePolicies:      [
                                                                        new CertificatePolicy(
                                                                            "1.3.6.1.4.1.99999.2.10",
-                                                                           new Uri("https://pki.example.com/cps.html")
+                                                                           URL.Parse("https://pki.example.com/cps.html")
                                                                        )
                                                                    ]
                                      );
 
-            ValidateRootCACertificate(
-                rootCACertificate,
-                rootCAKeyPair
-            );
+            ValidateRootCACertificate(rootCACertificate);
 
 
             // ED25519-specific certificate checks
@@ -383,15 +368,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          CertificatePolicies:      [
                                                                        new CertificatePolicy(
                                                                            "1.3.6.1.4.1.99999.2.10",
-                                                                           new Uri("https://pki.example.com/cps.html")
+                                                                           URL.Parse("https://pki.example.com/cps.html")
                                                                        )
                                                                    ]
                                      );
 
-            ValidateRootCACertificate(
-                rootCACertificate,
-                rootCAKeyPair
-            );
+            ValidateRootCACertificate(rootCACertificate);
 
 
             // ED448-specific certificate checks
@@ -411,6 +393,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
         /// <summary>
         /// Create a rootCA ML-DSA key pair and certificate.
+        /// 
+        /// Module-Lattice-based Digital Signature Algorithm (ML-DSA/"Dilithium")
+        /// is a post-quantum digital signature algorithm replacing ECDSA/EdDSA.
         /// </summary>
         [Test]
         public void Generate_MLDSA_RootCA_Test()
@@ -439,15 +424,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          CertificatePolicies:      [
                                                                        new CertificatePolicy(
                                                                            "1.3.6.1.4.1.99999.2.10",
-                                                                           new Uri("https://pki.example.com/cps.html")
+                                                                           URL.Parse("https://pki.example.com/cps.html")
                                                                        )
                                                                    ]
                                      );
 
-            ValidateRootCACertificate(
-                rootCACertificate,
-                rootCAKeyPair
-            );
+            ValidateRootCACertificate(rootCACertificate);
 
 
             // ML-DSA-specific certificate checks
@@ -465,7 +447,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         #region Generate_MLKEM_RootCA_Test()
 
         /// <summary>
-        /// Create a rootCA ML-KEM key pair and certificate.
+        /// Create a rootCA ML-KEM key pair and certificate,
+        /// but it will fail because ML-KEM is not supported for signing!
+        /// 
+        /// Module-Lattice-based Key Encapsulation Mechanism (ML-KEM/"Kyber")
+        /// is a post-quantum key encapsulation mechanism replacing
+        /// the traditional Diffie-Hellman key exchange.
         /// </summary>
         [Test]
         public void Generate_MLKEM_RootCA_Test()
@@ -494,7 +481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                            CertificatePolicies:      [
                                                                                          new CertificatePolicy(
                                                                                              "1.3.6.1.4.1.99999.2.10",
-                                                                                             new Uri("https://pki.example.com/cps.html")
+                                                                                             URL.Parse("https://pki.example.com/cps.html")
                                                                                          )
                                                                                      ]
                                                        ));
@@ -539,37 +526,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          CertificatePolicies:      [
                                                                        new CertificatePolicy(
                                                                            "1.3.6.1.4.1.99999.2.10",
-                                                                           new Uri("https://pki.example.com/cps.html")
+                                                                           URL.Parse("https://pki.example.com/cps.html")
                                                                        )
                                                                    ]
                                      );
 
-            ValidateRootCACertificate(
-                rootCACertificate,
-                rootCAKeyPair
-            );
+            ValidateRootCACertificate(rootCACertificate);
 
 
             // RSA-specific certificate checks
-            Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("RSA"),                  "Root should be signed with an RSA algorithm (PKCS#1 v1.5 or RSASSA-PSS)!");
+            Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("RSA"),                      "Root should be signed with an RSA algorithm (PKCS#1 v1.5 or RSASSA-PSS)!");
 
             // Check for weak signature algorithms
             var sigOid             = rootCACertificate.SigAlgOid;
-            Assert.That(sigOid,                        Is.Not.EqualTo("1.2.840.113549.1.1.4"),                   "Weak signature algorithm 'md5-with-rsa-signature' is not allowed!");
-            Assert.That(sigOid,                        Is.Not.EqualTo("1.2.840.113549.1.1.5"),                   "Weak signature algorithm 'sha1-with-rsa-signature' is not allowed!");
+            Assert.That(sigOid,                                            Is.Not.EqualTo("1.2.840.113549.1.1.4"),   "Weak signature algorithm 'md5-with-rsa-signature' is not allowed!");
+            Assert.That(sigOid,                                            Is.Not.EqualTo("1.2.840.113549.1.1.5"),   "Weak signature algorithm 'sha1-with-rsa-signature' is not allowed!");
 
-            var allowedRsa = new HashSet<String> {
-                                 "1.2.840.113549.1.1.10", // RSASSA-PSS
-                                 "1.2.840.113549.1.1.11", // sha256WithRSAEncryption
-                                 "1.2.840.113549.1.1.12", // sha384WithRSAEncryption
-                                 "1.2.840.113549.1.1.13"  // sha512WithRSAEncryption
-                             };
-            Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                             $"Unexpected signature algorithm OID: {sigOid}!");
+            var allowedRsa         = new HashSet<String> {
+                                         "1.2.840.113549.1.1.10", // RSASSA-PSS
+                                         "1.2.840.113549.1.1.11", // sha256WithRSAEncryption
+                                         "1.2.840.113549.1.1.12", // sha384WithRSAEncryption
+                                         "1.2.840.113549.1.1.13"  // sha512WithRSAEncryption
+                                     };
+            Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                                 $"Unexpected signature algorithm OID: {sigOid}!");
 
 
             // Verification of the rootCA signature with a different key must fail
             var wrongKeyPair       = PKIFactory.GenerateRSAKeyPair();
-            Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),              "Verification of the rootCA signature with a different key must fail!");
+            Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),                 "Verification of the rootCA signature with a different key must fail!");
 
         }
 
@@ -611,37 +595,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          CertificatePolicies:      [
                                                                        new CertificatePolicy(
                                                                            "1.3.6.1.4.1.99999.2.10",
-                                                                           new Uri("https://pki.example.com/cps.html")
+                                                                           URL.Parse("https://pki.example.com/cps.html")
                                                                        )
                                                                    ]
                                      );
 
-            ValidateRootCACertificate(
-                rootCACertificate,
-                rootCAKeyPair
-            );
+            ValidateRootCACertificate(rootCACertificate);
 
 
             // RSA-specific certificate checks
-            Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("RSA"),                  "Root should be signed with an RSA algorithm (PKCS#1 v1.5 or RSASSA-PSS)!");
+            Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("RSA"),                      "Root should be signed with an RSA algorithm (PKCS#1 v1.5 or RSASSA-PSS)!");
 
             // Check for weak signature algorithms
             var sigOid             = rootCACertificate.SigAlgOid;
-            Assert.That(sigOid,                        Is.Not.EqualTo("1.2.840.113549.1.1.4"),                   "Weak signature algorithm 'md5-with-rsa-signature' is not allowed!");
-            Assert.That(sigOid,                        Is.Not.EqualTo("1.2.840.113549.1.1.5"),                   "Weak signature algorithm 'sha1-with-rsa-signature' is not allowed!");
+            Assert.That(sigOid,                                            Is.Not.EqualTo("1.2.840.113549.1.1.4"),   "Weak signature algorithm 'md5-with-rsa-signature' is not allowed!");
+            Assert.That(sigOid,                                            Is.Not.EqualTo("1.2.840.113549.1.1.5"),   "Weak signature algorithm 'sha1-with-rsa-signature' is not allowed!");
 
-            var allowedRsa = new HashSet<String> {
-                                 "1.2.840.113549.1.1.10", // RSASSA-PSS
-                                 "1.2.840.113549.1.1.11", // sha256WithRSAEncryption
-                                 "1.2.840.113549.1.1.12", // sha384WithRSAEncryption
-                                 "1.2.840.113549.1.1.13"  // sha512WithRSAEncryption
-                             };
-            Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                             $"Unexpected signature algorithm OID: {sigOid}!");
+            var allowedRsa         = new HashSet<String> {
+                                         "1.2.840.113549.1.1.10", // RSASSA-PSS
+                                         "1.2.840.113549.1.1.11", // sha256WithRSAEncryption
+                                         "1.2.840.113549.1.1.12", // sha384WithRSAEncryption
+                                         "1.2.840.113549.1.1.13"  // sha512WithRSAEncryption
+                                     };
+            Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                                 $"Unexpected signature algorithm OID: {sigOid}!");
 
 
             // Verification of the rootCA signature with a different key must fail
             var wrongKeyPair       = PKIFactory.GenerateRSAKeyPair();
-            Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),              "Verification of the rootCA signature with a different key must fail!");
+            Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),                 "Verification of the rootCA signature with a different key must fail!");
 
         }
 

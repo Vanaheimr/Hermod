@@ -72,23 +72,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
             // Root CA
             rootCA_RSAKeyPair           = PKIFactory.GenerateRSAKeyPair(2048);
             rootCA_X509v3               = PKIFactory.CreateRootCACertificate(
-                                              rootCA_RSAKeyPair,
-                                              "AWebSocketTLSServerTests Root CA"
+                                              "AWebSocketTLSServerTests Root CA",
+                                              rootCA_RSAKeyPair
                                           );
 
             // Server CA
             serverCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
             serverCA_X509v3             = PKIFactory.CreateIntermediateCA(
-                                              serverCA_RSAKeyPair,
                                               "AWebSocketTLSServerTests Server CA",
+                                              serverCA_RSAKeyPair.Public,
                                               rootCA_RSAKeyPair.Private,
                                               rootCA_X509v3
                                           );
 
             serverRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
-            serverCertificate           = PKIFactory.CreateServerCertificate(
-                                              serverRSAKeyPair,
+            serverCertificate           = PKIFactory.SignServerCertificate(
                                               "AWebSocketTLSServerTests Server Certificate",
+                                              null,
+                                              serverRSAKeyPair.Public,
                                               serverCA_RSAKeyPair.Private,
                                               serverCA_X509v3
                                           ).ToDotNet(serverRSAKeyPair.Private);
@@ -96,16 +97,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
             // Client CA
             clientCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
             clientCA_X509v3             = PKIFactory.CreateIntermediateCA(
-                                              clientCA_RSAKeyPair,
                                               "AWebSocketTLSServerTests Client CA",
+                                              clientCA_RSAKeyPair.Public,
                                               rootCA_RSAKeyPair.Private,
                                               rootCA_X509v3
                                           );
 
             clientRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
-            clientCertificate           = PKIFactory.CreateServerCertificate(
-                                              clientRSAKeyPair,
+            clientCertificate           = PKIFactory.SignServerCertificate(
                                               "AWebSocketTLSServerTests Client Certificate",
+                                              null,
+                                              clientRSAKeyPair.Public,
                                               clientCA_RSAKeyPair.Private,
                                               clientCA_X509v3
                                           ).ToDotNet(clientRSAKeyPair.Private);
