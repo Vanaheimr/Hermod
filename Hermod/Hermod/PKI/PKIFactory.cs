@@ -1600,18 +1600,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
 
 
-        #region (static) ValidateChain       (Certificate, IntermediateCertificate,  RootCertificate, ApplicationPolicy = null)
+        #region (static) ValidateChain       (Certificate, IntermediateCertificate,  RootCertificate, ApplicationPolicy = null, VerificationTime = null)
 
         public static ChainReport ValidateChain(X509Certificate2  Certificate,
                                                 X509Certificate2  IntermediateCertificate,
                                                 X509Certificate2  RootCertificate,
-                                                Oid?              ApplicationPolicy   = null)
+                                                OidCollection?    ApplicationPolicy   = null,
+                                                DateTimeOffset?   VerificationTime    = null)
 
             => ValidateChain(
                    Certificate,
                    [ IntermediateCertificate ],
                    RootCertificate,
-                   ApplicationPolicy
+                   ApplicationPolicy,
+                   VerificationTime
                );
 
         #endregion
@@ -1621,19 +1623,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
         public static ChainReport ValidateChain(X509Certificate2               Certificate,
                                                 IEnumerable<X509Certificate2>  IntermediateCertificates,
                                                 X509Certificate2               RootCertificate,
-                                                Oid?                           ApplicationPolicy   = null)
+                                                OidCollection?                 ApplicationPolicy   = null,
+                                                DateTimeOffset?                VerificationTime    = null)
         {
 
             using var chain    = new X509Chain();
             chain.ChainPolicy  = new X509ChainPolicy {
-                                     TrustMode            = X509ChainTrustMode.   CustomRootTrust,
-                                     VerificationFlags    = X509VerificationFlags.NoFlag,
-                                     RevocationMode       = X509RevocationMode.   NoCheck,      // Ignoriere CRL/OCSP für einfache Tests (in Prod: Online/Offline prüfen)
-                                     RevocationFlag       = X509RevocationFlag.   ExcludeRoot,  // Root nicht prüfen
-                              //       ApplicationPolicy    = new System.Security.Cryptography.OidCollection(),  // Optional: TLS-Server-Auth erlauben
-                              //       CertificatePolicy    = new System.Security.Cryptography.OidCollection(),
-                                     VerificationTime     = Timestamp.Now.DateTime,
-                                     UrlRetrievalTimeout  = TimeSpan.FromSeconds(10)
+                                     TrustMode                    = X509ChainTrustMode.   CustomRootTrust,
+                                     VerificationFlags            = X509VerificationFlags.NoFlag,
+                                     RevocationMode               = X509RevocationMode.   NoCheck,
+                                     RevocationFlag               = X509RevocationFlag.   ExcludeRoot,
+                                     DisableCertificateDownloads  = true,
+                                     VerificationTimeIgnored      = false,
+                                     VerificationTime             = (VerificationTime ?? Timestamp.Now).DateTime,
+                                     //CertificatePolicy            = new System.Security.Cryptography.OidCollection(),
+                                     UrlRetrievalTimeout          = TimeSpan.FromSeconds(10)
                                  };
 
             chain.ChainPolicy.CustomTrustStore.Add(RootCertificate);
@@ -1642,7 +1646,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                 chain.ChainPolicy.ExtraStore.Add(IntermediateCertificate);
 
             if (ApplicationPolicy is not null)
-                chain.ChainPolicy.ApplicationPolicy.Add(ApplicationPolicy);
+                foreach (var applicationPolicyOID in ApplicationPolicy)
+                    chain.ChainPolicy.ApplicationPolicy.Add(applicationPolicyOID);
 
             var isValid        = chain.Build(Certificate);
 
@@ -1673,91 +1678,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
-        #region (static) ValidateServerChain (Certificate, IntermediateCertificate,  RootCertificate)
+        #region (static) ValidateServerChain (Certificate, IntermediateCertificate,  RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateServerChain(X509Certificate2  Certificate,
                                                       X509Certificate2  IntermediateCertificate,
-                                                      X509Certificate2  RootCertificate)
+                                                      X509Certificate2  RootCertificate,
+                                                      DateTimeOffset?   VerificationTime   = null)
 
             => ValidateChain(
                    Certificate,
                    [ IntermediateCertificate ],
                    RootCertificate,
-                   new Oid("1.3.6.1.5.5.7.3.1")  // serverAuth
+                   [ new Oid("1.3.6.1.5.5.7.3.1") ],  // serverAuth
+                   VerificationTime
                );
 
         #endregion
 
-        #region (static) ValidateServerChain (Certificate, IntermediateCertificates, RootCertificate)
+        #region (static) ValidateServerChain (Certificate, IntermediateCertificates, RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateServerChain(X509Certificate2               Certificate,
                                                       IEnumerable<X509Certificate2>  IntermediateCertificates,
-                                                      X509Certificate2               RootCertificate)
+                                                      X509Certificate2               RootCertificate,
+                                                      DateTimeOffset?                VerificationTime   = null)
 
             => ValidateChain(
                    Certificate,
                    IntermediateCertificates,
                    RootCertificate,
-                   new Oid("1.3.6.1.5.5.7.3.1")  // serverAuth
+                   [ new Oid("1.3.6.1.5.5.7.3.1") ],  // serverAuth
+                   VerificationTime
                );
 
         #endregion
 
-        #region (static) ValidateClientChain (Certificate, IntermediateCertificate,  RootCertificate)
+        #region (static) ValidateClientChain (Certificate, IntermediateCertificate,  RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateClientChain(X509Certificate2  Certificate,
                                                       X509Certificate2  IntermediateCertificates,
-                                                      X509Certificate2  RootCertificate)
+                                                      X509Certificate2  RootCertificate,
+                                                      DateTimeOffset?   VerificationTime   = null)
 
             => ValidateChain(
                    Certificate,
                    [ IntermediateCertificates ],
                    RootCertificate,
-                   new Oid("1.3.6.1.5.5.7.3.2")  // clientAuth
+                   [ new Oid("1.3.6.1.5.5.7.3.2") ],  // clientAuth
+                   VerificationTime
                );
 
         #endregion
 
-        #region (static) ValidateClientChain (Certificate, IntermediateCertificates, RootCertificate)
+        #region (static) ValidateClientChain (Certificate, IntermediateCertificates, RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateClientChain(X509Certificate2               Certificate,
                                                       IEnumerable<X509Certificate2>  IntermediateCertificates,
-                                                      X509Certificate2               RootCertificate)
+                                                      X509Certificate2               RootCertificate,
+                                                      DateTimeOffset?                VerificationTime   = null)
 
             => ValidateChain(
                    Certificate,
                    IntermediateCertificates,
                    RootCertificate,
-                   new Oid("1.3.6.1.5.5.7.3.2")  // clientAuth
+                   [ new Oid("1.3.6.1.5.5.7.3.2") ],  // clientAuth
+                   VerificationTime
                );
 
         #endregion
-
-
-
-        //public static Dictionary<String, String> ToDictionary(this X500DistinguishedName DistinguishedName)
-        //{
-
-        //    var result = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
-
-        //    foreach (var rdn in DistinguishedName.EnumerateRelativeDistinguishedNames())
-        //    {
-        //        if (!rdn.HasMultipleElements)
-        //        {
-
-        //            var key = rdn.GetSingleElementType().FriendlyName ??
-        //                      rdn.GetSingleElementType().Value;
-
-        //            if (key.IsNotNullOrEmpty())
-        //                result[key] = rdn.GetSingleElementValue() ?? "";
-
-        //        }
-        //    }
-
-        //    return result;
-
-        //}
-
 
 
         #region (static) GetCommonName(Name)
@@ -1845,6 +1832,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
         }
 
         #endregion
+
+
+
+
+
+        // BouncyCastle
+
+        
+
+
 
     }
 

@@ -17,10 +17,8 @@
 
 #region Usings
 
-using Org.BouncyCastle.X509;
+using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.OpenSsl;
-
-using dotNet = System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -28,38 +26,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 {
 
     /// <summary>
-    /// Extension methods for X.509 Certificates.
+    /// Extension methods for PKCS#10 Certificate Signing Requests.
     /// </summary>
-    public static class X509CertificateExtensions
+    public static class Pkcs10CertificationRequestExtensions
     {
 
         /// <summary>
-        /// Exports the given X.509 Certificate encoded in PEM format.
+        /// Export the Certificate Signing Request encoded in PEM format.
         /// </summary>
-        /// <param name="Certificate">A X.509 Certificate.</param>
-        public static String ToPEM(this X509Certificate Certificate)
+        /// <param name="CertificateSigningRequest">A PKCS#10 Certificate Signing Request.</param>
+        public static String ToPEM(this Pkcs10CertificationRequest CertificateSigningRequest)
         {
 
             using var stringWriter = new StringWriter();
             using var pemWriter    = new PemWriter(stringWriter);
 
-            pemWriter.WriteObject(Certificate);
+            pemWriter.WriteObject(CertificateSigningRequest);
 
             return stringWriter.ToString();
 
         }
-
-
-        public static Boolean IsCertificateAuthority(this dotNet.X509Certificate2 Certificate)
-        {
-
-            if (Certificate.Extensions["2.5.29.19"] is not dotNet.X509BasicConstraintsExtension basicConstraintsExtension)
-                return false;
-
-            return basicConstraintsExtension.CertificateAuthority;
-
-        }
-
 
     }
 

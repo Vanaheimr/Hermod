@@ -48,6 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #region CommonName         (CN)
 
+        /// <summary>
+        /// Common Name - StringType(SIZE(1..64)) - OID 2.5.4.3
+        /// </summary>
         public String? CN
             => TryGet("CN");
 
@@ -58,9 +61,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #region Organization       (O)
 
+        /// <summary>
+        /// Organization - StringType(SIZE(1..64)) - OID 2.5.4.10
+        /// </summary>
         public String? O
             => TryGet("O");
 
+        /// <summary>
+        /// Organization - StringType(SIZE(1..64)) - OID 2.5.4.10
+        /// </summary>
         public String? Organization
             => TryGet("O");
 
@@ -68,39 +77,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #region OrganizationalUnit (OU)
 
+        /// <summary>
+        /// organizational unit name - StringType(SIZE(1..64)) - 2.5.4.11
+        /// </summary>
         public String? OU
             => TryGet("OU");
+
         public String? OrganizationalUnit
             => TryGet("OU");
 
         #endregion
 
         #region Country            (C)
+
+        /// <summary>
+        /// Country Code - StringType(SIZE(2)) - OID OID 2.5.4.6
+        /// </summary>
         public String? C
             => TryGet("C");
-        public String? Country
+
+        /// <summary>
+        /// Country Code - StringType(SIZE(2)) - OID OID 2.5.4.6
+        /// </summary>
+        public String? CountryCode
             => TryGet("C");
 
         #endregion
 
         #region State              (ST/S)
 
+        /// <summary>
+        /// State, or Province - StringType(SIZE(1..64)) - 2.5.4.8
+        /// </summary>
         public String? ST
             => TryGet("ST");
 
-        public String? S
-            => TryGet("S");
-
+        /// <summary>
+        /// State, or Province - StringType(SIZE(1..64)) - 2.5.4.8
+        /// </summary>
         public String? State
             => TryGet("ST");
 
         #endregion
 
-        #region LocalityName       (L)
+        #region Locality           (L)
 
+        /// <summary>
+        /// Locality - StringType(SIZE(1..64)) - OID 2.5.4.7
+        /// </summary>
         public String? L
             => TryGet("L");
 
+        /// <summary>
+        /// Locality - StringType(SIZE(1..64)) - OID 2.5.4.7
+        /// </summary>
         public String? Locality
             => TryGet("L");
 
@@ -108,6 +138,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #region EmailAddress       (E)
 
+        /// <summary>
+        /// Email Address - IA5String -  OID 1.2.840.113549.1.9.1
+        /// </summary>
         public String? E
             => TryGet("E");
 
@@ -153,6 +186,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         public String? Surname
             => TryGet("SN");
+
+        #endregion
+
+        #region Title              (T)
+
+        /// <summary>
+        /// Title - ? - OID 2.5.4.12
+        /// </summary>
+        public String? T
+            => TryGet("T");
+
+        /// <summary>
+        /// Title - ? - OID 2.5.4.12
+        /// </summary>
+        public String? Title
+            => TryGet("T");
+
+        #endregion
+
+        #region Street             (Street)
+
+        /// <summary>
+        /// Street - StringType(SIZE(1..64)) - 2.5.4.9
+        /// </summary>
+        public String? Street
+            => TryGet("Street");
+
+        #endregion
+
+        #region SerialNumber       (SerialNumber)
+
+        /// <summary>
+        /// Serial Number - StringType(SIZE(1..64)) - 2.5.4.5
+        /// </summary>
+        public String? SerialNumber
+            => TryGet("SerialNumber");
+
+        #endregion
+
+        #region Role               (Role)
+
+        /// <summary>
+        /// Role - DirectoryString(SIZE(1..64) - OID 2.5.4.72
+        /// </summary>
+        public String? Role
+            => TryGet("Role");
+
+        #endregion
+
+        #region Pseudonym          (Pseudonym)
+
+        /// <summary>
+        /// Pseudonym - DirectoryString(SIZE(1..64) - OID 2.5.4.65
+        /// </summary>
+        public String? Pseudonym
+            => TryGet("Pseudonym");
+
+        #endregion
+
+        #region DateOfBirth        (DateOfBirth)
+
+        /// <summary>
+        /// DateOfBirth - GeneralizedTime - YYYYMMDD000000Z - OID 1.3.6.1.5.5.7 .9 .1
+        /// </summary>
+        public String? DateOfBirth
+            => TryGet("DateOfBirth");
 
         #endregion
 

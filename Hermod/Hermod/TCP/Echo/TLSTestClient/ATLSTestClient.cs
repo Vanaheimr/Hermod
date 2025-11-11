@@ -25,6 +25,7 @@ using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.PKI;
 
 #endregion
 
@@ -53,7 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler    { get; }
         public LocalCertificateSelectionHandler?                             LocalCertificateSelector              { get; }
-        public IEnumerable<X509Certificate>                                  ClientCertificateChain                { get; } = [];
+        public IEnumerable<X509Certificate2>                                 ClientCertificates                    { get; private set; } = [];
+        public SslStreamCertificateContext?                                  ClientCertificateContext              { get; private set; }
+        public IEnumerable<X509Certificate2>                                 ClientCertificateChain                { get; } = [];
         public SslProtocols                                                  TLSProtocols                          { get; } = SslProtocols.Tls13;
         public CipherSuitesPolicy?                                           CipherSuitesPolicy                    { get; }
         public X509ChainPolicy?                                              CertificateChainPolicy                { get; }
@@ -75,7 +78,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidator       = null,
                                  LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
-                                 IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                                 IEnumerable<X509Certificate2>?                                ClientCertificates               = null,
+                                 SslStreamCertificateContext?                                  ClientCertificateContext         = null,
+                                 IEnumerable<X509Certificate2>?                                ClientCertificateChain           = null,
                                  SslProtocols?                                                 TLSProtocols                     = null,
                                  CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
                                  X509ChainPolicy?                                              CertificateChainPolicy           = null,
@@ -108,6 +113,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.RemoteCertificateValidationHandler  = RemoteCertificateValidator;
             this.LocalCertificateSelector            = LocalCertificateSelector;
+            this.ClientCertificates                  = ClientCertificates               ?? [];
+            this.ClientCertificateContext            = ClientCertificateContext;
             this.ClientCertificateChain              = ClientCertificateChain           ?? [];
             this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls13;
             this.CipherSuitesPolicy                  = CipherSuitesPolicy;
@@ -130,7 +137,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidator       = null,
                                  LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
-                                 IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                                 IEnumerable<X509Certificate2>?                                ClientCertificates               = null,
+                                 SslStreamCertificateContext?                                  ClientCertificateContext         = null,
+                                 IEnumerable<X509Certificate2>?                                ClientCertificateChain           = null,
                                  SslProtocols?                                                 TLSProtocols                     = null,
                                  CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
                                  X509ChainPolicy?                                              CertificateChainPolicy           = null,
@@ -166,6 +175,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.RemoteCertificateValidationHandler  = RemoteCertificateValidator;
             this.LocalCertificateSelector            = LocalCertificateSelector;
+            this.ClientCertificates                  = ClientCertificates               ?? [];
+            this.ClientCertificateContext            = ClientCertificateContext;
             this.ClientCertificateChain              = ClientCertificateChain           ?? [];
             this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls13;
             this.CipherSuitesPolicy                  = CipherSuitesPolicy;
@@ -188,7 +199,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidator       = null,
                                  LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
-                                 IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                                 IEnumerable<X509Certificate2>?                                ClientCertificates               = null,
+                                 SslStreamCertificateContext?                                  ClientCertificateContext         = null,
+                                 IEnumerable<X509Certificate2>?                                ClientCertificateChain           = null,
                                  SslProtocols?                                                 TLSProtocols                     = null,
                                  CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
                                  X509ChainPolicy?                                              CertificateChainPolicy           = null,
@@ -224,6 +237,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.RemoteCertificateValidationHandler  = RemoteCertificateValidator;
             this.LocalCertificateSelector            = LocalCertificateSelector;
+            this.ClientCertificates                  = ClientCertificates               ?? [];
+            this.ClientCertificateContext            = ClientCertificateContext;
             this.ClientCertificateChain              = ClientCertificateChain           ?? [];
             this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls13;
             this.CipherSuitesPolicy                  = CipherSuitesPolicy;
@@ -321,6 +336,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 leaveInnerStreamOpen: false
                             );
 
+
+                #region A Client Certificate Chain was provided (while ClientCertificates and ClientCertificateContext are empty!)
+
+                if (!ClientCertificates.Any() &&
+                     ClientCertificateContext is null &&
+                     ClientCertificateChain.Any())
+                {
+
+                    var clientCertificate          = ClientCertificateChain.First(cert => !cert.IsCertificateAuthority());
+                    var intermediateCAs            = ClientCertificateChain.Where(cert =>  cert.IsCertificateAuthority()).ToArray();
+
+                    this.ClientCertificates        = [ ClientCertificateChain.First() ];
+                    this.ClientCertificateContext  = SslStreamCertificateContext.Create(
+                                                         clientCertificate,
+                                                         [.. intermediateCAs]
+                                                     );
+
+                }
+
+                #endregion
+
                 var authenticationOptions = new SslClientAuthenticationOptions {
 
                                                 ApplicationProtocols                  = ApplicationProtocols.IsNeitherNullNorEmpty()
@@ -331,10 +367,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                 TargetHost                            = RemoteURL?.Hostname.ToString() ?? //SNI!
                                                                                         DomainName?.        ToString() ??
                                                                                         RemoteIPAddress?.   ToString(),
-                                                ClientCertificates                    = ClientCertificateChain.IsNeitherNullNorEmpty()
-                                                                                            ? [.. ClientCertificateChain.ToArray()]
+                                                ClientCertificates                    = ClientCertificates.IsNeitherNullNorEmpty()
+                                                                                            ? [.. ClientCertificates.ToArray()]
                                                                                             : null,
-                                                ClientCertificateContext              = null,
+                                                ClientCertificateContext              = ClientCertificateContext,
                                                 CertificateRevocationCheckMode        = X509RevocationMode.NoCheck,
                                                 EncryptionPolicy                      = EncryptionPolicy.RequireEncryption,
                                                 EnabledSslProtocols                   = TLSProtocols,

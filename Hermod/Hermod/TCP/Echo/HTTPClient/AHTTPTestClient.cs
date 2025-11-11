@@ -317,7 +317,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
-                                  IEnumerable<X509Certificate>?                                  ClientCertificateChain               = null,
+                                  IEnumerable<X509Certificate2>?                                 ClientCertificates                   = null,
+                                  SslStreamCertificateContext?                                   ClientCertificateContext             = null,
+                                  IEnumerable<X509Certificate2>?                                 ClientCertificateChain               = null,
                                   SslProtocols?                                                  TLSProtocols                         = null,
                                   CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
                                   X509ChainPolicy?                                               CertificateChainPolicy               = null,
@@ -353,6 +355,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                            )
                        : null,
                    LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
                    ClientCertificateChain,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -397,7 +401,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
-                                  IEnumerable<X509Certificate>?                                  ClientCertificateChain               = null,
+                                  IEnumerable<X509Certificate2>?                                 ClientCertificates                   = null,
+                                  SslStreamCertificateContext?                                   ClientCertificateContext             = null,
+                                  IEnumerable<X509Certificate2>?                                 ClientCertificateChain               = null,
                                   SslProtocols?                                                  TLSProtocols                         = null,
                                   CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
                                   X509ChainPolicy?                                               CertificateChainPolicy               = null,
@@ -434,6 +440,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                            )
                        : null,
                    LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
                    ClientCertificateChain,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -479,7 +487,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
-                                  IEnumerable<X509Certificate>?                                  ClientCertificateChain               = null,
+                                  IEnumerable<X509Certificate2>?                                 ClientCertificates                   = null,
+                                  SslStreamCertificateContext?                                   ClientCertificateContext             = null,
+                                  IEnumerable<X509Certificate2>?                                 ClientCertificateChain               = null,
                                   SslProtocols?                                                  TLSProtocols                         = null,
                                   CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
                                   X509ChainPolicy?                                               CertificateChainPolicy               = null,
@@ -516,6 +526,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                            )
                        : null,
                    LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
                    ClientCertificateChain,
                    TLSProtocols,
                    CipherSuitesPolicy,

@@ -111,6 +111,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        : null,
                    null,
                    null,
+                   null,
+                   null,
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
@@ -183,6 +185,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   null,
+                   null,
                    null,
                    null,
                    TLSProtocols,
