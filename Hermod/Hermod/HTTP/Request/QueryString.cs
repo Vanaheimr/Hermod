@@ -467,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return values.SelectMany(item => item.ToString()?.Split(CommaSign, StringSplitOptions.RemoveEmptyEntries) ?? []);
             }
 
-            return new List<String>();
+            return [];
 
         }
 

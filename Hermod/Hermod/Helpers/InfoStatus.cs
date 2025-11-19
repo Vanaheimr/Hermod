@@ -31,14 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     {
 
         /// <summary>
-        /// Expand the embedded data structures.
+        /// Hide everything.
         /// </summary>
-        Expanded,
-
-        /// <summary>
-        /// Show a short summary of the embedded data structures.
-        /// </summary>
-        Short,
+        Hidden,
 
         /// <summary>
         /// Show only the identifications of the embedded data structures.
@@ -46,9 +41,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         ShowIdOnly,
 
         /// <summary>
-        /// Hide everything.
+        /// Show a short summary of the embedded data structures.
         /// </summary>
-        Hidden
+        Short,
+
+        /// <summary>
+        /// Expand the embedded data structures.
+        /// </summary>
+        Expanded
 
     }
 
@@ -196,6 +196,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ? Status.Value.Switch(WhenShowIdOnly,
                                          WhenExpanded)
                    : null;
+
+        #endregion
+
+
+        #region Max(InfoStatusList)
+
+        /// <summary>
+        /// Return the maximum info status of the given list.
+        /// </summary>
+        /// <param name="InfoStatusList">An array of info status.</param>
+        public static InfoStatus Max(params InfoStatus[] InfoStatusList)
+
+            => (InfoStatus) InfoStatusList.Max(status => (Int32) status);
 
         #endregion
 

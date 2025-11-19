@@ -654,7 +654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occured.</param>
+        /// <param name="LastException">The last exception occurred.</param>
         public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
                                       HTTPAPI         HTTPAPI,
                                       HTTPRequest     Request,
@@ -687,7 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occured.</param>
+        /// <param name="LastException">The last exception occurred.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         public Task WhenAny(DateTimeOffset  ServerTimestamp,
                             HTTPAPI         HTTPAPI,
@@ -729,7 +729,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occured.</param>
+        /// <param name="LastException">The last exception occurred.</param>
         /// <param name="VerifyResult">A delegate to verify and filter results.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
@@ -821,7 +821,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occured.</param>
+        /// <param name="LastException">The last exception occurred.</param>
         public Task WhenAll(DateTimeOffset  ServerTimestamp,
                             HTTPAPI         HTTPAPI,
                             HTTPRequest     Request,

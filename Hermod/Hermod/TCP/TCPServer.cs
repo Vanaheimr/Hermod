@@ -211,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public event NotificationEventHandler<TCPConnection>?    OnNotification;
 
         /// <summary>
-        /// An event fired whenever an exception occured.
+        /// An event fired whenever an exception occurred.
         /// </summary>
         public event ExceptionOccurredEventHandler?              OnExceptionOccurred;
 
@@ -862,7 +862,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 if (listenerThread is null)
                 {
-                    DebugX.LogT($"An exception occured in Hermod.{nameof(TCPServer)}.{nameof(Start)}(MaxClientConnections) [_ListenerThread is null]!");
+                    DebugX.LogT($"An exception occurred in Hermod.{nameof(TCPServer)}.{nameof(Start)}(MaxClientConnections) [_ListenerThread is null]!");
                     return false;
                 }
 

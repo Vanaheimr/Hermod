@@ -10897,7 +10897,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer.DefaultServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "GET", "OPTIONS" },
+                                          AccessControlAllowMethods  = [ "GET", "OPTIONS" ],
                                           AccessControlAllowHeaders  = new[] { "Authorization", "X-App-Version" },
                                           Connection                 = ConnectionType.Close
                                       }.AsImmutable);
@@ -10966,7 +10966,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              Server                        = HTTPServer.DefaultServerName,
                                              Date                          = Timestamp.Now,
                                              AccessControlAllowOrigin      = "*",
-                                             AccessControlAllowMethods     = new[] { "GET", "OPTIONS" },
+                                             AccessControlAllowMethods     = [ "GET", "OPTIONS" ],
                                              AccessControlAllowHeaders     = new[] { "Authorization", "X-App-Version" },
                                              ETag                          = ETag,
                                              ContentType                   = HTTPContentType.Application.JSON_UTF8,

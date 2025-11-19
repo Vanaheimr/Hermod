@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         SendError,
 
         /// <summary>
-        /// A timeout occured.
+        /// A timeout occurred.
         /// </summary>
         Timeout,
 

@@ -120,8 +120,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    /// <param name="Error">The occured error.</param>
-    /// <param name="LastException">The last occured exception.</param>
+    /// <param name="Error">The occurred error.</param>
+    /// <param name="LastException">The last occurred exception.</param>
     public delegate Task ErrorLogHandler(DateTimeOffset  Timestamp,
                                          IHTTPServer     HTTPServer,
                                          HTTPRequest     Request,
@@ -136,8 +136,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    /// <param name="Error">The occured error.</param>
-    /// <param name="LastException">The last occured exception.</param>
+    /// <param name="Error">The occurred error.</param>
+    /// <param name="LastException">The last occurred exception.</param>
     public delegate Task HTTPErrorLogHandler(DateTimeOffset  Timestamp,
                                              HTTPAPI         HTTPAPI,
                                              HTTPRequest     Request,

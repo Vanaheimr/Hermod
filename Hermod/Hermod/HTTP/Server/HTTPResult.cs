@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
-        /// The HTTPResponse when an error occured.
+        /// The HTTPResponse when an error occurred.
         /// </summary>
         public HTTPResponse.Builder?  Error          { get; }
 

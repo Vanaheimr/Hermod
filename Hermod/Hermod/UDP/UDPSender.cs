@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         #region ProcessExceptionOccurred(Sender, Timestamp, ExceptionMessage)
 
         /// <summary>
-        /// An error occured at the arrow sender.
+        /// An error occurred at the arrow sender.
         /// </summary>
         /// <param name="Sender">The sender of this error message.</param>
         /// <param name="Timestamp">The timestamp of the exception.</param>

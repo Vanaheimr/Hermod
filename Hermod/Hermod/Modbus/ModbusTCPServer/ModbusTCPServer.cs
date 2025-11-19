@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public event ReadHoldingRegistersResponseEventHandler?        OnReadHoldingRegistersResponse;
 
         /// <summary>
-        /// An event fired whenever an exception occured.
+        /// An event fired whenever an exception occurred.
         /// </summary>
         //public event ExceptionOccurredEventHandler?                  OnExceptionOccurred;
 

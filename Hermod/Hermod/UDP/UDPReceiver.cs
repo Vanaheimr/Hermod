@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         public event NotificationEventHandler<UDPPacket<TData>>?  OnNotification;
 
         /// <summary>
-        /// An event fired whenever an exception occured.
+        /// An event fired whenever an exception occurred.
         /// </summary>
         public event ExceptionOccurredEventHandler?                OnExceptionOccurred;
 

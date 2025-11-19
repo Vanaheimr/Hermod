@@ -483,7 +483,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.Log($"{nameof(WebSocketClientConnection)}.{nameof(Close)}(...): Exception occured: {e.Message}");
+                DebugX.Log($"{nameof(WebSocketClientConnection)}.{nameof(Close)}(...): Exception occurred: {e.Message}");
             }
         }
 

@@ -166,9 +166,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="QueryXML">The SOAP query XML.</param>
         /// <param name="SOAPAction">The SOAP action.</param>
         /// <param name="OnSuccess">The delegate to call for every successful result.</param>
-        /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault occured.</param>
-        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
-        /// <param name="OnException">The delegate to call whenever an exception occured.</param>
+        /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault occurred.</param>
+        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occurred.</param>
+        /// <param name="OnException">The delegate to call whenever an exception occurred.</param>
         /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
@@ -468,9 +468,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="QueryXML">The SOAP query XML.</param>
         /// <param name="SOAPAction">The SOAP action.</param>
         /// <param name="OnSuccess">The delegate to call for every successful result.</param>
-        /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault occured.</param>
-        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
-        /// <param name="OnException">The delegate to call whenever an exception occured.</param>
+        /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault occurred.</param>
+        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occurred.</param>
+        /// <param name="OnException">The delegate to call whenever an exception occurred.</param>
         /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>

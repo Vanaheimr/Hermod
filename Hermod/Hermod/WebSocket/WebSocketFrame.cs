@@ -869,10 +869,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.Log(nameof(WebSocketFrame) + " Exception occured: " + e.Message);
+                DebugX.Log(nameof(WebSocketFrame) + " Exception occurred: " + e.Message);
                 Frame          = null;
                 Length         = 0;
-                ErrorResponse  = "An exception occured: " + e.Message;
+                ErrorResponse  = "An exception occurred: " + e.Message;
                 return false;
             }
 

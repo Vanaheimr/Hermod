@@ -414,8 +414,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="EMail">The incoming request.</param>
         /// <param name="SMTPCommand">The SMTP command.</param>
         /// <param name="Response">The outgoing response.</param>
-        /// <param name="Error">The occured error.</param>
-        /// <param name="LastException">The last occured exception.</param>
+        /// <param name="Error">The occurred error.</param>
+        /// <param name="LastException">The last occurred exception.</param>
         public void LogError(DateTimeOffset        ServerTimestamp,
                              String                SMTPCommand,
                              EMail                 EMail,

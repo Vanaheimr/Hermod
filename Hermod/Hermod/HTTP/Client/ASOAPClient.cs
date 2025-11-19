@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region Events
 
         /// <summary>
-        /// A delegate called whenever a SOAP error occured.
+        /// A delegate called whenever a SOAP error occurred.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the error.</param>
         /// <param name="Sender">The sender of the error.</param>
@@ -75,24 +75,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public delegate void OnSOAPErrorDelegate(DateTimeOffset Timestamp, Object Sender, XElement SOAPXML);
 
         /// <summary>
-        /// An event fired whenever a SOAP error occured.
+        /// An event fired whenever a SOAP error occurred.
         /// </summary>
         public event OnSOAPErrorDelegate? OnSOAPError;
 
 
         /// <summary>
-        /// An event fired whenever an exception occured.
+        /// An event fired whenever an exception occurred.
         /// </summary>
         public event OnExceptionDelegate? OnException;
 
 
         /// <summary>
-        /// A delegate called whenever a HTTP error occured.
+        /// A delegate called whenever a HTTP error occurred.
         /// </summary>
         public delegate void OnHTTPErrorDelegate(DateTimeOffset Timestamp, Object Sender, HTTPResponse HttpResponse);
 
         /// <summary>
-        /// An event fired whenever a HTTP error occured.
+        /// An event fired whenever a HTTP error occurred.
         /// </summary>
         public event OnHTTPErrorDelegate? OnHTTPError;
 
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region (protected) SendSOAPError(Timestamp, Sender, SOAPXML)
 
         /// <summary>
-        /// Notify that an HTTP error occured.
+        /// Notify that an HTTP error occurred.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the error received.</param>
         /// <param name="Sender">The sender of this error message.</param>
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region (protected) SendHTTPError(Timestamp, Sender, HTTPResponse)
 
         /// <summary>
-        /// Notify that an HTTP error occured.
+        /// Notify that an HTTP error occurred.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the error received.</param>
         /// <param name="Sender">The sender of this error message.</param>
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region (protected) SendException(Timestamp, Sender, Exception)
 
         /// <summary>
-        /// Notify that an exception occured.
+        /// Notify that an exception occurred.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the exception.</param>
         /// <param name="Sender">The sender of this exception.</param>

@@ -62,8 +62,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="SMTPCommand">The SMTP command.</param>
     /// <param name="EMail">The incoming e-mail.</param>
     /// <param name="Response">The outgoing response.</param>
-    /// <param name="Error">The occured error.</param>
-    /// <param name="LastException">The last occured exception.</param>
+    /// <param name="Error">The occurred error.</param>
+    /// <param name="LastException">The last occurred exception.</param>
     internal delegate void InternalErrorLogHandler (SMTPConnection SMTPProcessor, DateTimeOffset ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
 
     /// <summary>
@@ -74,8 +74,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="SMTPCommand">The SMTP command.</param>
     /// <param name="EMail">The incoming e-mail.</param>
     /// <param name="Response">The outgoing response.</param>
-    /// <param name="Error">The occured error.</param>
-    /// <param name="LastException">The last occured exception.</param>
+    /// <param name="Error">The occurred error.</param>
+    /// <param name="LastException">The last occurred exception.</param>
     public delegate void SMTPErrorLogHandler(SMTPServer SMTPServer, DateTimeOffset ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
 
 

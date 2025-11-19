@@ -54,29 +54,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Events
 
         /// <summary>
-        /// A delegate called whenever a JSON error occured.
+        /// A delegate called whenever a JSON error occurred.
         /// </summary>
         public delegate void OnJSONErrorDelegate(DateTime Timestamp, Object Sender, JObject JSON);
 
         /// <summary>
-        /// An event fired whenever a JSON error occured.
+        /// An event fired whenever a JSON error occurred.
         /// </summary>
         public event OnJSONErrorDelegate? OnJSONError;
 
 
         /// <summary>
-        /// An event fired whenever an exception occured.
+        /// An event fired whenever an exception occurred.
         /// </summary>
         public event OnExceptionDelegate? OnException;
 
 
         /// <summary>
-        /// A delegate called whenever a HTTP error occured.
+        /// A delegate called whenever a HTTP error occurred.
         /// </summary>
         public delegate void OnHTTPErrorDelegate(DateTime Timestamp, Object Sender, HTTPResponse HttpResponse);
 
         /// <summary>
-        /// An event fired whenever a HTTP error occured.
+        /// An event fired whenever a HTTP error occurred.
         /// </summary>
         public event OnHTTPErrorDelegate? OnHTTPError;
 
@@ -162,9 +162,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="T">The type of the return data structure.</typeparam>
         /// <param name="JSONRequest">The JSON request.</param>
         /// <param name="OnSuccess">The delegate to call for every successful result.</param>
-        /// <param name="OnJSONFault">The delegate to call whenever a JSON fault occured.</param>
-        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
-        /// <param name="OnException">The delegate to call whenever an exception occured.</param>
+        /// <param name="OnJSONFault">The delegate to call whenever a JSON fault occurred.</param>
+        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occurred.</param>
+        /// <param name="OnException">The delegate to call whenever an exception occurred.</param>
         /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         public async Task<HTTPResponse<T>>
 
@@ -299,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (protected) SendJSONError(Timestamp, Sender, JSON)
 
         /// <summary>
-        /// Notify that a JSON error occured.
+        /// Notify that a JSON error occurred.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the error received.</param>
         /// <param name="Sender">The sender of this error message.</param>
@@ -322,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (protected) SendHTTPError(Timestamp, Sender, HTTPResponse)
 
         /// <summary>
-        /// Notify that an HTTP error occured.
+        /// Notify that an HTTP error occurred.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the error received.</param>
         /// <param name="Sender">The sender of this error message.</param>
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (protected) SendException(Timestamp, Sender, Exception)
 
         /// <summary>
-        /// Notify that an exception occured.
+        /// Notify that an exception occurred.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the exception.</param>
         /// <param name="Sender">The sender of this exception.</param>
