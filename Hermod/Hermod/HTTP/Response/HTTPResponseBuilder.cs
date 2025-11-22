@@ -1193,13 +1193,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPResponse httpResponse;
 
                     if      (Content       is not null)
-                        httpResponse = Parse(HTTPHeader, Content,       HTTPRequest, SubprotocolResponse);
+                        httpResponse = Parse(HTTPHeader, Content,       HTTPRequest, ConsumeChunkedTransferEncodingImmediately, SubprotocolResponse);
 
                     else if (ContentStream is not null)
-                        httpResponse = Parse(HTTPHeader, ContentStream, HTTPRequest, SubprotocolResponse);
+                        httpResponse = Parse(HTTPHeader, ContentStream, HTTPRequest, ConsumeChunkedTransferEncodingImmediately, SubprotocolResponse);
 
                     else
-                        httpResponse = Parse(HTTPHeader,                HTTPRequest, SubprotocolResponse);
+                        httpResponse = Parse(HTTPHeader,                HTTPRequest, ConsumeChunkedTransferEncodingImmediately, SubprotocolResponse);
 
                     httpResponse.ChunkWorker = ChunkWorker;
 

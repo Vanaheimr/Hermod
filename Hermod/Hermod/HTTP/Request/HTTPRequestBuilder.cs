@@ -86,8 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public QueryString  QueryString     { get; internal set; }
 
-
-            public Func<HTTPRequest, ChunkedTransferEncodingStream, Task> ChunkWorker { get; set; } = (request, stream) => Task.CompletedTask;
+            public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker { get; set; } = (request, stream) => Task.CompletedTask;
 
             #endregion
 

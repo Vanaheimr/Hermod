@@ -27,6 +27,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 #endregion
 
@@ -53,19 +54,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             GET(this HTTPClientPool           HTTPClientPool,
                 HTTPPath                      Path,
-                QueryString?                  QueryString           = null,
-                AcceptTypes?                  Accept                = null,
-                IHTTPAuthentication?          Authentication        = null,
-                String?                       UserAgent             = null,
-                ConnectionType?               Connection            = null,
-                TimeSpan?                     RequestTimeout        = null,
-                EventTracking_Id?             EventTrackingId       = null,
-                Byte                          NumberOfRetry         = 0,
-                Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                QueryString?                  QueryString                           = null,
+                AcceptTypes?                  Accept                                = null,
+                IHTTPAuthentication?          Authentication                        = null,
+                String?                       UserAgent                             = null,
+                ConnectionType?               Connection                            = null,
+                TimeSpan?                     RequestTimeout                        = null,
+                EventTracking_Id?             EventTrackingId                       = null,
+                Byte                          NumberOfRetry                         = 0,
+                Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                ClientRequestLogHandler?      RequestLogDelegate    = null,
-                ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                CancellationToken             CancellationToken     = default)
+                Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                CancellationToken             CancellationToken                     = default)
 
             => HTTPClientPool.RunRequest(
                    HTTPMethod.GET,
@@ -78,6 +82,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    UserAgent,
                    Connection ?? ConnectionType.KeepAlive,
                    RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
                    RequestLogDelegate,
                    ResponseLogDelegate,
                    CancellationToken
@@ -102,19 +110,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             GET_Text(this HTTPClientPool           HTTPClientPool,
                      HTTPPath                      Path,
-                     QueryString?                  QueryString           = null,
-                     AcceptTypes?                  Accept                = null,
-                     IHTTPAuthentication?          Authentication        = null,
-                     String?                       UserAgent             = null,
-                     ConnectionType?               Connection            = null,
-                     TimeSpan?                     RequestTimeout        = null,
-                     EventTracking_Id?             EventTrackingId       = null,
-                     Byte                          NumberOfRetry         = 0,
-                     Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                     QueryString?                  QueryString                           = null,
+                     AcceptTypes?                  Accept                                = null,
+                     IHTTPAuthentication?          Authentication                        = null,
+                     String?                       UserAgent                             = null,
+                     ConnectionType?               Connection                            = null,
+                     TimeSpan?                     RequestTimeout                        = null,
+                     EventTracking_Id?             EventTrackingId                       = null,
+                     Byte                          NumberOfRetry                         = 0,
+                     Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                     ClientRequestLogHandler?      RequestLogDelegate    = null,
-                     ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                     CancellationToken             CancellationToken     = default)
+                     Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                     Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                     ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                     ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                     CancellationToken             CancellationToken                     = default)
 
         {
 
@@ -129,6 +140,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                      UserAgent,
                                      Connection ?? ConnectionType.KeepAlive,
                                      RequestBuilder,
+
+                                     ConsumeRequestChunkedTEImmediately,
+                                     ConsumeResponseChunkedTEImmediately,
+
                                      RequestLogDelegate,
                                      ResponseLogDelegate,
                                      CancellationToken
@@ -160,19 +175,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             GET_JSONObject(this HTTPClientPool           HTTPClientPool,
                            HTTPPath                      Path,
-                           QueryString?                  QueryString           = null,
-                           AcceptTypes?                  Accept                = null,
-                           IHTTPAuthentication?          Authentication        = null,
-                           String?                       UserAgent             = null,
-                           ConnectionType?               Connection            = null,
-                           TimeSpan?                     RequestTimeout        = null,
-                           EventTracking_Id?             EventTrackingId       = null,
-                           Byte                          NumberOfRetry         = 0,
-                           Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                           QueryString?                  QueryString                           = null,
+                           AcceptTypes?                  Accept                                = null,
+                           IHTTPAuthentication?          Authentication                        = null,
+                           String?                       UserAgent                             = null,
+                           ConnectionType?               Connection                            = null,
+                           TimeSpan?                     RequestTimeout                        = null,
+                           EventTracking_Id?             EventTrackingId                       = null,
+                           Byte                          NumberOfRetry                         = 0,
+                           Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                           ClientRequestLogHandler?      RequestLogDelegate    = null,
-                           ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                           CancellationToken             CancellationToken     = default)
+                           Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                           Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                           ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                           ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                           CancellationToken             CancellationToken                     = default)
 
         {
 
@@ -187,6 +205,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                       UserAgent,
                                       Connection ?? ConnectionType.KeepAlive,
                                       RequestBuilder,
+
+                                      ConsumeRequestChunkedTEImmediately,
+                                      ConsumeResponseChunkedTEImmediately,
+
                                       RequestLogDelegate,
                                       ResponseLogDelegate,
                                       CancellationToken
@@ -243,19 +265,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             GET_JSONArray(this HTTPClientPool           HTTPClientPool,
                           HTTPPath                      Path,
-                          QueryString?                  QueryString           = null,
-                          AcceptTypes?                  Accept                = null,
-                          IHTTPAuthentication?          Authentication        = null,
-                          String?                       UserAgent             = null,
-                          ConnectionType?               Connection            = null,
-                          TimeSpan?                     RequestTimeout        = null,
-                          EventTracking_Id?             EventTrackingId       = null,
-                          Byte                          NumberOfRetry         = 0,
-                          Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                          QueryString?                  QueryString                           = null,
+                          AcceptTypes?                  Accept                                = null,
+                          IHTTPAuthentication?          Authentication                        = null,
+                          String?                       UserAgent                             = null,
+                          ConnectionType?               Connection                            = null,
+                          TimeSpan?                     RequestTimeout                        = null,
+                          EventTracking_Id?             EventTrackingId                       = null,
+                          Byte                          NumberOfRetry                         = 0,
+                          Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                          ClientRequestLogHandler?      RequestLogDelegate    = null,
-                          ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                          CancellationToken             CancellationToken     = default)
+                          Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                          Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                          ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                          ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                          CancellationToken             CancellationToken                     = default)
 
         {
 
@@ -270,6 +295,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                       UserAgent,
                                       Connection ?? ConnectionType.KeepAlive,
                                       RequestBuilder,
+
+                                      ConsumeRequestChunkedTEImmediately,
+                                      ConsumeResponseChunkedTEImmediately,
+
                                       RequestLogDelegate,
                                       ResponseLogDelegate,
                                       CancellationToken
@@ -328,20 +357,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             POST(this HTTPClientPool           HTTPClientPool,
                  HTTPPath                      Path,
                  Byte[]                        Content,
-                 HTTPContentType?              ContentType           = null,
-                 QueryString?                  QueryString           = null,
-                 AcceptTypes?                  Accept                = null,
-                 IHTTPAuthentication?          Authentication        = null,
-                 String?                       UserAgent             = null,
-                 ConnectionType?               Connection            = null,
-                 TimeSpan?                     RequestTimeout        = null,
-                 EventTracking_Id?             EventTrackingId       = null,
-                 Byte                          NumberOfRetry         = 0,
-                 Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                 HTTPContentType?              ContentType                           = null,
+                 QueryString?                  QueryString                           = null,
+                 AcceptTypes?                  Accept                                = null,
+                 IHTTPAuthentication?          Authentication                        = null,
+                 String?                       UserAgent                             = null,
+                 ConnectionType?               Connection                            = null,
+                 TimeSpan?                     RequestTimeout                        = null,
+                 EventTracking_Id?             EventTrackingId                       = null,
+                 Byte                          NumberOfRetry                         = 0,
+                 Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                 ClientRequestLogHandler?      RequestLogDelegate    = null,
-                 ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                 CancellationToken             CancellationToken     = default)
+                 Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                 Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                 ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                 ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                 CancellationToken             CancellationToken                     = default)
 
             => HTTPClientPool.RunRequest(
                    HTTPMethod.POST,
@@ -354,6 +386,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    UserAgent,
                    Connection  ?? ConnectionType.KeepAlive,
                    RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
                    RequestLogDelegate,
                    ResponseLogDelegate,
                    CancellationToken
@@ -379,20 +415,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             POST_Text(this HTTPClientPool           HTTPClientPool,
                       HTTPPath                      Path,
                       Byte[]                        Content,
-                      HTTPContentType?              ContentType           = null,
-                      QueryString?                  QueryString           = null,
-                      AcceptTypes?                  Accept                = null,
-                      IHTTPAuthentication?          Authentication        = null,
-                      String?                       UserAgent             = null,
-                      ConnectionType?               Connection            = null,
-                      TimeSpan?                     RequestTimeout        = null,
-                      EventTracking_Id?             EventTrackingId       = null,
-                      Byte                          NumberOfRetry         = 0,
-                      Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                      HTTPContentType?              ContentType                           = null,
+                      QueryString?                  QueryString                           = null,
+                      AcceptTypes?                  Accept                                = null,
+                      IHTTPAuthentication?          Authentication                        = null,
+                      String?                       UserAgent                             = null,
+                      ConnectionType?               Connection                            = null,
+                      TimeSpan?                     RequestTimeout                        = null,
+                      EventTracking_Id?             EventTrackingId                       = null,
+                      Byte                          NumberOfRetry                         = 0,
+                      Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                      ClientRequestLogHandler?      RequestLogDelegate    = null,
-                      ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                      CancellationToken             CancellationToken     = default)
+                      Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                      Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                      ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                      ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                      CancellationToken             CancellationToken                     = default)
 
         {
 
@@ -407,6 +446,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                      UserAgent,
                                      Connection  ?? ConnectionType.KeepAlive,
                                      RequestBuilder,
+
+                                     ConsumeRequestChunkedTEImmediately,
+                                     ConsumeResponseChunkedTEImmediately,
+
                                      RequestLogDelegate,
                                      ResponseLogDelegate,
                                      CancellationToken
@@ -439,20 +482,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             POST_JSONObject(this HTTPClientPool           HTTPClientPool,
                             HTTPPath                      Path,
                             Byte[]                        Content,
-                            HTTPContentType?              ContentType           = null,
-                            QueryString?                  QueryString           = null,
-                            AcceptTypes?                  Accept                = null,
-                            IHTTPAuthentication?          Authentication        = null,
-                            String?                       UserAgent             = null,
-                            ConnectionType?               Connection            = null,
-                            TimeSpan?                     RequestTimeout        = null,
-                            EventTracking_Id?             EventTrackingId       = null,
-                            Byte                          NumberOfRetry         = 0,
-                            Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                            HTTPContentType?              ContentType                           = null,
+                            QueryString?                  QueryString                           = null,
+                            AcceptTypes?                  Accept                                = null,
+                            IHTTPAuthentication?          Authentication                        = null,
+                            String?                       UserAgent                             = null,
+                            ConnectionType?               Connection                            = null,
+                            TimeSpan?                     RequestTimeout                        = null,
+                            EventTracking_Id?             EventTrackingId                       = null,
+                            Byte                          NumberOfRetry                         = 0,
+                            Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                            ClientRequestLogHandler?      RequestLogDelegate    = null,
-                            ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                            CancellationToken             CancellationToken     = default)
+                            Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                            Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                            ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                            ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                            CancellationToken             CancellationToken                     = default)
 
         {
 
@@ -467,6 +513,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                       UserAgent,
                                       Connection  ?? ConnectionType.KeepAlive,
                                       RequestBuilder,
+
+                                      ConsumeRequestChunkedTEImmediately,
+                                      ConsumeResponseChunkedTEImmediately,
+
                                       RequestLogDelegate,
                                       ResponseLogDelegate,
                                       CancellationToken
@@ -524,20 +574,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             POST_JSONArray(this HTTPClientPool           HTTPClientPool,
                            HTTPPath                      Path,
                            Byte[]                        Content,
-                           HTTPContentType?              ContentType           = null,
-                           QueryString?                  QueryString           = null,
-                           AcceptTypes?                  Accept                = null,
-                           IHTTPAuthentication?          Authentication        = null,
-                           String?                       UserAgent             = null,
-                           ConnectionType?               Connection            = null,
-                           TimeSpan?                     RequestTimeout        = null,
-                           EventTracking_Id?             EventTrackingId       = null,
-                           Byte                          NumberOfRetry         = 0,
-                           Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                           HTTPContentType?              ContentType                           = null,
+                           QueryString?                  QueryString                           = null,
+                           AcceptTypes?                  Accept                                = null,
+                           IHTTPAuthentication?          Authentication                        = null,
+                           String?                       UserAgent                             = null,
+                           ConnectionType?               Connection                            = null,
+                           TimeSpan?                     RequestTimeout                        = null,
+                           EventTracking_Id?             EventTrackingId                       = null,
+                           Byte                          NumberOfRetry                         = 0,
+                           Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                           ClientRequestLogHandler?      RequestLogDelegate    = null,
-                           ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                           CancellationToken             CancellationToken     = default)
+                           Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                           Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                           ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                           ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                           CancellationToken             CancellationToken                     = default)
 
         {
 
@@ -552,6 +605,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                       UserAgent,
                                       Connection  ?? ConnectionType.KeepAlive,
                                       RequestBuilder,
+
+                                      ConsumeRequestChunkedTEImmediately,
+                                      ConsumeResponseChunkedTEImmediately,
+
                                       RequestLogDelegate,
                                       ResponseLogDelegate,
                                       CancellationToken
@@ -729,34 +786,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region HTTPClientPool(IPAddress, ...)
 
         public HTTPClientPool(IIPAddress                                                    IPAddress,
-                              IPPort?                                                       TCPPort                              = null,
-                              I18NString?                                                   Description                          = null,
-                              String?                                                       HTTPUserAgent                        = null,
-                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder                = null,
+                              IPPort?                                                       TCPPort                               = null,
+                              I18NString?                                                   Description                           = null,
+                              String?                                                       HTTPUserAgent                         = null,
+                              AcceptTypes?                                                  Accept                                = null,
+                              HTTPContentType?                                              ContentType                           = null,
+                              ConnectionType?                                               Connection                            = null,
+                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder                 = null,
 
-                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler   = null,
-                              LocalCertificateSelectionHandler?                             LocalCertificateSelector             = null,
-                              IEnumerable<X509Certificate2>?                                ClientCertificates                   = null,
-                              SslStreamCertificateContext?                                  ClientCertificateContext             = null,
-                              IEnumerable<X509Certificate2>?                                ClientCertificateChain               = null,
-                              SslProtocols?                                                 TLSProtocols                         = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                              X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                              Boolean?                                                      EnforceTLS                           = null,
-                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
-                              Boolean?                                                      AllowRenegotiation                   = null,
-                              Boolean?                                                      AllowTLSResume                       = null,
+                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler    = null,
+                              LocalCertificateSelectionHandler?                             LocalCertificateSelector              = null,
+                              IEnumerable<X509Certificate2>?                                ClientCertificates                    = null,
+                              SslStreamCertificateContext?                                  ClientCertificateContext              = null,
+                              IEnumerable<X509Certificate2>?                                ClientCertificateChain                = null,
+                              SslProtocols?                                                 TLSProtocols                          = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy                    = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy                = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode        = null,
+                              Boolean?                                                      EnforceTLS                            = null,
+                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
+                              Boolean?                                                      AllowRenegotiation                    = null,
+                              Boolean?                                                      AllowTLSResume                        = null,
 
-                              UInt16?                                                       MaxNumberOfClients                   = null,
+                              UInt16?                                                       MaxNumberOfClients                    = null,
 
-                              Boolean?                                                      PreferIPv4                           = null,
-                              TimeSpan?                                                     ConnectTimeout                       = null,
-                              TimeSpan?                                                     ReceiveTimeout                       = null,
-                              TimeSpan?                                                     SendTimeout                          = null,
-                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                              UInt16?                                                       MaxNumberOfRetries                   = null,
-                              UInt32?                                                       BufferSize                           = null)
+                              Boolean?                                                      PreferIPv4                            = null,
+                              TimeSpan?                                                     ConnectTimeout                        = null,
+                              TimeSpan?                                                     ReceiveTimeout                        = null,
+                              TimeSpan?                                                     SendTimeout                           = null,
+                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay                = null,
+                              UInt16?                                                       MaxNumberOfRetries                    = null,
+                              UInt32?                                                       BufferSize                            = null,
+
+                              Boolean?                                                      ConsumeRequestChunkedTEImmediately    = null,
+                              Boolean?                                                      ConsumeResponseChunkedTEImmediately   = null)
         {
 
             this.RemotePort       = TCPPort;
@@ -791,6 +854,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      TCPPort,
                                                                      Description,
                                                                      HTTPUserAgent + description,
+                                                                     Accept,
+                                                                     ContentType,
+                                                                     Connection,
                                                                      null, //DefaultRequestBuilder,
 
                                                                      RemoteCertificateValidationHandler,
@@ -813,7 +879,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      SendTimeout,
                                                                      TransmissionRetryDelay,
                                                                      MaxNumberOfRetries,
-                                                                     BufferSize
+                                                                     BufferSize,
+
+                                                                     ConsumeRequestChunkedTEImmediately,
+                                                                     ConsumeResponseChunkedTEImmediately
 
                                                                  ); };
 
@@ -824,34 +893,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region HTTPClientPool(URL, DNSService = null, ...)
 
         public HTTPClientPool(URL                                                           URL,
-                              I18NString?                                                   Description                      = null,
-                              String?                                                       HTTPUserAgent                    = null,
-                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
+                              I18NString?                                                   Description                           = null,
+                              String?                                                       HTTPUserAgent                         = null,
+                              AcceptTypes?                                                  Accept                                = null,
+                              HTTPContentType?                                              ContentType                           = null,
+                              ConnectionType?                                               Connection                            = null,
+                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder                 = null,
 
-                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
-                              LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
-                              IEnumerable<X509Certificate2>?                                ClientCertificates               = null,
-                              SslStreamCertificateContext?                                  ClientCertificateContext         = null,
-                              SslProtocols?                                                 TLSProtocols                     = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy           = null,
-                              X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
-                              IEnumerable<X509Certificate2>?                                ClientCertificateChain           = null,
-                              //Boolean?                                                      EnforceTLS                       = null,
-                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
-                              Boolean?                                                      AllowRenegotiation               = null,
-                              Boolean?                                                      AllowTLSResume                   = null,
+                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator            = null,
+                              LocalCertificateSelectionHandler?                             LocalCertificateSelector              = null,
+                              IEnumerable<X509Certificate2>?                                ClientCertificates                    = null,
+                              SslStreamCertificateContext?                                  ClientCertificateContext              = null,
+                              SslProtocols?                                                 TLSProtocols                          = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy                    = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy                = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode        = null,
+                              IEnumerable<X509Certificate2>?                                ClientCertificateChain                = null,
+                              //Boolean?                                                      EnforceTLS                            = null,
+                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
+                              Boolean?                                                      AllowRenegotiation                    = null,
+                              Boolean?                                                      AllowTLSResume                        = null,
 
-                              UInt16?                                                       MaxNumberOfClients               = null,
+                              UInt16?                                                       MaxNumberOfClients                    = null,
 
-                              Boolean?                                                      PreferIPv4                       = null,
-                              TimeSpan?                                                     ConnectTimeout                   = null,
-                              TimeSpan?                                                     ReceiveTimeout                   = null,
-                              TimeSpan?                                                     SendTimeout                      = null,
-                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
-                              UInt16?                                                       MaxNumberOfRetries               = null,
-                              UInt32?                                                       BufferSize                       = null,
-                              IDNSClient?                                                   DNSClient                        = null)
+                              Boolean?                                                      PreferIPv4                            = null,
+                              TimeSpan?                                                     ConnectTimeout                        = null,
+                              TimeSpan?                                                     ReceiveTimeout                        = null,
+                              TimeSpan?                                                     SendTimeout                           = null,
+                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay                = null,
+                              UInt16?                                                       MaxNumberOfRetries                    = null,
+                              UInt32?                                                       BufferSize                            = null,
+
+                              Boolean?                                                      ConsumeRequestChunkedTEImmediately    = null,
+                              Boolean?                                                      ConsumeResponseChunkedTEImmediately   = null,
+
+                              IDNSClient?                                                   DNSClient                             = null)
 
         {
 
@@ -884,6 +960,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      URL,
                                                                      Description,
                                                                      HTTPUserAgent + description,
+                                                                     Accept,
+                                                                     ContentType,
+                                                                     Connection,
                                                                      this.DefaultRequestBuilder,
 
                                                                      RemoteCertificateValidator,
@@ -906,7 +985,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      SendTimeout,
                                                                      TransmissionRetryDelay,
                                                                      MaxNumberOfRetries,
-                                                                     BufferSize
+                                                                     BufferSize,
+
+                                                                     ConsumeRequestChunkedTEImmediately,
+                                                                     ConsumeResponseChunkedTEImmediately,
+
+                                                                     DNSClient
 
                                                                  );
 
@@ -918,34 +1002,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public HTTPClientPool(DomainName                                                    DomainName,
                               SRV_Spec                                                      DNSService,
-                              I18NString?                                                   Description                      = null,
-                              String?                                                       HTTPUserAgent                    = null,
-                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
+                              I18NString?                                                   Description                           = null,
+                              String?                                                       HTTPUserAgent                         = null,
+                              AcceptTypes?                                                  Accept                                = null,
+                              HTTPContentType?                                              ContentType                           = null,
+                              ConnectionType?                                               Connection                            = null,
+                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder                 = null,
 
-                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
-                              LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
-                              IEnumerable<X509Certificate2>?                                ClientCertificates               = null,
-                              SslStreamCertificateContext?                                  ClientCertificateContext         = null,
-                              IEnumerable<X509Certificate2>?                                ClientCertificateChain           = null,
-                              SslProtocols?                                                 TLSProtocols                     = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy           = null,
-                              X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
-                              Boolean?                                                      EnforceTLS                       = null,
-                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
-                              Boolean?                                                      AllowRenegotiation               = null,
-                              Boolean?                                                      AllowTLSResume                   = null,
+                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator            = null,
+                              LocalCertificateSelectionHandler?                             LocalCertificateSelector              = null,
+                              IEnumerable<X509Certificate2>?                                ClientCertificates                    = null,
+                              SslStreamCertificateContext?                                  ClientCertificateContext              = null,
+                              IEnumerable<X509Certificate2>?                                ClientCertificateChain                = null,
+                              SslProtocols?                                                 TLSProtocols                          = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy                    = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy                = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode        = null,
+                              Boolean?                                                      EnforceTLS                            = null,
+                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
+                              Boolean?                                                      AllowRenegotiation                    = null,
+                              Boolean?                                                      AllowTLSResume                        = null,
 
-                              UInt16?                                                       MaxNumberOfClients               = null,
+                              UInt16?                                                       MaxNumberOfClients                    = null,
 
-                              Boolean?                                                      PreferIPv4                       = null,
-                              TimeSpan?                                                     ConnectTimeout                   = null,
-                              TimeSpan?                                                     ReceiveTimeout                   = null,
-                              TimeSpan?                                                     SendTimeout                      = null,
-                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
-                              UInt16?                                                       MaxNumberOfRetries               = null,
-                              UInt32?                                                       BufferSize                       = null,
-                              IDNSClient?                                                   DNSClient                        = null)
+                              Boolean?                                                      PreferIPv4                            = null,
+                              TimeSpan?                                                     ConnectTimeout                        = null,
+                              TimeSpan?                                                     ReceiveTimeout                        = null,
+                              TimeSpan?                                                     SendTimeout                           = null,
+                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay                = null,
+                              UInt16?                                                       MaxNumberOfRetries                    = null,
+                              UInt32?                                                       BufferSize                            = null,
+
+                              Boolean?                                                      ConsumeRequestChunkedTEImmediately    = null,
+                              Boolean?                                                      ConsumeResponseChunkedTEImmediately   = null,
+
+                              IDNSClient?                                                   DNSClient                             = null)
 
         {
 
@@ -979,6 +1070,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      DNSService,
                                                                      Description,
                                                                      HTTPUserAgent + description,
+                                                                     Accept,
+                                                                     ContentType,
+                                                                     Connection,
                                                                      null, //DefaultRequestBuilder,
 
                                                                      RemoteCertificateValidator,
@@ -1001,7 +1095,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      SendTimeout,
                                                                      TransmissionRetryDelay,
                                                                      MaxNumberOfRetries,
-                                                                     BufferSize
+                                                                     BufferSize,
+
+                                                                     ConsumeRequestChunkedTEImmediately,
+                                                                     ConsumeResponseChunkedTEImmediately,
+
+                                                                     null,
+                                                                     DNSClient
 
                                                                  );
 
@@ -1127,18 +1227,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             RunRequest(HTTPMethod                    HTTPMethod,
                        HTTPPath                      HTTPPath,
-                       QueryString?                  QueryString           = null,
-                       AcceptTypes?                  Accept                = null,
-                       IHTTPAuthentication?          Authentication        = null,
-                       Byte[]?                       Content               = null,
-                       HTTPContentType?              ContentType           = null,
-                       String?                       UserAgent             = null,
-                       ConnectionType?               Connection            = null,
-                       Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                       QueryString?                  QueryString                           = null,
+                       AcceptTypes?                  Accept                                = null,
+                       IHTTPAuthentication?          Authentication                        = null,
+                       Byte[]?                       Content                               = null,
+                       HTTPContentType?              ContentType                           = null,
+                       String?                       UserAgent                             = null,
+                       ConnectionType?               Connection                            = null,
+                       Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
-                       ClientRequestLogHandler?      RequestLogDelegate    = null,
-                       ClientResponseLogHandler?     ResponseLogDelegate   = null,
-                       CancellationToken             CancellationToken     = default)
+                       Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                       Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                       ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                       ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                       CancellationToken             CancellationToken                     = default)
 
         {
 
@@ -1180,6 +1283,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  UserAgent,
                                  Connection,
                                  RequestBuilder,
+
+                                 ConsumeRequestChunkedTEImmediately,
+                                 ConsumeResponseChunkedTEImmediately,
 
                                  RequestLogDelegate,
                                  ResponseLogDelegate,

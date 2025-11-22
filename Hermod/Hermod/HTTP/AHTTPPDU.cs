@@ -114,23 +114,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The local TCP/IP socket.
         /// </summary>
-        public IPSocket                 LocalSocket          { get; internal set; }
+        public IPSocket                 LocalSocket                                  { get; internal set; }
 
 
         /// <summary>
         /// The RAW, unparsed and unverified HTTP header.
         /// </summary>
-        public String                   RawHTTPHeader        { get; internal set; }
+        public String                   RawHTTPHeader                                { get; internal set; }
 
         /// <summary>
         /// The raw unparsed HTTP protocol data unit.
         /// </summary>
-        public String                   RawPDU               { get; }
+        public String                   RawPDU                                       { get; }
 
         /// <summary>
         /// The first line of a HTTP request or response.
         /// </summary>
-        public String                   FirstPDULine         { get; }
+        public String                   FirstPDULine                                 { get; }
+
+        /// <summary>
+        /// Consume chunked transfer encoding immediately after reading the headers?
+        /// </summary>
+        public Boolean?                 ConsumeChunkedTransferEncodingImmediately    { get; }
 
 
         #region (protected) ConstructedHTTPHeader
@@ -438,6 +443,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 TryReadHTTPBodyStream();
                 return httpBody;
             }
+            internal set
+            {
+                httpBody = value;
+            }
         }
 
         internal void ResizeBody(Int32 NewSize)
@@ -571,7 +580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Shall the underlying connection be closed after the body was read?
         /// </summary>
-        public Action  CloseActionAfterBodyWasRead    { get; internal set; }
+        public Action?  CloseActionAfterBodyWasRead    { get; internal set; }
 
         #endregion
 
@@ -580,7 +589,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (protected) AHTTPPDU()
 
         /// <summary>
-        /// Creates a new HTTP header.
+        /// Creates a new HTTP protocol data unit.
         /// </summary>
         protected AHTTPPDU()
         {
@@ -591,7 +600,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RawPDU                     = "";
             this.FirstPDULine               = "";
             this.EventTrackingId            = EventTracking_Id.New;
-            //this.secWebSocketProtocol       = Array.Empty<String>();
 
         }
 
@@ -600,28 +608,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (protected) AHTTPPDU(HTTPPDU)
 
         /// <summary>
-        /// Creates a new HTTP header.
+        /// Creates a new HTTP protocol data unit by copying another one.
         /// </summary>
-        /// <param name="HTTPPDU">Another HTTP PDU.</param>
+        /// <param name="HTTPPDU">Another HTTP protocol data unit.</param>
         protected AHTTPPDU(AHTTPPDU HTTPPDU)
 
             : this()
 
         {
 
-            this.Timestamp                  = HTTPPDU.Timestamp;
-            this.HTTPSource                 = HTTPPDU.HTTPSource;
-            this.RemoteSocket               = HTTPPDU.RemoteSocket;
-            this.LocalSocket                = HTTPPDU.LocalSocket;
-            this.RawHTTPHeader              = HTTPPDU.RawHTTPHeader;
-            this.RawPDU                     = HTTPPDU.RawPDU;
-            this.httpBody                   = HTTPPDU.HTTPBody;
-            this.HTTPBodyStream             = HTTPPDU.HTTPBodyStream;
-            this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
-            this.CancellationToken          = HTTPPDU.CancellationToken;
-            this.EventTrackingId            = HTTPPDU.EventTrackingId;
+            this.Timestamp                                  = HTTPPDU.Timestamp;
+            this.HTTPSource                                 = HTTPPDU.HTTPSource;
+            this.RemoteSocket                               = HTTPPDU.RemoteSocket;
+            this.LocalSocket                                = HTTPPDU.LocalSocket;
+            this.RawHTTPHeader                              = HTTPPDU.RawHTTPHeader;
+            this.RawPDU                                     = HTTPPDU.RawPDU;
+            this.httpBody                                   = HTTPPDU.HTTPBody;
+            this.HTTPBodyStream                             = HTTPPDU.HTTPBodyStream;
+            this.HTTPBodyReceiveBufferSize                  = DefaultHTTPBodyReceiveBufferSize;
+            this.ConsumeChunkedTransferEncodingImmediately  = HTTPPDU.ConsumeChunkedTransferEncodingImmediately;
+            this.CancellationToken                          = HTTPPDU.CancellationToken;
+            this.EventTrackingId                            = HTTPPDU.EventTrackingId;
 
-            this.FirstPDULine               = HTTPPDU.FirstPDULine;
+            this.FirstPDULine                               = HTTPPDU.FirstPDULine;
 
             if (HTTPPDU.headerFields is not null)
                 foreach (var field in HTTPPDU.headerFields)
@@ -634,7 +643,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (protected) AHTTPPDU(Timestamp, HTTPSource, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
-        /// Creates a new HTTP header.
+        /// Creates a new HTTP protocol data unit.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPSource">The HTTP source.</param>
@@ -644,6 +653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
+        /// <param name="ConsumeChunkedTransferEncodingImmediately">Consume chunked transfer encoding immediately after reading the headers?</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         protected AHTTPPDU(DateTimeOffset     Timestamp,
@@ -651,35 +661,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IPSocket           LocalSocket,
                            IPSocket           RemoteSocket,
                            String             HTTPHeader,
-                           Byte[]?            HTTPBody                    = null,
-                           Stream?            HTTPBodyStream              = null,
-                           UInt32?            HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                           EventTracking_Id?  EventTrackingId             = null,
-                           CancellationToken  CancellationToken           = default)
+                           Byte[]?            HTTPBody                                    = null,
+                           Stream?            HTTPBodyStream                              = null,
+                           UInt32?            HTTPBodyReceiveBufferSize                   = DefaultHTTPBodyReceiveBufferSize,
+                           Boolean?           ConsumeChunkedTransferEncodingImmediately   = true,
+                           EventTracking_Id?  EventTrackingId                             = null,
+                           CancellationToken  CancellationToken                           = default)
 
             : this()
 
         {
 
-            this.Timestamp                  = Timestamp;
-            this.HTTPSource                 = HTTPSource;
-            this.LocalSocket                = LocalSocket;
-            this.RemoteSocket               = RemoteSocket;
-            this.RawHTTPHeader              = HTTPHeader.Trim();
-            this.httpBody                   = HTTPBody;
-            this.HTTPBodyStream             = HTTPBodyStream;
-            this.HTTPBodyReceiveBufferSize  = HTTPBodyReceiveBufferSize.HasValue
-                                                  ? HTTPBodyReceiveBufferSize.Value < MaxHTTPBodyReceiveBufferSize
-                                                        ? HTTPBodyReceiveBufferSize.Value
-                                                        : DefaultHTTPBodyReceiveBufferSize
-                                                  : DefaultHTTPBodyReceiveBufferSize;
-            this.CancellationToken          = CancellationToken;
-            this.EventTrackingId            = EventTrackingId ?? EventTracking_Id.New;
+            this.Timestamp                                  = Timestamp;
+            this.HTTPSource                                 = HTTPSource;
+            this.LocalSocket                                = LocalSocket;
+            this.RemoteSocket                               = RemoteSocket;
+            this.RawHTTPHeader                              = HTTPHeader.Trim();
+            this.httpBody                                   = HTTPBody;
+            this.HTTPBodyStream                             = HTTPBodyStream;
+            this.HTTPBodyReceiveBufferSize                  = HTTPBodyReceiveBufferSize.HasValue
+                                                                  ? HTTPBodyReceiveBufferSize.Value < MaxHTTPBodyReceiveBufferSize
+                                                                        ? HTTPBodyReceiveBufferSize.Value
+                                                                        : DefaultHTTPBodyReceiveBufferSize
+                                                                  : DefaultHTTPBodyReceiveBufferSize;
+            this.ConsumeChunkedTransferEncodingImmediately  = ConsumeChunkedTransferEncodingImmediately;
+            this.CancellationToken                          = CancellationToken;
+            this.EventTrackingId                            = EventTrackingId ?? EventTracking_Id.New;
 
             #region Process first line...
 
-            var allLines = this.RawHTTPHeader.Split(lineSeparator,
-                                                    StringSplitOptions.RemoveEmptyEntries);
+            var allLines = RawHTTPHeader.Split(
+                               lineSeparator,
+                               StringSplitOptions.RemoveEmptyEntries
+                           );
 
             if (allLines is null || allLines.Length < 2)
                 throw new Exception("Bad request");
@@ -1360,10 +1374,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        public async Task<Byte[]> ReadAllChunks()
+        {
+
+            if (HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
+            {
+
+                var chunks = new MemoryStream();
+
+                // ignore trailers
+                _ = await chunkedStream.ReadAllChunks(
+                              async (timestamp, elapsed, counter, data) => await chunks.WriteAsync(data)
+                          );
+
+                return chunks.ToArray();
+
+            }
+
+            return [];
+
+        }
+
+
         #region TryReadHTTPBodyStream()
 
         public Boolean TryReadHTTPBodyStream()
         {
+
+            //var text = "";
+
+            //if (Response.HTTPBody?.Length > 0)
+            //    text = Response.HTTPBodyAsUTF8String;
+
 
             lock (headerFields)
             {
@@ -1470,7 +1513,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (DataStream is null)
                 httpBody = HTTPBodyStream is null
-                               ? Array.Empty<Byte>()
+                               ? []
                                : httpBody = ((MemoryStream) HTTPBodyStream).ToArray();
 
             else

@@ -1206,17 +1206,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            HTTPVersion                            ProtocolVersion,
                            ConcurrentDictionary<String, Object?>  HTTPHeaderFields,
 
-                           QueryString?                           QueryString                 = null,
-                           Byte[]?                                HTTPBody                    = null,
-                           Stream?                                HTTPBodyStream              = null,
-                           HTTPServer?                            HTTPServer                  = null,
-                           AHTTPTestServer?                       HTTPServerX                 = null,
-                           X509Certificate2?                      ServerCertificate           = null,
-                           X509Certificate2?                      ClientCertificate           = null,
+                           QueryString?                           QueryString                                 = null,
+                           Byte[]?                                HTTPBody                                    = null,
+                           Stream?                                HTTPBodyStream                              = null,
+                           HTTPServer?                            HTTPServer                                  = null,
+                           AHTTPTestServer?                       HTTPServerX                                 = null,
+                           X509Certificate2?                      ServerCertificate                           = null,
+                           X509Certificate2?                      ClientCertificate                           = null,
 
-                           UInt32                                 HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                           EventTracking_Id?                      EventTrackingId             = null,
-                           CancellationToken                      CancellationToken           = default)
+                           UInt32                                 HTTPBodyReceiveBufferSize                   = DefaultHTTPBodyReceiveBufferSize,
+                           Boolean?                               ConsumeChunkedTransferEncodingImmediately   = true,
+                           EventTracking_Id?                      EventTrackingId                             = null,
+                           CancellationToken                      CancellationToken                           = default)
 
             : base(Timestamp,
                    HTTPSource,
@@ -1226,6 +1227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPBody,
                    HTTPBodyStream,
                    HTTPBodyReceiveBufferSize,
+                   ConsumeChunkedTransferEncodingImmediately,
 
                    EventTrackingId,
                    CancellationToken)
@@ -1277,15 +1279,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              IPSocket           RemoteSocket,
 
                              String             HTTPHeader,
-                             Byte[]?            HTTPBody                    = null,
-                             Stream?            HTTPBodyStream              = null,
-                             HTTPServer?        HTTPServer                  = null,
-                             X509Certificate2?  ServerCertificate           = null,
-                             X509Certificate2?  ClientCertificate           = null,
+                             Byte[]?            HTTPBody                                    = null,
+                             Stream?            HTTPBodyStream                              = null,
+                             HTTPServer?        HTTPServer                                  = null,
+                             X509Certificate2?  ServerCertificate                           = null,
+                             X509Certificate2?  ClientCertificate                           = null,
 
-                             UInt32             HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                             EventTracking_Id?  EventTrackingId             = null,
-                             CancellationToken  CancellationToken           = default)
+                             UInt32             HTTPBodyReceiveBufferSize                   = DefaultHTTPBodyReceiveBufferSize,
+                             Boolean?           ConsumeChunkedTransferEncodingImmediately   = true,
+
+                             EventTracking_Id?  EventTrackingId                             = null,
+                             CancellationToken  CancellationToken                           = default)
 
             : base(Timestamp,
                    HTTPSource,
@@ -1295,6 +1299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPBody,
                    HTTPBodyStream,
                    HTTPBodyReceiveBufferSize,
+                   ConsumeChunkedTransferEncodingImmediately,
 
                    EventTrackingId,
                    CancellationToken)
@@ -1643,6 +1648,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Request.ClientCertificate,
 
                         Request.HTTPBodyReceiveBufferSize,
+                        Request.ConsumeChunkedTransferEncodingImmediately,
+
                         Request.EventTrackingId,
                         Request.CancellationToken);
 

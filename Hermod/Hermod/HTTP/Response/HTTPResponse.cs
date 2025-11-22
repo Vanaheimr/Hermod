@@ -561,17 +561,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              IPSocket           LocalSocket,
                              IPSocket           RemoteSocket,
                              String             HTTPHeader,
-                             HTTPRequest?       HTTPRequest                 = null,
-                             Byte[]?            HTTPBody                    = null,
-                             Stream?            HTTPBodyStream              = null,
-                             UInt32?            HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                             Object?            SubprotocolResponse         = null,
-                             AHTTPTestClient?   HTTPClient                  = null,
+                             HTTPRequest?       HTTPRequest                                 = null,
+                             Byte[]?            HTTPBody                                    = null,
+                             Stream?            HTTPBodyStream                              = null,
+                             UInt32?            HTTPBodyReceiveBufferSize                   = DefaultHTTPBodyReceiveBufferSize,
+                             Boolean?           ConsumeChunkedTransferEncodingImmediately   = true,
+                             Object?            SubprotocolResponse                         = null,
+                             AHTTPTestClient?   HTTPClient                                  = null,
 
-                             EventTracking_Id?  EventTrackingId             = null,
-                             TimeSpan?          Runtime                     = null,
-                             Byte               NumberOfRetries             = 0,
-                             CancellationToken  CancellationToken           = default)
+                             EventTracking_Id?  EventTrackingId                             = null,
+                             TimeSpan?          Runtime                                     = null,
+                             Byte               NumberOfRetries                             = 0,
+                             CancellationToken  CancellationToken                           = default)
 
 
             : base(Timestamp,
@@ -582,6 +583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPBody,
                    HTTPBodyStream,
                    HTTPBodyReceiveBufferSize,
+                   ConsumeChunkedTransferEncodingImmediately,
 
                    EventTrackingId,
                    CancellationToken)
@@ -640,13 +642,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">An optional HTTP request leading to this response.</param>
         /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String              ResponseHeader,
-                                         HTTPRequest?        Request               = null,
-                                         Object?             SubprotocolResponse   = null,
+                                         HTTPRequest?        Request                                     = null,
+                                         Boolean?            ConsumeChunkedTransferEncodingImmediately   = true,
+                                         Object?             SubprotocolResponse                         = null,
 
-                                         EventTracking_Id?   EventTrackingId       = null,
-                                         TimeSpan?           Runtime               = null,
-                                         Byte                NumberOfRetries       = 0,
-                                         CancellationToken   CancellationToken     = default)
+                                         EventTracking_Id?   EventTrackingId                             = null,
+                                         TimeSpan?           Runtime                                     = null,
+                                         Byte                NumberOfRetries                             = 0,
+                                         CancellationToken   CancellationToken                           = default)
 
             => new (Illias.Timestamp.Now,
                     new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -657,6 +660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     null,
                     null,
+                    ConsumeChunkedTransferEncodingImmediately,
                     SubprotocolResponse,
                     null,
 
@@ -684,11 +688,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          IPSocket            RemoteSocket,
                                          HTTPSource          HTTPSource,
                                          String              ResponseHeader,
-                                         Object?             SubprotocolResponse   = null,
+                                         Boolean?            ConsumeChunkedTransferEncodingImmediately   = true,
+                                         Object?             SubprotocolResponse                         = null,
 
-                                         EventTracking_Id?   EventTrackingId       = null,
-                                         Byte                NumberOfRetries       = 0,
-                                         CancellationToken   CancellationToken     = default)
+                                         EventTracking_Id?   EventTrackingId                             = null,
+                                         Byte                NumberOfRetries                             = 0,
+                                         CancellationToken   CancellationToken                           = default)
 
             => new (Timestamp,
                     HTTPSource,
@@ -699,6 +704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     null,
                     null,
+                    ConsumeChunkedTransferEncodingImmediately,
                     SubprotocolResponse,
                     HTTPClient,
 
@@ -721,13 +727,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String              ResponseHeader,
                                          Byte[]              ResponseBody,
-                                         HTTPRequest?        Request               = null,
-                                         Object?             SubprotocolResponse   = null,
+                                         HTTPRequest?        Request                                     = null,
+                                         Boolean?            ConsumeChunkedTransferEncodingImmediately   = true,
+                                         Object?             SubprotocolResponse                         = null,
 
-                                         EventTracking_Id?   EventTrackingId       = null,
-                                         TimeSpan?           Runtime               = null,
-                                         Byte                NumberOfRetries       = 0,
-                                         CancellationToken   CancellationToken     = default)
+                                         EventTracking_Id?   EventTrackingId                             = null,
+                                         TimeSpan?           Runtime                                     = null,
+                                         Byte                NumberOfRetries                             = 0,
+                                         CancellationToken   CancellationToken                           = default)
 
             => new (Illias.Timestamp.Now,
                     Request?.HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -738,6 +745,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     ResponseBody,
                     null,
                     null,
+                    ConsumeChunkedTransferEncodingImmediately,
                     SubprotocolResponse,
                     null,
 
@@ -760,13 +768,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String             ResponseHeader,
                                          Stream             ResponseBodyStream,
-                                         HTTPRequest?       Request               = null,
-                                         Object?            SubprotocolResponse   = null,
+                                         HTTPRequest?       Request                                     = null,
+                                         Boolean?           ConsumeChunkedTransferEncodingImmediately   = true,
+                                         Object?            SubprotocolResponse                         = null,
 
-                                         EventTracking_Id?  EventTrackingId       = null,
-                                         TimeSpan?          Runtime               = null,
-                                         Byte               NumberOfRetries       = 0,
-                                         CancellationToken  CancellationToken     = default)
+                                         EventTracking_Id?  EventTrackingId                             = null,
+                                         TimeSpan?          Runtime                                     = null,
+                                         Byte               NumberOfRetries                             = 0,
+                                         CancellationToken  CancellationToken                           = default)
 
             => new (Illias.Timestamp.Now,
                     Request?.HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -777,6 +786,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     ResponseBodyStream,
                     null,
+                    ConsumeChunkedTransferEncodingImmediately,
                     SubprotocolResponse,
                     null,
 
@@ -802,17 +812,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request for this HTTP response.</param>
         public static Boolean TryParse(IEnumerable<String>  Text,
                                        out HTTPResponse?    HTTPResponse,
-                                       DateTimeOffset?      Timestamp           = null,
-                                       HTTPSource?          HTTPSource          = null,
-                                       IPSocket?            LocalSocket         = null,
-                                       IPSocket?            RemoteSocket        = null,
+                                       DateTimeOffset?      Timestamp                                   = null,
+                                       HTTPSource?          HTTPSource                                  = null,
+                                       IPSocket?            LocalSocket                                 = null,
+                                       IPSocket?            RemoteSocket                                = null,
+                                       Boolean?             ConsumeChunkedTransferEncodingImmediately   = true,
 
-                                       HTTPRequest?         Request             = null,
+                                       HTTPRequest?         Request                                     = null,
 
-                                       EventTracking_Id?    EventTrackingId     = null,
-                                       TimeSpan?            Runtime             = null,
-                                       Byte                 NumberOfRetries     = 0,
-                                       CancellationToken    CancellationToken   = default)
+                                       EventTracking_Id?    EventTrackingId                             = null,
+                                       TimeSpan?            Runtime                                     = null,
+                                       Byte                 NumberOfRetries                             = 0,
+                                       CancellationToken    CancellationToken                           = default)
         {
 
             try
@@ -835,6 +846,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     null,
                                     null,
+                                    ConsumeChunkedTransferEncodingImmediately,
                                     null,
                                     null,
 
@@ -852,6 +864,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
+                DebugX.LogException(e);
                 HTTPResponse = null;
             }
 
@@ -1612,6 +1625,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return Task.FromResult<IEnumerable<(String, String)>>([]);
 
         }
+
 
         public JObject ToJSON()
         {

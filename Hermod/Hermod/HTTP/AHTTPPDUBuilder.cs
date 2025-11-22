@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return a string representation of this HTTPHeader.
         /// </summary>
-        public String ConstructedHTTPHeader
+        public String             ConstructedHTTPHeader
         {
             get
             {
@@ -215,9 +215,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
+        /// Consume chunked transfer encoding immediately.
+        /// </summary>
+        public Boolean?           ConsumeChunkedTransferEncodingImmediately    { get; set; }
+
+        /// <summary>
         /// The cancellation token.
         /// </summary>
-        public CancellationToken  CancellationToken    { get; internal set; }
+        public CancellationToken  CancellationToken                            { get; internal set; }
 
         #endregion
 

@@ -1237,7 +1237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             if (httpResponse is not null)
             {
 
-                var chunks = new List<(TimeSpan, String)>();
+                var chunks   = new List<(TimeSpan, String)>();
                 var trailers = await httpResponse.ReadAllChunks(chunk => chunks.Add((chunk.Elapsed, chunk.Data.ToUTF8String())));
 
                 Assert.That(chunks[0].Item2, Is.EqualTo("Hello World - Teil 1: 'test3.txt'!"));

@@ -117,6 +117,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
                    null,
+                   null,
+                   null,
+                   null,
 
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
@@ -150,7 +153,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512)
+                   BufferSize ?? 512,
+
+                   true,
+                   true)
 
         {
 
@@ -198,6 +204,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
                    null,
+                   null,
+                   null,
+                   null,
 
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
@@ -231,7 +240,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512)
+                   BufferSize ?? 512,
+
+                   true,
+                   true)
 
         {
 
@@ -279,6 +291,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
                    null,
+                   null,
+                   null,
+                   null,
 
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
@@ -313,6 +328,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize  ?? 512,
+
+                   true,
+                   true,
+
                    DNSClient)
 
         {
@@ -372,6 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             var client = new DNSHTTPSClient(
+
                              IPAddress,
                              TCPPort,
                              Description,
@@ -452,6 +472,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             var client = new DNSHTTPSClient(
+
                              URL,
                              Description,
                              Mode,
@@ -475,7 +496,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
                              BufferSize,
+
                              DNSClient
+
                          );
 
             await client.ConnectAsync();
@@ -615,6 +638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var httpResponse  = await SendRequest(
                                               httpRequestBuilder.AsImmutable,
+                                              true,
                                               HTTPRequestLogDelegate,
                                               HTTPResponseLogDelegate,
                                               null,

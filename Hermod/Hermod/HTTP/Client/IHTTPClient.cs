@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
-        String                                                     HTTPUserAgent                 { get; }
+        String?                                                    HTTPUserAgent                 { get; }
 
         /// <summary>
         /// The optional HTTP connection type.
