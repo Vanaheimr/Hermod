@@ -478,7 +478,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         IIPAddress?  CurrentRemoteIPAddress    { get; }
 
 
-        URL?         RemoteURL                 { get; }
+        URL          RemoteURL                 { get; }
         IIPAddress?  RemoteIPAddress           { get; }
         IPPort?      RemotePort                { get; }
 

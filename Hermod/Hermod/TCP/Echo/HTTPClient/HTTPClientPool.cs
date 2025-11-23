@@ -679,16 +679,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public String Id {  get; }
 
-        public Boolean                        IsHTTPConnected          { get; private set; } = false;
-
-        public String?                        HTTPUserAgent            { get; }
-
+        public Boolean                           IsHTTPConnected          { get; private set; } = false;
 
         private Boolean isBusy;
-        public Boolean                        IsBusy
+        public Boolean                           IsBusy
             => isBusy;
 
-        public TimeSpan                       MaxSemaphoreWaitTime     { get; set; }         = TimeSpan.FromSeconds(30);
+        public TimeSpan                          MaxSemaphoreWaitTime     { get; set; }         = TimeSpan.FromSeconds(30);
 
 
         public const UInt16 DefaultMaxNumberOfClients = 5;
@@ -708,69 +705,170 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         /// <summary>
-        /// The description of this TCP client.
+        /// The remote URL of the HTTP endpoint to connect to.
         /// </summary>
-        public I18NString                        Description               { get; }
+        public URL                                                        RemoteURL                     { get; }
+
+        /// <summary>
+        /// The IP Address to connect to.
+        /// </summary>
+        public IIPAddress?                                                RemoteIPAddress               { get; private set; }
+
+        /// <summary>
+        /// The HTTP/TCP port to connect to.
+        /// </summary>
+        public IPPort?                                                    RemotePort                    { get; }
 
 
-
-        public  URL?                             RemoteURL                 { get; }
-        public  IIPAddress?                      RemoteIPAddress           { get; private   set; }
-        public  IPPort?                          RemotePort                { get; protected set; }
 
         /// <summary>
         /// The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public  DomainName?                      DomainName                { get; }
+        public  DomainName?                                               DomainName                    { get; }
 
         /// <summary>
         /// The DNS Service to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public  SRV_Spec?                        DNSService                { get; }
+        public  SRV_Spec?                                                 DNSService                    { get; }
+
+
+
+        /// <summary>
+        /// The virtual HTTP hostname to connect to.
+        /// </summary>
+        public HTTPHostname?                                              VirtualHostname               { get; }
+
+        /// <summary>
+        /// The Remote X.509 certificate.
+        /// </summary>
+        public X509Certificate2?                                          RemoteCertificate             { get; private set; }
+
+        /// <summary>
+        /// The Remote X.509 certificate chain.
+        /// </summary>
+        public X509Chain?                                                 RemoteCertificateChain        { get; private set; }
+
+        /// <summary>
+        /// The remote TLS certificate validator.
+        /// </summary>
+        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; protected internal set; }
+
+        /// <summary>
+        /// A delegate to select a TLS client certificate.
+        /// </summary>
+        public LocalCertificateSelectionHandler?                          LocalCertificateSelector      { get; }
+
+        /// <summary>
+        /// Multiple optional TLS client certificates to use for HTTP authentication (not a chain of certificates!).
+        /// </summary>
+        public IEnumerable<X509Certificate2>                              ClientCertificates            { get; }
+
+        /// <summary>
+        /// The optionalTLS client certificate context to use for HTTP authentication.
+        /// </summary>
+        public SslStreamCertificateContext?                               ClientCertificateContext      { get; }
+
+        /// <summary>
+        /// The optional TLS client certificate chain to use for HTTP authentication.
+        /// </summary>
+        public IEnumerable<X509Certificate2>                              ClientCertificateChain        { get; }
+
+        /// <summary>
+        /// The TLS protocol to use.
+        /// </summary>
+        public SslProtocols                                               TLSProtocols                  { get; }
+
+        /// <summary>
+        /// Prefer IPv4 instead of IPv6.
+        /// </summary>
+        public Boolean                                                    PreferIPv4                    { get; }
+
+        /// <summary>
+        /// An optional HTTP content type.
+        /// </summary>
+        public HTTPContentType?                                           ContentType                   { get; }
+
+        /// <summary>
+        /// The optional HTTP accept header.
+        /// </summary>
+        public AcceptTypes?                                               Accept                        { get; }
+
+        /// <summary>
+        /// The optional HTTP authentication.
+        /// </summary>
+        public IHTTPAuthentication?                                       HTTPAuthentication            { get; set; }
+
+        /// <summary>
+        /// The optional Time-Based One-Time Password (TOTP) generator configuration.
+        /// </summary>
+        public TOTPConfig?                                                TOTPConfig                    { get; set; }
+
+        /// <summary>
+        /// The HTTP user agent identification.
+        /// </summary>
+        public String                                                     HTTPUserAgent                 { get; }
+
+        /// <summary>
+        /// The optional HTTP connection type.
+        /// </summary>
+        public ConnectionType?                                            Connection                    { get; }
+
+        /// <summary>
+        /// The timeout for upstream requests.
+        /// </summary>
+        public TimeSpan                                                   RequestTimeout                { get; set; }
+
+        /// <summary>
+        /// The delay between transmission retries.
+        /// </summary>
+        public TransmissionRetryDelayDelegate                             TransmissionRetryDelay        { get; }
+
+        /// <summary>
+        /// The size of the internal HTTP client buffers.
+        /// </summary>
+        public UInt32                                                     InternalBufferSize            { get; }
+
+        /// <summary>
+        /// The maximum number of retries when communicating with the remote HTTP service.
+        /// </summary>
+        public UInt16                                                     MaxNumberOfRetries            { get; }
+
+        /// <summary>
+        /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
+        /// </summary>
+        public Boolean                                                    UseHTTPPipelining             { get; }
+
+        /// <summary>
+        /// An optional description of this HTTP client.
+        /// </summary>
+        public I18NString                                                 Description                   { get; set; }
+
+        /// <summary>
+        /// Disable any logging.
+        /// </summary>
+        public Boolean                                                    DisableLogging                { get; }
+
+        /// <summary>
+        /// The HTTP client logger.
+        /// </summary>
+        public HTTPClientLogger?                                          HTTPLogger                    { get; set; }
+
+        /// <summary>
+        /// The DNS client defines which DNS servers to use.
+        /// </summary>
+        public IDNSClient                                                 DNSClient                     { get; }
+
+        public UInt64                                                     KeepAliveMessageCount         { get; private set; } = 0;
 
 
 
 
 
-
-        URL IHTTPClient.RemoteURL => throw new NotImplementedException();
-
-        public HTTPHostname? VirtualHostname => throw new NotImplementedException();
-
-        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>? RemoteCertificateValidator => throw new NotImplementedException();
-
-        public X509Certificate2? ClientCertificate => throw new NotImplementedException();
-
-        public HTTPContentType? ContentType => throw new NotImplementedException();
-
-        public AcceptTypes? Accept => throw new NotImplementedException();
+        //URL IHTTPClient.RemoteURL => throw new NotImplementedException();
 
         public IHTTPAuthentication? Authentication => throw new NotImplementedException();
 
-        public ConnectionType? Connection => throw new NotImplementedException();
-
-        public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-        public TransmissionRetryDelayDelegate TransmissionRetryDelay => throw new NotImplementedException();
-
-        public Boolean UseHTTPPipelining => throw new NotImplementedException();
-
-        public HTTPClientLogger? HTTPLogger => throw new NotImplementedException();
-
         public Boolean Connected => throw new NotImplementedException();
-
-        public SslProtocols TLSProtocols => throw new NotImplementedException();
-
-        public Boolean PreferIPv4 => throw new NotImplementedException();
-
-        public UInt16 MaxNumberOfRetries => throw new NotImplementedException();
-
-        public IDNSClient? DNSClient => throw new NotImplementedException();
-
-        public UInt64 KeepAliveMessageCount => throw new NotImplementedException();
-
-        public IHTTPAuthentication? HTTPAuthentication { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        public TOTPConfig? TOTPConfig { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #endregion
 
@@ -1168,9 +1266,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var requestBuilder = DefaultRequestBuilder();
 
             //requestBuilder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-            requestBuilder.Host        = HTTPHostname.Parse((RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
-                                                     (RemoteURL?.Port.HasValue == true && RemoteURL.Value.Port != IPPort.HTTP && RemoteURL.Value.Port != IPPort.HTTPS
-                                                          ? ":" + RemoteURL.Value.Port.ToString()
+            requestBuilder.Host        = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
+                                                     (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
+                                                          ? ":" + RemoteURL.Port.ToString()
                                                           : String.Empty));
             requestBuilder.HTTPMethod  = HTTPMethod;
             requestBuilder.Path        = HTTPPath;

@@ -369,13 +369,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
 
-        URL IHTTPClient.RemoteURL => throw new NotImplementedException();
+
+        public new RemoteTLSServerCertificateValidationHandler<IHTTPClient>? RemoteCertificateValidator
+        {
+            get
+            {
+                return base.RemoteCertificateValidator is not null
+                           ? (a, b, c, d, e) => base.RemoteCertificateValidator.Invoke(a, b, c, (ATLSTestClient) d, e)
+                           : null;
+            }
+        }
 
         public HTTPHostname? VirtualHostname => throw new NotImplementedException();
-
-        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>? RemoteCertificateValidator => throw new NotImplementedException();
-
-        public X509Certificate2? ClientCertificate => throw new NotImplementedException();
 
         public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
@@ -726,7 +731,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             httpStream = tcpClient?.GetStream();
 
             if (EnforceTLS ||
-                RemoteURL?.Protocol.EnforcesTLS() == true)
+                RemoteURL.Protocol.EnforcesTLS() == true)
             {
 
                 if (tlsStream is null || tlsStream.IsAuthenticated == false)
@@ -777,9 +782,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var requestBuilder = DefaultRequestBuilder();
 
             //requestBuilder.Host                                       = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-            requestBuilder.Host                                       = HTTPHostname.Parse((RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
-                                                                                    (RemoteURL?.Port.HasValue == true && RemoteURL.Value.Port != IPPort.HTTP && RemoteURL.Value.Port != IPPort.HTTPS
-                                                                                         ? ":" + RemoteURL.Value.Port.ToString()
+            requestBuilder.Host                                       = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
+                                                                                    (RemoteURL.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
+                                                                                         ? ":" + RemoteURL.Port.ToString()
                                                                                          : String.Empty));
             requestBuilder.HTTPMethod                                 = HTTPMethod;
             requestBuilder.Path                                       = HTTPPath;
@@ -909,7 +914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
 
                         if (retry > 1)
-                            DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL?.ToString() ?? RemoteSocket?.ToString() ?? "?"}, retry #{retry} of {MaxNumberOfRetries}...");
+                            DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{retry} of {MaxNumberOfRetries}...");
 
                         if (!IsConnected || !IsHTTPConnected || IsConnectionClosed)
                         {

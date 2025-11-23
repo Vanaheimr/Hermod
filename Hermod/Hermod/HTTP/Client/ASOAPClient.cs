@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Xml.Linq;
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -109,7 +110,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
@@ -117,7 +117,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
-        /// <param name="HTTPContentType">The HTTP content type to use.</param>
         /// <param name="Connection">An optional HTTP connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
@@ -133,7 +132,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               Boolean?                                                   PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                              X509Certificate2?                                          ClientCertificate            = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
+                              SslStreamCertificateContext?                               ClientCertificateContext     = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
                               SslProtocols?                                              TLSProtocol                  = null,
                               HTTPContentType?                                           ContentType                  = null,
                               AcceptTypes?                                               Accept                       = null,
@@ -158,7 +159,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    PreferIPv4,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
-                   ClientCertificate,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
                    TLSProtocol,
                    ContentType ?? HTTPContentType.Application.SOAPXML_UTF8,
                    Accept,

@@ -75,19 +75,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
         /// <summary>
-        /// Whether the client is currently connected to the echo server.
+        /// Whether the client is currently connected to the server.
         /// </summary>
         public Boolean      IsConnected
             => false;
 
 
         /// <summary>
-        /// The local IP end point of the connected echo server.
+        /// The local IP end point of the connected server.
         /// </summary>
         public IPEndPoint?  CurrentLocalEndPoint { get; private set; }
 
         /// <summary>
-        /// The local TCP port of the connected echo server.
+        /// The local TCP port of the connected server.
         /// </summary>
         public UInt16?      CurrentLocalPort
 
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    : null;
 
         /// <summary>
-        /// The local IP address of the connected echo server.
+        /// The local IP address of the connected server.
         /// </summary>
         public IIPAddress?  CurrentLocalIPAddress
 
@@ -106,12 +106,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
         /// <summary>
-        /// The remote IP end point of the connected echo server.
+        /// The remote IP end point of the connected server.
         /// </summary>
         public IPEndPoint?  CurrentRemoteEndPoint { get; private set; }
 
         /// <summary>
-        /// The remote TCP port of the connected echo server.
+        /// The remote TCP port of the connected server.
         /// </summary>
         public UInt16?      CurrentRemotePort
 
@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    : null;
 
         /// <summary>
-        /// The remote IP address of the connected echo server.
+        /// The remote IP address of the connected server.
         /// </summary>
         public IIPAddress?  CurrentRemoteIPAddress
 
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
                    : null;
 
-        public  URL?                     RemoteURL          { get; }
+        public  URL                      RemoteURL          { get; }
         public  TimeSpan                 ConnectTimeout     { get; }
         public  TimeSpan                 ReceiveTimeout     { get; }
         public  TimeSpan                 SendTimeout        { get; }

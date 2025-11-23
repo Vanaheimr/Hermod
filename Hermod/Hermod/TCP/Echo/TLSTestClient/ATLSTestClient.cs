@@ -52,19 +52,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote TLS server certificate validation handler.
         /// </summary>
-        public RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler    { get; }
-        public LocalCertificateSelectionHandler?                             LocalCertificateSelector              { get; }
-        public IEnumerable<X509Certificate2>                                 ClientCertificates                    { get; private set; } = [];
-        public SslStreamCertificateContext?                                  ClientCertificateContext              { get; private set; }
-        public IEnumerable<X509Certificate2>                                 ClientCertificateChain                { get; } = [];
-        public SslProtocols                                                  TLSProtocols                          { get; } = SslProtocols.Tls13;
-        public CipherSuitesPolicy?                                           CipherSuitesPolicy                    { get; }
-        public X509ChainPolicy?                                              CertificateChainPolicy                { get; }
-        public X509RevocationMode?                                           CertificateRevocationCheckMode        { get; }
-        public IEnumerable<SslApplicationProtocol>                           ApplicationProtocols                  { get; } = [];
-        public Boolean                                                       EnforceTLS                            { get; }
-        public Boolean?                                                      AllowRenegotiation                    { get; }
-        public Boolean?                                                      AllowTLSResume                        { get; }
+        public RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidator       { get; }
+        public LocalCertificateSelectionHandler?                             LocalCertificateSelector         { get; }
+        public IEnumerable<X509Certificate2>                                 ClientCertificates               { get; private set; } = [];
+        public SslStreamCertificateContext?                                  ClientCertificateContext         { get; private set; }
+        public IEnumerable<X509Certificate2>                                 ClientCertificateChain           { get; } = [];
+        public SslProtocols                                                  TLSProtocols                     { get; } = SslProtocols.Tls13;
+        public CipherSuitesPolicy?                                           CipherSuitesPolicy               { get; }
+        public X509ChainPolicy?                                              CertificateChainPolicy           { get; }
+        public X509RevocationMode?                                           CertificateRevocationCheckMode   { get; }
+        public IEnumerable<SslApplicationProtocol>                           ApplicationProtocols             { get; } = [];
+        public Boolean                                                       EnforceTLS                       { get; }
+        public Boolean?                                                      AllowRenegotiation               { get; }
+        public Boolean?                                                      AllowTLSResume                   { get; }
 
         #endregion
 
@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidator;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector            = LocalCertificateSelector;
             this.ClientCertificates                  = ClientCertificates               ?? [];
             this.ClientCertificateContext            = ClientCertificateContext;
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidator;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector            = LocalCertificateSelector;
             this.ClientCertificates                  = ClientCertificates               ?? [];
             this.ClientCertificateContext            = ClientCertificateContext;
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidator;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector            = LocalCertificateSelector;
             this.ClientCertificates                  = ClientCertificates               ?? [];
             this.ClientCertificateContext            = ClientCertificateContext;
@@ -284,9 +284,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 return response;
 
             if (EnforceTLS ||
-                RemoteURL?.Protocol == URLProtocols.tls   ||
-                RemoteURL?.Protocol == URLProtocols.https ||
-                RemoteURL?.Protocol == URLProtocols.wss)
+                RemoteURL.Protocol == URLProtocols.tls   ||
+                RemoteURL.Protocol == URLProtocols.https ||
+                RemoteURL.Protocol == URLProtocols.wss)
             {
 
                 var startTLSResult = await StartTLS(CancellationToken);
@@ -318,8 +318,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (tcpClient is null)
                 return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpClient)} is null!" });
 
-            if (RemoteCertificateValidationHandler is null)
-                return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidationHandler)} is null!" });
+            if (RemoteCertificateValidator is null)
+                return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidator)} is null!" });
 
             var remoteCertificateValidationErrors = new List<String>();
 
@@ -364,9 +364,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                                             : null,
                                                 AllowRenegotiation                    = AllowRenegotiation ?? true,
                                                 AllowTlsResume                        = AllowTLSResume     ?? true,
-                                                TargetHost                            = RemoteURL?.Hostname.ToString() ?? //SNI!
-                                                                                        DomainName?.        ToString() ??
-                                                                                        RemoteIPAddress?.   ToString(),
+                                                TargetHost                            = RemoteURL.Hostname.ToString() ?? //SNI!
+                                                                                        DomainName?.       ToString() ??
+                                                                                        RemoteIPAddress?.  ToString(),
                                                 ClientCertificates                    = ClientCertificates.IsNeitherNullNorEmpty()
                                                                                             ? [.. ClientCertificates.ToArray()]
                                                                                             : null,
@@ -378,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                 CertificateChainPolicy                = CertificateChainPolicy,
                                                 RemoteCertificateValidationCallback   = (sender, certificate, chain, policyErrors) => {
 
-                                                                                            var result = RemoteCertificateValidationHandler(
+                                                                                            var result = RemoteCertificateValidator(
                                                                                                              sender,
                                                                                                              certificate is not null
                                                                                                                  ? new X509Certificate2(certificate)

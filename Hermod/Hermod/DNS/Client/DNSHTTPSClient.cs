@@ -611,13 +611,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              //Host:   RemoteURL.Value.Hostname
                                          //};
 
-                httpRequestBuilder.SetHost(RemoteURL.Value.Hostname);
+                httpRequestBuilder.SetHost(RemoteURL.Hostname);
 
                 if (Mode == DNSHTTPSMode.GET)
                 {
                     // GET https://dns.google/dns-query?dns=fZABAAABAAAAAAAACGNoYXJnaW5nBWNsb3VkAAABAAE
                     httpRequestBuilder.HTTPMethod     = HTTPMethod.GET;
-                    httpRequestBuilder.Path           = RemoteURL.Value.Path;
+                    httpRequestBuilder.Path           = RemoteURL.Path;
                     httpRequestBuilder.Accept         = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.DNSMessage);
                     httpRequestBuilder.QueryString.Add("dns", dnsBytes.ToBase64URL());
                 }
@@ -625,7 +625,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 {
                     // POST https://dns.google/dns-query
                     httpRequestBuilder.HTTPMethod     = HTTPMethod.POST;
-                    httpRequestBuilder.Path           = RemoteURL.Value.Path;
+                    httpRequestBuilder.Path           = RemoteURL.Path;
                     httpRequestBuilder.Accept         = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.DNSMessage);
                     httpRequestBuilder.ContentType    = HTTPContentType.Application.DNSMessage;
                     httpRequestBuilder.ContentLength  = (UInt64) dnsBytes.Length;

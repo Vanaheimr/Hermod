@@ -130,9 +130,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public LocalCertificateSelectionHandler?                               LocalCertificateSelector                  { get; }
 
         /// <summary>
-        /// The TLS client certificate to use for HTTP authentication.
+        /// Multiple optional TLS client certificates to use for HTTP authentication (not a chain of certificates!).
         /// </summary>
-        public X509Certificate2?                                               ClientCertificate                         { get; }
+        public IEnumerable<X509Certificate2>                                   ClientCertificates                        { get; }
+
+        /// <summary>
+        /// The optionalTLS client certificate context to use for HTTP authentication.
+        /// </summary>
+        public SslStreamCertificateContext?                                    ClientCertificateContext                  { get; }
+
+        /// <summary>
+        /// The optional TLS client certificate chain to use for HTTP authentication.
+        /// </summary>
+        public IEnumerable<X509Certificate2>                                   ClientCertificateChain                    { get; }
 
         /// <summary>
         /// The TLS protocol to use.
@@ -410,7 +420,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean?                                                        PreferIPv4                   = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
-                               X509Certificate2?                                               ClientCertificate            = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificates           = null,
+                               SslStreamCertificateContext?                                    ClientCertificateContext     = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificateChain       = null,
                                SslProtocols?                                                   TLSProtocol                  = null,
                                String?                                                         HTTPUserAgent                = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                                            HTTPAuthentication           = null,
@@ -441,7 +453,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.Description                        = Description             ?? I18NString.Empty;
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
             this.LocalCertificateSelector           = LocalCertificateSelector;
-            this.ClientCertificate                  = ClientCertificate;
+            this.ClientCertificates                 = ClientCertificates      ?? [];
+            this.ClientCertificateContext           = ClientCertificateContext;
+            this.ClientCertificateChain             = ClientCertificateChain  ?? [];
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.TLSProtocols                       = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
@@ -565,8 +579,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     remoteIPEndPoint  = new System.Net.IPEndPoint(
                                                 new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
                                                 (RemoteURL.Port ?? (RemoteURL.Protocol == URLProtocols.https
-                                                                        ? IPPort.HTTPS
-                                                                        : IPPort.HTTP)).ToInt32()
+                                                                       ? IPPort.HTTPS
+                                                                       : IPPort.HTTP)).ToInt32()
                                             );
 
                     if (RemoteIPAddress.IsIPv4)
@@ -671,11 +685,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         {
 
                             await TLSStream.AuthenticateAsClientAsync(
-                                      RemoteURL.Hostname.Name,
-                                      ClientCertificate is not null
-                                          ? [.. new X509Certificate[] { ClientCertificate }]
-                                          : null,
-                                      SslProtocols.Tls12 | SslProtocols.Tls13,
+                                      RemoteURL.Hostname.Name ?? "",
+                                      [.. ClientCertificates],
+                                      TLSProtocols,
                                       false
                                   );
 

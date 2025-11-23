@@ -3317,7 +3317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                               ? (sender, certificate, chain, server, policyErrors) => (true, Array.Empty<String>())
                                                                                               : null,
                                                              LocalCertificateSelector:    null,
-                                                             ClientCertificate:           null,
+                                                             ClientCertificates:          null,
                                                              HTTPUserAgent:               null,
                                                              RequestTimeout:              null,
                                                              DNSClient:                   DNSClient

@@ -22,6 +22,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Net.Security;
 
 #endregion
 
@@ -60,9 +61,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; }
 
         /// <summary>
-        /// The TLS client certificate to use for HTTP authentication.
+        /// Multiple optional TLS client certificates to use for HTTP authentication (not a chain of certificates!).
         /// </summary>
-        X509Certificate2?                                          ClientCertificate             { get; }
+        IEnumerable<X509Certificate2>                              ClientCertificates            { get; }
+
+        /// <summary>
+        /// The optionalTLS client certificate context to use for HTTP authentication.
+        /// </summary>
+        SslStreamCertificateContext?                               ClientCertificateContext      { get; }
+
+        /// <summary>
+        /// The optional TLS client certificate chain to use for HTTP authentication.
+        /// </summary>
+        IEnumerable<X509Certificate2>                              ClientCertificateChain        { get; }
 
         /// <summary>
         /// The TLS protocol to use.

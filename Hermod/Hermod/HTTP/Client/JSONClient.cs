@@ -23,6 +23,7 @@ using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Net.Security;
 
 #endregion
 
@@ -64,7 +65,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                          X509Certificate2?                                          ClientCertificate            = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
+                          SslStreamCertificateContext?                               ClientCertificateContext     = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
                           SslProtocols?                                              TLSProtocol                  = null,
                           HTTPContentType?                                           ContentType                  = null,
                           AcceptTypes?                                               Accept                       = null,
@@ -85,7 +88,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                    PreferIPv4,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
-                   ClientCertificate,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
                    TLSProtocol,
                    ContentType,
                    Accept,

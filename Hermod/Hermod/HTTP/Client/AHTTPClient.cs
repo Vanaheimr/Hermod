@@ -222,9 +222,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public LocalCertificateSelectionHandler?                          LocalCertificateSelector      { get; }
 
         /// <summary>
-        /// The TLS client certificate to use for HTTP authentication.
+        /// Multiple optional TLS client certificates to use for HTTP authentication (not a chain of certificates!).
         /// </summary>
-        public X509Certificate2?                                          ClientCertificate             { get; }
+        public IEnumerable<X509Certificate2>                              ClientCertificates            { get; }
+
+        /// <summary>
+        /// The optionalTLS client certificate context to use for HTTP authentication.
+        /// </summary>
+        public SslStreamCertificateContext?                               ClientCertificateContext      { get; }
+
+        /// <summary>
+        /// The optional TLS client certificate chain to use for HTTP authentication.
+        /// </summary>
+        public IEnumerable<X509Certificate2>                              ClientCertificateChain        { get; }
 
         /// <summary>
         /// The TLS protocol to use.
@@ -569,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCertificate">The TLS client certificate to use for HTTP authentication.</param>
+        /// <param name="ClientCertificates">The TLS client certificates to use for HTTP authentication.</param>
         /// <param name="TLSProtocols">The TLS protocol to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
@@ -591,7 +601,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                              X509Certificate2?                                          ClientCertificate            = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
+                              SslStreamCertificateContext?                               ClientCertificateContext     = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
                               SslProtocols?                                              TLSProtocols                 = null,
                               HTTPContentType?                                           ContentType                  = null,
                               AcceptTypes?                                               Accept                       = null,
@@ -615,7 +627,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
-            this.ClientCertificate           = ClientCertificate;
+            this.ClientCertificates          = ClientCertificates     ?? [];
+            this.ClientCertificateContext    = ClientCertificateContext;
+            this.ClientCertificateChain      = ClientCertificateChain ?? [];
             this.TLSProtocols                = TLSProtocols           ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.ContentType                 = ContentType;
             this.Accept                      = Accept;
@@ -637,8 +651,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              ? IPPort.HTTP
                                                                              : IPPort.HTTPS);
 
-            if (this.LocalCertificateSelector is null && this.ClientCertificate is not null)
-                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCertificate;
+            if (this.LocalCertificateSelector is null && this.ClientCertificates is not null && this.ClientCertificates.Any())
+                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers)
+                                                    => this.ClientCertificates.First();
 
         }
 
@@ -694,7 +709,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ConnectionType?               Connection          = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
                                                  CancellationToken             CancellationToken   = default)
-{
+        {
 
             var builder = new HTTPRequest.Builder(this, CancellationToken) {
                               Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
@@ -1120,7 +1135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region Create (Crypto-)Stream
 
                     if (RemoteURL.Protocol == URLProtocols.https &&
-                        RemoteCertificateValidator is not null   &&
+                        RemoteCertificateValidator is not null    &&
                         tcpStream                  is not null)
                     {
 
@@ -1186,7 +1201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name,
+                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name ?? "",
                                                                           clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
                                                                           enabledSslProtocols:         TLSProtocols,
                                                                           checkCertificateRevocation:  false);// true);
@@ -1197,8 +1212,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             catch (Exception e)
                             {
 
-                                DebugX.Log($"TLS AuthenticateAsClientAsync to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
-                                timings.AddError($"TLS AuthenticateAsClientAsync to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
+                                DebugX.Log($"TLS AuthenticateAsClientAsync to {RemoteURL} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
+                                timings.AddError($"TLS AuthenticateAsClientAsync to {RemoteURL} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
 
                                 foreach (var error in remoteCertificateValidatorErrors)
                                     timings.AddError(error);

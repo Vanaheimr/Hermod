@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        public  URL?                            RemoteURL                 { get; }
+        public  URL                             RemoteURL                 { get; }
         public  IIPAddress?                     RemoteIPAddress           { get; private   set; }
         public  IPPort?                         RemotePort                { get; protected set; }
 
@@ -437,7 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 DomainName? dnsSRVRemoteHost   = null;
                 IPPort?     dnsSRVRemotePort   = null;
 
-                var hostname = (RemoteURL?.Hostname.Name ?? DomainName?.FullName)?.Trim();
+                var hostname = (RemoteURL.Hostname.Name ?? DomainName?.FullName)?.Trim();
 
                 if (hostname.IsNotNullOrEmpty())
                 {
@@ -572,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (RemoteIPAddress is not null)
                 {
 
-                    var remotePort   = RemoteURL?.Port ?? dnsSRVRemotePort ?? RemotePort;
+                    var remotePort   = RemoteURL.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
                         return (false, new List<String>() { "The remote TCP port must not be null!" });
