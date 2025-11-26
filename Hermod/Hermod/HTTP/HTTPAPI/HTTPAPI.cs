@@ -165,9 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(Task.Delay(Timeout.Value));
@@ -213,9 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
@@ -279,9 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             lock (subscribers)
             {
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                     ToArray();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
             }
 
             return Task.WhenAll(invocationList);
@@ -427,9 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(Task.Delay(Timeout.Value));
@@ -477,9 +469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
@@ -545,9 +535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             lock (subscribers)
             {
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                     ToArray();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
             }
 
             return Task.WhenAll(invocationList);
@@ -667,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             lock (subscribers)
             {
-                invocationList = subscribers.ToArray();
+                invocationList = [.. subscribers];
             }
 
             foreach (var callback in invocationList)
@@ -703,9 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(Task.Delay(Timeout.Value));
@@ -760,9 +746,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
@@ -834,9 +818,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             lock (subscribers)
             {
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
-                                     ToArray();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException))];
             }
 
             return Task.WhenAll(invocationList);
@@ -1065,7 +1047,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String?                  APIVersionHash              { get; }
 
 
-        public ApplicationRunTypes      RunType                     { get; }
+        public RunEnvironment           RunEnvironment              { get; }
 
         /// <summary>
         /// The unique identification of this HTTP API instance.
@@ -1073,7 +1055,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public System_Id                SystemId                    { get; }
 
 
-        public X509Certificate?         ServerCert                  { get; }
+        public X509Certificate?         ServerCertificate           { get; }
 
 
 
@@ -1375,7 +1357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPSSEsPath             = this.LoggingPath + "HTTPSSEs"       + Path.DirectorySeparatorChar;
             this.MetricsPath              = this.LoggingPath + "Metrics"        + Path.DirectorySeparatorChar;
 
-            this.RunType                  = ApplicationRunType.GetRunType();
+            this.RunEnvironment           = Application.RunEnvironment;
             this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
 
             if (this.DisableLogging == false)

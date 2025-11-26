@@ -334,7 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             this.CancellationToken        = CancellationTokenSource.Token;
 
             if (AutoStart)
-                Start();
+                Start().GetAwaiter().GetResult();
 
         }
 

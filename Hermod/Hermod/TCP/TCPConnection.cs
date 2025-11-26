@@ -122,13 +122,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             set
             {
 
-                readTimeoutMS                  = (Int32) value.TotalMilliseconds;
+                readTimeoutMS               = (Int32) value.TotalMilliseconds;
 
-                if (NetworkStream is not null)
-                    NetworkStream.ReadTimeout  = readTimeoutMS;
-
-                if (SSLStream     is not null)
-                    SSLStream.    ReadTimeout  = readTimeoutMS;
+                NetworkStream?.ReadTimeout  = readTimeoutMS;
+                SSLStream?.    ReadTimeout  = readTimeoutMS;
 
             }
 
@@ -155,13 +152,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             set
             {
 
-                writeTimeoutMS                  = (Int32) value.TotalMilliseconds;
+                writeTimeoutMS               = (Int32) value.TotalMilliseconds;
 
-                if (NetworkStream is not null)
-                    NetworkStream.WriteTimeout  = writeTimeoutMS;
-
-                if (SSLStream     is not null)
-                    SSLStream.WriteTimeout      = writeTimeoutMS;
+                NetworkStream?.WriteTimeout  = writeTimeoutMS;
+                SSLStream?.    WriteTimeout  = writeTimeoutMS;
 
             }
 
@@ -617,7 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="Encoding">The character encoding of the string (default: UTF8).</param>
         /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
         /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
-        public String ReadString(Int32 MaxLength = 1024, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
+        public String ReadString(Int32 MaxLength = 1024, Encoding? Encoding = null, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
             if (!NetworkStream.CanRead)
@@ -656,8 +650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 if (Position > 0)
                 {
 
-                    if (Encoding is null)
-                        Encoding = Encoding.UTF8;
+                    Encoding ??= Encoding.UTF8;
 
                     Array.Resize(ref ByteArray, (Int32) Position - 1);
 
@@ -696,14 +689,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (!SleepingTime.HasValue)
                 SleepingTime = TimeSpan.FromMilliseconds(5);
 
+            MaxInitialWaitingTime ??= TimeSpan.FromMilliseconds(500);
+
             if (__ReadTimeout.HasValue)
             {
-
                 NetworkStream.ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
-
-                if (SSLStream is not null)
-                    SSLStream.ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
-
+                SSLStream?.   ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
             }
 
             var sleepingTimeMS           = (Int32) SleepingTime.Value.TotalMilliseconds;
@@ -772,7 +763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 }
                 catch (Exception e)
                 {
-
+                    DebugX.LogException(e, $"{nameof(TCPConnection)} {RemoteIPAddress}:{RemotePort}");
                 }
 
                 if (Position > 0)

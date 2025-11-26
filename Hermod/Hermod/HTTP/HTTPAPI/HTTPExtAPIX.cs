@@ -13389,11 +13389,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                           EventTracking_Id?        EventTrackingId   = null,
                                                           User_Id?                 CurrentUserId     = null)
 
-            => SendNotifications(User,
-                                 new NotificationMessageType[] { MessageType },
-                                 OldUser,
-                                 EventTrackingId,
-                                 CurrentUserId);
+            => SendNotifications(
+                   User,
+                   [ MessageType ],
+                   OldUser,
+                   EventTrackingId,
+                   CurrentUserId
+               );
 
 
         /// <summary>

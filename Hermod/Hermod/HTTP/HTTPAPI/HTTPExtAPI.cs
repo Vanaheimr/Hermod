@@ -2399,7 +2399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
 
             if (AutoStart)
-                Start();
+                Start().GetAwaiter().GetResult();
 
         }
 

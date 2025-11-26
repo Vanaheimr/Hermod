@@ -637,7 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public override Int32 CompareTo(Object Object)
+        public override Int32 CompareTo(Object? Object)
 
             => Object is APIKey apiKey
                    ? CompareTo(apiKey)
@@ -651,7 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="APIKey">An object to compare with.</param>
-        public override Int32 CompareTo(APIKey APIKey)
+        public override Int32 CompareTo(APIKey? APIKey)
 
             => APIKey is not null
                    ? Id.CompareTo(APIKey.Id)
@@ -684,7 +684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="APIKey">An API key to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public override Boolean Equals(APIKey APIKey)
+        public override Boolean Equals(APIKey? APIKey)
 
             => APIKey is not null &&
                    Id.Equals(APIKey.Id);
