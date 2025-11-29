@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         public ServerCertificateSelectorDelegate?                        ServerCertificateSelector     { get; }
-        public RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator    { get; }
+        public RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator    { get; set; }
         public LocalCertificateSelectionHandler?                         LocalCertificateSelector      { get; }
         public SslProtocols?                                             AllowedTLSProtocols           { get; }
         public Boolean                                                   ClientCertificateRequired     { get; }
@@ -533,6 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                      ClientCertificateValidator:  ClientCertificateValidator,
                                                      LocalCertificateSelector:    LocalCertificateSelector,
                                                      AllowedTLSProtocols:         AllowedTLSProtocols,
+                                                     SSLStream:                   null,
                                                      ReadTimeout:                 ReceiveTimeout,
                                                      WriteTimeout:                SendTimeout
                                                  );

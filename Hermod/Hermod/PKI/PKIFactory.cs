@@ -39,6 +39,7 @@ using BCx509 = Org.BouncyCastle.X509;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Text;
 
 #endregion
 
@@ -1600,7 +1601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
 
 
-        #region (static) ValidateChain       (Certificate, IntermediateCertificate,  RootCertificate, ApplicationPolicy = null, VerificationTime = null)
+        #region (static) ValidateChain       (Certificate, IntermediateCertificate,      RootCertificate, ApplicationPolicy = null, VerificationTime = null)
 
         public static ChainReport ValidateChain(X509Certificate2  Certificate,
                                                 X509Certificate2  IntermediateCertificate,
@@ -1618,7 +1619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
-        #region (static) ValidateChain       (Certificate, IntermediateCertificate,  RootCertificate, ApplicationPolicy = null)
+        #region (static) ValidateChain       (Certificate, IntermediateCertificate,      RootCertificate, ApplicationPolicy = null, VerificationTime = null)
 
         public static ChainReport ValidateChain(X509Certificate2               Certificate,
                                                 IEnumerable<X509Certificate2>  IntermediateCertificates,
@@ -1678,7 +1679,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
-        #region (static) ValidateServerChain (Certificate, IntermediateCertificate,  RootCertificate, VerificationTime = null)
+        #region (static) ValidateChain       (Certificate, IntermediateCertificateChain, RootCertificate, ApplicationPolicy = null, VerificationTime = null)
+
+        public static ChainReport ValidateChain(X509Certificate2  Certificate,
+                                                X509Chain         IntermediateCertificateChain,
+                                                X509Certificate2  RootCertificate,
+                                                OidCollection?    ApplicationPolicy   = null,
+                                                DateTimeOffset?   VerificationTime    = null)
+
+            => ValidateChain(
+                   Certificate,
+                   IntermediateCertificateChain.ChainElements.
+                       Select(chainElement => chainElement.Certificate).
+                       Where (certificate  => certificate != Certificate),
+                   RootCertificate,
+                   ApplicationPolicy,
+                   VerificationTime
+               );
+
+        #endregion
+
+
+        #region (static) ValidateServerChain (Certificate, IntermediateCertificate,      RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateServerChain(X509Certificate2  Certificate,
                                                       X509Certificate2  IntermediateCertificate,
@@ -1695,7 +1717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
-        #region (static) ValidateServerChain (Certificate, IntermediateCertificates, RootCertificate, VerificationTime = null)
+        #region (static) ValidateServerChain (Certificate, IntermediateCertificates,     RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateServerChain(X509Certificate2               Certificate,
                                                       IEnumerable<X509Certificate2>  IntermediateCertificates,
@@ -1712,7 +1734,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
-        #region (static) ValidateClientChain (Certificate, IntermediateCertificate,  RootCertificate, VerificationTime = null)
+        #region (static) ValidateServerChain (Certificate, IntermediateCertificateChain, RootCertificate, VerificationTime = null)
+
+        public static ChainReport ValidateServerChain(X509Certificate2  Certificate,
+                                                      X509Chain         IntermediateCertificateChain,
+                                                      X509Certificate2  RootCertificate,
+                                                      DateTimeOffset?   VerificationTime   = null)
+
+            => ValidateChain(
+                   Certificate,
+                   IntermediateCertificateChain.ChainElements.
+                       Select(chainElement => chainElement.Certificate).
+                       Where (certificate  => certificate != Certificate),
+                   RootCertificate,
+                   [ new Oid("1.3.6.1.5.5.7.3.1") ],  // serverAuth
+                   VerificationTime
+               );
+
+        #endregion
+
+
+        #region (static) ValidateClientChain (Certificate, IntermediateCertificate,      RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateClientChain(X509Certificate2  Certificate,
                                                       X509Certificate2  IntermediateCertificates,
@@ -1729,7 +1771,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
-        #region (static) ValidateClientChain (Certificate, IntermediateCertificates, RootCertificate, VerificationTime = null)
+        #region (static) ValidateClientChain (Certificate, IntermediateCertificates,     RootCertificate, VerificationTime = null)
 
         public static ChainReport ValidateClientChain(X509Certificate2               Certificate,
                                                       IEnumerable<X509Certificate2>  IntermediateCertificates,
@@ -1739,6 +1781,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
             => ValidateChain(
                    Certificate,
                    IntermediateCertificates,
+                   RootCertificate,
+                   [ new Oid("1.3.6.1.5.5.7.3.2") ],  // clientAuth
+                   VerificationTime
+               );
+
+        #endregion
+
+        #region (static) ValidateClientChain (Certificate, IntermediateCertificateChain, RootCertificate, VerificationTime = null)
+
+        public static ChainReport ValidateClientChain(X509Certificate2  Certificate,
+                                                      X509Chain         IntermediateCertificateChain,
+                                                      X509Certificate2  RootCertificate,
+                                                      DateTimeOffset?   VerificationTime   = null)
+
+            => ValidateChain(
+                   Certificate,
+                   IntermediateCertificateChain.ChainElements.
+                       Select(chainElement => chainElement.Certificate).
+                       Where (certificate  => certificate != Certificate),
                    RootCertificate,
                    [ new Oid("1.3.6.1.5.5.7.3.2") ],  // clientAuth
                    VerificationTime
@@ -1834,7 +1895,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
         #endregion
 
 
+        public static String ExportCertificateAndPrivateKeyPEM(this X509Certificate2 Certificate)
+        {
 
+            if (!Certificate.HasPrivateKey)
+                throw new InvalidOperationException("The given certificate does not have an associated private key!");
+
+            var sb = new StringBuilder();
+
+            sb.Append(Certificate.ExportCertificatePem());
+
+            var privateKeyPEM = ExportPrivateKeyPkcs8PEM(Certificate);
+            if (privateKeyPEM.IsNotNullOrEmpty())
+            {
+                sb.AppendLine();
+                sb.Append(privateKeyPEM);
+            }
+
+            return sb.ToString();
+
+        }
+
+        private static String ExportPrivateKeyPkcs8PEM(X509Certificate2 cert)
+        {
+
+            try
+            {
+
+                if (cert.GetRSAPrivateKey()   is RSA   rsa)
+                    return rsa.  ExportPkcs8PrivateKeyPem();
+
+                if (cert.GetECDsaPrivateKey() is ECDsa ecdsa)
+                    return ecdsa.ExportPkcs8PrivateKeyPem();
+
+            }
+            catch (Exception e)
+            {
+                return e.Message;
+            }
+
+            return String.Empty;
+
+        }
 
 
         // BouncyCastle
