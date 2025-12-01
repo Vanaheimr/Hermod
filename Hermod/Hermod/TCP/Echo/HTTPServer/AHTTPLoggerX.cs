@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public  static readonly  TimeSpan                                       MaxWaitingForALock  = TimeSpan.FromSeconds(15);
 
-        protected      readonly  ConcurrentDictionary<String, HashSet<String>>  groupTags           = [];
+        protected      readonly  ConcurrentDictionary<String, HashSet<String>>  groupTags           = new (StringComparer.OrdinalIgnoreCase);
 
         #endregion
 

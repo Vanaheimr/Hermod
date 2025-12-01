@@ -203,53 +203,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region ParseContent      (this Response, ContentParser)
+        #region ParseContent       (this Response, ContentParser)
 
         public static HTTPResponse<TResult> ParseContent<TResult>(this HTTPResponse      Response,
                                                                   Func<Byte[], TResult>  ContentParser)
 
             => new (Response,
-                    ContentParser(Response.HTTPBody));
+                    ContentParser(Response.HTTPBody ?? []));
 
         #endregion
 
-        #region ParseContentStream(this Response, ContentParser)
+        #region ParseContentStream (this Response, ContentParser)
 
         public static HTTPResponse<TResult> ParseContentStream<TResult>(this HTTPResponse      Response,
                                                                         Func<Stream, TResult>  ContentParser)
 
             => new (Response,
-                    ContentParser(Response.HTTPBodyStream));
+                    ContentParser(Response.HTTPBodyStream ?? new MemoryStream()));
 
         #endregion
 
-        #region CreateLogEntry    (this Response)
+        #region CreateLogEntry     (this Response)
 
         public static String CreateLogEntry(this HTTPResponse Response)
 
             => String.Concat(
-                   HTTPResponse.RequestMarker,                                                                        Environment.NewLine,
-                   Response.HTTPRequest.HTTPSource.ToString(), " -> ", Response.HTTPRequest.RemoteSocket.ToString(),  Environment.NewLine,
-                   Response.HTTPRequest.Timestamp.ToISO8601(),                                                        Environment.NewLine,
-                   Response.HTTPRequest.EventTrackingId,                                                              Environment.NewLine,
-                   Response.HTTPRequest.EntirePDU,                                                                    Environment.NewLine,
-                   HTTPResponse.ResponseMarker,                                                                       Environment.NewLine,
-                   Response.Timestamp.ToISO8601(),                                                                    Environment.NewLine,
-                   Response.EntirePDU,                                                                                Environment.NewLine,
-                   HTTPResponse.EndMarker,                                                                            Environment.NewLine
+                   HTTPResponse.RequestMarker,                                                                          Environment.NewLine,
+                   Response.HTTPRequest?.HTTPSource.ToString(), " -> ", Response.HTTPRequest?.RemoteSocket.ToString(),  Environment.NewLine,
+                   Response.HTTPRequest?.Timestamp.ToISO8601(),                                                         Environment.NewLine,
+                   Response.HTTPRequest?.EventTrackingId,                                                               Environment.NewLine,
+                   Response.HTTPRequest?.EntirePDU,                                                                     Environment.NewLine,
+                   HTTPResponse.ResponseMarker,                                                                         Environment.NewLine,
+                   Response.Timestamp.ToISO8601(),                                                                      Environment.NewLine,
+                   Response.EntirePDU,                                                                                  Environment.NewLine,
+                   HTTPResponse.EndMarker,                                                                              Environment.NewLine
                );
 
         #endregion
 
-        #region AppendToLogfile   (this Response, Logfilename)
+        #region AppendToLogfile    (this Response, Logfilename)
 
-        public static void AppendToLogfile(this HTTPResponse  Response,
-                                           String             Logfilename)
+        public static async Task AppendToLogfile(this HTTPResponse  Response,
+                                                 String             Logfilename)
         {
-            using (var Logfile = File.AppendText(Logfilename))
-            {
-                Logfile.WriteLine(CreateLogEntry(Response));
-            }
+
+            await File.AppendAllTextAsync(
+                      Logfilename,
+                      CreateLogEntry(Response) + Environment.NewLine
+                  );
+
         }
 
         #endregion
