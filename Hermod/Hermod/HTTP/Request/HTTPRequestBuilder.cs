@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The related HTTP server.
             /// </summary>
-            public HTTPServer?  HTTPServer      { get; set; }
+            public HTTPServer?  HTTPServer            { get; set; }
 
             #region EntireRequestHeader
 
@@ -69,24 +69,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The http method.
             /// </summary>
-            public HTTPMethod   HTTPMethod      { get; set; }
+            public HTTPMethod   HTTPMethod            { get; set; }
 
             /// <summary>
             /// Fake URL prefix.
             /// </summary>
-            public String?      FakeURLPrefix   { get; set; }
+            public String?      FakeURLPrefix         { get; set; }
 
             /// <summary>
             /// The minimal path (this means e.g. without the query string).
             /// </summary>
-            public HTTPPath     Path            { get; set; }
+            public HTTPPath     Path                  { get; set; }
 
             /// <summary>
             /// The HTTP query string.
             /// </summary>
-            public QueryString  QueryString     { get; internal set; }
+            public QueryString  QueryString           { get; internal set; }
 
             public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker { get; set; } = (request, stream) => Task.CompletedTask;
+
+            public Object?      SubprotocolRequest    { get; set; }
 
             #endregion
 
@@ -805,17 +807,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             {
 
-                this.HTTPServer       = Request.HTTPServer;
-                this.HTTPMethod       = Request.HTTPMethod;
-                this.Path             = Request.Path;
-                this.QueryString      = Request.QueryString;
+                this.HTTPServer          = Request.HTTPServer;
+                this.HTTPMethod          = Request.HTTPMethod;
+                this.Path                = Request.Path;
+                this.QueryString         = Request.QueryString;
                 if (Request.Accept is not null)
                     SetHeaderField(HTTPRequestHeaderField.Accept, Request.Accept.Clone());
-                this.ProtocolName     = Request.ProtocolName;
-                this.ProtocolVersion  = Request.ProtocolVersion;
+                this.ProtocolName        = Request.ProtocolName;
+                this.ProtocolVersion     = Request.ProtocolVersion;
 
-                this.Content          = Request.HTTPBody;
-                this.ContentStream    = Request.HTTPBodyStream;
+                this.Content             = Request.HTTPBody;
+                this.ContentStream       = Request.HTTPBodyStream;
+
+                this.SubprotocolRequest  = Request.SubprotocolRequest;
 
                 foreach (var kvp in Request)
                     Set(kvp.Key, kvp.Value);
@@ -1570,8 +1574,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Content,
                                HTTPServer: HTTPServer) {
 
-                        FakeURLPrefix  = FakeURLPrefix,
-                        ChunkWorker    = ChunkWorker
+                        FakeURLPrefix       = FakeURLPrefix,
+                        ChunkWorker         = ChunkWorker,
+                        SubprotocolRequest  = SubprotocolRequest
 
                     };
 

@@ -2640,7 +2640,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
+        public Builder AsBuilder()
+            => new (this);
 
 
         #region (override) ToString()

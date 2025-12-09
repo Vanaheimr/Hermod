@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -175,65 +176,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RFC 2616 - HTTP/1.1
 
-        public static HTTPMethod CONNECT    { get; }
+        public static HTTPMethod CONNECT            { get; }
             = Register("CONNECT");
 
         /// <summary>
         /// Delete the given resource.
         /// </summary>
-        public static HTTPMethod DELETE    { get; }
+        public static HTTPMethod DELETE             { get; }
             = Register("DELETE",  IsIdempotent: true);
 
         /// <summary>
         /// Return the given resource.
         /// </summary>
-        public static HTTPMethod GET    { get; }
+        public static HTTPMethod  GET               { get; }
             = Register("GET",     IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Return only the headers (not including the body) of the given resource.
         /// </summary>
-        public static HTTPMethod HEAD    { get; }
+        public static HTTPMethod  HEAD              { get; }
             = Register("HEAD",    IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Return a list of valid HTTP verbs for the given resource.
         /// </summary>
-        public static HTTPMethod OPTIONS    { get; }
+        public static HTTPMethod  OPTIONS           { get; }
             = Register("OPTIONS", IsIdempotent: true);
 
-        public static HTTPMethod POST    { get; }
+        public static HTTPMethod  POST              { get; }
             = Register("POST");
 
-        public static HTTPMethod PUT    { get; }
+        public static HTTPMethod  PUT               { get; }
             = Register("PUT",     IsIdempotent: true);
 
-        public static HTTPMethod TRACE    { get; }
+        public static HTTPMethod  TRACE             { get; }
             = Register("TRACE",   IsIdempotent: true);
 
         #endregion
 
         #region RFC 4918 - WebDAV
 
-        public static HTTPMethod COPY    { get; }
+        public static HTTPMethod  COPY              { get; }
             = Register("COPY");
 
-        public static HTTPMethod LOCK    { get; }
+        public static HTTPMethod  LOCK              { get; }
             = Register("LOCK");
 
-        public static HTTPMethod MKCOL    { get; }
+        public static HTTPMethod  MKCOL             { get; }
             = Register("MKCOL");
 
-        public static HTTPMethod MOVE    { get; }
+        public static HTTPMethod  MOVE              { get; }
             = Register("MOVE");
 
-        public static HTTPMethod PROPFIND    { get; }
+        public static HTTPMethod  PROPFIND          { get; }
             = Register("PROPFIND");
 
-        public static HTTPMethod PROPPATCH    { get; }
+        public static HTTPMethod  PROPPATCH         { get; }
             = Register("PROPPATCH");
 
-        public static HTTPMethod UNLOCK
+        public static HTTPMethod  UNLOCK            { get; }
             = Register("UNLOCK");
 
         #endregion
@@ -243,31 +244,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Similar to SEARCH, searches for matching items, but might filter or sort those items differently.
         /// </summary>
-        public static HTTPMethod SEARCH    { get; }
+        public static HTTPMethod  SEARCH            { get; }
             = Register("SEARCH",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Similar to GET, checks wether a resource exists, but only returns 'true' or 'false'.
         /// </summary>
-        public static HTTPMethod EXISTS    { get; }
+        public static HTTPMethod  EXISTS            { get; }
             = Register("EXISTS",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Counts the number of elements in a resource collection.
         /// </summary>
-        public static HTTPMethod COUNT    { get; }
+        public static HTTPMethod  COUNT             { get; }
             = Register("COUNT",    IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Similar to GET, but with an additional filter methods within the http body.
         /// </summary>
-        public static HTTPMethod FILTER    { get; }
+        public static HTTPMethod  FILTER            { get; }
             = Register("FILTER",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Returns dynamic status information on a single resource or an entire resource collection.
         /// </summary>
-        public static HTTPMethod STATUS    { get; }
+        public static HTTPMethod  STATUS            { get; }
             = Register("STATUS",   IsIdempotent: true, IsSafe: true);
 
 
@@ -275,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Creates a new resource. Within a resource collection the unique
         /// identification of the new resource will be chosen by the server.
         /// </summary>
-        public static HTTPMethod CREATE    { get; }
+        public static HTTPMethod  CREATE            { get; }
             = Register("CREATE");
 
         /// <summary>
@@ -283,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// a unique identification of the resource is missing or already
         /// exists on the server.
         /// </summary>
-        public static HTTPMethod ADD    { get; }
+        public static HTTPMethod  ADD               { get; }
             = Register("ADD");
 
         /// <summary>
@@ -291,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// ignored when the unique identification of the resource already exists on
         /// the server.
         /// </summary>
-        public static HTTPMethod ADDIFNOTEXISTS    { get; }
+        public static HTTPMethod  ADDIFNOTEXISTS    { get; }
             = Register("ADDIFNOTEXISTS");
 
 
@@ -299,146 +300,146 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Patch the given resource.
         /// </summary>
-        public static HTTPMethod PATCH    { get; }
+        public static HTTPMethod  PATCH             { get; }
             = Register("PATCH");
 
         /// <summary>
         /// Announce the given resource.
         /// </summary>
-        public static HTTPMethod ANNOUNCE    { get; }
+        public static HTTPMethod  ANNOUNCE          { get; }
             = Register("ANNOUNCE", IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Traverse the given resource.
         /// </summary>
-        public static HTTPMethod TRAVERSE    { get; }
+        public static HTTPMethod  TRAVERSE          { get; }
             = Register("TRAVERSE");
 
         /// <summary>
         /// Query a resource.
         /// </summary>
-        public static HTTPMethod QUERY    { get; }
+        public static HTTPMethod  QUERY             { get; }
             = Register("QUERY");
 
         /// <summary>
         /// Composes a new resource (e.g. send a html form to compose a new resource)
         /// </summary>
-        public static HTTPMethod COMPOSE    { get; }
+        public static HTTPMethod  COMPOSE           { get; }
             = Register("COMPOSE");
 
         /// <summary>
         /// SET the value of a resource (a replacement for PUT and POST)
         /// </summary>
-        public static HTTPMethod SET    { get; }
+        public static HTTPMethod  SET               { get; }
             = Register("SET");
 
         /// <summary>
         /// RESET the value of a resource
         /// </summary>
-        public static HTTPMethod RESET    { get; }
+        public static HTTPMethod  RESET             { get; }
             = Register("RESET");
 
         /// <summary>
         /// Change the owner of a resource
         /// </summary>
-        public static HTTPMethod CHOWN    { get; }
+        public static HTTPMethod  CHOWN             { get; }
             = Register("CHOWN");
 
         /// <summary>
         /// Authenticate the given user/resource.
         /// </summary>
-        public static HTTPMethod AUTH    { get; }
+        public static HTTPMethod  AUTH              { get; }
             = Register("AUTH");
 
         /// <summary>
         /// Deauthenticate the given user/resource.
         /// </summary>
-        public static HTTPMethod DEAUTH    { get; }
+        public static HTTPMethod  DEAUTH            { get; }
             = Register("DEAUTH");
 
         /// <summary>
         /// Impersonate (become/switch to) the given user/resource.
         /// </summary>
-        public static HTTPMethod IMPERSONATE    { get; }
+        public static HTTPMethod  IMPERSONATE       { get; }
             = Register("IMPERSONATE");
 
         /// <summary>
         /// Depersonate (switch back) from the given user/resource.
         /// </summary>
-        public static HTTPMethod DEPERSONATE    { get; }
+        public static HTTPMethod  DEPERSONATE       { get; }
             = Register("DEPERSONATE");
 
         /// <summary>
         /// Update a resource (a replacement for PUT)
         /// </summary>
-        public static HTTPMethod UPDATE    { get; }
+        public static HTTPMethod  UPDATE            { get; }
             = Register("UPDATE");
 
         /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
-        public static HTTPMethod EDIT    { get; }
+        public static HTTPMethod  EDIT              { get; }
             = Register("EDIT");
 
         /// <summary>
         /// Monitors a resource or collection resource for modifications using an eventstream.
         /// </summary>
-        public static HTTPMethod MONITOR    { get; }
+        public static HTTPMethod  MONITOR           { get; }
             = Register("MONITOR");
 
         /// <summary>
         /// Maps all elements of a collection resource and may reduce this to a second data structure.
         /// This can be implemented via two JavaScript functions within the HTTP body.
         /// </summary>
-        public static HTTPMethod MAPREDUCE    { get; }
+        public static HTTPMethod  MAPREDUCE         { get; }
             = Register("MAPREDUCE");
 
         /// <summary>
         /// Subscribe an URI to receive notifications from this resource.
         /// </summary>
-        public static HTTPMethod SUBSCRIBE    { get; }
+        public static HTTPMethod  SUBSCRIBE         { get; }
             = Register("SUBSCRIBE");
 
         /// <summary>
         /// Unsubscribe an URI to receive notifications from this resource.
         /// </summary>
-        public static HTTPMethod UNSUBSCRIBE    { get; }
+        public static HTTPMethod  UNSUBSCRIBE       { get; }
             = Register("UNSUBSCRIBE");
 
         /// <summary>
         /// Notify a subscriber of an URI about notifications from a resource.
         /// </summary>
-        public static HTTPMethod NOTIFY    { get; }
+        public static HTTPMethod  NOTIFY            { get; }
             = Register("NOTIFY");
 
         /// <summary>
         /// Check a resource.
         /// </summary>
-        public static HTTPMethod CHECK    { get; }
+        public static HTTPMethod  CHECK             { get; }
             = Register("CHECK");
 
         /// <summary>
         /// Clear a (collection) resource.
         /// </summary>
-        public static HTTPMethod CLEAR    { get; }
+        public static HTTPMethod  CLEAR             { get; }
             = Register("CLEAR");
 
         /// <summary>
         /// Signup a resource.
         /// </summary>
-        public static HTTPMethod SIGNUP    { get; }
+        public static HTTPMethod  SIGNUP            { get; }
             = Register("SIGNUP");
 
         /// <summary>
         /// Validate a resource.
         /// </summary>
-        public static HTTPMethod VALIDATE    { get; }
+        public static HTTPMethod  VALIDATE          { get; }
             = Register("VALIDATE");
 
         /// <summary>
         /// Mirror a resource.
         /// </summary>
-        public static HTTPMethod MIRROR    { get; }
+        public static HTTPMethod  MIRROR            { get; }
             = Register("MIRROR");
 
         #endregion
@@ -463,7 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          out var httpMethod,
                          IsSafe,
                          IsIdempotent,
-                         Description) && httpMethod is not null)
+                         Description))
             {
                 return httpMethod;
             }
@@ -514,8 +515,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">An HTTP method name.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
-        public static Boolean TryParse(String           Text,
-                                       out HTTPMethod?  HTTPMethod)
+        public static Boolean TryParse(String                               Text,
+                                       [NotNullWhen(true)] out HTTPMethod?  HTTPMethod)
 
             => TryParse(Text,
                         out HTTPMethod,
@@ -532,11 +533,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IsSafe">Whether the HTTP method does not cause any changes or side-effects on the server-side.</param>
         /// <param name="IsIdempotent">Whether the HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
-        public static Boolean TryParse(String           Text,
-                                       out HTTPMethod?  HTTPMethod,
-                                       Boolean          IsSafe         = false,
-                                       Boolean          IsIdempotent   = false,
-                                       String?          Description    = null)
+        public static Boolean TryParse(String                               Text,
+                                       [NotNullWhen(true)] out HTTPMethod?  HTTPMethod,
+                                       Boolean                              IsSafe         = false,
+                                       Boolean                              IsIdempotent   = false,
+                                       String?                              Description    = null)
         {
 
             Text = Text.Trim();
@@ -720,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 c = IsIdempotent.CompareTo(HTTPMethod.IsIdempotent);
 
             if (c == 0 && Description is not null && HTTPMethod.Description is not null)
-                Description.     CompareTo(HTTPMethod.Description);
+                c = Description. CompareTo(HTTPMethod.Description);
 
             return c;
 
