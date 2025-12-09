@@ -35,8 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              String                        PrivateKey,
                              IEnumerable<CryptoSignature>  Signatures,
                              IEnumerable<CryptoKeyUsage>   KeyUsages,
-                             DateTime?                     NotBefore,
-                             DateTime?                     NotAfter,
+                             DateTimeOffset?               NotBefore,
+                             DateTimeOffset?               NotAfter,
                              DataEncoding?                 KeyEncoding,
                              UInt32?                       Priority) //ToDo: Perhaps "Priority per key usage"?
 
@@ -52,12 +52,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         { }
 
-        public SecP256r1Keys(String          PublicKey,
-                             String          PrivateKey,
-                             CryptoKeyUsage  KeyUsage,
-                             DateTime?       NotBefore     = null,
-                             DateTime?       NotAfter      = null,
-                             DataEncoding?   KeyEncoding   = null)
+        public SecP256r1Keys(String           PublicKey,
+                             String           PrivateKey,
+                             CryptoKeyUsage   KeyUsage,
+                             DateTimeOffset?  NotBefore     = null,
+                             DateTimeOffset?  NotAfter      = null,
+                             DataEncoding?    KeyEncoding   = null)
 
             : base(PublicKey,
                    PrivateKey,
@@ -82,8 +82,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              String                        PrivateKey,
                              IEnumerable<CryptoSignature>  Signatures,
                              IEnumerable<CryptoKeyUsage>   KeyUsages,
-                             DateTime?                     NotBefore,
-                             DateTime?                     NotAfter,
+                             DateTimeOffset?               NotBefore,
+                             DateTimeOffset?               NotAfter,
                              DataEncoding?                 KeyEncoding,
                              UInt32?                       Priority) //ToDo: Perhaps "Priority per key usage"?
 
@@ -99,12 +99,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         { }
 
-        public SecP521r1Keys(String          PublicKey,
-                             String          PrivateKey,
-                             CryptoKeyUsage  KeyUsage,
-                             DateTime?       NotBefore     = null,
-                             DateTime?       NotAfter      = null,
-                             DataEncoding?   KeyEncoding   = null)
+        public SecP521r1Keys(String           PublicKey,
+                             String           PrivateKey,
+                             CryptoKeyUsage   KeyUsage,
+                             DateTimeOffset?  NotBefore     = null,
+                             DateTimeOffset?  NotAfter      = null,
+                             DataEncoding?    KeyEncoding   = null)
 
             : base(PublicKey,
                    PrivateKey,
@@ -147,8 +147,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public HashSet<CryptoKeyUsage>       KeyUsages        { get; }
 
-        public DateTime?                     NotBefore        { get; }
-        public DateTime?                     NotAfter         { get; }
+        public DateTimeOffset?               NotBefore        { get; }
+        public DateTimeOffset?               NotAfter         { get; }
 
         /// <summary>
         /// The type of the crypto keys.
@@ -173,8 +173,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              String                        PrivateKey,
                              IEnumerable<CryptoSignature>  Signatures,
                              IEnumerable<CryptoKeyUsage>   KeyUsages,
-                             DateTime?                     NotBefore,
-                             DateTime?                     NotAfter,
+                             DateTimeOffset?               NotBefore,
+                             DateTimeOffset?               NotAfter,
                              CryptoKeyType?                KeyType,
                              DataEncoding?                 KeyEncoding,
                              UInt32?                       Priority) //ToDo: Perhaps "Priority per key usage"?
@@ -194,13 +194,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
-        public CryptoKeyInfo(String          PublicKey,
-                             String          PrivateKey,
-                             CryptoKeyUsage  KeyUsage,
-                             DateTime?       NotBefore     = null,
-                             DateTime?       NotAfter      = null,
-                             CryptoKeyType?  KeyType       = null,
-                             DataEncoding?   KeyEncoding   = null)
+        public CryptoKeyInfo(String           PublicKey,
+                             String           PrivateKey,
+                             CryptoKeyUsage   KeyUsage,
+                             DateTimeOffset?  NotBefore     = null,
+                             DateTimeOffset?  NotAfter      = null,
+                             CryptoKeyType?   KeyType       = null,
+                             DataEncoding?    KeyEncoding   = null)
         {
 
             this.PublicKey    = PublicKey;
