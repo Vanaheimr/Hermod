@@ -22,6 +22,7 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -67,16 +68,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
 
+        public HTTPTestServerX             HTTPServer        { get; }
+
         /// <summary>
         /// The optional default HTTP API.
         /// </summary>
         public HTTPAPI?                    DefaultHTTPAPI    { get; }
 
+        /// <summary>
+        /// The optional default HTTP APIX.
+        /// </summary>
+        public HTTPExtAPIX                 DefaultHTTPAPIX   { get; }
+
 
         /// <summary>
         /// The DNS client used by the network service node.
         /// </summary>
-        public DNSClient                   DNSClient         { get; }
+        public IDNSClient                  DNSClient
+            => HTTPServer.DNSClient;
 
         #endregion
 
@@ -99,14 +108,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IEnumerable<CryptoKeyInfo>?  Identities       = null,
                                   IEnumerable<CryptoKeyInfo>?  IdentityGroups   = null,
 
+                                  HTTPTestServerX?             HTTPTestServer   = null,
                                   HTTPAPI?                     DefaultHTTPAPI   = null,
+                                  HTTPExtAPIX?                 DefaultHTTPAPIX  = null,
 
-                                  DNSClient?                   DNSClient        = null)
+                                  IDNSClient?                  DNSClient        = null)
         {
 
-            this.Id              = Id          ?? NetworkServiceNode_Id.NewRandom();
-            this.Name            = Name        ?? I18NString.Empty;
-            this.Description     = Description ?? I18NString.Empty;
+            this.Id               = Id          ?? NetworkServiceNode_Id.NewRandom();
+            this.Name             = Name        ?? I18NString.Empty;
+            this.Description      = Description ?? I18NString.Empty;
 
             if (Identities is not null)
                 foreach (var identity in Identities.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.Identity)))
@@ -116,9 +127,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.IdentityGroup)))
                     AddCryptoKey(identityGroup);
 
-            this.DefaultHTTPAPI  = DefaultHTTPAPI;
 
-            this.DNSClient       = DNSClient   ?? new DNSClient();
+            this.HTTPServer       = HTTPTestServer  ?? new HTTPTestServerX(
+                                                           TCPPort:         IPPort.Parse(1234),
+                                                           HTTPServerName:  this.Id.ToString(),
+                                                           //Description:     this.Description,
+                                                           DNSClient:       DNSClient
+                                                       );
+
+            this.DefaultHTTPAPI   = DefaultHTTPAPI;
+
+            this.DefaultHTTPAPIX  = DefaultHTTPAPIX ?? new HTTPExtAPIX(
+                                                           this.HTTPServer,
+                                                           Description:     this.Description
+                                                       );
 
             unchecked
             {
@@ -150,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        private readonly ConcurrentDictionary<String, HTTPAPI> httpAPIs = new();
+        private readonly ConcurrentDictionary<String, HTTPAPI> httpAPIs = [];
 
         /// <summary>
         /// An enumeration of all HTTP APIs.

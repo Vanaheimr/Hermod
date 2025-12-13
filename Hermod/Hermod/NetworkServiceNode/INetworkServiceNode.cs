@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS client used by the charging node.
         /// </summary>
-        DNSClient              DNSClient         { get; }
+        IDNSClient             DNSClient         { get; }
 
 
         #region HTTP APIs

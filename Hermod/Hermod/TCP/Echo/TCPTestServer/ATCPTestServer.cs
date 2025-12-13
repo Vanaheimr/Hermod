@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS client used.
         /// </summary>
-        public IDNSClient?                       DNSClient                              { get; }
+        public IDNSClient                        DNSClient                              { get; }
 
 
 

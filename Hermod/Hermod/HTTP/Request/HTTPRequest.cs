@@ -450,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
             {
-                JSONObject = new JObject();
+                JSONObject = [];
                 return false;
             }
 
@@ -465,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 httpResult.Data is null ||
                 httpResult.Data.IsNullOrEmpty())
             {
-                JSONObject = new JObject();
+                JSONObject = [];
                 return false;
             }
 
@@ -494,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                               ).ToUTF8Bytes();
 
-                JSONObject = new JObject();
+                JSONObject = [];
                 return false;
 
             }
@@ -517,15 +517,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var requestBodyString = Request.GetRequestBodyAsUTF8String(ContentType ?? HTTPContentType.Text.XML_UTF8);
             if (requestBodyString.HasErrors)
-                return new HTTPResult<XDocument>(requestBodyString.Error);
+                return new HTTPResult<XDocument>(
+                           requestBodyString.Error
+                       );
 
             try
             {
-                return new HTTPResult<XDocument>(XDocument.Parse(requestBodyString.Data));
+
+                return new HTTPResult<XDocument>(
+                           XDocument.Parse(requestBodyString.Data)
+                       );
+
             }
             catch (Exception e)
             {
-                return new HTTPResult<XDocument>(Request, HTTPStatusCode.BadRequest);
+                return new HTTPResult<XDocument>(
+                           Request,
+                           HTTPStatusCode.BadRequest,
+                           e.Message
+                       );
             }
 
         }
@@ -2046,7 +2056,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
 
-                                  EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
+                                  EndOfHeader == -1 ? Text : Text[..(EndOfHeader + 2)],
                                   Body,
 
                                   HTTPServer:         HTTPServer,
@@ -2121,7 +2131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
 
-                                  EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
+                                  EndOfHeader == -1 ? Text : Text[..(EndOfHeader + 2)],
                                   null,
                                   Body,
 
@@ -2413,7 +2423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                       RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                       header.        AggregateWith("\r\n"),
-                                      Array.Empty<Byte>(),
+                                      [],
 
                                       HTTPServer:         HTTPServer,
                                       EventTrackingId:    EventTrackingId,

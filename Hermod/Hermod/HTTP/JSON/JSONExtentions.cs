@@ -19,7 +19,7 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -692,13 +692,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Timestamp, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject               JSON,
-                                             String                     PropertyName,
-                                             String                     PropertyDescription,
-                                             String                     DefaultServerName,
-                                             out DateTime               Timestamp,
-                                             HTTPRequest                HTTPRequest,
-                                             out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject                                    JSON,
+                                             String                                          PropertyName,
+                                             String                                          PropertyDescription,
+                                             String                                          DefaultServerName,
+                                             out DateTime                                    Timestamp,
+                                             HTTPRequest                                     HTTPRequest,
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
 
         {
 
@@ -706,6 +706,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      PropertyDescription,
                                      out DateTime  timestamp,
                                      out String?   errorResponse))
+            {
+
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = Illias.Timestamp.Now,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          errorResponse is not null
+                                              ? new JProperty("description", errorResponse)
+                                              : null
+                                      ).ToUTF8Bytes()
+                };
+
+                Timestamp = default;
+                return false;
+
+            }
+
+            Timestamp     = timestamp;
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+
+        public static Boolean ParseMandatory(this JObject                                    JSON,
+                                             String                                          PropertyName,
+                                             String                                          PropertyDescription,
+                                             String                                          DefaultServerName,
+                                             out DateTimeOffset                              Timestamp,
+                                             HTTPRequest                                     HTTPRequest,
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
+
+        {
+
+            if (!JSON.ParseMandatory(PropertyName,
+                                     PropertyDescription,
+                                     out DateTimeOffset  timestamp,
+                                     out String?         errorResponse))
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -944,14 +984,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptionalStruct<TStruct?>(this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptionalStruct2<TStruct>(this JObject              JSON,
-                                                           String                     PropertyName,
-                                                           String                     PropertyDescription,
-                                                           String                     DefaultServerName,
-                                                           TryParser<TStruct>         Parser,
-                                                           out TStruct?               Value,
-                                                           HTTPRequest                HTTPRequest,
-                                                           out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseOptionalStruct2<TStruct>(this JObject                                   JSON,
+                                                           String                                          PropertyName,
+                                                           String                                          PropertyDescription,
+                                                           String                                          DefaultServerName,
+                                                           TryParser<TStruct>                              Parser,
+                                                           out TStruct?                                    Value,
+                                                           HTTPRequest                                     HTTPRequest,
+                                                           [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
 
             where TStruct : struct
 
