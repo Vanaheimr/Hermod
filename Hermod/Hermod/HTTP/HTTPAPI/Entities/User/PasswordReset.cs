@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              EventTracking_Id?  EventTrackingId   = null)
 
             : this(Illias.Timestamp.Now,
-                   new[] { User },
+                   [ User ],
                    SecurityToken1,
                    SecurityToken2,
                    EventTrackingId)

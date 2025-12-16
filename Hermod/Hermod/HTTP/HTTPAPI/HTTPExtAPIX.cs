@@ -626,44 +626,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                     User_Id?            CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUser(new User(
-                                                             Id,
-                                                             Name,
-                                                             EMail,
-                                                             Description,
-                                                             PublicKeyRing,
-                                                             SecretKeyRing,
-                                                             UserLanguage,
-                                                             Telephone,
-                                                             MobilePhone,
-                                                             Use2AuthFactor,
-                                                             Telegram,
-                                                             Homepage,
-                                                             GeoLocation,
-                                                             Address,
-                                                             AcceptedEULA,
-                                                             IsAuthenticated,
-                                                             IsDisabled,
-                                                             DataSource: DataSource
-                                                         ),
+            var addUserResult = await HTTPExtAPIX.AddUser(
 
-                                                         SkipDefaultNotifications,
-                                                         SkipNewUserEMail,
-                                                         SkipNewUserNotifications,
+                                          new User(
+                                              Id,
+                                              Name,
+                                              EMail,
+                                              Description,
+                                              PublicKeyRing,
+                                              SecretKeyRing,
+                                              UserLanguage,
+                                              Telephone,
+                                              MobilePhone,
+                                              Use2AuthFactor,
+                                              Telegram,
+                                              Homepage,
+                                              GeoLocation,
+                                              Address,
+                                              AcceptedEULA,
+                                              IsAuthenticated,
+                                              IsDisabled,
+                                              DataSource: DataSource
+                                          ),
 
-                                                         async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
-                                                             if (Password.HasValue && _user.API is not null) {
-                                                                 var result = await _user.API._ChangePassword(_user,
-                                                                                                              Password.Value,
-                                                                                                              null,
-                                                                                                              SuppressNotifications:  true,
-                                                                                                              EventTrackingId:        _eventTrackingId,
-                                                                                                              CurrentUserId:          CurrentUserId);
-                                                             }
-                                                         },
+                                          SkipDefaultNotifications,
+                                          SkipNewUserEMail,
+                                          SkipNewUserNotifications,
 
-                                                         EventTrackingId ?? EventTracking_Id.New,
-                                                         CurrentUserId);
+                                          async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+
+                                              if (Password.HasValue && _user.API is not null) {
+                                                  var result = await _user.API._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                              if (Password.HasValue && _user.APIX is not null) {
+                                                  var result = await _user.APIX._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                          },
+
+                                          EventTrackingId ?? EventTracking_Id.New,
+                                          CurrentUserId
+
+                                      );
 
             return addUserResult.Result == CommandResult.Success
                        ? addUserResult.User
@@ -734,47 +753,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                     User_Id?                    CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUser(new User(
-                                                             Id,
-                                                             Name,
-                                                             EMail,
-                                                             Description,
-                                                             PublicKeyRing,
-                                                             SecretKeyRing,
-                                                             UserLanguage,
-                                                             Telephone,
-                                                             MobilePhone,
-                                                             Use2AuthFactor,
-                                                             Telegram,
-                                                             Homepage,
-                                                             GeoLocation,
-                                                             Address,
-                                                             AcceptedEULA,
-                                                             IsAuthenticated,
-                                                             IsDisabled,
-                                                             DataSource: DataSource
-                                                         ),
+            var addUserResult = await HTTPExtAPIX.AddUser(
 
-                                                         AccessRight,
-                                                         Organization,
+                                          new User(
+                                              Id,
+                                              Name,
+                                              EMail,
+                                              Description,
+                                              PublicKeyRing,
+                                              SecretKeyRing,
+                                              UserLanguage,
+                                              Telephone,
+                                              MobilePhone,
+                                              Use2AuthFactor,
+                                              Telegram,
+                                              Homepage,
+                                              GeoLocation,
+                                              Address,
+                                              AcceptedEULA,
+                                              IsAuthenticated,
+                                              IsDisabled,
+                                              DataSource: DataSource
+                                          ),
 
-                                                         SkipDefaultNotifications,
-                                                         SkipNewUserEMail,
-                                                         SkipNewUserNotifications,
+                                          AccessRight,
+                                          Organization,
 
-                                                         async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
-                                                             if (Password.HasValue && _user.API is not null) {
-                                                                 var result = await _user.API._ChangePassword(_user,
-                                                                                                              Password.Value,
-                                                                                                              null,
-                                                                                                              SuppressNotifications:  true,
-                                                                                                              EventTrackingId:        _eventTrackingId,
-                                                                                                              CurrentUserId:          CurrentUserId);
-                                                             }
-                                                         },
+                                          SkipDefaultNotifications,
+                                          SkipNewUserEMail,
+                                          SkipNewUserNotifications,
 
-                                                         EventTrackingId ?? EventTracking_Id.New,
-                                                         CurrentUserId);
+                                          async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+
+                                              if (Password.HasValue && _user.API is not null) {
+                                                  var result = await _user.API._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                              if (Password.HasValue && _user.APIX is not null) {
+                                                  var result = await _user.APIX._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                          },
+
+                                          EventTrackingId ?? EventTracking_Id.New,
+                                          CurrentUserId
+
+                                      );
 
             return addUserResult.Result == CommandResult.Success
                        ? addUserResult.User
@@ -841,44 +879,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                User_Id?            CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(new User(
-                                                                        Id,
-                                                                        Name,
-                                                                        EMail,
-                                                                        Description,
-                                                                        PublicKeyRing,
-                                                                        SecretKeyRing,
-                                                                        UserLanguage,
-                                                                        Telephone,
-                                                                        MobilePhone,
-                                                                        Use2AuthFactor,
-                                                                        Telegram,
-                                                                        Homepage,
-                                                                        GeoLocation,
-                                                                        Address,
-                                                                        AcceptedEULA,
-                                                                        IsAuthenticated,
-                                                                        IsDisabled,
-                                                                        DataSource: DataSource
-                                                                    ),
+            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(
 
-                                                                    SkipDefaultNotifications,
-                                                                    SkipNewUserEMail,
-                                                                    SkipNewUserNotifications,
+                                          new User(
+                                              Id,
+                                              Name,
+                                              EMail,
+                                              Description,
+                                              PublicKeyRing,
+                                              SecretKeyRing,
+                                              UserLanguage,
+                                              Telephone,
+                                              MobilePhone,
+                                              Use2AuthFactor,
+                                              Telegram,
+                                              Homepage,
+                                              GeoLocation,
+                                              Address,
+                                              AcceptedEULA,
+                                              IsAuthenticated,
+                                              IsDisabled,
+                                              DataSource: DataSource
+                                          ),
 
-                                                                    async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
-                                                                        if (Password.HasValue && _user.API is not null) {
-                                                                            var result = await _user.API._ChangePassword(_user,
-                                                                                                                         Password.Value,
-                                                                                                                         null,
-                                                                                                                         SuppressNotifications:  true,
-                                                                                                                         EventTrackingId:        _eventTrackingId,
-                                                                                                                         CurrentUserId:          CurrentUserId);
-                                                                        }
-                                                                    },
+                                          SkipDefaultNotifications,
+                                          SkipNewUserEMail,
+                                          SkipNewUserNotifications,
 
-                                                                    EventTrackingId ?? EventTracking_Id.New,
-                                                                    CurrentUserId);
+                                          async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+
+                                              if (Password.HasValue && _user.API is not null) {
+                                                  var result = await _user.API._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                              if (Password.HasValue && _user.APIX is not null) {
+                                                  var result = await _user.APIX._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                          },
+
+                                          EventTrackingId ?? EventTracking_Id.New,
+                                          CurrentUserId
+
+                                      );
 
             return addUserResult.Result == CommandResult.Success
                        ? addUserResult.User
@@ -949,47 +1006,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                User_Id?                    CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(new User(
-                                                                        Id,
-                                                                        Name,
-                                                                        EMail,
-                                                                        Description,
-                                                                        PublicKeyRing,
-                                                                        SecretKeyRing,
-                                                                        UserLanguage,
-                                                                        Telephone,
-                                                                        MobilePhone,
-                                                                        Use2AuthFactor,
-                                                                        Telegram,
-                                                                        Homepage,
-                                                                        GeoLocation,
-                                                                        Address,
-                                                                        AcceptedEULA,
-                                                                        IsAuthenticated,
-                                                                        IsDisabled,
-                                                                        DataSource: DataSource
-                                                                    ),
+            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(
 
-                                                                    AccessRight,
-                                                                    Organization,
+                                          new User(
+                                              Id,
+                                              Name,
+                                              EMail,
+                                              Description,
+                                              PublicKeyRing,
+                                              SecretKeyRing,
+                                              UserLanguage,
+                                              Telephone,
+                                              MobilePhone,
+                                              Use2AuthFactor,
+                                              Telegram,
+                                              Homepage,
+                                              GeoLocation,
+                                              Address,
+                                              AcceptedEULA,
+                                              IsAuthenticated,
+                                              IsDisabled,
+                                              DataSource: DataSource
+                                          ),
 
-                                                                    SkipDefaultNotifications,
-                                                                    SkipNewUserEMail,
-                                                                    SkipNewUserNotifications,
+                                          AccessRight,
+                                          Organization,
 
-                                                                    async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
-                                                                        if (Password.HasValue && _user.API is not null) {
-                                                                            var result = await _user.API._ChangePassword(_user,
-                                                                                                                         Password.Value,
-                                                                                                                         null,
-                                                                                                                         SuppressNotifications:  true,
-                                                                                                                         EventTrackingId:        _eventTrackingId,
-                                                                                                                         CurrentUserId:          CurrentUserId);
-                                                                        }
-                                                                    },
+                                          SkipDefaultNotifications,
+                                          SkipNewUserEMail,
+                                          SkipNewUserNotifications,
 
-                                                                    EventTrackingId ?? EventTracking_Id.New,
-                                                                    CurrentUserId);
+                                          async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
+
+                                              if (Password.HasValue && _user.API is not null) {
+                                                  var result = await _user.API._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                              if (Password.HasValue && _user.APIX is not null) {
+                                                  var result = await _user.APIX._ChangePassword(
+                                                                         _user,
+                                                                         Password.Value,
+                                                                         null,
+                                                                         SuppressNotifications:  true,
+                                                                         EventTrackingId:        _eventTrackingId,
+                                                                         CurrentUserId:          CurrentUserId
+                                                                     );
+                                              }
+
+                                          },
+
+                                          EventTrackingId ?? EventTracking_Id.New,
+                                          CurrentUserId
+
+                                      );
 
             return addUserResult.Result == CommandResult.Success
                        ? addUserResult.User
