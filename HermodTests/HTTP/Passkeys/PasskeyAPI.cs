@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a RegisterOptions request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnRegisterOptions = new ();
+        public HTTPRequestLogEvent OnRegisterOptions = new();
 
         /// <summary>
         /// An event sent whenever a RegisterOptions request was received.
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a RegisterOptions response was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnRegisterOptionsResponse = new ();
+        public HTTPResponseLogEvent OnRegisterOptionsResponse = new();
 
         /// <summary>
         /// An event sent whenever a RegisterOptions response was sent.
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a Register request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnRegister = new ();
+        public HTTPRequestLogEvent OnRegister = new();
 
         /// <summary>
         /// An event sent whenever a Register request was received.
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a Register response was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnRegisterResponse = new ();
+        public HTTPResponseLogEvent OnRegisterResponse = new();
 
         /// <summary>
         /// An event sent whenever a Register response was sent.
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a LoginOptions request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnLoginOptions = new ();
+        public HTTPRequestLogEvent OnLoginOptions = new();
 
         /// <summary>
         /// An event sent whenever a LoginOptions request was received.
@@ -215,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a LoginOptions response was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnLoginOptionsResponse = new ();
+        public HTTPResponseLogEvent OnLoginOptionsResponse = new();
 
         /// <summary>
         /// An event sent whenever a LoginOptions response was sent.
@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a Login request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnLogin = new ();
+        public HTTPRequestLogEvent OnLogin = new();
 
         /// <summary>
         /// An event sent whenever a Login request was received.
@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// An event sent whenever a Login response was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnLoginResponse = new ();
+        public HTTPResponseLogEvent OnLoginResponse = new();
 
         /// <summary>
         /// An event sent whenever a Login response was sent.

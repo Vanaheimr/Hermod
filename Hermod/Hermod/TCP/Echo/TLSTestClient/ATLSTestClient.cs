@@ -424,6 +424,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.tlsStream.{nameof(tlsStream.AuthenticateAsClientAsync)}: {e.Message}"
                               };
 
+                while (e.InnerException is not null)
+                {
+                    e = e.InnerException;
+                    errors.Add($"-- Inner Exception: {e.Message}");
+                }
+
                 if (remoteCertificateValidationErrors.Count > 0)
                     errors.AddRange($"Remote Certificate Validation Errors: {remoteCertificateValidationErrors.AggregateWith(", ")}");
 
