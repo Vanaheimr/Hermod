@@ -189,6 +189,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public IDNSClient                        DNSClient                              { get; }
 
+        /// <summary>
+        /// The optional description of this TCP server.
+        /// </summary>
+        public String?                           Description                            { get; }
+
         #endregion
 
         #region Events
@@ -249,6 +254,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// 
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// 
+        /// <param name="DNSClient">The DNS client to use.</param>
+        /// <param name="Description">An optional description of this TCP server.</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPServer(IPPort                                                    Port,
                          String?                                                   ServiceName                  = null,
@@ -269,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          UInt32?                                                   MaxClientConnections         = null,
 
                          IDNSClient?                                               DNSClient                    = null,
-
+                         String?                                                   Description                  = null,
                          Boolean                                                   AutoStart                    = false)
 
             : this(IPv4Address.Any,
@@ -292,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    MaxClientConnections,
 
                    DNSClient,
-
+                   Description,
                    AutoStart)
 
         { }
@@ -320,6 +328,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// 
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// 
+        /// <param name="DNSClient">The DNS client to use.</param>
+        /// <param name="Description">An optional description of this TCP server.</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPServer(IIPAddress                                                IPAddress,
                          IPPort                                                    Port,
@@ -341,7 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          UInt32?                                                   MaxClientConnections         = null,
 
                          IDNSClient?                                               DNSClient                    = null,
-
+                         String?                                                   Description                  = null,
                          Boolean                                                   AutoStart                    = false)
 
         {
@@ -384,6 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.MaxClientConnections        = MaxClientConnections       ?? __DefaultMaxClientConnections;
 
             this.DNSClient                   = DNSClient                  ?? new DNSClient();
+            this.Description                 = Description;
 
             #region TCP Listener Thread
 
@@ -614,6 +626,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// 
+        /// <param name="DNSClient">The DNS client to use.</param>
+        /// <param name="Description">An optional description of this TCP server.</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPServer(IPSocket                                                  IPSocket,
                          String                                                    ServiceName                  = __DefaultServiceName,
@@ -634,7 +649,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          UInt32?                                                   MaxClientConnections         = null,
 
                          IDNSClient?                                               DNSClient                    = null,
-
+                         String?                                                   Description                  = null,
                          Boolean                                                   AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
@@ -657,7 +672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    MaxClientConnections,
 
                    DNSClient,
-
+                   Description,
                    AutoStart)
 
         { }

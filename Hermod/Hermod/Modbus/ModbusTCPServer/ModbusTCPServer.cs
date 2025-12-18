@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                UInt32?                                                        MaxClientConnections         = null,
 
                                IDNSClient?                                                    DNSClient                    = null,
-
+                               String?                                                        Description                  = null,
                                Boolean                                                        AutoStart                    = false)
         {
 
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                  MaxClientConnections,
 
                                  DNSClient,
-
+                                 Description,
                                  AutoStart
 
                              );

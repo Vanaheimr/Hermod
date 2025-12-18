@@ -630,7 +630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCertificates          = ClientCertificates     ?? [];
             this.ClientCertificateContext    = ClientCertificateContext;
             this.ClientCertificateChain      = ClientCertificateChain ?? [];
-            this.TLSProtocols                = TLSProtocols           ?? SslProtocols.Tls12|SslProtocols.Tls13;
+            this.TLSProtocols                = TLSProtocols           ?? SslProtocols.Tls13;
             this.ContentType                 = ContentType;
             this.Accept                      = Accept;
             this.HTTPAuthentication          = HTTPAuthentication;
@@ -648,10 +648,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.RemotePort                  = RemoteURL.Port         ?? (RemoteURL.Protocol == URLProtocols.http ||
                                                                           RemoteURL.Protocol == URLProtocols.ws
-                                                                             ? IPPort.HTTP
-                                                                             : IPPort.HTTPS);
+                                                                              ? IPPort.HTTP
+                                                                              : IPPort.HTTPS);
 
-            if (this.LocalCertificateSelector is null && this.ClientCertificates is not null && this.ClientCertificates.Any())
+            if (this.LocalCertificateSelector is null && this.ClientCertificates.Any())
                 this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers)
                                                     => this.ClientCertificates.First();
 

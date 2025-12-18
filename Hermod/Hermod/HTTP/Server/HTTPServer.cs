@@ -167,6 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer(IPPort?                                                    TCPPort                      = null,
                           String                                                     DefaultServerName            = HTTPServer.DefaultHTTPServerName,
                           String?                                                    ServiceName                  = null,
+                          String?                                                    Description                  = null,
 
                           ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
                           RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator   = null,
@@ -186,9 +187,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean                                                    AutoStart                    = false)
 
             : this(new HTTPServer(
+
                        TCPPort,
                        DefaultServerName,
                        ServiceName,
+                       Description,
 
                        ServerCertificateSelector,
                        ClientCertificateValidator,
@@ -206,6 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                        DNSClient,
                        AutoStart
+
                    ))
 
         {  }
@@ -1119,6 +1123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer(IPPort?                                                    HTTPPort                     = null,
                           String?                                                    DefaultServerName            = null,
                           String?                                                    ServiceName                  = null,
+                          String?                                                    Description                  = null,
 
                           ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
                           RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator   = null,
@@ -1157,6 +1162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    MaxClientConnections,
 
                    DNSClient,
+                   Description,
                    false)
 
         {

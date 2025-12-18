@@ -63,6 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected        readonly  ConcurrentDictionary<TCPConnection, Task>  activeClients                 = [];
 
+
         /// <summary>
         /// The default maintenance interval.
         /// </summary>
@@ -71,6 +72,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private          readonly  Timer                                      maintenanceTimer;
 
         protected static readonly  SemaphoreSlim                              MaintenanceSemaphore          = new (1, 1);
+
+
+        /// <summary>
+        /// The default warden check interval.
+        /// </summary>
+        public           readonly  TimeSpan                                   DefaultWardenCheckEvery       = TimeSpan.FromSeconds(30);
+
 
         protected static readonly  TimeSpan                                   SemaphoreSlimTimeout          = TimeSpan.FromSeconds(5);
 
@@ -104,6 +112,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The send timeout for the TCP stream.
         /// </summary>
         public TimeSpan    SendTimeout       { get; }
+
+        /// <summary>
+        /// The optional description of this TCP server.
+        /// </summary>
+        public String?     Description       { get; }
 
 
         public ServerCertificateSelectorDelegate?                        ServerCertificateSelector     { get; }
@@ -159,19 +172,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
 
-        public Warden.Warden                     Warden                                 { get; }
+        /// <summary>
+        /// Whether to disable all maintenance tasks.
+        /// </summary>
+        public Boolean                           DisableMaintenanceTasks                { get; set; }
 
-
+        /// <summary>
+        /// The initial delay of the maintenance tasks.
+        /// </summary>
+        public TimeSpan                          MaintenanceInitialDelay                { get; }
 
         /// <summary>
         /// The maintenance interval.
         /// </summary>
         public TimeSpan                          MaintenanceEvery                       { get; }
 
+
+
         /// <summary>
-        /// Disable all maintenance tasks.
+        /// Whether to disable all warden tasks.
         /// </summary>
-        public Boolean                           DisableMaintenanceTasks                { get; set; }
+        public Boolean                           DisableWardenTasks                     { get; set; }
+
+        /// <summary>
+        /// The initial delay of the warden tasks.
+        /// </summary>
+        public TimeSpan                          WardenInitialDelay                     { get; }
+
+        /// <summary>
+        /// The warden check interval.
+        /// </summary>
+        public TimeSpan                          WardenCheckEvery                       { get; }
+
+        public Warden.Warden                     Warden                                 { get; }
+
+
 
         #endregion
 
@@ -224,14 +259,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// 
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information. If null, the default connection identification will be used.</param>
         /// <param name="MaxClientConnections">An optional maximum number of concurrent TCP client connections. If null, the default maximum number of concurrent TCP client connections will be used.</param>
+        /// <param name="DNSClient">The DNS client to use for the warden and other DNS lookups.</param>
         /// 
-        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="DisableMaintenanceTasks">Whether to disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
         /// <param name="MaintenanceEvery">The maintenance interval.</param>
         /// 
-        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="DisableWardenTasks">Whether to disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden interval.</param>
+        /// <param name="WardenCheckEvery">The warden check interval.</param>
+        /// 
+        /// <param name="Description">An optional description of this TCP server.</param>
+        /// <param name="AutoStart">Whether to automatically start the TCP server.</param>
+
         public ATCPTestServer(IIPAddress?                                               IPAddress                    = null,
                               IPPort?                                                   TCPPort                      = null,
                               TimeSpan?                                                 ReceiveTimeout               = null,
@@ -257,6 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               TimeSpan?                                                 WardenInitialDelay           = null,
                               TimeSpan?                                                 WardenCheckEvery             = null,
 
+                              String?                                                   Description                  = null,
                               Boolean?                                                  AutoStart                    = false)
 
         {
@@ -314,9 +355,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                    this.IPAddress,
                                                    this.TCPPort
                                                );
-            this.ReceiveTimeout              = ReceiveTimeout       ?? DefaultReceiveTimeout;
-            this.SendTimeout                 = SendTimeout          ?? DefaultSendTimeout;
-            this.ConnectionIdBuilder         = ConnectionIdBuilder  ?? ((sender, timestamp, localSocket, remoteSocket) => $"{remoteSocket} -> {localSocket}");
+            this.ReceiveTimeout              = ReceiveTimeout              ?? DefaultReceiveTimeout;
+            this.SendTimeout                 = SendTimeout                 ?? DefaultSendTimeout;
+            this.ConnectionIdBuilder         = ConnectionIdBuilder         ?? ((sender, timestamp, localSocket, remoteSocket) => $"{remoteSocket} -> {localSocket}");
             this.loggingHandler              = LoggingHandler;
             this.cts                         = new CancellationTokenSource();
 
@@ -324,13 +365,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.ClientCertificateValidator  = ClientCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.AllowedTLSProtocols         = AllowedTLSProtocols;
-            this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
-            this.CheckCertificateRevocation  = CheckCertificateRevocation ?? false;
-            this.DNSClient                   = DNSClient                  ?? new DNSClient();
+            this.ClientCertificateRequired   = ClientCertificateRequired   ?? false;
+            this.CheckCertificateRevocation  = CheckCertificateRevocation  ?? false;
+            this.DNSClient                   = DNSClient                   ?? new DNSClient();
 
             // Setup Maintenance Task
-            this.DisableMaintenanceTasks     = DisableMaintenanceTasks ?? false;
-            this.MaintenanceEvery            = MaintenanceEvery        ?? DefaultMaintenanceEvery;
+            this.DisableMaintenanceTasks     = DisableMaintenanceTasks     ?? false;
+            this.MaintenanceInitialDelay     = MaintenanceInitialDelay     ?? DefaultMaintenanceEvery;
+            this.MaintenanceEvery            = MaintenanceEvery            ?? DefaultMaintenanceEvery;
             this.maintenanceTimer            = new Timer(
                                                    DoMaintenanceSync,
                                                    this,
@@ -339,6 +381,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                );
 
             // Setup Warden
+            this.DisableWardenTasks          = DisableWardenTasks          ?? false;
+            this.WardenInitialDelay          = WardenInitialDelay          ?? DefaultWardenCheckEvery;
+            this.WardenCheckEvery            = WardenCheckEvery            ?? DefaultWardenCheckEvery;
             this.Warden                      = new Warden.Warden(
                                                    $"TCP Server {IPSocket}",
                                                    WardenInitialDelay ?? TimeSpan.FromMinutes(3),
@@ -391,6 +436,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             );
 
             #endregion
+
+            this.Description                 = Description;
 
             if (AutoStart ?? false)
                 Start().GetAwaiter().GetResult();

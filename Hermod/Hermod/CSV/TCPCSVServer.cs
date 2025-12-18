@@ -103,8 +103,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An array of delimiters to split the incoming CSV line into individual elements.</param>
-        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
-        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
@@ -130,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             UInt32?                                                     MaxClientConnections         = null,
 
                             IDNSClient?                                                 DNSClient                    = null,
-
+                            String?                                                     Description                  = null,
                             Boolean                                                     AutoStart                    = false)
 
             : this(IPv4Address.Any,
@@ -154,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    MaxClientConnections,
 
                    DNSClient,
-
+                   Description,
                    AutoStart)
 
         { }
@@ -202,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             UInt32?                                                     MaxClientConnections         = null,
 
                             IDNSClient?                                                 DNSClient                    = null,
-
+                            String?                                                     Description                  = null,
                             Boolean                                                     AutoStart                    = false)
 
             : base(IIPAddress,
@@ -233,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    MaxClientConnections,
 
                    DNSClient,
-
+                   Description,
                    false)
 
         {
@@ -280,8 +278,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An enumeration of delimiters to split the incoming CSV line into individual elements.</param>
-        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
-        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
@@ -307,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             UInt32?                                                     MaxClientConnections         = null,
 
                             IDNSClient?                                                 DNSClient                    = null,
-
+                            String?                                                     Description                  = null,
                             Boolean                                                     AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
@@ -332,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    MaxClientConnections,
 
                    DNSClient,
-
+                   Description,
                    AutoStart)
 
         { }

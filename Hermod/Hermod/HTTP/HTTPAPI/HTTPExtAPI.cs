@@ -2210,6 +2210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                                                    LogfileName                      = DefaultHTTPExtAPI_LogfileName,
                           LogfileCreatorDelegate?                                    LogfileCreator                   = null,
                           DNSClient?                                                 DNSClient                        = null,
+                          String?                                                    Description                      = null,
                           Boolean                                                    AutoStart                        = false)
 
             : base(HTTPHostname,
@@ -2252,6 +2253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LogfileName ?? DefaultHTTPExtAPI_LogfileName,
                    LogfileCreator,
                    DNSClient,
+                   Description,
                    false) // AutoStart
 
         {

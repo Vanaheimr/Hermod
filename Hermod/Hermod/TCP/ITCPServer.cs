@@ -90,6 +90,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public IEnumerable<IPSocket>             ClientSockets                          { get; }
 
         /// <summary>
+        /// An optional description of this TCP server.
+        /// </summary>
+        public String?                           Description                            { get; }
+
+        /// <summary>
         /// True while the TCPServer is listening for new clients
         /// </summary>
         public Boolean                           IsRunning                              { get; }

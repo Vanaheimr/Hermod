@@ -404,19 +404,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     this.SSLStream.AuthenticateAsServer(
                         serverCertificate:           ServerCertificate,
                         clientCertificateRequired:   ClientCertificateValidator is not null,
-                        enabledSslProtocols:         AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
+                        enabledSslProtocols:         AllowedTLSProtocols ?? SslProtocols.Tls13,
                         checkCertificateRevocation:  false
                     );
 
                     if (this.SSLStream.RemoteCertificate is not null)
-                    {
                         this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
-                    }
 
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : String.Empty);
+                    DebugX.LogException(e, $"TLS Stream [Server: {LocalPort}{(TCPServer.Description.IsNotNullOrEmpty() ? $"/'{TCPServer.Description}'" : "")}, Client: {RemotePort}]");
                     throw;
                 }
 

@@ -51,6 +51,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region Properties
 
         /// <summary>
+        /// The optional description of this TCP servers instance.
+        /// </summary>
+        public String?                                                   Description                     { get; }
+
+        /// <summary>
         /// The DNS defines which DNS servers to use.
         /// </summary>
         public DNSClient                                                 DNSClient                       { get; }
@@ -425,6 +430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                            UInt32?                                                   MaxClientConnections         = null,
 
                            DNSClient?                                                DNSClient                    = null,
+                           String?                                                   Description                  = null,
                            Boolean                                                   AutoStart                    = false)
 
         {
@@ -450,6 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.maxClientConnections        = MaxClientConnections       ?? TCPServer.__DefaultMaxClientConnections;
 
             this.DNSClient                   = DNSClient                  ?? new DNSClient();
+            this.Description                 = Description;
 
             if (AutoStart)
                 Start(EventTracking_Id.New).Wait();
@@ -497,7 +504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                             maxClientConnections,
 
                                             DNSClient,
-
+                                            Description,
                                             false
                                         )
                                     );
@@ -536,35 +543,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 foreach (var socket in Sockets)
                 {
 
-                    var tcpServer = tcpServers.AddAndReturnElement(new TCPServer(
+                    var tcpServer = tcpServers.AddAndReturnElement(
+                                        new TCPServer(
 
-                                                                       socket,
-                                                                       ServiceName,
-                                                                       ServiceBanner,
+                                            socket,
+                                            ServiceName,
+                                            ServiceBanner,
 
-                                                                       ServerCertificateSelector,
-                                                                       ClientCertificateValidator,
-                                                                       LocalCertificateSelector,
-                                                                       AllowedTLSProtocols,
-                                                                       ClientCertificateRequired,
-                                                                       CheckCertificateRevocation,
+                                            ServerCertificateSelector,
+                                            ClientCertificateValidator,
+                                            LocalCertificateSelector,
+                                            AllowedTLSProtocols,
+                                            ClientCertificateRequired,
+                                            CheckCertificateRevocation,
 
-                                                                       serverThreadNameCreator,
-                                                                       serverThreadPrioritySetter,
-                                                                       serverThreadIsBackground,
-                                                                       connectionIdBuilder,
-                                                                       connectionTimeout,
-                                                                       maxClientConnections,
+                                            serverThreadNameCreator,
+                                            serverThreadPrioritySetter,
+                                            serverThreadIsBackground,
+                                            connectionIdBuilder,
+                                            connectionTimeout,
+                                            maxClientConnections,
 
-                                                                       DNSClient,
+                                            DNSClient,
+                                            Description,
+                                            false
 
-                                                                       false)
-                                                                   );
+                                        )
+                                    );
 
-                    tcpServer.OnStarted          += (sender, timestamp, eventTrackingId, message) => SendTCPSocketAttached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
-                    tcpServer.OnNewConnection    += SendNewConnection;
-                    tcpServer.OnConnectionClosed += SendConnectionClosed;
-                    tcpServer.OnCompleted        += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
+                    tcpServer.OnStarted           += (sender, timestamp, eventTrackingId, message) => SendTCPSocketAttached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
+                    tcpServer.OnNewConnection     += SendNewConnection;
+                    tcpServer.OnConnectionClosed  += SendConnectionClosed;
+                    tcpServer.OnCompleted         += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
                     tcpServer.OnExceptionOccurred += SendExceptionOccurred;
 
                     Action(tcpServer);
@@ -795,7 +805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region (protected) SendExceptionOccurred  (Sender, Timestamp, EventTrackingId, Exception)
+        #region (protected) SendExceptionOccurred (Sender, Timestamp, EventTrackingId, Exception)
 
         protected void SendExceptionOccurred(Object            Sender,
                                              DateTimeOffset    Timestamp,

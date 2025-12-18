@@ -1212,12 +1212,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String?                                                    LogfileName                  = null,
                        LogfileCreatorDelegate?                                    LogfileCreator               = null,
                        DNSClient?                                                 DNSClient                    = null,
+                       String?                                                    Description                  = null,
                        Boolean                                                    AutoStart                    = false)
 
             : this(new HTTPServer(
                        HTTPServerPort ?? DefaultHTTPServerPort,
                        HTTPServerName ?? DefaultHTTPServerName,
                        HTTPServiceName,
+                       Description,
 
                        ServerCertificateSelector,
                        ClientCertificateValidator,
