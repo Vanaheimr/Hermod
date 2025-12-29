@@ -17,10 +17,8 @@
 
 #region Usings
 
-using System;
 using System.Text.RegularExpressions;
-
-using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -30,7 +28,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// A unique mailing list identification.
     /// </summary>
-    public class ListId : IComparable, IComparable<ListId>, IEquatable<ListId>
+    public class ListId : IEquatable<ListId>,
+                          IComparable<ListId>,
+                          IComparable
     {
 
         #region Public constants
@@ -39,60 +39,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// A regular expression to validate a List-Id e-mail header field.
         /// Mailinglist &lt;list@example.org&gt;
         /// </summary>
-        public static readonly Regex ListIdRegularExpression = new Regex("^([^<]+)<([^>]+)>$");
+        public static readonly Regex ListIdRegularExpression = new ("^([^<]+)<([^>]+)>$");
 
         #endregion
 
         #region Properties
 
-        #region Name
-
-        private readonly String _Name;
-
         /// <summary>
         /// The name of the mailing list.
         /// </summary>
-        public String Name
-        {
-            get
-            {
-                return _Name;
-            }
-        }
-
-        #endregion
-
-        #region Identification
-
-        private readonly String _Identification;
+        public String  Name              { get; }
 
         /// <summary>
         /// The unique identification of the mailing list.
         /// </summary>
-        public String Identification
-        {
-            get
-            {
-                return _Identification;
-            }
-        }
+        public String  Identification    { get; }
 
-        #endregion
-
-        #region Value
 
         /// <summary>
         /// The string value of a mailing list identification.
         /// </summary>
-        public String Value
-        {
-            get
-            {
-                return _Name + " <" + _Identification + ">";
-            }
-        }
-
-        #endregion
+        public String  Value
+            => $"{Name} <{Identification}>";
 
         #endregion
 
@@ -101,53 +69,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Create a new unique mailing list identification.
         /// </summary>
-        /// <param name="ListId"></param>
-        private ListId(String ListId)
+        /// <param name="Name">The name of the mailing list.</param>
+        /// <param name="Identification">The unique identification of the mailing list.</param>
+        private ListId(String  Name,
+                       String  Identification)
         {
 
-            if (ListId.IsNullOrEmpty())
-                throw new ArgumentNullException("The ListId must not be null or empty!");
-
-            var RegExpr = Mail.ListId.ListIdRegularExpression.Match(ListId.Trim());
-
-            if (!RegExpr.Success)
-                throw new ArgumentNullException("Invalid mailing list identification!");
-
-            this._Name            = RegExpr.Groups[1].Value.Trim();
-            this._Identification  = RegExpr.Groups[2].Value.Trim().ToLower();
+            this.Name           = Name;
+            this.Identification = Identification;
 
         }
 
         #endregion
 
 
-        #region (static) Parse(EMailAddress)
+        #region (static) Parse    (Text)
 
         /// <summary>
-        /// Parse an e-mail message identification from a string.
+        /// Parse a mailing list identification from a string.
         /// </summary>
-        /// <param name="EMailAddress">A string representation of a simple e-mail address.</param>
-        public static ListId Parse(String ListId)
+        /// <param name="Text">A string representation of a mailing list identification.</param>
+        public static ListId? Parse(String Text)
         {
-            return new ListId(ListId);
+
+            if (TryParse(Text, out var listId))
+                return listId;
+
+            return null;
+
         }
 
         #endregion
 
-        #region (static) TryParse(ListIdString, out ListId)
+        #region (static) TryParse (Text, out ListId)
 
         /// <summary>
-        /// Try to parse an e-mail message identification from a string.
+        /// Try to parse a mailing list identification from a string.
         /// </summary>
-        /// <param name="ListIdString">A string representation of a simple e-mail address.</param>
+        /// <param name="Text">A string representation of a mailing list identification.</param>
         /// <param name="ListId">The parsed e-mail message identification.</param>
-        public static Boolean TryParse(String ListIdString, out ListId ListId)
+        public static Boolean TryParse(String                           Text,
+                                       [NotNullWhen(true)] out ListId?  ListId)
         {
 
-            if (SimpleEMailAddress.SimpleEMail_RegEx.Match(ListIdString.Trim()).Success)
+            var r = SimpleEMailAddress.SimpleEMail_RegEx.Match(Text.Trim());
+
+            if (r.Success)
             {
-                ListId = new ListId(ListIdString);
+
+                ListId = new ListId(
+                             r.Groups[0].Value,
+                             r.Groups[1].Value
+                         );
+
                 return true;
+
             }
 
             ListId = null;
@@ -168,7 +144,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="ListId1">A ListId.</param>
         /// <param name="ListId2">Another ListId.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (ListId ListId1, ListId ListId2)
+        public static Boolean operator == (ListId ListId1,
+                                           ListId ListId2)
         {
 
             // If both are null, or both are same instance, return true.
@@ -269,21 +246,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">A mailing list identification to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object is null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            // Check if the given object is a ListId.
-            var _ListId = Object as ListId;
-            if ((Object) _ListId is null)
-                throw new ArgumentException("The given object is not a ListId!");
-
-            return (this.Value).CompareTo(_ListId.Value);
-
-        }
+            => Object is ListId listId
+                   ? CompareTo(listId)
+                   : throw new ArgumentException("The given object is not a mailing list identification!",
+                                                 nameof(Object));
 
         #endregion
 
@@ -292,14 +261,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="ListId">A ListId to compare with.</param>
-        public Int32 CompareTo(ListId ListId)
+        /// <param name="ListId">A mailing list identification to compare with.</param>
+        public Int32 CompareTo(ListId? ListId)
         {
 
-            if ((Object) ListId is null)
-                throw new ArgumentNullException();
+            if (ListId is null)
+                throw new ArgumentNullException(nameof(ListId), "The given mailing list identification must not be null!");
 
-            return (this.Value).CompareTo(ListId.Value);
+            return Value.CompareTo(ListId.Value);
 
         }
 
@@ -314,22 +283,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">A mailing list identification to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object is null)
-                return false;
-
-            // Check if the given object is a ListId.
-            var _ListId = Object as ListId;
-            if ((Object) _ListId is null)
-                return false;
-
-            return Equals(_ListId);
-
-        }
+            => Object is ListId listId &&
+                   Equals(listId);
 
         #endregion
 
@@ -338,17 +296,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two ListIds for equality.
         /// </summary>
-        /// <param name="ListId">A ListId to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(ListId ListId)
-        {
+        /// <param name="ListId">A mailing list identification to compare with.</param>
+        public Boolean Equals(ListId? ListId)
 
-            if ((Object) ListId is null)
-                return false;
+            => ListId is not null &&
 
-            return this.Value.Equals(ListId.Value);
-
-        }
+               String.Equals(Value,
+                             ListId.Value,
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -360,9 +315,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Return the HashCode of this object.
         /// </summary>
         public override Int32 GetHashCode()
-        {
-            return Value.GetHashCode();
-        }
+
+            => Value.GetHashCode();
 
         #endregion
 
@@ -373,9 +327,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <returns>A formatted string representation of this object.</returns>
         public override String ToString()
-        {
-            return Value;
-        }
+
+            => Value;
 
         #endregion
 

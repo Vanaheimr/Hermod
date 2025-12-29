@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -56,17 +52,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Create a new e-mail bodypart.
         /// </summary>
-        public EMailBodypart(AbstractEMailBuilder         EMailBuilder,
+        public EMailBodypart(Builder         EMailBuilder,
                              IEnumerable<String>?         Content           = null,
                              IEnumerable<EMailBodypart>?  NestedBodyparts   = null)
 
         {
 
             // Only copy all e-mail headers starting with "content"...
-            base._MailHeaders.AddRange(EMailBuilder.MailHeaders.Where(header => header.Key.ToLower().StartsWith("content")));
+            foreach (var kvp in EMailBuilder.MailHeaders.Where(header => header.Key.StartsWith("content", StringComparison.CurrentCultureIgnoreCase)))
+                base.MailHeaders.TryAdd(kvp.Key, kvp.Value);
 
             if (Content is not null && Content.Any())
-                this._MailBody.AddRange(Content);
+                this.MailBody = Content;
 
             this.NestedBodyparts  = NestedBodyparts is not null
                                         ? new List<EMailBodypart>(NestedBodyparts)
@@ -102,10 +99,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.ContentDisposition       = ContentDisposition;
 
             if (Content is not null)
-                this._MailBody.AddRange(Content);
+                this.MailBody = Content;
 
             this.NestedBodyparts          = NestedBodyparts is not null
-                                                ? new List<EMailBodypart>(NestedBodyparts)
+                                                ? [.. NestedBodyparts]
                                                 : new List<EMailBodypart>();
 
             if (this.NestedBodyparts.Any())
@@ -124,11 +121,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailBodypart(IEnumerable<String> MailText)
 
             : base(MailText,
-                   header => header.ToLower().StartsWith("content"))
+                   header => header.StartsWith("content", StringComparison.CurrentCultureIgnoreCase))
 
         {
 
-            ContentType ??= new MailContentType(this, GetEMailHeader("Content-Type"));
+            ContentType ??= MailContentType.Parse(GetEMailHeader("Content-Type"));
 
             if (ContentType.Text.Contains("boundary="))
             {
@@ -145,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                         line == mimeBoundaryCheckEnd)
                     {
                         listOfList.Add(list);
-                        list = new List<String>();
+                        list = [];
                     }
 
                     else
@@ -153,9 +150,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 }
 
-                this._MailBody.Clear();
-                this._MailBody.AddRange(listOfList[0]);
-                this.NestedBodyparts = listOfList.Skip(1).Select(list => new EMailBodypart(list)).ToList();
+                this.MailBody         = listOfList[0];
+                this.NestedBodyparts  = [.. listOfList.Skip(1).Select(list => new EMailBodypart(list))];
 
             }
 
@@ -164,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 //this._MailBody.Clear();
                 //this._MailBody.AddRange(MailBody);
-                this.NestedBodyparts = Array.Empty<EMailBodypart>();
+                this.NestedBodyparts = [];
 
             }
 
@@ -185,17 +181,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             => (IncludeHeaders
                     ? MailHeaders.
-                          Select(v => v.Key + ": " + v.Value).
-                          Concat(new String[] { "" })
-                    : Array.Empty<String>()).
+                          Select(kvp => kvp.Key + ": " + kvp.Value).
+                          Concat([ "" ])
+                    : []).
 
-                Concat(_MailBody ?? (IEnumerable<String>) Array.Empty<String>()).
+                Concat(MailBody).
 
                 Concat(NestedBodyparts.
                            SelectMany(bodypart => new String[] { "--" + ContentType.MIMEBoundary }.
                            Concat(bodypart.ToText(true)))).
 
-                Concat(NestedBodyparts.Count() > 0 ? new String[] { "--" + ContentType.MIMEBoundary + "--" } : Array.Empty<String>());
+                Concat(NestedBodyparts.Any() ? [ "--" + ContentType.MIMEBoundary + "--" ] : Array.Empty<String>());
 
         #endregion
 

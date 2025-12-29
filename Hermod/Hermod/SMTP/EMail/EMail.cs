@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Collections.Concurrent;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -65,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// The sending timestamp of the e-mail.
         /// </summary>
-        public DateTime            Date         { get; }
+        public DateTimeOffset      Date         { get; }
 
         /// <summary>
         /// The unique message identification of the e-mail.
@@ -78,54 +80,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         // As the order of the headers is important,
         // do not replace this list by a dictionary!
-        private readonly List<KeyValuePair<String, String>> _Header;
+        private readonly ConcurrentDictionary<String, String> headers = [];
 
         /// <summary>
         /// The E-Mail header as enumeration of strings.
         /// </summary>
-        public IEnumerable<KeyValuePair<String, String>>  Header
-            => _Header;
-
+        public IEnumerable<KeyValuePair<String, String>>  Headers
+            => headers;
 
         /// <summary>
         /// The e-mail body.
         /// </summary>
         public EMailBodypart                              Body      { get; }
 
-        /// <summary>
-        /// Return a string representation of this e-mail.
-        /// </summary>
-        public IEnumerable<String>                        ToText
-            => _Header.
-                   Select(line => line.Key + ": " + line.Value).
-                   Concat(new String[] { "" }).
-                   Concat(Body.ToText(false));
-
         #endregion
 
         #region Constructor(s)
 
-        #region (private) EMail(MailHeader)
+        #region (private)  EMail(MailHeaders)
 
-        private EMail(IEnumerable<KeyValuePair<String, String>> MailHeader)
+        private EMail(IEnumerable<KeyValuePair<String, String>> MailHeaders)
         {
 
-            _Header = new List<KeyValuePair<String, String>>(MailHeader);
-
-            foreach (var KVP in _Header)
+            foreach (var kvp in MailHeaders)
             {
 
-                switch (KVP.Key.ToLower())
+                headers.TryAdd(kvp.Key, kvp.Value);
+
+                switch (kvp.Key.ToLower())
                 {
 
-                    case "from":       this.From       = EMailAddress.    Parse(KVP.Value); break;
-                    case "to":         this.To         = EMailAddressList.Parse(KVP.Value); break;
-                    case "cc":         this.Cc         = EMailAddressList.Parse(KVP.Value); break;
-                    case "bcc":        this.Bcc        = EMailAddressList.Parse(KVP.Value); break;
-                    case "replyto":    this.ReplyTo    = EMailAddressList.Parse(KVP.Value); break;
-                    case "subject":    this.Subject    =                        KVP.Value ; break;
-                    case "date":       this.Date       = DateTime.        Parse(KVP.Value); break;
-                    case "message-id": this.MessageId  = Message_Id.      Parse(KVP.Value); break;
+                    case "from":       this.From       = EMailAddress.    Parse(kvp.Value); break;
+                    case "to":         this.To         = EMailAddressList.Parse(kvp.Value); break;
+                    case "cc":         this.Cc         = EMailAddressList.Parse(kvp.Value); break;
+                    case "bcc":        this.Bcc        = EMailAddressList.Parse(kvp.Value); break;
+                    case "replyto":    this.ReplyTo    = EMailAddressList.Parse(kvp.Value); break;
+                    case "subject":    this.Subject    =                        kvp.Value ; break;
+                    case "date":       this.Date       = DateTime.        Parse(kvp.Value); break;
+                    case "message-id": this.MessageId  = Message_Id.      Parse(kvp.Value); break;
 
                 }
 
@@ -135,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region (private) EMail(MailText)
+        #region (private)  EMail(MailText)
 
         /// <summary>
         /// Parse an e-mail from the given enumeration of strings.
@@ -155,29 +147,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region EMail(MailBuilder)
+        #region (internal) EMail(MailBuilder)
 
         /// <summary>
         /// Create a new e-mail based on the given e-mail builder.
         /// </summary>
         /// <param name="MailBuilder">An e-mail builder.</param>
-        public EMail(AbstractEMailBuilder MailBuilder)
+        internal EMail(AbstractEMail.Builder MailBuilder)
 
             : this(MailBuilder.
                        EncodeBodyparts().
                        // Copy only everything which is not related to the e-mail body!
-                       MailHeaders.Where(header => !header.Key.ToLower().StartsWith("content")).
-                       Concat(MailBuilder.Body.MailHeaders))
+                       MailHeaders.Where(header => !header.Key.StartsWith("content", StringComparison.CurrentCultureIgnoreCase)).
+                       Concat(MailBuilder.Body?.MailHeaders ?? []))
 
         {
 
             //ToDo: Do a real deep-copy here!
-            Body  = MailBuilder.Body;
+                 Body       = MailBuilder.Body;
 
-            //ToDo: Work-aroung for PGP/GPG!
-            this.From = MailBuilder.From;
-            this.To   = MailBuilder.To;
-            this.Cc   = MailBuilder.Cc;
+            if (MailBuilder.From is null)
+#pragma warning disable CA2208 // Instantiate argument exceptions correctly
+                throw new ArgumentNullException(nameof(MailBuilder.From), "The 'From' e-mail address must not be null!");
+#pragma warning restore CA2208 // Instantiate argument exceptions correctly
+
+            //ToDo: Work-around for PGP/GPG!
+            this.From       = MailBuilder.From;
+            this.To         = MailBuilder.To;
+            this.Cc         = MailBuilder.Cc;
+            this.Bcc        = MailBuilder.Bcc;
+            this.ReplyTo    = MailBuilder.ReplyTo;
+            this.Subject    = MailBuilder.Subject;
+            this.Date       = MailBuilder.Date.Value;
+            this.MessageId  = MailBuilder.MessageId;
 
         }
 
@@ -193,7 +195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="MailText">An enumeration of strings.</param>
         public static EMail Parse(IEnumerable<String> MailText)
-            => new EMail(MailText);
+
+            => new (MailText);
 
         #endregion
 
@@ -207,8 +210,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public String GetEMailHeader(String Key)
         {
 
-            var Property = _Header.
-                               Where(kvp => kvp.Key.ToLower() == Key.ToLower()).
+            var Property = headers.
+                               Where(kvp => kvp.Key.Equals(Key, StringComparison.CurrentCultureIgnoreCase)).
                                FirstOrDefault();
 
             if (Property.Key.IsNotNullOrEmpty())
@@ -219,6 +222,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         }
 
         #endregion
+
+
+        /// <summary>
+        /// Return a string representation of this e-mail.
+        /// </summary>
+        public IEnumerable<String> ToText()
+
+            => headers.
+                   Select(kvp => kvp.Key + ": " + kvp.Value).
+                   Concat([ "" ]).
+                   Concat(Body.ToText(false));
+
+
+        public override String ToString()
+
+            => String.Join(Environment.NewLine, ToText());
 
     }
 

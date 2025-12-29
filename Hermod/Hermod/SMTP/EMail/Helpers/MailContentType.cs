@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -32,239 +33,177 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Data
 
-        private readonly  AbstractEMail   _EMailHeader;
+ //       private readonly  AbstractEMail   AbstractEMail;
 
         #endregion
 
         #region Properties
 
-        #region ContentType
-
-        private MailContentTypes _ContentType;
-
         /// <summary>
         /// The content type.
         /// </summary>
-        public MailContentTypes ContentType
-        {
-
-            get
-            {
-                return _ContentType;
-            }
-
-            set
-            {
-                _ContentType = value;
-            }
-
-        }
-
-        #endregion
-
-        #region CharSet
-
-        private String _CharSet;
+        public MailContentTypes  ContentType     { get; set; }
 
         /// <summary>
         /// The character set.
         /// </summary>
-        public String CharSet
-        {
-
-            get
-            {
-                return _CharSet;
-            }
-
-            set
-            {
-                _CharSet = value;
-            }
-
-        }
-
-        #endregion
-
-        #region MIMEBoundary
-
-        private String _MIMEBoundary;
+        public String?           CharSet         { get; set; }
 
         /// <summary>
         /// The MIME boundary.
         /// </summary>
-        public String MIMEBoundary
-        {
-
-            get
-            {
-                return _MIMEBoundary;
-            }
-
-            set
-            {
-                if (value.IsNotNullOrEmpty())
-                    _MIMEBoundary = value;
-            }
-
-        }
-
-        #endregion
-
-        #region MicAlg
-
-        private String _MicAlg;
+        public String?           MIMEBoundary    { get; set; }
 
         /// <summary>
         /// MicAlg part. Used e.g. for PGP/GPG.
         /// </summary>
-        public String MicAlg
-        {
-
-            get
-            {
-                return _MicAlg;
-            }
-
-            set
-            {
-                if (value.IsNotNullOrEmpty())
-                    _MicAlg = value;
-            }
-
-        }
-
-        #endregion
-
-        #region Protocol
-
-        private String _Protocol;
+        public String?           MicAlg          { get; set; }
 
         /// <summary>
         /// Protocol part. Used e.g. for PGP/GPG.
         /// </summary>
-        public String Protocol
-        {
-
-            get
-            {
-                return _Protocol;
-            }
-
-            set
-            {
-                if (value.IsNotNullOrEmpty())
-                    _Protocol = value;
-            }
-
-        }
-
-        #endregion
+        public String?           Protocol        { get; set; }
 
 
-        #region Text
-
-        private String _Text;
-
-        public String Text
-        {
-            get
-            {
-                return _Text;
-            }
-        }
-
-        #endregion
+        public String            Text            { get; set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region MailContentType(EMailHeader, ContentType = MailContentTypes.unknown)
-
         /// <summary>
         /// Create a new e-mail content type.
         /// </summary>
         /// <param name="ContentType">The content type.</param>
-        public MailContentType(AbstractEMail     EMailHeader,
-                               MailContentTypes  ContentType = MailContentTypes.unknown)
+        public MailContentType(MailContentTypes  ContentType,
+                               String?           CharSet        = null,
+                               String?           MIMEBoundary   = null,
+                               String?           MicAlg         = null,
+                               String?           Protocol       = null,
+                               String?           Text           = null)
         {
 
-            this._EMailHeader  = EMailHeader;
-            this._ContentType  = ContentType;
+            this.ContentType   = ContentType;
+            this.CharSet       = CharSet;
+            this.MIMEBoundary  = MIMEBoundary;
+            this.MicAlg        = MicAlg;
+            this.Protocol      = Protocol;
+            this.Text          = Text ?? "";
 
         }
 
         #endregion
 
-        #region MailContentType(EMailHeader, ContentTypeString)
+
+        #region Parse    (ContentTypeString)
 
         /// <summary>
-        /// Create a new e-mail content type by parsing the given string.
+        /// Parse the given string as a e-mail content type.
         /// </summary>
         /// <param name="ContentTypeString"></param>
-        public MailContentType(AbstractEMail  EMailHeader,
-                               String         ContentTypeString)
+        public static MailContentType? Parse(String ContentTypeString)
         {
 
-            this._EMailHeader  = EMailHeader;
-            this._Text         = ContentTypeString;
+            if (TryParse(ContentTypeString, out var mailContentType))
+                return mailContentType;
 
-            var Splitted = ContentTypeString.
-                               Split(new String[] { ";" }, StringSplitOptions.RemoveEmptyEntries).
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryParse (ContentTypeString, out MailContentType)
+
+        /// <summary>
+        /// Try to parse the given string as a e-mail content type.
+        /// </summary>
+        /// <param name="ContentTypeString"></param>
+        public static Boolean TryParse(String                                    ContentTypeString,
+                                       [NotNullWhen(true)] out MailContentType?  MailContentType)
+        {
+
+            MailContentTypes? mailContentType = null;
+
+            var splitted = ContentTypeString.
+                               Split([";"], StringSplitOptions.RemoveEmptyEntries).
                                Select(v => v.Trim()).
                                ToArray();
 
-            if (Splitted.Length == 0)
-                this._ContentType = MailContentTypes.text_plain;
+            if (splitted.Length == 0)
+            {
 
-            else if (!Enum.TryParse<MailContentTypes>(Splitted[0].Replace("/", "_").Replace("+", "__"), out this._ContentType))
-                this._ContentType = MailContentTypes.text_plain;
+                MailContentType  = new MailContentType(
+                                       MailContentTypes.text_plain,
+                                       Text: ContentTypeString
+                                   );
 
+                return true;
 
-            else
-                foreach (var SubInformation in Splitted.Skip(1))
+            }
+
+            if (Enum.TryParse<MailContentTypes>(splitted[0].Replace("/", "_").Replace("+", "__"), out var _mailContentType))
+            {
+
+                mailContentType = _mailContentType;
+
+                var charSet       = "";
+                var mimeBoundary  = "";
+
+                foreach (var subInformation in splitted.Skip(1))
                 {
 
-                    if (SubInformation.ToLower().StartsWith("charset="))
+                    if (subInformation.ToLower().StartsWith("charset="))
                     {
 
-                        _CharSet = SubInformation.Substring("charset=".Length).Trim().ToLower();
+                        charSet = subInformation.Substring("charset=".Length).Trim().ToLower();
 
-                        if (_CharSet.StartsWith(@""""))
-                            _CharSet = _CharSet.Remove(0, 1);
+                        if (charSet.StartsWith(@""""))
+                            charSet = charSet.Remove(0, 1);
 
-                        if (_CharSet.EndsWith(@""""))
-                            _CharSet = _CharSet.Substring(0, _CharSet.Length - 1);
+                        if (charSet.EndsWith(@""""))
+                            charSet = charSet.Substring(0, charSet.Length - 1);
 
                         continue;
 
                     }
 
-                    if (SubInformation.ToLower().StartsWith("boundary="))
+                    if (subInformation.ToLower().StartsWith("boundary="))
                     {
 
-                        _MIMEBoundary = SubInformation.Substring("boundary=".Length).Trim();
+                        mimeBoundary = subInformation.Substring("boundary=".Length).Trim();
 
-                        if (_MIMEBoundary.StartsWith(@""""))
-                            _MIMEBoundary = _MIMEBoundary.Remove(0, 1);
+                        if (mimeBoundary.StartsWith(@""""))
+                            mimeBoundary = mimeBoundary.Remove(0, 1);
 
-                        if (_MIMEBoundary.EndsWith(@""""))
-                            _MIMEBoundary = _MIMEBoundary.Substring(0, MIMEBoundary.Length - 1);
+                        if (mimeBoundary.EndsWith(@""""))
+                            mimeBoundary = mimeBoundary.Substring(0, mimeBoundary.Length - 1);
 
                         continue;
 
                     }
+
+                    MailContentType  = new MailContentType(
+                                           mailContentType.Value,
+                                           CharSet:       charSet,
+                                           MIMEBoundary:  mimeBoundary,
+                                           Text:          ContentTypeString
+                                       );
+
+                    return true;
 
                 }
 
-            // Update text-version within the e-mail header
-            if (_EMailHeader is not null)
-                _EMailHeader.SetEMailHeader("Content-Type", this.ToString());
+                // Update text-version within the e-mail header
+                //     if (this.AbstractEMail is not null)
+                //         this.AbstractEMail.SetEMailHeader("Content-Type", this.ToString());
+
+            }
+
+            MailContentType = null;
+            return false;
 
         }
-
-        #endregion
 
         #endregion
 
@@ -277,14 +216,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public MailContentType GenerateMIMEBoundary()
         {
 
-            if (_MIMEBoundary is null)
+            if (MIMEBoundary is null)
             {
 
-                _MIMEBoundary = "-8<--" + _ContentType.ToString().Replace("_", "/") + "--8<--" + RandomExtensions.RandomBytes(12).ToHexString() + "--8<-";
+                MIMEBoundary = "-8<--" + ContentType.ToString().Replace("_", "/") + "--8<--" + RandomExtensions.RandomBytes(12).ToHexString() + "--8<-";
 
-                // Update text-version within the e-mail header
-                if (_EMailHeader is not null)
-                    _EMailHeader.SetEMailHeader("Content-Type", this.ToString());
+                //// Update text-version within the e-mail header
+                //if (AbstractEMail is not null)
+                //    AbstractEMail.SetEMailHeader("Content-Type", this.ToString());
 
             }
 
@@ -303,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public override String ToString()
         {
 
-            return _ContentType.ToString().Replace("__", "-").Replace("_", "/") +
+            return ContentType.ToString().Replace("__", "-").Replace("_", "/") +
                    (CharSet.     IsNotNullOrEmpty() ?        "; charset=\""  + CharSet      + "\"" : String.Empty) +
                    (MIMEBoundary.IsNotNullOrEmpty() ? ";\r\n    boundary=\"" + MIMEBoundary + "\"" : String.Empty) +
                    (MicAlg.      IsNotNullOrEmpty() ? ";\r\n    micalg=\""   + MicAlg       + "\"" : String.Empty) +

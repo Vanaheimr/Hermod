@@ -135,12 +135,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         public static EMailAddressList Parse(String EMailAddressListString)
 
-            => new (EMailAddressListString.
+            => new ([.. EMailAddressListString.
                         Split (separators, StringSplitOptions.None).
                         Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
                         Where (addresses => addresses is not null).
-                        Cast<EMailAddress>().
-                        ToArray());
+                        Cast<EMailAddress>()]);
 
 
         #region Implicitly convert EMailAddress            -> EMailAddressList
@@ -264,8 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
-        public static EMailAddressListBuilder Empty
-            => new();
+        public static EMailAddressListBuilder  Empty  { get; } = new();
 
         public static EMailAddressListBuilder Create(params EMailAddress[] EMailAddressListBuilder)
             => new (EMailAddressListBuilder);
@@ -328,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region CLear()
+        #region Clear()
 
         /// <summary>
         /// Removes all e-mail addresses from the list.
@@ -348,12 +346,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         public static EMailAddressListBuilder Parse(String EMailAddressListBuilderString)
 
-            => new (EMailAddressListBuilderString.
+            => new ([.. EMailAddressListBuilderString.
                         Split (separators, StringSplitOptions.None).
                         Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
                         Where (addresses => addresses is not null).
-                        Cast<EMailAddress>().
-                        ToArray());
+                        Cast<EMailAddress>()]);
 
 
 
@@ -427,8 +424,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             return mailAddressList.
                        Select(EMA => EMA.OwnerName.IsNotNullOrEmpty()
-                                        ? EMA.OwnerName + " <" + EMA.Address.Value + ">"
-                                        : "<" + EMA.Address.Value + ">").
+                                        ? $"{EMA.OwnerName} <{EMA.Address.Value}>"
+                                        : $"<{EMA.Address.Value}>").
                        AggregateCSV().
                        Trim();
 

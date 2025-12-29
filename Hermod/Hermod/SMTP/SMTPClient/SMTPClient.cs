@@ -704,7 +704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (EMailEnvelop.Mail is not null) {
 
                                         EMailEnvelop.Mail.
-                                                     Header.
+                                                     Headers.
                                                      Select (header => header.Key + ": " + header.Value).
                                                      ForEach(line   => SendCommand(line));
 
@@ -723,9 +723,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     }
 
-                                    else if (EMailEnvelop.Mail?.ToText is not null) {
+                                    else if (EMailEnvelop.Mail?.ToText() is not null) {
 
-                                        EMailEnvelop.Mail.ToText.ForEach(line => SendCommand(line));
+                                        EMailEnvelop.Mail.ToText().ForEach(SendCommand);
                                         SendCommand("");
 
                                     }

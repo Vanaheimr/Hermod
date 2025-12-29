@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.IO;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -47,32 +44,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static T AddAttachment<T>(this T            MailBuilder,
                                          Byte[]            ByteArray,
                                          String            Filename,
-                                         MailContentTypes  ContentType      = MailContentTypes.text_plain,
-                                         String            ContentLanguage  = null)
+                                         MailContentTypes  ContentType       = MailContentTypes.text_plain,
+                                         String?           ContentLanguage   = null)
 
-            where T : AbstractEMailBuilder
+            where T : AbstractEMail.Builder
 
         {
 
             #region Initial checks
 
-            if (MailBuilder is null)
-                throw new ArgumentNullException("The given e-mail builder must not be null!");
-
-            if (ByteArray is null || ByteArray.Length == 0)
-                throw new ArgumentNullException("The given byte array name must not be null or empty!");
+            if (ByteArray.Length == 0)
+                throw new ArgumentException("The given byte array name must not be null or empty!", nameof(ByteArray));
 
             if (Filename.IsNullOrEmpty())
-                throw new ArgumentNullException("The given file name must not be null or empty!");
+                throw new ArgumentException("The given file name must not be null or empty!", nameof(Filename));
 
             #endregion
 
             return MailBuilder.AddAttachment<T>(
-                new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, ContentType) { CharSet = "utf-8" },
-                                  ContentTransferEncoding:  "base64",
-                                  ContentLanguage:          ContentLanguage,
-                                  Content:                  new String[] { Convert.ToBase64String(ByteArray) }).
-                                  SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")  );
+                       new EMailBodypart(
+                           ContentTypeBuilder:       AMail => new MailContentType(ContentType) { CharSet = "utf-8" },
+                           ContentTransferEncoding:  "base64",
+                           ContentLanguage:          ContentLanguage,
+                           Content:                  [ Convert.ToBase64String(ByteArray) ]
+                       ).
+                       SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")
+                   );
 
         }
 
@@ -92,33 +89,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static T AddAttachment<T>(this T            MailBuilder,
                                          Stream            FileStream,
                                          String            Filename,
-                                         MailContentTypes  ContentType      = MailContentTypes.text_plain,
-                                         String            ContentLanguage  = null)
+                                         MailContentTypes  ContentType       = MailContentTypes.text_plain,
+                                         String?           ContentLanguage   = null)
 
-            where T : AbstractEMailBuilder
+            where T : AbstractEMail.Builder
         {
 
             #region Initial checks
 
-            if (MailBuilder is null)
-                throw new ArgumentNullException("The given e-mail builder must not be null!");
-
-            if (FileStream is null)
-                throw new ArgumentNullException("The given FileStream must not be null!");
-
             if (Filename.IsNullOrEmpty())
-                throw new ArgumentNullException("The given file name must not be null or empty!");
+                throw new ArgumentException("The given file name must not be null or empty!", nameof(Filename));
 
             #endregion
 
+            var memoryStream = new MemoryStream();
+            FileStream.CopyTo(memoryStream);
+
             return MailBuilder.AddAttachment<T>(
 
-                new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, ContentType) { CharSet = "utf-8" },
-                                  ContentTransferEncoding:  "base64",
-                                  ContentLanguage:          ContentLanguage,
-                                  Content:                  new String[] { Convert.ToBase64String("FileStream".ToUTF8Bytes()) }).
+                new EMailBodypart(
+                    ContentTypeBuilder:       AMail => new MailContentType(ContentType) { CharSet = "utf-8" },
+                    ContentTransferEncoding:  "base64",
+                    ContentLanguage:          ContentLanguage,
+                    Content:                  [ Convert.ToBase64String(memoryStream.ToArray()) ]
+                ).
+                SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")
 
-                                  SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\""));
+            );
 
         }
 
@@ -134,36 +131,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="FileInfo">The file to add.</param>
         /// <param name="ContentType">The content type of the file to add.</param>
         /// <param name="ContentLanguage">The content language of the file to add.</param>
-        public static T AddAttachment<T>(this AbstractEMailBuilder  MailBuilder,
-                                         FileInfo                   FileInfo,
-                                         MailContentTypes           ContentType      = MailContentTypes.text_plain,
-                                         String                     ContentLanguage  = null)
+        public static T AddAttachment<T>(this AbstractEMail.Builder  MailBuilder,
+                                         FileInfo                    FileInfo,
+                                         MailContentTypes            ContentType       = MailContentTypes.text_plain,
+                                         String?                     ContentLanguage   = null)
 
-            where T : AbstractEMailBuilder
+            where T : AbstractEMail.Builder
 
         {
 
             #region Initial checks
 
-            if (MailBuilder is null)
-                throw new ArgumentNullException("The given e-mail builder must not be null!");
-
-            if (FileInfo is null)
-                throw new ArgumentNullException("The given file name must not be null or empty!");
-
             if (!FileInfo.Exists)
-                throw new ArgumentNullException("The given file does not exist!");
+                throw new ArgumentException("The given file does not exist!", nameof(FileInfo));
 
             #endregion
 
             return MailBuilder.AddAttachment<T>(
 
-                new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, ContentType) { CharSet = "utf-8" },
-                                  ContentTransferEncoding:  "base64",
-                                  ContentLanguage:          ContentLanguage,
-                                  Content:                  new String[] { Convert.ToBase64String(File.ReadAllBytes(FileInfo.FullName)) }).
+                new EMailBodypart(
+                    ContentTypeBuilder:       AMail => new MailContentType(ContentType) { CharSet = "utf-8" },
+                    ContentTransferEncoding:  "base64",
+                    ContentLanguage:          ContentLanguage,
+                    Content:                  [ Convert.ToBase64String(File.ReadAllBytes(FileInfo.FullName)) ]
+                ).
+                SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + FileInfo.Name + "\"")
 
-                                  SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + FileInfo.Name + "\""));
+            );
 
         }
 

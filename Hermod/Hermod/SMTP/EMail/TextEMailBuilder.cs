@@ -15,71 +15,21 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     /// <summary>
     /// A TEXT e-mail builder.
     /// </summary>
-    public class TextEMailBuilder : AbstractEMailBuilder
+    public class TextEMailBuilder : AbstractEMail.Builder
     {
 
         #region Properties
 
-        #region Text
-
-        private String textBody;
-
         /// <summary>
         /// The body of the text e-mail.
         /// </summary>
-        public String Text
-        {
-
-            get
-            {
-                return textBody;
-            }
-
-            set
-            {
-                if (value is not null && value.Trim().IsNotNullOrEmpty())
-                    textBody = value;
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLanguage
-
-        private String? contentLanguage;
-
-        /// <summary>
-        /// The language of the e-mail body.
-        /// </summary>
-        public String? ContentLanguage
-        {
-            get
-            {
-                return contentLanguage;
-            }
-
-            set
-            {
-                if (value is not null && value.Trim().IsNotNullOrEmpty())
-                    contentLanguage = value.Trim();
-            }
-
-        }
-
-        #endregion
+        public String  Text    { get; set; }
 
         #endregion
 
@@ -91,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public TextEMailBuilder()
         {
 
-            this.ContentType  = new MailContentType(this, MailContentTypes.text_plain) { CharSet = "utf-8" };
+            this.ContentType  = new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" };
             this.Text         = "";
 
         }
@@ -102,14 +52,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (protected, override) _EncodeBodyparts()
 
         protected override EMailBodypart _EncodeBodyparts()
-        {
 
-            return new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_plain) { CharSet = "utf-8" },//"ISO-8859-15",
-                                     ContentTransferEncoding:  "quoted-printable",//"8bit",
-                                     ContentLanguage:          ContentLanguage,
-                                     Content:                  Text.Split(TextLineSplitter, StringSplitOptions.None));
-
-        }
+            => new (
+                   ContentTypeBuilder:       mail => new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },//"ISO-8859-15",
+                   ContentTransferEncoding:  "quoted-printable",//"8bit",
+                   ContentLanguage:          ContentLanguage,
+                   Content:                  Text.Split(TextLineSplitter, StringSplitOptions.None)
+               );
 
         #endregion
 

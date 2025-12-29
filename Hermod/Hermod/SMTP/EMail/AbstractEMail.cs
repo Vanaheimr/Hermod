@@ -17,6 +17,9 @@
 
 #region Usings
 
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -27,79 +30,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     public static class Tools
     {
 
-        #region ParseMail(MailText, out MailHeaders, out MailBody)
+        #region TryParseMail(MailText, out MailHeaders, out MailBody)
 
-        public static void ParseMail(String                                  MailText,
-                                     out List<KeyValuePair<String, String>>  MailHeaders,
-                                     out List<String>                        MailBody)
-        {
+        public static Boolean TryParseMail(String                                    MailText,
+                                           out ConcurrentDictionary<String, String>  MailHeaders,
+                                           out List<String>                          MailBody)
 
-            Tools.ParseMail(MailText.Split(new String[] { "\r\n", "\r", "\n" }, StringSplitOptions.None),
-                            out MailHeaders,
-                            out MailBody);
-
-        }
+            => Tools.TryParseMail(
+                   MailText.Split([ "\r\n", "\r", "\n" ], StringSplitOptions.None),
+                   out MailHeaders,
+                   out MailBody
+               );
 
         #endregion
 
-        #region ParseMail(MailText, out MailHeaders, out MailBody)
+        #region TryParseMail(MailText, out MailHeaders, out MailBody)
 
-        public static void ParseMail(IEnumerable<String>                     MailText,
-                                     out List<KeyValuePair<String, String>>  MailHeaders,
-                                     out List<String>                        MailBody)
+        public static Boolean TryParseMail(IEnumerable<String>                       MailText,
+                                           out ConcurrentDictionary<String, String>  MailHeaders,
+                                           out List<String>                          MailBody)
         {
 
-            MailHeaders     = new List<KeyValuePair<String, String>>();
-            var MailHeader  = MailText.TakeWhile(line => line.IsNeitherNullNorEmpty()).ToList();
-
-            var Key         = "";
-            var Value       = "";
-            var Splitter    = new Char[1] { ':' };
-            String[] Splitted;
-
-            foreach (var MailHeaderLine in MailHeader)
+            try
             {
 
-                if (MailHeaderLine.StartsWith(" ") ||
-                    MailHeaderLine.StartsWith("\t"))
-                    Value += " " + MailHeaderLine.Trim();
+                MailHeaders     = [];
+                var MailHeader  = MailText.TakeWhile(line => line.IsNeitherNullNorEmpty()).ToList();
 
-                else
+                var Key         = "";
+                var Value       = "";
+                var space       = ' ';
+                var tab         = '\t';
+                var splitter    = new Char[1] { ':' };
+                String[] Splitted;
+
+                foreach (var mailHeaderLine in MailHeader)
                 {
 
-                    if (Key != "")
+                    if (mailHeaderLine.StartsWith(space) ||
+                        mailHeaderLine.StartsWith(tab))
                     {
-                        MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
-                        Key   = "";
-                        Value = "";
+                        Value += " " + mailHeaderLine.Trim();
                     }
 
-                    Splitted = MailHeaderLine.Split(Splitter, 2);
-                    Key      = Splitted[0].Trim();
-                    Value    = Splitted[1].Trim();
+                    else
+                    {
+
+                        if (Key != "")
+                        {
+                            MailHeaders.TryAdd(Key, Value);
+                            Key   = "";
+                            Value = "";
+                        }
+
+                        Splitted = mailHeaderLine.Split(splitter, 2);
+                        Key      = Splitted[0].Trim();
+                        Value    = Splitted[1].Trim();
+
+                    }
 
                 }
 
+                if (Key != "")
+                    MailHeaders.TryAdd(Key, Value);
+
+                MailBody = [.. MailText.SkipWhile(line => line.IsNeitherNullNorEmpty()).Skip(1)];
+
+            }
+            catch
+            {
+                MailHeaders = [];
+                MailBody    = [];
+                return false;
             }
 
-            if (Key != "")
-                MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
-
-            MailBody = MailText.SkipWhile(line => line.IsNeitherNullNorEmpty()).Skip(1).ToList();
+            return true;
 
         }
 
         #endregion
 
 
-        public static T SetEMailHeader<T>(this T Thing, String Key, String Value)
+        public static T SetEMailHeader<T>(this T EMail, String Key, String Value)
             where T : AbstractEMail
         {
 
-            Thing.RemoveEMailHeader(Key);
-            Thing.AddEMailHeader(Key, Value);
+            EMail.RemoveEMailHeader(Key);
+            EMail.AddEMailHeader(Key, Value);
 
-            return Thing;
+            return EMail;
 
         }
 
@@ -109,80 +128,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// An abstract E-Mail.
     /// </summary>
-    public abstract class AbstractEMail
+    public abstract partial class AbstractEMail
     {
 
         #region Properties
 
         #region MailText
 
-        protected readonly IEnumerable<String> _MailText;
-
         /// <summary>
         /// The E-Mail as enumeration of strings.
         /// </summary>
-        public IEnumerable<String> MailText
-        {
-            get
-            {
-                return _MailText;
-            }
-        }
+        public IEnumerable<String>                   MailText       { get; } = [];
 
         #endregion
 
         #region MailHeaders
 
-        protected readonly List<KeyValuePair<String, String>> _MailHeaders;
-
         /// <summary>
         /// The E-Mail header as enumeration of strings.
         /// </summary>
-        public IEnumerable<KeyValuePair<String, String>> MailHeaders
-        {
-            get
-            {
-                return _MailHeaders.Where(v => v.Key.IsNotNullOrEmpty());
-            }
-        }
+        public ConcurrentDictionary<String, String>  MailHeaders    { get; } = [];
 
         #endregion
 
         #region MailBody
 
-        protected readonly List<String> _MailBody;
-
         /// <summary>
         /// The E-Mail body as enumeration of strings.
         /// </summary>
-        public IEnumerable<String> MailBody
-        {
-            get
-            {
-                return _MailBody;
-            }
-        }
+        public IEnumerable<String>                   MailBody       { get; protected set; } = [];
 
         #endregion
 
 
         #region ContentType
 
-        private MailContentType _ContentType;
+        private MailContentType? contentType;
 
         /// <summary>
         /// The content type of the e-mail.
         /// </summary>
-        public MailContentType ContentType
+        public MailContentType? ContentType
         {
 
             get
             {
 
-                if (_ContentType is null)
-                    _ContentType = new MailContentType(this, this.GetEMailHeader("Content-Type"));
+                contentType ??= MailContentType.Parse(this.GetEMailHeader("Content-Type"));
 
-                return _ContentType;
+                return contentType;
 
             }
 
@@ -190,8 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             {
                 if (value is not null)
                 {
-                    _ContentType = value;
-                    this.SetEMailHeader("Content-Type", _ContentType.ToString());
+                    contentType = value;
+                    this.SetEMailHeader("Content-Type", contentType.ToString());
                 }
             }
 
@@ -295,13 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Parse the e-mail from the given text lines.
         /// </summary>
         public AbstractEMail()
-        {
-
-            _MailText      = new List<String>();
-            _MailHeaders   = new List<KeyValuePair<String, String>>();
-            _MailBody      = new List<String>();
-
-        }
+        { }
 
         #endregion
 
@@ -317,14 +305,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             : this()
         {
 
-            if (EMail.ToText is not null)
+            if (EMail.ToText() is not null)
             {
-                this._MailText = EMail.ToText;
-                Tools.ParseMail(this._MailText, out _MailHeaders, out _MailBody);
+
+                this.MailText = EMail.ToText();
+
+                if (Tools.TryParseMail(this.MailText, out var mailHeaders, out var mailBody))
+                {
+                    this.MailHeaders  = mailHeaders;
+                    this.MailBody     = mailBody;
+                }
+
             }
 
             if (MailTextFilter is not null)
-                _MailHeaders = new List<KeyValuePair<String, String>>(_MailHeaders.Where(header => MailTextFilter(header.Key.ToLower())));
+                MailHeaders = new ConcurrentDictionary<String, String>(
+                                  MailHeaders.Where(header => MailTextFilter(header.Key.ToLower()))
+                              );
 
         }
 
@@ -344,12 +341,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             if (MailText is not null)
             {
-                this._MailText = MailText;
-                Tools.ParseMail(this._MailText, out _MailHeaders, out _MailBody);
+
+                this.MailText = MailText;
+
+                if (Tools.TryParseMail(this.MailText, out var mailHeaders, out var mailBody))
+                {
+                    this.MailHeaders  = mailHeaders;
+                    this.MailBody     = mailBody;
+                }
+
             }
 
             if (MailTextFilter is not null)
-                _MailHeaders = new List<KeyValuePair<String, String>>(_MailHeaders.Where(header => MailTextFilter(header.Key.ToLower())));
+                MailHeaders = new ConcurrentDictionary<String, String>(
+                                  MailHeaders.Where(header => MailTextFilter(header.Key.ToLower()))
+                              );
 
         }
 
@@ -365,8 +371,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             : this()
         {
 
-            if (MailHeaders is not null)
-                this._MailHeaders.AddRange(MailHeaders);
+            foreach (var mailHeader in MailHeaders)
+                this.MailHeaders.TryAdd(mailHeader.Key, mailHeader.Value);
 
         }
 
@@ -392,20 +398,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 case "from":
                     if (SimpleEMailAddress.TryParse(Value, out _))
-                        this._MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
+                        this.MailHeaders.TryAdd(Key, Value);
                     break;
 
                 case "to":
                 case "cc":
                     if (EMailAddressList.Parse(Value) is not null)
-                        this._MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
+                        this.MailHeaders.TryAdd(Key, Value);
                     break;
 
                 case "subject":
-                    this._MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
+                    this.MailHeaders.TryAdd(Key, Value);
                     break;
 
-                default: _MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
+                default: MailHeaders.TryAdd(Key, Value);
                     break;
 
             }
@@ -425,14 +431,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public String GetEMailHeader(String Key)
         {
 
-            var Property = MailHeaders.
-                               Where(kvp => kvp.Key.ToLower() == Key.ToLower()).
-                               FirstOrDefault();
+            var kvp = MailHeaders.
+                          Where(kvp => kvp.Key.Equals(Key, StringComparison.CurrentCultureIgnoreCase)).
+                          FirstOrDefault();
 
-            if (Property.Key.IsNotNullOrEmpty())
-                return Property.Value;
+            if (kvp.Key.IsNotNullOrEmpty())
+                return kvp.Value;
 
             return String.Empty;
+
+        }
+
+        #endregion
+
+        #region TryGetEMailHeader(Key, out Value)
+
+        /// <summary>
+        /// Get the E-Mail header value for the given key.
+        /// </summary>
+        /// <param name="Key">An E-Mail header key.</param>
+        /// <param name="Value">The E-Mail header value.</param>
+        public Boolean TryGetEMailHeader(String                           Key,
+                                         [NotNullWhen(true)] out String?  Value)
+        {
+
+            if (MailHeaders.TryGetValue(Key, out var value))
+            {
+                Value = value;
+                return true;
+            }
+
+            Value = null;
+            return false;
 
         }
 
@@ -447,11 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public AbstractEMail RemoveEMailHeader(String Key)
         {
 
-            lock (_MailHeaders)
-            {
-                var ToRemove = _MailHeaders.Where(v => v.Key == Key).ToArray();
-                ToRemove.ForEach(v => _MailHeaders.Remove(v));
-            }
+            MailHeaders.TryRemove(Key, out _);
 
             return this;
 
@@ -469,11 +495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public AbstractEMail RemoveEMailHeader(String Key, String Value)
         {
 
-            lock (_MailHeaders)
-            {
-                var ToRemove = _MailHeaders.Where(v => v.Key == Key && v.Value == Value).ToArray();
-                ToRemove.ForEach(v => _MailHeaders.Remove(v));
-            }
+            MailHeaders.TryRemove(new KeyValuePair<String, String>(Key, Value));
 
             return this;
 
@@ -490,10 +512,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public AbstractEMail RemoveEMailHeader(Func<KeyValuePair<String, String>, Boolean> IncludeKeyValuePairs)
         {
 
-            lock (_MailHeaders)
+            foreach (var kvp in MailHeaders)
             {
-                var ToRemove = _MailHeaders.Where(IncludeKeyValuePairs).ToArray();
-                ToRemove.ForEach(v => _MailHeaders.Remove(v));
+                if (IncludeKeyValuePairs(kvp))
+                    MailHeaders.TryRemove(kvp.Key, out _);
             }
 
             return this;

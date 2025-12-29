@@ -27,59 +27,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// A HTML e-mail builder.
     /// </summary>
-    public class HTMLEMailBuilder : AbstractEMailBuilder
+    public class HTMLEMailBuilder : AbstractEMail.Builder
     {
 
         #region Properties
 
-        #region HTMLText
-
-        private String htmlTextBodypart;
+        /// <summary>
+        /// The HTML version of the e-mail.
+        /// </summary>
+        public String   HTMLText     { get; set; }
 
         /// <summary>
-        /// The HTML body of the e-mail.
+        /// An optionals plaintext version of the e-mail.
         /// </summary>
-        public String HTMLText
-        {
-
-            get
-            {
-                return htmlTextBodypart;
-            }
-
-            set
-            {
-                if (value is not null && value.Trim().IsNotNullOrEmpty())
-                    htmlTextBodypart = value.Trim();
-            }
-
-        }
-
-        #endregion
-
-        #region PlainText
-
-        private String? plainTextBodypart;
-
-        /// <summary>
-        /// An alternative plaintext body of the e-mail.
-        /// </summary>
-        public String? PlainText
-        {
-
-            get
-            {
-                return plainTextBodypart;
-            }
-
-            set
-            {
-                plainTextBodypart = value?.Trim();
-            }
-
-        }
-
-        #endregion
+        public String?  PlainText    { get; set; }
 
         #endregion
 
@@ -94,8 +55,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                 String?  PlainTextMail   = null)
         {
 
-            this.htmlTextBodypart   = HTMLMail ?? String.Empty;
-            this.plainTextBodypart  = PlainTextMail;
+            this.HTMLText   = HTMLMail ?? String.Empty;
+            this.PlainText  = PlainTextMail;
 
         }
 
@@ -112,31 +73,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region HTML & PlainText e-mail...
 
-            if (htmlTextBodypart. IsNotNullOrEmpty() &&
-                plainTextBodypart.IsNotNullOrEmpty())
+            if (HTMLText. IsNotNullOrEmpty() &&
+                PlainText.IsNotNullOrEmpty())
             {
 
-                this.ContentType = new MailContentType(this,
-                                                       MailContentTypes.multipart_alternative)
-                {
-                    CharSet = "utf-8"
-                };
+                this.ContentType = new MailContentType(MailContentTypes.multipart_alternative) {
+                                       CharSet = "utf-8"
+                                   };
 
-                return new EMailBodypart(EMailBuilder:     this,
-                                         Content:          new String[] { "This is a multi-part message in MIME format." },
-                                         NestedBodyparts:  new EMailBodypart[] {
+                return new EMailBodypart(
+                           EMailBuilder:     this,
+                           Content:          [ "This is a multi-part message in MIME format." ],
+                           NestedBodyparts:  [
 
-                                                               new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_plain) { CharSet = "utf-8" },
-                                                                                 ContentTransferEncoding:  this.ContentTransferEncoding,
-                                                                                 ContentLanguage:          this.ContentLanguage,
-                                                                                 Content:                  plainTextBodypart.Split(TextLineSplitter, StringSplitOptions.None)),
+                                                 new EMailBodypart(
+                                                     ContentTypeBuilder:       AMail => new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },
+                                                     ContentTransferEncoding:  this.ContentTransferEncoding,
+                                                     ContentLanguage:          this.ContentLanguage,
+                                                     Content:                  PlainText.Split(TextLineSplitter, StringSplitOptions.None)
+                                                 ),
 
-                                                               new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_html)  { CharSet = "utf-8" },
-                                                                                 ContentTransferEncoding:  this.ContentTransferEncoding,
-                                                                                 ContentLanguage:          this.ContentLanguage,
-                                                                                 Content:                  htmlTextBodypart. Split(TextLineSplitter, StringSplitOptions.None))
+                                                 new EMailBodypart(
+                                                     ContentTypeBuilder:       AMail => new MailContentType(MailContentTypes.text_html)  { CharSet = "utf-8" },
+                                                     ContentTransferEncoding:  this.ContentTransferEncoding,
+                                                     ContentLanguage:          this.ContentLanguage,
+                                                     Content:                  HTMLText. Split(TextLineSplitter, StringSplitOptions.None)
+                                                 )
 
-                                                           });
+                                             ]
+                       );
 
             }
 
@@ -144,19 +109,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region HTML e-mail...
 
-            else if (htmlTextBodypart.IsNotNullOrEmpty())
+            else if (HTMLText.IsNotNullOrEmpty())
             {
 
-                this.ContentType = new MailContentType(this,
-                                                       MailContentTypes.text_html)
-                {
+                this.ContentType = new MailContentType(MailContentTypes.text_html) {
+                                       CharSet = "utf-8"
+                                   };
 
-                    CharSet = "utf-8"
-
-                };
-
-                return new EMailBodypart(EMailBuilder:     this,
-                                         Content:          htmlTextBodypart.Split(TextLineSplitter, StringSplitOptions.None));
+                return new EMailBodypart(
+                           EMailBuilder:  this,
+                           Content:       HTMLText.Split(TextLineSplitter, StringSplitOptions.None)
+                       );
 
             }
 
@@ -164,19 +127,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region PlainText e-mail...
 
-            else if (plainTextBodypart.IsNotNullOrEmpty())
+            else if (PlainText.IsNotNullOrEmpty())
             {
 
-                this.ContentType = new MailContentType(this,
-                                                       MailContentTypes.text_plain)
-                {
+                this.ContentType = new MailContentType(MailContentTypes.text_plain) {
+                                       CharSet = "utf-8"
+                                   };
 
-                    CharSet = "utf-8"
-
-                };
-
-                return new EMailBodypart(EMailBuilder:     this,
-                                         Content:          plainTextBodypart.Split(TextLineSplitter, StringSplitOptions.None));
+                return new EMailBodypart(
+                           EMailBuilder:  this,
+                           Content:       PlainText.Split(TextLineSplitter, StringSplitOptions.None)
+                       );
 
             }
 
@@ -187,16 +148,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             else
             {
 
-                this.ContentType = new MailContentType(this,
-                                                       MailContentTypes.text_plain)
-                {
+                this.ContentType = new MailContentType(MailContentTypes.text_plain) {
+                                       CharSet = "utf-8"
+                                   };
 
-                    CharSet = "utf-8"
-
-                };
-
-                return new EMailBodypart(EMailBuilder:     this,
-                                         Content:          new String[0]);
+                return new EMailBodypart(
+                           EMailBuilder:  this,
+                           Content:       []
+                       );
 
             }
 

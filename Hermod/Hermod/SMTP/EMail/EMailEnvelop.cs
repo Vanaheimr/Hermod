@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// e-mail builder data.
         /// </summary>
         /// <param name="MailBuilder">An e-mail builder.</param>
-        public EMailEnvelop(AbstractEMailBuilder MailBuilder)
+        public EMailEnvelop(AbstractEMail.Builder MailBuilder)
         {
 
             MailBuilder.EncodeBodyparts();
@@ -123,10 +123,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
         /// <param name="MailBuilder">An e-mail builder.</param>
         /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
-        public EMailEnvelop(EMailAddressList      MailFrom,
-                            EMailAddressList      RcptTo,
-                            AbstractEMailBuilder  MailBuilder,
-                            IPSocket?             RemoteSocket   = null)
+        public EMailEnvelop(EMailAddressList       MailFrom,
+                            EMailAddressList       RcptTo,
+                            AbstractEMail.Builder  MailBuilder,
+                            IPSocket?              RemoteSocket   = null)
         {
 
             this.RemoteSocket  = RemoteSocket;
