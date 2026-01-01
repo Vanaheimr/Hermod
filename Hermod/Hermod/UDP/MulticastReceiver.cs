@@ -1,5 +1,5 @@
 ﻿///*
-// * Copyright (c) 2011-2013, Achim Friedland <achim.friedland@graphdefined.com>
+// * Copyright (c) 2011-2026, Achim Friedland <achim.friedland@graphdefined.com>
 // * This file is part of Styx <https://www.github.com/Vanaheimr/Hermod>
 // *
 // * Licensed under the Apache License, Version 2.0 (the "License");
