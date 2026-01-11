@@ -1408,181 +1408,181 @@ Error:
 
         #region (protected virtual) GetResourceStream             (ResourceName, ResourceAssemblies)
 
-        protected virtual Stream? GetResourceStream(String ResourceName)
+        //protected virtual Stream? GetResourceStream(String ResourceName)
 
-            => GetResourceStream(ResourceName,
-                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+        //    => GetResourceStream(ResourceName,
+        //                         new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual Stream? GetResourceStream(String                            ResourceName,
-                                                    params Tuple<String, Assembly>[]  ResourceAssemblies)
-        {
+        //protected virtual Stream? GetResourceStream(String                            ResourceName,
+        //                                            params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //{
 
-            foreach (var resourceAssembly in ResourceAssemblies)
-            {
-                try
-                {
+        //    foreach (var resourceAssembly in ResourceAssemblies)
+        //    {
+        //        try
+        //        {
 
-                    var resourceStream = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+        //            var resourceStream = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
 
-                    if (resourceStream is not null)
-                        return resourceStream;
+        //            if (resourceStream is not null)
+        //                return resourceStream;
 
-                }
-                catch
-                { }
-            }
+        //        }
+        //        catch
+        //        { }
+        //    }
 
-            return null;
+        //    return null;
 
-        }
+        //}
 
         #endregion
 
         #region (protected virtual) GetResourceMemoryStream       (ResourceName, ResourceAssemblies)
 
-        protected virtual MemoryStream? GetResourceMemoryStream(String ResourceName)
+        //protected virtual MemoryStream? GetResourceMemoryStream(String ResourceName)
 
-            => GetResourceMemoryStream(ResourceName,
-                                       new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+        //    => GetResourceMemoryStream(ResourceName,
+        //                               new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual MemoryStream? GetResourceMemoryStream(String                            ResourceName,
-                                                                params Tuple<String, Assembly>[]  ResourceAssemblies)
-        {
+        //protected virtual MemoryStream? GetResourceMemoryStream(String                            ResourceName,
+        //                                                        params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //{
 
-            try
-            {
+        //    try
+        //    {
 
-                var resourceStream = GetResourceStream(
-                                         ResourceName,
-                                         ResourceAssemblies
-                                     );
+        //        var resourceStream = GetResourceStream(
+        //                                 ResourceName,
+        //                                 ResourceAssemblies
+        //                             );
 
-                if (resourceStream is not null)
-                {
+        //        if (resourceStream is not null)
+        //        {
 
-                    var outputStream = new MemoryStream();
-                    resourceStream.CopyTo(outputStream);
-                    outputStream.Seek(0, SeekOrigin.Begin);
+        //            var outputStream = new MemoryStream();
+        //            resourceStream.CopyTo(outputStream);
+        //            outputStream.Seek(0, SeekOrigin.Begin);
 
-                    return outputStream;
+        //            return outputStream;
 
-                }
+        //        }
 
-            }
-            catch
-            { }
+        //    }
+        //    catch
+        //    { }
 
-            return null;
+        //    return null;
 
-        }
+        //}
 
         #endregion
 
         #region (protected virtual) GetResourceString             (ResourceName, ResourceAssemblies)
 
-        protected virtual String GetResourceString(String ResourceName)
+        //protected virtual String GetResourceString(String ResourceName)
 
-            => GetResourceString(ResourceName,
-                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+        //    => GetResourceString(ResourceName,
+        //                         new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual String GetResourceString(String                            ResourceName,
-                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //protected virtual String GetResourceString(String                            ResourceName,
+        //                                           params Tuple<String, Assembly>[]  ResourceAssemblies)
 
-            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+        //    => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
 
         #endregion
 
         #region (protected virtual) GetResourceBytes              (ResourceName, ResourceAssemblies)
 
-        protected virtual Byte[] GetResourceBytes(String ResourceName)
+        //protected virtual Byte[] GetResourceBytes(String ResourceName)
 
-            => GetResourceBytes(ResourceName,
-                                new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+        //    => GetResourceBytes(ResourceName,
+        //                        new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual Byte[] GetResourceBytes(String                            ResourceName,
-                                                  params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //protected virtual Byte[] GetResourceBytes(String                            ResourceName,
+        //                                          params Tuple<String, Assembly>[]  ResourceAssemblies)
 
-            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+        //    => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
 
         #endregion
 
 
         #region (protected virtual) GetMergedResourceMemoryStream (ResourceName, ResourceAssemblies)
 
-        protected virtual MemoryStream? GetMergedResourceMemoryStream(String ResourceName)
+        //protected virtual MemoryStream? GetMergedResourceMemoryStream(String ResourceName)
 
-            => GetMergedResourceMemoryStream(ResourceName,
-                                             new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+        //    => GetMergedResourceMemoryStream(ResourceName,
+        //                                     new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual MemoryStream? GetMergedResourceMemoryStream(String                            ResourceName,
-                                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
-        {
+        //protected virtual MemoryStream? GetMergedResourceMemoryStream(String                            ResourceName,
+        //                                                              params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //{
 
-            try
-            {
+        //    try
+        //    {
 
-                var outputStream = new MemoryStream();
-                var newLine      = "\r\n"u8.ToArray();
+        //        var outputStream = new MemoryStream();
+        //        var newLine      = "\r\n"u8.ToArray();
 
-                foreach (var resourceAssembly in ResourceAssemblies)
-                {
-                    try
-                    {
+        //        foreach (var resourceAssembly in ResourceAssemblies)
+        //        {
+        //            try
+        //            {
 
-                        var data = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
-                        if (data is not null)
-                        {
+        //                var data = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+        //                if (data is not null)
+        //                {
 
-                            data.CopyTo(outputStream);
+        //                    data.CopyTo(outputStream);
 
-                            outputStream.Write(newLine, 0, newLine.Length);
+        //                    outputStream.Write(newLine, 0, newLine.Length);
 
-                        }
+        //                }
 
-                    }
-                    catch
-                    { }
-                }
+        //            }
+        //            catch
+        //            { }
+        //        }
 
-                outputStream.Seek(0, SeekOrigin.Begin);
+        //        outputStream.Seek(0, SeekOrigin.Begin);
 
-                return outputStream;
+        //        return outputStream;
 
-            }
-            catch
-            { }
+        //    }
+        //    catch
+        //    { }
 
-            return null;
+        //    return null;
 
-        }
+        //}
 
         #endregion
 
         #region (protected virtual) GetMergedResourceString       (ResourceName, ResourceAssemblies)
 
-        protected virtual String GetMergedResourceString(String ResourceName)
+        //protected virtual String GetMergedResourceString(String ResourceName)
 
-            => GetMergedResourceString(ResourceName,
-                                       new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+        //    => GetMergedResourceString(ResourceName,
+        //                               new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual String GetMergedResourceString(String                            ResourceName,
-                                                         params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //protected virtual String GetMergedResourceString(String                            ResourceName,
+        //                                                 params Tuple<String, Assembly>[]  ResourceAssemblies)
 
-            => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+        //    => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
 
         #endregion
 
         #region (protected virtual) GetMergedResourceBytes        (ResourceName, ResourceAssemblies)
 
-        protected virtual Byte[] GetMergedResourceBytes(String ResourceName)
+        //protected virtual Byte[] GetMergedResourceBytes(String ResourceName)
 
-            => GetMergedResourceBytes(ResourceName,
-                                      new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+        //    => GetMergedResourceBytes(ResourceName,
+        //                              new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual Byte[] GetMergedResourceBytes(String                            ResourceName,
-                                                        params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //protected virtual Byte[] GetMergedResourceBytes(String                            ResourceName,
+        //                                                params Tuple<String, Assembly>[]  ResourceAssemblies)
 
-            => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+        //    => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
 
         #endregion
 
