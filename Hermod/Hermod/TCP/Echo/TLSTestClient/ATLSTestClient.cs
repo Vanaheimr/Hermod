@@ -111,19 +111,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.LocalCertificateSelector            = LocalCertificateSelector;
-            this.ClientCertificates                  = ClientCertificates               ?? [];
-            this.ClientCertificateContext            = ClientCertificateContext;
-            this.ClientCertificateChain              = ClientCertificateChain           ?? [];
-            this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls13;
-            this.CipherSuitesPolicy                  = CipherSuitesPolicy;
-            this.CertificateChainPolicy              = CertificateChainPolicy;
-            this.CertificateRevocationCheckMode      = CertificateRevocationCheckMode;
-            this.EnforceTLS                          = EnforceTLS                       ?? false;
-            this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
-            this.AllowRenegotiation                  = AllowRenegotiation;
-            this.AllowTLSResume                      = AllowTLSResume;
+            this.RemoteCertificateValidator      = RemoteCertificateValidator;
+            this.LocalCertificateSelector        = LocalCertificateSelector;
+            this.ClientCertificates              = ClientCertificates               ?? [];
+            this.ClientCertificateContext        = ClientCertificateContext;
+            this.ClientCertificateChain          = ClientCertificateChain           ?? [];
+            this.TLSProtocols                    = TLSProtocols                     ?? SslProtocols.Tls13;
+            this.CipherSuitesPolicy              = CipherSuitesPolicy;
+            this.CertificateChainPolicy          = CertificateChainPolicy;
+            this.CertificateRevocationCheckMode  = CertificateRevocationCheckMode;
+            this.EnforceTLS                      = EnforceTLS                       ?? false;
+            this.ApplicationProtocols            = ApplicationProtocols?.Distinct() ?? [];
+            this.AllowRenegotiation              = AllowRenegotiation;
+            this.AllowTLSResume                  = AllowTLSResume;
 
         }
 
@@ -173,19 +173,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.LocalCertificateSelector            = LocalCertificateSelector;
-            this.ClientCertificates                  = ClientCertificates               ?? [];
-            this.ClientCertificateContext            = ClientCertificateContext;
-            this.ClientCertificateChain              = ClientCertificateChain           ?? [];
-            this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls13;
-            this.CipherSuitesPolicy                  = CipherSuitesPolicy;
-            this.CertificateChainPolicy              = CertificateChainPolicy;
-            this.CertificateRevocationCheckMode      = CertificateRevocationCheckMode;
-            this.EnforceTLS                          = EnforceTLS                       ?? false;
-            this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
-            this.AllowRenegotiation                  = AllowRenegotiation;
-            this.AllowTLSResume                      = AllowTLSResume;
+            this.RemoteCertificateValidator      = RemoteCertificateValidator;
+            this.LocalCertificateSelector        = LocalCertificateSelector;
+            this.ClientCertificates              = ClientCertificates               ?? [];
+            this.ClientCertificateContext        = ClientCertificateContext;
+            this.ClientCertificateChain          = ClientCertificateChain           ?? [];
+            this.TLSProtocols                    = TLSProtocols                     ?? SslProtocols.Tls13;
+            this.CipherSuitesPolicy              = CipherSuitesPolicy;
+            this.CertificateChainPolicy          = CertificateChainPolicy;
+            this.CertificateRevocationCheckMode  = CertificateRevocationCheckMode;
+            this.EnforceTLS                      = EnforceTLS                       ?? false;
+            this.ApplicationProtocols            = ApplicationProtocols?.Distinct() ?? [];
+            this.AllowRenegotiation              = AllowRenegotiation;
+            this.AllowTLSResume                  = AllowTLSResume;
 
         }
 
@@ -235,19 +235,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.LocalCertificateSelector            = LocalCertificateSelector;
-            this.ClientCertificates                  = ClientCertificates               ?? [];
-            this.ClientCertificateContext            = ClientCertificateContext;
-            this.ClientCertificateChain              = ClientCertificateChain           ?? [];
-            this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls13;
-            this.CipherSuitesPolicy                  = CipherSuitesPolicy;
-            this.CertificateChainPolicy              = CertificateChainPolicy;
-            this.CertificateRevocationCheckMode      = CertificateRevocationCheckMode;
-            this.EnforceTLS                          = EnforceTLS                       ?? false;
-            this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
-            this.AllowRenegotiation                  = AllowRenegotiation;
-            this.AllowTLSResume                      = AllowTLSResume;
+            this.RemoteCertificateValidator      = RemoteCertificateValidator;
+            this.LocalCertificateSelector        = LocalCertificateSelector;
+            this.ClientCertificates              = ClientCertificates               ?? [];
+            this.ClientCertificateContext        = ClientCertificateContext;
+            this.ClientCertificateChain          = ClientCertificateChain           ?? [];
+            this.TLSProtocols                    = TLSProtocols                     ?? SslProtocols.Tls13;
+            this.CipherSuitesPolicy              = CipherSuitesPolicy;
+            this.CertificateChainPolicy          = CertificateChainPolicy;
+            this.CertificateRevocationCheckMode  = CertificateRevocationCheckMode;
+            this.EnforceTLS                      = EnforceTLS                       ?? false;
+            this.ApplicationProtocols            = ApplicationProtocols?.Distinct() ?? [];
+            this.AllowRenegotiation              = AllowRenegotiation;
+            this.AllowTLSResume                  = AllowTLSResume;
 
         }
 

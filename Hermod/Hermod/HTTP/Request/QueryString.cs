@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) New
+        #region (static) Empty
 
         /// <summary>
         /// Return a new empty query string.

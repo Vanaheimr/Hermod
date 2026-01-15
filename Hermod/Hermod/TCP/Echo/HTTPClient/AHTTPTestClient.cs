@@ -425,6 +425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                  = null,
                                   Boolean?                                                       AllowRenegotiation                    = null,
                                   Boolean?                                                       AllowTLSResume                        = null,
+                                  TOTPConfig?                                                    TOTPConfig                            = null,
 
                                   Boolean?                                                       PreferIPv4                            = null,
                                   TimeSpan?                                                      ConnectTimeout                        = null,
@@ -495,6 +496,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                           Connection                                 = ConnectionType.KeepAlive
                                                                       });
 
+            this.TOTPConfig                           = TOTPConfig;
+
         }
 
         #endregion
@@ -523,6 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                  = null,
                                   Boolean?                                                       AllowRenegotiation                    = null,
                                   Boolean?                                                       AllowTLSResume                        = null,
+                                  TOTPConfig?                                                    TOTPConfig                            = null,
 
                                   Boolean?                                                       PreferIPv4                            = null,
                                   TimeSpan?                                                      ConnectTimeout                        = null,
@@ -596,6 +600,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                           Connection                                 = ConnectionType.KeepAlive
                                                                       });
 
+            this.TOTPConfig                           = TOTPConfig;
+
         }
 
         #endregion
@@ -624,6 +630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                  = null,
                                   Boolean?                                                       AllowRenegotiation                    = null,
                                   Boolean?                                                       AllowTLSResume                        = null,
+                                  TOTPConfig?                                                    TOTPConfig                            = null,
 
                                   Boolean?                                                       PreferIPv4                            = null,
                                   TimeSpan?                                                      ConnectTimeout                        = null,
@@ -696,6 +703,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
                                                                           Connection                                 = ConnectionType.KeepAlive
                                                                       });
+
+            this.TOTPConfig                           = TOTPConfig;
 
         }
 
@@ -791,29 +800,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             requestBuilder.ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately;
             requestBuilder.CancellationToken                          = CancellationToken;
 
-            if (QueryString    is not null)
-                requestBuilder.QueryString                            = QueryString;
+            requestBuilder.QueryString                                = QueryString    ?? QueryString.Empty;
+            requestBuilder.Accept                                     = Accept         ?? this.Accept ?? [];
 
-            if (Accept         is not null)
-                requestBuilder.Accept                                 = Accept      ?? this.Accept ?? [];
-
-            if (Authentication is not null)
-                requestBuilder.Authorization                          = Authentication;
-
-            if (UserAgent.IsNotNullOrEmpty())
-                requestBuilder.UserAgent                              = UserAgent   ?? this.HTTPUserAgent;
-
-            if (Content        is not null)
-                requestBuilder.Content                                = Content;
-
-            if (ContentType    is not null)
-                requestBuilder.ContentType                            = ContentType ?? this.ContentType;
+            requestBuilder.Authorization                              = Authentication ?? this.HTTPAuthentication;
+            requestBuilder.UserAgent                                  = UserAgent      ?? this.HTTPUserAgent;
+            requestBuilder.Content                                    = Content;
+            requestBuilder.ContentType                                = ContentType    ?? this.ContentType;
 
             if (Content is not null && requestBuilder.ContentType is null)
                 requestBuilder.ContentType                            = HTTPContentType.Application.OCTETSTREAM;
 
-            if (Connection     is not null)
-                requestBuilder.Connection                             = Connection  ?? this.Connection;
+            requestBuilder.Connection                                 = Connection     ?? this.Connection;
+            requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig;
 
             RequestBuilder?.Invoke(requestBuilder);
 
@@ -962,6 +961,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                     CancellationToken
                                                                 );
 
+                            #region Set optional Time-Based One-Time Password (TOTP)
+
+                            if (TOTPConfig is not null)
+                                Request.TOTP = GenerateCurrentTOTP();
+
+                            #endregion
+
                             #region Log  HTTP Request
 
                             if (LocalSocket. HasValue) {
@@ -983,7 +989,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                           Request
                                       ),
                                       nameof(SendRequest)
-                                  );
+                                  ).ConfigureAwait(false);
 
                             await LogEvent(
                                       RequestLogDelegate,
@@ -993,7 +999,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                           Request
                                       ),
                                       nameof(SendRequest)
-                                  );
+                                  ).ConfigureAwait(false);
 
                             #endregion
 
@@ -1015,6 +1021,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   ).ConfigureAwait(false);
 
                             #endregion
+
+                            
 
                             IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize * 2);
                             var buffer = bufferOwner.Memory;
@@ -1179,7 +1187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                               response
                                           ),
                                           nameof(SendRequest)
-                                      );
+                                      ).ConfigureAwait(false);
 
                                 await LogEvent(
                                           ResponseLogDelegate,
@@ -1190,7 +1198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                               response
                                           ),
                                           nameof(SendRequest)
-                                      );
+                                      ).ConfigureAwait(false);
 
                                 #endregion
 
@@ -1312,6 +1320,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 await Log($"Error in SendBinary: {ex.Message}");
                 return (false, "", ex.Message, TimeSpan.Zero);
             }
+
+        }
+
+        #endregion
+
+
+        #region GenerateCurrentTOTP()
+
+        /// <summary>
+        /// Generate the current Time-Based One-Time Password (TOTP).
+        /// </summary>
+        public String? GenerateCurrentTOTP()
+        {
+
+            if (TOTPConfig is null)
+                return null;
+
+            var (current, _, _)  = TOTPGenerator.GenerateTOTP(
+                                       TOTPConfig.SharedSecret,
+                                       TOTPConfig.ValidityTime,
+                                       TOTPConfig.Length,
+                                       TOTPConfig.Alphabet
+                                   );
+
+            return current;
 
         }
 

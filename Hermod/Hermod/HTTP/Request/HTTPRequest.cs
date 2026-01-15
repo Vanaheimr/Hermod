@@ -1154,7 +1154,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             set
             {
+
                 SetHeaderField(HTTPRequestHeaderField.TOTP, value);
+
+                this.RawHTTPHeader = EntireRequestHeader;
+
             }
 
         }

@@ -226,7 +226,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  UInt16                          MaxNumberOfRetries        { get; } = 3;
         public  UInt32                          BufferSize                { get; }
 
-
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>

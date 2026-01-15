@@ -146,6 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    AllowRenegotiation,
                    AllowTLSResume,
+                   null,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -233,6 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    AllowRenegotiation,
                    AllowTLSResume,
+                   null,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -320,6 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    AllowRenegotiation,
                    AllowTLSResume,
+                   null,
 
                    PreferIPv4,
                    ConnectTimeout,

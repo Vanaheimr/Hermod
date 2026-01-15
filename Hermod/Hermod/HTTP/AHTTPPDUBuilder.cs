@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The collection of all HTTP headers.
         /// </summary>
-        protected readonly Dictionary<String, Object?> headerFields;
+        protected readonly Dictionary<String, Object?> headerFields = new (StringComparer.OrdinalIgnoreCase);
 
         #endregion
 
@@ -760,7 +760,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AHTTPPDUBuilder(CancellationToken CancellationToken = default)
         {
 
-            this.headerFields       = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
             this.CancellationToken  = CancellationToken;
 
         }

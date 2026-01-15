@@ -905,6 +905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                               Boolean?                                                      AllowRenegotiation                    = null,
                               Boolean?                                                      AllowTLSResume                        = null,
+                              TOTPConfig?                                                   TOTPConfig                            = null,
 
                               UInt16?                                                       MaxNumberOfClients                    = null,
 
@@ -970,6 +971,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      ApplicationProtocols,
                                                                      AllowRenegotiation,
                                                                      AllowTLSResume,
+                                                                     TOTPConfig,
 
                                                                      PreferIPv4,
                                                                      ConnectTimeout,
@@ -1011,6 +1013,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                               Boolean?                                                      AllowRenegotiation                    = null,
                               Boolean?                                                      AllowTLSResume                        = null,
+                              TOTPConfig?                                                   TOTPConfig                            = null,
 
                               UInt16?                                                       MaxNumberOfClients                    = null,
 
@@ -1076,6 +1079,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      ApplicationProtocols,
                                                                      AllowRenegotiation,
                                                                      AllowTLSResume,
+                                                                     TOTPConfig,
 
                                                                      PreferIPv4,
                                                                      ConnectTimeout,
@@ -1120,6 +1124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                               Boolean?                                                      AllowRenegotiation                    = null,
                               Boolean?                                                      AllowTLSResume                        = null,
+                              TOTPConfig?                                                   TOTPConfig                            = null,
 
                               UInt16?                                                       MaxNumberOfClients                    = null,
 
@@ -1186,6 +1191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                      ApplicationProtocols,
                                                                      AllowRenegotiation,
                                                                      AllowTLSResume,
+                                                                     TOTPConfig,
 
                                                                      PreferIPv4,
                                                                      ConnectTimeout,
@@ -1252,52 +1258,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="CancellationToken">An optional cancellation token.</param>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
                                                  HTTPPath                      HTTPPath,
-                                                 QueryString?                  QueryString         = null,
-                                                 AcceptTypes?                  Accept              = null,
-                                                 IHTTPAuthentication?          Authentication      = null,
-                                                 Byte[]?                       Content             = null,
-                                                 HTTPContentType?              ContentType         = null,
-                                                 String?                       UserAgent           = null,
-                                                 ConnectionType?               Connection          = null,
-                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
-                                                 CancellationToken             CancellationToken   = default)
+                                                 QueryString?                  QueryString                          = null,
+                                                 AcceptTypes?                  Accept                               = null,
+                                                 IHTTPAuthentication?          Authentication                       = null,
+                                                 Byte[]?                       Content                              = null,
+                                                 HTTPContentType?              ContentType                          = null,
+                                                 String?                       UserAgent                            = null,
+                                                 ConnectionType?               Connection                           = null,
+                                                 Action<HTTPRequest.Builder>?  RequestBuilder                       = null,
+                                                 Boolean?                      ConsumeRequestChunkedTEImmediately   = null,
+                                                 CancellationToken             CancellationToken                    = default)
         {
 
             var requestBuilder = DefaultRequestBuilder();
 
-            //requestBuilder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-            requestBuilder.Host        = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
-                                                     (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
-                                                          ? ":" + RemoteURL.Port.ToString()
-                                                          : String.Empty));
-            requestBuilder.HTTPMethod  = HTTPMethod;
-            requestBuilder.Path        = HTTPPath;
+            requestBuilder.Host                                       = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
+                                                                                    (RemoteURL.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
+                                                                                         ? ":" + RemoteURL.Port.ToString()
+                                                                                         : String.Empty));
+            requestBuilder.HTTPMethod                                 = HTTPMethod;
+            requestBuilder.Path                                       = HTTPPath;
+            requestBuilder.ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately;
+            requestBuilder.CancellationToken                          = CancellationToken;
 
-            if (QueryString    is not null)
-                requestBuilder.QueryString    = QueryString;
+            requestBuilder.QueryString                                = QueryString    ?? QueryString.Empty;
+            requestBuilder.Accept                                     = Accept         ?? this.Accept ?? [];
 
-            if (Accept         is not null)
-                requestBuilder.Accept         = Accept;
-
-            if (Authentication is not null)
-                requestBuilder.Authorization  = Authentication;
-
-            if (UserAgent.IsNotNullOrEmpty())
-                requestBuilder.UserAgent      = UserAgent;
-
-            if (Content        is not null)
-                requestBuilder.Content        = Content;
-
-            if (ContentType    is not null)
-                requestBuilder.ContentType    = ContentType;
+            requestBuilder.Authorization                              = Authentication ?? this.HTTPAuthentication;
+            requestBuilder.UserAgent                                  = UserAgent      ?? this.HTTPUserAgent;
+            requestBuilder.Content                                    = Content;
+            requestBuilder.ContentType                                = ContentType    ?? this.ContentType;
 
             if (Content is not null && requestBuilder.ContentType is null)
-                requestBuilder.ContentType    = HTTPContentType.Application.OCTETSTREAM;
+                requestBuilder.ContentType                            = HTTPContentType.Application.OCTETSTREAM;
 
-            if (Connection     is not null)
-                requestBuilder.Connection     = Connection;
-
-            requestBuilder.CancellationToken  = CancellationToken;
+            requestBuilder.Connection                                 = Connection     ?? this.Connection;
+            requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig;
 
             RequestBuilder?.Invoke(requestBuilder);
 
@@ -1389,7 +1385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  ResponseLogDelegate,
                                  CancellationToken
 
-                             );
+                             ).ConfigureAwait(false);
 
             }
             finally

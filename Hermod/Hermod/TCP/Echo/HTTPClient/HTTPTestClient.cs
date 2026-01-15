@@ -79,6 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                               Boolean?                                                      AllowRenegotiation                    = null,
                               Boolean?                                                      AllowTLSResume                        = null,
+                              TOTPConfig?                                                   TOTPConfig                            = null,
 
                               Boolean?                                                      PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
@@ -126,6 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
+                   TOTPConfig,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -164,6 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                               Boolean?                                                      AllowRenegotiation                    = null,
                               Boolean?                                                      AllowTLSResume                        = null,
+                              TOTPConfig?                                                   TOTPConfig                            = null,
 
                               Boolean?                                                      PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
@@ -213,6 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
+                   TOTPConfig,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -256,6 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                               Boolean?                                                      AllowRenegotiation                    = null,
                               Boolean?                                                      AllowTLSResume                        = null,
+                              TOTPConfig?                                                   TOTPConfig                            = null,
 
                               Boolean?                                                      PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
@@ -307,6 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
+                   TOTPConfig,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -362,6 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                        Boolean?                                                      AllowRenegotiation                    = null,
                        Boolean?                                                      AllowTLSResume                        = null,
+                       TOTPConfig?                                                   TOTPConfig                            = null,
 
                        Boolean?                                                      PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
@@ -399,6 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              ApplicationProtocols,
                              AllowRenegotiation,
                              AllowTLSResume,
+                             TOTPConfig,
 
                              PreferIPv4,
                              ConnectTimeout,
@@ -450,6 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                        Boolean?                                                      AllowRenegotiation                    = null,
                        Boolean?                                                      AllowTLSResume                        = null,
+                       TOTPConfig?                                                   TOTPConfig                            = null,
 
                        Boolean?                                                      PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
@@ -487,6 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              ApplicationProtocols,
                              AllowRenegotiation,
                              AllowTLSResume,
+                             TOTPConfig,
 
                              PreferIPv4,
                              ConnectTimeout,
@@ -543,6 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                        Boolean?                                                      AllowRenegotiation                    = null,
                        Boolean?                                                      AllowTLSResume                        = null,
+                       TOTPConfig?                                                   TOTPConfig                            = null,
 
                        Boolean?                                                      PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
@@ -579,6 +590,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              ApplicationProtocols,
                              AllowRenegotiation,
                              AllowTLSResume,
+                             TOTPConfig,
 
                              PreferIPv4,
                              ConnectTimeout,
@@ -639,6 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                  = null,
                        Boolean?                                                      AllowRenegotiation                    = null,
                        Boolean?                                                      AllowTLSResume                        = null,
+                       TOTPConfig?                                                   TOTPConfig                            = null,
 
                        Boolean?                                                      PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
@@ -679,6 +692,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              ApplicationProtocols,
                              AllowRenegotiation,
                              AllowTLSResume,
+                             TOTPConfig,
 
                              PreferIPv4,
                              ConnectTimeout,
