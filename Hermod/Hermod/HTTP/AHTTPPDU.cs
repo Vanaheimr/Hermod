@@ -882,6 +882,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        /// <summary>
+        /// Parse the given http header field.
+        /// </summary>
+        /// <param name="HeaderField">The key of the requested header field.</param>
+        /// <param name="TryParser">The header field parser.</param>
+        public TValue? TryParseHeaderStruct<TValue>(String             HeaderField,
+                                                    TryParser<TValue>  TryParser,
+                                                    TValue             DefaultValue)
+
+            where TValue : struct
+
+        {
+
+            if (TryParser is not null &&
+                headerFields.TryGetValue(HeaderField, out var value) &&
+                value is String text &&
+                TryParser(text, out var value2))
+            {
+                return value2;
+            }
+
+            return DefaultValue;
+
+        }
+
+
+        /// <summary>
+        /// Parse the given http header field.
+        /// </summary>
+        /// <param name="HeaderField">The key of the requested header field.</param>
+        /// <param name="TryParser">The header field parser.</param>
+        public TValue? TryParseHeaderStruct<TValue>(String             HeaderField,
+                                                    TryParser<TValue>  TryParser)
+
+            where TValue : struct
+
+        {
+
+            if (TryParser is not null &&
+                headerFields.TryGetValue(HeaderField, out var value) &&
+                value is String text &&
+                TryParser(text, out var value2))
+            {
+                return value2;
+            }
+
+            return default;
+
+        }
+
         #region TryParseHeaderField(HeaderField, TryParser)
 
         /// <summary>
@@ -892,7 +943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TValue? TryParseHeaderField<TValue>(String             HeaderField,
                                                    TryParser<TValue>  TryParser)
 
-            where TValue : struct
+            //where TValue : struct
 
         {
 
@@ -900,6 +951,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 headerFields.TryGetValue(HeaderField, out var value) &&
                 value is String text &&
                 TryParser(text, out var value2))
+            {
+                return value2;
+            }
+
+            return default;
+
+        }
+
+
+        /// <summary>
+        /// Parse the given http header field.
+        /// </summary>
+        /// <param name="HeaderField">The key of the requested header field.</param>
+        /// <param name="TryParser">The header field parser.</param>
+        public TValue? TryParseHeaderField<TValue>(String              HeaderField,
+                                                   TryParser2<TValue>  TryParser)
+
+          //  where TValue : struct
+
+        {
+
+            if (TryParser is not null &&
+                headerFields.TryGetValue(HeaderField, out var value) &&
+                value is String text &&
+                TryParser(text, out var value2, out _))
             {
                 return value2;
             }
@@ -1183,6 +1259,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 value is not null)
             {
 
+                if (value is T valueT1)
+                    return valueT1;
+
                 //if (value is String text &&
                 //    HeaderField.StringParser is not null &&
                 //    HeaderField.StringParser(text, out var valueT) &&
@@ -1200,8 +1279,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return (T) value;
                     }
 
-                    if (HeaderField.StringParser is not null           &&
-                        HeaderField.StringParser(text, out var valueT) &&
+                    if (HeaderField.StringParser is not null                  &&
+                        HeaderField.StringParser(text, out var valueT, out _) &&
                         valueT is not null)
                     {
                         headerFieldsParsed.TryRemove(HeaderField.Name, out _);
@@ -1246,7 +1325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var text2 = text.Trim();
 
                     if (text2.IsNotNullOrEmpty() &&
-                        HeaderField.StringParser(text2, out var listOfValues) &&
+                        HeaderField.StringParser(text2, out var listOfValues, out _) &&
                         listOfValues is not null)
                     {
                         headerFieldsParsed.TryAdd(HeaderField.Name, listOfValues);

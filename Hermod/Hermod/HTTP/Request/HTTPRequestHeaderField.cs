@@ -1556,7 +1556,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>X-Portal: true</example>
         public static readonly HTTPRequestHeaderField<Boolean> X_Portal = new ("X-Portal",
                                                                                RequestPathSemantic.EndToEnd,
-                                                                               StringParser: (String s, out Boolean b) => { b = s.Trim().ToLower() == "true"; return true; });
+                                                                               StringParser: (String s, out Boolean b) => { b = s.Trim().Equals("true", StringComparison.CurrentCultureIgnoreCase); return true; });
 
         #endregion
 
@@ -1567,8 +1567,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// A Time-Based One-Time Password for 2nd factor authentication.
         /// </summary>
         /// <example>TOTP: cGVuIHQWxhFtZQZGRpbjpvNlc2</example>
-        public static readonly HTTPRequestHeaderField<String?> TOTP = new ("TOTP",
-                                                                           RequestPathSemantic.EndToEnd);
+        public static readonly HTTPRequestHeaderField<TOTPHTTPHeader?> TOTP = new ("TOTP",
+                                                                                   RequestPathSemantic.EndToEnd,
+                                                                                   StringParser2: TOTPHTTPHeader.TryParse);
 
         #endregion
 
@@ -1603,6 +1604,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    RequestPathSemantic,
                    MultipleValuesAsList,
                    StringParser,
+                   null,
+                   ValueSerializer)
+
+        { }
+
+
+        /// <summary>
+        /// Creates a new HTTP request header field.
+        /// </summary>
+        /// <param name="Name">The name of the HTTP request header field.</param>
+        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
+        /// <param name="MultipleValuesAsList">When set to true header fields having multiple values will be serialized as a comma separated list, otherwise as multiple lines.</param>
+        /// <param name="StringParser2">Parse this HTTPHeaderField from a string.</param>
+        /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
+        public HTTPRequestHeaderField(String                       Name,
+                                      RequestPathSemantic          RequestPathSemantic,
+                                      Boolean?                     MultipleValuesAsList   = null,
+                                      TryParser2<T>?               StringParser2          = null,
+                                      ValueSerializerDelegate<T>?  ValueSerializer        = null)
+
+            : base(Name,
+                   HeaderFieldType.Request,
+                   RequestPathSemantic,
+                   MultipleValuesAsList,
+                   null,
+                   StringParser2,
                    ValueSerializer)
 
         { }

@@ -214,13 +214,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region TOTPConfig
 
-            public TOTPConfig? TOTPConfig { get; set; }
+            public TOTPConfig?  TOTPConfig    { get; set; }
 
             #endregion
 
             #region TOTP
 
-            public String? TOTP
+            public TOTPHTTPHeader? TOTP
             {
 
                 get

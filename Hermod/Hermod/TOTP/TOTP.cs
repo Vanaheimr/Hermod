@@ -29,27 +29,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// Generate Time-based One-Time Passwords (TOTPs) for the OCPP QR Code payment process,
-    /// as outlined in the European Alternative Fuels Infrastructure Directive (AFIR). This
-    /// ensures that the payment IT backend can verify the authenticity of the payment request.
+    /// Generate Time-based One-Time Passwords (TOTPs) to harden TCP/TLS connections when
+    /// mutual TLS (mTLS) is not available or not practical. This implementation supports
+    /// custom alphabets and variable token lengths, and can optionally incorporate TLS
+    /// v1.3 key exporter material to bind the token to a specific TLS session (TLS channel
+    /// binding). With channel binding enabled, a captured or logged TOTP becomes effectively
+    /// useless outside the original TLS session, which makes replay attacks impractical
+    /// even if the token leaks.
     /// 
-    /// Typically, TOTP algorithms generate passwords using only the digits 0 through 9, with
-    /// a standard length of 6 to 8 digits (as specified in RFC 6238). However, since this
-    /// TOTP is used exclusively for machine-to-machine communication and does not require
-    /// human input, we extend the specification to include a larger character set and a
-    /// longer default length to enhance security.
+    /// Classic TOTP per RFC 6238 typically emits 6–8 decimal digits (0–9) because it is
+    /// designed for human entry. Here, the token is used exclusively for machine-to-machine
+    /// authentication, so we deliberately expand the design space: a larger alphabet
+    /// (e.g., Base32/Base62/custom) and a longer default length increase brute-force cost
+    /// without harming usability.
     /// 
-    /// ((ToDo: Dynamic truncation method like as described in RFC 4226?))
+    /// Typical use cases include:
+    ///  - OCPP QR-Code based payment/authorization flows, e.g. where a short-lived
+    ///    token is embedded in a QR Code shown on a charging station display and validated
+    ///    server-side to secure the server infrastructure against misuse and attacks.
+    ///  - A drop-in replacement for legacy HTTP Basic Auth in constrained environments
+    ///  - Strengthening e.g. OCPI token-style authentication by adding time-limiting and
+    ///    optionally TLS session binding, rather than relying on long-lived static
+    ///    identifiers.
     /// </summary>
     public static class TOTPGenerator
     {
 
-        #region (private) CalcTOTPSlot(CurrentSlot, TOTPLength, Alphabet, HMAC)
+        /// <summary>
+        /// The default TLS exporter label for TOTP generation with TLS v1.3 channel binding.
+        /// </summary>
+        public const String TLSExporterLabel = "EXPORTER-Time-Based-One-Time-Password-v1";
+
+
+        #region (private) CalcTOTPSlot(CurrentSlot, TOTPLength, Alphabet, HMAC, TLSExporterMaterial = null)
 
         private static String CalcTOTPSlot(UInt64      CurrentSlot,
                                            UInt32      TOTPLength,
                                            String      Alphabet,
-                                           HMACSHA256  HMAC)
+                                           HMACSHA256  HMAC,
+                                           Byte[]?     TLSExporterMaterial = null)
         {
 
             var slotBytes = BitConverter.GetBytes(CurrentSlot);
@@ -58,10 +76,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (BitConverter.IsLittleEndian)
                 Array.Reverse(slotBytes);
 
-            //Debug.Write($"Current slot bytes: {String.Join("-", slotBytes.Select(b => b.ToString()))}");
+            var currentHash = TLSExporterMaterial?.Length > 0
+                                  ? new HMACSHA256(TLSExporterMaterial).ComputeHash(HMAC.ComputeHash(slotBytes))
+                                  : HMAC.ComputeHash(slotBytes);
 
-            var currentHash    = HMAC.ComputeHash(slotBytes);
             var stringBuilder  = new StringBuilder((Int32) TOTPLength);
+
+            //ToDo: Dynamic truncation method like as described in RFC 4226?
 
             // For additional security start at a random offset
             // based on the last bit of the hash value (see RFCs)
@@ -76,25 +97,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateTOTP  (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null)
+        #region GenerateTOTP  (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate the current TOTP and the remaining time until the TOTP will change.
         /// </summary>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
-        /// <param name="Timestamp"></param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
             GenerateTOTP(String           SharedSecret,
-                         TimeSpan?        ValidityTime   = null,
-                         UInt32?          TOTPLength     = 12,
-                         String?          Alphabet       = null,
-                         DateTimeOffset?  Timestamp      = null)
+                         TimeSpan?        ValidityTime          = null,
+                         UInt32?          TOTPLength            = 12,
+                         String?          Alphabet              = null,
+                         DateTimeOffset?  Timestamp             = null,
+                         Byte[]?          TLSExporterMaterial   = null)
 
         {
 
@@ -140,7 +163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #endregion
 
-            using var hmac       = new HMACSHA256(Encoding.UTF8.GetBytes(SharedSecret));
+            using var hmac       = new HMACSHA256(
+                                       Encoding.UTF8.GetBytes(SharedSecret)
+                                   );
 
             var timeReference    = Timestamp ?? DateTimeOffset.UtcNow;
             var currentUnixTime  = timeReference.ToUnixTimeSeconds();
@@ -151,7 +176,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        (currentUnixTime % (Int32) ValidityTime.Value.TotalSeconds)
                                    );
 
-            return (CalcTOTPSlot(currentSlot, TOTPLength.Value, Alphabet, hmac),
+            return (CalcTOTPSlot(
+                        currentSlot,
+                        TOTPLength.Value,
+                        Alphabet,
+                        hmac,
+                        TLSExporterMaterial
+                    ),
                     remainingTime,
                     timeReference + remainingTime);
 
@@ -159,16 +190,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateTOTPs (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null)
+        #region GenerateTOTPs (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate TOTPs and the remaining time until the TOTPs will change.
         /// </summary>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
-        /// <param name="Timestamp"></param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
@@ -176,10 +208,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        DateTimeOffset  EndTime)
 
             GenerateTOTPs(String           SharedSecret,
-                          TimeSpan?        ValidityTime   = null,
-                          UInt32?          TOTPLength     = 12,
-                          String?          Alphabet       = null,
-                          DateTimeOffset?  Timestamp      = null)
+                          TimeSpan?        ValidityTime          = null,
+                          UInt32?          TOTPLength            = 12,
+                          String?          Alphabet              = null,
+                          DateTimeOffset?  Timestamp             = null,
+                          Byte[]?          TLSExporterMaterial   = null)
 
         {
 
@@ -225,7 +258,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #endregion
 
-            using var hmac       = new HMACSHA256(Encoding.UTF8.GetBytes(SharedSecret));
+            using var hmac       = new HMACSHA256(
+                                       Encoding.UTF8.GetBytes(SharedSecret)
+                                   );
 
             var timeReference    = Timestamp ?? DateTimeOffset.UtcNow;
             var currentUnixTime  = timeReference.ToUnixTimeSeconds();
@@ -236,11 +271,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        (currentUnixTime % (Int32) ValidityTime.Value.TotalSeconds)
                                    );
 
-            //Debug.Write($"Current slot: {currentSlot}");
-
-            return (CalcTOTPSlot(currentSlot - 1, TOTPLength.Value, Alphabet, hmac),
-                    CalcTOTPSlot(currentSlot,     TOTPLength.Value, Alphabet, hmac),
-                    CalcTOTPSlot(currentSlot + 1, TOTPLength.Value, Alphabet, hmac),
+            return (CalcTOTPSlot(currentSlot - 1, TOTPLength.Value, Alphabet, hmac, TLSExporterMaterial),
+                    CalcTOTPSlot(currentSlot,     TOTPLength.Value, Alphabet, hmac, TLSExporterMaterial),
+                    CalcTOTPSlot(currentSlot + 1, TOTPLength.Value, Alphabet, hmac, TLSExporterMaterial),
                     remainingTime,
                     timeReference + remainingTime);
 
@@ -248,46 +281,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateTOTP  (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null)
+        #region GenerateTOTP  (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate the current TOTP and the remaining time until the TOTP will change.
         /// </summary>
-        /// <param name="Timestamp"></param>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
+        /// <param name="Timestamp">The timestamp to calculate the TOTP for.</param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
             GenerateTOTP (DateTimeOffset  Timestamp,
                           String          SharedSecret,
-                          TimeSpan?       ValidityTime   = null,
-                          UInt32?         TOTPLength     = 12,
-                          String?         Alphabet       = null)
+                          TimeSpan?       ValidityTime          = null,
+                          UInt32?         TOTPLength            = 12,
+                          String?         Alphabet              = null,
+                          Byte[]?         TLSExporterMaterial   = null)
 
                 => GenerateTOTP(
                        SharedSecret,
                        ValidityTime,
                        TOTPLength,
                        Alphabet,
-                       Timestamp
+                       Timestamp,
+                       TLSExporterMaterial
                    );
 
         #endregion
 
-        #region GenerateTOTPs (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null)
+        #region GenerateTOTPs (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate TOTPs and the remaining time until the TOTPs will change.
         /// </summary>
-        /// <param name="Timestamp"></param>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
+        /// <param name="Timestamp">The timestamp to calculate the TOTP for.</param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
@@ -296,20 +333,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             GenerateTOTPs(DateTimeOffset  Timestamp,
                           String          SharedSecret,
-                          TimeSpan?       ValidityTime   = null,
-                          UInt32?         TOTPLength     = 12,
-                          String?         Alphabet       = null)
+                          TimeSpan?       ValidityTime          = null,
+                          UInt32?         TOTPLength            = 12,
+                          String?         Alphabet              = null,
+                          Byte[]?         TLSExporterMaterial   = null)
 
                 => GenerateTOTPs(
                        SharedSecret,
                        ValidityTime,
                        TOTPLength,
                        Alphabet,
-                       Timestamp
+                       Timestamp,
+                       TLSExporterMaterial
                    );
 
         #endregion
-
 
 
         #region (private) ProcessURLTemplate (URLTemplate, TOTP, Version = null, EVSEId = null, ...)
@@ -354,44 +392,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             => URLTemplate.ToString().
                            Replace("{TOTP}",             TOTP).
-                           Replace("{version}",          Version                            ?? "").
-                           Replace("{evseId}",           EVSEId                             ?? "").
-                           Replace("{connectorId}",      ConnectorId                        ?? "").
-                           Replace("{evRoamingEVSEId}",  EVRoamingEVSEId                    ?? "").
-                           Replace("{maxPower}",         MaxPower?. kW.          ToString() ?? "").
-                           Replace("{maxEnergy}",        MaxEnergy?.kWh.         ToString() ?? "").
-                           Replace("{maxTime}",          MaxTime?.  TotalMinutes.ToString() ?? "").
-                           Replace("{maxSoC}",           MaxSoC?.   Value.       ToString() ?? "").
-                           Replace("{maxCost}",          MaxCost                            ?? "").
-                           Replace("{tariffId}",         TariffId                           ?? "").
-                           Replace("{chargingProfile}",  ChargingProfile                    ?? "").
-                           Replace("{endTime}",          EndTime                            ?? "").
-                           Replace("{uiLanguage}",       UILanguage                         ?? "").
-                           Replace("{currency}",         Currency                           ?? "").
-                           Replace("{signature}",        Signature                          ?? "");
+                           Replace("{version}",          Version                            ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{evseId}",           EVSEId                             ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{connectorId}",      ConnectorId                        ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{evRoamingEVSEId}",  EVRoamingEVSEId                    ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{maxPower}",         MaxPower?. kW.          ToString() ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{maxEnergy}",        MaxEnergy?.kWh.         ToString() ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{maxTime}",          MaxTime?.  TotalMinutes.ToString() ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{maxSoC}",           MaxSoC?.   Value.       ToString() ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{maxCost}",          MaxCost                            ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{tariffId}",         TariffId                           ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{chargingProfile}",  ChargingProfile                    ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{endTime}",          EndTime                            ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{uiLanguage}",       UILanguage                         ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{currency}",         Currency                           ?? "", StringComparison.OrdinalIgnoreCase).
+                           Replace("{signature}",        Signature                          ?? "", StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
-        #region GenerateURL  (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null)
+        #region GenerateURL  (           URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate the current TOTP URL and the remaining time until the URL will change.
         /// </summary>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
-        /// <param name="Timestamp"></param>
+        /// <param name="URLTemplate">The TOTP URL template.</param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
             GenerateURL(URL              URLTemplate,
                         String           SharedSecret,
-                        TimeSpan?        ValidityTime   = null,
-                        UInt32?          TOTPLength     = 12,
-                        String?          Alphabet       = null,
-                        DateTimeOffset?  Timestamp      = null)
+                        TimeSpan?        ValidityTime          = null,
+                        UInt32?          TOTPLength            = 12,
+                        String?          Alphabet              = null,
+                        DateTimeOffset?  Timestamp             = null,
+                        Byte[]?          TLSExporterMaterial   = null)
 
         {
 
@@ -402,7 +443,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 ValidityTime,
                                 TOTPLength,
                                 Alphabet,
-                                Timestamp
+                                Timestamp,
+                                TLSExporterMaterial
                             );
 
             return (
@@ -415,16 +457,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateURLs (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null)
+        #region GenerateURLs (           URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate the TOTP URLs and the remaining time until the URLs will change.
         /// </summary>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
-        /// <param name="Timestamp"></param>
+        /// <param name="URLTemplate">The TOTP URL template.</param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
@@ -433,10 +477,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             GenerateURLs(URL              URLTemplate,
                          String           SharedSecret,
-                         TimeSpan?        ValidityTime   = null,
-                         UInt32?          TOTPLength     = 12,
-                         String?          Alphabet       = null,
-                         DateTimeOffset?  Timestamp      = null)
+                         TimeSpan?        ValidityTime          = null,
+                         UInt32?          TOTPLength            = 12,
+                         String?          Alphabet              = null,
+                         DateTimeOffset?  Timestamp             = null,
+                         Byte[]?          TLSExporterMaterial   = null)
 
         {
 
@@ -449,7 +494,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 ValidityTime,
                                 TOTPLength,
                                 Alphabet,
-                                Timestamp
+                                Timestamp,
+                                TLSExporterMaterial
                             );
 
             return (
@@ -464,16 +510,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateURL  (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null)
+        #region GenerateURL  (Timestamp, URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate the current TOTP URL and the remaining time until the URL will change.
         /// </summary>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
-        /// <param name="Timestamp"></param>
+        /// <param name="Timestamp">The timestamp to calculate the TOTP for.</param>
+        /// <param name="URLTemplate">The TOTP URL template.</param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
@@ -481,9 +529,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             GenerateURL(DateTimeOffset  Timestamp,
                         URL             URLTemplate,
                         String          SharedSecret,
-                        TimeSpan?       ValidityTime   = null,
-                        UInt32?         TOTPLength     = 12,
-                        String?         Alphabet       = null)
+                        TimeSpan?       ValidityTime          = null,
+                        UInt32?         TOTPLength            = 12,
+                        String?         Alphabet              = null,
+                        Byte[]?         TLSExporterMaterial   = null)
 
         {
 
@@ -494,7 +543,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 ValidityTime,
                                 TOTPLength,
                                 Alphabet,
-                                Timestamp
+                                Timestamp,
+                                TLSExporterMaterial
                             );
 
             return (
@@ -507,16 +557,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateURLs (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null)
+        #region GenerateURLs (Timestamp, URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
 
         /// <summary>
         /// Calculate the TOTP URLs and the remaining time until the URLs will change.
         /// </summary>
-        /// <param name="SharedSecret"></param>
-        /// <param name="ValidityTime"></param>
-        /// <param name="TOTPLength"></param>
-        /// <param name="Alphabet"></param>
-        /// <param name="Timestamp"></param>
+        /// <param name="Timestamp">The timestamp to calculate the TOTP for.</param>
+        /// <param name="URLTemplate">The TOTP URL template.</param>
+        /// <param name="SharedSecret">The TOTP shared secret.</param>
+        /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
+        /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
+        /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
+        /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
@@ -526,9 +578,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             GenerateURLs(DateTimeOffset  Timestamp,
                          URL             URLTemplate,
                          String          SharedSecret,
-                         TimeSpan?       ValidityTime   = null,
-                         UInt32?         TOTPLength     = 12,
-                         String?         Alphabet       = null)
+                         TimeSpan?       ValidityTime          = null,
+                         UInt32?         TOTPLength            = 12,
+                         String?         Alphabet              = null,
+                         Byte[]?         TLSExporterMaterial   = null)
 
         {
 
@@ -541,7 +594,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 ValidityTime,
                                 TOTPLength,
                                 Alphabet,
-                                Timestamp
+                                Timestamp,
+                                TLSExporterMaterial
                             );
 
             return (
@@ -555,7 +609,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         #endregion
-
 
     }
 

@@ -1144,7 +1144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The Time-Based One-Time Password (TOTP).
         /// </summary>
-        public String? TOTP
+        public TOTPHTTPHeader? TOTP
         {
 
             get

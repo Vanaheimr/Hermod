@@ -660,12 +660,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GenerateCurrentTOTP()
+        #region GenerateCurrentTOTP(TLSExporterMaterial = null)
 
         /// <summary>
         /// Generate the current Time-Based One-Time Password (TOTP).
         /// </summary>
-        public String? GenerateCurrentTOTP()
+        /// <param name="TLSExporterMaterial">Optional TLS Exporter Material.</param>
+        public TOTPHTTPHeader? GenerateCurrentTOTP(Byte[]? TLSExporterMaterial = null)
         {
 
             if (TOTPConfig is null)
@@ -675,10 +676,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        TOTPConfig.SharedSecret,
                                        TOTPConfig.ValidityTime,
                                        TOTPConfig.Length,
-                                       TOTPConfig.Alphabet
+                                       TOTPConfig.Alphabet,
+                                       null,
+                                       TOTPConfig.UseTLSExporterMaterial == true
+                                           ? TLSExporterMaterial
+                                           : null
                                    );
 
-            return current;
+            return new TOTPHTTPHeader(
+                       TOTPConfig.UseTLSExporterMaterial == true
+                           ? TOTPHTTPHeaderType.TLSChannelBinding
+                           : TOTPHTTPHeaderType.RAW,
+                       current
+                   );
 
         }
 

@@ -642,6 +642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                                                                 RequestPathSemantic,
                                                                                                                                                 MultipleValuesAsList,
                                                                                                                                                 StringParser,
+                                                                                                                                                null,
                                                                                                                                                 ValueSerializer)
 
     { }

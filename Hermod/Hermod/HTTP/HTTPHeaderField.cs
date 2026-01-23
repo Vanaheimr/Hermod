@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -1110,7 +1111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A delegate to parse the value of the header field from a string.
         /// </summary>
-        public TryParser<T>?               StringParser       { get; }
+        public TryParser2<T>?              StringParser       { get; }
 
         /// <summary>
         /// A delegate to parse a list of values of the header field from a string.
@@ -1140,6 +1141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                RequestPathSemantic          RequestPathSemantic,
                                Boolean?                     MultipleValuesAsList   = null,
                                TryParser<T>?                StringParser           = null,
+                               TryParser2<T>?               StringParser2          = null,
                                ValueSerializerDelegate<T>?  ValueSerializer        = null)
 
             : base(Name,
@@ -1149,12 +1151,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.StringParser     = StringParser;
+            this.StringParser      = StringParser2 is null && StringParser is not null
+                                         ? (String s, [NotNullWhen(true)] out T? s2, [NotNullWhen(false)] out String? ErrorResponse) => {
+                                               ErrorResponse  = null;
+                                               return StringParser(s, out s2);
+                                           }
+                                         : StringParser2;
 
             if (this.StringParser is null &&
                 typeof(T) == typeof(String))
             {
-                this.StringParser = (String s, out T? s2) => { s2 = (T) (Object) s; return true; };
+                this.StringParser  = (String s, [NotNullWhen(true)] out T? s2, [NotNullWhen(false)] out String? ErrorResponse) => {
+                                         s2             = (T) (Object) s;
+                                         ErrorResponse  = null;
+                                         return true;
+                                     };
             }
 
 

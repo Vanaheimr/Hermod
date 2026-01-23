@@ -975,7 +975,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (value is String &&
                     HeaderField.StringParser is not null &&
-                    HeaderField.StringParser(value?.ToString() ?? String.Empty, out var valueT2))
+                    HeaderField.StringParser(value?.ToString() ?? String.Empty, out var valueT2, out _))
                 {
                     return valueT2;
                 }
@@ -1038,7 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (values is String Text)
                 {
                     if (HeaderField.StringParser is not null &&
-                        HeaderField.StringParser(Text, out var valuesT) &&
+                        HeaderField.StringParser(Text, out var valuesT, out _) &&
                         valuesT is not null)
                     {
                         return valuesT;
@@ -1073,7 +1073,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (values is String Text)
                 {
                     if (HeaderField.StringParser is not null &&
-                        HeaderField.StringParser(Text, out var valuesT) &&
+                        HeaderField.StringParser(Text, out var valuesT, out _) &&
                         valuesT is not null)
                     {
                         return valuesT;
