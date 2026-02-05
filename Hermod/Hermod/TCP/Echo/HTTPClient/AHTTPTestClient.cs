@@ -788,7 +788,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                  CancellationToken             CancellationToken                    = default)
         {
 
-            var requestBuilder = DefaultRequestBuilder();
+            var requestBuilder  = DefaultRequestBuilder();
+            var requestBuilder2 = DefaultRequestBuilder();
 
             //requestBuilder.Host                                       = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
             requestBuilder.Host                                       = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
@@ -801,18 +802,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             requestBuilder.CancellationToken                          = CancellationToken;
 
             requestBuilder.QueryString                                = QueryString    ?? QueryString.Empty;
-            requestBuilder.Accept                                     = Accept         ?? this.Accept ?? [];
+            requestBuilder.Accept                                     = Accept         ?? this.Accept             ?? requestBuilder2.Accept ?? [];
 
-            requestBuilder.Authorization                              = Authentication ?? this.HTTPAuthentication;
-            requestBuilder.UserAgent                                  = UserAgent      ?? this.HTTPUserAgent;
+            requestBuilder.Authorization                              = Authentication ?? this.HTTPAuthentication ?? requestBuilder2.Authorization;
+            requestBuilder.UserAgent                                  = UserAgent      ?? this.HTTPUserAgent      ?? requestBuilder2.UserAgent;
             requestBuilder.Content                                    = Content;
-            requestBuilder.ContentType                                = ContentType    ?? this.ContentType;
+            requestBuilder.ContentType                                = ContentType    ?? this.ContentType        ?? requestBuilder2.ContentType;
 
             if (Content is not null && requestBuilder.ContentType is null)
                 requestBuilder.ContentType                            = HTTPContentType.Application.OCTETSTREAM;
 
-            requestBuilder.Connection                                 = Connection     ?? this.Connection;
-            requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig;
+            requestBuilder.Connection                                 = Connection     ?? this.Connection         ?? requestBuilder2.Connection;
+            requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig         ?? requestBuilder2.TOTPConfig;
 
             RequestBuilder?.Invoke(requestBuilder);
 
