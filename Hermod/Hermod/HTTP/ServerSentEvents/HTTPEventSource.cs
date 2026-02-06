@@ -18,10 +18,15 @@
 
 #region Usings
 
+using System.Threading.Channels;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.Collections;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 #endregion
 
@@ -112,12 +117,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected const Char GS = (Char) 0x1D;
 
-        private                 Int64                        IdCounter;
-        private        readonly LockFreeQueue<HTTPEvent<T>>  QueueOfEvents;  //TSQueue<HTTPEvent<T>>  QueueOfEvents;
-        private static readonly SemaphoreSlim                LogfileLock  = new (1,1);
+        private                 Int64                          IdCounter;
+        private        readonly ConcurrentQueue<HTTPEvent<T>>  eventHistory     = new();
+        private        readonly Channel        <HTTPEvent<T>>  _liveChannel;
+        private static readonly SemaphoreSlim                  LogfileLock  = new (1,1);
 
-        private        readonly Func<T, String>              DataSerializer;
-        private        readonly Func<String, T?>             DataDeserializer;
+        private        readonly Func<T, String>                DataSerializer;
+        private        readonly Func<String, T?>               DataDeserializer;
 
         #endregion
 
@@ -129,6 +135,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPAPI                               HTTPAPI                { get; }
 
         /// <summary>
+        /// The attached HTTP API.
+        /// </summary>
+        public HTTPAPIX                              HTTPAPIX               { get; }
+
+        /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
         public HTTPEventSource_Id                    EventIdentification    { get; }
@@ -136,8 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Maximum number of cached events.
         /// </summary>
-        public UInt64  MaxNumberOfCachedEvents
-            => QueueOfEvents.MaxNumberOfElements;
+        public UInt32                                MaxNumberOfCachedEvents    { get; }
 
         /// <summary>
         /// The retry interval of this HTTP event.
@@ -171,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(HTTPEventSource_Id                     EventIdentification,
                                HTTPAPI                                HTTPAPI,
-                               UInt64                                 MaxNumberOfCachedEvents      = 500,
+                               UInt32                                 MaxNumberOfCachedEvents      = 500,
                                TimeSpan?                              RetryInterval                = null,
                                Func<T, String>?                       DataSerializer               = null,
                                Func<String, T?>?                      DataDeserializer             = null,
@@ -181,15 +191,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                String?                                LogfileReloadSearchPattern   = null)
         {
 
-            this.HTTPAPI              = HTTPAPI;
-            this.EventIdentification  = EventIdentification;
-            this.QueueOfEvents        = new LockFreeQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
-            this.RetryInterval        = RetryInterval    ?? TimeSpan.FromSeconds(30);
-            this.DataSerializer       = DataSerializer   ?? (data => data?.ToString() ?? "");
-            this.DataDeserializer     = DataDeserializer ?? (data => default);
-            this.LogfilePath          = LogfilePath      ?? AppContext.BaseDirectory;
-            this.LogfileName          = LogfileName      ?? ((text, timestamp) => $"{text}_{timestamp:yyyyMMdd}.log");
-            this.IdCounter            = 1;
+            this._liveChannel            = Channel.CreateBounded<HTTPEvent<T>>(
+                                                new BoundedChannelOptions(capacity: (Int32) MaxNumberOfCachedEvents) {
+                                                    FullMode      = BoundedChannelFullMode.DropOldest,
+                                                    SingleReader  = false,
+                                                    SingleWriter  = false
+                                                }
+                                            );
+
+            this.HTTPAPI                  = HTTPAPI;
+            this.EventIdentification      = EventIdentification;
+            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
+            this.RetryInterval            = RetryInterval    ?? TimeSpan.FromSeconds(30);
+            this.DataSerializer           = DataSerializer   ?? (data => data?.ToString() ?? "");
+            this.DataDeserializer         = DataDeserializer ?? (data => default);
+            this.LogfilePath              = LogfilePath      ?? AppContext.BaseDirectory;
+            this.LogfileName              = LogfileName      ?? ((text, timestamp) => $"{text}_{timestamp:yyyyMMdd}.log");
+            this.IdCounter                = 0;
 
             if (EnableLogging)
             {
@@ -256,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            QueueOfEvents.Enqueue(
+                            _liveChannel.Writer.TryWrite(
                                 new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
                                                  Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
                                                  Subevent:          line[1],
@@ -267,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                   "id: ",   IdCounter,        Environment.NewLine,
                                                                                   "data: "),
                                                  SerializedData:    line[2])
-                            ).Wait();
+                            );
 
                         }
                         catch (Exception e)
@@ -287,42 +305,225 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (LogfileName is not null)
                 {
 
-                    // Note: Do not attach this event handler before the data
-                    //       is reread from the logfiles above!
-                    QueueOfEvents.OnAdded += async (Sender, httpEvent, ct) => {
+                    //// Note: Do not attach this event handler before the data
+                    ////       is reread from the logfiles above!
+                    //QueueOfEvents.OnAdded += async (Sender, httpEvent, ct) => {
 
-                        await LogfileLock.WaitAsync(ct);
+                    //    await LogfileLock.WaitAsync(ct);
+
+                    //    try
+                    //    {
+
+                    //        using (var logfile = File.AppendText(
+                    //                                 Path.Combine(
+                    //                                     this.LogfilePath,
+                    //                                     this.LogfileName(
+                    //                                         this.EventIdentification.ToString(),
+                    //                                         Timestamp.Now
+                    //                                     )
+                    //                                 )
+                    //                             ))
+                    //        {
+
+                    //            await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToISO8601(),
+                    //                                                       RS,
+                    //                                                       httpEvent.Subevent,
+                    //                                                       RS,
+                    //                                                       DataSerializer(httpEvent.Data))).
+                    //                          ConfigureAwait(false);
+
+                    //        }
+
+                    //    }
+                    //    finally
+                    //    {
+                    //        LogfileLock.Release();
+                    //    }
+
+                    //};
+
+                }
+
+                #endregion
+
+            }
+
+        }
+
+
+        /// <summary>
+        /// Create a new HTTP event source.
+        /// </summary>
+        /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="RetryInterval ">The retry interval.</param>
+        /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
+        /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
+        /// <param name="EnableLogging">Whether to enable event logging.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
+        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        public HTTPEventSource(HTTPEventSource_Id                     EventIdentification,
+                               HTTPAPIX                               HTTPAPIX,
+                               UInt32                                 MaxNumberOfCachedEvents      = 500,
+                               TimeSpan?                              RetryInterval                = null,
+                               Func<T, String>?                       DataSerializer               = null,
+                               Func<String, T?>?                      DataDeserializer             = null,
+                               Boolean                                EnableLogging                = true,
+                               String?                                LogfilePath                  = null,
+                               Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                               String?                                LogfileReloadSearchPattern   = null)
+        {
+
+            this._liveChannel            = Channel.CreateBounded<HTTPEvent<T>>(
+                                                new BoundedChannelOptions(capacity: (Int32) MaxNumberOfCachedEvents) {
+                                                    FullMode      = BoundedChannelFullMode.DropOldest,
+                                                    SingleReader  = false,
+                                                    SingleWriter  = false
+                                                }
+                                            );
+
+            this.HTTPAPIX                 = HTTPAPIX;
+            this.EventIdentification      = EventIdentification;
+            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
+            this.RetryInterval            = RetryInterval    ?? TimeSpan.FromSeconds(30);
+            this.DataSerializer           = DataSerializer   ?? (data => data?.ToString() ?? "");
+            this.DataDeserializer         = DataDeserializer ?? (data => default);
+            this.LogfilePath              = LogfilePath      ?? AppContext.BaseDirectory;
+            this.LogfileName              = LogfileName      ?? ((text, timestamp) => $"{text}_{timestamp:yyyyMMdd}.log");
+            this.IdCounter                = 0;
+
+            if (EnableLogging)
+            {
+
+                #region Reload old data from logfile(s)...
+
+                if (LogfileReloadSearchPattern is not null)
+                {
+
+                    var httpSSEs = new List<String[]>();
+
+                    try
+                    {
+
+                        foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
+                                                                             LogfileReloadSearchPattern,
+                                                                             SearchOption.TopDirectoryOnly).
+                                                              OrderByDescending(file => file))
+                        {
+
+                            DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
+
+                            File.ReadAllLines(logfilename).
+                                 Reverse().
+                                 Where  (line => line.IsNotNullOrEmpty() &&
+                                                !line.StartsWith("//")   &&
+                                                !line.StartsWith("#")).
+                                 Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
+                                 Select (line => line.Split(RS)).
+                                 ForEach(line => {
+
+                                                     if (line.Length >= 3           &&
+                                                         line.Length <= 4           &&
+                                                         line[0].IsNotNullOrEmpty() &&
+                                                         line[2].IsNotNullOrEmpty())
+                                                     {
+                                                         httpSSEs.Add(line);
+                                                     }
+
+                                                     else
+                                                         DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
+
+                                                 });
+
+                            if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
+                                break;
+
+                        }
+
+                    }
+                    catch (DirectoryNotFoundException)
+                    {
+                        // Will fail, when part of the file system path is not accessible!
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogException(e, "While creating a HTTP Event Source!");
+                    }
+
+                    httpSSEs.Reverse();
+
+                    httpSSEs.ForEach(line => {
 
                         try
                         {
 
-                            using (var logfile = File.AppendText(
-                                                     Path.Combine(
-                                                         this.LogfilePath,
-                                                         this.LogfileName(
-                                                             this.EventIdentification.ToString(),
-                                                             Timestamp.Now
-                                                         )
-                                                     )
-                                                 ))
-                            {
-
-                                await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToISO8601(),
-                                                                           RS,
-                                                                           httpEvent.Subevent,
-                                                                           RS,
-                                                                           DataSerializer(httpEvent.Data))).
-                                              ConfigureAwait(false);
-
-                            }
+                            _liveChannel.Writer.TryWrite(
+                                new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
+                                                 Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
+                                                 Subevent:          line[1],
+                                                 Data:              DataDeserializer(line[2]),
+                                                 SerializedHeader:  String.Concat(line[1].IsNotNullOrEmpty()
+                                                                                      ? "event: " + line[1] + Environment.NewLine
+                                                                                      : String.Empty,
+                                                                                  "id: ",   IdCounter,        Environment.NewLine,
+                                                                                  "data: "),
+                                                 SerializedData:    line[2])
+                            );
 
                         }
-                        finally
+                        catch (Exception e)
                         {
-                            LogfileLock.Release();
+                            DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
+                                       e.Message);
                         }
 
-                    };
+                    });
+
+                }
+
+                #endregion
+
+                #region Write new data to logfile(s)...
+
+                if (LogfileName is not null)
+                {
+
+                    //// Note: Do not attach this event handler before the data
+                    ////       is reread from the logfiles above!
+                    //QueueOfEvents.OnAdded += async (Sender, httpEvent, ct) => {
+
+                    //    await LogfileLock.WaitAsync(ct);
+
+                    //    try
+                    //    {
+
+                    //        using (var logfile = File.AppendText(
+                    //                                 Path.Combine(
+                    //                                     this.LogfilePath,
+                    //                                     this.LogfileName(
+                    //                                         this.EventIdentification.ToString(),
+                    //                                         Timestamp.Now
+                    //                                     )
+                    //                                 )
+                    //                             ))
+                    //        {
+
+                    //            await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToISO8601(),
+                    //                                                       RS,
+                    //                                                       httpEvent.Subevent,
+                    //                                                       RS,
+                    //                                                       DataSerializer(httpEvent.Data))).
+                    //                          ConfigureAwait(false);
+
+                    //        }
+
+                    //    }
+                    //    finally
+                    //    {
+                    //        LogfileLock.Release();
+                    //    }
+
+                    //};
 
                 }
 
@@ -410,21 +611,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
-            await QueueOfEvents.Enqueue(
-                      new HTTPEvent<T>(
-                          (UInt64) Interlocked.Increment(ref IdCounter),
-                          Timestamp,
-                          SubEvent,
-                          Data,
-                          String.Concat(
-                              SubEvent.IsNotNullOrEmpty()
-                                  ? "event: " + SubEvent + Environment.NewLine
-                                  : String.Empty,
-                              "id: ",   IdCounter,         Environment.NewLine,
-                              "data: "
-                          ),
-                          DataSerializer(Data)
-                      ),
+            var httpEvent  = new HTTPEvent<T>(
+                                 (UInt64) Interlocked.Increment(ref IdCounter),
+                                 Timestamp,
+                                 SubEvent,
+                                 Data,
+                                 String.Concat(
+                                     SubEvent.IsNotNullOrEmpty()
+                                         ? "event: " + SubEvent + Environment.NewLine
+                                         : String.Empty,
+                                     "id: ",   IdCounter,         Environment.NewLine,
+                                     "data: "
+                                 ),
+                                 DataSerializer(Data)
+                             );
+
+            // Add to history (bounded)
+            eventHistory.Enqueue(httpEvent);
+
+            while (eventHistory.Count > MaxNumberOfCachedEvents)
+                eventHistory.TryDequeue(out _);
+
+            await _liveChannel.Writer.WriteAsync(
+                      httpEvent,
                       CancellationToken
                   );
 
@@ -439,16 +648,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
-        public IEnumerable<HTTPEvent<T>> GetAllEventsGreater(UInt64? LastEventId = 0)
+        public async IAsyncEnumerable<HTTPEvent<T>> GetAllEventsGreater(UInt64?                                     LastEventId,
+                                                                        [EnumeratorCancellation] CancellationToken  CancellationToken = default)
         {
 
-            lock (QueueOfEvents)
+            var lastEventId  = LastEventId ?? 0;
+            var lastEventId2 = lastEventId;
+
+            foreach (var httpEvent in eventHistory)
             {
 
-                return from    Events in QueueOfEvents
-                       where   Events.Id > (LastEventId ?? 0)
-                       orderby Events.Id
-                       select  Events;
+                if (httpEvent.Id > lastEventId)
+                {
+                    yield return httpEvent;
+                    lastEventId2 = httpEvent.Id;
+                }
+
+                if (CancellationToken.IsCancellationRequested)
+                    yield break;
+
+            }
+
+            await foreach (var httpEvent in _liveChannel.Reader.ReadAllAsync(CancellationToken))
+            {
+
+                // We already sent everything <= current ID from history,
+                // so live events should all be > last seen
+                if (httpEvent.Id > lastEventId2)
+                    yield return httpEvent;
 
             }
 
@@ -462,16 +689,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
         /// <param name="Timestamp">The earliest timestamp of the events.</param>
-        public IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset Timestamp)
+        public async IAsyncEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset                              Timestamp,
+                                                                      [EnumeratorCancellation] CancellationToken  CancellationToken = default)
         {
 
-            lock (QueueOfEvents)
+            // 1. Replay missed events from history (oldest to newest)
+            foreach (var evt in eventHistory)
             {
 
-                return from    Events in QueueOfEvents
-                       where   Events.Timestamp >= Timestamp
-                       orderby Events.Timestamp
-                       select  Events;
+                if (evt.Timestamp >= Timestamp)
+                    yield return evt;
+
+                if (CancellationToken.IsCancellationRequested)
+                    yield break;
+
+            }
+
+            // 2. Then switch to live events
+            await foreach (var evt in _liveChannel.Reader.ReadAllAsync(CancellationToken))
+            {
+
+                // We already sent everything <= current ID from history,
+                // so live events should all be > last seen
+                yield return evt;
 
             }
 
@@ -482,11 +722,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region IEnumerable<HTTPEvent<T>> Members
 
-        public IEnumerator<HTTPEvent<T>> GetEnumerator()
-            => QueueOfEvents.GetEnumerator();
+        //public IEnumerator<HTTPEvent<T>> GetEnumerator()
+        //    => _liveChannel.GetEnumerator();
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-            => QueueOfEvents.GetEnumerator();
+        //System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        //    => _liveChannel.GetEnumerator();
 
         #endregion
 

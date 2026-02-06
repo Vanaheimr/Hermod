@@ -897,7 +897,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
@@ -918,7 +918,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   HTTPMethod?                            HTTPMethod                   = null,
                                                                   HTTPContentType?                       HTTPContentType              = null,
 
-                                                                  HTTPAuthentication?                    URIAuthentication            = null,
+                                                                  HTTPAuthentication?                    URLAuthentication            = null,
                                                                   HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
                                                                   HTTPDelegate?                          DefaultErrorHandler          = null)
@@ -944,7 +944,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPContentType,
 
                    false,
-                   URIAuthentication,
+                   URLAuthentication,
                    HTTPMethodAuthentication,
 
                    DefaultErrorHandler
@@ -1816,13 +1816,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null, ...)
+        #region AddEventSource(EventIdentification, URLTemplate, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null, ...)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
-        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="URLTemplate">The URI template.</param>
         /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
@@ -1838,12 +1838,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HttpMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventIdentification,
-                                                    HTTPPath                               URITemplate,
+                                                    HTTPPath                               URLTemplate,
 
                                                     UInt32                                 MaxNumberOfCachedEvents      = 500,
                                                     Func<HTTPEvent<T>, Boolean>?           IncludeFilterAtRuntime       = null,
@@ -1861,7 +1861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     HTTPContentType?                       HTTPContentType              = null,
 
                                                     Boolean                                RequireAuthentication        = true,
-                                                    HTTPAuthentication?                    URIAuthentication            = null,
+                                                    HTTPAuthentication?                    URLAuthentication            = null,
                                                     HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
                                                     HTTPDelegate?                          DefaultErrorHandler          = null)
@@ -1869,7 +1869,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => HTTPServer.AddEventSource(
                    EventIdentification,
                    this,
-                   URITemplate,
+                   URLTemplate,
 
                    MaxNumberOfCachedEvents,
                    IncludeFilterAtRuntime,
@@ -1887,7 +1887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPContentType,
 
                    RequireAuthentication,
-                   URIAuthentication,
+                   URLAuthentication,
                    HTTPMethodAuthentication,
 
                    DefaultErrorHandler
@@ -1902,7 +1902,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
 
             => HTTPServer.Get(EventSourceIdentification);
 
@@ -1911,7 +1911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource<TData> Get<TData>(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
 
             => HTTPServer.Get<TData>(EventSourceIdentification);
 
@@ -1924,7 +1924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource EventSource)
+        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
 
             => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
 
@@ -1934,7 +1934,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData> EventSource)
+        public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
 
             => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
 

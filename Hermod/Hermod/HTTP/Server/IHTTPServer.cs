@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   HTTPContentType?                       HTTPContentType              = null,
 
                                                                   Boolean                                RequireAuthentication        = false,
-                                                                  HTTPAuthentication?                    URIAuthentication            = null,
+                                                                  HTTPAuthentication?                    URLAuthentication            = null,
                                                                   HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
                                                                   HTTPDelegate?                          DefaultErrorHandler          = null)
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPContentType,
 
                               RequireAuthentication,
-                              URIAuthentication,
+                              URLAuthentication,
                               HTTPMethodAuthentication,
 
                               DefaultErrorHandler
@@ -202,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPPath                      URLTemplate,
                                HTTPContentType?              HTTPContentType             = null,
                                Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URIAuthentication           = null,
+                               HTTPAuthentication?           URLAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
                                HTTPRequestLogHandler?        HTTPRequestLogger           = null,
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                IEnumerable<HTTPPath>         URLTemplates,
                                HTTPContentType?              HTTPContentType             = null,
                                Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URIAuthentication           = null,
+                               HTTPAuthentication?           URLAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
                                HTTPRequestLogHandler?        HTTPRequestLogger           = null,
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPPath                      URLTemplate,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
                                Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URIAuthentication           = null,
+                               HTTPAuthentication?           URLAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
                                HTTPRequestLogHandler?        HTTPRequestLogger           = null,
@@ -247,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                IEnumerable<HTTPPath>         URLTemplates,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
                                Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URIAuthentication           = null,
+                               HTTPAuthentication?           URLAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
                                HTTPRequestLogHandler?        HTTPRequestLogger           = null,
@@ -308,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
@@ -332,7 +332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      HTTPContentType?                       HTTPContentType              = null,
 
                                                      Boolean                                RequireAuthentication        = false,
-                                                     HTTPAuthentication?                    URIAuthentication            = null,
+                                                     HTTPAuthentication?                    URLAuthentication            = null,
                                                      HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
                                                      HTTPDelegate?                          DefaultErrorHandler          = null);

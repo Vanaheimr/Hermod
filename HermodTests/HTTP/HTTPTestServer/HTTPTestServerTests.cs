@@ -27,6 +27,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
+using System.Text.Json;
 
 #endregion
 
@@ -1124,6 +1125,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #endregion
 
 
+        #region ClientServer_HTTPServerSentEvents_Test01()
+
+        [Test]
+        public async Task ClientServer_HTTPServerSentEvents_Test01()
+        {
+
+            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpAPI     = httpServer.AddHTTPAPI();
+
+            var sse1Id      = HTTPEventSource_Id.Parse("sse1");
+            var sse1        = httpAPI.AddEventSource<JObject>(
+                                  EventIdentification:          sse1Id,
+                                  MaxNumberOfCachedEvents:      100,
+                                  RetryInterval:                TimeSpan.FromSeconds(1),
+                                  DataSerializer:               null,
+                                  DataDeserializer:             null,
+                                  EnableLogging:                false,
+                                  LogfilePath:                  null,
+                                  LogfilePrefix:                null,
+                                  LogfileName:                  null,
+                                  LogfileReloadSearchPattern:   null
+                              );
+
+            var sse1x       = httpAPI.Get(sse1Id);
+
+            await sse1.SubmitEvent(
+                      "sub1",
+                      new JObject(
+                          new JProperty("a", "1")
+                      ),
+                      CancellationToken.None
+                  );
+
+            await sse1.SubmitEvent(
+                      "sub1",
+                      new JObject(
+                          new JProperty("b", "2")
+                      ),
+                      CancellationToken.None
+                  );
+
+            await sse1.SubmitEvent(
+                      "sub2",
+                      new JObject(
+                          new JProperty("c", "3")
+                      ),
+                      CancellationToken.None
+                  );
+
+            var ssse1       = httpAPI.MapEventSource<JObject>(
+                                  sse1Id,
+                                  HTTPPath.Parse("/sse1"),
+                                  null
+                              );
+
+
+
+            var httpClient  = await HTTPTestClient.ConnectNew(
+                                        IPv4Address.Localhost,
+                                        httpServer.TCPPort
+                                    );
+
+            if (httpClient.Item1 is null)
+                Assert.Fail("httpClient.Item1 is null!");
+
+            else
+            {
+
+                var httpResponse  = await httpClient.Item1.SendRequest(
+                                              httpClient.Item1.CreateRequest(
+                                                  HTTPMethod.GET,
+                                                  HTTPPath.Parse("/sse1"),
+                                                  Accept:  AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.EVENTSTREAM)
+                                              )
+                                          );
+
+                Assert.That(httpResponse,  Is.Not.Null);
+
+                var eventList     = await httpResponse.ParseHTTPSSE(
+                                              TimeSpan.FromSeconds(5),
+                                              httpResponse.CancellationToken
+                                          );
+
+                Assert.That(eventList.Count,  Is.EqualTo(3));
+
+            }
+
+        }
+
+        #endregion
+
+
+
+
+
         #region ClientServer_ChunkedEncoding_Test01()
 
         [Test]
@@ -1134,7 +1230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api1              = httpServer.AddHTTPAPI();
 
             api1.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:    HTTPMethod.GET,
                 HTTPDelegate:  request => {
 
@@ -1225,37 +1321,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
 
-            var httpClient    = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient    = await HTTPTestClient.ConnectNew(
+                                          IPv4Address.Localhost,
+                                          httpServer.TCPPort
+                                      );
 
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
 
-            var httpResponse  = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test3.txt")));
-            Assert.That(httpResponse, Is.Not.Null);
+            if (httpClient.Item1 is null)
+                Assert.Fail("httpClient.Item1 is null!");
 
-            if (httpResponse is not null)
+            else
             {
 
-                var chunks   = new List<(TimeSpan, String)>();
-                var trailers = await httpResponse.ReadAllChunks(chunk => chunks.Add((chunk.Elapsed, chunk.Data.ToUTF8String())));
+                var httpResponse  = await httpClient.Item1.SendRequest(
+                                              httpClient.Item1.CreateRequest(
+                                                  HTTPMethod.GET,
+                                                  HTTPPath.Parse("/test3.txt")
+                                              )
+                                          );
 
-                Assert.That(chunks[0].Item2, Is.EqualTo("Hello World - Teil 1: 'test3.txt'!"));
-                Assert.That(chunks[1].Item2, Is.EqualTo("Hello World - Teil 2: 'test3.txt'!"));
-                Assert.That(chunks[2].Item2, Is.EqualTo("Hello World - Teil 3: 'test3.txt'!"));
-                Assert.That(chunks[3].Item2, Is.EqualTo("Hello World - Teil 4: 'test3.txt'!"));
-                Assert.That(chunks[4].Item2, Is.EqualTo("Hello World - Teil 5: 'test3.txt'!"));
-                Assert.That(trailers.Count(), Is.EqualTo(2));
+                Assert.That(httpResponse, Is.Not.Null);
 
-                var delayDiffs = new List<TimeSpan>();
-                for (var i = 1; i < chunks.Count; i++)
-                    delayDiffs.Add(chunks[i].Item1 - chunks[i - 1].Item1);
+                if (httpResponse is not null)
+                {
+
+                    var chunks   = new List<(TimeSpan, String)>();
+                    var trailers = await httpResponse.ReadAllChunks(chunk => chunks.Add((chunk.Elapsed, chunk.Data.ToUTF8String())));
+
+                    Assert.That(chunks[0].Item2, Is.EqualTo("Hello World - Teil 1: 'test3.txt'!"));
+                    Assert.That(chunks[1].Item2, Is.EqualTo("Hello World - Teil 2: 'test3.txt'!"));
+                    Assert.That(chunks[2].Item2, Is.EqualTo("Hello World - Teil 3: 'test3.txt'!"));
+                    Assert.That(chunks[3].Item2, Is.EqualTo("Hello World - Teil 4: 'test3.txt'!"));
+                    Assert.That(chunks[4].Item2, Is.EqualTo("Hello World - Teil 5: 'test3.txt'!"));
+                    Assert.That(trailers.Count(), Is.EqualTo(2));
+
+                    var delayDiffs = new List<TimeSpan>();
+                    for (var i = 1; i < chunks.Count; i++)
+                        delayDiffs.Add(chunks[i].Item1 - chunks[i - 1].Item1);
+
+                }
 
             }
 
         }
 
         #endregion
+
 
 
         #region DNSSRV_Tests_01()

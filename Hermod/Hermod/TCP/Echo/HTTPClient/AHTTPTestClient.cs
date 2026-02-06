@@ -489,7 +489,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? (() => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                          Host                                       = HTTPHostname.Parse(IPAddress.ToString()),
+                                                                          Host                                       = TCPPort.HasValue
+                                                                                                                           ? HTTPHostname.Parse(IPAddress.ToString(), TCPPort.Value)
+                                                                                                                           : HTTPHostname.Parse(IPAddress.ToString()),
                                                                           Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                           UserAgent                                  = HTTPUserAgent ?? DefaultHTTPUserAgent,
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
@@ -792,17 +794,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var requestBuilder2 = DefaultRequestBuilder();
 
             //requestBuilder.Host                                       = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-            requestBuilder.Host                                       = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
-                                                                                    (RemoteURL.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
-                                                                                         ? ":" + RemoteURL.Port.ToString()
-                                                                                         : String.Empty));
+            //requestBuilder.Host                                       = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
+            //                                                                        (RemoteURL.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
+            //                                                                             ? ":" + RemoteURL.Port.ToString()
+            //                                                                             : String.Empty));
             requestBuilder.HTTPMethod                                 = HTTPMethod;
             requestBuilder.Path                                       = HTTPPath;
+
             requestBuilder.ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately;
             requestBuilder.CancellationToken                          = CancellationToken;
 
-            requestBuilder.QueryString                                = QueryString    ?? QueryString.Empty;
-            requestBuilder.Accept                                     = Accept         ?? this.Accept             ?? requestBuilder2.Accept ?? [];
+            requestBuilder.QueryString                                = QueryString    ??                            requestBuilder2.QueryString   ?? QueryString.Empty;
+            requestBuilder.Accept                                     = Accept         ?? this.Accept             ?? requestBuilder2.Accept        ?? [];
 
             requestBuilder.Authorization                              = Authentication ?? this.HTTPAuthentication ?? requestBuilder2.Authorization;
             requestBuilder.UserAgent                                  = UserAgent      ?? this.HTTPUserAgent      ?? requestBuilder2.UserAgent;
@@ -1023,7 +1026,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                             #endregion
 
-                            
 
                             IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize * 2);
                             var buffer = bufferOwner.Memory;
@@ -1104,8 +1106,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 #region Setup HTTP body stream
 
-                                Stream? bodyDataStream = null;
-                                Stream? bodyStream = null;
+                                Stream? bodyDataStream  = null;
+                                Stream? bodyStream      = null;
 
                                 var prefix = buffer[..dataLength];
                                 if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
@@ -1156,6 +1158,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
 
                                 #endregion
+
+                                if (response.ContentType == HTTPContentType.Text.EVENTSTREAM)
+                                    response.HTTPBodyStream = httpStream;
 
                                 if (response.IsConnectionClose)
                                 {

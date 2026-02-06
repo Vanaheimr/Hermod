@@ -451,6 +451,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     #endregion
 
+                    #region Fire & Forget the worker for HTTP SSE respones
+
+                    if (httpResponse.ContentType == HTTPContentType.Text.EVENTSTREAM &&
+                        httpResponse.HTTPSSEWorker  is not null)
+                    {
+
+                        httpResponse.HTTPBodyStream = stream;
+
+                        try
+                        {
+                            _ = httpResponse.HTTPSSEWorker(
+                                    httpResponse,
+                                    new StreamWriter(httpResponse.HTTPBodyStream)
+                                );
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.LogT("HTTP server response worker exception: " + e.Message);
+                        }
+
+                    }
+
+                    #endregion
+
                     if (!httpResponse.IsKeepAlive)
                         break;
 

@@ -302,7 +302,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public Func<HTTPResponse, ChunkedTransferEncodingStream, Task> ChunkWorker { get; set; } = (response, stream) => Task.CompletedTask;
+        public Func<HTTPResponse, ChunkedTransferEncodingStream, Task>  ChunkWorker      { get; set; } = (response, stream) => Task.CompletedTask;
+        public Func<HTTPResponse, StreamWriter,                  Task>  HTTPSSEWorker    { get; set; } = (response, stream) => Task.CompletedTask;
 
         #region Standard response header fields
 
@@ -1627,6 +1628,170 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return Task.FromResult<IEnumerable<(String, String)>>([]);
 
         }
+
+        private class EventBuilder
+        {
+            public ulong? Id { get; set; }
+            public string? Subevent { get; set; }
+            public List<String> DataLines { get; } = [];
+
+            public void AppendData(String line)
+            {
+                DataLines.Add(line);
+            }
+
+            public void Reset()
+            {
+                Id = null;
+                Subevent = null;
+                DataLines.Clear();
+            }
+
+            public bool IsValid()
+            {
+                return Id.HasValue && DataLines.Count > 0;
+            }
+
+            public HTTPEvent<JObject>? Build<T>()
+            {
+
+                if (!IsValid())
+                    return null;
+
+                var serializedData = string.Join("\n", DataLines);
+
+                var aa = JObject.Parse(serializedData);
+
+                var serializedHeader = $"event: {Subevent ?? "message"}\nid: {Id}";
+
+                return new HTTPEvent<JObject>(
+                           Id:                Id.Value,
+                           Subevent:          Subevent ?? "message",
+                           Data:              aa,
+                           SerializedHeader:  serializedHeader,
+                           SerializedData:    serializedData
+                       );
+
+            }
+        }
+
+
+        public async Task<List<HTTPEvent<JObject>>> ParseHTTPSSE(TimeSpan?          lineTimeout       = null,
+                                                                 CancellationToken  cancellationToken = default)
+        {
+
+            if (HTTPBodyStream is null)
+                return [];
+
+            var reader = new StreamReader(HTTPBodyStream);
+
+            if (!lineTimeout.HasValue)
+                lineTimeout = TimeSpan.FromSeconds(45);
+
+            var events        = new List<HTTPEvent<JObject>>();
+            var currentEvent  = new EventBuilder();
+            var isData        = false;
+
+            string? line;
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    line = await reader.ReadLineWithTimeoutAsync(lineTimeout.Value, cancellationToken);
+                }
+                catch (TimeoutException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    // Loggen oder werfen – hier einfach abbrechen
+                    Console.Error.WriteLine($"Fehler beim Lesen: {ex.Message}");
+                    break;
+                }
+
+                if (line is null)
+                {
+                    // Stream-Ende
+                    break;
+                }
+
+                line = line.TrimEnd('\r', '\n');
+
+                // Leere Zeile → Event abschließen
+                if (string.IsNullOrEmpty(line))
+                {
+                    if (currentEvent.IsValid())
+                    {
+                        var parsedEvent = currentEvent.Build<JObject>();
+                        if (parsedEvent is not null)
+                        {
+                            events.Add(parsedEvent);
+                        }
+                    }
+                    currentEvent.Reset();
+                    isData = false;
+                    continue;
+                }
+
+                if (isData)
+                {
+                    currentEvent.AppendData(line);
+                    continue;
+                }
+
+                // Kommentar ignorieren
+                if (line.StartsWith(":"))
+                    continue;
+
+                // Feld parsen
+                var colonIndex = line.IndexOf(':');
+                if (colonIndex < 0)
+                    continue; // ungültige Zeile
+
+                var field = line[..colonIndex].Trim();
+                var value = line[(colonIndex + 1)..].TrimStart();
+
+                switch (field.ToLowerInvariant())
+                {
+
+                    case "event":
+                        currentEvent.Subevent = value;
+                        break;
+
+                    case "id":
+                        if (ulong.TryParse(value, out var id))
+                            currentEvent.Id = id;
+                        break;
+
+                    case "data":
+                        isData = true;
+                        currentEvent.AppendData(value);
+                        break;
+
+                    case "retry":
+                        // Optional: currentEvent.RetryMs = int.Parse(value);
+                        break;
+
+                }
+            }
+
+            // Letztes Event (falls kein abschließendes Leerzeichen)
+            if (currentEvent.IsValid())
+            {
+                var lastEvent = currentEvent.Build<JObject>();
+                if (lastEvent is not null)
+                    events.Add(lastEvent);
+            }
+
+            return events;
+
+        }
+
 
 
         public JObject ToJSON()

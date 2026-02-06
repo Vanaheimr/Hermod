@@ -3042,17 +3042,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddHandler(HTTPAPI,
                        request => {
 
-                           var httpEvents = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                        Where(IncludeFilterAtRuntime).
-                                                        Aggregate(new StringBuilder(),
-                                                                  (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
-                                                                                                              AppendLine(httpEvent.SerializedData).
-                                                                                                              AppendLine()).
-                                                        Append(Environment.NewLine).
-                                                        Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                                        Append(Environment.NewLine).
-                                                        Append(Environment.NewLine).
-                                                        ToString();
+                           //var httpEvents = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+                           //                             Where(IncludeFilterAtRuntime).
+                           //                             Aggregate(new StringBuilder(),
+                           //                                       (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
+                           //                                                                                   AppendLine(httpEvent.SerializedData).
+                           //                                                                                   AppendLine()).
+                           //                             Append(Environment.NewLine).
+                           //                             Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+                           //                             Append(Environment.NewLine).
+                           //                             Append(Environment.NewLine).
+                           //                             ToString();
 
 
                            return Task.FromResult(
@@ -3064,7 +3064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Connection                = ConnectionType.KeepAlive,
                                    AccessControlAllowOrigin  = "*",
                                    KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                   Content                   = httpEvents.ToUTF8Bytes()
+                                   //Content                   = httpEvents.ToUTF8Bytes()
                                }.AsImmutable);
 
                        },

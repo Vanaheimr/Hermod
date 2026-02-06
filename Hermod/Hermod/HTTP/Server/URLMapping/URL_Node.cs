@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The URL template for this service.
         /// </summary>
-        public HTTPPath                                  URITemplate            { get; }
+        public HTTPPath                                  URLTemplate            { get; }
 
         /// <summary>
         /// Whether the URL template matches subdirectories at the end of the template.
@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// This and all subordinated nodes demand an explicit URI authentication.
         /// </summary>
-        public HTTPAuthentication?                       URIAuthentication      { get; }
+        public HTTPAuthentication?                       URLAuthentication      { get; }
 
         /// <summary>
         /// An HTTP delegate.
@@ -128,26 +128,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Creates a new URLNode.
         /// </summary>
-        /// <param name="URITemplate">The URI template for this service.</param>
+        /// <param name="URLTemplate">The URI template for this service.</param>
         /// <param name="OpenEnd">Whether the URL template matches subdirectories at the end of the template.</param>
-        /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
+        /// <param name="URLAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
         internal URL_Node(HTTPAPI              HTTPAPI,
-                          HTTPPath             URITemplate,
+                          HTTPPath             URLTemplate,
                           Boolean              OpenEnd             = false,
-                          HTTPAuthentication?  URIAuthentication   = null)
+                          HTTPAuthentication?  URLAuthentication   = null)
 
         {
 
             this.HTTPAPI                = HTTPAPI;
-            this.URITemplate            = URITemplate;
+            this.URLTemplate            = URLTemplate;
             this.OpenEnd                = OpenEnd;
-            this.URIAuthentication      = URIAuthentication;
+            this.URLAuthentication      = URLAuthentication;
 
-            this.ParameterCount         = (UInt16) replaceLastParameter.Matches(URITemplate.ToString()).Count;
+            this.ParameterCount         = (UInt16) replaceLastParameter.Matches(URLTemplate.ToString()).Count;
             var URLTemplate2            = OpenEnd
-                                             ? replaceLastParameter.Replace(URITemplate.ToString(), "([^\n]+)")
-                                             : replaceLastParameter.Replace(URITemplate.ToString(), "([^/]+)");
-            var URLTemplateWithoutVars  = replaceLastParameter.Replace(URITemplate.ToString(), "");
+                                             ? replaceLastParameter.Replace(URLTemplate.ToString(), "([^\n]+)")
+                                             : replaceLastParameter.Replace(URLTemplate.ToString(), "([^/]+)");
+            var URLTemplateWithoutVars  = replaceLastParameter.Replace(URLTemplate.ToString(), "");
 
             this.ParameterCount        += (UInt16) replaceAllParameters.Matches(URLTemplate2).Count;
             this.URLRegex               = new Regex("^" + replaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
@@ -281,9 +281,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ? $"[{httpMethodNodes.Keys.AggregateCSV()}] "
                        : String.Empty,
 
-                   URITemplate.ToString(),
+                   URLTemplate.ToString(),
 
-                   URIAuthentication is not null
+                   URLAuthentication is not null
                        ? " (auth)"
                        : String.Empty,
 

@@ -3828,23 +3828,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       #endregion
 
                                       var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                                    Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                                httpUser,
-                                                                                                                httpEvent)).
-                                                                    Reverse().
-                                                                    Skip   (Request.QueryString.GetUInt64("skip")).
-                                                                    Take   (Request.QueryString.GetUInt64("take")).
-                                                                    Reverse().
-                                                                    Aggregate(new StringBuilder(),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                                                                                                          AppendLine(httpEvent.SerializedData).
-                                                                                                                          AppendLine()).
-                                                                    Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                                                    Append(Environment.NewLine).
-                                                                    Append(Environment.NewLine).
-                                                                    ToString();
+                                      //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+                                      //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
+                                      //                                                                          httpUser,
+                                      //                                                                          httpEvent)).
+                                      //                              Reverse().
+                                      //                              Skip   (Request.QueryString.GetUInt64("skip")).
+                                      //                              Take   (Request.QueryString.GetUInt64("take")).
+                                      //                              Reverse().
+                                      //                              Aggregate(new StringBuilder(),
+                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+                                      //                                                                                    AppendLine(httpEvent.SerializedData).
+                                      //                                                                                    AppendLine()).
+                                      //                              Append(Environment.NewLine).
+                                      //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+                                      //                              Append(Environment.NewLine).
+                                      //                              Append(Environment.NewLine).
+                                      //                              ToString();
 
                                       return Task.FromResult(
                                           new HTTPResponse.Builder(Request) {
@@ -3854,7 +3854,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = httpEvents.ToUTF8Bytes()
+                                              //Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
                                   });
@@ -3886,19 +3886,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       #endregion
 
                                       var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                              httpUser,
-                                                                                                              httpEvent)).
-                                                                    Skip (Request.QueryString.GetUInt64("skip")).
-                                                                    Take (Request.QueryString.GetUInt64("take")).
-                                                                    Aggregate(new StringBuilder().AppendLine("["),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
-                                                                                                                          Append    (httpEvent.Subevent ?? "").
-                                                                                                                          Append    (@""",").
-                                                                                                                          Append    (httpEvent.SerializedData).
-                                                                                                                          AppendLine("],")).
-                                                                    ToString().
-                                                                    TrimEnd();
+                                      //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+                                      //                                                                        httpUser,
+                                      //                                                                        httpEvent)).
+                                      //                              Skip (Request.QueryString.GetUInt64("skip")).
+                                      //                              Take (Request.QueryString.GetUInt64("take")).
+                                      //                              Aggregate(new StringBuilder().AppendLine("["),
+                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
+                                      //                                                                                    Append    (httpEvent.Subevent ?? "").
+                                      //                                                                                    Append    (@""",").
+                                      //                                                                                    Append    (httpEvent.SerializedData).
+                                      //                                                                                    AppendLine("],")).
+                                      //                              ToString().
+                                      //                              TrimEnd();
 
 
                                       return Task.FromResult(
@@ -3909,9 +3909,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = (httpEvents.Length > 1
-                                                                     ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                                                     : "]").ToUTF8Bytes()
+                                              //Content         = (httpEvents.Length > 1
+                                              //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+                                              //                       : "]").ToUTF8Bytes()
                                           }.AsImmutable);
 
                                   });
@@ -3975,24 +3975,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       #endregion
 
                                       var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                                    Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                                httpUser,
-                                                                                                                httpOrganizations,
-                                                                                                                httpEvent)).
-                                                                    Reverse().
-                                                                    Skip   (Request.QueryString.GetUInt64("skip")).
-                                                                    Take   (Request.QueryString.GetUInt64("take")).
-                                                                    Reverse().
-                                                                    Aggregate(new StringBuilder(),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                                                                                                          AppendLine(httpEvent.SerializedData).
-                                                                                                                          AppendLine()).
-                                                                    Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                                                    Append(Environment.NewLine).
-                                                                    Append(Environment.NewLine).
-                                                                    ToString();
+                                      //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+                                      //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
+                                      //                                                                          httpUser,
+                                      //                                                                          httpOrganizations,
+                                      //                                                                          httpEvent)).
+                                      //                              Reverse().
+                                      //                              Skip   (Request.QueryString.GetUInt64("skip")).
+                                      //                              Take   (Request.QueryString.GetUInt64("take")).
+                                      //                              Reverse().
+                                      //                              Aggregate(new StringBuilder(),
+                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+                                      //                                                                                    AppendLine(httpEvent.SerializedData).
+                                      //                                                                                    AppendLine()).
+                                      //                              Append(Environment.NewLine).
+                                      //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+                                      //                              Append(Environment.NewLine).
+                                      //                              Append(Environment.NewLine).
+                                      //                              ToString();
 
                                       return Task.FromResult(
                                           new HTTPResponse.Builder(Request) {
@@ -4002,7 +4002,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = httpEvents.ToUTF8Bytes()
+                                              //Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
                                   });
@@ -4034,20 +4034,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       #endregion
 
                                       var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                              httpUser,
-                                                                                                              httpOrganizations,
-                                                                                                              httpEvent)).
-                                                                    Skip (Request.QueryString.GetUInt64("skip")).
-                                                                    Take (Request.QueryString.GetUInt64("take")).
-                                                                    Aggregate(new StringBuilder().AppendLine("["),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
-                                                                                                                          Append(httpEvent.Subevent ?? "").
-                                                                                                                          Append(@""",").
-                                                                                                                          Append(httpEvent.SerializedData).
-                                                                                                                          AppendLine("],")).
-                                                                    ToString().
-                                                                    TrimEnd();
+                                      //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+                                      //                                                                        httpUser,
+                                      //                                                                        httpOrganizations,
+                                      //                                                                        httpEvent)).
+                                      //                              Skip (Request.QueryString.GetUInt64("skip")).
+                                      //                              Take (Request.QueryString.GetUInt64("take")).
+                                      //                              Aggregate(new StringBuilder().AppendLine("["),
+                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
+                                      //                                                                                    Append(httpEvent.Subevent ?? "").
+                                      //                                                                                    Append(@""",").
+                                      //                                                                                    Append(httpEvent.SerializedData).
+                                      //                                                                                    AppendLine("],")).
+                                      //                              ToString().
+                                      //                              TrimEnd();
 
 
                                       return Task.FromResult(
@@ -4058,9 +4058,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = (httpEvents.Length > 1
-                                                                     ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                                                     : "]").ToUTF8Bytes()
+                                              //Content         = (httpEvents.Length > 1
+                                              //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+                                              //                       : "]").ToUTF8Bytes()
                                           }.AsImmutable);
 
                                   });

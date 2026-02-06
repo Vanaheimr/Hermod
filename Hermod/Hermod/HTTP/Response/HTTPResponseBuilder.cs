@@ -74,7 +74,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    );
 
 
-            public Func<HTTPResponse, ChunkedTransferEncodingStream, Task> ChunkWorker { get; set; } = (response, stream) => Task.CompletedTask;
+            public Func<HTTPResponse, ChunkedTransferEncodingStream, Task>  ChunkWorker      { get; set; } = (response, stream) => Task.CompletedTask;
+
+            public Func<HTTPResponse, StreamWriter,                  Task>  HTTPSSEWorker    { get; set; } = (response, stream) => Task.CompletedTask;
 
             #endregion
 
@@ -1201,7 +1203,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                         httpResponse = Parse(HTTPHeader,                HTTPRequest, ConsumeChunkedTransferEncodingImmediately, SubprotocolResponse);
 
-                    httpResponse.ChunkWorker = ChunkWorker;
+                    httpResponse.ChunkWorker   = ChunkWorker;
+                    httpResponse.HTTPSSEWorker = HTTPSSEWorker;
 
                     return httpResponse;
 

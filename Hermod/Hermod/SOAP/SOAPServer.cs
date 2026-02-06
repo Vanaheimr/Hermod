@@ -227,19 +227,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region RegisterSOAPDelegate(Hostname, URITemplate, Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
+        #region RegisterSOAPDelegate(Hostname, URLTemplate, Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="URLTemplate">The URI template.</param>
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPAPIX                   HTTPAPI,
                                          HTTPHostname               Hostname,
-                                         HTTPPath                   URITemplate,
+                                         HTTPPath                   URLTemplate,
                                          String                     Description,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
@@ -252,22 +252,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                     HTTPHostname.Any,
                                     //out var errorResponse,
                                     HTTPMethod.POST,
-                                    URITemplate,
+                                    URLTemplate,
                                     hTTPContentTypes => SOAPContentType
                                 );
 
             if (requestHandle is null)
             {
 
-                soapDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
-                soapDispatchers.Add(URITemplate, soapDispatcher);
+                soapDispatcher = new SOAPDispatcher(URLTemplate, SOAPContentType);
+                soapDispatchers.Add(URLTemplate, soapDispatcher);
 
                 // Register a new SOAP dispatcher
                 HTTPServer.AddHandler(
                     HTTPAPI,
                     soapDispatcher.Invoke,
                     Hostname,
-                    URITemplate,
+                    URLTemplate,
                     HTTPMethod.POST,
                     SOAPContentType
                 );
@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                     HTTPAPI,
                     soapDispatcher.EndpointTextInfo,
                     Hostname,
-                    URITemplate,
+                    URLTemplate,
                     HTTPMethod.GET,
                     SOAPContentType
                 );
@@ -288,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 soapDispatcher = requestHandle?.RequestHandlers?.RequestHandler?.Target as SOAPDispatcher;
 
             if (soapDispatcher is null)
-                throw new Exception("'" + URITemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");
+                throw new Exception("'" + URLTemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");
 
             soapDispatcher.RegisterSOAPDelegate(
                 Description,

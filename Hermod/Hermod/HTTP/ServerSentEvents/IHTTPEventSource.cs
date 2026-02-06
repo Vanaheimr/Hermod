@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+using System.Runtime.CompilerServices;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -24,15 +26,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         HTTPEventSource_Id                    EventIdentification        { get; }
         Func<String, DateTimeOffset, String>  LogfileName                { get; }
-        UInt64                                MaxNumberOfCachedEvents    { get; }
+        UInt32                                MaxNumberOfCachedEvents    { get; }
         TimeSpan                              RetryInterval              { get; set; }
 
         String ToString();
 
     }
 
-    public interface IHTTPEventSource<T> : IHTTPEventSource,
-                                           IEnumerable<HTTPEvent<T>>
+    public interface IHTTPEventSource<T> : IHTTPEventSource
+                                         //  IEnumerable<HTTPEvent<T>>
     {
 
         Task SubmitEvent(                                           T Data, CancellationToken CancellationToken = default);
@@ -45,13 +47,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
-        IEnumerable<HTTPEvent<T>> GetAllEventsGreater(UInt64? LastEventId = 0);
+        IAsyncEnumerable<HTTPEvent<T>> GetAllEventsGreater(UInt64?            LastEventId,
+                                                           CancellationToken  CancellationToken = default);
 
         /// <summary>
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
         /// <param name="Timestamp">The earliest timestamp of the events.</param>
-        IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset Timestamp);
+        IAsyncEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset     Timestamp,
+                                                         CancellationToken  CancellationToken = default);
 
 
     }
