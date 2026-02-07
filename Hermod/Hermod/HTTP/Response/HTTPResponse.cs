@@ -1631,9 +1631,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private class EventBuilder
         {
-            public ulong? Id { get; set; }
-            public string? Subevent { get; set; }
-            public List<String> DataLines { get; } = [];
+
+            public UInt64?       Id           { get; set; }
+            public String?       Subevent     { get; set; }
+            public List<String>  DataLines    { get; } = [];
 
             public void AppendData(String line)
             {
@@ -1642,37 +1643,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public void Reset()
             {
-                Id = null;
-                Subevent = null;
+                Id        = null;
+                Subevent  = null;
                 DataLines.Clear();
             }
 
-            public bool IsValid()
+            public Boolean IsValid()
             {
                 return Id.HasValue && DataLines.Count > 0;
             }
 
-            public HTTPEvent<JObject>? Build<T>()
+            public HTTPEvent<T>? Build<T>(Func<String, T> Parser)
             {
 
-                if (!IsValid())
+                if (!Id.HasValue || DataLines.Count == 0)
                     return null;
 
-                var serializedData = string.Join("\n", DataLines);
+                try
+                {
 
-                var aa = JObject.Parse(serializedData);
+                    var serializedData = String.Join("\n", DataLines);
 
-                var serializedHeader = $"event: {Subevent ?? "message"}\nid: {Id}";
+                    return new HTTPEvent<T>(
+                               Id:                Id.Value,
+                               Subevent:          Subevent ?? "message",
+                               Data:              Parser(serializedData),
+                               SerializedHeader:  $"event: {Subevent ?? "message"}\nid: {Id}",
+                               SerializedData:    serializedData
+                           );
 
-                return new HTTPEvent<JObject>(
-                           Id:                Id.Value,
-                           Subevent:          Subevent ?? "message",
-                           Data:              aa,
-                           SerializedHeader:  serializedHeader,
-                           SerializedData:    serializedData
-                       );
+                }
+                catch
+                {
+                    return null;
+                }
 
             }
+
         }
 
 
@@ -1686,7 +1693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var reader = new StreamReader(HTTPBodyStream);
 
             if (!lineTimeout.HasValue)
-                lineTimeout = TimeSpan.FromSeconds(45);
+                lineTimeout = TimeSpan.FromSeconds(120);
 
             var events        = new List<HTTPEvent<JObject>>();
             var currentEvent  = new EventBuilder();
@@ -1727,7 +1734,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     if (currentEvent.IsValid())
                     {
-                        var parsedEvent = currentEvent.Build<JObject>();
+                        var parsedEvent = currentEvent.Build(JObject.Parse);
                         if (parsedEvent is not null)
                         {
                             events.Add(parsedEvent);
@@ -1783,7 +1790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // Letztes Event (falls kein abschließendes Leerzeichen)
             if (currentEvent.IsValid())
             {
-                var lastEvent = currentEvent.Build<JObject>();
+                var lastEvent = currentEvent.Build(JObject.Parse);
                 if (lastEvent is not null)
                     events.Add(lastEvent);
             }

@@ -117,13 +117,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected const Char GS = (Char) 0x1D;
 
-        private                 Int64                          IdCounter;
-        private        readonly ConcurrentQueue<HTTPEvent<T>>  eventHistory     = new();
-        private        readonly Channel        <HTTPEvent<T>>  _liveChannel;
-        private static readonly SemaphoreSlim                  LogfileLock  = new (1,1);
+        private                 Int64                                   IdCounter;
+        private        readonly ConcurrentQueue<HTTPEvent<T>>           eventHistory     = new();
+        private        readonly Channel        <HTTPEvent<T>>           liveChannel;
+        private        readonly ConcurrentBag  <Channel<HTTPEvent<T>>>  clientChannels   = [];
+        private static readonly SemaphoreSlim                           LogfileLock      = new (1,1);
 
-        private        readonly Func<T, String>                DataSerializer;
-        private        readonly Func<String, T?>               DataDeserializer;
+        private        readonly Func<T, String>                         DataSerializer;
+        private        readonly Func<String, T?>                        DataDeserializer;
 
         #endregion
 
@@ -191,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                String?                                LogfileReloadSearchPattern   = null)
         {
 
-            this._liveChannel            = Channel.CreateBounded<HTTPEvent<T>>(
+            this.liveChannel              = Channel.CreateBounded<HTTPEvent<T>>(
                                                 new BoundedChannelOptions(capacity: (Int32) MaxNumberOfCachedEvents) {
                                                     FullMode      = BoundedChannelFullMode.DropOldest,
                                                     SingleReader  = false,
@@ -274,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            _liveChannel.Writer.TryWrite(
+                            liveChannel.Writer.TryWrite(
                                 new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
                                                  Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
                                                  Subevent:          line[1],
@@ -374,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                String?                                LogfileReloadSearchPattern   = null)
         {
 
-            this._liveChannel            = Channel.CreateBounded<HTTPEvent<T>>(
+            this.liveChannel              = Channel.CreateBounded<HTTPEvent<T>>(
                                                 new BoundedChannelOptions(capacity: (Int32) MaxNumberOfCachedEvents) {
                                                     FullMode      = BoundedChannelFullMode.DropOldest,
                                                     SingleReader  = false,
@@ -457,7 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            _liveChannel.Writer.TryWrite(
+                            liveChannel.Writer.TryWrite(
                                 new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
                                                  Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
                                                  Subevent:          line[1],
@@ -530,6 +531,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
             }
+
+            _ = Task.Run(async () => {
+                    try
+                    {
+                        await foreach (var item in liveChannel.Reader.ReadAllAsync())
+                        {
+                            // Enumerate a snapshot — ConcurrentBag allows this safely
+                            foreach (var clientChannel in clientChannels)
+                            {
+                                // Use TryWrite → non-blocking, safe even if client is slow/closed
+                                if (!clientChannel.Writer.TryWrite(item))
+                                {
+                                    // Optional: if TryWrite fails often → client is slow or closed
+                                    // You can remove it here, but usually better to let Completion handle it
+                                }
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                    catch (ChannelClosedException) { }
+                    catch (Exception ex)
+                    {
+                        // Log unexpected error
+                        Console.Error.WriteLine($"Fan-out loop failed: {ex.Message}");
+                    }
+                });
 
         }
 
@@ -632,7 +659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             while (eventHistory.Count > MaxNumberOfCachedEvents)
                 eventHistory.TryDequeue(out _);
 
-            await _liveChannel.Writer.WriteAsync(
+            await liveChannel.Writer.WriteAsync(
                       httpEvent,
                       CancellationToken
                   );
@@ -669,14 +696,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            await foreach (var httpEvent in _liveChannel.Reader.ReadAllAsync(CancellationToken))
-            {
+            //await foreach (var httpEvent in liveChannel.Reader.ReadAllAsync(CancellationToken))
+            //{
 
+            //    // We already sent everything <= current ID from history,
+            //    // so live events should all be > last seen
+            //    if (httpEvent.Id > lastEventId2)
+            //        yield return httpEvent;
+
+            //}
+
+            var reader = Subscribe();
+
+            await foreach (var httpEvent in reader.ReadAllAsync(CancellationToken))
+            {
                 // We already sent everything <= current ID from history,
                 // so live events should all be > last seen
                 if (httpEvent.Id > lastEventId2)
                     yield return httpEvent;
-
             }
 
         }
@@ -706,7 +743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             // 2. Then switch to live events
-            await foreach (var evt in _liveChannel.Reader.ReadAllAsync(CancellationToken))
+            await foreach (var evt in liveChannel.Reader.ReadAllAsync(CancellationToken))
             {
 
                 // We already sent everything <= current ID from history,
@@ -718,6 +755,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        public ChannelReader<HTTPEvent<T>> Subscribe()
+        {
+
+            var clientChannel = Channel.CreateUnbounded<HTTPEvent<T>>(
+                new UnboundedChannelOptions {
+                    SingleReader = true,
+                    SingleWriter = true
+                }
+            );
+
+            clientChannels.Add(clientChannel);
+
+            // Clean up when client channel is completed/closed
+            _ = clientChannel.Reader.Completion.ContinueWith(_ => {
+                    // remove one instance (best-effort)
+                    clientChannels.TryTake(out var _);
+                    clientChannel.Writer.Complete();
+                }, TaskScheduler.Default);
+
+            return clientChannel.Reader;
+
+        }
 
 
         #region IEnumerable<HTTPEvent<T>> Members
@@ -739,6 +800,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => EventIdentification.ToString();
 
         #endregion
+
+
+        public void Dispose()
+        {
+
+            liveChannel.Writer.Complete();
+
+            foreach (var clientChannel in clientChannels)
+                clientChannel.Writer.Complete();
+
+        }
 
     }
 

@@ -1127,6 +1127,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region ClientServer_HTTPServerSentEvents_Test01()
 
+        /// <summary>
+        /// A test with a single HTTP SSE reader.
+        /// He will read historic data and data that is within the live queue but was not yet read by anyone.
+        /// Therefore it will be deduplicated.
+        /// </summary>
         [Test]
         public async Task ClientServer_HTTPServerSentEvents_Test01()
         {
@@ -1149,6 +1154,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                               );
 
             var sse1x       = httpAPI.Get(sse1Id);
+            Assert.That(sse1x,  Is.Not.Null);
+
+            var mappedSSE   = httpAPI.MapEventSource<JObject>(
+                                  sse1Id,
+                                  HTTPPath.Parse("/sse1"),
+                                  null
+                              );
+            Assert.That(mappedSSE,  Is.True);
+
 
             await sse1.SubmitEvent(
                       "sub1",
@@ -1174,11 +1188,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                       CancellationToken.None
                   );
 
-            var ssse1       = httpAPI.MapEventSource<JObject>(
-                                  sse1Id,
-                                  HTTPPath.Parse("/sse1"),
-                                  null
-                              );
 
 
 
@@ -1201,7 +1210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                               )
                                           );
 
-                Assert.That(httpResponse,  Is.Not.Null);
+                Assert.That(httpResponse,  Is.Not.Null, "httpResponse must not be null!");
 
                 var eventList     = await httpResponse.ParseHTTPSSE(
                                               TimeSpan.FromSeconds(5),
@@ -1216,8 +1225,395 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region ClientServer_HTTPServerSentEvents_Test02()
+
+        /// <summary>
+        /// A test with two HTTP SSE readers.
+        /// The second one will only read historic data, as the live queue will be empty!
+        /// </summary>
+        [Test]
+        public async Task ClientServer_HTTPServerSentEvents_Test02()
+        {
+
+            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpAPI     = httpServer.AddHTTPAPI();
+
+            var sse1Id      = HTTPEventSource_Id.Parse("sse1");
+            var sse1        = httpAPI.AddEventSource<JObject>(
+                                  EventIdentification:          sse1Id,
+                                  MaxNumberOfCachedEvents:      100,
+                                  RetryInterval:                TimeSpan.FromSeconds(1),
+                                  DataSerializer:               null,
+                                  DataDeserializer:             null,
+                                  EnableLogging:                false,
+                                  LogfilePath:                  null,
+                                  LogfilePrefix:                null,
+                                  LogfileName:                  null,
+                                  LogfileReloadSearchPattern:   null
+                              );
+
+            var sse1x       = httpAPI.Get(sse1Id);
+            Assert.That(sse1x,  Is.Not.Null);
+
+            var mappedSSE   = httpAPI.MapEventSource<JObject>(
+                                  sse1Id,
+                                  HTTPPath.Parse("/sse1"),
+                                  null
+                              );
+            Assert.That(mappedSSE,  Is.True);
 
 
+            await sse1.SubmitEvent(
+                      "sub1",
+                      new JObject(
+                          new JProperty("a", "1")
+                      ),
+                      CancellationToken.None
+                  );
+
+            await sse1.SubmitEvent(
+                      "sub1",
+                      new JObject(
+                          new JProperty("b", "2")
+                      ),
+                      CancellationToken.None
+                  );
+
+            await sse1.SubmitEvent(
+                      "sub2",
+                      new JObject(
+                          new JProperty("c", "3")
+                      ),
+                      CancellationToken.None
+                  );
+
+
+            var httpClient1  = await HTTPTestClient.ConnectNew(
+                                         IPv4Address.Localhost,
+                                         httpServer.TCPPort
+                                     );
+
+            if (httpClient1.Item1 is null)
+                Assert.Fail("httpClient1.Item1 is null!");
+
+            else
+            {
+
+                var httpResponse  = await httpClient1.Item1.SendRequest(
+                                              httpClient1.Item1.CreateRequest(
+                                                  HTTPMethod.GET,
+                                                  HTTPPath.Parse("/sse1"),
+                                                  Accept:  AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.EVENTSTREAM)
+                                              )
+                                          );
+
+                Assert.That(httpResponse,  Is.Not.Null, "httpResponse1 must not be null!");
+
+                var eventList     = await httpResponse.ParseHTTPSSE(
+                                              TimeSpan.FromSeconds(5),
+                                              httpResponse.CancellationToken
+                                          );
+
+                Assert.That(eventList.Count,  Is.EqualTo(3));
+
+            }
+
+
+            var httpClient2  = await HTTPTestClient.ConnectNew(
+                                         IPv4Address.Localhost,
+                                         httpServer.TCPPort
+                                     );
+
+            if (httpClient2.Item1 is null)
+                Assert.Fail("httpClient2.Item1 is null!");
+
+            else
+            {
+
+                var httpResponse  = await httpClient2.Item1.SendRequest(
+                                              httpClient2.Item1.CreateRequest(
+                                                  HTTPMethod.GET,
+                                                  HTTPPath.Parse("/sse1"),
+                                                  Accept:  AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.EVENTSTREAM)
+                                              )
+                                          );
+
+                Assert.That(httpResponse,  Is.Not.Null, "httpResponse2 must not be null!");
+
+                var eventList     = await httpResponse.ParseHTTPSSE(
+                                              TimeSpan.FromSeconds(5),
+                                              httpResponse.CancellationToken
+                                          );
+
+                Assert.That(eventList.Count,  Is.EqualTo(3));
+
+            }
+
+        }
+
+        #endregion
+
+        #region ClientServer_HTTPServerSentEvents_Test03()
+
+        /// <summary>
+        /// A test with two HTTP SSE readers.
+        /// The second one will only read historic data, as the live queue will be empty!
+        /// </summary>
+        [Test]
+        public async Task ClientServer_HTTPServerSentEvents_Test03()
+        {
+
+            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpAPI     = httpServer.AddHTTPAPI();
+
+            var sse1Id      = HTTPEventSource_Id.Parse("sse1");
+            var sse1        = httpAPI.AddEventSource<JObject>(
+                                  EventIdentification:          sse1Id,
+                                  MaxNumberOfCachedEvents:      100,
+                                  RetryInterval:                TimeSpan.FromSeconds(1),
+                                  DataSerializer:               null,
+                                  DataDeserializer:             null,
+                                  EnableLogging:                false,
+                                  LogfilePath:                  null,
+                                  LogfilePrefix:                null,
+                                  LogfileName:                  null,
+                                  LogfileReloadSearchPattern:   null
+                              );
+
+            var sse1x       = httpAPI.Get(sse1Id);
+            Assert.That(sse1x,  Is.Not.Null);
+
+            var mappedSSE   = httpAPI.MapEventSource<JObject>(
+                                  sse1Id,
+                                  HTTPPath.Parse("/sse1"),
+                                  null
+                              );
+            Assert.That(mappedSSE,  Is.True);
+
+
+            await sse1.SubmitEvent(
+                      "sub1",
+                      new JObject(
+                          new JProperty("a", "1")
+                      ),
+                      CancellationToken.None
+                  );
+
+            await sse1.SubmitEvent(
+                      "sub1",
+                      new JObject(
+                          new JProperty("b", "2")
+                      ),
+                      CancellationToken.None
+                  );
+
+            await sse1.SubmitEvent(
+                      "sub2",
+                      new JObject(
+                          new JProperty("c", "3")
+                      ),
+                      CancellationToken.None
+                  );
+
+
+
+            var httpClientTask1 = Task.Run(async () => {
+
+                var httpClient  = await HTTPTestClient.ConnectNew(
+                                            IPv4Address.Localhost,
+                                            httpServer.TCPPort
+                                        );
+
+                if (httpClient.Item1 is null)
+                    Assert.Fail("httpClient1.Item1 is null!");
+
+                else
+                {
+
+                    var httpResponse  = await httpClient.Item1.SendRequest(
+                                                  httpClient.Item1.CreateRequest(
+                                                      HTTPMethod.GET,
+                                                      HTTPPath.Parse("/sse1"),
+                                                      Accept:  AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.EVENTSTREAM)
+                                                  )
+                                              );
+
+                    Assert.That(httpResponse,  Is.Not.Null, "httpResponse1 must not be null!");
+
+                    return await httpResponse.ParseHTTPSSE(
+                                     TimeSpan.FromSeconds(15),
+                                     httpResponse.CancellationToken
+                                 );
+
+                }
+
+                return [];
+
+            });
+
+            var httpClientTask2 = Task.Run(async () => {
+
+                var httpClient  = await HTTPTestClient.ConnectNew(
+                                            IPv4Address.Localhost,
+                                            httpServer.TCPPort
+                                        );
+
+                if (httpClient.Item1 is null)
+                    Assert.Fail("httpClient2.Item1 is null!");
+
+                else
+                {
+
+                    var httpResponse  = await httpClient.Item1.SendRequest(
+                                                  httpClient.Item1.CreateRequest(
+                                                      HTTPMethod.GET,
+                                                      HTTPPath.Parse("/sse1"),
+                                                      Accept:  AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.EVENTSTREAM)
+                                                  )
+                                              );
+
+                    Assert.That(httpResponse,  Is.Not.Null, "httpResponse2 must not be null!");
+
+                    return await httpResponse.ParseHTTPSSE(
+                                     TimeSpan.FromSeconds(15),
+                                     httpResponse.CancellationToken
+                                 );
+
+                }
+
+                return [];
+
+            });
+
+            var httpClientTask3 = Task.Run(async () => {
+
+                await Task.Delay(TimeSpan.FromSeconds(0.5));
+
+                var httpClient  = await HTTPTestClient.ConnectNew(
+                                            IPv4Address.Localhost,
+                                            httpServer.TCPPort
+                                        );
+
+                if (httpClient.Item1 is null)
+                    Assert.Fail("httpClient3.Item1 is null!");
+
+                else
+                {
+
+                    var httpResponse  = await httpClient.Item1.SendRequest(
+                                                  httpClient.Item1.CreateRequest(
+                                                      HTTPMethod.GET,
+                                                      HTTPPath.Parse("/sse1"),
+                                                      Accept:  AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.EVENTSTREAM)
+                                                  )
+                                              );
+
+                    Assert.That(httpResponse,  Is.Not.Null, "httpResponse3 must not be null!");
+
+                    return await httpResponse.ParseHTTPSSE(
+                                     TimeSpan.FromSeconds(15),
+                                     httpResponse.CancellationToken
+                                 );
+
+                }
+
+                return [];
+
+            });
+
+            var httpClientTask4 = Task.Run(async () => {
+
+                await Task.Delay(TimeSpan.FromSeconds(2.5));
+
+                var httpClient  = await HTTPTestClient.ConnectNew(
+                                            IPv4Address.Localhost,
+                                            httpServer.TCPPort
+                                        );
+
+                if (httpClient.Item1 is null)
+                    Assert.Fail("httpClient4.Item1 is null!");
+
+                else
+                {
+
+                    var httpResponse  = await httpClient.Item1.SendRequest(
+                                                  httpClient.Item1.CreateRequest(
+                                                      HTTPMethod.GET,
+                                                      HTTPPath.Parse("/sse1"),
+                                                      Accept:  AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.EVENTSTREAM)
+                                                  )
+                                              );
+
+                    Assert.That(httpResponse,  Is.Not.Null, "httpResponse4 must not be null!");
+
+                    return await httpResponse.ParseHTTPSSE(
+                                     TimeSpan.FromSeconds(15),
+                                     httpResponse.CancellationToken
+                                 );
+
+                }
+
+                return [];
+
+            });
+
+
+
+            var lateSEEsTask = Task.Run(async () => {
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+
+                await sse1.SubmitEvent(
+                          "sub3",
+                          new JObject(
+                              new JProperty("d", "4")
+                          ),
+                          CancellationToken.None
+                      );
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+
+                await sse1.SubmitEvent(
+                          "sub4",
+                          new JObject(
+                              new JProperty("e", "5")
+                          ),
+                          CancellationToken.None
+                      );
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+
+                await sse1.SubmitEvent(
+                          "sub5",
+                          new JObject(
+                              new JProperty("f", "6")
+                          ),
+                          CancellationToken.None
+                      );
+
+            });
+
+            await Task.WhenAll(
+                      httpClientTask1,
+                      httpClientTask2,
+                      httpClientTask3,
+                      httpClientTask4,
+                      lateSEEsTask
+                  );
+
+            var eventList1 = await httpClientTask1;
+            var eventList2 = await httpClientTask2;
+            var eventList3 = await httpClientTask3;
+            var eventList4 = await httpClientTask4;
+
+            Assert.That(eventList1.Count,  Is.EqualTo(6));
+            Assert.That(eventList2.Count,  Is.EqualTo(6));
+            Assert.That(eventList3.Count,  Is.EqualTo(6));
+            Assert.That(eventList4.Count,  Is.EqualTo(6));
+
+        }
+
+        #endregion
 
 
         #region ClientServer_ChunkedEncoding_Test01()
@@ -1369,7 +1765,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
 
         #region DNSSRV_Tests_01()

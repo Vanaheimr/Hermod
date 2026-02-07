@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-using System.Runtime.CompilerServices;
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
