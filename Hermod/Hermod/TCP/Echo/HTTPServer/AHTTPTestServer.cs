@@ -494,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             catch (IOException ie)
             {
                 // An I/O error occurred, e.g. the connection was closed by the client.
-                DebugX.LogException(ie, "IOException in HTTPTestServer.HandleConnection(...)");
+                //DebugX.LogException(ie, "IOException in HTTPTestServer.HandleConnection(...)");
             }
             catch (Exception e)
             {

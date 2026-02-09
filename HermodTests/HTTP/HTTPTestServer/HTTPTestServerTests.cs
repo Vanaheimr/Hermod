@@ -1144,7 +1144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                   EventIdentification:          sse1Id,
                                   MaxNumberOfCachedEvents:      100,
                                   RetryInterval:                TimeSpan.FromSeconds(1),
-                                  DataSerializer:               null,
+                                  DataSerializer:               json => json.ToString(Newtonsoft.Json.Formatting.None),
                                   DataDeserializer:             null,
                                   EnableLogging:                false,
                                   LogfilePath:                  null,
