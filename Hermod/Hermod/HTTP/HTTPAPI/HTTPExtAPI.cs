@@ -1192,11 +1192,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  const             String                                        HTTPCookieDomain                        = "";
 
 
-        protected static readonly String[]  Split1  = { "\r\n" };
-        protected static readonly String[]  Split2  = { ": " };
-        protected static readonly String[]  Split3  = { " " };
-        protected static readonly Char[]    Split4  = { ',' };
-        protected static readonly Char[]    Split5  = { '|' };
+        protected static readonly String[]  Split1  = [ "\r\n" ];
+        protected static readonly String[]  Split2  = [ ": "   ];
+        protected static readonly String[]  Split3  = [ " "    ];
+        protected static readonly Char[]    Split4  = [ ','    ];
+        protected static readonly Char[]    Split5  = [ '|'    ];
 
         public    static readonly User                                          Anonymous = new (User_Id.Parse("anonymous"),
                                                                                                  "Anonymous".ToI18NString(),
@@ -2324,8 +2324,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.CurrentDatabaseHashValue        = "";
 
-            this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
-            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
+            this.remoteAuthServers               = RemoteAuthServers is not null   ? [.. RemoteAuthServers] : [];
+            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? [.. RemoteAuthAPIKeys] : [];
 
             #endregion
 
@@ -2555,8 +2555,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.CurrentDatabaseHashValue        = "";
 
-            this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
-            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
+            this.remoteAuthServers               = RemoteAuthServers is not null   ? [.. RemoteAuthServers] : [];
+            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? [.. RemoteAuthAPIKeys] : [];
 
             #endregion
 
@@ -3747,23 +3747,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //    return true;
                 //}
 
-                Organizations  = new HashSet<IOrganization>();
-                ErrorResponseBuilder       = new HTTPResponse.Builder(Request) {
-                                     HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                     Location        = Location.From(URLPathPrefix + "login"),
-                                     Date            = Timestamp.Now,
-                                     Server          = HTTPServer.DefaultServerName,
-                                     CacheControl    = "private, max-age=0, no-cache",
-                                     Connection      = ConnectionType.Close
-                                 };
+                Organizations         = [];
+                ErrorResponseBuilder  = new HTTPResponse.Builder(Request) {
+                                            HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                            Location        = Location.From(URLPathPrefix + "login"),
+                                            Date            = Timestamp.Now,
+                                            Server          = HTTPServer.DefaultServerName,
+                                            CacheControl    = "private, max-age=0, no-cache",
+                                            Connection      = ConnectionType.Close
+                                        };
 
                 return false;
 
             }
 
             Organizations  = User is not null
-                                 ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
-                                 : new HashSet<IOrganization>();
+                                 ? [.. User.Organizations(AccessLevel, Recursive)]
+                                 : [];
 
             ErrorResponseBuilder       = null;
 
@@ -4597,7 +4597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
+                                                 AccessControlAllowMethods  = [ "SET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                 = ConnectionType.Close
                                              };
@@ -4641,7 +4641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
+                                                 AccessControlAllowMethods  = [ "SET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                 = ConnectionType.Close
                                              };
@@ -4662,7 +4662,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                     = HTTPServer.DefaultServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
+                                                   AccessControlAllowMethods  = [ "SET" ],
                                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
@@ -4676,7 +4676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                     = HTTPServer.DefaultServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
+                                                   AccessControlAllowMethods  = [ "SET" ],
                                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
@@ -4805,7 +4805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
+                                                 AccessControlAllowMethods  = [ "SET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                 = ConnectionType.Close
                                              }.AsImmutable;
@@ -4964,7 +4964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "CHECK" },
+                                                 AccessControlAllowMethods  = [ "CHECK" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -4991,7 +4991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Server                     = HTTPServer.DefaultServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "CHECK" },
+                                                     AccessControlAllowMethods  = [ "CHECK" ],
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                      ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                      Content                    = JSONObject.Create(
@@ -5015,7 +5015,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer.DefaultServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
+                                                 AccessControlAllowMethods   = [ "CHECK" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = JSONObject.Create(
@@ -5037,7 +5037,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer.DefaultServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
+                                                 AccessControlAllowMethods   = [ "CHECK" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.Close
                                              }.AsImmutable;
@@ -5067,7 +5067,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer.DefaultServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "ADD", "SET", "GET" },
+                                          AccessControlAllowMethods  = [ "ADD", "SET", "GET" ],
                                           AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                           AccessControlMaxAge        = 3600,
                                           CacheControl               = "public",
@@ -5098,7 +5098,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Server                      = HTTPServer.DefaultServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
-                                                            AccessControlAllowMethods   = new[] { "ADD", "SET", "GET" },
+                                                            AccessControlAllowMethods   = [ "ADD", "SET", "GET" ],
                                                             AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                             Connection                  = ConnectionType.Close
@@ -5188,7 +5188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5217,7 +5217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          Server                     = HTTPServer.DefaultServerName,
                                                          Date                       = Timestamp.Now,
                                                          AccessControlAllowOrigin   = "*",
-                                                         AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                         AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                          AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                          Content                    = JSONObject.Create(
@@ -5245,7 +5245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5274,7 +5274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5299,7 +5299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5327,7 +5327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5347,7 +5347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5487,7 +5487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Server                     = HTTPServer.DefaultServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
+                                                            AccessControlAllowMethods  = [ "GET", "COUNT", "OPTIONS" ],
                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                             ETag                       = "1",
                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
@@ -5617,7 +5617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer.DefaultServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                          AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                           AccessControlAllowHeaders  = [ "X-PINGOTHER", "Content-Type", "Accept", "Authorization", "X-App-Version" ],
                                           AccessControlMaxAge        = 3600,
                                           //ETag                       = "1",
@@ -5650,7 +5650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Server                      = HTTPServer.DefaultServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
-                                                            AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                                            AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                                             AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                             Connection                  = ConnectionType.Close
@@ -6083,7 +6083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Server                     = HTTPServer.DefaultServerName,
                                               Date                       = Timestamp.Now,
                                               AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                              AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                               AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                               ContentType                = HTTPContentType.Application.JSON_UTF8,
                                               Content                    = JSONObject.Create(
@@ -6109,7 +6109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer.DefaultServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = user.ToJSON(false).ToUTF8Bytes(),
@@ -6122,7 +6122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer.DefaultServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = JSONObject.Create(
@@ -6714,7 +6714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer.DefaultServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "DEPERSONATE" },
+                                                 AccessControlAllowMethods   = [ "DEPERSONATE" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.Close
                                              }.AsImmutable;
@@ -6921,24 +6921,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return result.Result == CommandResult.Success
 
                                              ? new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "SET" },
-                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
-                                             }.AsImmutable
+                                                   HTTPStatusCode              = HTTPStatusCode.OK,
+                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Date                        = Timestamp.Now,
+                                                   AccessControlAllowOrigin    = "*",
+                                                   AccessControlAllowMethods   = [ "SET" ],
+                                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                                   Connection                  = ConnectionType.Close
+                                               }.AsImmutable
 
                                              : new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "SET" },
-                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
-                                             }.AsImmutable;
+                                                   HTTPStatusCode              = HTTPStatusCode.Forbidden,
+                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Date                        = Timestamp.Now,
+                                                   AccessControlAllowOrigin    = "*",
+                                                   AccessControlAllowMethods   = [ "SET" ],
+                                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                                   Connection                  = ConnectionType.Close
+                                               }.AsImmutable;
 
                               });
 
@@ -7016,7 +7016,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer.DefaultServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
+                                          AccessControlAllowMethods  = [ "GET", "COUNT", "OPTIONS" ],
                                           AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                       = "1",
                                           ContentType                = HTTPContentType.Application.JSON_UTF8,
@@ -7984,7 +7984,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                        = HTTPServer.DefaultServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
-                                          AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
+                                          AccessControlAllowMethods     = [ "GET", "COUNT", "OPTIONS" ],
                                           AccessControlAllowHeaders     = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                          = "1",
                                           ContentType                   = HTTPContentType.Application.JSON_UTF8,
@@ -10266,7 +10266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                        = HTTPServer.DefaultServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
-                                          AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
+                                          AccessControlAllowMethods     = [ "GET", "COUNT", "OPTIONS" ],
                                           AccessControlAllowHeaders     = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                          = "1",
                                           ContentType                   = HTTPContentType.Application.JSON_UTF8,
