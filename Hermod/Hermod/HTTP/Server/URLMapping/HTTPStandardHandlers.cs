@@ -405,13 +405,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
+            //var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
 
-            if (httpEventSource is not null)
-                await httpEventSource.SubmitEvent(
-                                          ChangeType,
-                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""fileName"": String.Empty" + FileName + @""" }"
-                                      );
+            //if (httpEventSource is not null)
+            //    await httpEventSource.SubmitEvent(
+            //                              ChangeType,
+            //                              @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""fileName"": String.Empty" + FileName + @""" }"
+            //                          );
 
         }
 
@@ -426,13 +426,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
+            //var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
 
-            if (httpEventSource is not null)
-                await httpEventSource.SubmitEvent(
-                                          "Renamed",
-                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""newFileName"": String.Empty" + NewFileName + @""", ""oldFileName"": String.Empty" + OldFileName + @""" }"
-                                      );
+            //if (httpEventSource is not null)
+            //    await httpEventSource.SubmitEvent(
+            //                              "Renamed",
+            //                              @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""newFileName"": String.Empty" + NewFileName + @""", ""oldFileName"": String.Empty" + OldFileName + @""" }"
+            //                          );
 
         }
 
@@ -445,15 +445,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    ErrorEventArgs      Error)
         {
 
-            DebugX.LogException(Error.GetException(), $"HTTP SSE Event Source: '{EventSourceId}'");
+            //DebugX.LogException(Error.GetException(), $"HTTP SSE Event Source: '{EventSourceId}'");
 
-            var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
+            //var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
 
-            if (httpEventSource is not null)
-                await httpEventSource.SubmitEvent(
-                                          "Error",
-                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""message"": String.Empty" + Error.GetException().Message + @""" }"
-                                      );
+            //if (httpEventSource is not null)
+            //    await httpEventSource.SubmitEvent(
+            //                              "Error",
+            //                              @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""message"": String.Empty" + Error.GetException().Message + @""" }"
+            //                          );
 
         }
 
@@ -510,16 +510,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   HTTPEventSource_Id  EventSourceId)
         {
 
-            HTTPAPI.WatchFileSystemFolder(
-                        ResourcePath,
-                        EventSourceId
-                    );
+            //HTTPAPI.WatchFileSystemFolder(
+            //            ResourcePath,
+            //            EventSourceId
+            //        );
 
-            HTTPAPI.AddEventSource<String>(
-                EventSourceId,
-                URLTemplate,
-                Hostname: Hostname
-            );
+            //HTTPAPI.AddEventSource<String>(
+            //    EventSourceId,
+            //    URLTemplate,
+            //    Hostname: Hostname
+            //);
 
         }
 
@@ -543,17 +543,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   Boolean             RequireAuthentication   = true)
         {
 
-            HTTPExtAPI.WatchFileSystemFolder(
-                           ResourcePath,
-                           EventSourceId
-                       );
+            //HTTPExtAPI.WatchFileSystemFolder(
+            //               ResourcePath,
+            //               EventSourceId
+            //           );
 
-            HTTPExtAPI.AddEventSource<String>(
-                EventSourceId,
-                URLTemplate,
-                Hostname:               Hostname,
-                RequireAuthentication:  RequireAuthentication
-            );
+            //HTTPExtAPI.AddEventSource<String>(
+            //    EventSourceId,
+            //    URLTemplate,
+            //    Hostname:               Hostname,
+            //    RequireAuthentication:  RequireAuthentication
+            //);
 
         }
 

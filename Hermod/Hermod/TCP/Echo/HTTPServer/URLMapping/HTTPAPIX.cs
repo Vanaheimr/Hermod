@@ -17,17 +17,16 @@
 
 #region Usings
 
-using System.Reflection;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 using Newtonsoft.Json.Linq;
 
 using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Crypto.Parameters;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -35,7 +34,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion 
 
@@ -659,9 +658,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public  const              String                                  HTTPRoot              = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public  const    String                                                      HTTPRoot       = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
-        private readonly           ConcurrentDictionary<String, PathNode>  routeNodes            = [];
+        private readonly ConcurrentDictionary<String, PathNode>                      routeNodes     = [];
+        private readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources   = [];
 
         #endregion
 
@@ -1950,53 +1950,179 @@ Error:
 
         #region HTTP Server Sent Events
 
-        #region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
+        //#region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
+
+        ///// <summary>
+        ///// Add a HTTP Sever Sent Events source.
+        ///// </summary>
+        ///// <param name="EventIdentification">The unique identification of the event source.</param>
+        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        ///// <param name="RetryInterval ">The retry interval.</param>
+        ///// <param name="DataSerializer">A delegate to serialize the stored events.</param>
+        ///// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
+        ///// <param name="EnableLogging">Enables storing and reloading events </param>
+        ///// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
+        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        //public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id                     EventIdentification,
+        //                                                    UInt32                                 MaxNumberOfCachedEvents      = 500,
+        //                                                    TimeSpan?                              RetryInterval                = null,
+        //                                                    Func<TData, String>?                   DataSerializer               = null,
+        //                                                    Func<String, TData>?                   DataDeserializer             = null,
+        //                                                    Boolean                                EnableLogging                = true,
+        //                                                    String?                                LogfilePath                  = null,
+        //                                                    String?                                LogfilePrefix                = null,
+        //                                                    Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+        //                                                    String?                                LogfileReloadSearchPattern   = null)
+
+        //    => HTTPServer.AddEventSource(
+        //           EventIdentification,
+        //           this,
+        //           MaxNumberOfCachedEvents,
+        //           RetryInterval ,
+        //           DataSerializer,
+        //           DataDeserializer,
+        //           EnableLogging,
+        //           LogfilePath,
+        //           LogfilePrefix,
+        //           LogfileName,
+        //           LogfileReloadSearchPattern
+        //       );
+
+        //#endregion
+
+
+
+        //#region Get   (EventSourceIdentification)
+
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        //public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
+
+        //    => HTTPServer.Get(EventSourceIdentification);
+
+
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        //public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
+
+        //    => HTTPServer.Get<TData>(EventSourceIdentification);
+
+        //#endregion
+
+        //#region TryGet(EventSourceIdentification, out EventSource)
+
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSource">The event source.</param>
+        //public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
+
+        //    => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+
+
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSource">The event source.</param>
+        //public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
+
+        //    => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+
+        //#endregion
+
+        //#region EventSources(IncludeEventSource = null)
+
+        ///// <summary>
+        ///// Return a filtered enumeration of all event sources.
+        ///// </summary>
+        ///// <param name="IncludeEventSource">An event source filter delegate.</param>
+        //public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+
+        //    => HTTPServer.EventSources(IncludeEventSource);
+
+
+        ///// <summary>
+        ///// Return a filtered enumeration of all event sources.
+        ///// </summary>
+        ///// <param name="IncludeEventSource">An event source filter delegate.</param>
+        //public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+
+        //    => HTTPServer.EventSources<TData>(IncludeEventSource);
+
+        //#endregion
+
+        #endregion
+
+
+        #region HTTP Server Sent Events
+
+        #region AddEventSource      (EventSourceIdentification, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
         /// </summary>
-        /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="EventSourceIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryInterval ">The retry interval.</param>
         /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
         /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
-        /// <param name="EnableLogging">Enables storing and reloading events </param>
-        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
+        /// <param name="EnableLogging">Whether to enable event logging.</param>
+        /// <param name="LogfilePrefix">The prefix of the logfile names.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id                     EventIdentification,
-                                                            UInt32                                 MaxNumberOfCachedEvents      = 500,
-                                                            TimeSpan?                              RetryInterval                = null,
-                                                            Func<TData, String>?                   DataSerializer               = null,
-                                                            Func<String, TData>?                   DataDeserializer             = null,
-                                                            Boolean                                EnableLogging                = true,
-                                                            String?                                LogfilePath                  = null,
-                                                            String?                                LogfilePrefix                = null,
-                                                            Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-                                                            String?                                LogfileReloadSearchPattern   = null)
+        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventSourceIdentification,
+                                                    UInt32                                 MaxNumberOfCachedEvents      = 500,
+                                                    TimeSpan?                              RetryInterval                = null,
+                                                    Func<T, String>?                       DataSerializer               = null,
+                                                    Func<String, T>?                       DataDeserializer             = null,
+                                                    Boolean                                EnableLogging                = true,
+                                                    String?                                LogfilePath                  = null,
+                                                    String?                                LogfilePrefix                = null,
+                                                    Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                                                    String?                                LogfileReloadSearchPattern   = null)
 
-            => HTTPServer.AddEventSource(
-                   EventIdentification,
-                   this,
-                   MaxNumberOfCachedEvents,
-                   RetryInterval ,
-                   DataSerializer,
-                   DataDeserializer,
-                   EnableLogging,
-                   LogfilePath,
-                   LogfilePrefix,
-                   LogfileName,
-                   LogfileReloadSearchPattern
-               );
+        {
+
+            var result = eventSources.TryAdd(
+                             EventSourceIdentification,
+                             new HTTPEventSource<T>(
+                                 EventSourceIdentification,
+                                 this,
+                                 MaxNumberOfCachedEvents,
+                                 RetryInterval ,
+                                 DataSerializer,
+                                 DataDeserializer,
+                                 EnableLogging,
+                                 LogfilePath,
+                                 EnableLogging || LogfileName is not null
+                                     ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
+                                                                                        eventid, "_",
+                                                                                        time.Year, "-", time.Month.ToString("D2"),
+                                                                                        ".log"))
+                                     : null,
+                                 LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventSourceIdentification, "_*.log")
+                             )
+                         );
+
+            return (HTTPEventSource<T>) eventSources[EventSourceIdentification];
+
+        }
 
         #endregion
 
-        #region MapEventSource(EventIdentification, URLTemplate, RetryInterval  = null, ...)
+        #region MapEventSource      (EventSourceIdentification, URLTemplate, RetryInterval  = null, ...)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
         /// </summary>
-        /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="EventSourceIdentification">The unique identification of the event source.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// 
         /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
@@ -2009,7 +2135,7 @@ Error:
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public Boolean MapEventSource<T>(HTTPEventSource_Id            EventIdentification,
+        public Boolean MapEventSource<T>(HTTPEventSource_Id            EventSourceIdentification,
                                          HTTPPath                      URLTemplate,
 
                                          Func<HTTPEvent<T>, Boolean>?  IncludeFilterAtRuntime     = null,
@@ -2026,7 +2152,7 @@ Error:
 
         {
 
-            if (HTTPServer.TryGet(EventIdentification, out var httpEventSource) &&
+            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource) &&
                 httpEventSource is IHTTPEventSource<T> eventSource)
             {
 
@@ -2038,81 +2164,65 @@ Error:
                     URLTemplate,
                     HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
 
-                    async request => {
+                    async request =>
 
-                        //var httpEvents = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                        //                             Where(IncludeFilterAtRuntime).
-                        //                             Aggregate(new StringBuilder(),
-                        //                                       (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
-                        //                                                                                   AppendLine(httpEvent.SerializedData).
-                        //                                                                                   AppendLine()).
-                        //                             Append(Environment.NewLine).
-                        //                             Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                        //                             Append(Environment.NewLine).
-                        //                             Append(Environment.NewLine).
-                        //                             ToString();
+                        new HTTPResponse.Builder(request) {
 
-                        //var httpEvents     = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                        //                                 Where(IncludeFilterAtRuntime);
+                            HTTPStatusCode            = HTTPStatusCode.OK,
+                            Server                    = HTTPServer.HTTPServerName,
+                            ContentType               = HTTPContentType.Text.EVENTSTREAM,
+                            CacheControl              = "no-cache",
+                            Connection                = ConnectionType.KeepAlive,
+                            AccessControlAllowOrigin  = "*",
 
-                        //var stringBuilder  = new StringBuilder(1024);
+                            // As it is an obsolete HTTP/1.0 header, we do not set the "Keep-Alive" header.
+                            //KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval.TotalSeconds)),
 
-                        //stringBuilder.Append("retry: ").
-                        //              Append((UInt32) eventSource.RetryInterval.TotalMilliseconds).
-                        //              Append("\n\n");
+                            // We DO NOT follow the default behavior of the web server/framework for SSE streaming responses to
+                            // enable "Transfer-Encoding: chunked" automagically, just because some old web servers/frameworks
+                            // will buffer the whole response. If you experience such problems, please enable chunked transfer
+                            // encoding or adapt your middleware to support streaming responses.
+                            //TransferEncoding          = "chunked",
 
-                        //foreach (var httpEvent in httpEvents)
-                        //{
-                        //    stringBuilder.Append(httpEvent.SerializedHeader).
-                        //                  Append(httpEvent.SerializedData).
-                        //                  Append("\n\n");
-                        //}
+                            HTTPSSEWorker             = async (response, stream) => {
 
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode            = HTTPStatusCode.OK,
-                                   Server                    = HTTPServer.HTTPServerName,
-                                   ContentType               = HTTPContentType.Text.EVENTSTREAM,
-                                   CacheControl              = "no-cache",
-                                   Connection                = ConnectionType.KeepAlive,
-                                   AccessControlAllowOrigin  = "*",
-                                   KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval.TotalSeconds)),
-                                   //Content                   = stringBuilder.ToUTF8Bytes(),
-                                   HTTPSSEWorker             = async (response, stream) => {
-                                                                   try
-                                                                   {
+                                                            try
+                                                            {
 
-                                                                       await stream.WriteAsync("retry: ");
-                                                                       await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
-                                                                       await stream.WriteAsync("\n\n");
+                                                                await stream.WriteAsync("retry: ");
+                                                                await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
+                                                                await stream.WriteAsync("\n\n");
 
-                                                                       await foreach (var httpEvent in eventSource.GetAllEventsGreater(
-                                                                                                           request.RemoteSocket.ToString(),
-                                                                                                           request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
-                                                                                                           request.CancellationToken
-                                                                                                       ).Where(IncludeFilterAtRuntime))
-                                                                       {
-                                                                           await stream.WriteAsync(httpEvent.SerializedHeader);
-                                                                           await stream.WriteAsync(httpEvent.SerializedData);
-                                                                           await stream.WriteAsync("\n\n");
-                                                                           await stream.FlushAsync(request.CancellationToken);
-                                                                       }
+                                                                await foreach (var httpEvent in eventSource.GetAllEventsGreater(
+                                                                                                    request.RemoteSocket.ToString(),
+                                                                                                    request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
+                                                                                                    request.CancellationToken
+                                                                                                ).Where(IncludeFilterAtRuntime))
+                                                                {
+                                                                    await stream.WriteAsync(httpEvent.SerializedHeader);
+                                                                    await stream.WriteAsync(httpEvent.SerializedData);
+                                                                    await stream.WriteAsync("\n\n");
+                                                                    await stream.FlushAsync(request.CancellationToken);
+                                                                }
 
-                                                                   }
+                                                            }
 
-                                                                   // Connection might be closed by the client while waiting for new events,
-                                                                   // so we catch ObjectDisposedException here and log it.
-                                                                   catch (ObjectDisposedException ode) {
-                                                                       await eventSource.Unsubscribe(request.RemoteSocket.ToString());
-                                                                   }
+                                                            // Connection might be closed by the client while waiting for new events,
+                                                            // so we catch ObjectDisposedException here to unsubscribe the client.
+                                                            catch (ObjectDisposedException) {
+                                                                await eventSource.Unsubscribe(request.RemoteSocket.ToString());
+                                                            }
 
-                                                                   catch (Exception e) {
-                                                                       DebugX.Log(e.Message);
-                                                                   }
+                                                            catch (Exception e) {
+                                                                await HandleErrors(
+                                                                    nameof(MapEventSource),
+                                                                    e
+                                                                );
+                                                            }
 
-                                                               }
-                               }.AsImmutable;
+                                                        }
 
-                    }
+                        }.AsImmutable
 
                 );
 
@@ -2127,51 +2237,82 @@ Error:
         #endregion
 
 
-        #region Get   (EventSourceIdentification)
+        #region GetEventSource      (EventSourceIdentification)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource? GetEventSource(HTTPEventSource_Id EventSourceIdentification)
+        {
 
-            => HTTPServer.Get(EventSourceIdentification);
+            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                return httpEventSource;
+
+            return null;
+
+        }
 
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource<TData>? GetEventSource<TData>(HTTPEventSource_Id EventSourceIdentification)
+        {
 
-            => HTTPServer.Get<TData>(EventSourceIdentification);
+            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                return httpEventSource as IHTTPEventSource<TData>;
+
+            return null;
+
+        }
 
         #endregion
 
-        #region TryGet(EventSourceIdentification, out EventSource)
+        #region TryGetEventSource   (EventSourceIdentification, out EventSource)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
+        public Boolean TryGetEventSource(HTTPEventSource_Id                         EventSourceIdentification,
+                                         [NotNullWhen(true)] out IHTTPEventSource?  EventSource)
 
-            => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+            => eventSources.TryGetValue(
+                   EventSourceIdentification,
+                   out EventSource
+               );
 
+        #endregion
+
+        #region TryGetEventSourceOf (EventSourceIdentification, out EventSource)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
+        public Boolean TryGetEventSourceOf<TData>(HTTPEventSource_Id                                EventSourceIdentification,
+                                                  [NotNullWhen(true)] out IHTTPEventSource<TData>?  EventSource)
+        {
 
-            => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+            if (eventSources.TryGetValue(EventSourceIdentification, out var eventSource) &&
+                eventSource is IHTTPEventSource<TData> eventSourceTData)
+            {
+                EventSource = eventSourceTData;
+                return true;
+            }
+
+            EventSource = null;
+            return false;
+
+        }
 
         #endregion
 
-        #region EventSources(IncludeEventSource = null)
+        #region EventSources        (IncludeEventSource = null)
 
         /// <summary>
         /// Return a filtered enumeration of all event sources.
@@ -2179,16 +2320,38 @@ Error:
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
         public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
 
-            => HTTPServer.EventSources(IncludeEventSource);
+            => IncludeEventSource is not null
+                   ? eventSources.Values.Where(IncludeEventSource)
+                   : eventSources.Values;
 
+        #endregion
+
+        #region EventSourcesOf      (IncludeEventSource = null)
 
         /// <summary>
-        /// Return a filtered enumeration of all event sources.
+        /// Return a filtered enumeration of all event sources of the given type.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource<TData>> EventSourcesOf<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+        {
 
-            => HTTPServer.EventSources<TData>(IncludeEventSource);
+            var sources          = IncludeEventSource is not null
+                                       ? eventSources.Values.Where(IncludeEventSource)
+                                       : eventSources.Values;
+
+            var filteredSources  = new List<IHTTPEventSource<TData>>();
+
+            foreach (var eventSource in sources.Select(eventSource => eventSource as IHTTPEventSource<TData>))
+            {
+
+                if (eventSource is not null)
+                    filteredSources.Add(eventSource);
+
+            }
+
+            return filteredSources;
+
+        }
 
         #endregion
 
@@ -2196,9 +2359,37 @@ Error:
 
 
 
+        #region (private)  LogEvent     (Logger, LogHandler, ...)
 
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                         [CallerMemberName()]                       String  Command     = "")
 
+            where TDelegate : Delegate
 
+            => LogEvent(
+                   nameof(HTTPAPIX),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   Command
+               );
+
+        #endregion
+
+        #region (private)  HandleErrors (Caller, ExceptionOccurred)
+
+        private Task HandleErrors(String     Caller,
+                                  Exception  ExceptionOccurred)
+
+            => HandleErrors(
+                   nameof(HTTPAPIX),
+                   Caller,
+                   ExceptionOccurred
+               );
+
+        #endregion
 
 
         #region (override) ToString()

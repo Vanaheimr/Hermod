@@ -1141,7 +1141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var sse1Id      = HTTPEventSource_Id.Parse("sse1");
             var sse1        = httpAPI.AddEventSource<JObject>(
-                                  EventIdentification:          sse1Id,
+                                  EventSourceIdentification:    sse1Id,
                                   MaxNumberOfCachedEvents:      100,
                                   RetryInterval:                TimeSpan.FromSeconds(1),
                                   DataSerializer:               json => json.ToString(Newtonsoft.Json.Formatting.None),
@@ -1153,7 +1153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                   LogfileReloadSearchPattern:   null
                               );
 
-            var sse1x       = httpAPI.Get(sse1Id);
+            var sse1x       = httpAPI.GetEventSource(sse1Id);
             Assert.That(sse1x,  Is.Not.Null);
 
             var mappedSSE   = httpAPI.MapEventSource<JObject>(
@@ -1240,7 +1240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var sse1Id      = HTTPEventSource_Id.Parse("sse1");
             var sse1        = httpAPI.AddEventSource<JObject>(
-                                  EventIdentification:          sse1Id,
+                                  EventSourceIdentification:    sse1Id,
                                   MaxNumberOfCachedEvents:      100,
                                   RetryInterval:                TimeSpan.FromSeconds(1),
                                   DataSerializer:               null,
@@ -1252,7 +1252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                   LogfileReloadSearchPattern:   null
                               );
 
-            var sse1x       = httpAPI.Get(sse1Id);
+            var sse1x       = httpAPI.GetEventSource(sse1Id);
             Assert.That(sse1x,  Is.Not.Null);
 
             var mappedSSE   = httpAPI.MapEventSource<JObject>(
@@ -1368,7 +1368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var sse1Id      = HTTPEventSource_Id.Parse("sse1");
             var sse1        = httpAPI.AddEventSource<JObject>(
-                                  EventIdentification:          sse1Id,
+                                  EventSourceIdentification:    sse1Id,
                                   MaxNumberOfCachedEvents:      100,
                                   RetryInterval:                TimeSpan.FromSeconds(1),
                                   DataSerializer:               null,
@@ -1380,7 +1380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                   LogfileReloadSearchPattern:   null
                               );
 
-            var sse1x       = httpAPI.Get(sse1Id);
+            var sse1x       = httpAPI.GetEventSource(sse1Id);
             Assert.That(sse1x,  Is.Not.Null);
 
             var mappedSSE   = httpAPI.MapEventSource<JObject>(

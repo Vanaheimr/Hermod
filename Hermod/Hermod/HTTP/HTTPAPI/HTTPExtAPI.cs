@@ -3780,297 +3780,297 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                               HTTPEventSourceId,
-                                                  HTTPAPI                                          HTTPAPI,
-                                                  HTTPPath                                         URLTemplate,
+        //public void AddEventSource<TData, TState>(HTTPEventSource_Id                               HTTPEventSourceId,
+        //                                          HTTPAPI                                          HTTPAPI,
+        //                                          HTTPPath                                         URLTemplate,
 
-                                                  Func<TState?, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                     CreatePerRequestState,
+        //                                          Func<TState?, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+        //                                          Func<TState>                                     CreatePerRequestState,
 
-                                                  HTTPHostname?                                    Hostname                   = null,
-                                                  HTTPMethod?                                      HttpMethod                 = null,
-                                                  HTTPContentType?                                 HTTPContentType            = null,
+        //                                          HTTPHostname?                                    Hostname                   = null,
+        //                                          HTTPMethod?                                      HttpMethod                 = null,
+        //                                          HTTPContentType?                                 HTTPContentType            = null,
 
-                                                  HTTPAuthentication?                              URLAuthentication          = null,
-                                                  HTTPAuthentication?                              HTTPMethodAuthentication   = null,
+        //                                          HTTPAuthentication?                              URLAuthentication          = null,
+        //                                          HTTPAuthentication?                              HTTPMethodAuthentication   = null,
 
-                                                  HTTPDelegate?                                    DefaultErrorHandler        = null)
-        {
+        //                                          HTTPDelegate?                                    DefaultErrorHandler        = null)
+        //{
 
-            IncludeFilterAtRuntime ??= (s, u, e) => true;
+        //    IncludeFilterAtRuntime ??= (s, u, e) => true;
 
-            if (TryGet(HTTPEventSourceId, out IHTTPEventSource<TData> eventSource))
-            {
+        //    if (TryGetE(HTTPEventSourceId, out IHTTPEventSource<TData> eventSource))
+        //    {
 
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                      #region Get HTTP user and its organizations
+        //                              #region Get HTTP user and its organizations
 
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          AccessLevel: Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  AccessLevel: Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-                                      #endregion
+        //                              #endregion
 
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                      //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                          httpUser,
-                                      //                                                                          httpEvent)).
-                                      //                              Reverse().
-                                      //                              Skip   (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take   (Request.QueryString.GetUInt64("take")).
-                                      //                              Reverse().
-                                      //                              Aggregate(new StringBuilder(),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                      //                                                                                    AppendLine(httpEvent.SerializedData).
-                                      //                                                                                    AppendLine()).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append(Environment.NewLine).
-                                      //                              ToString();
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+        //                              //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                          httpUser,
+        //                              //                                                                          httpEvent)).
+        //                              //                              Reverse().
+        //                              //                              Skip   (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take   (Request.QueryString.GetUInt64("take")).
+        //                              //                              Reverse().
+        //                              //                              Aggregate(new StringBuilder(),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+        //                              //                                                                                    AppendLine(httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine()).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              ToString();
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = httpEvents.ToUTF8Bytes()
-                                          }.AsImmutable);
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Text.EVENTSTREAM,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = httpEvents.ToUTF8Bytes()
+        //                                  }.AsImmutable);
 
-                                  });
-
-
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                        httpUser,
-                                      //                                                                        httpEvent)).
-                                      //                              Skip (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take (Request.QueryString.GetUInt64("take")).
-                                      //                              Aggregate(new StringBuilder().AppendLine("["),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
-                                      //                                                                                    Append    (httpEvent.Subevent ?? "").
-                                      //                                                                                    Append    (@""",").
-                                      //                                                                                    Append    (httpEvent.SerializedData).
-                                      //                                                                                    AppendLine("],")).
-                                      //                              ToString().
-                                      //                              TrimEnd();
+        //                          });
 
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = (httpEvents.Length > 1
-                                              //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                              //                       : "]").ToUTF8Bytes()
-                                          }.AsImmutable);
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                  });
+        //                              #region Get HTTP user and its organizations
 
-            }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-            else
-                throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+        //                              #endregion
 
-        }
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                        httpUser,
+        //                              //                                                                        httpEvent)).
+        //                              //                              Skip (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take (Request.QueryString.GetUInt64("take")).
+        //                              //                              Aggregate(new StringBuilder().AppendLine("["),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
+        //                              //                                                                                    Append    (httpEvent.Subevent ?? "").
+        //                              //                                                                                    Append    (@""",").
+        //                              //                                                                                    Append    (httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine("],")).
+        //                              //                              ToString().
+        //                              //                              TrimEnd();
+
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = (httpEvents.Length > 1
+        //                                      //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+        //                                      //                       : "]").ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+        //    }
+
+        //    else
+        //        throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+
+        //}
 
         #endregion
 
         #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                           HTTPEventSourceId,
-                                                  HTTPAPI                                                                      HTTPAPI,
-                                                  HTTPPath                                                                     URLTemplate,
+        //public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                           HTTPEventSourceId,
+        //                                          HTTPAPI                                                                      HTTPAPI,
+        //                                          HTTPPath                                                                     URLTemplate,
 
-                                                  Func<TState?, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                                                 CreatePerRequestState,
+        //                                          Func<TState?, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+        //                                          Func<TState>                                                                 CreatePerRequestState,
 
-                                                  HTTPHostname?                                                                Hostname                   = null,
-                                                  HTTPMethod?                                                                  HttpMethod                 = null,
-                                                  HTTPContentType?                                                             HTTPContentType            = null,
+        //                                          HTTPHostname?                                                                Hostname                   = null,
+        //                                          HTTPMethod?                                                                  HttpMethod                 = null,
+        //                                          HTTPContentType?                                                             HTTPContentType            = null,
 
-                                                  HTTPAuthentication?                                                          URLAuthentication          = null,
-                                                  HTTPAuthentication?                                                          HTTPMethodAuthentication   = null,
+        //                                          HTTPAuthentication?                                                          URLAuthentication          = null,
+        //                                          HTTPAuthentication?                                                          HTTPMethodAuthentication   = null,
 
-                                                  HTTPDelegate?                                                                DefaultErrorHandler        = null)
-        {
+        //                                          HTTPDelegate?                                                                DefaultErrorHandler        = null)
+        //{
 
-            IncludeFilterAtRuntime ??= (s, u, o, e) => true;
+        //    IncludeFilterAtRuntime ??= (s, u, o, e) => true;
 
-            if (TryGet<TData>(HTTPEventSourceId, out var eventSource))
-            {
+        //    if (TryGet<TData>(HTTPEventSourceId, out var eventSource))
+        //    {
 
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                      #region Get HTTP user and its organizations
+        //                              #region Get HTTP user and its organizations
 
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-                                      #endregion
+        //                              #endregion
 
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                      //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                          httpUser,
-                                      //                                                                          httpOrganizations,
-                                      //                                                                          httpEvent)).
-                                      //                              Reverse().
-                                      //                              Skip   (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take   (Request.QueryString.GetUInt64("take")).
-                                      //                              Reverse().
-                                      //                              Aggregate(new StringBuilder(),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                      //                                                                                    AppendLine(httpEvent.SerializedData).
-                                      //                                                                                    AppendLine()).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append(Environment.NewLine).
-                                      //                              ToString();
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+        //                              //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                          httpUser,
+        //                              //                                                                          httpOrganizations,
+        //                              //                                                                          httpEvent)).
+        //                              //                              Reverse().
+        //                              //                              Skip   (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take   (Request.QueryString.GetUInt64("take")).
+        //                              //                              Reverse().
+        //                              //                              Aggregate(new StringBuilder(),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+        //                              //                                                                                    AppendLine(httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine()).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              ToString();
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = httpEvents.ToUTF8Bytes()
-                                          }.AsImmutable);
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Text.EVENTSTREAM,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = httpEvents.ToUTF8Bytes()
+        //                                  }.AsImmutable);
 
-                                  });
-
-
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                        httpUser,
-                                      //                                                                        httpOrganizations,
-                                      //                                                                        httpEvent)).
-                                      //                              Skip (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take (Request.QueryString.GetUInt64("take")).
-                                      //                              Aggregate(new StringBuilder().AppendLine("["),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
-                                      //                                                                                    Append(httpEvent.Subevent ?? "").
-                                      //                                                                                    Append(@""",").
-                                      //                                                                                    Append(httpEvent.SerializedData).
-                                      //                                                                                    AppendLine("],")).
-                                      //                              ToString().
-                                      //                              TrimEnd();
+        //                          });
 
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = (httpEvents.Length > 1
-                                              //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                              //                       : "]").ToUTF8Bytes()
-                                          }.AsImmutable);
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                  });
+        //                              #region Get HTTP user and its organizations
 
-            }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-            else
-                throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+        //                              #endregion
 
-        }
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                        httpUser,
+        //                              //                                                                        httpOrganizations,
+        //                              //                                                                        httpEvent)).
+        //                              //                              Skip (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take (Request.QueryString.GetUInt64("take")).
+        //                              //                              Aggregate(new StringBuilder().AppendLine("["),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
+        //                              //                                                                                    Append(httpEvent.Subevent ?? "").
+        //                              //                                                                                    Append(@""",").
+        //                              //                                                                                    Append(httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine("],")).
+        //                              //                              ToString().
+        //                              //                              TrimEnd();
+
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = (httpEvents.Length > 1
+        //                                      //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+        //                                      //                       : "]").ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+        //    }
+
+        //    else
+        //        throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+
+        //}
 
         #endregion
 

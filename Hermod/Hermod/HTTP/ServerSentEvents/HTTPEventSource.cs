@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The attached HTTP API.
         /// </summary>
-        public HTTPAPI                               HTTPAPI                { get; }
+        //public HTTPAPI                               HTTPAPI                { get; }
 
         /// <summary>
         /// The attached HTTP API.
@@ -172,191 +172,191 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        /// <summary>
-        /// Create a new HTTP event source.
-        /// </summary>
-        /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
-        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="RetryInterval ">The retry interval.</param>
-        /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
-        /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
-        /// <param name="EnableLogging">Whether to enable event logging.</param>
-        /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
-        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource(HTTPEventSource_Id                     EventIdentification,
-                               HTTPAPI                                HTTPAPI,
-                               UInt32                                 MaxNumberOfCachedEvents      = 500,
-                               TimeSpan?                              RetryInterval                = null,
-                               Func<T, String>?                       DataSerializer               = null,
-                               Func<String, T?>?                      DataDeserializer             = null,
-                               Boolean                                EnableLogging                = true,
-                               String?                                LogfilePath                  = null,
-                               Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-                               String?                                LogfileReloadSearchPattern   = null)
-        {
+        ///// <summary>
+        ///// Create a new HTTP event source.
+        ///// </summary>
+        ///// <param name="EventIdentification">The internal identification of the HTTP event.</param>
+        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        ///// <param name="RetryInterval ">The retry interval.</param>
+        ///// <param name="DataSerializer">A delegate to serialize the stored events.</param>
+        ///// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
+        ///// <param name="EnableLogging">Whether to enable event logging.</param>
+        ///// <param name="LogfileName">A delegate to create a filename for storing events.</param>
+        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        //public HTTPEventSource(HTTPEventSource_Id                     EventIdentification,
+        //                       HTTPAPI                                HTTPAPI,
+        //                       UInt32                                 MaxNumberOfCachedEvents      = 500,
+        //                       TimeSpan?                              RetryInterval                = null,
+        //                       Func<T, String>?                       DataSerializer               = null,
+        //                       Func<String, T?>?                      DataDeserializer             = null,
+        //                       Boolean                                EnableLogging                = true,
+        //                       String?                                LogfilePath                  = null,
+        //                       Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+        //                       String?                                LogfileReloadSearchPattern   = null)
+        //{
 
-            this.liveChannel              = Channel.CreateBounded<HTTPEvent<T>>(
-                                                new BoundedChannelOptions(capacity: (Int32) MaxNumberOfCachedEvents) {
-                                                    FullMode      = BoundedChannelFullMode.DropOldest,
-                                                    SingleReader  = false,
-                                                    SingleWriter  = false
-                                                }
-                                            );
+        //    this.liveChannel              = Channel.CreateBounded<HTTPEvent<T>>(
+        //                                        new BoundedChannelOptions(capacity: (Int32) MaxNumberOfCachedEvents) {
+        //                                            FullMode      = BoundedChannelFullMode.DropOldest,
+        //                                            SingleReader  = false,
+        //                                            SingleWriter  = false
+        //                                        }
+        //                                    );
 
-            this.HTTPAPI                  = HTTPAPI;
-            this.EventIdentification      = EventIdentification;
-            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
-            this.RetryInterval            = RetryInterval    ?? TimeSpan.FromSeconds(30);
-            this.DataSerializer           = DataSerializer   ?? (data => data?.ToString() ?? "");
-            this.DataDeserializer         = DataDeserializer ?? (data => default);
-            this.LogfilePath              = LogfilePath      ?? AppContext.BaseDirectory;
-            this.LogfileName              = LogfileName      ?? ((text, timestamp) => $"{text}_{timestamp:yyyyMMdd}.log");
-            this.IdCounter                = 0;
+        //    this.HTTPAPI                  = HTTPAPI;
+        //    this.EventIdentification      = EventIdentification;
+        //    this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
+        //    this.RetryInterval            = RetryInterval    ?? TimeSpan.FromSeconds(30);
+        //    this.DataSerializer           = DataSerializer   ?? (data => data?.ToString() ?? "");
+        //    this.DataDeserializer         = DataDeserializer ?? (data => default);
+        //    this.LogfilePath              = LogfilePath      ?? AppContext.BaseDirectory;
+        //    this.LogfileName              = LogfileName      ?? ((text, timestamp) => $"{text}_{timestamp:yyyyMMdd}.log");
+        //    this.IdCounter                = 0;
 
-            if (EnableLogging)
-            {
+        //    if (EnableLogging)
+        //    {
 
-                #region Reload old data from logfile(s)...
+        //        #region Reload old data from logfile(s)...
 
-                if (LogfileReloadSearchPattern is not null)
-                {
+        //        if (LogfileReloadSearchPattern is not null)
+        //        {
 
-                    var httpSSEs = new List<String[]>();
+        //            var httpSSEs = new List<String[]>();
 
-                    try
-                    {
+        //            try
+        //            {
 
-                        foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
-                                                                             LogfileReloadSearchPattern,
-                                                                             SearchOption.TopDirectoryOnly).
-                                                              OrderByDescending(file => file))
-                        {
+        //                foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
+        //                                                                     LogfileReloadSearchPattern,
+        //                                                                     SearchOption.TopDirectoryOnly).
+        //                                                      OrderByDescending(file => file))
+        //                {
 
-                            DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
+        //                    DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
 
-                            File.ReadAllLines(logfilename).
-                                 Reverse().
-                                 Where  (line => line.IsNotNullOrEmpty() &&
-                                                !line.StartsWith("//")   &&
-                                                !line.StartsWith("#")).
-                                 Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
-                                 Select (line => line.Split(RS)).
-                                 ForEach(line => {
+        //                    File.ReadAllLines(logfilename).
+        //                         Reverse().
+        //                         Where  (line => line.IsNotNullOrEmpty() &&
+        //                                        !line.StartsWith("//")   &&
+        //                                        !line.StartsWith("#")).
+        //                         Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
+        //                         Select (line => line.Split(RS)).
+        //                         ForEach(line => {
 
-                                                     if (line.Length >= 3           &&
-                                                         line.Length <= 4           &&
-                                                         line[0].IsNotNullOrEmpty() &&
-                                                         line[2].IsNotNullOrEmpty())
-                                                     {
-                                                         httpSSEs.Add(line);
-                                                     }
+        //                                             if (line.Length >= 3           &&
+        //                                                 line.Length <= 4           &&
+        //                                                 line[0].IsNotNullOrEmpty() &&
+        //                                                 line[2].IsNotNullOrEmpty())
+        //                                             {
+        //                                                 httpSSEs.Add(line);
+        //                                             }
 
-                                                     else
-                                                         DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
+        //                                             else
+        //                                                 DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
 
-                                                 });
+        //                                         });
 
-                            if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
-                                break;
+        //                    if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
+        //                        break;
 
-                        }
+        //                }
 
-                    }
-                    catch (DirectoryNotFoundException)
-                    {
-                        // Will fail, when part of the file system path is not accessible!
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.LogException(e, "While creating a HTTP Event Source!");
-                    }
+        //            }
+        //            catch (DirectoryNotFoundException)
+        //            {
+        //                // Will fail, when part of the file system path is not accessible!
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                DebugX.LogException(e, "While creating a HTTP Event Source!");
+        //            }
 
-                    httpSSEs.Reverse();
+        //            httpSSEs.Reverse();
 
-                    httpSSEs.ForEach(line => {
+        //            httpSSEs.ForEach(line => {
 
-                        try
-                        {
+        //                try
+        //                {
 
-                            liveChannel.Writer.TryWrite(
-                                new HTTPEvent<T>(
-                                    Id:                (UInt64) IdCounter++,
-                                    Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
-                                    Subevent:          line[1],
-                                    Data:              DataDeserializer(line[2]),
-                                    SerializedHeader:  String.Concat(
-                                                           line[1].IsNotNullOrEmpty()
-                                                               ? "event: " + line[1] + Environment.NewLine
-                                                               : String.Empty,
-                                                           "id: ",   IdCounter,        Environment.NewLine,
-                                                           "c"
-                                                       ),
-                                    SerializedData:    line[2]
-                                )
-                            );
+        //                    liveChannel.Writer.TryWrite(
+        //                        new HTTPEvent<T>(
+        //                            Id:                (UInt64) IdCounter++,
+        //                            Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
+        //                            Subevent:          line[1],
+        //                            Data:              DataDeserializer(line[2]),
+        //                            SerializedHeader:  String.Concat(
+        //                                                   line[1].IsNotNullOrEmpty()
+        //                                                       ? "event: " + line[1] + Environment.NewLine
+        //                                                       : String.Empty,
+        //                                                   "id: ",   IdCounter,        Environment.NewLine,
+        //                                                   "c"
+        //                                               ),
+        //                            SerializedData:    line[2]
+        //                        )
+        //                    );
 
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
-                                       e.Message);
-                        }
+        //                }
+        //                catch (Exception e)
+        //                {
+        //                    DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
+        //                               e.Message);
+        //                }
 
-                    });
+        //            });
 
-                }
+        //        }
 
-                #endregion
+        //        #endregion
 
-                #region Write new data to logfile(s)...
+        //        #region Write new data to logfile(s)...
 
-                if (LogfileName is not null)
-                {
+        //        if (LogfileName is not null)
+        //        {
 
-                    //// Note: Do not attach this event handler before the data
-                    ////       is reread from the logfiles above!
-                    //QueueOfEvents.OnAdded += async (Sender, httpEvent, ct) => {
+        //            //// Note: Do not attach this event handler before the data
+        //            ////       is reread from the logfiles above!
+        //            //QueueOfEvents.OnAdded += async (Sender, httpEvent, ct) => {
 
-                    //    await LogfileLock.WaitAsync(ct);
+        //            //    await LogfileLock.WaitAsync(ct);
 
-                    //    try
-                    //    {
+        //            //    try
+        //            //    {
 
-                    //        using (var logfile = File.AppendText(
-                    //                                 Path.Combine(
-                    //                                     this.LogfilePath,
-                    //                                     this.LogfileName(
-                    //                                         this.EventIdentification.ToString(),
-                    //                                         Timestamp.Now
-                    //                                     )
-                    //                                 )
-                    //                             ))
-                    //        {
+        //            //        using (var logfile = File.AppendText(
+        //            //                                 Path.Combine(
+        //            //                                     this.LogfilePath,
+        //            //                                     this.LogfileName(
+        //            //                                         this.EventIdentification.ToString(),
+        //            //                                         Timestamp.Now
+        //            //                                     )
+        //            //                                 )
+        //            //                             ))
+        //            //        {
 
-                    //            await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToISO8601(),
-                    //                                                       RS,
-                    //                                                       httpEvent.Subevent,
-                    //                                                       RS,
-                    //                                                       DataSerializer(httpEvent.Data))).
-                    //                          ConfigureAwait(false);
+        //            //            await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToISO8601(),
+        //            //                                                       RS,
+        //            //                                                       httpEvent.Subevent,
+        //            //                                                       RS,
+        //            //                                                       DataSerializer(httpEvent.Data))).
+        //            //                          ConfigureAwait(false);
 
-                    //        }
+        //            //        }
 
-                    //    }
-                    //    finally
-                    //    {
-                    //        LogfileLock.Release();
-                    //    }
+        //            //    }
+        //            //    finally
+        //            //    {
+        //            //        LogfileLock.Release();
+        //            //    }
 
-                    //};
+        //            //};
 
-                }
+        //        }
 
-                #endregion
+        //        #endregion
 
-            }
+        //    }
 
-        }
+        //}
 
 
         /// <summary>
@@ -574,196 +574,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region SubmitEvent(                     Data)
+        #region Subscribe           (ClientId)
 
         /// <summary>
-        /// Submit a new event.
+        /// Subscribe the given client to this event source and
+        /// return its own channel reader for receiving live events.
         /// </summary>
-        /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(T                  Data,
-                                CancellationToken  CancellationToken = default)
-
-            => SubmitEvent(
-                   String.Empty,
-                   Timestamp.Now,
-                   Data,
-                   CancellationToken
-               );
-
-        #endregion
-
-        #region SubmitEvent(          Timestamp, Data)
-
-        /// <summary>
-        /// Submit a new subevent with a timestamp.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the event.</param>
-        /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(DateTimeOffset     Timestamp,
-                                T                  Data,
-                                CancellationToken  CancellationToken = default)
-
-            => SubmitEvent(
-                   String.Empty,
-                   Timestamp,
-                   Data,
-                   CancellationToken
-               );
-
-        #endregion
-
-        #region SubmitEvent(SubEvent,            Data)
-
-        /// <summary>
-        /// Submit a new event.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(String             SubEvent,
-                                T                  Data,
-                                CancellationToken  CancellationToken = default)
-
-            => SubmitEvent(
-                   SubEvent,
-                   Timestamp.Now,
-                   Data,
-                   CancellationToken
-               );
-
-        #endregion
-
-        #region SubmitEvent(SubEvent, Timestamp, Data)
-
-        /// <summary>
-        /// Submit a new subevent with a timestamp.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Timestamp">The timestamp of the event.</param>
-        /// <param name="Data">The attached event data.</param>
-        public async Task SubmitEvent(String             SubEvent,
-                                      DateTimeOffset     Timestamp,
-                                      T                  Data,
-                                      CancellationToken  CancellationToken = default)
+        /// <param name="ClientId">The unique client identification.</param>
+        public ChannelReader<HTTPEvent<T>> Subscribe(String ClientId)
         {
 
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
+            var clientChannel = Channel.CreateUnbounded<HTTPEvent<T>>(
+                new UnboundedChannelOptions {
+                    SingleReader = true,
+                    SingleWriter = true
+                }
+            );
 
-            var data = DataSerializer(Data);
+            clientChannels.TryAdd(
+                ClientId,
+                clientChannel
+            );
 
-            // Multi-line data must be prefixed with "data: " for each line,
-            // and end with an empty line!
-            if (data.Contains(Environment.NewLine))
-            {
+            // Clean up when client channel is completed/closed
+            _ = clientChannel.Reader.Completion.ContinueWith(_ => {
+                    // remove one instance (best-effort)
+                    clientChannels.TryRemove(ClientId, out var _);
+                    clientChannel.Writer.TryComplete();
+                }, TaskScheduler.Default);
 
-                var sb = new StringBuilder();
-
-                foreach (var item in data.Split(Splitter, StringSplitOptions.RemoveEmptyEntries))
-                    sb.AppendLine("data: " + item);
-
-                data = sb.ToString().Trim();
-
-            }
-            else
-                data = "data: " + data.Trim();
-
-            var httpEvent  = new HTTPEvent<T>(
-                                 (UInt64) Interlocked.Increment(ref IdCounter),
-                                 Timestamp,
-                                 SubEvent,
-                                 Data,
-                                 String.Concat(
-                                     SubEvent.IsNotNullOrEmpty()
-                                         ? "event: " + SubEvent + Environment.NewLine
-                                         : String.Empty,
-                                     "id: ",   IdCounter,         Environment.NewLine
-                                 ),
-                                 data
-                             );
-
-            // Add to history (bounded)
-            eventHistory.Enqueue(httpEvent);
-
-            while (eventHistory.Count > MaxNumberOfCachedEvents)
-                eventHistory.TryDequeue(out _);
-
-            await liveChannel.Writer.WriteAsync(
-                      httpEvent,
-                      CancellationToken
-                  );
+            return clientChannel.Reader;
 
         }
 
         #endregion
 
-
-        // Signal without payload!
-
-        #region SubmitEvent(SubEvent)
+        #region Unsubscribe         (ClientId)
 
         /// <summary>
-        /// Submit a new event.
+        /// Unsubscribe the given client.
         /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Data">The attached event data.</param>
-        //public Task SubmitEvent(String             SubEvent,
-        //                        CancellationToken  CancellationToken = default)
+        /// <param name="ClientId">The unique client identification.</param>
+        public async Task Unsubscribe(String ClientId)
+        {
 
-        //    => SubmitEvent(
-        //           SubEvent,
-        //           Timestamp.Now,
-        //           null,
-        //           CancellationToken
-        //       );
+            if (clientChannels.TryRemove(ClientId,
+                                         out var closedChannel))
+            {
+                closedChannel.Writer.TryComplete();
+            }
+
+            //DebugX.LogT($"HTTP SEE client '{ClientId}' unsubscribed!");
+
+        }
 
         #endregion
-
-        #region SubmitEvent(SubEvent, Timestamp)
-
-        /// <summary>
-        /// Submit a new subevent with a timestamp.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Timestamp">The timestamp of the event.</param>
-        //public async Task SubmitEvent(String             SubEvent,
-        //                              DateTimeOffset     Timestamp,
-        //                              CancellationToken  CancellationToken = default)
-        //{
-
-        //    if (SubEvent.IsNotNullOrEmpty())
-        //        SubEvent = SubEvent.Trim().Replace(",", "");
-
-        //    var httpEvent  = new HTTPEvent<T>(
-        //                         (UInt64) Interlocked.Increment(ref IdCounter),
-        //                         Timestamp,
-        //                         SubEvent,
-        //                         null,
-        //                         String.Concat(
-        //                             SubEvent.IsNotNullOrEmpty()
-        //                                 ? "event: " + SubEvent + Environment.NewLine
-        //                                 : String.Empty,
-        //                             "id: ",   IdCounter,         Environment.NewLine,
-        //                             "data: "
-        //                         ),
-        //                         DataSerializer(Data)
-        //                     );
-
-        //    // Add to history (bounded)
-        //    eventHistory.Enqueue(httpEvent);
-
-        //    while (eventHistory.Count > MaxNumberOfCachedEvents)
-        //        eventHistory.TryDequeue(out _);
-
-        //    await liveChannel.Writer.WriteAsync(
-        //              httpEvent,
-        //              CancellationToken
-        //          );
-
-        //}
-
-        #endregion
-
-
 
         #region GetAllEventsGreater (ClientId, LastEventId = 0)
 
@@ -855,57 +720,197 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public ChannelReader<HTTPEvent<T>> Subscribe(String ClientId)
-        {
 
-            var clientChannel = Channel.CreateUnbounded<HTTPEvent<T>>(
-                new UnboundedChannelOptions {
-                    SingleReader = true,
-                    SingleWriter = true
-                }
-            );
+        #region SubmitEvent (                     Data)
 
-            clientChannels.TryAdd(
-                ClientId,
-                clientChannel
-            );
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="Data">The attached event data.</param>
+        public Task SubmitEvent(T                  Data,
+                                CancellationToken  CancellationToken = default)
 
-            // Clean up when client channel is completed/closed
-            _ = clientChannel.Reader.Completion.ContinueWith(_ => {
-                    // remove one instance (best-effort)
-                    clientChannels.TryRemove(ClientId, out var _);
-                    clientChannel.Writer.Complete();
-                }, TaskScheduler.Default);
-
-            return clientChannel.Reader;
-
-        }
-
-        public async Task Unsubscribe(String ClientId)
-        {
-
-            clientChannels.TryRemove(
-                ClientId,
-                out var _
-            );
-
-            //DebugX.LogT($"HTTP SEE client '{ClientId}' unsubscribed!");
-
-        }
-
-
-
-
-
-        #region IEnumerable<HTTPEvent<T>> Members
-
-        //public IEnumerator<HTTPEvent<T>> GetEnumerator()
-        //    => _liveChannel.GetEnumerator();
-
-        //System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        //    => _liveChannel.GetEnumerator();
+            => SubmitEvent(
+                   String.Empty,
+                   Timestamp.Now,
+                   Data,
+                   CancellationToken
+               );
 
         #endregion
+
+        #region SubmitEvent (          Timestamp, Data)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Data">The attached event data.</param>
+        public Task SubmitEvent(DateTimeOffset     Timestamp,
+                                T                  Data,
+                                CancellationToken  CancellationToken = default)
+
+            => SubmitEvent(
+                   String.Empty,
+                   Timestamp,
+                   Data,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SubmitEvent (SubEvent,            Data)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Data">The attached event data.</param>
+        public Task SubmitEvent(String             SubEvent,
+                                T                  Data,
+                                CancellationToken  CancellationToken = default)
+
+            => SubmitEvent(
+                   SubEvent,
+                   Timestamp.Now,
+                   Data,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SubmitEvent (SubEvent, Timestamp, Data)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Data">The attached event data.</param>
+        public async Task SubmitEvent(String             SubEvent,
+                                      DateTimeOffset     Timestamp,
+                                      T                  Data,
+                                      CancellationToken  CancellationToken = default)
+        {
+
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
+            var data = DataSerializer(Data);
+
+            // Multi-line data must be prefixed with "data: " for each line,
+            // and end with an empty line!
+            if (data.Contains(Environment.NewLine))
+            {
+
+                var sb = new StringBuilder();
+
+                foreach (var item in data.Split(Splitter, StringSplitOptions.RemoveEmptyEntries))
+                    sb.AppendLine("data: " + item);
+
+                data = sb.ToString().Trim();
+
+            }
+            else
+                data = "data: " + data.Trim();
+
+            var httpEvent  = new HTTPEvent<T>(
+                                 (UInt64) Interlocked.Increment(ref IdCounter),
+                                 Timestamp,
+                                 SubEvent,
+                                 Data,
+                                 String.Concat(
+                                     SubEvent.IsNotNullOrEmpty()
+                                         ? "event: " + SubEvent + Environment.NewLine
+                                         : String.Empty,
+                                     "id: ",   IdCounter,         Environment.NewLine
+                                 ),
+                                 data
+                             );
+
+            // Add to history (bounded)
+            eventHistory.Enqueue(httpEvent);
+
+            while (eventHistory.Count > MaxNumberOfCachedEvents)
+                eventHistory.TryDequeue(out _);
+
+            await liveChannel.Writer.WriteAsync(
+                      httpEvent,
+                      CancellationToken
+                  );
+
+        }
+
+        #endregion
+
+
+        // Signal without payload!
+
+        #region SubmitEvent (SubEvent)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Data">The attached event data.</param>
+        //public Task SubmitEvent(String             SubEvent,
+        //                        CancellationToken  CancellationToken = default)
+
+        //    => SubmitEvent(
+        //           SubEvent,
+        //           Timestamp.Now,
+        //           null,
+        //           CancellationToken
+        //       );
+
+        #endregion
+
+        #region SubmitEvent (SubEvent, Timestamp)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        //public async Task SubmitEvent(String             SubEvent,
+        //                              DateTimeOffset     Timestamp,
+        //                              CancellationToken  CancellationToken = default)
+        //{
+
+        //    if (SubEvent.IsNotNullOrEmpty())
+        //        SubEvent = SubEvent.Trim().Replace(",", "");
+
+        //    var httpEvent  = new HTTPEvent<T>(
+        //                         (UInt64) Interlocked.Increment(ref IdCounter),
+        //                         Timestamp,
+        //                         SubEvent,
+        //                         null,
+        //                         String.Concat(
+        //                             SubEvent.IsNotNullOrEmpty()
+        //                                 ? "event: " + SubEvent + Environment.NewLine
+        //                                 : String.Empty,
+        //                             "id: ",   IdCounter,         Environment.NewLine,
+        //                             "data: "
+        //                         ),
+        //                         DataSerializer(Data)
+        //                     );
+
+        //    // Add to history (bounded)
+        //    eventHistory.Enqueue(httpEvent);
+
+        //    while (eventHistory.Count > MaxNumberOfCachedEvents)
+        //        eventHistory.TryDequeue(out _);
+
+        //    await liveChannel.Writer.WriteAsync(
+        //              httpEvent,
+        //              CancellationToken
+        //          );
+
+        //}
+
+        #endregion
+
+
 
         #region (override) ToString()
 
@@ -917,7 +922,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Dispose()
 
+        /// <summary>
+        /// Dispose this event source and complete all channels.
+        /// </summary>
         public void Dispose()
         {
 
@@ -927,6 +936,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 clientChannel.Value.Writer.Complete();
 
         }
+
+        #endregion
 
     }
 

@@ -37,12 +37,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The timeout till the next request.
         /// </summary>
-        public TimeSpan? Timeout                { get; private set; }
+        public TimeSpan?  Timeout                { get; private set; }
 
         /// <summary>
         /// The maximum number of requests within this connection.
         /// </summary>
-        public UInt32?   MaxNumberOfRequests    { get; private set; }
+        public UInt32?    MaxNumberOfRequests    { get; private set; }
 
         #endregion
 

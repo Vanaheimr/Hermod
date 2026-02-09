@@ -840,116 +840,116 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddJSONEventSource(this HTTPAPI, EventIdentification, ...)
 
-        /// <summary>
-        /// Add a HTTP Sever Sent Events source.
-        /// </summary>
-        /// <param name="EventIdentification">The unique identification of the event source.</param>
-        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="RetryInterval ">The retry interval.</param>
-        /// <param name="EnableLogging">Enables storing and reloading events </param>
-        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
-        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
-                                                                  HTTPEventSource_Id                     EventIdentification,
-                                                                  UInt32                                 MaxNumberOfCachedEvents      = 500,
-                                                                  TimeSpan?                              RetryInterval                = null,
-                                                                  Boolean                                EnableLogging                = true,
-                                                                  String?                                LogfilePath                  = null,
-                                                                  String?                                LogfilePrefix                = null,
-                                                                  Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-                                                                  String?                                LogfileReloadSearchPattern   = null)
+        ///// <summary>
+        ///// Add a HTTP Sever Sent Events source.
+        ///// </summary>
+        ///// <param name="EventIdentification">The unique identification of the event source.</param>
+        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        ///// <param name="RetryInterval ">The retry interval.</param>
+        ///// <param name="EnableLogging">Enables storing and reloading events </param>
+        ///// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
+        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        //public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
+        //                                                          HTTPEventSource_Id                     EventIdentification,
+        //                                                          UInt32                                 MaxNumberOfCachedEvents      = 500,
+        //                                                          TimeSpan?                              RetryInterval                = null,
+        //                                                          Boolean                                EnableLogging                = true,
+        //                                                          String?                                LogfilePath                  = null,
+        //                                                          String?                                LogfilePrefix                = null,
+        //                                                          Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+        //                                                          String?                                LogfileReloadSearchPattern   = null)
 
-            => HTTPAPI.AddEventSource(
+        //    => HTTPAPI.AddEventSource(
 
-                   EventIdentification,
-                   MaxNumberOfCachedEvents,
-                   RetryInterval ,
-                   data => data.ToString(Newtonsoft.Json.Formatting.None),
-                   JObject.Parse,
-                   EnableLogging,
-                   LogfilePath,
-                   LogfilePrefix,
-                   LogfileName,
-                   LogfileReloadSearchPattern
+        //           EventIdentification,
+        //           MaxNumberOfCachedEvents,
+        //           RetryInterval ,
+        //           data => data.ToString(Newtonsoft.Json.Formatting.None),
+        //           JObject.Parse,
+        //           EnableLogging,
+        //           LogfilePath,
+        //           LogfilePrefix,
+        //           LogfileName,
+        //           LogfileReloadSearchPattern
 
-               );
+        //       );
 
         #endregion
 
         #region AddJSONEventSource(this HTTPAPI, EventIdentification, URLTemplate, ...)
 
-        /// <summary>
-        /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
-        /// </summary>
-        /// <param name="EventIdentification">The unique identification of the event source.</param>
-        /// <param name="URLTemplate">The URL template.</param>
-        /// 
-        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
-        /// <param name="RetryInterval ">The retry interval.</param>
-        /// <param name="EnableLogging">Enables storing and reloading events </param>
-        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
-        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        /// 
-        /// <param name="Hostname">The HTTP host.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// 
-        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// 
-        /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
-                                                                  HTTPEventSource_Id                     EventIdentification,
-                                                                  HTTPPath                               URLTemplate,
+        ///// <summary>
+        ///// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
+        ///// </summary>
+        ///// <param name="EventIdentification">The unique identification of the event source.</param>
+        ///// <param name="URLTemplate">The URL template.</param>
+        ///// 
+        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        ///// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
+        ///// <param name="RetryInterval ">The retry interval.</param>
+        ///// <param name="EnableLogging">Enables storing and reloading events </param>
+        ///// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
+        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        ///// 
+        ///// <param name="Hostname">The HTTP host.</param>
+        ///// <param name="HTTPMethod">The HTTP method.</param>
+        ///// <param name="HTTPContentType">The HTTP content type.</param>
+        ///// 
+        ///// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        ///// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        ///// 
+        ///// <param name="DefaultErrorHandler">The default error handler.</param>
+        //public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
+        //                                                          HTTPEventSource_Id                     EventIdentification,
+        //                                                          HTTPPath                               URLTemplate,
 
-                                                                  UInt32                                 MaxNumberOfCachedEvents      = 500,
-                                                                  Func<HTTPEvent<JObject>, Boolean>?     IncludeFilterAtRuntime       = null,
-                                                                  TimeSpan?                              RetryInterval                = null,
-                                                                  Boolean                                EnableLogging                = false,
-                                                                  String?                                LogfilePath                  = null,
-                                                                  String?                                LogfilePrefix                = null,
-                                                                  Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-                                                                  String?                                LogfileReloadSearchPattern   = null,
+        //                                                          UInt32                                 MaxNumberOfCachedEvents      = 500,
+        //                                                          Func<HTTPEvent<JObject>, Boolean>?     IncludeFilterAtRuntime       = null,
+        //                                                          TimeSpan?                              RetryInterval                = null,
+        //                                                          Boolean                                EnableLogging                = false,
+        //                                                          String?                                LogfilePath                  = null,
+        //                                                          String?                                LogfilePrefix                = null,
+        //                                                          Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+        //                                                          String?                                LogfileReloadSearchPattern   = null,
 
-                                                                  HTTPHostname?                          Hostname                     = null,
-                                                                  HTTPMethod?                            HTTPMethod                   = null,
-                                                                  HTTPContentType?                       HTTPContentType              = null,
+        //                                                          HTTPHostname?                          Hostname                     = null,
+        //                                                          HTTPMethod?                            HTTPMethod                   = null,
+        //                                                          HTTPContentType?                       HTTPContentType              = null,
 
-                                                                  HTTPAuthentication?                    URLAuthentication            = null,
-                                                                  HTTPAuthentication?                    HTTPMethodAuthentication     = null,
+        //                                                          HTTPAuthentication?                    URLAuthentication            = null,
+        //                                                          HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
-                                                                  HTTPDelegate?                          DefaultErrorHandler          = null)
+        //                                                          HTTPDelegate?                          DefaultErrorHandler          = null)
 
-            => HTTPAPI.AddEventSource(
+        //    => HTTPAPI.AddEventSource(
 
-                   EventIdentification,
-                   URLTemplate,
+        //           EventIdentification,
+        //           URLTemplate,
 
-                   MaxNumberOfCachedEvents,
-                   IncludeFilterAtRuntime,
-                   RetryInterval ,
-                   data => data.ToString(Newtonsoft.Json.Formatting.None),
-                   JObject.Parse,
-                   EnableLogging,
-                   LogfilePath,
-                   LogfilePrefix,
-                   LogfileName,
-                   LogfileReloadSearchPattern,
+        //           MaxNumberOfCachedEvents,
+        //           IncludeFilterAtRuntime,
+        //           RetryInterval ,
+        //           data => data.ToString(Newtonsoft.Json.Formatting.None),
+        //           JObject.Parse,
+        //           EnableLogging,
+        //           LogfilePath,
+        //           LogfilePrefix,
+        //           LogfileName,
+        //           LogfileReloadSearchPattern,
 
-                   Hostname,
-                   HTTPMethod,
-                   HTTPContentType,
+        //           Hostname,
+        //           HTTPMethod,
+        //           HTTPContentType,
 
-                   false,
-                   URLAuthentication,
-                   HTTPMethodAuthentication,
+        //           false,
+        //           URLAuthentication,
+        //           HTTPMethodAuthentication,
 
-                   DefaultErrorHandler
+        //           DefaultErrorHandler
 
-               );
+        //       );
 
         #endregion
 
@@ -1775,191 +1775,191 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Server Sent Events
 
-        #region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
+        //#region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
 
-        /// <summary>
-        /// Add a HTTP Sever Sent Events source.
-        /// </summary>
-        /// <param name="EventIdentification">The unique identification of the event source.</param>
-        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="RetryInterval ">The retry interval.</param>
-        /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
-        /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
-        /// <param name="EnableLogging">Enables storing and reloading events </param>
-        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
-        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id                     EventIdentification,
-                                                            UInt32                                 MaxNumberOfCachedEvents      = 500,
-                                                            TimeSpan?                              RetryInterval                = null,
-                                                            Func<TData, String>?                   DataSerializer               = null,
-                                                            Func<String, TData>?                   DataDeserializer             = null,
-                                                            Boolean                                EnableLogging                = true,
-                                                            String?                                LogfilePath                  = null,
-                                                            String?                                LogfilePrefix                = null,
-                                                            Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-                                                            String?                                LogfileReloadSearchPattern   = null)
+        ///// <summary>
+        ///// Add a HTTP Sever Sent Events source.
+        ///// </summary>
+        ///// <param name="EventIdentification">The unique identification of the event source.</param>
+        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        ///// <param name="RetryInterval ">The retry interval.</param>
+        ///// <param name="DataSerializer">A delegate to serialize the stored events.</param>
+        ///// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
+        ///// <param name="EnableLogging">Enables storing and reloading events </param>
+        ///// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
+        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        //public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id                     EventIdentification,
+        //                                                    UInt32                                 MaxNumberOfCachedEvents      = 500,
+        //                                                    TimeSpan?                              RetryInterval                = null,
+        //                                                    Func<TData, String>?                   DataSerializer               = null,
+        //                                                    Func<String, TData>?                   DataDeserializer             = null,
+        //                                                    Boolean                                EnableLogging                = true,
+        //                                                    String?                                LogfilePath                  = null,
+        //                                                    String?                                LogfilePrefix                = null,
+        //                                                    Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+        //                                                    String?                                LogfileReloadSearchPattern   = null)
 
-            => HTTPServer.AddEventSource(
-                   EventIdentification,
-                   this,
-                   MaxNumberOfCachedEvents,
-                   RetryInterval ,
-                   DataSerializer,
-                   DataDeserializer,
-                   EnableLogging,
-                   LogfilePath,
-                   LogfilePrefix,
-                   LogfileName,
-                   LogfileReloadSearchPattern
-               );
+        //    => HTTPServer.AddEventSource(
+        //           EventIdentification,
+        //           this,
+        //           MaxNumberOfCachedEvents,
+        //           RetryInterval ,
+        //           DataSerializer,
+        //           DataDeserializer,
+        //           EnableLogging,
+        //           LogfilePath,
+        //           LogfilePrefix,
+        //           LogfileName,
+        //           LogfileReloadSearchPattern
+        //       );
 
-        #endregion
+        //#endregion
 
-        #region AddEventSource(EventIdentification, URLTemplate, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null, ...)
+        //#region AddEventSource(EventIdentification, URLTemplate, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null, ...)
 
-        /// <summary>
-        /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
-        /// </summary>
-        /// <param name="EventIdentification">The unique identification of the event source.</param>
-        /// <param name="URLTemplate">The URI template.</param>
-        /// 
-        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
-        /// <param name="RetryInterval ">The retry interval.</param>
-        /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
-        /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
-        /// <param name="EnableLogging">Whether to enable event logging.</param>
-        /// <param name="LogfilePrefix">The prefix of the logfile names.</param>
-        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        /// 
-        /// <param name="Hostname">The HTTP host.</param>
-        /// <param name="HttpMethod">The HTTP method.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// 
-        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// 
-        /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventIdentification,
-                                                    HTTPPath                               URLTemplate,
+        ///// <summary>
+        ///// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
+        ///// </summary>
+        ///// <param name="EventIdentification">The unique identification of the event source.</param>
+        ///// <param name="URLTemplate">The URI template.</param>
+        ///// 
+        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        ///// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
+        ///// <param name="RetryInterval ">The retry interval.</param>
+        ///// <param name="DataSerializer">A delegate to serialize the stored events.</param>
+        ///// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
+        ///// <param name="EnableLogging">Whether to enable event logging.</param>
+        ///// <param name="LogfilePrefix">The prefix of the logfile names.</param>
+        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        ///// 
+        ///// <param name="Hostname">The HTTP host.</param>
+        ///// <param name="HttpMethod">The HTTP method.</param>
+        ///// <param name="HTTPContentType">The HTTP content type.</param>
+        ///// 
+        ///// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        ///// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        ///// 
+        ///// <param name="DefaultErrorHandler">The default error handler.</param>
+        //public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventIdentification,
+        //                                            HTTPPath                               URLTemplate,
 
-                                                    UInt32                                 MaxNumberOfCachedEvents      = 500,
-                                                    Func<HTTPEvent<T>, Boolean>?           IncludeFilterAtRuntime       = null,
-                                                    TimeSpan?                              RetryInterval                = null,
-                                                    Func<T, String>?                       DataSerializer               = null,
-                                                    Func<String, T>?                       DataDeserializer             = null,
-                                                    Boolean                                EnableLogging                = true,
-                                                    String?                                LogfilePath                  = null,
-                                                    String?                                LogfilePrefix                = null,
-                                                    Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-                                                    String?                                LogfileReloadSearchPattern   = null,
+        //                                            UInt32                                 MaxNumberOfCachedEvents      = 500,
+        //                                            Func<HTTPEvent<T>, Boolean>?           IncludeFilterAtRuntime       = null,
+        //                                            TimeSpan?                              RetryInterval                = null,
+        //                                            Func<T, String>?                       DataSerializer               = null,
+        //                                            Func<String, T>?                       DataDeserializer             = null,
+        //                                            Boolean                                EnableLogging                = true,
+        //                                            String?                                LogfilePath                  = null,
+        //                                            String?                                LogfilePrefix                = null,
+        //                                            Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+        //                                            String?                                LogfileReloadSearchPattern   = null,
 
-                                                    HTTPHostname?                          Hostname                     = null,
-                                                    HTTPMethod?                            HttpMethod                   = null,
-                                                    HTTPContentType?                       HTTPContentType              = null,
+        //                                            HTTPHostname?                          Hostname                     = null,
+        //                                            HTTPMethod?                            HttpMethod                   = null,
+        //                                            HTTPContentType?                       HTTPContentType              = null,
 
-                                                    Boolean                                RequireAuthentication        = true,
-                                                    HTTPAuthentication?                    URLAuthentication            = null,
-                                                    HTTPAuthentication?                    HTTPMethodAuthentication     = null,
+        //                                            Boolean                                RequireAuthentication        = true,
+        //                                            HTTPAuthentication?                    URLAuthentication            = null,
+        //                                            HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
-                                                    HTTPDelegate?                          DefaultErrorHandler          = null)
+        //                                            HTTPDelegate?                          DefaultErrorHandler          = null)
 
-            => HTTPServer.AddEventSource(
-                   EventIdentification,
-                   this,
-                   URLTemplate,
+        //    => HTTPServer.AddEventSource(
+        //           EventIdentification,
+        //           this,
+        //           URLTemplate,
 
-                   MaxNumberOfCachedEvents,
-                   IncludeFilterAtRuntime,
-                   RetryInterval ,
-                   DataSerializer,
-                   DataDeserializer,
-                   EnableLogging,
-                   LogfilePath,
-                   LogfilePrefix,
-                   LogfileName,
-                   LogfileReloadSearchPattern,
+        //           MaxNumberOfCachedEvents,
+        //           IncludeFilterAtRuntime,
+        //           RetryInterval ,
+        //           DataSerializer,
+        //           DataDeserializer,
+        //           EnableLogging,
+        //           LogfilePath,
+        //           LogfilePrefix,
+        //           LogfileName,
+        //           LogfileReloadSearchPattern,
 
-                   Hostname,
-                   HttpMethod,
-                   HTTPContentType,
+        //           Hostname,
+        //           HttpMethod,
+        //           HTTPContentType,
 
-                   RequireAuthentication,
-                   URLAuthentication,
-                   HTTPMethodAuthentication,
+        //           RequireAuthentication,
+        //           URLAuthentication,
+        //           HTTPMethodAuthentication,
 
-                   DefaultErrorHandler
-               );
+        //           DefaultErrorHandler
+        //       );
 
-        #endregion
-
-
-        #region Get   (EventSourceIdentification)
-
-        /// <summary>
-        /// Return the event source identified by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
-
-            => HTTPServer.Get(EventSourceIdentification);
+        //#endregion
 
 
-        /// <summary>
-        /// Return the event source identified by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
+        //#region Get   (EventSourceIdentification)
 
-            => HTTPServer.Get<TData>(EventSourceIdentification);
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        //public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
 
-        #endregion
-
-        #region TryGet(EventSourceIdentification, out EventSource)
-
-        /// <summary>
-        /// Return the event source identified by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
-
-            => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+        //    => HTTPServer.Get(EventSourceIdentification);
 
 
-        /// <summary>
-        /// Return the event source identified by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        //public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
 
-            => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+        //    => HTTPServer.Get<TData>(EventSourceIdentification);
 
-        #endregion
+        //#endregion
 
-        #region EventSources(IncludeEventSource = null)
+        //#region TryGet(EventSourceIdentification, out EventSource)
 
-        /// <summary>
-        /// Return a filtered enumeration of all event sources.
-        /// </summary>
-        /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSource">The event source.</param>
+        //public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
 
-            => HTTPServer.EventSources(IncludeEventSource);
+        //    => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
 
 
-        /// <summary>
-        /// Return a filtered enumeration of all event sources.
-        /// </summary>
-        /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+        ///// <summary>
+        ///// Return the event source identified by the given event source identification.
+        ///// </summary>
+        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSource">The event source.</param>
+        //public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
 
-            => HTTPServer.EventSources<TData>(IncludeEventSource);
+        //    => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
 
-        #endregion
+        //#endregion
+
+        //#region EventSources(IncludeEventSource = null)
+
+        ///// <summary>
+        ///// Return a filtered enumeration of all event sources.
+        ///// </summary>
+        ///// <param name="IncludeEventSource">An event source filter delegate.</param>
+        //public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+
+        //    => HTTPServer.EventSources(IncludeEventSource);
+
+
+        ///// <summary>
+        ///// Return a filtered enumeration of all event sources.
+        ///// </summary>
+        ///// <param name="IncludeEventSource">An event source filter delegate.</param>
+        //public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
+
+        //    => HTTPServer.EventSources<TData>(IncludeEventSource);
+
+        //#endregion
 
         #endregion
 
