@@ -27,7 +27,6 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
-using System.Text.Json;
 
 #endregion
 
@@ -1211,6 +1210,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                           );
 
                 Assert.That(httpResponse,  Is.Not.Null, "httpResponse must not be null!");
+
+                var aa = sse1.NumberOfConnectedClients;
 
                 var eventList     = await httpResponse.ParseHTTPSSE(
                                               TimeSpan.FromSeconds(5),

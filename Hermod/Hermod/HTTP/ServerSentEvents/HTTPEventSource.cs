@@ -141,12 +141,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The attached HTTP API.
         /// </summary>
-        public HTTPAPIX                              HTTPAPIX               { get; }
+        public HTTPAPIX                              HTTPAPIX                   { get; }
 
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public HTTPEventSource_Id                    EventIdentification    { get; }
+        public HTTPEventSource_Id                    EventIdentification        { get; }
+
+        /// <summary>
+        /// The number of currently connected clients.
+        /// </summary>
+        public UInt32                                NumberOfConnectedClients
+            => (UInt32) clientChannels.Count;
 
         /// <summary>
         /// Maximum number of cached events.
@@ -156,17 +162,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The retry interval of this HTTP event.
         /// </summary>
-        public TimeSpan                              RetryInterval          { get; set; }
+        public TimeSpan                              RetryInterval              { get; set; }
 
         /// <summary>
         /// The path to the log file.
         /// </summary>
-        public String                                LogfilePath            { get; }
+        public String                                LogfilePath                { get; }
 
         /// <summary>
         /// The delegate to create a filename for storing and reloading events.
         /// </summary>
-        public Func<String, DateTimeOffset, String>  LogfileName            { get; }
+        public Func<String, DateTimeOffset, String>  LogfileName                { get; }
 
         #endregion
 
