@@ -2052,8 +2052,8 @@ Error:
                         //                             Append(Environment.NewLine).
                         //                             ToString();
 
-                        var httpEvents     = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                         Where(IncludeFilterAtRuntime);
+                        //var httpEvents     = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+                        //                                 Where(IncludeFilterAtRuntime);
 
                         //var stringBuilder  = new StringBuilder(1024);
 
@@ -2085,8 +2085,11 @@ Error:
                                                                        await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
                                                                        await stream.WriteAsync("\n\n");
 
-                                                                       await foreach (var httpEvent in eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId), request.CancellationToken).
-                                                                                                                   Where(IncludeFilterAtRuntime))
+                                                                       await foreach (var httpEvent in eventSource.GetAllEventsGreater(
+                                                                                                           request.RemoteSocket.ToString(),
+                                                                                                           request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
+                                                                                                           request.CancellationToken
+                                                                                                       ).Where(IncludeFilterAtRuntime))
                                                                        {
                                                                            await stream.WriteAsync(httpEvent.SerializedHeader);
                                                                            await stream.WriteAsync(httpEvent.SerializedData);
@@ -2094,10 +2097,18 @@ Error:
                                                                            await stream.FlushAsync(request.CancellationToken);
                                                                        }
 
-                                                                   } catch (Exception e)
-                                                                   {
+                                                                   }
+
+                                                                   // Connection might be closed by the client while waiting for new events,
+                                                                   // so we catch ObjectDisposedException here and log it.
+                                                                   catch (ObjectDisposedException ode) {
+                                                                       await eventSource.Unsubscribe(request.RemoteSocket.ToString());
+                                                                   }
+
+                                                                   catch (Exception e) {
                                                                        DebugX.Log(e.Message);
                                                                    }
+
                                                                }
                                }.AsImmutable;
 

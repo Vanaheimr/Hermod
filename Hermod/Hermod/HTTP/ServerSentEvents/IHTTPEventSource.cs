@@ -45,16 +45,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
-        IAsyncEnumerable<HTTPEvent<T>> GetAllEventsGreater(UInt64?            LastEventId,
+        IAsyncEnumerable<HTTPEvent<T>> GetAllEventsGreater(String             ClientId,
+                                                           UInt64?            LastEventId,
                                                            CancellationToken  CancellationToken = default);
 
         /// <summary>
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
         /// <param name="Timestamp">The earliest timestamp of the events.</param>
-        IAsyncEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset     Timestamp,
+        IAsyncEnumerable<HTTPEvent<T>> GetAllEventsSince(String             ClientId,
+                                                         DateTimeOffset     Timestamp,
                                                          CancellationToken  CancellationToken = default);
 
+
+        Task Unsubscribe(String ClientId);
 
     }
 

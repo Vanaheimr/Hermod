@@ -18,15 +18,15 @@
 
 #region Usings
 
+using System.Text;
 using System.Threading.Channels;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Illias.Collections;
 using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 
 #endregion
 
@@ -117,14 +117,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected const Char GS = (Char) 0x1D;
 
-        private                 Int64                                   IdCounter;
-        private        readonly ConcurrentQueue<HTTPEvent<T>>           eventHistory     = new();
-        private        readonly Channel        <HTTPEvent<T>>           liveChannel;
-        private        readonly ConcurrentBag  <Channel<HTTPEvent<T>>>  clientChannels   = [];
-        private static readonly SemaphoreSlim                           LogfileLock      = new (1,1);
 
-        private        readonly Func<T, String>                         DataSerializer;
-        private        readonly Func<String, T?>                        DataDeserializer;
+        private static readonly String[]                                             Splitter         = [ Environment.NewLine ];
+
+        private                 Int64                                                IdCounter;
+        private        readonly ConcurrentQueue                     <HTTPEvent<T>>   eventHistory     = new();
+        private        readonly Channel                             <HTTPEvent<T>>   liveChannel;
+        private        readonly ConcurrentDictionary<String, Channel<HTTPEvent<T>>>  clientChannels   = [];
+        private static readonly SemaphoreSlim                                        LogfileLock      = new (1,1);
+
+        private        readonly Func<T, String>                                      DataSerializer;
+        private        readonly Func<String, T?>                                     DataDeserializer;
 
         #endregion
 
@@ -282,16 +285,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             liveChannel.Writer.TryWrite(
-                                new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
-                                                 Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
-                                                 Subevent:          line[1],
-                                                 Data:              DataDeserializer(line[2]),
-                                                 SerializedHeader:  String.Concat(line[1].IsNotNullOrEmpty()
-                                                                                      ? "event: " + line[1] + Environment.NewLine
-                                                                                      : String.Empty,
-                                                                                  "id: ",   IdCounter,        Environment.NewLine,
-                                                                                  "data: "),
-                                                 SerializedData:    line[2])
+                                new HTTPEvent<T>(
+                                    Id:                (UInt64) IdCounter++,
+                                    Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
+                                    Subevent:          line[1],
+                                    Data:              DataDeserializer(line[2]),
+                                    SerializedHeader:  String.Concat(
+                                                           line[1].IsNotNullOrEmpty()
+                                                               ? "event: " + line[1] + Environment.NewLine
+                                                               : String.Empty,
+                                                           "id: ",   IdCounter,        Environment.NewLine,
+                                                           "c"
+                                                       ),
+                                    SerializedData:    line[2]
+                                )
                             );
 
                         }
@@ -465,16 +472,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             liveChannel.Writer.TryWrite(
-                                new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
-                                                 Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
-                                                 Subevent:          line[1],
-                                                 Data:              DataDeserializer(line[2]),
-                                                 SerializedHeader:  String.Concat(line[1].IsNotNullOrEmpty()
-                                                                                      ? "event: " + line[1] + Environment.NewLine
-                                                                                      : String.Empty,
-                                                                                  "id: ",   IdCounter,        Environment.NewLine,
-                                                                                  "data: "),
-                                                 SerializedData:    line[2])
+                                new HTTPEvent<T>(
+                                    Id:                (UInt64) IdCounter++,
+                                    Timestamp:         DateTimeOffset.Parse(line[0]),
+                                    Subevent:          line[1],
+                                    Data:              DataDeserializer(line[2]),
+                                    SerializedHeader:  String.Concat(
+                                                           line[1].IsNotNullOrEmpty()
+                                                               ? "event: " + line[1] + Environment.NewLine
+                                                               : String.Empty,
+                                                           "id: ",   IdCounter,        Environment.NewLine,
+                                                           "data: "
+                                                       ),
+                                    SerializedData:    line[2]
+                                )
                             );
 
                         }
@@ -547,7 +558,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             foreach (var clientChannel in clientChannels)
                             {
                                 // Use TryWrite → non-blocking, safe even if client is slow/closed
-                                if (!clientChannel.Writer.TryWrite(item))
+                                if (!clientChannel.Value.Writer.TryWrite(item))
                                 {
                                     // Optional: if TryWrite fails often → client is slow or closed
                                     // You can remove it here, but usually better to let Completion handle it
@@ -644,6 +655,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
+            var data = DataSerializer(Data);
+
+            // Multi-line data must be prefixed with "data: " for each line,
+            // and end with an empty line!
+            if (data.Contains(Environment.NewLine))
+            {
+
+                var sb = new StringBuilder();
+
+                foreach (var item in data.Split(Splitter, StringSplitOptions.RemoveEmptyEntries))
+                    sb.AppendLine("data: " + item);
+
+                data = sb.ToString().Trim();
+
+            }
+            else
+                data = "data: " + data.Trim();
+
             var httpEvent  = new HTTPEvent<T>(
                                  (UInt64) Interlocked.Increment(ref IdCounter),
                                  Timestamp,
@@ -653,10 +682,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      SubEvent.IsNotNullOrEmpty()
                                          ? "event: " + SubEvent + Environment.NewLine
                                          : String.Empty,
-                                     "id: ",   IdCounter,         Environment.NewLine,
-                                     "data: "
+                                     "id: ",   IdCounter,         Environment.NewLine
                                  ),
-                                 DataSerializer(Data)
+                                 data
                              );
 
             // Add to history (bounded)
@@ -675,14 +703,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetAllEventsGreater(LastEventId = 0)
+        // Signal without payload!
+
+        #region SubmitEvent(SubEvent)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Data">The attached event data.</param>
+        //public Task SubmitEvent(String             SubEvent,
+        //                        CancellationToken  CancellationToken = default)
+
+        //    => SubmitEvent(
+        //           SubEvent,
+        //           Timestamp.Now,
+        //           null,
+        //           CancellationToken
+        //       );
+
+        #endregion
+
+        #region SubmitEvent(SubEvent, Timestamp)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        //public async Task SubmitEvent(String             SubEvent,
+        //                              DateTimeOffset     Timestamp,
+        //                              CancellationToken  CancellationToken = default)
+        //{
+
+        //    if (SubEvent.IsNotNullOrEmpty())
+        //        SubEvent = SubEvent.Trim().Replace(",", "");
+
+        //    var httpEvent  = new HTTPEvent<T>(
+        //                         (UInt64) Interlocked.Increment(ref IdCounter),
+        //                         Timestamp,
+        //                         SubEvent,
+        //                         null,
+        //                         String.Concat(
+        //                             SubEvent.IsNotNullOrEmpty()
+        //                                 ? "event: " + SubEvent + Environment.NewLine
+        //                                 : String.Empty,
+        //                             "id: ",   IdCounter,         Environment.NewLine,
+        //                             "data: "
+        //                         ),
+        //                         DataSerializer(Data)
+        //                     );
+
+        //    // Add to history (bounded)
+        //    eventHistory.Enqueue(httpEvent);
+
+        //    while (eventHistory.Count > MaxNumberOfCachedEvents)
+        //        eventHistory.TryDequeue(out _);
+
+        //    await liveChannel.Writer.WriteAsync(
+        //              httpEvent,
+        //              CancellationToken
+        //          );
+
+        //}
+
+        #endregion
+
+
+
+        #region GetAllEventsGreater (ClientId, LastEventId = 0)
 
         /// <summary>
         /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
-        public async IAsyncEnumerable<HTTPEvent<T>> GetAllEventsGreater(UInt64?                                     LastEventId,
-                                                                        [EnumeratorCancellation] CancellationToken  CancellationToken = default)
+        public async IAsyncEnumerable<HTTPEvent<T>> GetAllEventsGreater(String                                      ClientId,
+                                                                        UInt64?                                     LastEventId         = 0,
+                                                                        [EnumeratorCancellation] CancellationToken  CancellationToken   = default)
         {
 
             var lastEventId  = LastEventId ?? 0;
@@ -712,7 +809,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             //}
 
-            var reader = Subscribe();
+            var reader = Subscribe(ClientId);
 
             await foreach (var httpEvent in reader.ReadAllAsync(CancellationToken))
             {
@@ -726,13 +823,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetAllEventsSince(Timestamp)
+        #region GetAllEventsSince   (ClientId, Timestamp)
 
         /// <summary>
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
         /// <param name="Timestamp">The earliest timestamp of the events.</param>
-        public async IAsyncEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset                              Timestamp,
+        public async IAsyncEnumerable<HTTPEvent<T>> GetAllEventsSince(String                                      ClientId,
+                                                                      DateTimeOffset                              Timestamp,
                                                                       [EnumeratorCancellation] CancellationToken  CancellationToken = default)
         {
 
@@ -763,7 +861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public ChannelReader<HTTPEvent<T>> Subscribe()
+        public ChannelReader<HTTPEvent<T>> Subscribe(String ClientId)
         {
 
             var clientChannel = Channel.CreateUnbounded<HTTPEvent<T>>(
@@ -773,18 +871,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             );
 
-            clientChannels.Add(clientChannel);
+            clientChannels.TryAdd(
+                ClientId,
+                clientChannel
+            );
 
             // Clean up when client channel is completed/closed
             _ = clientChannel.Reader.Completion.ContinueWith(_ => {
                     // remove one instance (best-effort)
-                    clientChannels.TryTake(out var _);
+                    clientChannels.TryRemove(ClientId, out var _);
                     clientChannel.Writer.Complete();
                 }, TaskScheduler.Default);
 
             return clientChannel.Reader;
 
         }
+
+        public async Task Unsubscribe(String ClientId)
+        {
+
+            clientChannels.TryRemove(
+                ClientId,
+                out var _
+            );
+
+            //DebugX.LogT($"HTTP SEE client '{ClientId}' unsubscribed!");
+
+        }
+
+
+
 
 
         #region IEnumerable<HTTPEvent<T>> Members
@@ -814,7 +930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             liveChannel.Writer.Complete();
 
             foreach (var clientChannel in clientChannels)
-                clientChannel.Writer.Complete();
+                clientChannel.Value.Writer.Complete();
 
         }
 
