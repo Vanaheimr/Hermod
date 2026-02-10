@@ -438,13 +438,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            //var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
-            //
-            //if (httpEventSource is not null)
-            //    await httpEventSource.SubmitEvent(
-            //                              ChangeType,
-            //                              @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""fileName"": String.Empty" + FileName + @""" }"
-            //                          );
+            var httpEventSource = HTTPAPI.GetEventSource<String>(EventSourceId);
+            
+            if (httpEventSource is not null)
+                await httpEventSource.SubmitEvent(
+                                          ChangeType,
+                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""fileName"": String.Empty" + FileName + @""" }"
+                                      );
 
         }
 
@@ -459,13 +459,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            //var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
-            //
-            //if (httpEventSource is not null)
-            //    await httpEventSource.SubmitEvent(
-            //                              "Renamed",
-            //                              @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""newFileName"": String.Empty" + NewFileName + @""", ""oldFileName"": String.Empty" + OldFileName + @""" }"
-            //                          );
+            var httpEventSource = HTTPAPI.GetEventSource<String>(EventSourceId);
+
+            if (httpEventSource is not null)
+                await httpEventSource.SubmitEvent(
+                                          "Renamed",
+                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""newFileName"": String.Empty" + NewFileName + @""", ""oldFileName"": String.Empty" + OldFileName + @""" }"
+                                      );
 
         }
 
@@ -478,15 +478,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    ErrorEventArgs      Error)
         {
 
-            //DebugX.LogException(Error.GetException(), $"HTTP SSE Event Source: '{EventSourceId}'");
-            //
-            //var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
-            //
-            //if (httpEventSource is not null)
-            //    await httpEventSource.SubmitEvent(
-            //                              "Error",
-            //                              @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""message"": String.Empty" + Error.GetException().Message + @""" }"
-            //                          );
+            DebugX.LogException(Error.GetException(), $"HTTP SSE Event Source: '{EventSourceId}'");
+
+            var httpEventSource = HTTPAPI.GetEventSource<String>(EventSourceId);
+
+            if (httpEventSource is not null)
+                await httpEventSource.SubmitEvent(
+                                          "Error",
+                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""message"": String.Empty" + Error.GetException().Message + @""" }"
+                                      );
 
         }
 
@@ -536,11 +536,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
-        private static void WatchFileSystemFolder(this HTTPAPIX       HTTPAPI,
-                                                  HTTPHostname        Hostname,
-                                                  HTTPPath            URLTemplate,
-                                                  String              ResourcePath,
-                                                  HTTPEventSource_Id  EventSourceId)
+        private static Boolean WatchFileSystemFolder(this HTTPAPIX       HTTPAPI,
+                                                     HTTPHostname        Hostname,
+                                                     HTTPPath            URLTemplate,
+                                                     String              ResourcePath,
+                                                     HTTPEventSource_Id  EventSourceId)
         {
 
             HTTPAPI.WatchFileSystemFolder(
@@ -548,11 +548,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         EventSourceId
                     );
 
-         //   HTTPAPI.AddEventSource<String>(
-         //       EventSourceId,
-         //       URLTemplate,
-         //       Hostname: Hostname
-         //   );
+            var eventSource  = HTTPAPI.AddEventSource<String>(
+                                   EventSourceId
+                               );
+
+            var result       = HTTPAPI.MapEventSource<String>(
+                                   eventSource,
+                                   URLTemplate,
+                                   Hostname: Hostname
+                               );
+
+            return result;
 
         }
 
@@ -568,12 +574,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
-        private static void WatchFileSystemFolder(this HTTPExtAPIX    HTTPExtAPI,
-                                                  HTTPHostname        Hostname,
-                                                  HTTPPath            URLTemplate,
-                                                  String              ResourcePath,
-                                                  HTTPEventSource_Id  EventSourceId,
-                                                  Boolean             RequireAuthentication   = true)
+        private static Boolean WatchFileSystemFolder(this HTTPExtAPIX    HTTPExtAPI,
+                                                     HTTPHostname        Hostname,
+                                                     HTTPPath            URLTemplate,
+                                                     String              ResourcePath,
+                                                     HTTPEventSource_Id  EventSourceId,
+                                                     Boolean             RequireAuthentication   = true)
         {
 
             HTTPExtAPI.WatchFileSystemFolder(
@@ -581,12 +587,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            EventSourceId
                        );
 
-            //HTTPExtAPI.AddEventSource<String>(
-            //    EventSourceId,
-            //    URLTemplate,
-            //    Hostname:               Hostname,
-            //    RequireAuthentication:  RequireAuthentication
-            //);
+            var eventSource  = HTTPExtAPI.AddEventSource<String>(
+                                   EventSourceId
+                               );
+
+            var result       = HTTPExtAPI.MapEventSource<String>(
+                                   eventSource,
+                                   URLTemplate,
+                                   Hostname:               Hostname,
+                                   RequireAuthentication:  RequireAuthentication
+
+                               );
+
+            return result;
 
         }
 
@@ -603,12 +616,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void MapResourceAssemblyFolder(this HTTPAPIX     HTTPAPI,
-                                                     HTTPHostname      Hostname,
-                                                     HTTPPath          URLTemplate,
-                                                     String            ResourcePath,
-                                                     Assembly?         ResourceAssembly   = null,
-                                                     String            DefaultFilename    = "index.html")
+        public static void MapResourceAssemblyFolder(this HTTPAPIX                  HTTPAPI,
+                                                     HTTPHostname                   Hostname,
+                                                     HTTPPath                       URLTemplate,
+                                                     String                         ResourcePath,
+                                                     Assembly?                      ResourceAssembly      = null,
+                                                     String                         DefaultFilename       = "index.html",
+                                                     Func<String, String, String>?  HTMLTemplateHandler   = null)
         {
 
             ResourceAssembly ??= Assembly.GetCallingAssembly();
@@ -623,7 +637,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         HTTPAPI.HTTPServer.HTTPServerName,
                                         ResourceAssembly,
                                         ResourcePath,
-                                        DefaultFilename
+                                        DefaultFilename,
+                                        HTMLTemplateHandler
                                     ),
 
                 AllowReplacement:   URLReplacement.Fail
@@ -642,7 +657,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         HTTPAPI.HTTPServer.HTTPServerName,
                                         ResourceAssembly,
                                         ResourcePath,
-                                        DefaultFilename
+                                        DefaultFilename,
+                                        HTMLTemplateHandler
                                     ),
 
                 AllowReplacement:   URLReplacement.Fail

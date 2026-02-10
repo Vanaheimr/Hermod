@@ -1192,11 +1192,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  const             String                                        HTTPCookieDomain                        = "";
 
 
-        protected static readonly String[]  Split1  = { "\r\n" };
-        protected static readonly String[]  Split2  = { ": " };
-        protected static readonly String[]  Split3  = { " " };
-        protected static readonly Char[]    Split4  = { ',' };
-        protected static readonly Char[]    Split5  = { '|' };
+        protected static readonly String[]  Split1  = [ "\r\n" ];
+        protected static readonly String[]  Split2  = [ ": "   ];
+        protected static readonly String[]  Split3  = [ " "    ];
+        protected static readonly Char[]    Split4  = [ ','    ];
+        protected static readonly Char[]    Split5  = [ '|'    ];
 
         public    static readonly User                                          Anonymous = new (User_Id.Parse("anonymous"),
                                                                                                  "Anonymous".ToI18NString(),
@@ -2324,8 +2324,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.CurrentDatabaseHashValue        = "";
 
-            this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
-            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
+            this.remoteAuthServers               = RemoteAuthServers is not null   ? [.. RemoteAuthServers] : [];
+            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? [.. RemoteAuthAPIKeys] : [];
 
             #endregion
 
@@ -2555,8 +2555,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.CurrentDatabaseHashValue        = "";
 
-            this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
-            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
+            this.remoteAuthServers               = RemoteAuthServers is not null   ? [.. RemoteAuthServers] : [];
+            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? [.. RemoteAuthAPIKeys] : [];
 
             #endregion
 
@@ -3747,23 +3747,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //    return true;
                 //}
 
-                Organizations  = new HashSet<IOrganization>();
-                ErrorResponseBuilder       = new HTTPResponse.Builder(Request) {
-                                     HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                     Location        = Location.From(URLPathPrefix + "login"),
-                                     Date            = Timestamp.Now,
-                                     Server          = HTTPServer.DefaultServerName,
-                                     CacheControl    = "private, max-age=0, no-cache",
-                                     Connection      = ConnectionType.Close
-                                 };
+                Organizations         = [];
+                ErrorResponseBuilder  = new HTTPResponse.Builder(Request) {
+                                            HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                            Location        = Location.From(URLPathPrefix + "login"),
+                                            Date            = Timestamp.Now,
+                                            Server          = HTTPServer.DefaultServerName,
+                                            CacheControl    = "private, max-age=0, no-cache",
+                                            Connection      = ConnectionType.Close
+                                        };
 
                 return false;
 
             }
 
             Organizations  = User is not null
-                                 ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
-                                 : new HashSet<IOrganization>();
+                                 ? [.. User.Organizations(AccessLevel, Recursive)]
+                                 : [];
 
             ErrorResponseBuilder       = null;
 
@@ -3780,297 +3780,297 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                               HTTPEventSourceId,
-                                                  HTTPAPI                                          HTTPAPI,
-                                                  HTTPPath                                         URLTemplate,
+        //public void AddEventSource<TData, TState>(HTTPEventSource_Id                               HTTPEventSourceId,
+        //                                          HTTPAPI                                          HTTPAPI,
+        //                                          HTTPPath                                         URLTemplate,
 
-                                                  Func<TState?, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                     CreatePerRequestState,
+        //                                          Func<TState?, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+        //                                          Func<TState>                                     CreatePerRequestState,
 
-                                                  HTTPHostname?                                    Hostname                   = null,
-                                                  HTTPMethod?                                      HttpMethod                 = null,
-                                                  HTTPContentType?                                 HTTPContentType            = null,
+        //                                          HTTPHostname?                                    Hostname                   = null,
+        //                                          HTTPMethod?                                      HttpMethod                 = null,
+        //                                          HTTPContentType?                                 HTTPContentType            = null,
 
-                                                  HTTPAuthentication?                              URLAuthentication          = null,
-                                                  HTTPAuthentication?                              HTTPMethodAuthentication   = null,
+        //                                          HTTPAuthentication?                              URLAuthentication          = null,
+        //                                          HTTPAuthentication?                              HTTPMethodAuthentication   = null,
 
-                                                  HTTPDelegate?                                    DefaultErrorHandler        = null)
-        {
+        //                                          HTTPDelegate?                                    DefaultErrorHandler        = null)
+        //{
 
-            IncludeFilterAtRuntime ??= (s, u, e) => true;
+        //    IncludeFilterAtRuntime ??= (s, u, e) => true;
 
-            if (TryGet(HTTPEventSourceId, out IHTTPEventSource<TData> eventSource))
-            {
+        //    if (TryGetE(HTTPEventSourceId, out IHTTPEventSource<TData> eventSource))
+        //    {
 
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                      #region Get HTTP user and its organizations
+        //                              #region Get HTTP user and its organizations
 
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          AccessLevel: Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  AccessLevel: Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-                                      #endregion
+        //                              #endregion
 
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                      //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                          httpUser,
-                                      //                                                                          httpEvent)).
-                                      //                              Reverse().
-                                      //                              Skip   (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take   (Request.QueryString.GetUInt64("take")).
-                                      //                              Reverse().
-                                      //                              Aggregate(new StringBuilder(),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                      //                                                                                    AppendLine(httpEvent.SerializedData).
-                                      //                                                                                    AppendLine()).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append(Environment.NewLine).
-                                      //                              ToString();
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+        //                              //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                          httpUser,
+        //                              //                                                                          httpEvent)).
+        //                              //                              Reverse().
+        //                              //                              Skip   (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take   (Request.QueryString.GetUInt64("take")).
+        //                              //                              Reverse().
+        //                              //                              Aggregate(new StringBuilder(),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+        //                              //                                                                                    AppendLine(httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine()).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              ToString();
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = httpEvents.ToUTF8Bytes()
-                                          }.AsImmutable);
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Text.EVENTSTREAM,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = httpEvents.ToUTF8Bytes()
+        //                                  }.AsImmutable);
 
-                                  });
-
-
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                        httpUser,
-                                      //                                                                        httpEvent)).
-                                      //                              Skip (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take (Request.QueryString.GetUInt64("take")).
-                                      //                              Aggregate(new StringBuilder().AppendLine("["),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
-                                      //                                                                                    Append    (httpEvent.Subevent ?? "").
-                                      //                                                                                    Append    (@""",").
-                                      //                                                                                    Append    (httpEvent.SerializedData).
-                                      //                                                                                    AppendLine("],")).
-                                      //                              ToString().
-                                      //                              TrimEnd();
+        //                          });
 
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = (httpEvents.Length > 1
-                                              //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                              //                       : "]").ToUTF8Bytes()
-                                          }.AsImmutable);
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                  });
+        //                              #region Get HTTP user and its organizations
 
-            }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-            else
-                throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+        //                              #endregion
 
-        }
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                        httpUser,
+        //                              //                                                                        httpEvent)).
+        //                              //                              Skip (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take (Request.QueryString.GetUInt64("take")).
+        //                              //                              Aggregate(new StringBuilder().AppendLine("["),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
+        //                              //                                                                                    Append    (httpEvent.Subevent ?? "").
+        //                              //                                                                                    Append    (@""",").
+        //                              //                                                                                    Append    (httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine("],")).
+        //                              //                              ToString().
+        //                              //                              TrimEnd();
+
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = (httpEvents.Length > 1
+        //                                      //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+        //                                      //                       : "]").ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+        //    }
+
+        //    else
+        //        throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+
+        //}
 
         #endregion
 
         #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                           HTTPEventSourceId,
-                                                  HTTPAPI                                                                      HTTPAPI,
-                                                  HTTPPath                                                                     URLTemplate,
+        //public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                           HTTPEventSourceId,
+        //                                          HTTPAPI                                                                      HTTPAPI,
+        //                                          HTTPPath                                                                     URLTemplate,
 
-                                                  Func<TState?, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                                                 CreatePerRequestState,
+        //                                          Func<TState?, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+        //                                          Func<TState>                                                                 CreatePerRequestState,
 
-                                                  HTTPHostname?                                                                Hostname                   = null,
-                                                  HTTPMethod?                                                                  HttpMethod                 = null,
-                                                  HTTPContentType?                                                             HTTPContentType            = null,
+        //                                          HTTPHostname?                                                                Hostname                   = null,
+        //                                          HTTPMethod?                                                                  HttpMethod                 = null,
+        //                                          HTTPContentType?                                                             HTTPContentType            = null,
 
-                                                  HTTPAuthentication?                                                          URLAuthentication          = null,
-                                                  HTTPAuthentication?                                                          HTTPMethodAuthentication   = null,
+        //                                          HTTPAuthentication?                                                          URLAuthentication          = null,
+        //                                          HTTPAuthentication?                                                          HTTPMethodAuthentication   = null,
 
-                                                  HTTPDelegate?                                                                DefaultErrorHandler        = null)
-        {
+        //                                          HTTPDelegate?                                                                DefaultErrorHandler        = null)
+        //{
 
-            IncludeFilterAtRuntime ??= (s, u, o, e) => true;
+        //    IncludeFilterAtRuntime ??= (s, u, o, e) => true;
 
-            if (TryGet<TData>(HTTPEventSourceId, out var eventSource))
-            {
+        //    if (TryGet<TData>(HTTPEventSourceId, out var eventSource))
+        //    {
 
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                      #region Get HTTP user and its organizations
+        //                              #region Get HTTP user and its organizations
 
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-                                      #endregion
+        //                              #endregion
 
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                      //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                          httpUser,
-                                      //                                                                          httpOrganizations,
-                                      //                                                                          httpEvent)).
-                                      //                              Reverse().
-                                      //                              Skip   (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take   (Request.QueryString.GetUInt64("take")).
-                                      //                              Reverse().
-                                      //                              Aggregate(new StringBuilder(),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                      //                                                                                    AppendLine(httpEvent.SerializedData).
-                                      //                                                                                    AppendLine()).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                      //                              Append(Environment.NewLine).
-                                      //                              Append(Environment.NewLine).
-                                      //                              ToString();
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+        //                              //                              Where  (httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                          httpUser,
+        //                              //                                                                          httpOrganizations,
+        //                              //                                                                          httpEvent)).
+        //                              //                              Reverse().
+        //                              //                              Skip   (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take   (Request.QueryString.GetUInt64("take")).
+        //                              //                              Reverse().
+        //                              //                              Aggregate(new StringBuilder(),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+        //                              //                                                                                    AppendLine(httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine()).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              Append(Environment.NewLine).
+        //                              //                              ToString();
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = httpEvents.ToUTF8Bytes()
-                                          }.AsImmutable);
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Text.EVENTSTREAM,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = httpEvents.ToUTF8Bytes()
+        //                                  }.AsImmutable);
 
-                                  });
-
-
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                      //                                                                        httpUser,
-                                      //                                                                        httpOrganizations,
-                                      //                                                                        httpEvent)).
-                                      //                              Skip (Request.QueryString.GetUInt64("skip")).
-                                      //                              Take (Request.QueryString.GetUInt64("take")).
-                                      //                              Aggregate(new StringBuilder().AppendLine("["),
-                                      //                                        (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
-                                      //                                                                                    Append(httpEvent.Subevent ?? "").
-                                      //                                                                                    Append(@""",").
-                                      //                                                                                    Append(httpEvent.SerializedData).
-                                      //                                                                                    AppendLine("],")).
-                                      //                              ToString().
-                                      //                              TrimEnd();
+        //                          });
 
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              //Content         = (httpEvents.Length > 1
-                                              //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                              //                       : "]").ToUTF8Bytes()
-                                          }.AsImmutable);
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
 
-                                  });
+        //                              #region Get HTTP user and its organizations
 
-            }
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
 
-            else
-                throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+        //                              #endregion
 
-        }
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              //var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+        //                              //                                                                        httpUser,
+        //                              //                                                                        httpOrganizations,
+        //                              //                                                                        httpEvent)).
+        //                              //                              Skip (Request.QueryString.GetUInt64("skip")).
+        //                              //                              Take (Request.QueryString.GetUInt64("take")).
+        //                              //                              Aggregate(new StringBuilder().AppendLine("["),
+        //                              //                                        (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
+        //                              //                                                                                    Append(httpEvent.Subevent ?? "").
+        //                              //                                                                                    Append(@""",").
+        //                              //                                                                                    Append(httpEvent.SerializedData).
+        //                              //                                                                                    AppendLine("],")).
+        //                              //                              ToString().
+        //                              //                              TrimEnd();
+
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      //Content         = (httpEvents.Length > 1
+        //                                      //                       ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+        //                                      //                       : "]").ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+        //    }
+
+        //    else
+        //        throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+
+        //}
 
         #endregion
 
@@ -4597,7 +4597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
+                                                 AccessControlAllowMethods  = [ "SET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                 = ConnectionType.Close
                                              };
@@ -4641,7 +4641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
+                                                 AccessControlAllowMethods  = [ "SET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                 = ConnectionType.Close
                                              };
@@ -4662,7 +4662,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                     = HTTPServer.DefaultServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
+                                                   AccessControlAllowMethods  = [ "SET" ],
                                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
@@ -4676,7 +4676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                     = HTTPServer.DefaultServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
+                                                   AccessControlAllowMethods  = [ "SET" ],
                                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
@@ -4805,7 +4805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
+                                                 AccessControlAllowMethods  = [ "SET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                 = ConnectionType.Close
                                              }.AsImmutable;
@@ -4964,7 +4964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "CHECK" },
+                                                 AccessControlAllowMethods  = [ "CHECK" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -4991,7 +4991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Server                     = HTTPServer.DefaultServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "CHECK" },
+                                                     AccessControlAllowMethods  = [ "CHECK" ],
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                      ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                      Content                    = JSONObject.Create(
@@ -5015,7 +5015,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer.DefaultServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
+                                                 AccessControlAllowMethods   = [ "CHECK" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = JSONObject.Create(
@@ -5037,7 +5037,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer.DefaultServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
+                                                 AccessControlAllowMethods   = [ "CHECK" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.Close
                                              }.AsImmutable;
@@ -5067,7 +5067,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer.DefaultServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "ADD", "SET", "GET" },
+                                          AccessControlAllowMethods  = [ "ADD", "SET", "GET" ],
                                           AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                           AccessControlMaxAge        = 3600,
                                           CacheControl               = "public",
@@ -5098,7 +5098,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Server                      = HTTPServer.DefaultServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
-                                                            AccessControlAllowMethods   = new[] { "ADD", "SET", "GET" },
+                                                            AccessControlAllowMethods   = [ "ADD", "SET", "GET" ],
                                                             AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                             Connection                  = ConnectionType.Close
@@ -5188,7 +5188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5217,7 +5217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          Server                     = HTTPServer.DefaultServerName,
                                                          Date                       = Timestamp.Now,
                                                          AccessControlAllowOrigin   = "*",
-                                                         AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                         AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                          AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                          Content                    = JSONObject.Create(
@@ -5245,7 +5245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5274,7 +5274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5299,7 +5299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5327,7 +5327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5347,7 +5347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer.DefaultServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "ADD" },
+                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
@@ -5487,7 +5487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Server                     = HTTPServer.DefaultServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
+                                                            AccessControlAllowMethods  = [ "GET", "COUNT", "OPTIONS" ],
                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                             ETag                       = "1",
                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
@@ -5617,7 +5617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer.DefaultServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                          AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                           AccessControlAllowHeaders  = [ "X-PINGOTHER", "Content-Type", "Accept", "Authorization", "X-App-Version" ],
                                           AccessControlMaxAge        = 3600,
                                           //ETag                       = "1",
@@ -5650,7 +5650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Server                      = HTTPServer.DefaultServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
-                                                            AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                                            AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                                             AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                             Connection                  = ConnectionType.Close
@@ -6083,7 +6083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Server                     = HTTPServer.DefaultServerName,
                                               Date                       = Timestamp.Now,
                                               AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                              AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                               AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                               ContentType                = HTTPContentType.Application.JSON_UTF8,
                                               Content                    = JSONObject.Create(
@@ -6109,7 +6109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer.DefaultServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = user.ToJSON(false).ToUTF8Bytes(),
@@ -6122,7 +6122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer.DefaultServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = JSONObject.Create(
@@ -6714,7 +6714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer.DefaultServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "DEPERSONATE" },
+                                                 AccessControlAllowMethods   = [ "DEPERSONATE" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.Close
                                              }.AsImmutable;
@@ -6921,24 +6921,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return result.Result == CommandResult.Success
 
                                              ? new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "SET" },
-                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
-                                             }.AsImmutable
+                                                   HTTPStatusCode              = HTTPStatusCode.OK,
+                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Date                        = Timestamp.Now,
+                                                   AccessControlAllowOrigin    = "*",
+                                                   AccessControlAllowMethods   = [ "SET" ],
+                                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                                   Connection                  = ConnectionType.Close
+                                               }.AsImmutable
 
                                              : new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "SET" },
-                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
-                                             }.AsImmutable;
+                                                   HTTPStatusCode              = HTTPStatusCode.Forbidden,
+                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Date                        = Timestamp.Now,
+                                                   AccessControlAllowOrigin    = "*",
+                                                   AccessControlAllowMethods   = [ "SET" ],
+                                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                                   Connection                  = ConnectionType.Close
+                                               }.AsImmutable;
 
                               });
 
@@ -7016,7 +7016,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer.DefaultServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
+                                          AccessControlAllowMethods  = [ "GET", "COUNT", "OPTIONS" ],
                                           AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                       = "1",
                                           ContentType                = HTTPContentType.Application.JSON_UTF8,
@@ -7984,7 +7984,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                        = HTTPServer.DefaultServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
-                                          AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
+                                          AccessControlAllowMethods     = [ "GET", "COUNT", "OPTIONS" ],
                                           AccessControlAllowHeaders     = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                          = "1",
                                           ContentType                   = HTTPContentType.Application.JSON_UTF8,
@@ -10266,7 +10266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                        = HTTPServer.DefaultServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
-                                          AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
+                                          AccessControlAllowMethods     = [ "GET", "COUNT", "OPTIONS" ],
                                           AccessControlAllowHeaders     = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                          = "1",
                                           ContentType                   = HTTPContentType.Application.JSON_UTF8,
