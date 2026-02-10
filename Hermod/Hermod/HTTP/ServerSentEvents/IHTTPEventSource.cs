@@ -22,7 +22,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public interface IHTTPEventSource
     {
 
-        HTTPEventSource_Id                    EventIdentification        { get; }
+        HTTPEventSource_Id                    Id                         { get; }
         Func<String, DateTimeOffset, String>  LogfileName                { get; }
         UInt32                                MaxNumberOfCachedEvents    { get; }
         TimeSpan                              RetryInterval              { get; set; }

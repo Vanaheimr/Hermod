@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public HTTPEventSource_Id                    EventIdentification        { get; }
+        public HTTPEventSource_Id                    Id        { get; }
 
         /// <summary>
         /// The number of currently connected clients.
@@ -397,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             );
 
             this.HTTPAPIX                 = HTTPAPIX;
-            this.EventIdentification      = EventIdentification;
+            this.Id      = EventIdentification;
             this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
             this.RetryInterval            = RetryInterval    ?? TimeSpan.FromSeconds(30);
             this.DataSerializer           = DataSerializer   ?? (data => data?.ToString() ?? "");
@@ -924,7 +924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => EventIdentification.ToString();
+            => Id.ToString();
 
         #endregion
 

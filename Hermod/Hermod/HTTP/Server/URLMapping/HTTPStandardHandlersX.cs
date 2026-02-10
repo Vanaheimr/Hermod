@@ -390,10 +390,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             ContentStream    = fileStream,
                                             CacheControl     = "public, max-age=300",
                                             //Expires          = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                            KeepAlive        = new KeepAliveType(
-                                                                   TimeSpan.FromMinutes(15),
-                                                                   500
-                                                               ),
+                                            //KeepAlive        = new KeepAliveType(
+                                            //                       TimeSpan.FromMinutes(15),
+                                            //                       500
+                                            //                   ),
                                             Connection       = ConnectionType.KeepAlive
                                         }.AsImmutable
 
@@ -553,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                );
 
             var result       = HTTPAPI.MapEventSource<String>(
-                                   EventSourceId,
+                                   eventSource,
                                    URLTemplate,
                                    Hostname: Hostname
                                );
@@ -592,7 +592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                );
 
             var result       = HTTPExtAPI.MapEventSource<String>(
-                                   EventSourceId,
+                                   eventSource,
                                    URLTemplate,
                                    Hostname:               Hostname,
                                    RequireAuthentication:  RequireAuthentication
@@ -616,12 +616,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void MapResourceAssemblyFolder(this HTTPAPIX     HTTPAPI,
-                                                     HTTPHostname      Hostname,
-                                                     HTTPPath          URLTemplate,
-                                                     String            ResourcePath,
-                                                     Assembly?         ResourceAssembly   = null,
-                                                     String            DefaultFilename    = "index.html")
+        public static void MapResourceAssemblyFolder(this HTTPAPIX                  HTTPAPI,
+                                                     HTTPHostname                   Hostname,
+                                                     HTTPPath                       URLTemplate,
+                                                     String                         ResourcePath,
+                                                     Assembly?                      ResourceAssembly      = null,
+                                                     String                         DefaultFilename       = "index.html",
+                                                     Func<String, String, String>?  HTMLTemplateHandler   = null)
         {
 
             ResourceAssembly ??= Assembly.GetCallingAssembly();
@@ -636,7 +637,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         HTTPAPI.HTTPServer.HTTPServerName,
                                         ResourceAssembly,
                                         ResourcePath,
-                                        DefaultFilename
+                                        DefaultFilename,
+                                        HTMLTemplateHandler
                                     ),
 
                 AllowReplacement:   URLReplacement.Fail
@@ -655,7 +657,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         HTTPAPI.HTTPServer.HTTPServerName,
                                         ResourceAssembly,
                                         ResourcePath,
-                                        DefaultFilename
+                                        DefaultFilename,
+                                        HTMLTemplateHandler
                                     ),
 
                 AllowReplacement:   URLReplacement.Fail

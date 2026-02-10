@@ -568,6 +568,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     public static class HTTPAPIXExtensions
     {
 
+        #region StartServer(this HTTPAPIX, ...)
+
         /// <summary>
         /// Add a method callback for the given URL template.
         /// </summary>
@@ -643,6 +645,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             return server;
 
         }
+
+        #endregion
+
+
+        #region AddJSONEventSource(this HTTPAPI, EventSourceId, ...)
+
+        public static HTTPEventSource<JObject>
+
+            AddJSONEventSource(this HTTPAPIX                          HTTPAPI,
+                               HTTPEventSource_Id                     EventSourceId,
+                               UInt32                                 MaxNumberOfCachedEvents      = 500,
+                               TimeSpan?                              RetryInterval                = null,
+                               Boolean                                EnableLogging                = true,
+                               String?                                LogfilePath                  = null,
+                               String?                                LogfilePrefix                = null,
+                               Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                               String?                                LogfileReloadSearchPattern   = null)
+
+
+                => HTTPAPI.AddEventSource<JObject>(
+                       EventSourceId:    EventSourceId,
+                       MaxNumberOfCachedEvents:      MaxNumberOfCachedEvents,
+                       RetryInterval:                RetryInterval,
+                       DataSerializer:               json => json.ToString(Newtonsoft.Json.Formatting.None),
+                       DataDeserializer:             null,
+                       EnableLogging:                EnableLogging,
+                       LogfilePath:                  LogfilePath,
+                       LogfilePrefix:                LogfilePrefix,
+                       LogfileName:                  LogfileName,
+                       LogfileReloadSearchPattern:   LogfileReloadSearchPattern
+                   );
+
+        #endregion
+
+        #region MapJSONEventSource(this HTTPAPI, EventSource, ...)
+
+        public static Boolean
+
+            MapJSONEventSource(this HTTPAPIX                       HTTPAPI,
+                               IHTTPEventSource                    EventSource,
+                               HTTPPath                            URLTemplate,
+
+                               Func<HTTPEvent<JObject>, Boolean>?  IncludeFilterAtRuntime     = null,
+
+                               HTTPHostname?                       Hostname                   = null,
+                               HTTPMethod?                         HttpMethod                 = null,
+                               HTTPContentType?                    HTTPContentType            = null,
+
+                               Boolean                             RequireAuthentication      = true,
+                               HTTPAuthentication?                 URLAuthentication          = null,
+                               HTTPAuthentication?                 HTTPMethodAuthentication   = null,
+
+                               HTTPDelegate?                       DefaultErrorHandler        = null)
+
+
+                => HTTPAPI.MapEventSource<JObject>(
+
+                       EventSource,
+                       URLTemplate,
+
+                       IncludeFilterAtRuntime,
+
+                       Hostname,
+                       HttpMethod,
+                       HTTPContentType,
+
+                       RequireAuthentication,
+                       URLAuthentication,
+                       HTTPMethodAuthentication,
+
+                       DefaultErrorHandler
+
+                   );
+
+        #endregion
 
     }
 
@@ -1993,47 +2070,47 @@ Error:
 
 
 
-        //#region Get   (EventSourceIdentification)
+        //#region Get   (EventSourceId)
 
         ///// <summary>
         ///// Return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        //public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
+        //public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceId)
 
-        //    => HTTPServer.Get(EventSourceIdentification);
+        //    => HTTPServer.Get(EventSourceId);
 
 
         ///// <summary>
         ///// Return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        //public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
+        //public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceId)
 
-        //    => HTTPServer.Get<TData>(EventSourceIdentification);
+        //    => HTTPServer.Get<TData>(EventSourceId);
 
         //#endregion
 
-        //#region TryGet(EventSourceIdentification, out EventSource)
+        //#region TryGet(EventSourceId, out EventSource)
 
         ///// <summary>
         ///// Return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
         ///// <param name="EventSource">The event source.</param>
-        //public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
+        //public Boolean TryGet(HTTPEventSource_Id EventSourceId, out IHTTPEventSource? EventSource)
 
-        //    => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+        //    => HTTPServer.TryGet(EventSourceId, out EventSource);
 
 
         ///// <summary>
         ///// Return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
         ///// <param name="EventSource">The event source.</param>
-        //public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
+        //public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceId, out IHTTPEventSource<TData>? EventSource)
 
-        //    => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+        //    => HTTPServer.TryGet(EventSourceId, out EventSource);
 
         //#endregion
 
@@ -2063,12 +2140,12 @@ Error:
 
         #region HTTP Server Sent Events
 
-        #region AddEventSource      (EventSourceIdentification, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
+        #region AddEventSource      (EventSourceId, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
         /// </summary>
-        /// <param name="EventSourceIdentification">The unique identification of the event source.</param>
+        /// <param name="EventSourceId">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryInterval ">The retry interval.</param>
         /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
@@ -2077,7 +2154,7 @@ Error:
         /// <param name="LogfilePrefix">The prefix of the logfile names.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventSourceIdentification,
+        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventSourceId,
                                                     UInt32                                 MaxNumberOfCachedEvents      = 500,
                                                     TimeSpan?                              RetryInterval                = null,
                                                     Func<T, String>?                       DataSerializer               = null,
@@ -2091,9 +2168,9 @@ Error:
         {
 
             var result = eventSources.TryAdd(
-                             EventSourceIdentification,
+                             EventSourceId,
                              new HTTPEventSource<T>(
-                                 EventSourceIdentification,
+                                 EventSourceId,
                                  this,
                                  MaxNumberOfCachedEvents,
                                  RetryInterval ,
@@ -2107,22 +2184,22 @@ Error:
                                                                                         time.Year, "-", time.Month.ToString("D2"),
                                                                                         ".log"))
                                      : null,
-                                 LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventSourceIdentification, "_*.log")
+                                 LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventSourceId, "_*.log")
                              )
                          );
 
-            return (HTTPEventSource<T>) eventSources[EventSourceIdentification];
+            return (HTTPEventSource<T>) eventSources[EventSourceId];
 
         }
 
         #endregion
 
-        #region MapEventSource      (EventSourceIdentification, URLTemplate, RetryInterval  = null, ...)
+        #region MapEventSource      (EventSource, URLTemplate, RetryInterval  = null, ...)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
         /// </summary>
-        /// <param name="EventSourceIdentification">The unique identification of the event source.</param>
+        /// <param name="EventSource">The event source.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// 
         /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
@@ -2135,7 +2212,7 @@ Error:
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public Boolean MapEventSource<T>(HTTPEventSource_Id            EventSourceIdentification,
+        public Boolean MapEventSource<T>(IHTTPEventSource              EventSource,
                                          HTTPPath                      URLTemplate,
 
                                          Func<HTTPEvent<T>, Boolean>?  IncludeFilterAtRuntime     = null,
@@ -2152,7 +2229,7 @@ Error:
 
         {
 
-            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource) &&
+            if (eventSources.TryGetValue(EventSource.Id, out var httpEventSource) &&
                 httpEventSource is IHTTPEventSource<T> eventSource)
             {
 
@@ -2237,16 +2314,16 @@ Error:
         #endregion
 
 
-        #region GetEventSource      (EventSourceIdentification)
+        #region GetEventSource      (EventSourceId)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource? GetEventSource(HTTPEventSource_Id EventSourceIdentification)
+        /// <param name="EventSourceId">A string to identify an event source.</param>
+        public IHTTPEventSource? GetEventSource(HTTPEventSource_Id EventSourceId)
         {
 
-            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+            if (eventSources.TryGetValue(EventSourceId, out var httpEventSource))
                 return httpEventSource;
 
             return null;
@@ -2257,11 +2334,11 @@ Error:
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource<TData>? GetEventSource<TData>(HTTPEventSource_Id EventSourceIdentification)
+        /// <param name="EventSourceId">A string to identify an event source.</param>
+        public IHTTPEventSource<TData>? GetEventSource<TData>(HTTPEventSource_Id EventSourceId)
         {
 
-            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+            if (eventSources.TryGetValue(EventSourceId, out var httpEventSource))
                 return httpEventSource as IHTTPEventSource<TData>;
 
             return null;
@@ -2270,35 +2347,35 @@ Error:
 
         #endregion
 
-        #region TryGetEventSource   (EventSourceIdentification, out EventSource)
+        #region TryGetEventSource   (EventSourceId, out EventSource)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        /// <param name="EventSourceId">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGetEventSource(HTTPEventSource_Id                         EventSourceIdentification,
+        public Boolean TryGetEventSource(HTTPEventSource_Id                         EventSourceId,
                                          [NotNullWhen(true)] out IHTTPEventSource?  EventSource)
 
             => eventSources.TryGetValue(
-                   EventSourceIdentification,
+                   EventSourceId,
                    out EventSource
                );
 
         #endregion
 
-        #region TryGetEventSourceOf (EventSourceIdentification, out EventSource)
+        #region TryGetEventSourceOf (EventSourceId, out EventSource)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        /// <param name="EventSourceId">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGetEventSourceOf<TData>(HTTPEventSource_Id                                EventSourceIdentification,
+        public Boolean TryGetEventSourceOf<TData>(HTTPEventSource_Id                                EventSourceId,
                                                   [NotNullWhen(true)] out IHTTPEventSource<TData>?  EventSource)
         {
 
-            if (eventSources.TryGetValue(EventSourceIdentification, out var eventSource) &&
+            if (eventSources.TryGetValue(EventSourceId, out var eventSource) &&
                 eventSource is IHTTPEventSource<TData> eventSourceTData)
             {
                 EventSource = eventSourceTData;

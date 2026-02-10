@@ -336,11 +336,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        #region AddHTTPAPI(Path = null, Hostname = null, HTTPAPICreator = null)
+        #region AddHTTPAPI(Path = null, Hostname = null, HTTPAPICreator = null, HTTPAPIConfigurator = null)
 
-        public HTTPAPIX AddHTTPAPI(HTTPPath?                                   Path             = null,
-                                   HTTPHostname?                               Hostname         = null,
-                                   Func<HTTPTestServerX, HTTPPath, HTTPAPIX>?  HTTPAPICreator   = null)
+        public HTTPAPIX AddHTTPAPI(HTTPPath?                                   Path                  = null,
+                                   HTTPHostname?                               Hostname              = null,
+                                   Func<HTTPTestServerX, HTTPPath, HTTPAPIX>?  HTTPAPICreator        = null,
+                                   Action<HTTPAPIX>?                           HTTPAPIConfigurator   = null)
         {
 
             var path        = Path                               ?? HTTPPath.Root;
@@ -349,6 +350,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                         this,
                                                                         RootPath: path
                                                                     );
+            HTTPAPIConfigurator?.Invoke(httpAPI);
+
 
             var routeNode1  = routeNodes.GetOrAdd(
                                   hostname,

@@ -340,31 +340,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// <summary>
         ///// Return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        //IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification);
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
+        //IHTTPEventSource? Get(HTTPEventSource_Id EventSourceId);
 
         ///// <summary>
         ///// Return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        //IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification);
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
+        //IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceId);
 
 
 
         ///// <summary>
         ///// Try to return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
         ///// <param name="EventSource">The event source.</param>
-        //Boolean TryGet(HTTPEventSource_Id     EventSourceIdentification,
+        //Boolean TryGet(HTTPEventSource_Id     EventSourceId,
         //               out IHTTPEventSource?  EventSource);
 
         ///// <summary>
         ///// Try to return the event source identified by the given event source identification.
         ///// </summary>
-        ///// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        ///// <param name="EventSourceId">A string to identify an event source.</param>
         ///// <param name="EventSource">The event source.</param>
-        //Boolean TryGet<TData>(HTTPEventSource_Id            EventSourceIdentification,
+        //Boolean TryGet<TData>(HTTPEventSource_Id            EventSourceId,
         //                      out IHTTPEventSource<TData>?  EventSource);
 
 
