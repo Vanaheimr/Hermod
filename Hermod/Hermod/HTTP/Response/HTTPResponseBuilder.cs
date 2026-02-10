@@ -219,6 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Keep-Alive
             /// </summary>
+            [Obsolete("The 'Keep-Alive' header field is deprecated since HTTP/1.1 and should no longer be used!")]
             public KeepAliveType? KeepAlive
             {
 
