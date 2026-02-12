@@ -918,6 +918,125 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+        public static async Task<List<HTTPEvent<JObject>>> ParseHTTPResponseStream(HTTPResponse       HTTPResponse,
+                                                                                   TimeSpan?          lineTimeout       = null,
+                                                                                   CancellationToken  cancellationToken = default)
+        {
+
+            if (HTTPResponse?.HTTPBodyStream is null)
+                return [];
+
+            var reader = new StreamReader(HTTPResponse.HTTPBodyStream);
+
+            if (!lineTimeout.HasValue)
+                lineTimeout = TimeSpan.FromSeconds(120);
+
+            var events        = new List<HTTPEvent<JObject>>();
+            var currentEvent  = new HTTPEvent<JObject>.EventBuilder();
+            var isData        = false;
+
+            string? line;
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    line = await reader.ReadLineWithTimeoutAsync(lineTimeout.Value, cancellationToken);
+                }
+                catch (TimeoutException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    // Loggen oder werfen – hier einfach abbrechen
+                    Console.Error.WriteLine($"Fehler beim Lesen: {ex.Message}");
+                    break;
+                }
+
+                if (line is null)
+                {
+                    // Stream-Ende
+                    break;
+                }
+
+                line = line.TrimEnd('\r', '\n');
+
+                // Leere Zeile → Event abschließen
+                if (string.IsNullOrEmpty(line))
+                {
+                    if (currentEvent.IsValid())
+                    {
+                        var parsedEvent = currentEvent.Build(JObject.Parse);
+                        if (parsedEvent is not null)
+                        {
+                            events.Add(parsedEvent);
+                        }
+                    }
+                    currentEvent.Reset();
+                    isData = false;
+                    continue;
+                }
+
+                if (isData)
+                {
+                    currentEvent.AppendData(line);
+                    continue;
+                }
+
+                // Kommentar ignorieren
+                if (line.StartsWith(":"))
+                    continue;
+
+                // Feld parsen
+                var colonIndex = line.IndexOf(':');
+                if (colonIndex < 0)
+                    continue; // ungültige Zeile
+
+                var field = line[..colonIndex].Trim();
+                var value = line[(colonIndex + 1)..].TrimStart();
+
+                switch (field.ToLowerInvariant())
+                {
+
+                    case "event":
+                        currentEvent.Subevent = value;
+                        break;
+
+                    case "id":
+                        if (ulong.TryParse(value, out var id))
+                            currentEvent.Id = id;
+                        break;
+
+                    case "data":
+                        isData = true;
+                        currentEvent.AppendData(value);
+                        break;
+
+                    case "retry":
+                        // Optional: currentEvent.RetryMs = int.Parse(value);
+                        break;
+
+                }
+            }
+
+            // Letztes Event (falls kein abschließendes Leerzeichen)
+            if (currentEvent.IsValid())
+            {
+                var lastEvent = currentEvent.Build(JObject.Parse);
+                if (lastEvent is not null)
+                    events.Add(lastEvent);
+            }
+
+            return events;
+
+        }
+
+
+
         #region (override) ToString()
 
         /// <summary>

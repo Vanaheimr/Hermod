@@ -243,14 +243,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AppendToLogfile    (this Response, Logfilename)
 
+
+        private static readonly SemaphoreSlim appendToLogfileSemaphore = new (1, 1);
+
+        /// <summary>
+        /// Append the given HTTP response to the given log file.
+        /// </summary>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="Logfilename">The log file name, e.g. "HTTPResponses.log".</param>
         public static async Task AppendToLogfile(this HTTPResponse  Response,
                                                  String             Logfilename)
         {
 
-            await File.AppendAllTextAsync(
-                      Logfilename,
-                      CreateLogEntry(Response) + Environment.NewLine
-                  );
+            await appendToLogfileSemaphore.WaitAsync(TimeSpan.FromSeconds(5));
+
+            try
+            {
+
+                await File.AppendAllTextAsync(
+                          Logfilename,
+                          CreateLogEntry(Response) + Environment.NewLine
+                      );
+
+            }
+            catch (Exception e)
+            {
+                DebugX.LogException(e, $"{nameof(HTTPResponse)}.{nameof(AppendToLogfile)}({Logfilename}, ...)");
+            }
+            finally
+            {
+                appendToLogfileSemaphore.Release();
+            }
 
         }
 
@@ -1628,178 +1651,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return Task.FromResult<IEnumerable<(String, String)>>([]);
 
         }
-
-        private class EventBuilder
-        {
-
-            public UInt64?       Id           { get; set; }
-            public String?       Subevent     { get; set; }
-            public List<String>  DataLines    { get; } = [];
-
-            public void AppendData(String line)
-            {
-                DataLines.Add(line);
-            }
-
-            public void Reset()
-            {
-                Id        = null;
-                Subevent  = null;
-                DataLines.Clear();
-            }
-
-            public Boolean IsValid()
-            {
-                return Id.HasValue && DataLines.Count > 0;
-            }
-
-            public HTTPEvent<T>? Build<T>(Func<String, T> Parser)
-            {
-
-                if (!Id.HasValue || DataLines.Count == 0)
-                    return null;
-
-                try
-                {
-
-                    var serializedData = String.Join("\n", DataLines);
-
-                    return new HTTPEvent<T>(
-                               Id:                Id.Value,
-                               Subevent:          Subevent ?? "message",
-                               Data:              Parser(serializedData),
-                               SerializedHeader:  $"event: {Subevent ?? "message"}\nid: {Id}",
-                               SerializedData:    serializedData
-                           );
-
-                }
-                catch
-                {
-                    return null;
-                }
-
-            }
-
-        }
-
-
-        public async Task<List<HTTPEvent<JObject>>> ParseHTTPSSE(TimeSpan?          lineTimeout       = null,
-                                                                 CancellationToken  cancellationToken = default)
-        {
-
-            if (HTTPBodyStream is null)
-                return [];
-
-            var reader = new StreamReader(HTTPBodyStream);
-
-            if (!lineTimeout.HasValue)
-                lineTimeout = TimeSpan.FromSeconds(120);
-
-            var events        = new List<HTTPEvent<JObject>>();
-            var currentEvent  = new EventBuilder();
-            var isData        = false;
-
-            string? line;
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                try
-                {
-                    line = await reader.ReadLineWithTimeoutAsync(lineTimeout.Value, cancellationToken);
-                }
-                catch (TimeoutException)
-                {
-                    break;
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    // Loggen oder werfen – hier einfach abbrechen
-                    Console.Error.WriteLine($"Fehler beim Lesen: {ex.Message}");
-                    break;
-                }
-
-                if (line is null)
-                {
-                    // Stream-Ende
-                    break;
-                }
-
-                line = line.TrimEnd('\r', '\n');
-
-                // Leere Zeile → Event abschließen
-                if (string.IsNullOrEmpty(line))
-                {
-                    if (currentEvent.IsValid())
-                    {
-                        var parsedEvent = currentEvent.Build(JObject.Parse);
-                        if (parsedEvent is not null)
-                        {
-                            events.Add(parsedEvent);
-                        }
-                    }
-                    currentEvent.Reset();
-                    isData = false;
-                    continue;
-                }
-
-                if (isData)
-                {
-                    currentEvent.AppendData(line);
-                    continue;
-                }
-
-                // Kommentar ignorieren
-                if (line.StartsWith(":"))
-                    continue;
-
-                // Feld parsen
-                var colonIndex = line.IndexOf(':');
-                if (colonIndex < 0)
-                    continue; // ungültige Zeile
-
-                var field = line[..colonIndex].Trim();
-                var value = line[(colonIndex + 1)..].TrimStart();
-
-                switch (field.ToLowerInvariant())
-                {
-
-                    case "event":
-                        currentEvent.Subevent = value;
-                        break;
-
-                    case "id":
-                        if (ulong.TryParse(value, out var id))
-                            currentEvent.Id = id;
-                        break;
-
-                    case "data":
-                        isData = true;
-                        currentEvent.AppendData(value);
-                        break;
-
-                    case "retry":
-                        // Optional: currentEvent.RetryMs = int.Parse(value);
-                        break;
-
-                }
-            }
-
-            // Letztes Event (falls kein abschließendes Leerzeichen)
-            if (currentEvent.IsValid())
-            {
-                var lastEvent = currentEvent.Build(JObject.Parse);
-                if (lastEvent is not null)
-                    events.Add(lastEvent);
-            }
-
-            return events;
-
-        }
-
-
 
         public JObject ToJSON()
         {

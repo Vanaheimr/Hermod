@@ -405,6 +405,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+
+        public class EventBuilder
+        {
+
+            public UInt64?       Id           { get; set; }
+            public String?       Subevent     { get; set; }
+            public List<String>  DataLines    { get; } = [];
+
+            public void AppendData(String line)
+            {
+                DataLines.Add(line);
+            }
+
+            public void Reset()
+            {
+                Id        = null;
+                Subevent  = null;
+                DataLines.Clear();
+            }
+
+            public Boolean IsValid()
+            {
+                return Id.HasValue && DataLines.Count > 0;
+            }
+
+            public HTTPEvent<T>? Build<T>(Func<String, T> Parser)
+            {
+
+                if (!Id.HasValue || DataLines.Count == 0)
+                    return null;
+
+                try
+                {
+
+                    var serializedData = String.Join("\n", DataLines);
+
+                    return new HTTPEvent<T>(
+                               Id:                Id.Value,
+                               Subevent:          Subevent ?? "message",
+                               Data:              Parser(serializedData),
+                               SerializedHeader:  $"event: {Subevent ?? "message"}\nid: {Id}",
+                               SerializedData:    serializedData
+                           );
+
+                }
+                catch
+                {
+                    return null;
+                }
+
+            }
+
+        }
+
     }
 
 }

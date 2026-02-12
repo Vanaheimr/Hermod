@@ -2184,7 +2184,7 @@ Error:
                                                                                         time.Year, "-", time.Month.ToString("D2"),
                                                                                         ".log"))
                                      : null,
-                                 LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventSourceId, "_*.log")
+                                 LogfileReloadSearchPattern ?? String.Concat(EventSourceId, "_*.log")
                              )
                          );
 

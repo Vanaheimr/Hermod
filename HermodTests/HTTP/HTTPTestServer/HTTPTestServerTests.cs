@@ -1213,7 +1213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var aa = sse1.NumberOfConnectedClients;
 
-                var eventList     = await httpResponse.ParseHTTPSSE(
+                var eventList     = await HTTPEventSource<JObject>.ParseHTTPResponseStream(
+                                              httpResponse,
                                               TimeSpan.FromSeconds(5),
                                               httpResponse.CancellationToken
                                           );
@@ -1310,7 +1311,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.That(httpResponse,  Is.Not.Null, "httpResponse1 must not be null!");
 
-                var eventList     = await httpResponse.ParseHTTPSSE(
+                var eventList     = await HTTPEventSource<JObject>.ParseHTTPResponseStream(
+                                              httpResponse,
                                               TimeSpan.FromSeconds(5),
                                               httpResponse.CancellationToken
                                           );
@@ -1341,7 +1343,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.That(httpResponse,  Is.Not.Null, "httpResponse2 must not be null!");
 
-                var eventList     = await httpResponse.ParseHTTPSSE(
+                var eventList     = await HTTPEventSource<JObject>.ParseHTTPResponseStream(
+                                              httpResponse,
                                               TimeSpan.FromSeconds(5),
                                               httpResponse.CancellationToken
                                           );
@@ -1441,7 +1444,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     Assert.That(httpResponse,  Is.Not.Null, "httpResponse1 must not be null!");
 
-                    return await httpResponse.ParseHTTPSSE(
+                    return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
+                                     httpResponse,
                                      TimeSpan.FromSeconds(15),
                                      httpResponse.CancellationToken
                                  );
@@ -1475,7 +1479,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     Assert.That(httpResponse,  Is.Not.Null, "httpResponse2 must not be null!");
 
-                    return await httpResponse.ParseHTTPSSE(
+                    return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
+                                     httpResponse,
                                      TimeSpan.FromSeconds(15),
                                      httpResponse.CancellationToken
                                  );
@@ -1511,7 +1516,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     Assert.That(httpResponse,  Is.Not.Null, "httpResponse3 must not be null!");
 
-                    return await httpResponse.ParseHTTPSSE(
+                    return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
+                                     httpResponse,
                                      TimeSpan.FromSeconds(15),
                                      httpResponse.CancellationToken
                                  );
@@ -1547,7 +1553,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     Assert.That(httpResponse,  Is.Not.Null, "httpResponse4 must not be null!");
 
-                    return await httpResponse.ParseHTTPSSE(
+                    return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
+                                     httpResponse,
                                      TimeSpan.FromSeconds(15),
                                      httpResponse.CancellationToken
                                  );
