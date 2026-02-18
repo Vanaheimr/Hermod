@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EnableLogging">Whether to enable event logging.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource(HTTPEventSource_Id                     EventIdentification,
+        public HTTPEventSource(HTTPEventSource_Id                     Id,
                                HTTPAPIX                               HTTPAPIX,
                                UInt32                                 MaxNumberOfCachedEvents      = 500,
                                TimeSpan?                              RetryInterval                = null,
@@ -397,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             );
 
             this.HTTPAPIX                 = HTTPAPIX;
-            this.Id      = EventIdentification;
+            this.Id                       = Id;
             this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
             this.RetryInterval            = RetryInterval    ?? TimeSpan.FromSeconds(30);
             this.DataSerializer           = DataSerializer   ?? (data => data?.ToString() ?? "");

@@ -59,19 +59,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this identification is null or empty.
         /// </summary>
-        public Boolean IsNullOrEmpty
+        public Boolean    IsNullOrEmpty
             => URL.IsNullOrEmpty() && Path.IsNullOrEmpty();
 
         /// <summary>
         /// Indicates whether this identification is NOT null or empty.
         /// </summary>
-        public Boolean IsNotNullOrEmpty
+        public Boolean    IsNotNullOrEmpty
             => URL.IsNotNullOrEmpty() && Path.IsNotNullOrEmpty();
 
         /// <summary>
         /// The length of the location.
         /// </summary>
-        public UInt64 Length
+        public UInt64     Length
             => URL?.Length ?? Path?.Length ?? 0;
 
         public URL?       URL     { get; }
@@ -111,7 +111,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) From(URL)
+        #region (static) Empty
+
+        /// <summary>
+        /// An empty HTTP Location.
+        /// </summary>
+        public static Location  Empty    { get; }
+            = Parse("/");
+
+        #endregion
+
+        #region (static) From (URL)
 
         /// <summary>
         /// Convert the given HTTP URL into a HTTP Location.
@@ -123,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) From(Path)
+        #region (static) From (Path)
 
         /// <summary>
         /// Convert the given HTTP Path into a HTTP Location.
@@ -131,12 +141,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An HTTP Path.</param>
         public static Location From(HTTPPath Path)
 
-            => new(Path);
+            => new (Path);
 
         #endregion
 
 
-        #region (static) Parse   (Text)
+        #region (static) Parse    (Text)
 
         /// <summary>
         /// Parse the given string as a HTTP Location.
@@ -155,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text)
+        #region (static) TryParse (Text)
 
         /// <summary>
         /// Try to parse the given text as a HTTP Location.
@@ -173,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text, out URL)
+        #region (static) TryParse (Text, out Location)
 
         /// <summary>
         /// Try to parse the given text as a HTTP Location.
