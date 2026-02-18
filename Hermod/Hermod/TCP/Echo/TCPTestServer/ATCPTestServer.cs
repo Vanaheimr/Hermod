@@ -739,9 +739,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     catch (Exception)
                     { }
 
-                    await Log($"Closed connection {Connection.ConnectionId}");
+                    //await Log($"Closed connection {Connection.ConnectionId}");
 
-                    DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
+                    //DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
 
                     await LogEvent(
                               OnTCPConnectionClosed,

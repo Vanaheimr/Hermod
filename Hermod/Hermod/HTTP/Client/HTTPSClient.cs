@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="Authentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
                            SslStreamCertificateContext?                               ClientCertificateContext     = null,
                            IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
-                           SslProtocols?                                              TLSProtocol                  = null,
+                           SslProtocols?                                              TLSProtocols                 = null,
                            HTTPContentType?                                           ContentType                  = null,
                            AcceptTypes?                                               Accept                       = null,
                            IHTTPAuthentication?                                       Authentication               = null,
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ClientCertificates,
                    ClientCertificateContext,
                    ClientCertificateChain,
-                   TLSProtocol,
+                   TLSProtocols,
                    ContentType,
                    Accept,
                    Authentication,
@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
                            SslStreamCertificateContext?                               ClientCertificateContext     = null,
                            IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
-                           SslProtocols?                                              TLSProtocol                  = null,
+                           SslProtocols?                                              TLSProtocols                 = null,
                            HTTPContentType?                                           ContentType                  = null,
                            AcceptTypes?                                               Accept                       = null,
                            IHTTPAuthentication?                                       Authentication               = null,
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ClientCertificates,
                    ClientCertificateContext,
                    ClientCertificateChain,
-                   TLSProtocol,
+                   TLSProtocols,
                    ContentType,
                    Accept,
                    Authentication,
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="Authentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
                            SslStreamCertificateContext?                               ClientCertificateContext     = null,
                            IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
-                           SslProtocols?                                              TLSProtocol                  = null,
+                           SslProtocols?                                              TLSProtocols                 = null,
                            HTTPContentType?                                           ContentType                  = null,
                            AcceptTypes?                                               Accept                       = null,
                            IHTTPAuthentication?                                       Authentication               = null,
@@ -278,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ClientCertificates,
                    ClientCertificateContext,
                    ClientCertificateChain,
-                   TLSProtocol,
+                   TLSProtocols,
                    ContentType,
                    Accept,
                    Authentication,
@@ -311,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="Authentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
                            SslStreamCertificateContext?                               ClientCertificateContext     = null,
                            IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
-                           SslProtocols?                                              TLSProtocol                  = null,
+                           SslProtocols?                                              TLSProtocols                 = null,
                            HTTPContentType?                                           ContentType                  = null,
                            AcceptTypes?                                               Accept                       = null,
                            IHTTPAuthentication?                                       Authentication               = null,
@@ -360,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ClientCertificates,
                    ClientCertificateContext,
                    ClientCertificateChain,
-                   TLSProtocol,
+                   TLSProtocols,
                    ContentType,
                    Accept,
                    Authentication,
