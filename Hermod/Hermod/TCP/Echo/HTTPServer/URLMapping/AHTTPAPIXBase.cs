@@ -163,10 +163,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             this.DisableLogging      = DisableLogging ?? false;
 
-            this.LoggingPath         = LoggingPath    ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath);
+            this.LoggingPath         = LoggingPath    ?? Path.Combine(
+                                                             AppContext.BaseDirectory,
+                                                             DefaultHTTPAPI_LoggingPath
+                                                         );
 
             if (this.LoggingPath[^1] != Path.DirectorySeparatorChar)
                 this.LoggingPath += Path.DirectorySeparatorChar;
+
+            if (this.LoggingPath.IsNotNullOrEmpty())
+                Directory.CreateDirectory(this.LoggingPath);
 
             this.LoggingContext      = LoggingContext ?? DefaultLoggingContext;
             this.LogfileName         = LogfileName    ?? DefaultHTTPAPI_LogfileName;
