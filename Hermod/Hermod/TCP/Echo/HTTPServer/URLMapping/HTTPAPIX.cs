@@ -23,6 +23,7 @@ using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
 
@@ -34,7 +35,6 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using System.Diagnostics.CodeAnalysis;
 
 #endregion 
 
@@ -1380,7 +1380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 }
             }
 
-            if (segments.Length > 1)
+            if (routeNode is not null && segments.Length > 1)
             {
 
                 for (var i = 1; i < segments.Length; i++)
