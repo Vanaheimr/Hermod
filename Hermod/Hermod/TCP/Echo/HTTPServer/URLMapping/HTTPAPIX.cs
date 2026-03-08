@@ -917,10 +917,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                         Boolean?                       IsDevelopment             = null,
                         IEnumerable<String>?           DevelopmentServers        = null,
-                        Boolean?                       DisableLogging            = false,
-                        String?                        LoggingPath               = DefaultHTTPAPI_LoggingPath,
-                        String?                        LoggingContext            = DefaultLoggingContext,
-                        String?                        LogfileName               = DefaultHTTPAPI_LogfileName,
+                        Boolean?                       DisableLogging            = null,
+                        String?                        LoggingPath               = null,
+                        String?                        LoggingContext            = null,
+                        String?                        LogfileName               = null,
                         LogfileCreatorDelegate?        LogfileCreator            = null)
 
             : base(Description ?? I18NString.Create(nameof(HTTPAPIX)),
