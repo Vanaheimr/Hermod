@@ -13,3 +13,12 @@
 **/bin
 [Oo]bj/
 [Bb]in/
+
+
+*.js
+*.js.map
+
+# ------------------------------------------------------------------------
+
+!Hermod/Hermod/HTTP/HTTPAPI/HTTPRoot/js/
+!Hermod/Hermod/HTTP/HTTPAPI/HTTPRoot/js/**

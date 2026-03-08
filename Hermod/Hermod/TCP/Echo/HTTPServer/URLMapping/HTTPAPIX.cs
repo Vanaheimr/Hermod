@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region WhenAny    (ServerTimestamp, HTTPAPI, Request,               Timeout = null)
+        #region WhenAny     (ServerTimestamp, HTTPAPI, Request,               Timeout = null)
 
         /// <summary>
         /// Call all subscribers in parallel and wait for any to complete.
@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, VerifyResult, Timeout = null, DefaultResult = null)
+        #region WhenFirst   (ServerTimestamp, HTTPAPI, Request, VerifyResult, Timeout = null, DefaultResult = null)
 
         /// <summary>
         /// Call all subscribers in parallel and wait for all to complete.
@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        #region WhenAll    (ServerTimestamp, HTTPAPI, Request)
+        #region WhenAll     (ServerTimestamp, HTTPAPI, Request)
 
         /// <summary>
         /// Call all subscribers in parallel and wait for all to complete.
