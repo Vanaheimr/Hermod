@@ -62,16 +62,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      HTTPPath?                BasePath             = null,
 
                                      String?                  ExternalDNSName      = null,
-                                     String?                  HTTPServerName       = DefaultHTTPServerName,
-                                     String?                  HTTPServiceName      = DefaultHTTPServiceName,
+                                     String?                  HTTPServerName       = null,
+                                     String?                  HTTPServiceName      = null,
                                      String?                  APIVersionHash       = null,
                                      JObject?                 APIVersionHashes     = null,
 
-                                     Boolean?                 IsDevelopment        = false,
+                                     Boolean?                 IsDevelopment        = null,
                                      IEnumerable<String>?     DevelopmentServers   = null,
-                                     Boolean?                 DisableLogging       = false,
+                                     Boolean?                 DisableLogging       = null,
                                      String?                  LoggingPath          = null,
-                                     String?                  LogfileName          = DefaultHTTPAPI_LogfileName,
+                                     String?                  LogfileName          = null,
                                      LogfileCreatorDelegate?  LogfileCreator       = null)
 
             : base(Description,
