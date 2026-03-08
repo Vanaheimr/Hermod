@@ -30,6 +30,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Net.Sockets;
 
 #endregion
 
@@ -1217,10 +1218,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         }
                         catch (Exception ex)
                         {
-                            await Log($"Error in SendRequest: {ex.Message}");
-                            DebugX.LogException(ex, nameof(AHTTPTestClient) + "." + nameof(SendRequest));
+
+                            // Persistend HTTP connection was probably just closed...
+                            if (retry > 1 || ex.InnerException is not SocketException)
+                            {
+                                await Log($"Error in SendRequest: {ex.Message}");
+                                DebugX.LogException(ex, nameof(AHTTPTestClient) + "." + nameof(SendRequest));
+                            }
+
                             IsHTTPConnected = false;
                             retry++;
+
                         }
                         finally
                         {
