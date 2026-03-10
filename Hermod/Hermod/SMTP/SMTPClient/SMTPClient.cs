@@ -781,7 +781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             #region Send OnSendEMailResponse event
 
-            var endtime = Timestamp.Now;
+            var endTime = Timestamp.Now;
 
             try
             {
@@ -789,13 +789,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (OnSendEMailResponse is not null)
                     await Task.WhenAll(OnSendEMailResponse.GetInvocationList().
                                        Cast<OnSendEMailResponseDelegate>().
-                                       Select(e => e(endtime,
+                                       Select(e => e(endTime,
                                                      this,
                                                      eventTrackingId,
                                                      EMailEnvelop,
                                                      RequestTimeout,
                                                      result,
-                                                     endtime - startTime))).
+                                                     endTime - startTime))).
                                        ConfigureAwait(false);
 
             }

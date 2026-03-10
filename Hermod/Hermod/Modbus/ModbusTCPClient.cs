@@ -633,7 +633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             #region Send OnReadHoldingRegistersResponse event
 
-            var endtime = Timestamp.Now;
+            var endTime = Timestamp.Now;
 
             try
             {
@@ -641,13 +641,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 if (OnReadHoldingRegistersResponse is not null)
                     await Task.WhenAll(OnReadHoldingRegistersResponse.GetInvocationList().
                                        Cast<ReadHoldingRegistersClientResponseDelegate>().
-                                       Select(e => e(endtime,
+                                       Select(e => e(endTime,
                                                      this,
                                                      RemoteTCPSocket ?? IPSocket.AnyV4(RemoteTCPPort),
                                                      "",
                                                      request,
                                                      response,
-                                                     endtime - startTime))).
+                                                     endTime - startTime))).
                                        ConfigureAwait(false);
 
             }
