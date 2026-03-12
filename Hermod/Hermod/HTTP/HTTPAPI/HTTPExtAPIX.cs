@@ -24,6 +24,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 using Newtonsoft.Json.Linq;
 
@@ -59,6 +60,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     ///// <param name="Password">The password to check.</param>
     ///// <returns>A quality metric for the given password.</returns>
     //public delegate Single PasswordQualityCheckDelegate(String Password);
+
+    public enum ServiceSettings
+    {
+        Disabled,
+        Open,
+        RequiresAuthentication
+    }
 
 
     /// <summary>
@@ -1171,6 +1179,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         }
 
         #endregion
+
+
+        #region MapJSONEventSource(this HTTPAPI, EventSource, ...)
+
+        public static Boolean
+
+            MapJSONEventSource(this HTTPExtAPIX                    HTTPAPI,
+                               IHTTPEventSource                    EventSource,
+                               HTTPPath                            URLTemplate,
+                               Boolean                             RequireAuthentication,
+
+                               Func<HTTPEvent<JObject>, Boolean>?  IncludeFilterAtRuntime     = null,
+
+                               HTTPHostname?                       Hostname                   = null,
+                               HTTPMethod?                         HttpMethod                 = null,
+                               HTTPContentType?                    HTTPContentType            = null,
+
+                               HTTPAuthentication?                 URLAuthentication          = null,
+                               HTTPAuthentication?                 HTTPMethodAuthentication   = null,
+
+                               HTTPDelegate?                       DefaultErrorHandler        = null)
+
+
+                => HTTPAPI.MapEventSource<JObject>(
+
+                       EventSource,
+                       URLTemplate,
+                       RequireAuthentication,
+
+                       IncludeFilterAtRuntime,
+
+                       Hostname,
+                       HttpMethod,
+                       HTTPContentType,
+
+                       URLAuthentication,
+                       HTTPMethodAuthentication,
+
+                       DefaultErrorHandler
+
+                   );
+
+        #endregion
+
 
     }
 
@@ -3630,6 +3682,153 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
+
+        #region MapEventSource      (EventSource, URLTemplate, RequireAuthentication, ...)
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
+        /// </summary>
+        /// <param name="EventSource">The event source.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// 
+        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
+        /// 
+        /// <param name="Hostname">The HTTP host.</param>
+        /// <param name="HttpMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// 
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// 
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        public Boolean MapEventSource<T>(IHTTPEventSource              EventSource,
+                                         HTTPPath                      URLTemplate,
+                                         Boolean                       RequireAuthentication,
+
+                                         Func<HTTPEvent<T>, Boolean>?  IncludeFilterAtRuntime     = null,
+
+                                         HTTPHostname?                 Hostname                   = null,
+                                         HTTPMethod?                   HttpMethod                 = null,
+                                         HTTPContentType?              HTTPContentType            = null,
+
+                                         HTTPAuthentication?           URLAuthentication          = null,
+                                         HTTPAuthentication?           HTTPMethodAuthentication   = null,
+
+                                         HTTPDelegate?                 DefaultErrorHandler        = null)
+
+        {
+
+            if (eventSources.TryGetValue(EventSource.Id, out var httpEventSource) &&
+                httpEventSource is IHTTPEventSource<T> eventSource)
+            {
+
+                IncludeFilterAtRuntime ??= httpEvent => true;
+
+                AddHandler(
+
+                    HttpMethod      ?? HTTPMethod.GET,
+                    URLTemplate,
+                    HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+
+                    async request => {
+
+                        #region Check authentication
+
+                        if (RequireAuthentication &&
+                            request.User == null)
+                        {
+
+                            return new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                       Server                     = HTTPServerName,
+                                       Date                       = Timestamp.Now,
+                                       AccessControlAllowOrigin   = "*",
+                                       AccessControlAllowMethods  = [ "GET" ],
+                                       AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                       Connection                 = ConnectionType.Close,
+                                       Vary                       = "Accept"
+                                   }.AsImmutable;
+
+                        }
+
+                        #endregion
+
+
+                        return new HTTPResponse.Builder(request) {
+
+                                   HTTPStatusCode            = HTTPStatusCode.OK,
+                                   Server                    = HTTPServer.HTTPServerName,
+                                   ContentType               = HTTPContentType.Text.EVENTSTREAM,
+                                   CacheControl              = "no-cache",
+                                   Connection                = ConnectionType.KeepAlive,
+                                   AccessControlAllowOrigin  = "*",
+
+                                   // As it is an obsolete HTTP/1.0 header, we do not set the "Keep-Alive" header.
+                                   //KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval.TotalSeconds)),
+
+                                   // We DO NOT follow the default behavior of the web server/framework for SSE streaming responses to
+                                   // enable "Transfer-Encoding: chunked" automagically, just because some old web servers/frameworks
+                                   // will buffer the whole response. If you experience such problems, please enable chunked transfer
+                                   // encoding or adapt your middleware to support streaming responses.
+                                   //TransferEncoding          = "chunked",
+
+                                   HTTPSSEWorker             = async (response, stream) => {
+
+                                                                   try
+                                                                   {
+
+                                                                       // A stream identification to allow server-side filtering of events for this stream.
+                                                                       // By default the remote socket is used as stream identification.
+                                                                       var streamId = request.QueryString.GetString("streamId")?.URLDecode();
+
+                                                                       await stream.WriteAsync("retry: ");
+                                                                       await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
+                                                                       await stream.WriteAsync("\n\n");
+
+                                                                       await foreach (var httpEvent in eventSource.GetAllEventsGreater(
+                                                                                                           streamId ?? request.RemoteSocket.ToString(),
+                                                                                                           request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
+                                                                                                           request.CancellationToken
+                                                                                                       ).Where(IncludeFilterAtRuntime))
+                                                                       {
+                                                                           await stream.WriteAsync(httpEvent.SerializedHeader);
+                                                                           await stream.WriteAsync(httpEvent.SerializedData);
+                                                                           await stream.WriteAsync("\n\n");
+                                                                           await stream.FlushAsync(request.CancellationToken);
+                                                                       }
+
+                                                                   }
+
+                                                                   // Connection might be closed by the client while waiting for new events,
+                                                                   // so we catch ObjectDisposedException here to unsubscribe the client.
+                                                                   catch (ObjectDisposedException) {
+                                                                       await eventSource.Unsubscribe(request.RemoteSocket.ToString());
+                                                                   }
+
+                                                                   catch (Exception e) {
+                                                                       await HandleErrors(
+                                                                           nameof(MapEventSource),
+                                                                           e
+                                                                       );
+                                                                   }
+
+                                                               }
+
+                               }.AsImmutable;
+
+                    }
+
+                );
+
+                return true;
+
+            }
+
+            return false;
+
+        }
+
+        #endregion
 
 
         #region (private) RegisterURLTemplates()
@@ -29307,6 +29506,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             return null;
 
         }
+
+        #endregion
+
+
+
+        #region (private)  LogEvent     (Logger, LogHandler, ...)
+
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                         [CallerMemberName()]                       String  Command     = "")
+
+            where TDelegate : Delegate
+
+            => LogEvent(
+                   nameof(HTTPAPIX),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   Command
+               );
+
+        #endregion
+
+        #region (private)  HandleErrors (Caller, ExceptionOccurred)
+
+        private Task HandleErrors(String     Caller,
+                                  Exception  ExceptionOccurred)
+
+            => HandleErrors(
+                   nameof(HTTPAPIX),
+                   Caller,
+                   ExceptionOccurred
+               );
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   Hostnames.Any()
+                       ? $" ({Hostnames.AggregateCSV()})"
+                       : String.Empty,
+
+                   RootPath,
+
+                   HTTPContentTypes.Any()
+                       ? $" ({HTTPContentTypes.AggregateCSV()})"
+                       : String.Empty
+
+               );
 
         #endregion
 

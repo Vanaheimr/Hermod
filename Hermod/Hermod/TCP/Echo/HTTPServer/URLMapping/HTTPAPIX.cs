@@ -735,10 +735,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public  const    String                                                      HTTPRoot       = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public    const    String                                                      HTTPRoot       = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
-        private readonly ConcurrentDictionary<String, PathNode>                      routeNodes     = [];
-        private readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources   = [];
+        private   readonly ConcurrentDictionary<String, PathNode>                      routeNodes     = [];
+        protected readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources   = [];
 
         #endregion
 
@@ -884,9 +884,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         public ServiceCheckKeys?             ServiceCheckKeys            { get; }
 
-    //    public ECPrivateKeyParameters?       ServiceCheckPrivateKey      { get; set; }
-
-    //    public ECPublicKeyParameters?        ServiceCheckPublicKey       { get; set; }
         public System_Id?                    SystemId                    { get; set; }
 
 

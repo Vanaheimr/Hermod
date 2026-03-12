@@ -596,7 +596,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    URLTemplate,
                                    Hostname:               Hostname,
                                    RequireAuthentication:  RequireAuthentication
-
                                );
 
             return result;
