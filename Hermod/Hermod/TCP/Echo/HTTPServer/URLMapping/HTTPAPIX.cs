@@ -2266,12 +2266,16 @@ Error:
                                                             try
                                                             {
 
+                                                                // A stream identification to allow server-side filtering of events for this stream.
+                                                                // By default the remote socket is used as stream identification.
+                                                                var streamId = request.QueryString.GetString("streamId")?.URLDecode();
+
                                                                 await stream.WriteAsync("retry: ");
                                                                 await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
                                                                 await stream.WriteAsync("\n\n");
 
                                                                 await foreach (var httpEvent in eventSource.GetAllEventsGreater(
-                                                                                                    request.RemoteSocket.ToString(),
+                                                                                                    streamId ?? request.RemoteSocket.ToString(),
                                                                                                     request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
                                                                                                     request.CancellationToken
                                                                                                 ).Where(IncludeFilterAtRuntime))

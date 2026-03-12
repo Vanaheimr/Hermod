@@ -153,10 +153,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Date            = Timestamp.Now,
                                CacheControl    = "public, max-age=300",
                                //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                               KeepAlive       = new KeepAliveType(
-                                                     TimeSpan.FromMinutes(15),
-                                                     500
-                                                 ),
+                               //KeepAlive       = new KeepAliveType(
+                               //                      TimeSpan.FromMinutes(15),
+                               //                      500
+                               //                  ),
                                Connection      = ConnectionType.KeepAlive,
                            }.AsImmutable;
 
