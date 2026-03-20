@@ -54,8 +54,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => HTTPEventSource.SubmitEvent(
                    SubEvent,
                    Timestamp.Now,
-                   new JObject(
-                       new JProperty("httpRequest", HTTPRequest.EntirePDU)
+                   JSONObject.Create(
+                       new JProperty("timestamp",        HTTPRequest.Timestamp),
+                       new JProperty("eventTrackingId",  HTTPRequest.EventTrackingId),
+                       new JProperty("httpRequest",      HTTPRequest.EntirePDU)
                    ),
                    CancellationToken
                );
@@ -77,8 +79,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => HTTPEventSource.SubmitEvent(
                    SubEvent,
                    Timestamp.Now,
-                   new JObject(
-                       new JProperty("httpRequest", HTTPResponse.EntirePDU)
+                   JSONObject.Create(
+                       new JProperty("timestamp",        HTTPResponse.Timestamp),
+                       new JProperty("eventTrackingId",  HTTPResponse.EventTrackingId),
+                       new JProperty("httpRequest",      HTTPResponse.EntirePDU)
                    ),
                    CancellationToken
                );
