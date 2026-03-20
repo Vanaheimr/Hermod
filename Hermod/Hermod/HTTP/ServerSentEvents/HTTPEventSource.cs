@@ -55,8 +55,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    SubEvent,
                    Timestamp.Now,
                    JSONObject.Create(
-                       new JProperty("timestamp",        HTTPRequest.Timestamp),
-                       new JProperty("eventTrackingId",  HTTPRequest.EventTrackingId),
+                       new JProperty("timestamp",        HTTPRequest.Timestamp.      ToISO8601()),
+                       new JProperty("eventTrackingId",  HTTPRequest.EventTrackingId.ToString()),
                        new JProperty("httpRequest",      HTTPRequest.EntirePDU)
                    ),
                    CancellationToken
@@ -80,8 +80,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    SubEvent,
                    Timestamp.Now,
                    JSONObject.Create(
-                       new JProperty("timestamp",        HTTPResponse.Timestamp),
-                       new JProperty("eventTrackingId",  HTTPResponse.EventTrackingId),
+                       new JProperty("timestamp",        HTTPResponse.Timestamp.      ToISO8601()),
+                       new JProperty("eventTrackingId",  HTTPResponse.EventTrackingId.ToString()),
                        new JProperty("httpRequest",      HTTPResponse.EntirePDU)
                    ),
                    CancellationToken
