@@ -1329,23 +1329,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region (internal) GetRequestHandle(Path)
 
-        internal ParsedRequest2 GetRequestHandle(HTTPPath  Path)
+        internal ParsedRequest2 GetRequestHandle(HTTPPath Path)
         {
 
             // https://datatracker.ietf.org/doc/html/rfc3986#section-2.4
             // ...parsed and separated before the percent-encoded octets
             // within those components can be safely decoded...
             // "//" => "/" as most implementations do
-            var segments    = Path.ToString().Trim   ('/').
-                                              Split  ('/', StringSplitOptions.RemoveEmptyEntries).
-                                              Select (s => s.URLDecode()).
-                                              ToArray();
+            var segments     = Path.ToString().Trim   ('/').
+                                               Split  ('/', StringSplitOptions.RemoveEmptyEntries).
+                                               Select (s => s.URLDecode()).
+                                               ToArray();
 
-            var parameters  = new Dictionary<String, String>();
+            var parameters   = new Dictionary<String, String>();
 
-            var pathSegment = segments[0].Trim();
-            if (pathSegment.IsNullOrEmpty())
-                pathSegment = "/";
+            var pathSegment  = segments.Length > 0 && !segments[0].IsNullOrWhiteSpace()
+                                   ? segments[0].Trim()
+                                   : "/";
 
             if (!routeNodes.TryGetValue(pathSegment, out var routeNode))
             {
