@@ -1335,7 +1335,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             // https://datatracker.ietf.org/doc/html/rfc3986#section-2.4
             // ...parsed and separated before the percent-encoded octets
             // within those components can be safely decoded...
-            var segments    = Path.ToString().Trim('/').Split('/').Select(s => s.URLDecode()).ToArray();
+            // "//" => "/" as most implementations do
+            var segments    = Path.ToString().Trim   ('/').
+                                              Split  ('/', StringSplitOptions.RemoveEmptyEntries).
+                                              Select (s => s.URLDecode()).
+                                              ToArray();
+
             var parameters  = new Dictionary<String, String>();
 
             var pathSegment = segments[0].Trim();
