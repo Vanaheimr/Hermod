@@ -35,8 +35,6 @@
     <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.ttf" />
     <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.woff2" />
     <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\js\date.format.js" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\ts\date.format.js" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\ts\date.format.js.map" />
     <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\ts\date.format.ts" />
   </ItemGroup>
 
