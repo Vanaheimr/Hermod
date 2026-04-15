@@ -31,9 +31,14 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
-    #region (class) HTTPClientConnectTimings
+    public sealed record ConnectResult(Boolean                  Success,
+                                       IReadOnlyList<String>    Errors    = null!,
+                                       TCPClientConnectTimings  Timings   = null!);
 
-    public class HTTPClientConnectTimings
+
+    #region (class) TCPClientConnectTimings
+
+    public class TCPClientConnectTimings
     {
 
         public TimeSpan               Elapsed
@@ -50,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Byte                   RestartCounter          { get; internal set; }
 
 
-        public HTTPClientConnectTimings()
+        public TCPClientConnectTimings()
         {
 
             this.Start         = Timestamp.Now;
@@ -94,9 +99,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     {
 
         #region Data
-
-        protected static readonly Byte[]                   endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
-        protected const           Byte                     endOfHTTPHeaderDelimiterLength   = 4;
 
         public static readonly    TimeSpan                 DefaultConnectTimeout            = TimeSpan.FromSeconds(5);
         public static readonly    TimeSpan                 DefaultReceiveTimeout            = TimeSpan.FromSeconds(5);
@@ -428,7 +430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            var timings = new HTTPClientConnectTimings();
+            var timings = new TCPClientConnectTimings();
 
             try
             {
@@ -543,22 +545,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         DebugX.LogT(   $"A{(PreferIPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
                         DebugX.LogT($"AAAA{(PreferIPv4 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
 
-                        if (PreferIPv4)
-                        {
-                            if (ipv6AddressLookupTask.Result.Any())
-                                RemoteIPAddress = ipv6AddressLookupTask.Result.First();
+                        //if (PreferIPv4)
+                        //{
+                        //    if (ipv6AddressLookupTask.Result.Any())
+                        //        RemoteIPAddress = ipv6AddressLookupTask.Result.First();
 
-                            if (ipv4AddressLookupTask.Result.Any())
-                                RemoteIPAddress = ipv4AddressLookupTask.Result.First();
-                        }
-                        else
-                        {
-                            if (ipv4AddressLookupTask.Result.Any())
-                                RemoteIPAddress = ipv4AddressLookupTask.Result.First();
+                        //    if (ipv4AddressLookupTask.Result.Any())
+                        //        RemoteIPAddress = ipv4AddressLookupTask.Result.First();
+                        //}
+                        //else
+                        //{
+                        //    if (ipv4AddressLookupTask.Result.Any())
+                        //        RemoteIPAddress = ipv4AddressLookupTask.Result.First();
 
-                            if (ipv6AddressLookupTask.Result.Any())
-                                RemoteIPAddress = ipv6AddressLookupTask.Result.First();
-                        }
+                        //    if (ipv6AddressLookupTask.Result.Any())
+                        //        RemoteIPAddress = ipv6AddressLookupTask.Result.First();
+                        //}
+                        RemoteIPAddress = PreferIPv4
+                                              ? (IIPAddress) ipv4AddressLookupTask.Result.FirstOrDefault() ?? ipv6AddressLookupTask.Result.FirstOrDefault()
+                                              : (IIPAddress) ipv6AddressLookupTask.Result.FirstOrDefault() ?? ipv4AddressLookupTask.Result.FirstOrDefault();
 
                         timings.DNSLookup = timings.Elapsed;
 

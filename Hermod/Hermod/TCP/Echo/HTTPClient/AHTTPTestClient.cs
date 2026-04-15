@@ -19,8 +19,9 @@
 
 using System.Text;
 using System.Buffers;
-using System.Diagnostics;
+using System.Net.Sockets;
 using System.Net.Security;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -30,7 +31,6 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Net.Sockets;
 
 #endregion
 
@@ -334,6 +334,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     {
 
         #region Data
+
+        protected static readonly Byte[]                   endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
+        protected const           Byte                     endOfHTTPHeaderDelimiterLength   = 4;
+
 
         private readonly  SemaphoreSlim  sendRequestSemaphore = new (1, 1);
 

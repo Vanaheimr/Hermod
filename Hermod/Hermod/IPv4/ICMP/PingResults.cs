@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <summary>
         /// The average round trip time.
         /// </summary>
-        public TimeSpan                 Avg                { get; }
+        public TimeSpan                 Mean               { get; }
 
         /// <summary>
         /// The standard deviation of the round trip time.
@@ -104,9 +104,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
             var goodResults       = PingResults.Where(failure => failure.Error == ICMPErrors.Success).ToArray();
 
-            var average           = goodResults.Any()
-                                        ? goodResults.Select(result => result.Runtime.TotalMilliseconds).AverageAndStdDev()
-                                        : new Tuple<Double, Double>(Timeout.TotalMilliseconds, 0);
+            var average           = goodResults.Length > 0
+                                        ?     StdDev<Double>.From(goodResults.Select(result => result.Runtime.TotalMilliseconds))
+                                        : new StdDev<Double>     (Timeout.TotalMilliseconds, 0);
 
             var commonError       = ICMPErrors.Mixed;
 
@@ -120,8 +120,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             this.Paketloss        = Math.Round(100 - 100 * ((Double) NumberOfReplies) / Results.Count(), 0);
             this.Success          = goodResults.Length == PingResults.Count();
             this.Min              = goodResults.Any() ? TimeSpan.FromMilliseconds(goodResults.Select(pingResult => pingResult.Runtime.TotalMilliseconds).Min()) : Timeout;
-            this.Avg              = TimeSpan.FromMilliseconds(average.Item1);
-            this.StdDev           = average.Item2;
+            this.Mean             = TimeSpan.FromMilliseconds(average.Mean);
+            this.StdDev           = average.StandardDeviation;
             this.Max              = goodResults.Any() ? TimeSpan.FromMilliseconds(goodResults.Select(pingResult => pingResult.Runtime.TotalMilliseconds).Max()) : Timeout;
             this.Timeout          = Timeout;
             this.Runtime          = Runtime;
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                     ? String.Concat(" (", Paketloss, "% ", NumberOfReplies, "/", Results, "): ")
                                     : ": ",
                                 "Min: ", Math.Round(Min.TotalMilliseconds, 0), ", ",
-                                "Avg: ", Math.Round(Avg.TotalMilliseconds, 0), " (StdDev: ", Math.Round(StdDev, 2), "), ",
+                                "Avg: ", Math.Round(Mean.TotalMilliseconds, 0), " (StdDev: ", Math.Round(StdDev, 2), "), ",
                                 "Max: ", Math.Round(Max.TotalMilliseconds, 0));
 
         #endregion
