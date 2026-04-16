@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        Boolean                                                    PreferIPv4                    { get; }
+        IPVersionPreference                                        PreferIPv4                    { get; }
 
         /// <summary>
         /// An optional HTTP content type.

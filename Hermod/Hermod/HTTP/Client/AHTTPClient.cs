@@ -244,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public Boolean                                                    PreferIPv4                    { get; }
+        public IPVersionPreference                                        PreferIPv4                    { get; }
 
         /// <summary>
         /// An optional HTTP content type.
@@ -598,7 +598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected AHTTPClient(URL                                                        RemoteURL,
                               HTTPHostname?                                              VirtualHostname              = null,
                               I18NString?                                                Description                  = null,
-                              Boolean?                                                   PreferIPv4                   = null,
+                              IPVersionPreference?                                       PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
                               IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
@@ -624,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteURL                   = RemoteURL;
             this.VirtualHostname             = VirtualHostname;
             this.Description                 = Description            ?? I18NString.Empty;
-            this.PreferIPv4                  = PreferIPv4             ?? false;
+            this.PreferIPv4                  = PreferIPv4             ?? IPVersionPreference.None;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCertificates          = ClientCertificates     ?? [];
@@ -1052,7 +1052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    IPv6AddressLookupTask).
                                            ConfigureAwait(false);
 
-                                if (PreferIPv4)
+                                if (PreferIPv4 == IPVersionPreference.IPv4)
                                 {
                                     if (IPv6AddressLookupTask.Result.Any())
                                         RemoteIPAddress = IPv6AddressLookupTask.Result.First();

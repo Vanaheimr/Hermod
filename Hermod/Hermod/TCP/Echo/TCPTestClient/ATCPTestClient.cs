@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -31,9 +30,9 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
-    public sealed record ConnectResult(Boolean                  Success,
-                                       IReadOnlyList<String>    Errors    = null!,
-                                       TCPClientConnectTimings  Timings   = null!);
+    public sealed record TCPConnectionResult(Boolean                  Success,
+                                             IReadOnlyList<String>    Errors    = null!,
+                                             TCPClientConnectTimings  Timings   = null!);
 
 
     #region (class) TCPClientConnectTimings
@@ -86,6 +85,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     "RestartCounter: ",       RestartCounter - 1,                                                                  " > "
                 );
 
+    }
+
+    #endregion
+
+    #region (enum)  IPVersionPreference
+
+    public enum IPVersionPreference
+    {
+        None,
+        IPv4,
+        IPv6
     }
 
     #endregion
@@ -195,7 +205,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         public  URL                             RemoteURL                 { get; }
-        public  IIPAddress?                     RemoteIPAddress           { get; private   set; }
+        public  IIPAddress?                     RemoteIPAddress           { get; private set; }
+        public  List<IIPAddress>                RemoteIPAddresses         { get; } = [];
         public  IPPort?                         RemotePort                { get; protected set; }
 
 
@@ -220,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public  Boolean                         PreferIPv4                { get; }
+        public  IPVersionPreference             PreferIPv4                { get; }
         public  TimeSpan                        ConnectTimeout            { get; }
         public  TimeSpan                        ReceiveTimeout            { get; }
         public  TimeSpan                        SendTimeout               { get; }
@@ -246,7 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (private)   ATCPTestClient(...)
 
         private ATCPTestClient(I18NString?                      Description              = null,
-                               Boolean?                         PreferIPv4               = null,
+                               IPVersionPreference?             PreferIPv4               = null,
                                TimeSpan?                        ConnectTimeout           = null,
                                TimeSpan?                        ReceiveTimeout           = null,
                                TimeSpan?                        SendTimeout              = null,
@@ -266,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
             this.Description                    = Description            ?? I18NString.Empty;
-            this.PreferIPv4                     = PreferIPv4             ?? false;
+            this.PreferIPv4                     = PreferIPv4             ?? IPVersionPreference.None;
             this.BufferSize                     = BufferSize.HasValue
                                                       ? BufferSize.Value > Int32.MaxValue
                                                             ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
@@ -289,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPTestClient(IIPAddress                       IPAddress,
                                  IPPort                           TCPPort,
                                  I18NString?                      Description              = null,
-                                 Boolean?                         PreferIPv4               = null,
+                                 IPVersionPreference?             PreferIPv4               = null,
                                  TimeSpan?                        ConnectTimeout           = null,
                                  TimeSpan?                        ReceiveTimeout           = null,
                                  TimeSpan?                        SendTimeout              = null,
@@ -308,13 +319,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemotePort       = TCPPort;
-            this.RemoteIPAddress  = IPAddress;
+            this.RemotePort         = TCPPort;
+            this.RemoteIPAddresses  = [ IPAddress ];
 
-            this.RemoteSocket     = new IPSocket(
-                                        RemoteIPAddress,
-                                        TCPPort
-                                    );
+            this.RemoteSocket       = new IPSocket(
+                                          IPAddress,
+                                          TCPPort
+                                      );
 
         }
 
@@ -325,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPTestClient(URL                              URL,
                                  SRV_Spec?                        DNSService               = null,
                                  I18NString?                      Description              = null,
-                                 Boolean?                         PreferIPv4               = null,
+                                 IPVersionPreference?             PreferIPv4               = null,
                                  TimeSpan?                        ConnectTimeout           = null,
                                  TimeSpan?                        ReceiveTimeout           = null,
                                  TimeSpan?                        SendTimeout              = null,
@@ -358,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPTestClient(DomainName                       DomainName,
                                  SRV_Spec                         DNSService,
                                  I18NString?                      Description              = null,
-                                 Boolean?                         PreferIPv4               = null,
+                                 IPVersionPreference?             PreferIPv4               = null,
                                  TimeSpan?                        ConnectTimeout           = null,
                                  TimeSpan?                        ReceiveTimeout           = null,
                                  TimeSpan?                        SendTimeout              = null,
@@ -391,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync(CancellationToken = default)
 
-        public virtual async Task<(Boolean, List<String>)>
+        public virtual async Task<TCPConnectionResult>
 
             ReconnectAsync(CancellationToken CancellationToken = default)
 
@@ -424,7 +435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected virtual async Task<(Boolean, List<String>)>
+        protected virtual async Task<TCPConnectionResult>
 
             ConnectAsync(CancellationToken CancellationToken = default)
 
@@ -446,24 +457,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #region Localhost / URL looks like an IP address...
 
                     if      (IPAddress.IsIPv4Localhost(hostname))
-                        RemoteIPAddress = IPv4Address.Localhost;
+                        RemoteIPAddresses.Add(IPv4Address.Localhost);
 
                     else if (IPAddress.IsIPv6Localhost(hostname))
-                        RemoteIPAddress = IPv6Address.Localhost;
+                        RemoteIPAddresses.Add(IPv6Address.Localhost);
 
                     else if (IPAddress.IsIPv4(hostname))
-                        RemoteIPAddress = IPv4Address.Parse(hostname);
+                        RemoteIPAddresses.Add(IPv4Address.Parse(hostname));
 
                     else if (IPAddress.IsIPv6(hostname))
-                        RemoteIPAddress = IPv6Address.Parse(hostname);
+                        RemoteIPAddresses.Add(IPv6Address.Parse(hostname));
 
                     #endregion
 
                     #region DNS SRV    lookups...
 
-                    if (RemoteIPAddress is null &&
-                        DNSClient       is not null &&
-                        DNSService.IsNotNullOrEmpty())
+                    if (RemoteIPAddresses.IsNullOrEmpty() &&
+                        DNSClient         is not null     &&
+                        DNSService.       IsNotNullOrEmpty())
                     {
 
                         DebugX.LogT($"DNS SRV queries for '{DNSService}.{hostname}'...");
@@ -514,8 +525,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     #region DNS A/AAAA lookups...
 
-                    if (RemoteIPAddress is null &&
-                        DNSClient       is not null)
+                    if (RemoteIPAddresses.IsNullOrEmpty() &&
+                        DNSClient         is not null)
                     {
 
                         var remote = dnsSRVRemoteHost ?? DomainName.Parse(hostname);
@@ -542,28 +553,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   ipv6AddressLookupTask
                               ).ConfigureAwait(false);
 
-                        DebugX.LogT(   $"A{(PreferIPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
-                        DebugX.LogT($"AAAA{(PreferIPv4 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
+                        DebugX.LogT(   $"A{(PreferIPv4 == IPVersionPreference.IPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
+                        DebugX.LogT($"AAAA{(PreferIPv4 == IPVersionPreference.IPv6 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
 
-                        //if (PreferIPv4)
-                        //{
-                        //    if (ipv6AddressLookupTask.Result.Any())
-                        //        RemoteIPAddress = ipv6AddressLookupTask.Result.First();
+                        if (ipv4AddressLookupTask.Result.Any())
+                            RemoteIPAddresses.AddRange(ipv4AddressLookupTask.Result.Cast<IIPAddress>());
 
-                        //    if (ipv4AddressLookupTask.Result.Any())
-                        //        RemoteIPAddress = ipv4AddressLookupTask.Result.First();
-                        //}
-                        //else
-                        //{
-                        //    if (ipv4AddressLookupTask.Result.Any())
-                        //        RemoteIPAddress = ipv4AddressLookupTask.Result.First();
-
-                        //    if (ipv6AddressLookupTask.Result.Any())
-                        //        RemoteIPAddress = ipv6AddressLookupTask.Result.First();
-                        //}
-                        RemoteIPAddress = PreferIPv4
-                                              ? (IIPAddress) ipv4AddressLookupTask.Result.FirstOrDefault() ?? ipv6AddressLookupTask.Result.FirstOrDefault()
-                                              : (IIPAddress) ipv6AddressLookupTask.Result.FirstOrDefault() ?? ipv4AddressLookupTask.Result.FirstOrDefault();
+                        if (ipv6AddressLookupTask.Result.Any())
+                            RemoteIPAddresses.AddRange(ipv6AddressLookupTask.Result.Cast<IIPAddress>());
 
                         timings.DNSLookup = timings.Elapsed;
 
@@ -573,13 +570,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 }
 
-                if (RemoteIPAddress is not null)
+                if (RemoteIPAddresses.IsNullOrEmpty())
                 {
 
                     var remotePort   = RemoteURL.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
-                        return (false, new List<String>() { "The remote TCP port must not be null!" });
+                        return new TCPConnectionResult(false, [ "The remote TCP port must not be null!" ]);
 
                     RemotePort     ??= remotePort;
 
@@ -607,6 +604,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     try
                     {
 
+                        RemoteIPAddress  = PreferIPv4 switch {
+                                               IPVersionPreference.IPv4  => RemoteIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement(),
+                                               IPVersionPreference.IPv6  => RemoteIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement(),
+                                               _                         => RemoteIPAddresses.GetRandomElement()
+                                           } ?? RemoteIPAddresses.GetRandomElement();
+
                         var connectTask  = tcpClient.ConnectAsync(
                                                RemoteIPAddress. ToDotNet(),
                                                remotePort.Value.ToUInt16(),
@@ -627,7 +630,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     }
                     catch (OperationCanceledException)
                     {
-                        return (false, new List<String>() { "Connection timeout!" });
+                        RemoteIPAddresses.Clear();
+                        return new TCPConnectionResult(false, [ "Connection timeout!" ]);
                     }
                     finally
                     {
@@ -637,7 +641,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     }
 
                     if (!tcpClient.Connected)
-                        return (false, new List<String>() { $"Error connecting {nameof(ATCPTestClient)}" });
+                    {
+                        RemoteIPAddresses.Clear();
+                        return new TCPConnectionResult(false, [ $"Error connecting {nameof(ATCPTestClient)}" ]);
+                    }
 
                     var localEndpoint = tcpClient.Client.LocalEndPoint;
                     if (localEndpoint is not null)
@@ -658,15 +665,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
 
                 else
-                    return (false, new List<String>() { "The remote IP address must not be null!" });
+                    return new TCPConnectionResult(false, [ "The remote IP address must not be null!" ]);
 
             }
             catch (Exception ex)
             {
-                return (false, new List<String>() { $"Error connecting {nameof(ATCPTestClient)}: {ex.Message}" });
+                RemoteIPAddresses.Clear();
+                return new TCPConnectionResult(false, [ $"Error connecting {nameof(ATCPTestClient)}: {ex.Message}" ]);
             }
 
-            return (true, []);
+            return new TCPConnectionResult(true, []);
 
         }
 
@@ -840,7 +848,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
-            RemoteIPAddress = null;
+            RemoteIPAddresses.Clear();
             clientCancellationTokenSource.Cancel();
 
         }

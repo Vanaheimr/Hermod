@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  Boolean?                                                      AllowRenegotiation               = null,
                                  Boolean?                                                      AllowTLSResume                   = null,
 
-                                 Boolean?                                                      PreferIPv4                       = null,
+                                 IPVersionPreference?                                          PreferIPv4                       = null,
                                  TimeSpan?                                                     ConnectTimeout                   = null,
                                  TimeSpan?                                                     ReceiveTimeout                   = null,
                                  TimeSpan?                                                     SendTimeout                      = null,
@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  Boolean?                                                      AllowRenegotiation               = null,
                                  Boolean?                                                      AllowTLSResume                   = null,
 
-                                 Boolean?                                                      PreferIPv4                       = null,
+                                 IPVersionPreference?                                          PreferIPv4                       = null,
                                  TimeSpan?                                                     ConnectTimeout                   = null,
                                  TimeSpan?                                                     ReceiveTimeout                   = null,
                                  TimeSpan?                                                     SendTimeout                      = null,
@@ -211,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  Boolean?                                                      AllowRenegotiation               = null,
                                  Boolean?                                                      AllowTLSResume                   = null,
 
-                                 Boolean?                                                      PreferIPv4                       = null,
+                                 IPVersionPreference?                                          PreferIPv4                       = null,
                                  TimeSpan?                                                     ConnectTimeout                   = null,
                                  TimeSpan?                                                     ReceiveTimeout                   = null,
                                  TimeSpan?                                                     SendTimeout                      = null,
@@ -258,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync(CancellationToken = default)
 
-        public override async Task<(Boolean, List<String>)>
+        public override async Task<TCPConnectionResult>
 
             ReconnectAsync(CancellationToken CancellationToken = default)
 
@@ -272,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected override async Task<(Boolean, List<String>)>
+        protected override async Task<TCPConnectionResult>
 
             ConnectAsync(CancellationToken CancellationToken = default)
 
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response = await base.ConnectAsync(CancellationToken);
 
-            if (!response.Item1)
+            if (!response.Success)
                 return response;
 
             if (EnforceTLS ||
@@ -291,8 +291,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 var startTLSResult = await StartTLS(CancellationToken);
 
-                if (startTLSResult.Item1 == false)
+                if (startTLSResult.Success == false)
                 {
+                    this.RemoteIPAddresses.Clear();
                     await Log("StartTLS failed, closing the entire TCP connection!");
                     await Close();
                 }
@@ -309,17 +310,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) StartTLS(CancellationToken = default)
 
-        protected async Task<(Boolean, List<String>)>
+        protected async Task<TCPConnectionResult>
 
             StartTLS(CancellationToken CancellationToken = default)
 
         {
 
             if (tcpClient is null)
-                return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpClient)} is null!" });
+                return new TCPConnectionResult(false, [ $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpClient)} is null!" ]);
 
             if (RemoteCertificateValidator is null)
-                return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidator)} is null!" });
+                return new TCPConnectionResult(false, [ $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidator)} is null!" ]);
 
             var remoteCertificateValidationErrors = new List<String>();
 
@@ -329,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 var tcpStream = tcpClient.GetStream();
 
                 if (tcpStream is null)
-                    return (false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!" });
+                    return new TCPConnectionResult(false, new List<String>() { $"{nameof(ATLSTestClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!" });
 
                 tlsStream = new SslStream(
                                 tcpStream,
@@ -433,11 +434,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (remoteCertificateValidationErrors.Count > 0)
                     errors.AddRange($"Remote Certificate Validation Errors: {remoteCertificateValidationErrors.AggregateWith(", ")}");
 
-                return (false, errors);
+                return new TCPConnectionResult(false, errors);
 
             }
 
-            return (true, []);
+            return new TCPConnectionResult(true, []);
 
         }
 

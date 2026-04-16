@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                         RecursionDesired         = null,
                             TimeSpan?                        QueryTimeout             = null,
 
-                            Boolean?                         PreferIPv4               = null,
+                            IPVersionPreference?             PreferIPv4               = null,
                             TimeSpan?                        ConnectTimeout           = null,
                             TimeSpan?                        ReceiveTimeout           = null,
                             TimeSpan?                        SendTimeout              = null,

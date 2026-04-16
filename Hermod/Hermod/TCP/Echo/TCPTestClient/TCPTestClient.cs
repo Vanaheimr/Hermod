@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IPPort                           TCPPort,
                               I18NString?                      Description              = null,
 
-                              Boolean?                         PreferIPv4               = null,
+                              IPVersionPreference?             PreferIPv4               = null,
                               TimeSpan?                        ConnectTimeout           = null,
                               TimeSpan?                        ReceiveTimeout           = null,
                               TimeSpan?                        SendTimeout              = null,
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             ConnectNew(IPPort                           TCPPort,
                        I18NString?                      Description              = null,
 
-                       Boolean?                         PreferIPv4               = null,
+                       IPVersionPreference?             PreferIPv4               = null,
                        TimeSpan?                        ConnectTimeout           = null,
                        TimeSpan?                        ReceiveTimeout           = null,
                        TimeSpan?                        SendTimeout              = null,
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        IPPort                           TCPPort,
                        I18NString?                      Description              = null,
 
-                       Boolean?                         PreferIPv4               = null,
+                       IPVersionPreference?             PreferIPv4               = null,
                        TimeSpan?                        ConnectTimeout           = null,
                        TimeSpan?                        ReceiveTimeout           = null,
                        TimeSpan?                        SendTimeout              = null,
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ConnectAsync()
 
-        public async Task<(Boolean, List<String>)> ConnectAsync()
+        public async Task<TCPConnectionResult> ConnectAsync()
         {
 
             return await base.ConnectAsync();

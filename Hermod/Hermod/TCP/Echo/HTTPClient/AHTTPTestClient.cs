@@ -432,7 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   Boolean?                                                       AllowTLSResume                        = null,
                                   TOTPConfig?                                                    TOTPConfig                            = null,
 
-                                  Boolean?                                                       PreferIPv4                            = null,
+                                  IPVersionPreference?                                           PreferIPv4                            = null,
                                   TimeSpan?                                                      ConnectTimeout                        = null,
                                   TimeSpan?                                                      ReceiveTimeout                        = null,
                                   TimeSpan?                                                      SendTimeout                           = null,
@@ -535,7 +535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   Boolean?                                                       AllowTLSResume                        = null,
                                   TOTPConfig?                                                    TOTPConfig                            = null,
 
-                                  Boolean?                                                       PreferIPv4                            = null,
+                                  IPVersionPreference?                                           PreferIPv4                            = null,
                                   TimeSpan?                                                      ConnectTimeout                        = null,
                                   TimeSpan?                                                      ReceiveTimeout                        = null,
                                   TimeSpan?                                                      SendTimeout                           = null,
@@ -639,7 +639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   Boolean?                                                       AllowTLSResume                        = null,
                                   TOTPConfig?                                                    TOTPConfig                            = null,
 
-                                  Boolean?                                                       PreferIPv4                            = null,
+                                  IPVersionPreference?                                           PreferIPv4                            = null,
                                   TimeSpan?                                                      ConnectTimeout                        = null,
                                   TimeSpan?                                                      ReceiveTimeout                        = null,
                                   TimeSpan?                                                      SendTimeout                           = null,
@@ -722,7 +722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync()
 
-        public async Task<(Boolean, List<String>)> ReconnectAsync()
+        public async Task<TCPConnectionResult> ReconnectAsync()
         {
 
             return await base.ReconnectAsync();
@@ -733,7 +733,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected override async Task<(Boolean, List<String>)>
+        protected override async Task<TCPConnectionResult>
 
             ConnectAsync(CancellationToken CancellationToken = default)
 
@@ -741,7 +741,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response = await base.ConnectAsync(CancellationToken);
 
-            if (!response.Item1)
+            if (!response.Success)
                 return response;
 
             httpStream = tcpClient?.GetStream();
@@ -751,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
 
                 if (tlsStream is null || tlsStream.IsAuthenticated == false)
-                    return (false, new List<string>() { "TLS Authentication failed!" });
+                    return new TCPConnectionResult(false, [ "TLS Authentication failed!" ]);
 
                 httpStream = tlsStream;
 
@@ -931,10 +931,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 var connectionResult = await ReconnectAsync();
 
-                                if (!connectionResult.Item1)
+                                if (!connectionResult.Success)
                                 {
-                                    await Log($"Error in SendRequest: {connectionResult.Item2.AggregateWith(", ")}");
-                                    DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: {connectionResult.Item2.AggregateWith(", ")}");
+                                    await Log($"Error in SendRequest: {connectionResult.Errors.AggregateWith(", ")}");
+                                    DebugX.LogT($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)}: {connectionResult.Errors.AggregateWith(", ")}");
                                     IsHTTPConnected = false;
                                     retry++;
                                     continue;

@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public Boolean                                                         PreferIPv4                                { get; }
+        public IPVersionPreference                                             PreferIPv4                                { get; }
 
         /// <summary>
         /// An optional HTTP content type.
@@ -417,7 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketClient(URL                                                             RemoteURL,
                                HTTPHostname?                                                   VirtualHostname              = null,
                                I18NString?                                                     Description                  = null,
-                               Boolean?                                                        PreferIPv4                   = null,
+                               IPVersionPreference?                                            PreferIPv4                   = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                                IEnumerable<X509Certificate2>?                                  ClientCertificates           = null,
@@ -458,8 +458,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.ClientCertificateChain             = ClientCertificateChain  ?? [];
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.TLSProtocols                       = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
-            this.PreferIPv4                         = PreferIPv4              ?? false;
-            this.HTTPAuthentication                     = HTTPAuthentication;
+            this.PreferIPv4                         = PreferIPv4              ?? IPVersionPreference.None;
+            this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
             this.TransmissionRetryDelay             = TransmissionRetryDelay  ?? (retryCount => TimeSpan.FromSeconds(5));
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;

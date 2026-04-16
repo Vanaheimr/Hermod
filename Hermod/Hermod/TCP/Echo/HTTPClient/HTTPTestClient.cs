@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               Boolean?                                                      AllowTLSResume                        = null,
                               TOTPConfig?                                                   TOTPConfig                            = null,
 
-                              Boolean?                                                      PreferIPv4                            = null,
+                              IPVersionPreference?                                          PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
                               TimeSpan?                                                     ReceiveTimeout                        = null,
                               TimeSpan?                                                     SendTimeout                           = null,
@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               Boolean?                                                      AllowTLSResume                        = null,
                               TOTPConfig?                                                   TOTPConfig                            = null,
 
-                              Boolean?                                                      PreferIPv4                            = null,
+                              IPVersionPreference?                                          PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
                               TimeSpan?                                                     ReceiveTimeout                        = null,
                               TimeSpan?                                                     SendTimeout                           = null,
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               Boolean?                                                      AllowTLSResume                        = null,
                               TOTPConfig?                                                   TOTPConfig                            = null,
 
-                              Boolean?                                                      PreferIPv4                            = null,
+                              IPVersionPreference?                                          PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
                               TimeSpan?                                                     ReceiveTimeout                        = null,
                               TimeSpan?                                                     SendTimeout                           = null,
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<(HTTPTestClient?, List<String>)>
+        public static async Task<(HTTPTestClient?, IReadOnlyList<String>)>
 
             ConnectNew(IPPort                                                        TCPPort,
                        I18NString?                                                   Description                           = null,
@@ -370,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowTLSResume                        = null,
                        TOTPConfig?                                                   TOTPConfig                            = null,
 
-                       Boolean?                                                      PreferIPv4                            = null,
+                       IPVersionPreference?                                          PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
                        TimeSpan?                                                     ReceiveTimeout                        = null,
                        TimeSpan?                                                     SendTimeout                           = null,
@@ -434,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<(HTTPTestClient?, List<String>)>
+        public static async Task<(HTTPTestClient?, IReadOnlyList<String>)>
 
             ConnectNew(IIPAddress                                                    IPAddress,
                        IPPort                                                        TCPPort,
@@ -460,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowTLSResume                        = null,
                        TOTPConfig?                                                   TOTPConfig                            = null,
 
-                       Boolean?                                                      PreferIPv4                            = null,
+                       IPVersionPreference?                                          PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
                        TimeSpan?                                                     ReceiveTimeout                        = null,
                        TimeSpan?                                                     SendTimeout                           = null,
@@ -512,9 +512,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response = await client.ConnectAsync();
 
-            return response.Item1
+            return response.Success
                        ? (client, [])
-                       : (null,   response.Item2);
+                       : (null,   response.Errors);
 
         }
 
@@ -555,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowTLSResume                        = null,
                        TOTPConfig?                                                   TOTPConfig                            = null,
 
-                       Boolean?                                                      PreferIPv4                            = null,
+                       IPVersionPreference?                                          PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
                        TimeSpan?                                                     ReceiveTimeout                        = null,
                        TimeSpan?                                                     SendTimeout                           = null,
@@ -653,7 +653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowTLSResume                        = null,
                        TOTPConfig?                                                   TOTPConfig                            = null,
 
-                       Boolean?                                                      PreferIPv4                            = null,
+                       IPVersionPreference?                                          PreferIPv4                            = null,
                        TimeSpan?                                                     ConnectTimeout                        = null,
                        TimeSpan?                                                     ReceiveTimeout                        = null,
                        TimeSpan?                                                     SendTimeout                           = null,

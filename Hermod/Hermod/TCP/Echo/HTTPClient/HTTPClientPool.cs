@@ -781,7 +781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public Boolean                                                    PreferIPv4                    { get; }
+        public IPVersionPreference                                        PreferIPv4                    { get; }
 
         /// <summary>
         /// An optional HTTP content type.
@@ -909,7 +909,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                               UInt16?                                                       MaxNumberOfClients                    = null,
 
-                              Boolean?                                                      PreferIPv4                            = null,
+                              IPVersionPreference?                                          PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
                               TimeSpan?                                                     ReceiveTimeout                        = null,
                               TimeSpan?                                                     SendTimeout                           = null,
@@ -1017,7 +1017,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                               UInt16?                                                       MaxNumberOfClients                    = null,
 
-                              Boolean?                                                      PreferIPv4                            = null,
+                              IPVersionPreference?                                          PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
                               TimeSpan?                                                     ReceiveTimeout                        = null,
                               TimeSpan?                                                     SendTimeout                           = null,
@@ -1128,7 +1128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                               UInt16?                                                       MaxNumberOfClients                    = null,
 
-                              Boolean?                                                      PreferIPv4                            = null,
+                              IPVersionPreference?                                          PreferIPv4                            = null,
                               TimeSpan?                                                     ConnectTimeout                        = null,
                               TimeSpan?                                                     ReceiveTimeout                        = null,
                               TimeSpan?                                                     SendTimeout                           = null,

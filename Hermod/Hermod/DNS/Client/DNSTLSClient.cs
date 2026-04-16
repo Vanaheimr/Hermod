@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    AllowRenegotiation                   = null,
                             Boolean?                                                    AllowTLSResume                       = null,
 
-                            Boolean?                                                    PreferIPv4                           = null,
+                            IPVersionPreference?                                        PreferIPv4                           = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    AllowRenegotiation                   = null,
                             Boolean?                                                    AllowTLSResume                       = null,
 
-                            Boolean?                                                    PreferIPv4                           = null,
+                            IPVersionPreference?                                        PreferIPv4                           = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
