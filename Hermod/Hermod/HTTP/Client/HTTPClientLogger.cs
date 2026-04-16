@@ -550,7 +550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         logEventNames.Add(LogEventName);
 
                     else
-                        groupTags.TryAdd(GroupTag, new HashSet<String>(new[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, [ LogEventName ]);
 
                 }
 
@@ -606,7 +606,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         logEventNames.Add(LogEventName);
 
                     else
-                        groupTags.TryAdd(GroupTag, new HashSet<String>(new[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, [ LogEventName ]);
 
                 }
 
