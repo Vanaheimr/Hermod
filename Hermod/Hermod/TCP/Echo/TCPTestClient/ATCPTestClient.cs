@@ -570,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 }
 
-                if (RemoteIPAddresses.IsNotNullOrEmpty())
+                if (RemoteIPAddresses.IsNeitherNullNorEmpty())
                 {
 
                     var remotePort   = RemoteURL.Port ?? dnsSRVRemotePort ?? RemotePort;
