@@ -531,7 +531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         var remote = dnsSRVRemoteHost ?? DomainName.Parse(hostname);
 
-                        DebugX.LogT($"DNS A/AAAA queries for '{remote}'...");
+                        //DebugX.LogT($"DNS A/AAAA queries for '{remote}'...");
 
                         // Look up the DNS SRV remote host or the hostname of the URL...
                         var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(
@@ -553,8 +553,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   ipv6AddressLookupTask
                               ).ConfigureAwait(false);
 
-                        DebugX.LogT(   $"A{(PreferIPv4 == IPVersionPreference.IPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
-                        DebugX.LogT($"AAAA{(PreferIPv4 == IPVersionPreference.IPv6 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
+                        //DebugX.LogT(   $"A{(PreferIPv4 == IPVersionPreference.IPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
+                        //DebugX.LogT($"AAAA{(PreferIPv4 == IPVersionPreference.IPv6 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
 
                         if (ipv4AddressLookupTask.Result.Any())
                             RemoteIPAddresses.AddRange(ipv4AddressLookupTask.Result.Cast<IIPAddress>());
