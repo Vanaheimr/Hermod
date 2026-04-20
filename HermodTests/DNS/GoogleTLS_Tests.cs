@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                                                                                                        var sans = certificate?.DecodeSubjectAlternativeNames() ?? [];
 
                                                                                                        // Accept all certificates!
-                                                                                                       return (true, []);
+                                                                                                       return TLSValidationResult.Success();
 
                                                                                                    };
 

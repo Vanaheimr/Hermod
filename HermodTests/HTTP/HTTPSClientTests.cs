@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                              certificate.NotAfter. ToUniversalTime() < Timestamp.Now ||
                                              certificate.GetSerialNumberString().IsNullOrEmpty())
                                          {
-                                             return (false, Array.Empty<String>());
+                                             return TLSValidationResult.Failed("Is not: 'OU=GraphDefined PKI Services, O=GraphDefined GmbH, CN=AHTTPSServerTests Server Certificate'!");
                                          }
 
                                          // Trust chain verification
@@ -84,20 +84,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                              certificateChain.ChainElements.Count > 0 &&
                                              certificateChain.ChainElements[^1].Certificate.Thumbprint == rootCA.Thumbprint)
                                          {
-                                             return (true, Array.Empty<String>());
+                                             return TLSValidationResult.Failed("Is not: rootCA.Thumbprint!");
                                          }
 
                                          // Collect status errors
-                                         var errors = new List<String>();
-                                         errors.AddRange(certificateChain.ChainStatus.Select(status => $"{status.Status} => '{status.StatusInformation}'!"));
+                                         var errors = new List<Error>();
+                                         errors.AddRange(Errors.From(certificateChain.ChainStatus.Select(status => $"{status.Status} => '{status.StatusInformation}'!")));
 
                                          foreach (var chainElement in certificateChain.ChainElements)
                                          {
                                              foreach (var chainStatus in chainElement.ChainElementStatus)
-                                                 errors.Add($"{chainElement.Certificate.SubjectName} => '{chainStatus.StatusInformation}'!");
+                                                 errors.AddRange(Error.Create($"{chainElement.Certificate.SubjectName} => '{chainStatus.StatusInformation}'!"));
                                          }
 
-                                         return (false, errors);
+                                         return TLSValidationResult.Failed(errors);
 
                                      }
                                  );

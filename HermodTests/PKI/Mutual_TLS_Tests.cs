@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                 policyErrors) => {
 
                                                                     if (clientCertificate is null)
-                                                                         return (false, [ "The client certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
 
                                                                     var chainReport = PKIFactory.ValidateClientChain(
                                                                                           clientCertificate,
@@ -297,8 +297,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                                           rootCACertificate2!
                                                                                       );
 
-                                                                    return (chainReport.IsValid,
-                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                    return TLSValidationResult.From(
+                                                                               chainReport.IsValid,
+                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                           );
 
                                                                },
                                  LocalCertificateSelector:     (sender,
@@ -348,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                   policyErrors) => {
 
                                                                       if (serverCertificate is null)
-                                                                          return (false, [ "The server certificate must not be null!" ]);
+                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
 
                                                                       var chainReport = PKIFactory.ValidateServerChain(
                                                                                             serverCertificate,
@@ -358,8 +360,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
                                                                       var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return (chainReport.IsValid,
-                                                                              chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                      return TLSValidationResult.From(
+                                                                                 chainReport.IsValid,
+                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                             );
 
                                                                  },
                                    LocalCertificateSelector:    (sender,
@@ -629,7 +633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                 policyErrors) => {
 
                                                                     if (clientCertificate is null)
-                                                                         return (false, [ "The client certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
 
                                                                     var chainReport = PKIFactory.ValidateClientChain(
                                                                                           clientCertificate,
@@ -637,8 +641,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                                           rootCACertificate2!
                                                                                       );
 
-                                                                    return (chainReport.IsValid,
-                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                    return TLSValidationResult.From(
+                                                                               chainReport.IsValid,
+                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                           );
 
                                                                },
                                  LocalCertificateSelector:     (sender,
@@ -688,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                   policyErrors) => {
 
                                                                       if (serverCertificate is null)
-                                                                          return (false, [ "The server certificate must not be null!" ]);
+                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
 
                                                                       var chainReport = PKIFactory.ValidateServerChain(
                                                                                             serverCertificate,
@@ -698,8 +704,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
                                                                       var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return (chainReport.IsValid,
-                                                                              chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                      return TLSValidationResult.From(
+                                                                                 chainReport.IsValid,
+                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                             );
 
                                                                  },
                                    ClientCertificates:           [ clientCertificate2! ]
@@ -963,13 +971,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                 policyErrors) => {
 
                                                                     if (clientCertificate is null)
-                                                                         return (false, [ "The client certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
 
                                                                     if (clientCertificateChain is null)
-                                                                         return (false, [ "The client certificate chain must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate chain must not be null!");
 
                                                                     if (clientCertificateChain.ChainElements.Count != 2)
-                                                                         return (false, [ "The client certificate chain must contain exactly 2 elements!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate chain must contain exactly 2 elements!");
 
                                                                     var c1  = clientCertificateChain.ChainElements[0].Certificate;
                                                                     var cn1 = c1.SubjectName.ToMap().CommonName;
@@ -983,8 +991,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                                           rootCACertificate2!
                                                                                       );
 
-                                                                    return (chainReport.IsValid,
-                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                    return TLSValidationResult.From(
+                                                                               chainReport.IsValid,
+                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                           );
 
                                                                },
                                  LocalCertificateSelector:     (sender,
@@ -1034,7 +1044,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                   policyErrors) => {
 
                                                                       if (serverCertificate is null)
-                                                                          return (false, [ "The server certificate must not be null!" ]);
+                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
 
                                                                       var chainReport = PKIFactory.ValidateServerChain(
                                                                                             serverCertificate,
@@ -1044,8 +1054,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
                                                                       var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return (chainReport.IsValid,
-                                                                              chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                      return TLSValidationResult.From(
+                                                                                 chainReport.IsValid,
+                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                             );
 
                                                                  },
                                    ClientCertificates:           [ clientCertificate2! ],
@@ -1313,13 +1325,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                 policyErrors) => {
 
                                                                     if (clientCertificate is null)
-                                                                         return (false, [ "The client certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
 
                                                                     if (clientCertificateChain is null)
-                                                                         return (false, [ "The client certificate chain must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate chain must not be null!");
 
                                                                     if (clientCertificateChain.ChainElements.Count != 2)
-                                                                         return (false, [ "The client certificate chain must contain exactly 2 elements!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate chain must contain exactly 2 elements!");
 
                                                                     var c1  = clientCertificateChain.ChainElements[0].Certificate;
                                                                     var cn1 = c1.SubjectName.ToMap().CommonName;
@@ -1333,8 +1345,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                                           rootCACertificate2!
                                                                                       );
 
-                                                                    return (chainReport.IsValid,
-                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                    return TLSValidationResult.From(
+                                                                               chainReport.IsValid,
+                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                           );
 
                                                                },
                                  LocalCertificateSelector:     (sender,
@@ -1384,7 +1398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                   policyErrors) => {
 
                                                                       if (serverCertificate is null)
-                                                                          return (false, [ "The server certificate must not be null!" ]);
+                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
 
                                                                       var chainReport = PKIFactory.ValidateServerChain(
                                                                                             serverCertificate,
@@ -1394,8 +1408,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
                                                                       var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return (chainReport.IsValid,
-                                                                              chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                      return TLSValidationResult.From(
+                                                                                 chainReport.IsValid,
+                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                             );
 
                                                                  },
                                    ClientCertificateChain:       [
@@ -1664,7 +1680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                 policyErrors) => {
 
                                                                     if (clientCertificate is null)
-                                                                         return (false, [ "The client certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
 
                                                                     var chainReport = PKIFactory.ValidateClientChain(
                                                                                           clientCertificate,
@@ -1672,8 +1688,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                                           rootCACertificate2!
                                                                                       );
 
-                                                                    return (chainReport.IsValid,
-                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                    return TLSValidationResult.From(
+                                                                               chainReport.IsValid,
+                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                           );
 
                                                                },
                                  LocalCertificateSelector:     (sender,
@@ -1723,7 +1741,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                   policyErrors) => {
 
                                                                      if (serverCertificate is null)
-                                                                         return (false, [ "The server certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The server certificate must not be null!");
 
                                                                      var chainReport = PKIFactory.ValidateServerChain(
                                                                                            serverCertificate,
@@ -1733,8 +1751,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
                                                                      var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                     return (chainReport.IsValid,
-                                                                             chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                     return TLSValidationResult.From(
+                                                                                chainReport.IsValid,
+                                                                                chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                            );
 
                                                                   },
                                    MaxNumberOfRetries:            1
@@ -1999,7 +2019,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                 policyErrors) => {
 
                                                                     if (clientCertificate is null)
-                                                                        return (true, [ "The client certificate is null, anyway we proceed... :)" ]);
+                                                                        return TLSValidationResult.Failed("The client certificate is null, anyway we proceed... :)");
 
                                                                     var chainReport = PKIFactory.ValidateClientChain(
                                                                                           clientCertificate,
@@ -2007,8 +2027,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                                           rootCACertificate2!
                                                                                       );
 
-                                                                    return (chainReport.IsValid,
-                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                    return TLSValidationResult.From(
+                                                                               chainReport.IsValid,
+                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                           );
 
                                                                },
                                  LocalCertificateSelector:     (sender,
@@ -2058,7 +2080,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                   policyErrors) => {
 
                                                                      if (serverCertificate is null)
-                                                                         return (false, [ "The server certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The server certificate must not be null!");
 
                                                                      var chainReport = PKIFactory.ValidateServerChain(
                                                                                            serverCertificate,
@@ -2068,8 +2090,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
                                                                      var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                     return (chainReport.IsValid,
-                                                                             chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                     return TLSValidationResult.From(
+                                                                                chainReport.IsValid,
+                                                                                chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                            );
 
                                                                  }
                                );
@@ -2090,7 +2114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                   policyErrors) => {
 
                                                                      if (serverCertificate is null)
-                                                                         return (false, [ "The server certificate must not be null!" ]);
+                                                                         return TLSValidationResult.Failed("The server certificate must not be null!");
 
                                                                      var chainReport = PKIFactory.ValidateServerChain(
                                                                                            serverCertificate,
@@ -2100,8 +2124,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
                                                                      var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                     return (chainReport.IsValid,
-                                                                             chainReport.Status.Select(chainStatus => chainStatus.Status.ToString()));
+                                                                     return TLSValidationResult.From(
+                                                                                chainReport.IsValid,
+                                                                                chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                            );
 
                                                                  },
                                    ClientCertificates:           [ clientCertificate2! ]

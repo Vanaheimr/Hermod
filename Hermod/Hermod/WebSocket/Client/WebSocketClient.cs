@@ -613,7 +613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    (RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https))
                 {
                     RemoteCertificateValidator = (sender, certificate, chain, server, sslPolicyErrors) => {
-                        return (true, Array.Empty<String>());
+                        return TLSValidationResult.Success();
                     };
                 }
 
@@ -625,7 +625,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     if (TLSStream is null)
                     {
 
-                        var remoteCertificateValidatorErrors = new List<String>();
+                        var remoteCertificateValidatorErrors = new List<Error>();
 
                         TLSStream = new SslStream(
                                         innerStream:                         TCPNetworkStream,
@@ -645,10 +645,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                  policyErrors
                                                                                              );
 
-                                                                                 if (check.Item2.Any())
-                                                                                     remoteCertificateValidatorErrors.AddRange(check.Item2);
+                                                                                 if (check.Errors.Any())
+                                                                                     remoteCertificateValidatorErrors.AddRange(check.Errors);
 
-                                                                                 return check.Item1;
+                                                                                 return check.IsValid;
 
                                                                              },
                                         userCertificateSelectionCallback:    LocalCertificateSelector is null

@@ -33,11 +33,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
     /// <param name="TLSClient">The TLS client.</param>
     /// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
-    public delegate (Boolean, IEnumerable<String>) RemoteTLSServerCertificateValidationHandler<T>(Object              Sender,
-                                                                                                  X509Certificate2?   Certificate,
-                                                                                                  X509Chain?          CertificateChain,
-                                                                                                  T                   TLSClient,
-                                                                                                  SslPolicyErrors     PolicyErrors)
+    public delegate TLSValidationResult RemoteTLSServerCertificateValidationHandler<T>(Object              Sender,
+                                                                                       X509Certificate2?   Certificate,
+                                                                                       X509Chain?          CertificateChain,
+                                                                                       T                   TLSClient,
+                                                                                       SslPolicyErrors     PolicyErrors)
         where T: class;
 
     /// <summary>
@@ -48,11 +48,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
     /// <param name="TLSServer">The TLS server.</param>
     /// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
-    public delegate (Boolean, IEnumerable<String>) RemoteTLSClientCertificateValidationHandler<T>(Object              Sender,
-                                                                                                  X509Certificate2?   Certificate,
-                                                                                                  X509Chain?          CertificateChain,
-                                                                                                  T                   TLSServer,
-                                                                                                  SslPolicyErrors     PolicyErrors)
+    public delegate TLSValidationResult RemoteTLSClientCertificateValidationHandler<T>(Object              Sender,
+                                                                                       X509Certificate2?   Certificate,
+                                                                                       X509Chain?          CertificateChain,
+                                                                                       T                   TLSServer,
+                                                                                       SslPolicyErrors     PolicyErrors)
         where T: class;
 
 
@@ -64,11 +64,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
     ///// <param name="WebSocketServer">The HTTP WebSocket server.</param>
     ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
-    //public delegate (Boolean, IEnumerable<String>) RemoteHTTPSClientCertificateValidationHandler(Object              Sender,
-    //                                                                                             X509Certificate2?   Certificate,
-    //                                                                                             X509Chain?          CertificateChain,
-    //                                                                                             IHTTPServer         HTTPSServer,
-    //                                                                                             SslPolicyErrors     PolicyErrors);
+    //public delegate TLSValidationResult RemoteHTTPSClientCertificateValidationHandler(Object              Sender,
+    //                                                                                  X509Certificate2?   Certificate,
+    //                                                                                  X509Chain?          CertificateChain,
+    //                                                                                  IHTTPServer         HTTPSServer,
+    //                                                                                  SslPolicyErrors     PolicyErrors);
 
 
     ///// <summary>
@@ -79,11 +79,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
     ///// <param name="WebSocketServer">The HTTP WebSocket server.</param>
     ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
-    //public delegate (Boolean, IEnumerable<String>) RemoteWebSocketClientCertificateValidationHandler(Object              Sender,
-    //                                                                                                 X509Certificate2?   Certificate,
-    //                                                                                                 X509Chain?          CertificateChain,
-    //                                                                                                 IWebSocketServer    WebSocketServer,
-    //                                                                                                 SslPolicyErrors     PolicyErrors);
+    //public delegate TLSValidationResult RemoteWebSocketClientCertificateValidationHandler(Object              Sender,
+    //                                                                                      X509Certificate2?   Certificate,
+    //                                                                                      X509Chain?          CertificateChain,
+    //                                                                                      IWebSocketServer    WebSocketServer,
+    //                                                                                      SslPolicyErrors     PolicyErrors);
 
     /// <summary>
     /// Selects the local Transport Layer Security (TLS) certificate used for authentication.

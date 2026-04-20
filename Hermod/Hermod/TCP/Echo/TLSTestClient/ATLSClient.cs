@@ -340,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (RemoteCertificateValidator is null)
                 return new TCPConnectionResult(false, [ $"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidator)} is null!" ]);
 
-            var remoteCertificateValidationErrors = new List<String>();
+            var remoteCertificateValidationErrors = new List<Error>();
 
             try
             {
@@ -387,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                                         DomainName?.       ToString() ??
                                                                                         RemoteIPAddress?.  ToString(),
                                                 ClientCertificates                    = ClientCertificates.IsNeitherNullNorEmpty()
-                                                                                            ? [.. ClientCertificates.ToArray()]
+                                                                                            ? [.. ClientCertificates]
                                                                                             : null,
                                                 ClientCertificateContext              = ClientCertificateContext,
                                                 CertificateRevocationCheckMode        = X509RevocationMode.NoCheck,
@@ -407,9 +407,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                                                              policyErrors
                                                                                                          );
 
-                                                                                            remoteCertificateValidationErrors = [.. result.Item2];
+                                                                                            remoteCertificateValidationErrors = [.. result.Errors];
 
-                                                                                            return result.Item1;
+                                                                                            return result.IsValid;
 
                                                                                         }
 

@@ -21,7 +21,6 @@ using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -55,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                 var sans = certificate?.DecodeSubjectAlternativeNames() ?? [];
 
                 // Accept all certificates!
-                return (true, []);
+                return TLSValidationResult.Success();
 
             };
 

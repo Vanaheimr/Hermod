@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         public Char[]  SplitCharacters    { get; }
 
-        public new RemoteTLSClientCertificateValidationHandler<TCPCSVServer>? ClientCertificateValidator { get; set; }
+        public new RemoteTLSClientCertificateValidationHandler<TCPCSVServer>?  ClientCertificateValidator    { get; set; }
 
         #endregion
 
@@ -338,10 +338,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         #endregion
 
 
-        private (Boolean, IEnumerable<String>) DoClientCertificateValidator(Object             Sender,
-                                                                            X509Certificate2?  Certificate,
-                                                                            X509Chain?         CertificateChain,
-                                                                            SslPolicyErrors    PolicyErrors)
+        private TLSValidationResult DoClientCertificateValidator(Object             Sender,
+                                                                 X509Certificate2?  Certificate,
+                                                                 X509Chain?         CertificateChain,
+                                                                 SslPolicyErrors    PolicyErrors)
 
             => this.ClientCertificateValidator?.Invoke(
                    Sender,
@@ -349,7 +349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    CertificateChain,
                    this,
                    PolicyErrors
-               ) ?? (false, []);
+               ) ?? TLSValidationResult.GeneralError();
 
 
         #region ProcessBoomerang(ConnectionId, Timestamp, CSVArray)

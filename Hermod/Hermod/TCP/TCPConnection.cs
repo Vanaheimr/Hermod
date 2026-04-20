@@ -380,7 +380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                                                                chain,
                                                                                                                null,
                                                                                                                policyErrors
-                                                                                                           ).Item1,
+                                                                                                           ).IsValid,
                                               userCertificateSelectionCallback:    LocalCertificateSelector is null
                                                                                        ? null
                                                                                        : (sender,

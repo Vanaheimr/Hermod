@@ -1097,7 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                                               chain,
                                                                                                                               this,
                                                                                                                               policyErrors
-                                                                                                                          ).Item1,
+                                                                                                                          ).IsValid,
                                                              userCertificateSelectionCallback:    LocalCertificateSelector is null
                                                                                                       ? null
                                                                                                       : (sender,

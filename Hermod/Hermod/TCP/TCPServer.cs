@@ -682,10 +682,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        private (Boolean, IEnumerable<String>) DoClientCertificateValidator(Object             Sender,
-                                                                            X509Certificate2?  Certificate,
-                                                                            X509Chain?         CertificateChain,
-                                                                            SslPolicyErrors    PolicyErrors)
+        private TLSValidationResult DoClientCertificateValidator(Object             Sender,
+                                                                 X509Certificate2?  Certificate,
+                                                                 X509Chain?         CertificateChain,
+                                                                 SslPolicyErrors    PolicyErrors)
 
             => this.ClientCertificateValidator?.Invoke(
                    Sender,
@@ -693,7 +693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    CertificateChain,
                    this,
                    PolicyErrors
-               ) ?? (false, []);
+               ) ?? TLSValidationResult.GeneralError();
 
 
         #region (protected internal) SendNewConnection(ServerTimestamp, RemoteSocket, ConnectionId, TCPConnection)
