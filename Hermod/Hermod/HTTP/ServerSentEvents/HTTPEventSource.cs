@@ -26,7 +26,6 @@ using System.Runtime.CompilerServices;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -145,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The attached HTTP API.
         /// </summary>
-        public HTTPAPIX                              HTTPAPIX                   { get; }
+        public HTTPAPI                              HTTPAPIX                   { get; }
 
         /// <summary>
         /// The internal identification of the HTTP event.
@@ -381,7 +380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(HTTPEventSource_Id                     Id,
-                               HTTPAPIX                               HTTPAPIX,
+                               HTTPAPI                               HTTPAPIX,
                                UInt32                                 MaxNumberOfCachedEvents      = 500,
                                TimeSpan?                              RetryInterval                = null,
                                Func<T, String>?                       DataSerializer               = null,

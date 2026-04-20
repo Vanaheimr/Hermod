@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// 
     /// DNS JSON requests/responses are also supported by Google and Cloudflare.
     /// </summary>
-    public class DNSHTTPSClient : AHTTPTestClient,
+    public class DNSHTTPSClient : AHTTPClient,
                                   IDNSClient2
     {
 
@@ -88,29 +88,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS HTTPS client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
-        public DNSHTTPSClient(IPPort                                                        TCPPort,
-                              I18NString?                                                   Description                          = null,
-                              DNSHTTPSMode?                                                 Mode                                 = null,
-                              Boolean?                                                      RecursionDesired                     = null,
-                              TimeSpan?                                                     QueryTimeout                         = null,
+        public DNSHTTPSClient(IPPort                                                     TCPPort,
+                              I18NString?                                                Description                          = null,
+                              DNSHTTPSMode?                                              Mode                                 = null,
+                              Boolean?                                                   RecursionDesired                     = null,
+                              TimeSpan?                                                  QueryTimeout                         = null,
 
-                              String?                                                       HTTPUserAgent                        = null,
+                              String?                                                    HTTPUserAgent                        = null,
 
-                              RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                              SslProtocols?                                                 TLSProtocols                         = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                              X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                              Boolean?                                                      AllowRenegotiation                   = null,
-                              Boolean?                                                      AllowTLSResume                       = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                              SslProtocols?                                              TLSProtocols                         = null,
+                              CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                              X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                              X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                              Boolean?                                                   AllowRenegotiation                   = null,
+                              Boolean?                                                   AllowTLSResume                       = null,
 
-                              IPVersionPreference?                                          PreferIPv4                           = null,
-                              TimeSpan?                                                     ConnectTimeout                       = null,
-                              TimeSpan?                                                     ReceiveTimeout                       = null,
-                              TimeSpan?                                                     SendTimeout                          = null,
-                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                              UInt16?                                                       MaxNumberOfRetries                   = null,
-                              UInt32?                                                       BufferSize                           = null)
+                              IPVersionPreference?                                       PreferIPv4                           = null,
+                              TimeSpan?                                                  ConnectTimeout                       = null,
+                              TimeSpan?                                                  ReceiveTimeout                       = null,
+                              TimeSpan?                                                  SendTimeout                          = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                              UInt16?                                                    MaxNumberOfRetries                   = null,
+                              UInt32?                                                    BufferSize                           = null,
+
+                              Boolean?                                                   DisableLogging                       = null)
 
             : base(IPvXAddress.Localhost,
                    TCPPort,
@@ -130,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as DNSHTTPSClient,
+                                               tlsClient as IHTTPClient,
                                                policyErrors
                                            )
                        : null,
@@ -148,6 +150,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowTLSResume,
                    null,
 
+                   null,
+
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -157,7 +161,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    BufferSize ?? 512,
 
                    true,
-                   true)
+                   true,
+
+                   DisableLogging)
 
         {
 
@@ -175,30 +181,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS HTTPS client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
-        public DNSHTTPSClient(IIPAddress                                                    IPAddress,
-                              IPPort?                                                       TCPPort                              = null,
-                              I18NString?                                                   Description                          = null,
-                              DNSHTTPSMode?                                                 Mode                                 = null,
-                              Boolean?                                                      RecursionDesired                     = null,
-                              TimeSpan?                                                     QueryTimeout                         = null,
+        public DNSHTTPSClient(IIPAddress                                                 IPAddress,
+                              IPPort?                                                    TCPPort                              = null,
+                              I18NString?                                                Description                          = null,
+                              DNSHTTPSMode?                                              Mode                                 = null,
+                              Boolean?                                                   RecursionDesired                     = null,
+                              TimeSpan?                                                  QueryTimeout                         = null,
 
-                              String?                                                       HTTPUserAgent                        = null,
+                              String?                                                    HTTPUserAgent                        = null,
 
-                              RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                              SslProtocols?                                                 TLSProtocols                         = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                              X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                              Boolean?                                                      AllowRenegotiation                   = null,
-                              Boolean?                                                      AllowTLSResume                       = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                              SslProtocols?                                              TLSProtocols                         = null,
+                              CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                              X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                              X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                              Boolean?                                                   AllowRenegotiation                   = null,
+                              Boolean?                                                   AllowTLSResume                       = null,
 
-                              IPVersionPreference?                                          PreferIPv4                           = null,
-                              TimeSpan?                                                     ConnectTimeout                       = null,
-                              TimeSpan?                                                     ReceiveTimeout                       = null,
-                              TimeSpan?                                                     SendTimeout                          = null,
-                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                              UInt16?                                                       MaxNumberOfRetries                   = null,
-                              UInt32?                                                       BufferSize                           = null)
+                              IPVersionPreference?                                       PreferIPv4                           = null,
+                              TimeSpan?                                                  ConnectTimeout                       = null,
+                              TimeSpan?                                                  ReceiveTimeout                       = null,
+                              TimeSpan?                                                  SendTimeout                          = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                              UInt16?                                                    MaxNumberOfRetries                   = null,
+                              UInt32?                                                    BufferSize                           = null,
+
+                              Boolean?                                                   DisableLogging                       = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
@@ -218,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as DNSHTTPSClient,
+                                               tlsClient as IHTTPClient,
                                                policyErrors
                                            )
                        : null,
@@ -236,6 +244,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowTLSResume,
                    null,
 
+                   null,
+
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -245,7 +255,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    BufferSize ?? 512,
 
                    true,
-                   true)
+                   true,
+
+                   DisableLogging)
 
         {
 
@@ -263,39 +275,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS HTTPS client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
-        public DNSHTTPSClient(URL                                                           URL,
-                              I18NString?                                                   Description                          = null,
-                              DNSHTTPSMode?                                                 Mode                                 = null,
-                              Boolean?                                                      RecursionDesired                     = null,
-                              TimeSpan?                                                     QueryTimeout                         = null,
+        public DNSHTTPSClient(URL                                                        URL,
+                              I18NString?                                                Description                          = null,
+                              DNSHTTPSMode?                                              Mode                                 = null,
+                              Boolean?                                                   RecursionDesired                     = null,
+                              TimeSpan?                                                  QueryTimeout                         = null,
 
-                              String?                                                       HTTPUserAgent                        = null,
+                              String?                                                    HTTPUserAgent                        = null,
 
-                              RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                              SslProtocols?                                                 TLSProtocols                         = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                              X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                              Boolean?                                                      AllowRenegotiation                   = null,
-                              Boolean?                                                      AllowTLSResume                       = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                              SslProtocols?                                              TLSProtocols                         = null,
+                              CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                              X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                              X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                              Boolean?                                                   AllowRenegotiation                   = null,
+                              Boolean?                                                   AllowTLSResume                       = null,
 
-                              IPVersionPreference?                                          PreferIPv4                           = null,
-                              TimeSpan?                                                     ConnectTimeout                       = null,
-                              TimeSpan?                                                     ReceiveTimeout                       = null,
-                              TimeSpan?                                                     SendTimeout                          = null,
-                              TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                              UInt16?                                                       MaxNumberOfRetries                   = null,
-                              UInt32?                                                       BufferSize                           = null,
-                              DNSClient?                                                    DNSClient                            = null)
+                              IHTTPAuthentication?                                       HTTPAuthentication                   = null,
+
+                              IPVersionPreference?                                       PreferIPv4                           = null,
+                              TimeSpan?                                                  ConnectTimeout                       = null,
+                              TimeSpan?                                                  ReceiveTimeout                       = null,
+                              TimeSpan?                                                  SendTimeout                          = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                              UInt16?                                                    MaxNumberOfRetries                   = null,
+                              UInt32?                                                    BufferSize                           = null,
+
+                              Boolean?                                                   DisableLogging                       = null,
+                              DNSClient?                                                 DNSClient                            = null)
 
             : base(URL,
-                   null,
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
-                   null,
-                   null,
-                   null,
-                   null,
+                   null,  // Accept
+                   null,  // ContentType
+                   null,  // Connection
+                   null,  // DefaultRequestBuilder
 
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
@@ -306,23 +321,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               aHTTPTestClient as DNSHTTPSClient,
+                                               aHTTPTestClient as IHTTPClient,
                                                policyErrors
                                            )
                        : null,
-                   null,
-                   null,
-                   null,
-                   null,
+                   null,  // LocalCertificateSelector
+                   null,  // ClientCertificates
+                   null,  // ClientCertificateContext
+                   null,  // ClientCertificateChain
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
                    CertificateRevocationCheckMode,
-                   true,
-                   null,
+                   null,  // ApplicationProtocols
                    AllowRenegotiation,
                    AllowTLSResume,
-                   null,
+                   null,  // TOTPConfig
+
+                   HTTPAuthentication,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -332,9 +348,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    MaxNumberOfRetries,
                    BufferSize  ?? 512,
 
-                   true,
-                   true,
+                   true,  // ConsumeRequestChunkedTEImmediately
+                   true,  // ConsumeResponseChunkedTEImmediately
 
+                   DisableLogging,
                    DNSClient)
 
         {
@@ -366,30 +383,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
         public static async Task<(DNSHTTPSClient?, IReadOnlyList<String>)>
 
-            ConnectNew(IIPAddress                                                    IPAddress,
-                       IPPort?                                                       TCPPort                              = null,
-                       I18NString?                                                   Description                          = null,
-                       DNSHTTPSMode?                                                 Mode                                 = null,
-                       Boolean?                                                      RecursionDesired                     = null,
-                       TimeSpan?                                                     QueryTimeout                         = null,
+            ConnectNew(IIPAddress                                                 IPAddress,
+                       IPPort?                                                    TCPPort                              = null,
+                       I18NString?                                                Description                          = null,
+                       DNSHTTPSMode?                                              Mode                                 = null,
+                       Boolean?                                                   RecursionDesired                     = null,
+                       TimeSpan?                                                  QueryTimeout                         = null,
 
-                       String?                                                       HTTPUserAgent                        = null,
+                       String?                                                    HTTPUserAgent                        = null,
 
-                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                       SslProtocols?                                                 TLSProtocols                         = null,
-                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                       Boolean?                                                      AllowRenegotiation                   = null,
-                       Boolean?                                                      AllowTLSResume                       = null,
+                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                       SslProtocols?                                              TLSProtocols                         = null,
+                       CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                       X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                       X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                       Boolean?                                                   AllowRenegotiation                   = null,
+                       Boolean?                                                   AllowTLSResume                       = null,
 
-                       IPVersionPreference?                                          PreferIPv4                           = null,
-                       TimeSpan?                                                     ConnectTimeout                       = null,
-                       TimeSpan?                                                     ReceiveTimeout                       = null,
-                       TimeSpan?                                                     SendTimeout                          = null,
-                       TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                       UInt16?                                                       MaxNumberOfRetries                   = null,
-                       UInt32?                                                       BufferSize                           = null)
+                       IPVersionPreference?                                       PreferIPv4                           = null,
+                       TimeSpan?                                                  ConnectTimeout                       = null,
+                       TimeSpan?                                                  ReceiveTimeout                       = null,
+                       TimeSpan?                                                  SendTimeout                          = null,
+                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                       UInt16?                                                    MaxNumberOfRetries                   = null,
+                       UInt32?                                                    BufferSize                           = null,
+
+                       Boolean?                                                   DisableLogging                       = null)
 
         {
 
@@ -418,7 +437,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              SendTimeout,
                              TransmissionRetryDelay,
                              MaxNumberOfRetries,
-                             BufferSize
+                             BufferSize,
+
+                             DisableLogging
 
                          );
 
@@ -446,31 +467,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
         public static async Task<(DNSHTTPSClient?, IReadOnlyList<String>)>
 
-            ConnectNew(URL                                                           URL,
-                       SRV_Spec?                                                     DNSService                           = null,
-                       I18NString?                                                   Description                          = null,
-                       DNSHTTPSMode?                                                 Mode                                 = null,
-                       Boolean?                                                      RecursionDesired                     = null,
-                       TimeSpan?                                                     QueryTimeout                         = null,
+            ConnectNew(URL                                                        URL,
+                       SRV_Spec?                                                  DNSService                           = null,
+                       I18NString?                                                Description                          = null,
+                       DNSHTTPSMode?                                              Mode                                 = null,
+                       Boolean?                                                   RecursionDesired                     = null,
+                       TimeSpan?                                                  QueryTimeout                         = null,
 
-                       String?                                                       HTTPUserAgent                        = null,
+                       String?                                                    HTTPUserAgent                        = null,
 
-                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                       SslProtocols?                                                 TLSProtocols                         = null,
-                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                       Boolean?                                                      AllowRenegotiation                   = null,
-                       Boolean?                                                      AllowTLSResume                       = null,
+                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                       SslProtocols?                                              TLSProtocols                         = null,
+                       CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                       X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                       X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                       Boolean?                                                   AllowRenegotiation                   = null,
+                       Boolean?                                                   AllowTLSResume                       = null,
 
-                       IPVersionPreference?                                          PreferIPv4                           = null,
-                       TimeSpan?                                                     ConnectTimeout                       = null,
-                       TimeSpan?                                                     ReceiveTimeout                       = null,
-                       TimeSpan?                                                     SendTimeout                          = null,
-                       TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                       UInt16?                                                       MaxNumberOfRetries                   = null,
-                       UInt32?                                                       BufferSize                           = null,
-                       DNSClient?                                                    DNSClient                            = null)
+                       IPVersionPreference?                                       PreferIPv4                           = null,
+                       TimeSpan?                                                  ConnectTimeout                       = null,
+                       TimeSpan?                                                  ReceiveTimeout                       = null,
+                       TimeSpan?                                                  SendTimeout                          = null,
+                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                       UInt16?                                                    MaxNumberOfRetries                   = null,
+                       UInt32?                                                    BufferSize                           = null,
+                       DNSClient?                                                 DNSClient                            = null,
+
+                       Boolean?                                                   DisableLogging                       = null)
 
         {
 
@@ -492,6 +515,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              AllowRenegotiation,
                              AllowTLSResume,
 
+                             null,
+
                              PreferIPv4,
                              ConnectTimeout,
                              ReceiveTimeout,
@@ -500,6 +525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              MaxNumberOfRetries,
                              BufferSize,
 
+                             DisableLogging,
                              DNSClient
 
                          );
@@ -610,7 +636,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var stopwatch = Stopwatch.StartNew();
                 clientCancellationTokenSource ??= new CancellationTokenSource();
 
-                var httpRequestBuilder = DefaultRequestBuilder();// {
+                var httpRequestBuilder = DefaultRequestBuilder(this);// {
                                              //Host:   RemoteURL.Value.Hostname
                                          //};
 
@@ -700,27 +726,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Google DNS
 
-        public static DNSHTTPSClient Google(DNSHTTPSMode?                                                 Mode                                 = null,
-                                            Boolean?                                                      RecursionDesired                     = null,
-                                            TimeSpan?                                                     QueryTimeout                         = null,
+        public static DNSHTTPSClient Google(DNSHTTPSMode?                                              Mode                                 = null,
+                                            Boolean?                                                   RecursionDesired                     = null,
+                                            TimeSpan?                                                  QueryTimeout                         = null,
 
-                                            RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                                            SslProtocols?                                                 TLSProtocols                         = null,
-                                            CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                                            X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                                            X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                                            Boolean?                                                      AllowRenegotiation                   = null,
-                                            Boolean?                                                      AllowTLSResume                       = null,
+                                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                                            SslProtocols?                                              TLSProtocols                         = null,
+                                            CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                                            X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                                            X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                                            Boolean?                                                   AllowRenegotiation                   = null,
+                                            Boolean?                                                   AllowTLSResume                       = null,
 
-                                            IPVersionPreference?                                          PreferIPv4                           = null,
-                                            TimeSpan?                                                     ConnectTimeout                       = null,
-                                            TimeSpan?                                                     ReceiveTimeout                       = null,
-                                            TimeSpan?                                                     SendTimeout                          = null,
-                                            TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                                            UInt16?                                                       MaxNumberOfRetries                   = null,
-                                            UInt32?                                                       BufferSize                           = null,
-                                            String?                                                       HTTPUserAgent                        = null,
-                                            DNSClient?                                                    DNSClient                            = null)
+                                            IPVersionPreference?                                       PreferIPv4                           = null,
+                                            TimeSpan?                                                  ConnectTimeout                       = null,
+                                            TimeSpan?                                                  ReceiveTimeout                       = null,
+                                            TimeSpan?                                                  SendTimeout                          = null,
+                                            TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                                            UInt16?                                                    MaxNumberOfRetries                   = null,
+                                            UInt32?                                                    BufferSize                           = null,
+                                            String?                                                    HTTPUserAgent                        = null,
+
+                                            Boolean?                                                   DisableLogging                       = null,
+                                            DNSClient?                                                 DNSClient                            = null)
 
             => new (
                    URL.Parse("https://dns.google/dns-query"),
@@ -739,6 +767,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowRenegotiation,
                    AllowTLSResume,
 
+                   null,
+
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -746,6 +776,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
+
+                   DisableLogging,
                    DNSClient
                );
 
@@ -753,28 +785,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Cloudflare DNS
 
-        public static DNSHTTPSClient Cloudflare_DNSName(DNSHTTPSMode?                                                 Mode                                 = null,
-                                                        Boolean?                                                      RecursionDesired                     = null,
-                                                        TimeSpan?                                                     QueryTimeout                         = null,
+        public static DNSHTTPSClient Cloudflare_DNSName(DNSHTTPSMode?                                              Mode                                 = null,
+                                                        Boolean?                                                   RecursionDesired                     = null,
+                                                        TimeSpan?                                                  QueryTimeout                         = null,
 
-                                                        String?                                                       HTTPUserAgent                        = null,
+                                                        String?                                                    HTTPUserAgent                        = null,
 
-                                                        RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                                                        SslProtocols?                                                 TLSProtocols                         = null,
-                                                        CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                                                        X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                                                        X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                                                        Boolean?                                                      AllowRenegotiation                   = null,
-                                                        Boolean?                                                      AllowTLSResume                       = null,
+                                                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                                                        SslProtocols?                                              TLSProtocols                         = null,
+                                                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                                                        X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                                                        X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                                                        Boolean?                                                   AllowRenegotiation                   = null,
+                                                        Boolean?                                                   AllowTLSResume                       = null,
 
-                                                        IPVersionPreference?                                          PreferIPv4                           = null,
-                                                        TimeSpan?                                                     ConnectTimeout                       = null,
-                                                        TimeSpan?                                                     ReceiveTimeout                       = null,
-                                                        TimeSpan?                                                     SendTimeout                          = null,
-                                                        TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                                                        UInt16?                                                       MaxNumberOfRetries                   = null,
-                                                        UInt32?                                                       BufferSize                           = null,
-                                                        DNSClient?                                                    DNSClient                            = null)
+                                                        IPVersionPreference?                                       PreferIPv4                           = null,
+                                                        TimeSpan?                                                  ConnectTimeout                       = null,
+                                                        TimeSpan?                                                  ReceiveTimeout                       = null,
+                                                        TimeSpan?                                                  SendTimeout                          = null,
+                                                        TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                                                        UInt16?                                                    MaxNumberOfRetries                   = null,
+                                                        UInt32?                                                    BufferSize                           = null,
+
+                                                        Boolean?                                                   DisableLogging                       = null,
+                                                        DNSClient?                                                 DNSClient                            = null)
 
             => new (
                    URL.Parse("https://one.one.one.one/dns-query"),
@@ -793,6 +827,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowRenegotiation,
                    AllowTLSResume,
 
+                   null,
+
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -800,31 +836,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
+
+                   DisableLogging,
                    DNSClient
                );
 
-        public static DNSHTTPSClient Cloudflare_IPv4_1(DNSHTTPSMode?                                                 Mode                                 = null,
-                                                       Boolean?                                                      RecursionDesired                     = null,
-                                                       TimeSpan?                                                     QueryTimeout                         = null,
+        public static DNSHTTPSClient Cloudflare_IPv4_1(DNSHTTPSMode?                                              Mode                                 = null,
+                                                       Boolean?                                                   RecursionDesired                     = null,
+                                                       TimeSpan?                                                  QueryTimeout                         = null,
 
-                                                       String?                                                       HTTPUserAgent                        = null,
+                                                       String?                                                    HTTPUserAgent                        = null,
 
-                                                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
-                                                       SslProtocols?                                                 TLSProtocols                         = null,
-                                                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                                                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                                                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                                                       Boolean?                                                      AllowRenegotiation                   = null,
-                                                       Boolean?                                                      AllowTLSResume                       = null,
+                                                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                                                       SslProtocols?                                              TLSProtocols                         = null,
+                                                       CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                                                       X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                                                       X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                                                       Boolean?                                                   AllowRenegotiation                   = null,
+                                                       Boolean?                                                   AllowTLSResume                       = null,
 
-                                                       IPVersionPreference?                                          PreferIPv4                           = null,
-                                                       TimeSpan?                                                     ConnectTimeout                       = null,
-                                                       TimeSpan?                                                     ReceiveTimeout                       = null,
-                                                       TimeSpan?                                                     SendTimeout                          = null,
-                                                       TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                                                       UInt16?                                                       MaxNumberOfRetries                   = null,
-                                                       UInt32?                                                       BufferSize                           = null,
-                                                       DNSClient?                                                    DNSClient                            = null)
+                                                       IPVersionPreference?                                       PreferIPv4                           = null,
+                                                       TimeSpan?                                                  ConnectTimeout                       = null,
+                                                       TimeSpan?                                                  ReceiveTimeout                       = null,
+                                                       TimeSpan?                                                  SendTimeout                          = null,
+                                                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                                                       UInt16?                                                    MaxNumberOfRetries                   = null,
+                                                       UInt32?                                                    BufferSize                           = null,
+
+                                                       Boolean?                                                   DisableLogging                       = null,
+                                                       DNSClient?                                                 DNSClient                            = null)
 
             => new (
                    URL.Parse("https://1.1.1.1/dns-query"),
@@ -843,6 +883,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowRenegotiation,
                    AllowTLSResume,
 
+                   null,
+
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -850,31 +892,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
+
+                   DisableLogging,
                    DNSClient
                );
 
-        public static DNSHTTPSClient Cloudflare_IPv4_2(DNSHTTPSMode?                                                 Mode                                 = null,
-                                                       Boolean?                                                      RecursionDesired                     = null,
-                                                       TimeSpan?                                                     QueryTimeout                         = null,
-                                                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+        public static DNSHTTPSClient Cloudflare_IPv4_2(DNSHTTPSMode?                                              Mode                                 = null,
+                                                       Boolean?                                                   RecursionDesired                     = null,
+                                                       TimeSpan?                                                  QueryTimeout                         = null,
+                                                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
 
-                                                       String?                                                       HTTPUserAgent                        = null,
+                                                       String?                                                    HTTPUserAgent                        = null,
 
-                                                       SslProtocols?                                                 TLSProtocols                         = null,
-                                                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
-                                                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
-                                                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
-                                                       Boolean?                                                      AllowRenegotiation                   = null,
-                                                       Boolean?                                                      AllowTLSResume                       = null,
+                                                       SslProtocols?                                              TLSProtocols                         = null,
+                                                       CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                                                       X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                                                       X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                                                       Boolean?                                                   AllowRenegotiation                   = null,
+                                                       Boolean?                                                   AllowTLSResume                       = null,
 
-                                                       IPVersionPreference?                                          PreferIPv4                           = null,
-                                                       TimeSpan?                                                     ConnectTimeout                       = null,
-                                                       TimeSpan?                                                     ReceiveTimeout                       = null,
-                                                       TimeSpan?                                                     SendTimeout                          = null,
-                                                       TransmissionRetryDelayDelegate?                               TransmissionRetryDelay               = null,
-                                                       UInt16?                                                       MaxNumberOfRetries                   = null,
-                                                       UInt32?                                                       BufferSize                           = null,
-                                                       DNSClient?                                                    DNSClient                            = null)
+                                                       IPVersionPreference?                                       PreferIPv4                           = null,
+                                                       TimeSpan?                                                  ConnectTimeout                       = null,
+                                                       TimeSpan?                                                  ReceiveTimeout                       = null,
+                                                       TimeSpan?                                                  SendTimeout                          = null,
+                                                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                                                       UInt16?                                                    MaxNumberOfRetries                   = null,
+                                                       UInt32?                                                    BufferSize                           = null,
+
+                                                       Boolean?                                                   DisableLogging                       = null,
+                                                       DNSClient?                                                 DNSClient                            = null)
 
             => new (
                    URL.Parse("https://1.0.0.1/dns-query"),
@@ -893,6 +939,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowRenegotiation,
                    AllowTLSResume,
 
+                   null,
+
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -900,6 +948,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
+
+                   DisableLogging,
                    DNSClient
                );
 

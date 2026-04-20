@@ -27,7 +27,6 @@ using Org.BouncyCastle.Asn1.X509;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -340,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #endregion
 
 
-            var httpClient1  = new HTTPTestClient(
+            var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
                                                                   serverCertificate,
@@ -680,7 +679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #endregion
 
 
-            var httpClient1  = new HTTPTestClient(
+            var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
                                                                   serverCertificate,
@@ -1026,7 +1025,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #endregion
 
 
-            var httpClient1  = new HTTPTestClient(
+            var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
                                                                   serverCertificate,
@@ -1376,7 +1375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #endregion
 
 
-            var httpClient1  = new HTTPTestClient(
+            var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
                                                                   serverCertificate,
@@ -1715,7 +1714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #endregion
 
 
-            var httpClient1  = new HTTPTestClient(
+            var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
                                                                   serverCertificate,
@@ -2050,7 +2049,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #endregion
 
 
-            var httpClient1  = new HTTPTestClient(
+            var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
                                                                   serverCertificate,
@@ -2082,7 +2081,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
 
 
-            var httpClient2  = new HTTPTestClient(
+            var httpClient2  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
                                                                   serverCertificate,

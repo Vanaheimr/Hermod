@@ -21,7 +21,6 @@ using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
@@ -176,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(HTTPAPIX          HTTPAPI,
+        public void RegisterSOAPDelegate(HTTPAPI          HTTPAPI,
                                          HTTPHostname      Hostname,
                                          HTTPPath          URLTemplate,
                                          String            Description,
@@ -237,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(HTTPAPIX                   HTTPAPI,
+        public void RegisterSOAPDelegate(HTTPAPI                   HTTPAPI,
                                          HTTPHostname               Hostname,
                                          HTTPPath                   URLTemplate,
                                          String                     Description,

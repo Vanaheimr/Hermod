@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Constructor(s)
 
-        protected ANotificationSender(HTTPExtAPI         HTTPExtAPI,
+        protected ANotificationSender(HTTPExtAPI        HTTPExtAPI,
                                       TimeSpan?          SendNotificationsEvery     = null,
                                       Boolean            DisableSendNotifications   = false,
                                       PgpPublicKeyRing?  PublicKeyRing              = null,

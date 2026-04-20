@@ -17,12 +17,12 @@
 
 #region Usings
 
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Net.Security;
 
 #endregion
 
@@ -30,9 +30,1089 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
+    /// Extension methods for the HTTP client interface.
+    /// </summary>
+    public static class IHTTPClientExtensions
+    {
+
+        #region OPTIONS (Path, ...)
+
+        public static Task<HTTPResponse> OPTIONS(this IHTTPClient              HTTPClient,
+                                                 HTTPPath                      Path,
+                                                 IHTTPAuthentication?          Authentication                        = null,
+                                                 ConnectionType?               Connection                            = null,
+                                                 TimeSpan?                     RequestTimeout                        = null,
+                                                 EventTracking_Id?             EventTrackingId                       = null,
+                                                 Byte                          NumberOfRetry                         = 0,
+                                                 Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                                 Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                                 Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                                 ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                                 ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                                 CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.OPTIONS,
+                   Path,
+                   null,
+                   null,
+                   Authentication,
+                   null, //UserAgent
+                   null, //Content,
+                   null, //ContentType,
+                   Connection,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+        #region GET     (Path, ...)
+
+        public static Task<HTTPResponse> GET(this IHTTPClient              HTTPClient,
+                                             HTTPPath                      Path,
+                                             QueryString?                  QueryString                           = null,
+                                             AcceptTypes?                  Accept                                = null,
+                                             IHTTPAuthentication?          Authentication                        = null,
+                                             String?                       UserAgent                             = null,
+                                             ConnectionType?               Connection                            = null,
+                                             Boolean?                      Consume = null,
+
+                                             TimeSpan?                     RequestTimeout                        = null,
+                                             EventTracking_Id?             EventTrackingId                       = null,
+                                             Byte                          NumberOfRetry                         = 0,
+                                             Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                             Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                             Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                             ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                             ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                             CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.GET,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null, //Content,
+                   null, //ContentType,
+                   UserAgent,
+                   Connection ?? ConnectionType.KeepAlive,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+        #region POST    (Path, Content, ...)
+
+        public static Task<HTTPResponse> POST(this IHTTPClient              HTTPClient,
+                                              HTTPPath                      Path,
+                                              Byte[]                        Content,
+                                              HTTPContentType?              ContentType                           = null,
+                                              QueryString?                  QueryString                           = null,
+                                              AcceptTypes?                  Accept                                = null,
+                                              IHTTPAuthentication?          Authentication                        = null,
+                                              ConnectionType?               Connection                            = null,
+                                              TimeSpan?                     RequestTimeout                        = null,
+                                              EventTracking_Id?             EventTrackingId                       = null,
+                                              Byte                          NumberOfRetry                         = 0,
+                                              Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                              Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                              Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                              ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                              ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                              CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.POST,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   null, //UserAgent
+                   Connection,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+        #region PUT     (Path, Content, ...)
+
+        public static Task<HTTPResponse> PUT(this IHTTPClient              HTTPClient,
+                                             HTTPPath                      Path,
+                                             Byte[]                        Content,
+                                             HTTPContentType?              ContentType                           = null,
+                                             QueryString?                  QueryString                           = null,
+                                             AcceptTypes?                  Accept                                = null,
+                                             IHTTPAuthentication?          Authentication                        = null,
+                                             ConnectionType?               Connection                            = null,
+                                             TimeSpan?                     RequestTimeout                        = null,
+                                             EventTracking_Id?             EventTrackingId                       = null,
+                                             Byte                          NumberOfRetry                         = 0,
+                                             Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                             Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                             Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                             ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                             ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                             CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.PUT,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   null, //UserAgent
+                   Connection,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+        #region PATCH   (Path, Content, ...)
+
+        public static Task<HTTPResponse> PATCH(this IHTTPClient              HTTPClient,
+                                               HTTPPath                      Path,
+                                               Byte[]                        Content,
+                                               HTTPContentType?              ContentType                           = null,
+                                               QueryString?                  QueryString                           = null,
+                                               AcceptTypes?                  Accept                                = null,
+                                               IHTTPAuthentication?          Authentication                        = null,
+                                               ConnectionType?               Connection                            = null,
+                                               TimeSpan?                     RequestTimeout                        = null,
+                                               EventTracking_Id?             EventTrackingId                       = null,
+                                               Byte                          NumberOfRetry                         = 0,
+                                               Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                               Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                               Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                               ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                               ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                               CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.PATCH,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   null, //UserAgent
+                   Connection,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+        #region DELETE  (Path, ...)
+
+        public static Task<HTTPResponse> DELETE(this IHTTPClient              HTTPClient,
+                                                HTTPPath                      Path,
+                                                Byte[]?                       Content                               = null,
+                                                HTTPContentType?              ContentType                           = null,
+                                                QueryString?                  QueryString                           = null,
+                                                AcceptTypes?                  Accept                                = null,
+                                                IHTTPAuthentication?          Authentication                        = null,
+                                                ConnectionType?               Connection                            = null,
+                                                TimeSpan?                     RequestTimeout                        = null,
+                                                EventTracking_Id?             EventTrackingId                       = null,
+                                                Byte                          NumberOfRetry                         = 0,
+                                                Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                                Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                                Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                                ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                                ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                                CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.DELETE,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   null, //UserAgent
+                   Connection,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+
+        #region MIRROR  (Path, Content, ...)
+
+        public static Task<HTTPResponse> MIRROR(this IHTTPClient              HTTPClient,
+                                                HTTPPath                      Path,
+                                                Byte[]                        Content,
+                                                HTTPContentType?              ContentType                           = null,
+                                                QueryString?                  QueryString                           = null,
+                                                AcceptTypes?                  Accept                                = null,
+                                                IHTTPAuthentication?          Authentication                        = null,
+                                                ConnectionType?               Connection                            = null,
+                                                TimeSpan?                     RequestTimeout                        = null,
+                                                EventTracking_Id?             EventTrackingId                       = null,
+                                                Byte                          NumberOfRetry                         = 0,
+                                                Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                                Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                                Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                                ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                                ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                                CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.MIRROR,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   null, //UserAgent
+                   Connection,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+
+
+        // RFC 2616 - HTTP/1.1
+
+        #region GETRequest    (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP GET request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder GETRequest(this IHTTPClient              HTTPClient,
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     TOTPConfig?                   TOTPConfig          = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.GET,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+
+        /// <summary>
+        /// Create a new HTTP GET request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="RequestURL">The request URL.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        //public static HTTPRequest.Builder GETRequest(this AHTTPTestClient              HTTPClient,
+        //                                             URL                           RequestURL,
+        //                                             AcceptTypes?                  Accept              = null,
+        //                                             IHTTPAuthentication?          Authentication      = null,
+        //                                             TOTPConfig?                   TOTPConfig          = null,
+        //                                             String?                       UserAgent           = null,
+        //                                             ConnectionType?               Connection          = null,
+        //                                             Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+        //                                             CancellationToken             CancellationToken   = default)
+
+        //    => HTTPClient.CreateRequest(
+        //           HTTPMethod.GET,
+        //           RequestURL,
+        //           Accept,
+        //           Authentication,
+        //           null,  // Content
+        //           null,  // ContentType
+        //                  // TOTPConfig
+        //           UserAgent,
+        //           Connection,
+        //           RequestBuilder,
+        //           CancellationToken
+        //       );
+
+        #endregion
+
+        #region HEADRequest   (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP HEAD request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder HEADRequest(this IHTTPClient              HTTPClient,
+                                                      HTTPPath                      HTTPPath,
+                                                      QueryString?                  QueryString         = null,
+                                                      AcceptTypes?                  Accept              = null,
+                                                      IHTTPAuthentication?          Authentication      = null,
+                                                      TOTPConfig?                   TOTPConfig          = null,
+                                                      String?                       UserAgent           = null,
+                                                      ConnectionType?               Connection          = null,
+                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                      CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.HEAD,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region POSTRequest   (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder POSTRequest(this IHTTPClient              HTTPClient,
+                                                      HTTPPath                      HTTPPath,
+                                                      QueryString?                  QueryString         = null,
+                                                      AcceptTypes?                  Accept              = null,
+                                                      IHTTPAuthentication?          Authentication      = null,
+                                                      TOTPConfig?                   TOTPConfig          = null,
+                                                      String?                       UserAgent           = null,
+                                                      ConnectionType?               Connection          = null,
+                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                      CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.POST,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               ).
+               // Always send a Content-Length header, even when it's value is zero!
+               SetContentLength(0);
+
+
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="RequestURL">The request URL.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        //public static HTTPRequest.Builder POSTRequest(this AHTTPTestClient              HTTPClient,
+        //                                              URL                           RequestURL,
+        //                                              AcceptTypes?                  Accept              = null,
+        //                                              IHTTPAuthentication?          Authentication      = null,
+        //                                              TOTPConfig?                   TOTPConfig          = null,
+        //                                              String?                       UserAgent           = null,
+        //                                              ConnectionType?               Connection          = null,
+        //                                              Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+        //                                              CancellationToken             CancellationToken   = default)
+
+        //    => HTTPClient.CreateRequest(
+        //           HTTPMethod.POST,
+        //           RequestURL,
+        //           Accept,
+        //           Authentication,
+        //           null,  // Content
+        //           null,  // ContentType
+        //                  // TOTPConfig
+        //           UserAgent,
+        //           Connection,
+        //           RequestBuilder,
+        //           null,  // ConsumeRequestChunkedTEImmediately
+        //           CancellationToken
+        //       ).
+        //       // Always send a Content-Length header, even when it's value is zero!
+        //       SetContentLength(0);
+
+        #endregion
+
+        #region PUTRequest    (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP PUT request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder PUTRequest(this IHTTPClient              HTTPClient,
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     TOTPConfig?                   TOTPConfig          = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.PUT,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region PATCHRequest  (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP PATCH request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder PATCHRequest(this IHTTPClient              HTTPClient,
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       TOTPConfig?                   TOTPConfig          = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.PATCH,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region DELETERequest (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP DELETE request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder DELETERequest(this IHTTPClient              HTTPClient,
+                                                        HTTPPath                      HTTPPath,
+                                                        QueryString?                  QueryString         = null,
+                                                        AcceptTypes?                  Accept              = null,
+                                                        IHTTPAuthentication?          Authentication      = null,
+                                                        TOTPConfig?                   TOTPConfig          = null,
+                                                        String?                       UserAgent           = null,
+                                                        ConnectionType?               Connection          = null,
+                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.DELETE,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region OPTIONSRequest(Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP OPTIONS request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder OPTIONSRequest(this IHTTPClient              HTTPClient,
+                                                         HTTPPath                      HTTPPath,
+                                                         QueryString?                  QueryString         = null,
+                                                         AcceptTypes?                  Accept              = null,
+                                                         IHTTPAuthentication?          Authentication      = null,
+                                                         TOTPConfig?                   TOTPConfig          = null,
+                                                         String?                       UserAgent           = null,
+                                                         ConnectionType?               Connection          = null,
+                                                         Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                         CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.OPTIONS,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+
+        // Inofficial HTTP methods
+
+        #region CHECKRequest  (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP CHECK request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder CHECKRequest(this IHTTPClient              HTTPClient,
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       TOTPConfig?                   TOTPConfig          = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.CHECK,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region COUNTRequest  (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP COUNT request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder COUNTRequest(this IHTTPClient              HTTPClient,
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       TOTPConfig?                   TOTPConfig          = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.COUNT,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region CLEARRequest  (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP CLEAR request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder CLEARRequest(this IHTTPClient              HTTPClient,
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       TOTPConfig?                   TOTPConfig          = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.CLEAR,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region CREATERequest (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP CREATE request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder CREATERequest(this IHTTPClient              HTTPClient,
+                                                        HTTPPath                      HTTPPath,
+                                                        QueryString?                  QueryString         = null,
+                                                        AcceptTypes?                  Accept              = null,
+                                                        IHTTPAuthentication?          Authentication      = null,
+                                                        TOTPConfig?                   TOTPConfig          = null,
+                                                        String?                       UserAgent           = null,
+                                                        ConnectionType?               Connection          = null,
+                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.CREATE,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region ADDRequest    (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP ADD request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder ADDRequest(this IHTTPClient              HTTPClient,
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     TOTPConfig?                   TOTPConfig          = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.ADD,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SETRequest    (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP SET request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder SETRequest(this IHTTPClient              HTTPClient,
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     TOTPConfig?                   TOTPConfig          = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.SET,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region TRACERequest  (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP TRACE request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder TRACERequest(this IHTTPClient              HTTPClient,
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       TOTPConfig?                   TOTPConfig          = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.TRACE,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region MIRRORRequest (Path = "/", ...)
+
+        /// <summary>
+        /// Create a new HTTP MIRROR request.
+        /// </summary>
+        /// <param name="HTTPClient">An HTTP client.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder MIRRORRequest(this IHTTPClient              HTTPClient,
+                                                        HTTPPath                      HTTPPath,
+                                                        QueryString?                  QueryString         = null,
+                                                        AcceptTypes?                  Accept              = null,
+                                                        IHTTPAuthentication?          Authentication      = null,
+                                                        TOTPConfig?                   TOTPConfig          = null,
+                                                        String?                       UserAgent           = null,
+                                                        ConnectionType?               Connection          = null,
+                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.MIRROR,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null,  // Content
+                   null,  // ContentType
+                          // TOTPConfig
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   null,  // ConsumeRequestChunkedTEImmediately
+                   CancellationToken
+               );
+
+        #endregion
+
+
+    }
+
+
+    /// <summary>
     /// The HTTP client interface.
     /// </summary>
-    public interface IHTTPClient : IDisposable
+    public interface IHTTPClient
     {
 
         /// <summary>
@@ -167,23 +1247,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        //Task<HTTPResponse> Execute(Func<AHTTPClient, HTTPRequest>  HTTPRequestDelegate,
-        //                           ClientRequestLogHandler?        RequestLogDelegate    = null,
-        //                           ClientResponseLogHandler?       ResponseLogDelegate   = null,
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
+                                          HTTPPath                      HTTPPath,
+                                          QueryString?                  QueryString                          = null,
+                                          AcceptTypes?                  Accept                               = null,
+                                          IHTTPAuthentication?          Authentication                       = null,
+                                          Byte[]?                       Content                              = null,
+                                          HTTPContentType?              ContentType                          = null,
+                                          String?                       UserAgent                            = null,
+                                          ConnectionType?               Connection                           = null,
+                                          Action<HTTPRequest.Builder>?  RequestBuilder                       = null,
+                                          Boolean?                      ConsumeRequestChunkedTEImmediately   = null,
+                                          CancellationToken             CancellationToken                    = default);
 
-        //                           EventTracking_Id?               EventTrackingId       = null,
-        //                           TimeSpan?                       RequestTimeout        = null,
-        //                           Byte                            NumberOfRetry         = 0,
-        //                           CancellationToken               CancellationToken     = default);
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        Task<HTTPResponse>
 
-        //Task<HTTPResponse> Execute(HTTPRequest                     Request,
-        //                           ClientRequestLogHandler?        RequestLogDelegate    = null,
-        //                           ClientResponseLogHandler?       ResponseLogDelegate   = null,
+            RunRequest(HTTPMethod                    HTTPMethod,
+                       HTTPPath                      HTTPPath,
+                       QueryString?                  QueryString                           = null,
+                       AcceptTypes?                  Accept                                = null,
+                       IHTTPAuthentication?          Authentication                        = null,
+                       Byte[]?                       Content                               = null,
+                       HTTPContentType?              ContentType                           = null,
+                       String?                       UserAgent                             = null,
+                       ConnectionType?               Connection                            = null,
+                       Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+                       Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                       Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+                       EventTracking_Id?             EventTrackingId                       = null,
+                       TimeSpan?                     RequestTimeout                        = null,
 
-        //                           EventTracking_Id?               EventTrackingId       = null,
-        //                           TimeSpan?                       RequestTimeout        = null,
-        //                           Byte                            NumberOfRetry         = 0,
-        //                           CancellationToken               CancellationToken     = default);
+                       ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                       ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                       CancellationToken             CancellationToken                     = default);
 
 
     }

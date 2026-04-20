@@ -26,7 +26,6 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -66,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 DefaultFilename:     "index.html"
             );
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var response   = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/helloWorld.txt")));
             Assert.That(response, Is.Not.Null);
@@ -112,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var response   = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/check")));
             Assert.That(response, Is.Not.Null);
@@ -165,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var response   = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test3.txt")));
             Assert.That(response, Is.Not.Null);
@@ -217,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var response   = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/test2/test3.txt")));
             Assert.That(response, Is.Not.Null);
@@ -271,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var response   = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/AAA.log/test2/BBB.log/CCC.log")));
             Assert.That(response, Is.Not.Null);
@@ -353,7 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var response   = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/AAA.log/test2/BBB.log/CCC.log")));
             Assert.That(response, Is.Not.Null);
@@ -509,7 +508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var response   = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/AAA.log/test2/BBB.log/CCC.log")));
             Assert.That(response, Is.Not.Null);
@@ -670,7 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             );
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
 
             var getResponse   = await httpClient.Item1.SendRequest(
@@ -756,11 +755,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             );
 
 
-            //var client = new HTTPClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
+            //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
@@ -866,7 +865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             );
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
 
             var getResponse   = await httpClient.Item1.SendRequest(
@@ -976,7 +975,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                             });
 
 
-            //var client = new HTTPClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
+            //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
 
@@ -984,7 +983,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var file1      = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             var port1      = httpClient.Item1.CurrentLocalPort;
@@ -1090,7 +1089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                             });
 
 
-            //var client = new HTTPClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
+            //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
 
@@ -1098,7 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+            var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var file1      = await httpClient.Item1.SendRequest(httpClient.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             var port1      = httpClient.Item1.CurrentLocalPort;
@@ -1190,7 +1189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
 
 
-            var httpClient  = await HTTPTestClient.ConnectNew(
+            var httpClient  = await HTTPClient.ConnectNew(
                                         IPv4Address.Localhost,
                                         httpServer.TCPPort
                                     );
@@ -1290,7 +1289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                   );
 
 
-            var httpClient1  = await HTTPTestClient.ConnectNew(
+            var httpClient1  = await HTTPClient.ConnectNew(
                                          IPv4Address.Localhost,
                                          httpServer.TCPPort
                                      );
@@ -1322,7 +1321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
 
 
-            var httpClient2  = await HTTPTestClient.ConnectNew(
+            var httpClient2  = await HTTPClient.ConnectNew(
                                          IPv4Address.Localhost,
                                          httpServer.TCPPort
                                      );
@@ -1423,7 +1422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var httpClientTask1 = Task.Run(async () => {
 
-                var httpClient  = await HTTPTestClient.ConnectNew(
+                var httpClient  = await HTTPClient.ConnectNew(
                                             IPv4Address.Localhost,
                                             httpServer.TCPPort
                                         );
@@ -1458,7 +1457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var httpClientTask2 = Task.Run(async () => {
 
-                var httpClient  = await HTTPTestClient.ConnectNew(
+                var httpClient  = await HTTPClient.ConnectNew(
                                             IPv4Address.Localhost,
                                             httpServer.TCPPort
                                         );
@@ -1495,7 +1494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 await Task.Delay(TimeSpan.FromSeconds(0.5));
 
-                var httpClient  = await HTTPTestClient.ConnectNew(
+                var httpClient  = await HTTPClient.ConnectNew(
                                             IPv4Address.Localhost,
                                             httpServer.TCPPort
                                         );
@@ -1532,7 +1531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 await Task.Delay(TimeSpan.FromSeconds(2.5));
 
-                var httpClient  = await HTTPTestClient.ConnectNew(
+                var httpClient  = await HTTPClient.ConnectNew(
                                             IPv4Address.Localhost,
                                             httpServer.TCPPort
                                         );
@@ -1721,11 +1720,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             );
 
 
-            //var client = new HTTPClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
+            //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
 
-            var httpClient    = await HTTPTestClient.ConnectNew(
+            var httpClient    = await HTTPClient.ConnectNew(
                                           IPv4Address.Localhost,
                                           httpServer.TCPPort
                                       );
@@ -1910,7 +1909,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
 
 
-            var httpClient1 = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer1.TCPPort);
+            var httpClient1 = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer1.TCPPort);
 
             var response1a   = await httpClient1.Item1.SendRequest(httpClient1.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             Assert.That(response1a, Is.Not.Null);
@@ -1932,7 +1931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
 
 
-            var httpClient2 = await HTTPTestClient.ConnectNew(IPv4Address.Parse("127.0.0.1"), httpServer2.TCPPort);
+            var httpClient2 = await HTTPClient.ConnectNew(IPv4Address.Parse("127.0.0.1"), httpServer2.TCPPort);
 
             var response2   = await httpClient2.Item1.SendRequest(httpClient2.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             Assert.That(response2, Is.Not.Null);
@@ -1944,7 +1943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
 
 
-            var httpClient3 = await HTTPTestClient.ConnectNew(IPv4Address.Parse("127.0.0.1"), httpServer3.TCPPort);
+            var httpClient3 = await HTTPClient.ConnectNew(IPv4Address.Parse("127.0.0.1"), httpServer3.TCPPort);
 
             var response3 = await httpClient3.Item1.SendRequest(httpClient3.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             Assert.That(response3, Is.Not.Null);
@@ -1956,7 +1955,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
 
 
-            var httpClientSRV = await HTTPTestClient.ConnectNew(DomainName.Parse("api.example.local"), SRV_Spec.TLS("ocpp"), DNSClient: dnsClient);
+            var httpClientSRV = await HTTPClient.ConnectNew(DomainName.Parse("api.example.local"), SRV_Spec.TLS("ocpp"), DNSClient: dnsClient);
 
             var responseSRV = await httpClientSRV.SendRequest(httpClientSRV.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             Assert.That(responseSRV, Is.Not.Null);

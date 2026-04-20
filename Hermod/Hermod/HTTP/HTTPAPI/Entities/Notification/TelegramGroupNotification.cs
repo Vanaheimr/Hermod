@@ -192,14 +192,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #endregion
 
 
-        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                      User           User,
         //                                                      Username   Username)
 
         //    => HTTPExtAPI.UnregisterNotification<TelegramGroupNotification>(User,
         //                                                        a => a.Username == Username);
 
-        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                      User_Id        User,
         //                                                      Username   Username)
 
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                        a => a.Username == Username);
 
 
-        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                      User             User,
         //                                                      NotificationMessageType  NotificationMessageType,
         //                                                      Username     Username)
@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                        NotificationMessageType,
         //                                                        a => a.Username == Username);
 
-        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterTelegramGroupNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                      User_Id          User,
         //                                                      NotificationMessageType  NotificationMessageType,
         //                                                      Username     Username)

@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #endregion
 
 
-        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                        User           User,
         //                                                        String         URL,
         //                                                        String         BasicAuthenticationLogin     = null,
@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                               a.BasicAuthenticationPassword == BasicAuthenticationPassword);
 
 
-        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                        User_Id        User,
         //                                                        String         URL,
         //                                                        String         BasicAuthenticationLogin     = null,
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                               a.BasicAuthenticationPassword == BasicAuthenticationPassword);
 
 
-        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                        User             User,
         //                                                        NotificationMessageType  NotificationMessageType,
         //                                                        String           URL,
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                               a.BasicAuthenticationLogin    == BasicAuthenticationLogin &&
         //                                                               a.BasicAuthenticationPassword == BasicAuthenticationPassword);
 
-        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterHTTPSNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                        User_Id          User,
         //                                                        NotificationMessageType  NotificationMessageType,
         //                                                        String           URL,

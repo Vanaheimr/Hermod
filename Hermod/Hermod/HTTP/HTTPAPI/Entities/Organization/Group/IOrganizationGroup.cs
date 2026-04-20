@@ -15,9 +15,13 @@
  * limitations under the License.
  */
 
+#region Usings
+
 using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Hermod;
+
 using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {

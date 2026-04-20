@@ -27,7 +27,6 @@ using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -93,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPTestServerX?         HTTPTestServerX      { get; internal set; }
 
-        public AHTTPTestClient?         HTTPClient           { get; internal set; }
+        public AHTTPClient?         HTTPClient           { get; internal set; }
 
         /// <summary>
         /// The remote TCP/IP socket.

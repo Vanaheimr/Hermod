@@ -196,69 +196,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        void AddMethodCallback(HTTPAPI                       HTTPAPI,
-                               HTTPHostname                  Hostname,
-                               HTTPMethod                    HTTPMethod,
-                               HTTPPath                      URLTemplate,
-                               HTTPContentType?              HTTPContentType             = null,
-                               Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URLAuthentication           = null,
-                               HTTPAuthentication?           HTTPMethodAuthentication    = null,
-                               HTTPAuthentication?           ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler?        HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler?       HTTPResponseLogger          = null,
-                               HTTPDelegate?                 DefaultErrorHandler         = null,
-                               HTTPDelegate?                 HTTPDelegate                = null,
-                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
+        //void AddMethodCallback(HTTPAPIX                      HTTPAPI,
+        //                       HTTPHostname                  Hostname,
+        //                       HTTPMethod                    HTTPMethod,
+        //                       HTTPPath                      URLTemplate,
+        //                       HTTPContentType?              HTTPContentType             = null,
+        //                       Boolean                       OpenEnd                     = false,
+        //                       HTTPAuthentication?           URLAuthentication           = null,
+        //                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
+        //                       HTTPAuthentication?           ContentTypeAuthentication   = null,
+        //                       HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+        //                       HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+        //                       HTTPDelegate?                 DefaultErrorHandler         = null,
+        //                       HTTPDelegate?                 HTTPDelegate                = null,
+        //                       URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
-        void AddMethodCallback(HTTPAPI                       HTTPAPI,
-                               HTTPHostname                  Hostname,
-                               HTTPMethod                    HTTPMethod,
-                               IEnumerable<HTTPPath>         URLTemplates,
-                               HTTPContentType?              HTTPContentType             = null,
-                               Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URLAuthentication           = null,
-                               HTTPAuthentication?           HTTPMethodAuthentication    = null,
-                               HTTPAuthentication?           ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler?        HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler?       HTTPResponseLogger          = null,
-                               HTTPDelegate?                 DefaultErrorHandler         = null,
-                               HTTPDelegate?                 HTTPDelegate                = null,
-                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
+        //void AddMethodCallback(HTTPAPIX                      HTTPAPI,
+        //                       HTTPHostname                  Hostname,
+        //                       HTTPMethod                    HTTPMethod,
+        //                       IEnumerable<HTTPPath>         URLTemplates,
+        //                       HTTPContentType?              HTTPContentType             = null,
+        //                       Boolean                       OpenEnd                     = false,
+        //                       HTTPAuthentication?           URLAuthentication           = null,
+        //                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
+        //                       HTTPAuthentication?           ContentTypeAuthentication   = null,
+        //                       HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+        //                       HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+        //                       HTTPDelegate?                 DefaultErrorHandler         = null,
+        //                       HTTPDelegate?                 HTTPDelegate                = null,
+        //                       URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
-        void AddMethodCallback(HTTPAPI                       HTTPAPI,
-                               HTTPHostname                  Hostname,
-                               HTTPMethod                    HTTPMethod,
-                               HTTPPath                      URLTemplate,
-                               IEnumerable<HTTPContentType>  HTTPContentTypes,
-                               Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URLAuthentication           = null,
-                               HTTPAuthentication?           HTTPMethodAuthentication    = null,
-                               HTTPAuthentication?           ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler?        HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler?       HTTPResponseLogger          = null,
-                               HTTPDelegate?                 DefaultErrorHandler         = null,
-                               HTTPDelegate?                 HTTPDelegate                = null,
-                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
+        //void AddMethodCallback(HTTPAPI                       HTTPAPI,
+        //                       HTTPHostname                  Hostname,
+        //                       HTTPMethod                    HTTPMethod,
+        //                       HTTPPath                      URLTemplate,
+        //                       IEnumerable<HTTPContentType>  HTTPContentTypes,
+        //                       Boolean                       OpenEnd                     = false,
+        //                       HTTPAuthentication?           URLAuthentication           = null,
+        //                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
+        //                       HTTPAuthentication?           ContentTypeAuthentication   = null,
+        //                       HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+        //                       HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+        //                       HTTPDelegate?                 DefaultErrorHandler         = null,
+        //                       HTTPDelegate?                 HTTPDelegate                = null,
+        //                       URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
-        void AddMethodCallback(HTTPAPI                       HTTPAPI,
-                               HTTPHostname                  Hostname,
-                               HTTPMethod                    HTTPMethod,
-                               IEnumerable<HTTPPath>         URLTemplates,
-                               IEnumerable<HTTPContentType>  HTTPContentTypes,
-                               Boolean                       OpenEnd                     = false,
-                               HTTPAuthentication?           URLAuthentication           = null,
-                               HTTPAuthentication?           HTTPMethodAuthentication    = null,
-                               HTTPAuthentication?           ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler?        HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler?       HTTPResponseLogger          = null,
-                               HTTPDelegate?                 DefaultErrorHandler         = null,
-                               HTTPDelegate?                 HTTPDelegate                = null,
-                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
+        //void AddMethodCallback(HTTPAPI                       HTTPAPI,
+        //                       HTTPHostname                  Hostname,
+        //                       HTTPMethod                    HTTPMethod,
+        //                       IEnumerable<HTTPPath>         URLTemplates,
+        //                       IEnumerable<HTTPContentType>  HTTPContentTypes,
+        //                       Boolean                       OpenEnd                     = false,
+        //                       HTTPAuthentication?           URLAuthentication           = null,
+        //                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
+        //                       HTTPAuthentication?           ContentTypeAuthentication   = null,
+        //                       HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+        //                       HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+        //                       HTTPDelegate?                 DefaultErrorHandler         = null,
+        //                       HTTPDelegate?                 HTTPDelegate                = null,
+        //                       URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
-        Task<IHTTPServer> AttachTCPPorts  (params IPPort[]   Ports);
-        Task<IHTTPServer> AttachTCPSockets(params IPSocket[] Sockets);
-        Task<IHTTPServer> DetachTCPPorts  (params IPPort[]   Ports);
+        //Task<IHTTPServer> AttachTCPPorts  (params IPPort[]   Ports);
+        //Task<IHTTPServer> AttachTCPSockets(params IPSocket[] Sockets);
+        //Task<IHTTPServer> DetachTCPPorts  (params IPPort[]   Ports);
 
 
 
@@ -383,23 +383,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        void Redirect(HTTPAPI          HTTPAPI,
-                      HTTPHostname     Hostname,
-                      HTTPMethod       HTTPMethod,
-                      HTTPPath         URLTemplate,
-                      HTTPContentType  HTTPContentType,
-                      HTTPPath         URITarget);
-        void Redirect(HTTPAPI          HTTPAPI,
-                      HTTPMethod       HTTPMethod,
-                      HTTPPath         URLTemplate,
-                      HTTPContentType  HTTPContentType,
-                      HTTPPath         URITarget);
+        //void Redirect(HTTPAPI          HTTPAPI,
+        //              HTTPHostname     Hostname,
+        //              HTTPMethod       HTTPMethod,
+        //              HTTPPath         URLTemplate,
+        //              HTTPContentType  HTTPContentType,
+        //              HTTPPath         URITarget);
+        //void Redirect(HTTPAPI          HTTPAPI,
+        //              HTTPMethod       HTTPMethod,
+        //              HTTPPath         URLTemplate,
+        //              HTTPContentType  HTTPContentType,
+        //              HTTPPath         URITarget);
 
-        void AddFilter(HTTPFilter1Delegate Filter);
-        void AddFilter(HTTPFilter2Delegate Filter);
+        //void AddFilter(HTTPFilter1Delegate Filter);
+        //void AddFilter(HTTPFilter2Delegate Filter);
 
-        void Rewrite  (HTTPRewrite1Delegate Rewrite);
-        void Rewrite  (HTTPRewrite2Delegate Rewrite);
+        //void Rewrite  (HTTPRewrite1Delegate Rewrite);
+        //void Rewrite  (HTTPRewrite2Delegate Rewrite);
 
         Task<HTTPResponse> InvokeRequestHandle(HTTPRequest Request);
         Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String            Host,

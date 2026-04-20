@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -47,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
     public delegate Task HTTPRequestLogHandler(DateTimeOffset  Timestamp,
-                                               HTTPAPI         HTTPAPI,
+                                               HTTPAPI        HTTPAPI,
                                                HTTPRequest     Request);
 
 
@@ -58,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
     public delegate Task HTTPRequestLogHandlerX(DateTimeOffset     Timestamp,
-                                                HTTPAPIX           HTTPAPI,
+                                                HTTPAPI           HTTPAPI,
                                                 HTTPRequest        Request,
                                                 CancellationToken  CancellationToken);
 
@@ -95,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
     public delegate Task HTTPResponseLogHandler(DateTimeOffset  Timestamp,
-                                                HTTPAPI         HTTPAPI,
+                                                HTTPAPI        HTTPAPI,
                                                 HTTPRequest     Request,
                                                 HTTPResponse    Response);
 
@@ -107,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
     public delegate Task HTTPResponseLogHandlerX(DateTimeOffset     Timestamp,
-                                                 HTTPAPIX           HTTPAPI,
+                                                 HTTPAPI           HTTPAPI,
                                                  HTTPRequest        Request,
                                                  HTTPResponse       Response,
                                                  CancellationToken  CancellationToken);
@@ -139,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Error">The occurred error.</param>
     /// <param name="LastException">The last occurred exception.</param>
     public delegate Task HTTPErrorLogHandler(DateTimeOffset  Timestamp,
-                                             HTTPAPI         HTTPAPI,
+                                             HTTPAPI        HTTPAPI,
                                              HTTPRequest     Request,
                                              HTTPResponse    Response,
                                              String?         Error           = null,

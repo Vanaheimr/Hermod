@@ -15,13 +15,16 @@
  * limitations under the License.
  */
 
+#region Usings
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Aegir;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
-using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
@@ -32,8 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      IComparable
     {
 
-        HTTPExtAPI?  API  { get; set; }
-        HTTPExtAPIX? APIX { get; set; }
+        //HTTPExtAPI?  API  { get; set; }
+        HTTPExtAPI? APIX { get; set; }
 
         JSONLDContext JSONLDContext { get; }
 

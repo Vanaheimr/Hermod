@@ -35,7 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region Data
 
-        protected readonly HTTPServer httpServer;
+        protected readonly HTTPTestServerX  httpServer;
+        protected readonly HTTPAPI          httpAPI;
 
         #endregion
 
@@ -44,10 +45,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public AHTTPServerTests(IPPort HTTPPort)
         {
 
-            httpServer = new HTTPServer(
-                             HTTPPort,
-                             AutoStart: true
-                         );
+            httpServer  = new HTTPTestServerX(
+                              TCPPort: HTTPPort,
+                              AutoStart: true
+                          );
+
+            httpAPI     = new HTTPAPI(
+                              httpServer
+                          );
 
         }
 
@@ -328,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [OneTimeTearDown]
         public void Shutdown_HTTPServer()
         {
-            httpServer?.Shutdown();
+            //httpServer?.Shutdown();
         }
 
         #endregion

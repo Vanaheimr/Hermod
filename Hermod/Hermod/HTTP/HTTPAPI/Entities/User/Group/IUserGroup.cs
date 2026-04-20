@@ -20,7 +20,6 @@
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -33,8 +32,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   IComparable
     {
 
-        HTTPExtAPI? API { get; set; }
-        HTTPExtAPIX? APIX { get; set; }
+        //HTTPExtAPI? API { get; set; }
+        HTTPExtAPI? APIX { get; set; }
         IEnumerable<UserGroup> ParentUserGroups { get; }
         IEnumerable<UserGroup> SubUserGroups { get; }
         IEnumerable<User2UserGroupEdge> User2UserGroupEdges { get; }

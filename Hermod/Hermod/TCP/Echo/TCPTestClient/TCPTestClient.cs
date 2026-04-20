@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
-    public class TCPTestClient : ATCPTestClient
+    public class TCPTestClient : ATCPClient
     {
 
         #region Constructor(s)

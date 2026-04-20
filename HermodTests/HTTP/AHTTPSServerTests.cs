@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
         #region Data
 
-        protected readonly HTTPServer                     httpsServer;
+        protected readonly HTTPTestServerX                httpsServer;
 
         protected AsymmetricCipherKeyPair                 rootCA_RSAKeyPair;
         protected Org.BouncyCastle.X509.X509Certificate   rootCA_X509v3;
@@ -119,9 +119,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
 
             // HTTPS server configuration
-            httpsServer                 = new HTTPServer(
+            httpsServer                 = new HTTPTestServerX(
 
-                                              HTTPPort:                    HTTPSPort,
+                                              TCPPort:                    HTTPSPort,
 
                                               ServerCertificateSelector:  (tcpServer, tcpClient) => {
                                                   return serverCertificate;
@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         [OneTimeTearDown]
         public void Shutdown_HTTPSServer()
         {
-            httpsServer?.Shutdown();
+            //httpsServer?.Shutdown();
         }
 
         #endregion

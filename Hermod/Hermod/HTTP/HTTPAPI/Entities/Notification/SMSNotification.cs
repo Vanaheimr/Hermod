@@ -128,14 +128,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #endregion
 
 
-        //public static Notifications UnregisterSMSNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterSMSNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                      User           User,
         //                                                      PhoneNumber   Phonenumber)
 
         //    => HTTPExtAPI.UnregisterNotification<SMSNotification>(User,
         //                                                        a => a.Phonenumber == Phonenumber);
 
-        //public static Notifications UnregisterSMSNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterSMSNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                      User_Id        User,
         //                                                      PhoneNumber   Phonenumber)
 
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                        a => a.Phonenumber == Phonenumber);
 
 
-        //public static Notifications UnregisterSMSNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterSMSNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                      User             User,
         //                                                      NotificationMessageType  NotificationMessageType,
         //                                                      PhoneNumber     Phonenumber)
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                        NotificationMessageType,
         //                                                        a => a.Phonenumber == Phonenumber);
 
-        //public static Notifications UnregisterSMSNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterSMSNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                      User_Id          User,
         //                                                      NotificationMessageType  NotificationMessageType,
         //                                                      PhoneNumber     Phonenumber)

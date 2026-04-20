@@ -117,14 +117,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #endregion
 
 
-        //public static Notifications UnregisterEMailNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterEMailNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                        User           User,
         //                                                        EMailAddress   EMailAddress)
 
         //    => HTTPExtAPI.UnregisterNotification<EMailNotification>(User,
         //                                                          a => a.EMailAddress == EMailAddress);
 
-        //public static Notifications UnregisterEMailNotification(this HTTPExtAPI  HTTPExtAPI,
+        //public static Notifications UnregisterEMailNotification(this HTTPExtAPIX  HTTPExtAPI,
         //                                                        User_Id        User,
         //                                                        EMailAddress   EMailAddress)
 
@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                          a => a.EMailAddress == EMailAddress);
 
 
-        //public static Notifications UnregisterEMailNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterEMailNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                        User             User,
         //                                                        NotificationMessageType  NotificationMessageType,
         //                                                        EMailAddress     EMailAddress)
@@ -141,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         //                                                          NotificationMessageType,
         //                                                          a => a.EMailAddress == EMailAddress);
 
-        //public static Notifications UnregisterEMailNotification(this HTTPExtAPI    HTTPExtAPI,
+        //public static Notifications UnregisterEMailNotification(this HTTPExtAPIX    HTTPExtAPI,
         //                                                        User_Id          User,
         //                                                        NotificationMessageType  NotificationMessageType,
         //                                                        EMailAddress     EMailAddress)

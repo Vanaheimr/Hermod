@@ -23,7 +23,6 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -81,12 +80,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region APIX
 
-        private HTTPExtAPIX? _APIX;
+        private HTTPExtAPI? _APIX;
 
         /// <summary>
         /// The HTTPExtAPI of this API key.
         /// </summary>
-        internal HTTPExtAPIX APIX
+        internal HTTPExtAPI APIX
         {
 
             get

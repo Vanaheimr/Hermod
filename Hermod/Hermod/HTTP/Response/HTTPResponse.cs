@@ -593,7 +593,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              UInt32?            HTTPBodyReceiveBufferSize                   = DefaultHTTPBodyReceiveBufferSize,
                              Boolean?           ConsumeChunkedTransferEncodingImmediately   = true,
                              Object?            SubprotocolResponse                         = null,
-                             AHTTPTestClient?   HTTPClient                                  = null,
+                             AHTTPClient?   HTTPClient                                  = null,
 
                              EventTracking_Id?  EventTrackingId                             = null,
                              TimeSpan?          Runtime                                     = null,
@@ -709,7 +709,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse Parse(DateTimeOffset      Timestamp,
                                          TimeSpan            Runtime,
                                          HTTPRequest         Request,
-                                         AHTTPTestClient     HTTPClient,
+                                         AHTTPClient     HTTPClient,
                                          IPSocket            LocalSocket,
                                          IPSocket            RemoteSocket,
                                          HTTPSource          HTTPSource,
@@ -1977,35 +1977,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
                                                 TContent     Content)
 
-            => new (HTTPRequest, Content);
+            => new (HTTPRequest,
+                    Content);
 
         public static HTTPResponse<TContent> OK(TContent Content)
 
-            => new (null, Content, null, null);
+            => new (default,
+                    Content,
+                    null,
+                    null);
 
-        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
-                                                     TContent      Content)
+        public static HTTPResponse<TContent> FromError(HTTPResponse  Response,
+                                                       TContent?     Content = default)
 
             => new (Response,
                     Content,
-                    true);
+                    IsFault: true);
 
-        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
-                                                     Exception     Exception)
+        public static HTTPResponse<TContent> FromClientError(TContent Content)
+
+            => new (default,
+                    Content,
+                    IsFault: true);
+
+        public static HTTPResponse<TContent> FromException(HTTPResponse  Response,
+                                                           Exception     Exception)
 
             => new (Response,
                     default,
-                    true,
+                    IsFault: true,
                     Exception);
-
-        public static HTTPResponse<TContent> ClientError(TContent Content)
-
-            => new (null, Content, IsFault: true);
 
         public static HTTPResponse<TContent> ExceptionThrown(TContent   Content,
                                                              Exception  Exception)
 
-            => new (Content, Exception);
+            => new (Content,
+                    Exception);
 
 
         #region (static) GatewayTimeout

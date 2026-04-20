@@ -19,6 +19,9 @@
 
 using System.Reflection;
 
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
 #endregion
@@ -40,41 +43,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The extended HTTP API.
         /// </summary>
-        public THTTPAPI  HTTPBaseAPI       { get; }
-
-        /// <summary>
-        /// The optional API version hash (git commit hash value).
-        /// </summary>
-        public String?   APIVersionHash    { get; }
+        public THTTPAPI  HTTPBaseAPI    { get; }
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Attach the given OCPP charging station management system WebAPI to the given HTTP API.
+        /// Create a new HTTP API extension.
         /// </summary>
-        /// <param name="HTTPAPI">An HTTP API.</param>
+        /// <param name="HTTPAPI">A HTTP API.</param>
         /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
         /// <param name="APIVersionHash">An optional API version hash (git commit hash value).</param>
         public AHTTPAPIExtension(THTTPAPI                 HTTPAPI,
-                                 String?                  HTTPServerName       = null,
                                  HTTPPath?                URLPathPrefix        = null,
-                                 HTTPPath?                BasePath             = null,
-                                 String?                  HTMLTemplate         = null,
+                                 HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
 
+                                 I18NString?              Description          = null,
+                                 String?                  ExternalDNSName      = null,
+                                 String?                  HTTPServerName       = null,
+                                 String?                  HTTPServiceName      = null,
                                  String?                  APIVersionHash       = null,
-                                 Boolean?                 IsDevelopment        = false,
+                                 JObject?                 APIVersionHashes     = null,
+
+                                 Boolean?                 IsDevelopment        = null,
                                  IEnumerable<String>?     DevelopmentServers   = null,
-                                 Boolean?                 DisableLogging       = false,
+                                 Boolean?                 DisableLogging       = null,
                                  String?                  LoggingPath          = null,
-                                 String?                  LogfileName          = DefaultHTTPAPI_LogfileName,
+                                 String?                  LogfileName          = null,
                                  LogfileCreatorDelegate?  LogfileCreator       = null)
 
-            : base(HTTPServerName,
+            : base(Description ?? I18NString.Create("A HTTP API Extension"),
                    URLPathPrefix,
                    BasePath,
-                   HTMLTemplate,
+                   //HTMLTemplate,
+
+                   ExternalDNSName,
+                   HTTPServerName,
+                   HTTPServiceName,
+                   APIVersionHash,
+                   APIVersionHashes,
 
                    IsDevelopment,
                    DevelopmentServers,
@@ -85,15 +93,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPBaseAPI     = HTTPAPI;
-            this.APIVersionHash  = APIVersionHash;
+            this.HTTPBaseAPI = HTTPAPI;
 
         }
 
         #endregion
 
 
-        #region (protected override) GetResourceStream      (ResourceName, ResourceAssemblies)
+        #region (protected override) GetResourceStream       (ResourceName, ResourceAssemblies)
 
         protected override Stream? GetResourceStream(String ResourceName)
 
@@ -103,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected override) GetResourceMemoryStream(ResourceName, ResourceAssemblies)
+        #region (protected override) GetResourceMemoryStream (ResourceName, ResourceAssemblies)
 
         protected override MemoryStream? GetResourceMemoryStream(String ResourceName)
 
@@ -113,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected override) GetResourceString      (ResourceName, ResourceAssemblies)
+        #region (protected override) GetResourceString       (ResourceName, ResourceAssemblies)
 
         protected override String GetResourceString(String ResourceName)
 
@@ -123,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected override) GetResourceBytes       (ResourceName, ResourceAssemblies)
+        #region (protected override) GetResourceBytes        (ResourceName, ResourceAssemblies)
 
         protected override Byte[] GetResourceBytes(String ResourceName)
 
@@ -133,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected override) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
+        #region (protected override) MixWithHTMLTemplate     (ResourceName, ResourceAssemblies)
 
         protected override String MixWithHTMLTemplate(String ResourceName)
 
@@ -143,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected override) MixWithHTMLTemplate    (ResourceName, HTMLConverter, ResourceAssemblies)
+        #region (protected override) MixWithHTMLTemplate     (ResourceName, HTMLConverter, ResourceAssemblies)
 
         protected override String MixWithHTMLTemplate(String                ResourceName,
                                                       Func<String, String>  HTMLConverter)
@@ -155,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected override) MixWithHTMLTemplate    (Template, ResourceName, ResourceAssemblies)
+        #region (protected override) MixWithHTMLTemplate     (Template, ResourceName, ResourceAssemblies)
 
         protected override String MixWithHTMLTemplate(String   Template,
                                                       String   ResourceName,
@@ -163,10 +170,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => MixWithHTMLTemplate(Template,
                                    ResourceName,
-                                   new[] {
+                                   [
                                        new Tuple<String, Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                        new Tuple<String, Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly)
-                                   },
+                                   ],
                                    Content);
 
         #endregion

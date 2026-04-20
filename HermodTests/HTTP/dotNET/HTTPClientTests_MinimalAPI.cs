@@ -478,28 +478,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkBlocks   = new List<String>();
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
 
-            httpClient.OnChunkDataRead += (time,
-                                           blockNumber,
-                                           blockData,
-                                           blockLength,
-                                           currentTotalBytes) => {
+            //httpClient.OnChunkDataRead += (time,
+            //                               blockNumber,
+            //                               blockData,
+            //                               blockLength,
+            //                               currentTotalBytes) => {
 
-                chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
-                return Task.CompletedTask;
+            //    chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+            //    return Task.CompletedTask;
 
-            };
+            //};
 
-            httpClient.OnChunkBlockFound += (timestamp,
-                                             chunkNumber,
-                                             chunkLength,
-                                             chunkExtensions,
-                                             chunkData,
-                                             totalBytes) => {
+            //httpClient.OnChunkBlockFound += (timestamp,
+            //                                 chunkNumber,
+            //                                 chunkLength,
+            //                                 chunkExtensions,
+            //                                 chunkData,
+            //                                 totalBytes) => {
 
-                chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
-                return Task.CompletedTask;
+            //    chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+            //    return Task.CompletedTask;
 
-            };
+            //};
 
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunked").
                                                  ConfigureAwait(false);
@@ -559,28 +559,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkBlocks   = new List<String>();
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
 
-            httpClient.OnChunkDataRead += (time,
-                                           blockNumber,
-                                           blockData,
-                                           blockLength,
-                                           currentTotalBytes) => {
+            //httpClient.OnChunkDataRead += (time,
+            //                               blockNumber,
+            //                               blockData,
+            //                               blockLength,
+            //                               currentTotalBytes) => {
 
-                chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
-                return Task.CompletedTask;
+            //    chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+            //    return Task.CompletedTask;
 
-            };
+            //};
 
-            httpClient.OnChunkBlockFound += (timestamp,
-                                             chunkNumber,
-                                             chunkLength,
-                                             chunkExtensions,
-                                             chunkData,
-                                             totalBytes) => {
+            //httpClient.OnChunkBlockFound += (timestamp,
+            //                                 chunkNumber,
+            //                                 chunkLength,
+            //                                 chunkExtensions,
+            //                                 chunkData,
+            //                                 totalBytes) => {
 
-                chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
-                return Task.CompletedTask;
+            //    chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+            //    return Task.CompletedTask;
 
-            };
+            //};
 
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunkedSlow").
                                                  ConfigureAwait(false);
@@ -640,28 +640,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkBlocks   = new List<String>();
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
 
-            httpClient.OnChunkDataRead += (time,
-                                           blockNumber,
-                                           blockData,
-                                           blockLength,
-                                           currentTotalBytes) => {
+            //httpClient.OnChunkDataRead += (time,
+            //                               blockNumber,
+            //                               blockData,
+            //                               blockLength,
+            //                               currentTotalBytes) => {
 
-                chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
-                return Task.CompletedTask;
+            //    chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+            //    return Task.CompletedTask;
 
-            };
+            //};
 
-            httpClient.OnChunkBlockFound += (timestamp,
-                                             chunkNumber,
-                                             chunkLength,
-                                             chunkExtensions,
-                                             chunkData,
-                                             totalBytes) => {
+            //httpClient.OnChunkBlockFound += (timestamp,
+            //                                 chunkNumber,
+            //                                 chunkLength,
+            //                                 chunkExtensions,
+            //                                 chunkData,
+            //                                 totalBytes) => {
 
-                chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
-                return Task.CompletedTask;
+            //    chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+            //    return Task.CompletedTask;
 
-            };
+            //};
 
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunkedSlowTrailerHeaders").
                                                      //request => {

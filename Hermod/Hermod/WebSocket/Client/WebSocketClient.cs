@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// An HTTP WebSocket client.
+    /// A HTTP WebSocket client.
     /// </summary>
     public class WebSocketClient : IWebSocketClient
     {
@@ -113,11 +113,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// An optional description of this HTTP WebSocket client.
         /// </summary>
         public I18NString                                                      Description                               { get; set; }
-
-        /// <summary>
-        /// The remote TLS certificate validator.
-        /// </summary>
-        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?              IHTTPClient.RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// The remote TLS certificate validator.
@@ -316,6 +311,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public String?                              ClientCloseMessage                   { get; private set; }
 
         public ECPrivateKeyParameters?              AuthKey                              { get; }
+
+        RemoteTLSServerCertificateValidationHandler<IHTTPClient>? IHTTPClient.RemoteCertificateValidator => throw new NotImplementedException();
 
         #endregion
 
@@ -750,7 +747,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
             var expectedWSAccept    = SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
 
-            var httpRequestBuilder  = new HTTPRequest.Builder() {
+            var httpRequestBuilder  = new HTTPRequest.Builder(this) {
                                           Path                  = RemoteURL.Path,
                                           Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
                                           Connection            = ConnectionType.Upgrade,
@@ -1360,7 +1357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e2)
                     {
-                        DebugX.LogException(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+                        DebugX.LogException(e2, nameof(WebSocketClient) + "." + nameof(ResponseLogDelegate));
                     }
 
                     #endregion
@@ -1923,6 +1920,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
+
+        public HTTPRequest.Builder CreateRequest(HTTPMethod HTTPMethod, HTTPPath HTTPPath, QueryString? QueryString = null, AcceptTypes? Accept = null, IHTTPAuthentication? Authentication = null, Byte[]? Content = null, HTTPContentType? ContentType = null, String? UserAgent = null, ConnectionType? Connection = null, Action<HTTPRequest.Builder>? RequestBuilder = null, Boolean? ConsumeRequestChunkedTEImmediately = null, CancellationToken CancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<HTTPResponse> RunRequest(HTTPMethod HTTPMethod, HTTPPath HTTPPath, QueryString? QueryString = null, AcceptTypes? Accept = null, IHTTPAuthentication? Authentication = null, Byte[]? Content = null, HTTPContentType? ContentType = null, String? UserAgent = null, ConnectionType? Connection = null, Action<HTTPRequest.Builder>? RequestBuilder = null, Boolean? ConsumeRequestChunkedTEImmediately = null, Boolean? ConsumeResponseChunkedTEImmediately = null, EventTracking_Id? EventTrackingId = null, TimeSpan? RequestTimeout = null, ClientRequestLogHandler? RequestLogDelegate = null, ClientResponseLogHandler? ResponseLogDelegate = null, CancellationToken CancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
 
     }
 

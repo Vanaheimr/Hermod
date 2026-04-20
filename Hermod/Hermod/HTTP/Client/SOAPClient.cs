@@ -126,8 +126,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           UInt16?                                                    MaxNumberOfRetries           = null,
                           UInt32?                                                    InternalBufferSize           = null,
                           Boolean                                                    UseHTTPPipelining            = false,
-                          Boolean?                                                   DisableLogging               = false,
                           HTTPClientLogger?                                          HTTPLogger                   = null,
+
+                          Boolean?                                                   DisableLogging               = null,
                           IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
@@ -153,8 +154,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    MaxNumberOfRetries,
                    InternalBufferSize,
                    UseHTTPPipelining,
-                   DisableLogging,
                    HTTPLogger,
+
+                   DisableLogging,
                    DNSClient)
 
         { }
@@ -220,33 +222,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             #endregion
 
-            var requestBuilder = new HTTPRequest.Builder(this) {
-                                     HTTPMethod         = HTTPMethod.POST,
-                                     Host               = VirtualHostname ?? RemoteURL.Hostname,
-                                     Path               = RemoteURL.Path,
-                                     Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.XML_UTF8),
-                                     Content            = QueryXML.ToUTF8Bytes(),
-                                     ContentType        = ContentType ?? HTTPContentType.Text.XML_UTF8,
-                                     UserAgent          = HTTPUserAgent
-                                    // FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname)
-                                 };
+
+            var requestBuilder = CreateRequest(
+                                      HTTPMethod.POST,
+                                      //Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
+                                      //FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
+                                      RemoteURL.Path,
+                                      null,  // QueryString
+                                      AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.XML_UTF8),
+                                      null,  // Authentication
+                                      QueryXML.ToUTF8Bytes(),
+                                      ContentType ?? HTTPContentType.Text.XML_UTF8,
+                                      HTTPUserAgent,
+                                      null,  // Connection
+                                      null,  // RequestBuilder
+                                      null,  // ConsumeRequestChunkedTEImmediately
+                                  //    RequestLogDelegate,
+                                  //    ResponseLogDelegate,
+                                      CancellationToken
+                                 );
 
             // Always send a Content-Length header, even when it's value is zero
             requestBuilder.SetContentLength(0);
-
             requestBuilder.Set("SOAPAction", @"""" + SOAPAction + @"""");
-
 
             HTTPRequestBuilder?.Invoke(requestBuilder);
 
-            var httpResponse = await Execute(requestBuilder,
-                                             RequestLogDelegate,
-                                             ResponseLogDelegate,
+            var httpResponse = await SendRequest(
+                                         requestBuilder.AsImmutable,
+                                         ConsumeResponseChunkedTEImmediately,
+                                         RequestLogDelegate,
+                                         ResponseLogDelegate,
+                                         MaxSemaphoreWaitTime,
+                                         CancellationToken
+                                     );
 
-                                             EventTrackingId,
-                                             RequestTimeout ?? DefaultRequestTimeout,
-                                             NumberOfRetry,
-                                             CancellationToken);
+            //var httpResponse = await Execute(requestBuilder,
+            //                                 RequestLogDelegate,
+            //                                 ResponseLogDelegate,
+
+            //                                 EventTrackingId,
+            //                                 RequestTimeout ?? DefaultRequestTimeout,
+            //                                 NumberOfRetry,
+            //                                 CancellationToken);
 
 
             if (httpResponse                is not null          &&
@@ -293,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     if (OnSOAPFaultLocal is not null)
                         return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
-                    return HTTPResponse<XElement>.IsFault(httpResponse,
+                    return HTTPResponse<XElement>.FromError(httpResponse,
                                                           new XElement("SOAPFault")) as HTTPResponse<T>;
 
 
@@ -306,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     //if (OnFaultLocal is not null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return HTTPResponse<XElement>.IsFault(httpResponse,
+                    return HTTPResponse<XElement>.FromError(httpResponse,
                                                           new XElement("exception", e.Message)) as HTTPResponse<T>;
 
                 }
@@ -320,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                 if (OnHTTPErrorLocal is not null)
                     return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
 
-                return HTTPResponse<XElement>.IsFault(httpResponse,
+                return HTTPResponse<XElement>.FromError(httpResponse,
                                                       new XElement("HTTPError")) as HTTPResponse<T>;
 
             }
@@ -428,8 +446,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           UInt16?                                                    MaxNumberOfRetries           = null,
                           UInt32?                                                    InternalBufferSize           = null,
                           Boolean                                                    UseHTTPPipelining            = false,
-                          Boolean?                                                   DisableLogging               = false,
                           HTTPClientLogger?                                          HTTPLogger                   = null,
+
+                          Boolean?                                                   DisableLogging               = null,
                           IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
@@ -455,8 +474,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    MaxNumberOfRetries,
                    InternalBufferSize,
                    UseHTTPPipelining,
-                   DisableLogging,
                    HTTPLogger,
+
+                   DisableLogging,
                    DNSClient)
 
         {
@@ -526,38 +546,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             #endregion
 
-            var requestBuilder = new HTTPRequest.Builder(this) {
-                                     HTTPMethod     = HTTPMethod.POST,
-                                     Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
-                                     Path           = URLPathPrefix + RemoteURL.Path,
-                                     Content        = QueryXML.ToUTF8Bytes(),
-                                     ContentType    = ContentType ?? this.ContentType ?? new HTTPContentType("application",
-                                                                                                             "soap+xml",
-                                                                                                             "utf-8",
-                                                                                                             SOAPAction,
-                                                                                                             null),
-                                     Accept         = AcceptTypes.FromHTTPContentTypes(ContentType ?? this.ContentType ?? new HTTPContentType("application",
-                                                                                                                                              "soap+xml",
-                                                                                                                                              "utf-8",
-                                                                                                                                              null,
-                                                                                                                                              null)),
-                                     UserAgent      = HTTPUserAgent,
-                                     FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
-                                 };
+         //   var requestBuilder = new HTTPRequest.Builder(this) {
+         //                            HTTPMethod     = HTTPMethod.POST,
+         //                            Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
+         //                            Path           = URLPathPrefix + RemoteURL.Path,
+         //                            Content        = QueryXML.ToUTF8Bytes(),
+         //                            ContentType    = ContentType ?? this.ContentType ?? new HTTPContentType("application",
+         //                                                                                                    "soap+xml",
+         //                                                                                                    "utf-8",
+         //                                                                                                    SOAPAction,
+         //                                                                                                    null),
+         //                            Accept         = AcceptTypes.FromHTTPContentTypes(ContentType ?? this.ContentType ?? new HTTPContentType("application",
+         //                                                                                                                                     "soap+xml",
+         //                                                                                                                                     "utf-8",
+         //                                                                                                                                     null,
+         //                                                                                                                                     null)),
+         //                            UserAgent      = HTTPUserAgent,
+         //                            FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
+         //                        };
 
-            // Always send a Content-Length header, even when it's value is zero
-            requestBuilder.SetContentLength(0);
+            var requestBuilder = CreateRequest(
+                                      HTTPMethod.POST,
+                                      //Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
+                                      //FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
+                                      URLPathPrefix + RemoteURL.Path,
+                                      null,  // QueryString
+                                      AcceptTypes.FromHTTPContentTypes(ContentType ?? this.ContentType ?? new HTTPContentType("application",
+                                                                                                                              "soap+xml",
+                                                                                                                              "utf-8",
+                                                                                                                              null,
+                                                                                                                              null)),
+                                      null,  // Authentication
+                                      QueryXML.ToUTF8Bytes(),
+                                      ContentType ?? this.ContentType ?? new HTTPContentType("application",
+                                                                                             "soap+xml",
+                                                                                             "utf-8",
+                                                                                             SOAPAction,
+                                                                                             null),
+                                      HTTPUserAgent,
+                                      null,  // Connection
+                                      null,  // RequestBuilder
+                                      null,  // ConsumeRequestChunkedTEImmediately
+                                  //    RequestLogDelegate,
+                                  //    ResponseLogDelegate,
+                                      CancellationToken
+                                 );
 
-            HTTPRequestBuilder?.Invoke(requestBuilder);
+                // Always send a Content-Length header, even when it's value is zero
+                requestBuilder.SetContentLength(0);
 
-            var httpResponse = await Execute(requestBuilder,
+                HTTPRequestBuilder?.Invoke(requestBuilder);
+
+                var httpResponse = await SendRequest(
+                                             requestBuilder.AsImmutable,
+                                             ConsumeResponseChunkedTEImmediately,
                                              RequestLogDelegate,
                                              ResponseLogDelegate,
+                                             MaxSemaphoreWaitTime,
+                                             CancellationToken
+                                         );
 
-                                             EventTrackingId,
-                                             RequestTimeout ?? DefaultRequestTimeout,
-                                             NumberOfRetry,
-                                             CancellationToken);
+                                     //           EventTrackingId,
+                                     //           RequestTimeout ?? TimeSpan.FromSeconds(30),// DefaultRequestTimeout,
+                                     //           NumberOfRetry,
+                                     //           CancellationToken);
 
 
             if (httpResponse                is not null          &&
@@ -604,7 +656,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     if (OnSOAPFaultLocal is not null)
                         return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
-                    return HTTPResponse<XElement>.IsFault(httpResponse,
+                    return HTTPResponse<XElement>.FromError(httpResponse,
                                                           new XElement("SOAPFault")) as HTTPResponse<T>;
 
 
@@ -617,7 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     //if (OnFaultLocal is not null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return HTTPResponse<XElement>.IsFault(httpResponse,
+                    return HTTPResponse<XElement>.FromError(httpResponse,
                                                           new XElement("exception", e.Message)) as HTTPResponse<T>;
 
                 }
@@ -631,7 +683,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                 if (OnHTTPErrorLocal is not null)
                     return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
 
-                return HTTPResponse<XElement>.IsFault(httpResponse,
+                return HTTPResponse<XElement>.FromError(httpResponse,
                                                       new XElement("HTTPError")) as HTTPResponse<T>;
 
             }

@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Constructor(s)
 
-        public HTTPNotificationSender(HTTPExtAPI         HTTPExtAPI,
+        public HTTPNotificationSender(HTTPExtAPI        HTTPExtAPI,
                                       HTTPHostname       Hostname,
                                       IPPort?            HTTPPort                   = null,
                                       TimeSpan?          SendNotificationsEvery     = null,

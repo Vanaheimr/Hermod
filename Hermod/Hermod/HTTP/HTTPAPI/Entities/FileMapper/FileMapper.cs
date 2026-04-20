@@ -17,14 +17,9 @@
 
 #region Usings
 
-using System;
-using System.Collections.Generic;
-
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -50,12 +45,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region API
 
-        private HTTPExtAPIX api;
+        private HTTPExtAPI api;
 
         /// <summary>
         /// The HTTP API of the file mapper.
         /// </summary>
-        public HTTPExtAPIX API
+        public HTTPExtAPI API
         {
 
             get
@@ -115,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">An optional file mapper identification. If omitted, a random identification will be assigned.</param>
         /// <param name="Name">An optional human-readable name of the file mapper. If omitted, the Id will be used.</param>
         /// <param name="Description">An optional multi-language description of the file mapper.</param>
-        public FileMapper(HTTPExtAPIX     API,
+        public FileMapper(HTTPExtAPI     API,
                           HTTPHostname    Hostname,
                           HTTPPath        URLTemplate,
                           String          FileSystemPath,

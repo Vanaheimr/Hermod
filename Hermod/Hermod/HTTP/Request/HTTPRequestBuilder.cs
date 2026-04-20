@@ -40,15 +40,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            private readonly AHTTPClient?      httpClient;
-            private readonly AHTTPTestClient?  httpClientX;
+            //private readonly AHTTPClient?      httpClient;
+            //private readonly AHTTPTestClient?  httpClientX;
+            private readonly IHTTPClient? httpClientX;
 
             #region Non-http header fields
 
             /// <summary>
             /// The related HTTP server.
             /// </summary>
-            public HTTPServer?  HTTPServer            { get; set; }
+            public AHTTPTestServer?  HTTPServer            { get; set; }
 
             #region EntireRequestHeader
 
@@ -743,28 +744,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region HTTPRequestBuilder(Client = null, CancellationToken = default)
 
-            /// <summary>
-            /// Create a new HTTP request.
-            /// </summary>
-            /// <param name="CancellationToken">An optional cancellation token.</param>
-            public Builder(AHTTPClient?       Client              = null,
-                           CancellationToken  CancellationToken   = default)
+            ///// <summary>
+            ///// Create a new HTTP request.
+            ///// </summary>
+            ///// <param name="CancellationToken">An optional cancellation token.</param>
+            //public Builder(AHTTPClient_old?       Client              = null,
+            //               CancellationToken  CancellationToken   = default)
 
-                : base(CancellationToken)
+            //    : base(CancellationToken)
 
-            {
+            //{
 
-                this.httpClient       = Client;
+            //    this.httpClient       = Client;
 
-                this.HTTPStatusCode   = HTTPStatusCode.OK;
-                this.HTTPMethod       = HTTPMethod.GET;
-                this.Path             = HTTPPath.Parse("/");
-                this.QueryString      = QueryString.Empty;
-                SetHeaderField(HTTPRequestHeaderField.Accept, new AcceptTypes());
-                this.ProtocolName     = "HTTP";
-                this.ProtocolVersion  = new HTTPVersion(1, 1);
+            //    this.HTTPStatusCode   = HTTPStatusCode.OK;
+            //    this.HTTPMethod       = HTTPMethod.GET;
+            //    this.Path             = HTTPPath.Parse("/");
+            //    this.QueryString      = QueryString.Empty;
+            //    SetHeaderField(HTTPRequestHeaderField.Accept, new AcceptTypes());
+            //    this.ProtocolName     = "HTTP";
+            //    this.ProtocolVersion  = new HTTPVersion(1, 1);
 
-            }
+            //}
 
             #endregion
 
@@ -774,7 +775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new HTTP request.
             /// </summary>
             /// <param name="CancellationToken">An optional cancellation token.</param>
-            public Builder(AHTTPTestClient?   Client,
+            public Builder(IHTTPClient        Client,
                            CancellationToken  CancellationToken   = default)
 
                 : base(CancellationToken)
@@ -1524,8 +1525,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            public Task<HTTPResponse> ExecuteReturnResult()
-                => httpClient?.Execute(AsImmutable);
+         //   public Task<HTTPResponse> ExecuteReturnResult()
+         //       => httpClient?.Execute(AsImmutable);
 
 
             #region PrepareImmutability()
@@ -1572,7 +1573,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                IPSocket.LocalhostV4(IPPort.HTTPS),
                                EntireRequestHeader,
                                Content,
-                               HTTPServer: HTTPServer
+                               HTTPServerX: HTTPServer
                            ) {
 
                         FakeURLPrefix       = FakeURLPrefix,

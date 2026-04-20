@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
     }
 
 
-    public class PasskeyAPI : HTTPExtAPI
+    public class PasskeyAPI : AHTTPExtAPIExtension1<HTTPExtAPI>
     {
 
         #region Data
@@ -100,13 +100,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task RegisterOptionsHTTPRequest(DateTimeOffset  Timestamp,
-                                                           HTTPAPI         API,
-                                                           HTTPRequest     Request)
+        protected internal Task RegisterOptionsHTTPRequest(DateTimeOffset     Timestamp,
+                                                           HTTPAPI            API,
+                                                           HTTPRequest        Request,
+                                                           CancellationToken  CancellationToken)
 
-            => OnRegisterOptions.WhenAll(Timestamp,
-                                         API ?? this,
-                                         Request);
+            => OnRegisterOptions.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -124,15 +128,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task RegisterOptionsHTTPResponse(DateTimeOffset  Timestamp,
-                                                            HTTPAPI         API,
-                                                            HTTPRequest     Request,
-                                                            HTTPResponse    Response)
+        protected internal Task RegisterOptionsHTTPResponse(DateTimeOffset     Timestamp,
+                                                            HTTPAPI            API,
+                                                            HTTPRequest        Request,
+                                                            HTTPResponse       Response,
+                                                            CancellationToken  CancellationToken)
 
-            => OnRegisterOptionsResponse.WhenAll(Timestamp,
-                                                 API ?? this,
-                                                 Request,
-                                                 Response);
+            => OnRegisterOptionsResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -150,13 +158,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task RegisterHTTPRequest(DateTimeOffset  Timestamp,
-                                                    HTTPAPI         API,
-                                                    HTTPRequest     Request)
+        protected internal Task RegisterHTTPRequest(DateTimeOffset     Timestamp,
+                                                    HTTPAPI            API,
+                                                    HTTPRequest        Request,
+                                                    CancellationToken  CancellationToken)
 
-            => OnRegister.WhenAll(Timestamp,
-                                  API ?? this,
-                                  Request);
+            => OnRegister.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -174,15 +186,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task RegisterHTTPResponse(DateTimeOffset  Timestamp,
-                                                     HTTPAPI         API,
-                                                     HTTPRequest     Request,
-                                                     HTTPResponse    Response)
+        protected internal Task RegisterHTTPResponse(DateTimeOffset     Timestamp,
+                                                     HTTPAPI            API,
+                                                     HTTPRequest        Request,
+                                                     HTTPResponse       Response,
+                                                     CancellationToken  CancellationToken)
 
-            => OnRegisterResponse.WhenAll(Timestamp,
-                                          API ?? this,
-                                          Request,
-                                          Response);
+            => OnRegisterResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -200,13 +216,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task LoginOptionsHTTPRequest(DateTimeOffset  Timestamp,
-                                                        HTTPAPI         API,
-                                                        HTTPRequest     Request)
+        protected internal Task LoginOptionsHTTPRequest(DateTimeOffset     Timestamp,
+                                                        HTTPAPI            API,
+                                                        HTTPRequest        Request,
+                                                        CancellationToken  CancellationToken)
 
-            => OnLoginOptions.WhenAll(Timestamp,
-                                      API ?? this,
-                                      Request);
+            => OnLoginOptions.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -224,15 +244,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task LoginOptionsHTTPResponse(DateTimeOffset  Timestamp,
-                                                         HTTPAPI         API,
-                                                         HTTPRequest     Request,
-                                                         HTTPResponse    Response)
+        protected internal Task LoginOptionsHTTPResponse(DateTimeOffset     Timestamp,
+                                                         HTTPAPI            API,
+                                                         HTTPRequest        Request,
+                                                         HTTPResponse       Response,
+                                                         CancellationToken  CancellationToken)
 
-            => OnLoginOptionsResponse.WhenAll(Timestamp,
-                                              API ?? this,
-                                              Request,
-                                              Response);
+            => OnLoginOptionsResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -250,13 +274,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task LoginHTTPRequest(DateTimeOffset  Timestamp,
-                                                 HTTPAPI         API,
-                                                 HTTPRequest     Request)
+        protected internal Task LoginHTTPRequest(DateTimeOffset     Timestamp,
+                                                 HTTPAPI            API,
+                                                 HTTPRequest        Request,
+                                                 CancellationToken  CancellationToken)
 
-            => OnLogin.WhenAll(Timestamp,
-                               API ?? this,
-                               Request);
+            => OnLogin.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -274,15 +302,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task LoginHTTPResponse(DateTimeOffset  Timestamp,
-                                                  HTTPAPI         API,
-                                                  HTTPRequest     Request,
-                                                  HTTPResponse    Response)
+        protected internal Task LoginHTTPResponse(DateTimeOffset     Timestamp,
+                                                  HTTPAPI            API,
+                                                  HTTPRequest        Request,
+                                                  HTTPResponse       Response,
+                                                  CancellationToken  CancellationToken)
 
-            => OnLoginResponse.WhenAll(Timestamp,
-                                       API ?? this,
-                                       Request,
-                                       Response);
+            => OnLoginResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -310,151 +342,216 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="LogfileName">The name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="Autostart">Whether to start the API automatically.</param>
-        public PasskeyAPI(HTTPHostname?                                              HTTPHostname                     = null,
-                          String?                                                    ExternalDNSName                  = null,
-                          IPPort?                                                    HTTPServerPort                   = null,
-                          HTTPPath?                                                  BasePath                         = null,
-                          String                                                     HTTPServerName                   = "Passkey API",
+        public PasskeyAPI(HTTPExtAPI                     HTTPAPI,
+                          IEnumerable<HTTPHostname>?     Hostnames                 = null,
+                          HTTPPath?                      RootPath                  = null,
+                          IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
+                          I18NString?                    Description               = null,
 
-                          HTTPPath?                                                  URLPathPrefix                    = null,
-                          String                                                     HTTPServiceName                  = "Passkey API",
-                          String?                                                    HTMLTemplate                     = null,
-                          JObject?                                                   APIVersionHashes                 = null,
+                          HTTPPath?                      BasePath                  = null,  // For URL prefixes in HTML!
 
-                          ServerCertificateSelectorDelegate?                         ServerCertificateSelector        = null,
-                          RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator       = null,
-                          LocalCertificateSelectionHandler?                          LocalCertificateSelector         = null,
-                          SslProtocols?                                              AllowedTLSProtocols              = null,
-                          Boolean?                                                   ClientCertificateRequired        = null,
-                          Boolean?                                                   CheckCertificateRevocation       = null,
+                          String?                        ExternalDNSName           = null,
+                          String?                        HTTPServerName            = DefaultHTTPServerName,
+                          String?                        HTTPServiceName           = DefaultHTTPServiceName,
+                          String?                        APIVersionHash            = null,
+                          JObject?                       APIVersionHashes          = null,
 
-                          ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator          = null,
-                          ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter       = null,
-                          Boolean?                                                   ServerThreadIsBackground         = null,
-                          ConnectionIdBuilder?                                       ConnectionIdBuilder              = null,
-                          TimeSpan?                                                  ConnectionTimeout                = null,
-                          UInt32?                                                    MaxClientConnections             = null,
+                          EMailAddress?                  APIRobotEMailAddress      = null,
+                          String?                        APIRobotGPGPassphrase     = null,
+                          ISMTPClient?                   SMTPClient                = null,
 
-                          Organization_Id?                                           AdminOrganizationId              = null,
-                          EMailAddress?                                              APIRobotEMailAddress             = null,
-                          String?                                                    APIRobotGPGPassphrase            = null,
-                          ISMTPClient?                                               SMTPClient                       = null,
+                          HTTPPath?                      AdditionalURLPathPrefix   = null,
+                          Boolean?                       LocationsAsOpenData       = null,
+                          Boolean?                       TariffsAsOpenData         = null,
+                          Boolean?                       AllowDowngrades           = null,
 
-                          PasswordQualityCheckDelegate?                              PasswordQualityCheck             = null,
-                          HTTPCookieName?                                            CookieName                       = null,
-                          Boolean                                                    UseSecureCookies                 = true,
-                          Languages?                                                 DefaultLanguage                  = null,
+                          Boolean?                       IsDevelopment             = null,
+                          IEnumerable<String>?           DevelopmentServers        = null,
+                          //Boolean?                       SkipURLTemplates          = false,
+                          String?                        DatabaseFileName          = "http.log",
+                          Boolean?                       DisableNotifications      = false,
 
-                          Boolean?                                                   DisableMaintenanceTasks          = null,
-                          TimeSpan?                                                  MaintenanceInitialDelay          = null,
-                          TimeSpan?                                                  MaintenanceEvery                 = null,
+                          Boolean?                       DisableLogging            = null,
+                          String?                        LoggingContext            = null,
+                          String?                        LoggingPath               = null,
+                          String?                        LogfileName               = null,
+                          LogfileCreatorDelegate?        LogfileCreator            = null)
 
-                          Boolean?                                                   DisableWardenTasks               = null,
-                          TimeSpan?                                                  WardenInitialDelay               = null,
-                          TimeSpan?                                                  WardenCheckEvery                 = null,
+                          //HTTPHostname?                                              HTTPHostname                     = null,
+                          //String?                                                    ExternalDNSName                  = null,
+                          //IPPort?                                                    HTTPServerPort                   = null,
+                          //HTTPPath?                                                  BasePath                         = null,
+                          //String                                                     HTTPServerName                   = "Passkey API",
 
-                          IEnumerable<URLWithAPIKey>?                                RemoteAuthServers                = null,
-                          IEnumerable<APIKey_Id>?                                    RemoteAuthAPIKeys                = null,
+                          //HTTPPath?                                                  URLPathPrefix                    = null,
+                          //String                                                     HTTPServiceName                  = "Passkey API",
+                          //String?                                                    HTMLTemplate                     = null,
+                          //JObject?                                                   APIVersionHashes                 = null,
 
-                          Boolean?                                                   IsDevelopment                    = null,
-                          IEnumerable<String>?                                       DevelopmentServers               = null,
-                          Boolean                                                    SkipURLTemplates                 = false,
-                          String?                                                    DatabaseFileName                 = DefaultBCTAPI_DatabaseFileName,
-                          Boolean                                                    DisableNotifications             = false,
-                          Boolean                                                    DisableLogging                   = false,
-                          String?                                                    LoggingPath                      = null,
-                          String?                                                    LogfileName                      = DefaultBCTAPI_LogfileName,
-                          LogfileCreatorDelegate?                                    LogfileCreator                   = null,
-                          DNSClient?                                                 DNSClient                        = null,
-                          String?                                                    Description                      = null,
-                          Boolean                                                    Autostart                        = false)
+                          //ServerCertificateSelectorDelegate?                         ServerCertificateSelector        = null,
+                          //RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator       = null,
+                          //LocalCertificateSelectionHandler?                          LocalCertificateSelector         = null,
+                          //SslProtocols?                                              AllowedTLSProtocols              = null,
+                          //Boolean?                                                   ClientCertificateRequired        = null,
+                          //Boolean?                                                   CheckCertificateRevocation       = null,
 
-            : base(HTTPHostname,
-                   ExternalDNSName,
-                   HTTPServerPort  ?? DefaultHTTPServerPort,
+                          //ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator          = null,
+                          //ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter       = null,
+                          //Boolean?                                                   ServerThreadIsBackground         = null,
+                          //ConnectionIdBuilder?                                       ConnectionIdBuilder              = null,
+                          //TimeSpan?                                                  ConnectionTimeout                = null,
+                          //UInt32?                                                    MaxClientConnections             = null,
+
+                          //Organization_Id?                                           AdminOrganizationId              = null,
+                          //EMailAddress?                                              APIRobotEMailAddress             = null,
+                          //String?                                                    APIRobotGPGPassphrase            = null,
+                          //ISMTPClient?                                               SMTPClient                       = null,
+
+                      //    PasswordQualityCheckDelegate?                              PasswordQualityCheck             = null,
+                      //    HTTPCookieName?                                            CookieName                       = null,
+                      //    Boolean                                                    UseSecureCookies                 = true,
+                      //    Languages?                                                 DefaultLanguage                  = null,
+
+                      //    Boolean?                                                   DisableMaintenanceTasks          = null,
+                      //    TimeSpan?                                                  MaintenanceInitialDelay          = null,
+                      //    TimeSpan?                                                  MaintenanceEvery                 = null,
+
+                      //    Boolean?                                                   DisableWardenTasks               = null,
+                      //    TimeSpan?                                                  WardenInitialDelay               = null,
+                      //    TimeSpan?                                                  WardenCheckEvery                 = null,
+
+                      //    IEnumerable<URLWithAPIKey>?                                RemoteAuthServers                = null,
+                      //    IEnumerable<APIKey_Id>?                                    RemoteAuthAPIKeys                = null,
+
+                      //    Boolean?                                                   IsDevelopment                    = null,
+                      //    IEnumerable<String>?                                       DevelopmentServers               = null,
+                      //    Boolean                                                    SkipURLTemplates                 = false,
+                      //    String?                                                    DatabaseFileName                 = DefaultBCTAPI_DatabaseFileName,
+                      //    Boolean                                                    DisableNotifications             = false,
+                      //    Boolean                                                    DisableLogging                   = false,
+                      //    String?                                                    LoggingPath                      = null,
+                      //    String?                                                    LogfileName                      = DefaultBCTAPI_LogfileName,
+                      //    LogfileCreatorDelegate?                                    LogfileCreator                   = null,
+                      //    DNSClient?                                                 DNSClient                        = null,
+                      ////    String?                                                    Description                      = null,
+                      //    Boolean                                                    Autostart                        = false)
+
+            : base(Description ?? I18NString.Create("Passkey API"),
+                   HTTPAPI,
+                   RootPath,
                    BasePath,
-                   HTTPServerName  ?? DefaultHTTPServerName,
 
-                   URLPathPrefix,
-                   HTTPServiceName ?? DefaultHTTPServerName,
-                   HTMLTemplate,
+                   ExternalDNSName,
+                   HTTPServerName,
+                   HTTPServiceName,
+                   APIVersionHash,
                    APIVersionHashes,
 
-                   ServerCertificateSelector,
-                   ClientCertificateValidator,
-                   LocalCertificateSelector,
-                   AllowedTLSProtocols,
-                   ClientCertificateRequired,
-                   CheckCertificateRevocation,
-
-                   ServerThreadNameCreator,
-                   ServerThreadPrioritySetter,
-                   ServerThreadIsBackground,
-                   ConnectionIdBuilder,
-                   ConnectionTimeout,
-                   MaxClientConnections,
-
-                   AdminOrganizationId,
-                   APIRobotEMailAddress  ?? new EMailAddress(
-                                                "Passkey",
-                                                SimpleEMailAddress.Parse("robot@example.org")
-                                                //OpenPGP.ReadSecretKeyRing(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "robot@offenes-jena_secring.gpg"))),
-                                                //OpenPGP.ReadPublicKeyRing(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "robot@offenes-jena_pubring.gpg")))
-                                            ),
-                   APIRobotGPGPassphrase ?? "!",
-                   SMTPClient,
-
-                   PasswordQualityCheck,
-                   CookieName ?? HTTPCookieName.Parse(nameof(PasskeyAPI)),
-                   UseSecureCookies,
-                   TimeSpan.FromDays(36524), // ~100 Jahre
-                   DefaultLanguage ?? Languages.en,
-                   4,
-                   4,
-                   4,
-                   5,
-                   20,
-                   8,
-                   4,
-                   4,
-                   8,
-                   8,
-                   8,
-                   8,
-
-                   DisableMaintenanceTasks,
-                   MaintenanceInitialDelay,
-                   MaintenanceEvery,
-
-                   DisableWardenTasks,
-                   WardenInitialDelay,
-                   WardenCheckEvery,
-
-                   RemoteAuthServers,
-                   RemoteAuthAPIKeys,
-
-                   true, //IsDevelopment,
+                   IsDevelopment,
                    DevelopmentServers,
-                   SkipURLTemplates,
-                   DatabaseFileName,
-                   true, //DisableNotifications,
-                   true, //DisableLogging,
+                   DisableLogging,
                    LoggingPath,
                    LogfileName,
-                   LogfileCreator,
-                   DNSClient,
-                   Description,
-                   false)
+                   LogfileCreator is not null
+                       ? (loggingPath, context, logfileName) => LogfileCreator(loggingPath, context, logfileName)
+                       : (loggingPath, context, logfileName) => String.Concat(
+                                                                    loggingPath + Path.DirectorySeparatorChar,
+                                                                 //   remoteParty is not null
+                                                                 //       ? remoteParty.Id.ToString() + Path.DirectorySeparatorChar
+                                                                 //       : null,
+                                                                    context is not null ? context + "_" : "",
+                                                                    logfileName, "_",
+                                                                    Timestamp.Now.Year, "-",
+                                                                    Timestamp.Now.Month.ToString("D2"),
+                                                                    ".log"
+                                                                ))
+
+            //: base(HTTPHostname,
+            //       ExternalDNSName,
+            //       HTTPServerPort  ?? IPPort.HTTPS,
+            //       BasePath,
+            //       HTTPServerName  ?? DefaultHTTPServerName,
+
+            //       URLPathPrefix,
+            //       HTTPServiceName ?? DefaultHTTPServerName,
+            //       HTMLTemplate,
+            //       APIVersionHashes,
+
+            //       ServerCertificateSelector,
+            //       ClientCertificateValidator,
+            //       LocalCertificateSelector,
+            //       AllowedTLSProtocols,
+            //       ClientCertificateRequired,
+            //       CheckCertificateRevocation,
+
+            //       ServerThreadNameCreator,
+            //       ServerThreadPrioritySetter,
+            //       ServerThreadIsBackground,
+            //       ConnectionIdBuilder,
+            //       ConnectionTimeout,
+            //       MaxClientConnections,
+
+            //       AdminOrganizationId,
+            //       APIRobotEMailAddress  ?? new EMailAddress(
+            //                                    "Passkey",
+            //                                    SimpleEMailAddress.Parse("robot@example.org")
+            //                                    //OpenPGP.ReadSecretKeyRing(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "robot@offenes-jena_secring.gpg"))),
+            //                                    //OpenPGP.ReadPublicKeyRing(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "robot@offenes-jena_pubring.gpg")))
+            //                                ),
+            //       APIRobotGPGPassphrase ?? "!",
+            //       SMTPClient,
+
+            //       PasswordQualityCheck,
+            //       CookieName ?? HTTPCookieName.Parse(nameof(PasskeyAPI)),
+            //       UseSecureCookies,
+            //       TimeSpan.FromDays(36524), // ~100 Jahre
+            //       DefaultLanguage ?? Languages.en,
+            //       4,
+            //       4,
+            //       4,
+            //       5,
+            //       20,
+            //       8,
+            //       4,
+            //       4,
+            //       8,
+            //       8,
+            //       8,
+            //       8,
+
+            //       DisableMaintenanceTasks,
+            //       MaintenanceInitialDelay,
+            //       MaintenanceEvery,
+
+            //       DisableWardenTasks,
+            //       WardenInitialDelay,
+            //       WardenCheckEvery,
+
+            //       RemoteAuthServers,
+            //       RemoteAuthAPIKeys,
+
+            //       true, //IsDevelopment,
+            //       DevelopmentServers,
+            //       SkipURLTemplates,
+            //       DatabaseFileName,
+            //       true, //DisableNotifications,
+            //       true, //DisableLogging,
+            //       LoggingPath,
+            //       LogfileName,
+            //       LogfileCreator,
+            //       DNSClient,
+            //       Description,
+            //       false)
 
         {
 
             //this.HTMLTemplate = GetResourceString("template.html");
 
-            if (!SkipURLTemplates)
-                RegisterURLTemplates();
+            //if (!SkipURLTemplates)
+            //    RegisterURLTemplates();
 
-            if (Autostart)
-                Start().Wait();
+            //if (Autostart)
+            //    Start().Wait();
 
         }
 
@@ -463,61 +560,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
 
         #region (private)   GenerateCookieUserData(ValidUser, Astronaut = null)
 
-        private String GenerateCookieUserData(IUser   User,
-                                              IUser?  Astronaut  = null)
+        //private String GenerateCookieUserData(IUser   User,
+        //                                      IUser?  Astronaut  = null)
 
-            => String.Concat("=login=",            User.     Id.      ToString().ToBase64(),
-                             Astronaut is not null
-                                 ? ":astronaut=" + Astronaut.Id.      ToString().ToBase64()
-                                 : String.Empty,
-                             ":username=",         User.Name.FirstText().ToBase64(),
-                             ":email=",            User.EMail.Address.ToString().ToBase64(),
-                             ":language=",         User.UserLanguage. AsText().  ToBase64(),
-                             IsAdmin(User) == Access_Levels.ReadOnly  ? ":isAdminRO" : String.Empty,
-                             IsAdmin(User) == Access_Levels.ReadWrite ? ":isAdminRW" : String.Empty);
+        //    => String.Concat("=login=",            User.     Id.      ToString().ToBase64(),
+        //                     Astronaut is not null
+        //                         ? ":astronaut=" + Astronaut.Id.      ToString().ToBase64()
+        //                         : String.Empty,
+        //                     ":username=",         User.Name.FirstText().ToBase64(),
+        //                     ":email=",            User.EMail.Address.ToString().ToBase64(),
+        //                     ":language=",         User.UserLanguage. AsText().  ToBase64(),
+        //                     IsAdmin(User) == Access_Levels.ReadOnly  ? ":isAdminRO" : String.Empty,
+        //                     IsAdmin(User) == Access_Levels.ReadWrite ? ":isAdminRW" : String.Empty);
 
 
         #endregion
 
         #region (private)   GenerateCookieSettings(Expires)
 
-        private String GenerateCookieSettings(DateTimeOffset Expires)
+        //private String GenerateCookieSettings(DateTimeOffset Expires)
 
-            => String.Concat("; Expires=",  Expires.ToRFC1123(),
-                             HTTPCookieDomain.IsNotNullOrEmpty()
-                                 ? "; Domain=" + HTTPCookieDomain
-                                 : String.Empty,
-                             "; Path=",     URLPathPrefix.ToString(),
-                             "; SameSite=strict",
-                             UseSecureCookies
-                                 ? "; secure"
-                                 : String.Empty);
+        //    => String.Concat("; Expires=",  Expires.ToRFC1123(),
+        //                     HTTPCookieDomain.IsNotNullOrEmpty()
+        //                         ? "; Domain=" + HTTPCookieDomain
+        //                         : String.Empty,
+        //                     "; Path=",     URLPathPrefix.ToString(),
+        //                     "; SameSite=strict",
+        //                     UseSecureCookies
+        //                         ? "; secure"
+        //                         : String.Empty);
 
         #endregion
 
         #region CheckHTTPCookie(Request,         RemoteAuthServersMaxHopCount = 0)
 
-        public async Task<IUser?> CheckHTTPCookie(HTTPRequest Request,
-                                                  Byte?       RemoteAuthServersMaxHopCount = 0)
-        {
+        //public async Task<IUser?> CheckHTTPCookie(HTTPRequest Request,
+        //                                          Byte?       RemoteAuthServersMaxHopCount = 0)
+        //{
 
-            if (TryGetSecurityTokenFromCookie(Request, out var securityTokenId))
-            {
+        //    if (TryGetSecurityTokenFromCookie(Request, out var securityTokenId))
+        //    {
 
-                var securityToken = await CheckHTTPCookie(securityTokenId,
-                                                          RemoteAuthServersMaxHopCount);
+        //        var securityToken = await CheckHTTPCookie(securityTokenId,
+        //                                                  RemoteAuthServersMaxHopCount);
 
-                if (securityToken is not null &&
-                    _TryGetUser(securityToken.UserId, out var user))
-                {
-                    return user;
-                }
+        //        if (securityToken is not null &&
+        //            _TryGetUser(securityToken.UserId, out var user))
+        //        {
+        //            return user;
+        //        }
 
-            }
+        //    }
 
-            return null;
+        //    return null;
 
-        }
+        //}
 
         #endregion
 
@@ -599,20 +696,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         private void RegisterURLTemplates()
         {
 
-            HTTPServer.AddAuth(request => {
+            //HTTPServer.AddAuth(request => {
 
-                // Allow anonymous access...
-                return Anonymous;
+            //    // Allow anonymous access...
+            //    return Anonymous;
 
-            });
+            //});
 
 
             #region /webauthn/register/options
 
             #region GET  /webauthn/register/options
 
-            HTTPServer.AddMethodCallback(
-                HTTPHostname.Any,
+            HTTPBaseAPI.AddHandler(
+
                 HTTPMethod.GET,
                 URLPathPrefix + "/webauthn/register/options",
                 HTTPRequestLogger:   RegisterOptionsHTTPRequest,
@@ -629,7 +726,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                                        Connection      = ConnectionType.Close
                                    }.AsImmutable;
 
-                    if (!TryGetUser(userId, out var user))
+                    if (!HTTPBaseAPI.TryGetUser(userId, out var user))
                     {
 
                         user = new User(
@@ -638,7 +735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                                    SimpleEMailAddress.Parse(username)
                                );
 
-                        await AddUser(user, true, true, true);
+                        await HTTPBaseAPI.AddUser(user, true, true, true);
 
                     }
 
@@ -687,8 +784,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
 
             #region POST /webauthn/register
 
-            HTTPServer.AddMethodCallback(
-                HTTPHostname.Any,
+            HTTPBaseAPI.AddHandler(
+
                 HTTPMethod.POST,
                 URLPathPrefix + "/webauthn/register",
                 HTTPRequestLogger:   RegisterHTTPRequest,
@@ -762,8 +859,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
 
             #region GET  /webauthn/login/options
 
-            HTTPServer.AddMethodCallback(
-                HTTPHostname.Any,
+            HTTPBaseAPI.AddHandler(
+
                 HTTPMethod.GET,
                 URLPathPrefix + "/webauthn/login/options",
                 HTTPRequestLogger:   LoginOptionsHTTPRequest,
@@ -786,7 +883,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                                            Connection      = ConnectionType.Close
                                        }.AsImmutable;
 
-                        if (!TryGetUser(_userId, out var _user))
+                        if (!HTTPBaseAPI.TryGetUser(_userId, out var _user))
                             return new HTTPResponse.Builder(request) {
                                            HTTPStatusCode  = HTTPStatusCode.NotFound,
                                            ContentType     = HTTPContentType.Text.PLAIN,
@@ -843,8 +940,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
 
             #region POST /webauthn/login
 
-            HTTPServer.AddMethodCallback(
-                HTTPHostname.Any,
+            HTTPBaseAPI.AddHandler(
+
                 HTTPMethod.POST,
                 URLPathPrefix + "/webauthn/login",
                 HTTPRequestLogger:   LoginHTTPRequest,
@@ -875,7 +972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                                        Connection      = ConnectionType.Close
                                    }.AsImmutable;
 
-                    if (!TryGetUser(userId.Value, out var user))
+                    if (!HTTPBaseAPI.TryGetUser(userId.Value, out var user))
                         return new HTTPResponse.Builder(request) {
                                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                        ContentType     = HTTPContentType.Text.PLAIN,
@@ -1000,9 +1097,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                                                ).ToHexString()
                                            );
 
-                    var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
+                    var expires          = Timestamp.Now.Add(HTTPBaseAPI.MaxSignInSessionLifetime);
 
-                    httpCookies.TryAdd(
+                    HTTPBaseAPI.TryAddCookie(
                         securityTokenId,
                         new SecurityToken(
                             user.Id,
@@ -1020,12 +1117,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                                CacheControl    = "private",
                                SetCookie       = HTTPCookies.Parse(
 
-                                                     String.Concat(CookieName,
-                                                                   GenerateCookieUserData(user),
-                                                                   GenerateCookieSettings(expires)),
+                                                     String.Concat(HTTPBaseAPI.CookieName,
+                                                                   HTTPBaseAPI.GenerateCookieUserData(user),
+                                                                   HTTPBaseAPI.GenerateCookieSettings(expires)),
 
-                                                     String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                   GenerateCookieSettings(expires),
+                                                     String.Concat(HTTPBaseAPI.SessionCookieName, "=", securityTokenId.ToString(),
+                                                                   HTTPBaseAPI.GenerateCookieSettings(expires),
                                                                    "; HttpOnly")
 
                                                  ),

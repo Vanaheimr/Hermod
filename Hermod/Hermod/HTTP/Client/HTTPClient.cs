@@ -17,6 +17,10 @@
 
 #region Usings
 
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
@@ -26,288 +30,731 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// An HTTP client.
+    /// A HTTP client.
     /// </summary>
-    public class HTTPClient : AHTTPClient,
-                              IHTTPClientCommands
+    public class HTTPClient : AHTTPClient
     {
 
-        #region Data
+        #region Constructor(s)
 
-        /// <summary>
-        /// The default HTTPS user agent.
-        /// </summary>
-        public new const String  DefaultHTTPUserAgent  = "GraphDefined HTTP Client";
+        #region HTTPClient(IPAddress, ...)
+
+        public HTTPClient(IIPAddress                                                 IPAddress,
+                          IPPort?                                                    TCPPort                               = null,
+                          I18NString?                                                Description                           = null,
+                          String?                                                    HTTPUserAgent                         = null,
+                          AcceptTypes?                                               Accept                                = null,
+                          HTTPContentType?                                           ContentType                           = null,
+                          ConnectionType?                                            Connection                            = null,
+                          DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
+
+                          RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
+                          LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                          SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                          SslProtocols?                                              TLSProtocols                          = null,
+                          CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                          X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                          X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                          Boolean?                                                   EnforceTLS                            = null,
+                          IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                          Boolean?                                                   AllowRenegotiation                    = null,
+                          Boolean?                                                   AllowTLSResume                        = null,
+                          TOTPConfig?                                                TOTPConfig                            = null,
+
+                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                          IPVersionPreference?                                       PreferIPv4                            = null,
+                          TimeSpan?                                                  ConnectTimeout                        = null,
+                          TimeSpan?                                                  ReceiveTimeout                        = null,
+                          TimeSpan?                                                  SendTimeout                           = null,
+                          TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                          UInt16?                                                    MaxNumberOfRetries                    = null,
+                          UInt32?                                                    BufferSize                            = null,
+
+                          Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                          Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                          Boolean?                                                   DisableLogging                        = null)
+
+            : base(IPAddress,
+                   TCPPort ?? IPPort.HTTPS,
+                   Description,
+
+                   HTTPUserAgent,
+                   Accept,
+                   ContentType,
+                   Connection,
+                   DefaultRequestBuilder,
+
+                   RemoteCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as HTTPClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+                   TOTPConfig,
+
+                   HTTPAuthentication,
+
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   BufferSize ?? 512,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   DisableLogging)
+
+        { }
 
         #endregion
 
+        #region HTTPClient(URL, ...)
 
-        #region HTTPClient(RemoteURL, ...)
+        public HTTPClient(URL                                                        URL,
+                          I18NString?                                                Description                           = null,
+                          String?                                                    HTTPUserAgent                         = null,
+                          AcceptTypes?                                               Accept                                = null,
+                          HTTPContentType?                                           ContentType                           = null,
+                          ConnectionType?                                            Connection                            = null,
+                          DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
-        /// <summary>
-        /// Create a new HTTP client.
-        /// </summary>
-        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
-        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
-        /// <param name="Description">An optional description of this CPO client.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="ContentType">An optional HTTP content type.</param>
-        /// <param name="Accept">The optional HTTP accept header.</param>
-        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="Connection">An optional connection type.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
-        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
-        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
-        /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">An HTTP logger.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(URL                              RemoteURL,
-                          HTTPHostname?                    VirtualHostname          = null,
-                          I18NString?                      Description              = null,
-                          IPVersionPreference?             PreferIPv4               = null,
-                          HTTPContentType?                 ContentType              = null,
-                          AcceptTypes?                     Accept                   = null,
-                          IHTTPAuthentication?             HTTPAuthentication       = null,
-                          TOTPConfig?                      TOTPConfig               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          ConnectionType?                  Connection               = null,
-                          TimeSpan?                        RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                          UInt16?                          MaxNumberOfRetries       = null,
-                          UInt32?                          InternalBufferSize       = null,
-                          Boolean                          UseHTTPPipelining        = false,
-                          Boolean?                         DisableLogging           = false,
-                          HTTPClientLogger?                HTTPLogger               = null,
-                          IDNSClient?                      DNSClient                = null)
+                          RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
+                          LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                          SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                          SslProtocols?                                              TLSProtocols                          = null,
+                          CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                          X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                          X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                          IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                          Boolean?                                                   AllowRenegotiation                    = null,
+                          Boolean?                                                   AllowTLSResume                        = null,
+                          TOTPConfig?                                                TOTPConfig                            = null,
 
-            : base(RemoteURL,
-                   VirtualHostname,
+                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                          IPVersionPreference?                                       PreferIPv4                            = null,
+                          TimeSpan?                                                  ConnectTimeout                        = null,
+                          TimeSpan?                                                  ReceiveTimeout                        = null,
+                          TimeSpan?                                                  SendTimeout                           = null,
+                          TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                          UInt16?                                                    MaxNumberOfRetries                    = null,
+                          UInt32?                                                    BufferSize                            = null,
+
+                          Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                          Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                          Boolean?                                                   DisableLogging                        = null,
+                          IDNSClient?                                                DNSClient                             = null)
+
+            : base(URL,
                    Description,
-                   PreferIPv4,
-                   null,
-                   null,
-                   null,
-                   null,
-                   null,
-                   null,
-                   ContentType,
+
+                   HTTPUserAgent,
                    Accept,
-                   HTTPAuthentication,
-                   TOTPConfig,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   ContentType,
                    Connection,
-                   RequestTimeout,
+                   DefaultRequestBuilder,
+
+                   RemoteCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                              (tlsClient as HTTPClient)!,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+                   TOTPConfig,
+
+                   HTTPAuthentication,
+
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   InternalBufferSize,
-                   UseHTTPPipelining,
+                   BufferSize  ?? 8192,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
                    DisableLogging,
-                   HTTPLogger,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPClient(RemoteIPAddress, RemotePort = null, ...)
+        #region HTTPClient(DomainName, DNSService, ..., DNSClient = null)
 
-        /// <summary>
-        /// Create a new HTTP client.
-        /// </summary>
-        /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
-        /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
-        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
-        /// <param name="Description">An optional description of this CPO client.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="ContentType">An optional HTTP content type.</param>
-        /// <param name="Accept">The optional HTTP accept header.</param>
-        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="Connection">An optional connection type.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
-        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
-        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
-        /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">An HTTP logger.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(IIPAddress                       RemoteIPAddress,
-                          IPPort?                          RemotePort               = null,
-                          HTTPHostname?                    VirtualHostname          = null,
-                          I18NString?                      Description              = null,
-                          IPVersionPreference?             PreferIPv4               = null,
-                          HTTPContentType?                 ContentType              = null,
-                          AcceptTypes?                     Accept                   = null,
-                          IHTTPAuthentication?             HTTPAuthentication       = null,
-                          TOTPConfig?                      TOTPConfig               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          ConnectionType?                  Connection               = null,
-                          TimeSpan?                        RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                          UInt16?                          MaxNumberOfRetries       = null,
-                          UInt32?                          InternalBufferSize       = null,
-                          Boolean                          UseHTTPPipelining        = false,
-                          Boolean?                         DisableLogging           = false,
-                          HTTPClientLogger?                HTTPLogger               = null,
-                          IDNSClient?                      DNSClient                = null)
+        public HTTPClient(DomainName                                                 DomainName,
+                          SRV_Spec                                                   DNSService,
+                          I18NString?                                                Description                           = null,
+                          String?                                                    HTTPUserAgent                         = null,
+                          AcceptTypes?                                               Accept                                = null,
+                          HTTPContentType?                                           ContentType                           = null,
+                          ConnectionType?                                            Connection                            = null,
+                          DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
-            : this(URL.Parse($"http://{RemoteIPAddress}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : String.Empty)}"),
-                   VirtualHostname,
+                          RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
+                          LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                          SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                          IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                          SslProtocols?                                              TLSProtocols                          = null,
+                          CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                          X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                          X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                          Boolean?                                                   EnforceTLS                            = null,
+                          IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                          Boolean?                                                   AllowRenegotiation                    = null,
+                          Boolean?                                                   AllowTLSResume                        = null,
+                          TOTPConfig?                                                TOTPConfig                            = null,
+
+                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                          IPVersionPreference?                                       PreferIPv4                            = null,
+                          TimeSpan?                                                  ConnectTimeout                        = null,
+                          TimeSpan?                                                  ReceiveTimeout                        = null,
+                          TimeSpan?                                                  SendTimeout                           = null,
+                          TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                          UInt16?                                                    MaxNumberOfRetries                    = null,
+                          UInt32?                                                    BufferSize                            = null,
+
+                          Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                          Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                          Boolean?                                                   DisableLogging                        = null,
+                          IDNSClient?                                                DNSClient                             = null)
+
+            : base(DomainName,
+                   DNSService,
                    Description,
-                   PreferIPv4,
-                   ContentType,
+
+                   HTTPUserAgent,
                    Accept,
-                   HTTPAuthentication,
-                   TOTPConfig,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   ContentType,
                    Connection,
-                   RequestTimeout,
+                   DefaultRequestBuilder,
+
+                   RemoteCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as HTTPClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+                   TOTPConfig,
+
+                   HTTPAuthentication,
+
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   InternalBufferSize,
-                   UseHTTPPipelining,
+                   BufferSize,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
                    DisableLogging,
-                   HTTPLogger,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPClient(RemoteSocket, ...)
+        #endregion
+
+
+        #region ConnectNew (           TCPPort, ...)
 
         /// <summary>
-        /// Create a new HTTP client.
+        /// Create a new HTTPClient and connect to the given address and TCP port.
         /// </summary>
-        /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
-        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
-        /// <param name="Description">An optional description of this CPO client.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="Accept">The optional HTTP accept header.</param>
-        /// <param name="ContentType">An optional HTTP content type.</param>
-        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="Connection">An optional connection type.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
-        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
-        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
-        /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">An HTTP logger.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(IPSocket                         RemoteSocket,
-                          HTTPHostname?                    VirtualHostname          = null,
-                          I18NString?                      Description              = null,
-                          IPVersionPreference?             PreferIPv4               = null,
-                          AcceptTypes?                     Accept                   = null,
-                          HTTPContentType?                 ContentType              = null,
-                          IHTTPAuthentication?             HTTPAuthentication       = null,
-                          TOTPConfig?                      TOTPConfig               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          ConnectionType?                  Connection               = null,
-                          TimeSpan?                        RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                          UInt16?                          MaxNumberOfRetries       = null,
-                          UInt32?                          InternalBufferSize       = null,
-                          Boolean                          UseHTTPPipelining        = false,
-                          Boolean?                         DisableLogging           = false,
-                          HTTPClientLogger?                HTTPLogger               = null,
-                          IDNSClient?                      DNSClient                = null)
+        /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        public static async Task<(HTTPClient?, IReadOnlyList<String>)>
 
-            : this(URL.Parse($"http://{RemoteSocket.IPAddress}:{RemoteSocket.Port}"),
-                   VirtualHostname,
-                   Description,
-                   PreferIPv4,
-                   ContentType,
-                   Accept,
-                   HTTPAuthentication,
-                   TOTPConfig,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
-                   Connection,
-                   RequestTimeout,
-                   TransmissionRetryDelay,
-                   MaxNumberOfRetries,
-                   InternalBufferSize,
-                   UseHTTPPipelining,
-                   DisableLogging,
-                   HTTPLogger,
-                   DNSClient)
+            ConnectNew(IPPort                                                     TCPPort,
+                       I18NString?                                                Description                           = null,
+                       String?                                                    HTTPUserAgent                         = null,
+                       AcceptTypes?                                               Accept                                = null,
+                       HTTPContentType?                                           ContentType                           = null,
+                       ConnectionType?                                            Connection                            = null,
+                       DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
-        { }
+                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
+                       LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                       SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                       SslProtocols?                                              TLSProtocols                          = null,
+                       CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                       X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                       X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                       Boolean?                                                   EnforceTLS                            = null,
+                       IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                       Boolean?                                                   AllowRenegotiation                    = null,
+                       Boolean?                                                   AllowTLSResume                        = null,
+                       TOTPConfig?                                                TOTPConfig                            = null,
+
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                       IPVersionPreference?                                       PreferIPv4                            = null,
+                       TimeSpan?                                                  ConnectTimeout                        = null,
+                       TimeSpan?                                                  ReceiveTimeout                        = null,
+                       TimeSpan?                                                  SendTimeout                           = null,
+                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                       UInt16?                                                    MaxNumberOfRetries                    = null,
+                       UInt32?                                                    BufferSize                            = null,
+
+                       Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                       Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                       Boolean?                                                   DisableLogging                        = null)
+
+                => await ConnectNew(
+
+                             IPvXAddress.Localhost,
+                             TCPPort,
+                             Description,
+                             HTTPUserAgent,
+                             Accept,
+                             ContentType,
+                             Connection,
+                             DefaultRequestBuilder,
+
+                             RemoteCertificateValidator,
+                             LocalCertificateSelector,
+                             ClientCertificates,
+                             ClientCertificateContext,
+                             ClientCertificateChain,
+                             TLSProtocols,
+                             CipherSuitesPolicy,
+                             CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
+                             EnforceTLS,
+                             ApplicationProtocols,
+                             AllowRenegotiation,
+                             AllowTLSResume,
+                             TOTPConfig,
+
+                             HTTPAuthentication,
+
+                             PreferIPv4,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
+                             BufferSize,
+
+                             ConsumeRequestChunkedTEImmediately,
+                             ConsumeResponseChunkedTEImmediately,
+
+                             DisableLogging
+
+                         );
 
         #endregion
 
-        #region HTTPClient(RemoteHost, ...)
+        #region ConnectNew (IPAddress, TCPPort, ...)
 
         /// <summary>
-        /// Create a new HTTP client.
+        /// Create a new HTTPClient and connect to the given address and TCP port.
         /// </summary>
-        /// <param name="RemoteHost">The remote hostname to connect to.</param>
-        /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
-        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
-        /// <param name="Description">An optional description of this CPO client.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="ContentType">An optional HTTP content type.</param>
-        /// <param name="Accept">The optional HTTP accept header.</param>
-        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="Connection">An optional connection type.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
-        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
-        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
-        /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">An HTTP logger.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(HTTPHostname                     RemoteHost,
-                          IPPort?                          RemotePort               = null,
-                          HTTPHostname?                    VirtualHostname          = null,
-                          I18NString?                      Description              = null,
-                          IPVersionPreference?             PreferIPv4               = null,
-                          HTTPContentType?                 ContentType              = null,
-                          AcceptTypes?                     Accept                   = null,
-                          IHTTPAuthentication?             HTTPAuthentication       = null,
-                          TOTPConfig?                      TOTPConfig               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          ConnectionType?                  Connection               = null,
-                          TimeSpan?                        RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                          UInt16?                          MaxNumberOfRetries       = null,
-                          UInt32?                          InternalBufferSize       = null,
-                          Boolean                          UseHTTPPipelining        = false,
-                          Boolean?                         DisableLogging           = false,
-                          HTTPClientLogger?                HTTPLogger               = null,
-                          IDNSClient?                      DNSClient                = null)
+        /// <param name="IPAddress">The IP address to connect to.</param>
+        /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        public static async Task<(HTTPClient?, IReadOnlyList<String>)>
 
-            : this(URL.Parse($"http://{RemoteHost}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : String.Empty)}"),
-                   VirtualHostname,
-                   Description,
-                   PreferIPv4,
-                   ContentType,
-                   Accept,
-                   HTTPAuthentication,
-                   TOTPConfig,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
-                   Connection,
-                   RequestTimeout,
-                   TransmissionRetryDelay,
-                   MaxNumberOfRetries,
-                   InternalBufferSize,
-                   UseHTTPPipelining,
-                   DisableLogging,
-                   HTTPLogger,
-                   DNSClient)
+            ConnectNew(IIPAddress                                                 IPAddress,
+                       IPPort                                                     TCPPort,
+                       I18NString?                                                Description                           = null,
+                       String?                                                    HTTPUserAgent                         = null,
+                       AcceptTypes?                                               Accept                                = null,
+                       HTTPContentType?                                           ContentType                           = null,
+                       ConnectionType?                                            Connection                            = null,
+                       DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
-        { }
+                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
+                       LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                       SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                       SslProtocols?                                              TLSProtocols                          = null,
+                       CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                       X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                       X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                       Boolean?                                                   EnforceTLS                            = null,
+                       IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                       Boolean?                                                   AllowRenegotiation                    = null,
+                       Boolean?                                                   AllowTLSResume                        = null,
+                       TOTPConfig?                                                TOTPConfig                            = null,
+
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                       IPVersionPreference?                                       PreferIPv4                            = null,
+                       TimeSpan?                                                  ConnectTimeout                        = null,
+                       TimeSpan?                                                  ReceiveTimeout                        = null,
+                       TimeSpan?                                                  SendTimeout                           = null,
+                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                       UInt16?                                                    MaxNumberOfRetries                    = null,
+                       UInt32?                                                    BufferSize                            = null,
+
+                       Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                       Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                       Boolean?                                                   DisableLogging                        = null)
+
+        {
+
+            var client = new HTTPClient(
+
+                             IPAddress,
+                             TCPPort,
+                             Description,
+                             HTTPUserAgent,
+                             Accept,
+                             ContentType,
+                             Connection,
+                             DefaultRequestBuilder,
+
+                             RemoteCertificateValidator,
+                             LocalCertificateSelector,
+                             ClientCertificates,
+                             ClientCertificateContext,
+                             ClientCertificateChain,
+                             TLSProtocols,
+                             CipherSuitesPolicy,
+                             CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
+                             EnforceTLS,
+                             ApplicationProtocols,
+                             AllowRenegotiation,
+                             AllowTLSResume,
+                             TOTPConfig,
+
+                             HTTPAuthentication,
+
+                             PreferIPv4,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
+                             BufferSize,
+
+                             ConsumeRequestChunkedTEImmediately,
+                             ConsumeResponseChunkedTEImmediately,
+
+                             DisableLogging
+
+                         );
+
+            var response = await client.ConnectAsync();
+
+            return response.Success
+                       ? (client, [])
+                       : (null,   response.Errors);
+
+        }
 
         #endregion
 
+        #region ConnectNew (URL, ...)
+
+        /// <summary>
+        /// Create a new HTTPClient and connect to the given URL.
+        /// </summary>
+        /// <param name="URL">The URL to connect to.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        public static async Task<HTTPClient>
+
+            ConnectNew(URL                                                        URL,
+                       I18NString?                                                Description                           = null,
+                       String?                                                    HTTPUserAgent                         = null,
+                       AcceptTypes?                                               Accept                                = null,
+                       HTTPContentType?                                           ContentType                           = null,
+                       ConnectionType?                                            Connection                            = null,
+                       DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
+
+                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
+                       LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                       SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                       SslProtocols?                                              TLSProtocols                          = null,
+                       CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                       X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                       X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                       IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                       Boolean?                                                   AllowRenegotiation                    = null,
+                       Boolean?                                                   AllowTLSResume                        = null,
+                       TOTPConfig?                                                TOTPConfig                            = null,
+
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                       IPVersionPreference?                                       PreferIPv4                            = null,
+                       TimeSpan?                                                  ConnectTimeout                        = null,
+                       TimeSpan?                                                  ReceiveTimeout                        = null,
+                       TimeSpan?                                                  SendTimeout                           = null,
+                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                       UInt16?                                                    MaxNumberOfRetries                    = null,
+                       UInt32?                                                    BufferSize                            = null,
+                       DNSClient?                                                 DNSClient                             = null,
+
+                       Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                       Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                       Boolean?                                                   DisableLogging                        = null)
+
+        {
+
+            var client = new HTTPClient(
+
+                             URL,
+                             Description,
+                             HTTPUserAgent,
+                             Accept,
+                             ContentType,
+                             Connection,
+                             DefaultRequestBuilder,
+
+                             RemoteCertificateValidator,
+                             LocalCertificateSelector,
+                             ClientCertificates,
+                             ClientCertificateContext,
+                             ClientCertificateChain,
+                             TLSProtocols,
+                             CipherSuitesPolicy,
+                             CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
+                             ApplicationProtocols,
+                             AllowRenegotiation,
+                             AllowTLSResume,
+                             TOTPConfig,
+
+                             HTTPAuthentication,
+
+                             PreferIPv4,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
+                             BufferSize,
+
+                             ConsumeRequestChunkedTEImmediately,
+                             ConsumeResponseChunkedTEImmediately,
+
+                             DisableLogging,
+                             DNSClient
+
+                         );
+
+            await client.ConnectAsync();
+
+            return client;
+
+        }
+
+        #endregion
+
+        #region ConnectNew (DNSName,   DNSService, ...)
+
+        /// <summary>
+        /// Create a new HTTPClient and connect to the given URL.
+        /// </summary>
+        /// <param name="DNSName">The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.</param>
+        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        public static async Task<HTTPClient>
+
+            ConnectNew(DomainName                                                 DNSName,
+                       SRV_Spec                                                   DNSService,
+                       I18NString?                                                Description                           = null,
+                       String?                                                    HTTPUserAgent                         = null,
+                       AcceptTypes?                                               Accept                                = null,
+                       HTTPContentType?                                           ContentType                           = null,
+                       ConnectionType?                                            Connection                            = null,
+                       DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
+
+                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
+                       LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                       SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                       IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                       SslProtocols?                                              TLSProtocols                          = null,
+                       CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                       X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                       X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                       Boolean?                                                   EnforceTLS                            = null,
+                       IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                       Boolean?                                                   AllowRenegotiation                    = null,
+                       Boolean?                                                   AllowTLSResume                        = null,
+                       TOTPConfig?                                                TOTPConfig                            = null,
+
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                       IPVersionPreference?                                       PreferIPv4                            = null,
+                       TimeSpan?                                                  ConnectTimeout                        = null,
+                       TimeSpan?                                                  ReceiveTimeout                        = null,
+                       TimeSpan?                                                  SendTimeout                           = null,
+                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                       UInt16?                                                    MaxNumberOfRetries                    = null,
+                       UInt32?                                                    BufferSize                            = null,
+
+                       Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                       Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                       Boolean?                                                   DisableLogging                        = null,
+                       DNSClient?                                                 DNSClient                             = null)
+
+        {
+
+            var client = new HTTPClient(
+
+                             DNSName,
+                             DNSService,
+                             Description,
+                             HTTPUserAgent,
+                             Accept,
+                             ContentType,
+                             Connection,
+                             DefaultRequestBuilder,
+
+                             RemoteCertificateValidator,
+                             LocalCertificateSelector,
+                             ClientCertificates,
+                             ClientCertificateContext,
+                             ClientCertificateChain,
+                             TLSProtocols,
+                             CipherSuitesPolicy,
+                             CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
+                             EnforceTLS,
+                             ApplicationProtocols,
+                             AllowRenegotiation,
+                             AllowTLSResume,
+                             TOTPConfig,
+
+                             HTTPAuthentication,
+
+                             PreferIPv4,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
+                             BufferSize,
+
+                             ConsumeRequestChunkedTEImmediately,
+                             ConsumeResponseChunkedTEImmediately,
+
+                             DisableLogging,
+                             DNSClient
+
+                         );
+
+            await client.ConnectAsync();
+
+            return client;
+
+        }
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Returns a text representation of this object.
+        /// </summary>
+        public override string ToString()
+
+            => $"{nameof(HTTPClient)}: {LocalSocket} -> {RemoteSocket} (Connected: {IsConnected})";
+
+        #endregion
 
     }
 

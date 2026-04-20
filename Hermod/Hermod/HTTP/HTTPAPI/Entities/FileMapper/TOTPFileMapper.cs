@@ -24,7 +24,6 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -65,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">An optional file mapper identification. If omitted, a random identification will be assigned.</param>
         /// <param name="Name">An optional human-readable name of the file mapper. If omitted, the Id will be used.</param>
         /// <param name="Description">An optional multi-language description of the file mapper.</param>
-        public TOTPFileMapper(HTTPExtAPIX     API,
+        public TOTPFileMapper(HTTPExtAPI     API,
 
                               HTTPHostname    Hostname,
                               HTTPPath        URLTemplate,

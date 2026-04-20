@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The optional default HTTP API.
         /// </summary>
-        HTTPAPI?               DefaultHTTPAPI    { get; }
+        HTTPExtAPI?            DefaultHTTPAPI   { get; }
 
 
         /// <summary>
@@ -65,13 +65,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// An enumeration of all HTTP APIs.
         /// </summary>
-        IEnumerable<HTTPAPI> HTTPAPIs { get; }
+        IEnumerable<HTTPExtAPI> HTTPAPIs { get; }
 
 
-        public Boolean AddHTTPAPI(String   HTTPAPIId,
-                                  HTTPAPI  HTTPAPI);
+        public Boolean AddHTTPAPI(String       HTTPAPIId,
+                                  HTTPExtAPI  HTTPAPI);
 
-        public HTTPAPI? GetHTTPAPI(String HTTPAPIId);
+        public HTTPExtAPI? GetHTTPAPI(String HTTPAPIId);
 
         #endregion
 

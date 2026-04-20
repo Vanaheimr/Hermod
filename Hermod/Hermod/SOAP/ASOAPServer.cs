@@ -24,7 +24,6 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -96,26 +95,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
 
 
-        public HTTPAPIX             API           { get;}
+        public HTTPAPI             API           { get;}
 
         #endregion
 
         #region Events
 
-        /// <summary>
-        /// An event called whenever a HTTP request came in.
-        /// </summary>
-        public HTTPRequestLogEvent RequestLog = new();
+        ///// <summary>
+        ///// An event called whenever a HTTP request came in.
+        ///// </summary>
+        //public HTTPRequestLogEvent RequestLog = new();
 
-        /// <summary>
-        /// An event called whenever a HTTP request could successfully be processed.
-        /// </summary>
-        public HTTPResponseLogEvent ResponseLog = new();
+        ///// <summary>
+        ///// An event called whenever a HTTP request could successfully be processed.
+        ///// </summary>
+        //public HTTPResponseLogEvent ResponseLog = new();
 
-        /// <summary>
-        /// An event called whenever a HTTP request resulted in an error.
-        /// </summary>
-        public HTTPErrorLogEvent ErrorLog = new();
+        ///// <summary>
+        ///// An event called whenever a HTTP request resulted in an error.
+        ///// </summary>
+        //public HTTPErrorLogEvent ErrorLog = new();
 
         #endregion
 
@@ -156,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.API = new HTTPAPIX(SOAPServer.HTTPServer);
+            this.API = new HTTPAPI(SOAPServer.HTTPServer);
 
             if (RegisterHTTPRootService)
                 RegisterRootService();

@@ -18,6 +18,9 @@
 #region Usings
 
 using System.Reflection;
+using System.Runtime.CompilerServices;
+
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -36,56 +39,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        public const  String  DefaultHTTPAPI_LoggingPath  = "default";
+        public const String  DefaultHTTPServerName       = "HTTP Server 1";
+        public const String  DefaultHTTPServiceName      = "HTTP Service";
+        public const String  DefaultLoggingContext       = "HTTP API";
 
-        public const  String  DefaultHTTPAPI_LogfileName  = "HTTPAPI.log";
+        public const String  DefaultHTTPAPI_LoggingPath  = "default";
+        public const String  DefaultHTTPAPI_LogfileName  = "HTTPAPI.log";
 
         #endregion
 
         #region Properties
 
         /// <summary>
+        /// The description of this HTTP API.
+        /// </summary>
+        public I18NString               Description              { get; }
+
+        /// <summary>
+        /// The external DNS name of this HTTP API.
+        /// </summary>
+        public String?                  ExternalDNSName          { get; }
+
+        public String                   HTTPServerName           { get; protected set; } = DefaultHTTPServerName;
+
+        /// <summary>
         /// The HTTP service name.
         /// </summary>
-        public String?                 HTTPServiceName       { get; }
+        public String                   HTTPServiceName          { get; protected set; } = DefaultHTTPServiceName;
 
         /// <summary>
         /// The default HTTP URL prefix.
         /// </summary>
-        public HTTPPath                URLPathPrefix         { get; }
+        public HTTPPath                 URLPathPrefix            { get; }
 
 
-        public HTTPPath?               BasePath              { get; }
+        public HTTPPath?                BasePath                 { get; }
+
+        /// <summary>
+        /// The API version hash (git commit hash value).
+        /// </summary>
+        public String                   APIVersionHash           { get; }
+
+        /// <summary>
+        /// A JSON object containing all API version hashes.
+        /// </summary>
+        public JObject                  APIVersionHashes         { get; }
 
 
-        public String                  HTMLTemplate          { get; set; }
+        public String                   HTMLTemplate             { get; protected set; } = String.Empty;
+
+        public TimeSpan                 DefaultRequestTimeout    { get; protected set; } = TimeSpan.FromSeconds(30);
 
 
         /// <summary>
         /// This HTTP API runs in development mode.
         /// </summary>
-        public Boolean                 IsDevelopment         { get; }
+        public Boolean                  IsDevelopment            { get; }
 
         /// <summary>
         /// The enumeration of server names which will imply to run this service in development mode.
         /// </summary>
-        public HashSet<String>         DevelopmentServers    { get; }
+        public HashSet<String>          DevelopmentServers       { get; } = [];
 
         /// <summary>
         /// Disable any logging.
         /// </summary>
-        public Boolean                 DisableLogging        { get; }
-
-        //public String                  LoggingContext        { get; }
+        public Boolean                  DisableLogging           { get; }
 
         /// <summary>
         /// The path for all logfiles.
         /// </summary>
-        public String                  LoggingPath           { get; }
+        public String                   LoggingPath              { get; }
 
-        public String                  LogfileName           { get; }
+        public String                   LoggingContext           { get; }
 
-        public LogfileCreatorDelegate  LogfileCreator        { get; }
+        public String                   LogfileName              { get; }
+
+        public LogfileCreatorDelegate?  LogfileCreator           { get; }
 
         #endregion
 
@@ -94,27 +124,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new common HTTP API Base.
         /// </summary>
-        /// <param name="HTTPServiceName">An HTTP service name (HTTP Servername).</param>
-        /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
-        public AHTTPAPIBase(String?                  HTTPServiceName      = null,
-                            HTTPPath?                URLPathPrefix        = null,
-                            HTTPPath?                BasePath             = null,
-                            String?                  HTMLTemplate         = null,
+        public AHTTPAPIBase(I18NString               Description,
+                             HTTPPath?                URLPathPrefix        = null,
+                             HTTPPath?                BasePath             = null,  // For URL prefixes in HTML!
 
-                            Boolean?                 IsDevelopment        = false,
-                            IEnumerable<String>?     DevelopmentServers   = null,
-                            Boolean?                 DisableLogging       = false,
-                            String?                  LoggingPath          = null,
-                            String?                  LogfileName          = null,
-                            LogfileCreatorDelegate?  LogfileCreator       = null)
+                             String?                  ExternalDNSName      = null,
+                             String?                  HTTPServerName       = DefaultHTTPServerName,
+                             String?                  HTTPServiceName      = DefaultHTTPServiceName,
+                             String?                  APIVersionHash       = null,
+                             JObject?                 APIVersionHashes     = null,
+
+                             Boolean?                 IsDevelopment        = false,
+                             IEnumerable<String>?     DevelopmentServers   = null,
+                             Boolean?                 DisableLogging       = false,
+                             String?                  LoggingPath          = null,
+                             String?                  LogfileName          = null,
+                             LogfileCreatorDelegate?  LogfileCreator       = null)
         {
 
-            this.HTTPServiceName     = HTTPServiceName;
-            this.URLPathPrefix       = URLPathPrefix  ?? HTTPPath.Root;
+            this.Description         = Description;
+            this.ExternalDNSName     = ExternalDNSName;
+            this.HTTPServerName      = HTTPServerName  ?? DefaultHTTPServerName;
+            this.HTTPServiceName     = HTTPServiceName ?? DefaultHTTPServiceName;
+            this.URLPathPrefix       = URLPathPrefix   ?? HTTPPath.Root;
             this.BasePath            = BasePath;
-            this.HTMLTemplate        = HTMLTemplate   ?? GetResourceString("template.html");
+            this.HTMLTemplate        = GetResourceString("template.html");
 
-            this.IsDevelopment       = IsDevelopment ?? false;
+            this.APIVersionHash      = APIVersionHash               ?? "";
+            this.APIVersionHashes    = APIVersionHashes             ?? [];
+
+            this.IsDevelopment       = IsDevelopment  ?? false;
             this.DevelopmentServers  = DevelopmentServers is not null
                                            ? [.. DevelopmentServers]
                                            : [];
@@ -124,18 +163,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DisableLogging      = DisableLogging ?? false;
 
-            this.LoggingPath         = LoggingPath    ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath);
+            this.LoggingPath         = LoggingPath    ?? Path.Combine(
+                                                             AppContext.BaseDirectory,
+                                                             DefaultHTTPAPI_LoggingPath
+                                                         );
 
             if (this.LoggingPath[^1] != Path.DirectorySeparatorChar)
                 this.LoggingPath += Path.DirectorySeparatorChar;
 
+            if (this.LoggingPath.IsNotNullOrEmpty())
+                Directory.CreateDirectory(this.LoggingPath);
+
+            this.LoggingContext      = LoggingContext ?? DefaultLoggingContext;
             this.LogfileName         = LogfileName    ?? DefaultHTTPAPI_LogfileName;
-            this.LogfileCreator      = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                               context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : String.Empty,
-                                                                                                               logfileName.Replace(".log", ""), "_",
-                                                                                                               DateTime.Now.Year, "-",
-                                                                                                               DateTime.Now.Month.ToString("D2"),
-                                                                                                               ".log"));
+            this.LogfileCreator      = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(
+                                                                                                     loggingPath,
+                                                                                                     context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : String.Empty,
+                                                                                                     logfileName.Replace(".log", ""), "_",
+                                                                                                     DateTime.Now.Year, "-",
+                                                                                                     DateTime.Now.Month.ToString("D2"),
+                                                                                                     ".log"
+                                                                                                 ));
 
         }
 
@@ -327,8 +375,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         protected virtual String MixWithHTMLTemplate(String ResourceName)
 
-            => MixWithHTMLTemplate(ResourceName,
-                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+            => MixWithHTMLTemplate(
+                   ResourceName,
+                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly)
+               );
 
         protected virtual String MixWithHTMLTemplate(String                            ResourceName,
                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
@@ -349,15 +399,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         resourceStream.Seek(3, SeekOrigin.Begin);
                         resourceStream.CopyTo(htmlStream);
 
-                        return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                            Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
+                        return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String(), StringComparison.OrdinalIgnoreCase).
+                                            Replace("{{BasePath}}",    BasePath?.ToString() ?? "",          StringComparison.OrdinalIgnoreCase);
 
                     }
 
                 }
 
-                return HTMLTemplate.Replace("<%= content %>",  "").
-                                    Replace("{{BasePath}}",    "");
+                return HTMLTemplate.Replace("<%= content %>",  "", StringComparison.OrdinalIgnoreCase).
+                                    Replace("{{BasePath}}",    "", StringComparison.OrdinalIgnoreCase);
 
             }
 
@@ -372,9 +422,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected virtual String MixWithHTMLTemplate(String                ResourceName,
                                                      Func<String, String>  HTMLConverter)
 
-            => MixWithHTMLTemplate(ResourceName,
-                                   HTMLConverter,
-                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+            => MixWithHTMLTemplate(
+                   ResourceName,
+                   HTMLConverter,
+                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly)
+               );
 
         protected virtual String MixWithHTMLTemplate(String                            ResourceName,
                                                      Func<String, String>              HTMLConverter,
@@ -396,15 +448,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         resourceStream.Seek(3, SeekOrigin.Begin);
                         resourceStream.CopyTo(htmlStream);
 
-                        return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                                          Replace("{{BasePath}}",    BasePath?.ToString() ?? ""));
+                        return HTMLConverter(
+                                   HTMLTemplate.
+                                       Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String(), StringComparison.OrdinalIgnoreCase).
+                                       Replace("{{BasePath}}",    BasePath?.ToString() ?? "",          StringComparison.OrdinalIgnoreCase)
+                               );
 
                     }
 
                 }
 
-                return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  "").
-                                                  Replace("{{BasePath}}",    ""));
+                return HTMLConverter(
+                           HTMLTemplate.
+                               Replace("<%= content %>",  "", StringComparison.OrdinalIgnoreCase).
+                               Replace("{{BasePath}}",    "", StringComparison.OrdinalIgnoreCase)
+                       );
 
             }
 
@@ -420,10 +478,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      String   ResourceName,
                                                      String?  Content   = null)
 
-            => MixWithHTMLTemplate(Template,
-                                   ResourceName,
-                                   new Tuple<String, Assembly>[] { new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) },
-                                   Content);
+            => MixWithHTMLTemplate(
+                   Template,
+                   ResourceName,
+                   [ new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) ],
+                   Content
+               );
 
         protected virtual String MixWithHTMLTemplate(String                     Template,
                                                      String                     ResourceName,
@@ -443,17 +503,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     resourceStream.Seek(3, SeekOrigin.Begin);
                     resourceStream.CopyTo(htmlStream);
 
-                    return Template.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                    Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
+                    return Template.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String(), StringComparison.OrdinalIgnoreCase).
+                                    Replace("{{BasePath}}",    BasePath?.ToString() ?? "",          StringComparison.OrdinalIgnoreCase);
 
                 }
 
             }
 
-            return Template.Replace("<%= content %>",  "").
-                            Replace("{{BasePath}}",    "");
+            return Template.Replace("<%= content %>",  "", StringComparison.OrdinalIgnoreCase).
+                            Replace("{{BasePath}}",    "", StringComparison.OrdinalIgnoreCase);
 
         }
+
+        #endregion
+
+
+
+        #region (protected) LogEvent     (Module, Logger, LogHandler, ...)
+
+        protected async Task LogEvent<TDelegate>(String                                             Module,
+                                                 TDelegate?                                         Logger,
+                                                 Func<TDelegate, Task>                              LogHandler,
+                                                 [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                                 [CallerMemberName()]                       String  Command     = "")
+
+            where TDelegate : Delegate
+
+        {
+            if (Logger is not null)
+            {
+                try
+                {
+
+                    await Task.WhenAll(
+                              Logger.GetInvocationList().
+                                     OfType<TDelegate>().
+                                     Select(LogHandler)
+                          ).ConfigureAwait(false);
+
+                }
+                catch (Exception e)
+                {
+                    await HandleErrors(Module, $"{Command}.{EventName}", e);
+                }
+            }
+        }
+
+        #endregion
+
+        #region (virtual)   HandleErrors (Module, Caller, ErrorResponse)
+
+        public virtual Task HandleErrors(String  Module,
+                                         String  Caller,
+                                         String  ErrorResponse)
+        {
+
+            DebugX.Log($"{Module}.{Caller}: {ErrorResponse}");
+
+            return Task.CompletedTask;
+
+        }
+
+        #endregion
+
+        #region (virtual)   HandleErrors (Module, Caller, ExceptionOccurred)
+
+        public virtual Task HandleErrors(String     Module,
+                                         String     Caller,
+                                         Exception  ExceptionOccurred)
+        {
+
+            DebugX.LogException(ExceptionOccurred, $"{Module}.{Caller}");
+
+            return Task.CompletedTask;
+
+        }
+
+        #endregion
+
+
+        #region (private)   LogEvent     (Logger, LogHandler, ...)
+
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                         [CallerMemberName()]                       String  Command     = "")
+
+            where TDelegate : Delegate
+
+            => LogEvent(
+                   nameof(AHTTPAPIBase),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   Command
+               );
 
         #endregion
 

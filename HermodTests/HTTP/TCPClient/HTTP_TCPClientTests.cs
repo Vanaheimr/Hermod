@@ -48,14 +48,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region Start/Stop HTTPServer
 
-        private HTTPServer? httpServer;
+        private HTTPTestServerX? httpServer;
 
         [OneTimeSetUp]
         public void Init_HTTPServer()
         {
 
-            httpServer = new HTTPServer(
-                             IPPort.Parse(81),
+            httpServer = new HTTPTestServerX(
+                             TCPPort: IPPort.Parse(81),
                              AutoStart: true
                          );
 
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [OneTimeTearDown]
         public void Shutdown_HTTPServer()
         {
-            httpServer?.Shutdown();
+            //httpServer?.Shutdown();
         }
 
         #endregion

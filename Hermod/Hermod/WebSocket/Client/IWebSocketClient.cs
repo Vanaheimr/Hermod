@@ -201,16 +201,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region Properties
-        IEnumerable<String>                                                 SecWebSocketProtocols         { get; }
-        Boolean                                                             DisableWebSocketPings         { get; }
-        TimeSpan                                                            WebSocketPingEvery            { get; }
 
-        TimeSpan?                                                           SlowNetworkSimulationDelay    { get; }
+        IEnumerable<String>                                             SecWebSocketProtocols         { get; }
+        Boolean                                                         DisableWebSocketPings         { get; }
+        TimeSpan                                                        WebSocketPingEvery            { get; }
 
-        new RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator    { get; }
+        TimeSpan?                                                       SlowNetworkSimulationDelay    { get; }
 
-        #endregion
+
+        /// <summary>
+        /// The remote TLS certificate validator.
+        /// </summary>
+        RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator    { get; }
 
     }
 

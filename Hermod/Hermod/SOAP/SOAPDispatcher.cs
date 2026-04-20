@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                 HTTPStatusCode  = HTTPStatusCode.OK,
                 ContentType     = HTTPContentType.Text.PLAIN,
-                Content         = ("Welcome at " + Request.HTTPServer.DefaultServerName + Environment.NewLine +
+                Content         = ("Welcome at " + Request.HTTPServer.HTTPServerName + Environment.NewLine +
                                    "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
                                    "Defined SOAP meassages: " + Environment.NewLine +
                                    soapDispatches.

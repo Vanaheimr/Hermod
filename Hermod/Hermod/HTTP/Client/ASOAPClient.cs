@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
                               SslStreamCertificateContext?                               ClientCertificateContext     = null,
                               IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
-                              SslProtocols?                                              TLSProtocol                  = null,
+                              SslProtocols?                                              TLSProtocols                 = null,
                               HTTPContentType?                                           ContentType                  = null,
                               AcceptTypes?                                               Accept                       = null,
                               IHTTPAuthentication?                                       HTTPAuthentication           = null,
@@ -149,33 +149,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               UInt16?                                                    MaxNumberOfRetries           = null,
                               UInt32?                                                    InternalBufferSize           = null,
                               Boolean                                                    UseHTTPPipelining            = false,
-                              Boolean?                                                   DisableLogging               = false,
                               HTTPClientLogger?                                          HTTPLogger                   = null,
+
+                              Boolean?                                                   DisableLogging               = null,
                               IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
-                   VirtualHostname,
                    Description,
-                   PreferIPv4,
+                   HTTPUserAgent  ?? DefaultHTTPUserAgent,
+                   Accept         ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.SOAPXML_UTF8),
+                   ContentType    ?? HTTPContentType.Application.SOAPXML_UTF8,
+                   Connection     ?? ConnectionType.Close,
+                   null, //DefaultRequestBuilder,
+
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCertificates,
                    ClientCertificateContext,
                    ClientCertificateChain,
-                   TLSProtocol,
-                   ContentType ?? HTTPContentType.Application.SOAPXML_UTF8,
-                   Accept,
-                   HTTPAuthentication,
+                   TLSProtocols,
+                   null, //CipherSuitesPolicy,
+                   null, //CertificateChainPolicy,
+                   null, //CertificateRevocationCheckMode,
+                   null, //ApplicationProtocols,
+                   null, //AllowRenegotiation,
+                   null, //AllowTLSResume,
                    TOTPConfig,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
-                   Connection,
-                   RequestTimeout,
+
+                   HTTPAuthentication,
+
+                   PreferIPv4,
+                   null, //ConnectTimeout,
+                   null, //ReceiveTimeout,
+                   null, //SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   InternalBufferSize,
-                   UseHTTPPipelining,
+                   null, //BufferSize,
+
+                   null, //ConsumeRequestChunkedTEImmediately
+                   null, //ConsumeResponseChunkedTEImmediately
+
                    DisableLogging,
-                   HTTPLogger,
                    DNSClient)
 
         {

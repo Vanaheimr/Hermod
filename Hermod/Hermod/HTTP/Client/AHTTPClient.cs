@@ -17,8 +17,12 @@
 
 #region Usings
 
+using System.Text;
+using System.Buffers;
 using System.Net.Sockets;
 using System.Net.Security;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -32,628 +36,1078 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    /// <summary>
-    /// A delegate to calculate the delay between transmission retries.
-    /// </summary>
-    /// <param name="RetryCount">The retry counter.</param>
-    public delegate TimeSpan TransmissionRetryDelayDelegate(UInt32 RetryCount);
-
-
-    #region (class) HTTPClientTimings
-
-    public class HTTPClientTimings
-    {
-
-        public TimeSpan               Elapsed
-            => Timestamp.Now - Start;
-
-        public List<Elapsed<String>>  Errors                  { get; }
-
-
-        public DateTimeOffset         Start                   { get; }
-        public TimeSpan?              Request                 { get; }
-        public TimeSpan?              RequestLogging1         { get; internal set; }
-        public TimeSpan?              RequestLogging2         { get; internal set; }
-        public TimeSpan?              DNSLookup               { get; internal set; }
-        public TimeSpan?              Connected               { get; internal set; }
-        public TimeSpan?              TLSHandshake            { get; internal set; }
-        public Byte                   RestartCounter          { get; internal set; }
-        public UInt64?                RequestHeaderLength     { get; internal set; }
-        public TimeSpan?              WriteRequestHeader      { get; internal set; }
-        public UInt64?                RequestBodyLength       { get; internal set; }
-        public TimeSpan?              WriteRequestBody        { get; internal set; }
-        public List<Elapsed<UInt64>>  DataReceived            { get; }
-        public DateTimeOffset         ResponseTimestamp       { get; internal set; }
-        public TimeSpan?              ResponseHeaderParsed    { get; internal set; }
-        public TimeSpan?              ResponseLogging1        { get; internal set; }
-        public TimeSpan?              ResponseLogging2        { get; internal set; }
-
-
-
-        public HTTPClientTimings(HTTPRequest? HTTPRequest = null)
-        {
-
-            var now            = Timestamp.Now;
-
-            this.Start         = HTTPRequest is not null
-                                     ? HTTPRequest.Timestamp < now
-                                           ? HTTPRequest.Timestamp
-                                           : now
-                                     : now;
-
-            this.Request       = HTTPRequest is not null
-                                     ? HTTPRequest.Timestamp - Start
-                                     : null;
-
-            this.DataReceived  = [];
-            this.Errors        = [];
-
-        }
-
-        public void AddHTTPResponse(HTTPResponse HTTPResponse)
-        {
-            this.ResponseTimestamp = HTTPResponse.Timestamp;
-        }
-
-
-
-        public void AddError(String Error)
-        {
-            Errors.Add(new Elapsed<String>(Timestamp.Now - Start, Error));
-        }
-
-
-        public String ErrorsAsString()
-
-            => Errors.Select(elapsed => elapsed.Time.TotalMilliseconds.ToString("F2") + ": " + elapsed.Value).AggregateWith(Environment.NewLine);
-
-
-        public override String ToString()
-
-            => String.Concat(
-                    "Start: ",                Start.                                      ToISO8601(),                             " > ",
-                    "Request: ",              Request?.                                   TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "RequestLogging1: ",      RequestLogging1?.                           TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "RequestLogging2: ",      RequestLogging2?.                           TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "DNSLookup: ",            DNSLookup?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "Connected: ",            Connected?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "TLSHandshake: ",         TLSHandshake?.                              TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "RestartCounter: ",       RestartCounter - 1,                                                                  " > ",
-                    "WriteRequestHeader: ",   WriteRequestHeader?.                        TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestHeaderLength} bytes) > ",
-                    "WriteRequestBody: ",     WriteRequestBody?.                          TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestBodyLength} bytes) > ",
-                    DataReceived.Select(elapsed => $"DataReceived: {elapsed.Time.TotalMilliseconds:F2} ({elapsed.Value} bytes)").AggregateWith(" > "), " > ",
-                    "ResponseTimestamp: ",   (ResponseTimestamp - Start - Request!.Value).TotalMilliseconds.ToString("F2"), " > ",
-                    "ResponseHeaderParsed: ", ResponseHeaderParsed?.                      TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "ResponseLogging1: ",     ResponseLogging1?.                          TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "ResponseLogging2: ",     ResponseLogging2?.                          TotalMilliseconds.ToString("F2") ?? "-"
-                );
-
-    }
-
-    #endregion
+    public delegate HTTPRequest.Builder DefaultRequestBuilderDelegate(IHTTPClient HTTPClient);
 
 
     /// <summary>
-    /// An abstract base class for all HTTP clients.
+    /// An abstract HTTP client.
     /// </summary>
-    public abstract class AHTTPClient : IHTTPClient
+    public abstract class AHTTPClient : ATLSClient,
+                                        IHTTPClient,
+                                        IAsyncDisposable
     {
 
         #region Data
 
-        private Socket?           tcpSocket;
-        private MyNetworkStream?  tcpStream;
-        private SslStream?        tlsStream;
-        private Stream?           httpStream;
+        protected static readonly Byte[]                   endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
+        protected const           Byte                     endOfHTTPHeaderDelimiterLength   = 4;
 
+
+        private readonly  SemaphoreSlim  sendRequestSemaphore = new (1, 1);
+
+        /// <summary>
+        /// The internal HTTP stream.
+        /// </summary>
+        protected         Stream?        httpStream;
 
         /// <summary>
         /// The default HTTP user agent.
         /// </summary>
-        public const           String    DefaultHTTPUserAgent            = "GraphDefined HTTP Client";
-
-        /// <summary>
-        /// The default remote TCP port to connect to.
-        /// </summary>
-        public static readonly IPPort    DefaultRemotePort               = IPPort.HTTP;
-
-        /// <summary>
-        /// The default timeout for upstream queries.
-        /// </summary>
-        public static readonly TimeSpan  DefaultRequestTimeout           = TimeSpan.FromSeconds(60);
-
-        /// <summary>
-        /// The default delay between transmission retries.
-        /// </summary>
-        public static readonly TimeSpan  DefaultTransmissionRetryDelay   = TimeSpan.FromSeconds(2);
-
-        /// <summary>
-        /// The default size of the internal buffers.
-        /// </summary>
-        public const           UInt32    DefaultInternalBufferSize       = 65536;
-
-        /// <summary>
-        /// The default number of maximum transmission retries.
-        /// </summary>
-        public const           UInt16    DefaultMaxNumberOfRetries       = 3;
+        public  const     String         DefaultHTTPUserAgent  = "Hermod HTTP Test Client";
 
         #endregion
 
         #region Properties
 
-        /// <summary>
-        /// The remote URL of the HTTP endpoint to connect to.
-        /// </summary>
-        public URL                                                        RemoteURL                     { get; }
+        public Boolean                        IsHTTPConnected                        { get; private set; } = false;
+        public DefaultRequestBuilderDelegate  DefaultRequestBuilder                  { get;}
+        public UInt64                         KeepAliveMessageCount                  { get; private set; } = 0;
 
-        /// <summary>
-        /// The IP Address to connect to.
-        /// </summary>
-        public IIPAddress?                                                RemoteIPAddress               { get; private set; }
+        public Boolean                        IsBusy;
+        public TimeSpan                       MaxSemaphoreWaitTime                   { get; set; }         = TimeSpan.FromSeconds(30);
 
-        /// <summary>
-        /// The HTTP/TCP port to connect to.
-        /// </summary>
-        public IPPort?                                                    RemotePort                    { get; }
+        public String?                        HTTPUserAgent                          { get; }
+        public AcceptTypes?                   Accept                                 { get; }
+        public HTTPContentType?               ContentType                            { get; }
+        public IHTTPAuthentication?           HTTPAuthentication                     { get; set; }
+        public TOTPConfig?                    TOTPConfig                             { get; set; }
+        public ConnectionType?                Connection                             { get;}
 
-        /// <summary>
-        /// The virtual HTTP hostname to connect to.
-        /// </summary>
-        public HTTPHostname?                                              VirtualHostname               { get; }
+        public Boolean?                       ConsumeRequestChunkedTEImmediately     { get;}
+        public Boolean?                       ConsumeResponseChunkedTEImmediately    { get;}
 
-        /// <summary>
-        /// The Remote X.509 certificate.
-        /// </summary>
-        public X509Certificate2?                                          RemoteCertificate             { get; private set; }
+        public HTTPClientLogger?              HTTPLogger                             { get; set; }
 
-        /// <summary>
-        /// The Remote X.509 certificate chain.
-        /// </summary>
-        public X509Chain?                                                 RemoteCertificateChain        { get; private set; }
 
-        /// <summary>
-        /// The remote TLS certificate validator.
-        /// </summary>
-        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; protected internal set; }
 
-        /// <summary>
-        /// A delegate to select a TLS client certificate.
-        /// </summary>
-        public LocalCertificateSelectionHandler?                          LocalCertificateSelector      { get; }
 
-        /// <summary>
-        /// Multiple optional TLS client certificates to use for HTTP authentication (not a chain of certificates!).
-        /// </summary>
-        public IEnumerable<X509Certificate2>                              ClientCertificates            { get; }
 
-        /// <summary>
-        /// The optionalTLS client certificate context to use for HTTP authentication.
-        /// </summary>
-        public SslStreamCertificateContext?                               ClientCertificateContext      { get; }
 
-        /// <summary>
-        /// The optional TLS client certificate chain to use for HTTP authentication.
-        /// </summary>
-        public IEnumerable<X509Certificate2>                              ClientCertificateChain        { get; }
-
-        /// <summary>
-        /// The TLS protocol to use.
-        /// </summary>
-        public SslProtocols                                               TLSProtocols                  { get; }
-
-        /// <summary>
-        /// Prefer IPv4 instead of IPv6.
-        /// </summary>
-        public IPVersionPreference                                        PreferIPv4                    { get; }
-
-        /// <summary>
-        /// An optional HTTP content type.
-        /// </summary>
-        public HTTPContentType?                                           ContentType                   { get; }
-
-        /// <summary>
-        /// The optional HTTP accept header.
-        /// </summary>
-        public AcceptTypes?                                               Accept                        { get; }
-
-        /// <summary>
-        /// The optional HTTP authentication.
-        /// </summary>
-        public IHTTPAuthentication?                                       HTTPAuthentication            { get; set; }
-
-        /// <summary>
-        /// The optional Time-Based One-Time Password (TOTP) generator configuration.
-        /// </summary>
-        public TOTPConfig?                                                TOTPConfig                    { get; set; }
-
-        /// <summary>
-        /// The HTTP user agent identification.
-        /// </summary>
-        public String                                                     HTTPUserAgent                 { get; }
-
-        /// <summary>
-        /// The optional HTTP connection type.
-        /// </summary>
-        public ConnectionType?                                            Connection                    { get; }
-
-        /// <summary>
-        /// The timeout for upstream requests.
-        /// </summary>
-        public TimeSpan                                                   RequestTimeout                { get; set; }
-
-        /// <summary>
-        /// The delay between transmission retries.
-        /// </summary>
-        public TransmissionRetryDelayDelegate                             TransmissionRetryDelay        { get; }
-
-        /// <summary>
-        /// The size of the internal HTTP client buffers.
-        /// </summary>
-        public UInt32                                                     InternalBufferSize            { get; }
-
-        /// <summary>
-        /// The maximum number of retries when communicating with the remote HTTP service.
-        /// </summary>
-        public UInt16                                                     MaxNumberOfRetries            { get; }
-
-        /// <summary>
-        /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
-        /// </summary>
-        public Boolean                                                    UseHTTPPipelining             { get; }
-
-        /// <summary>
-        /// An optional description of this HTTP client.
-        /// </summary>
-        public I18NString                                                 Description                   { get; set; }
-
-        /// <summary>
-        /// Disable any logging.
-        /// </summary>
-        public Boolean                                                    DisableLogging                { get; }
-
-        /// <summary>
-        /// The HTTP client logger.
-        /// </summary>
-        public HTTPClientLogger?                                          HTTPLogger                    { get; set; }
-
-        /// <summary>
-        /// The DNS client defines which DNS servers to use.
-        /// </summary>
-        public IDNSClient                                                 DNSClient                     { get; }
-
-        public UInt64                                                     KeepAliveMessageCount         { get; private set; } = 0;
-
-
-        #region TCP Socket
-
-        #region Available
-
-        /// <summary>
-        /// The amount of data waiting to be read from the network stack.
-        /// </summary>
-        public Int32 Available
-            => tcpSocket?.Available ?? 0;
-
-        #endregion
-
-        #region Connected
-
-        /// <summary>
-        /// Wether the HTTP client is connected to the remote server or not.
-        /// </summary>
-        public Boolean Connected
-
-            => tcpSocket?.Connected ?? false;
-
-        #endregion
-
-        #region SendTimeout
-
-        /// <summary>
-        /// The send timeout value of the connection.
-        /// </summary>
-        public TimeSpan SendTimeout
-        {
-
-            get
-            {
-
-                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout);
-
-                if (result is Int32 sendTimeout && sendTimeout >= 0)
-                    return TimeSpan.FromMilliseconds(sendTimeout);
-
-                return TimeSpan.Zero;
-
-            }
-
-            set
-            {
-                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, (Int32) value.TotalMilliseconds);
-            }
-
-        }
-
-        #endregion
-
-        #region ReceiveTimeout
-
-        /// <summary>
-        /// The receive timeout value of the connection.
-        /// </summary>
-        public TimeSpan ReceiveTimeout
-        {
-
-            get
-            {
-
-                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout);
-
-                if (result is Int32 sendTimeout && sendTimeout >= 0)
-                    return TimeSpan.FromMilliseconds(sendTimeout);
-
-                return TimeSpan.Zero;
-
-            }
-
-            set
-            {
-                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) value.TotalMilliseconds);
-            }
-
-        }
-
-        #endregion
-
-        #region SendBufferSize
-
-        /// <summary>
-        /// The size of the underlying send buffer in bytes.
-        /// </summary>
-        public UInt64 SendBufferSize
-        {
-
-            get
-            {
-
-                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer);
-
-                if (result is Int32 sendBufferSize && sendBufferSize >= 0)
-                    return (UInt64) sendBufferSize;
-
-                return 0;
-
-            }
-
-            set
-            {
-
-                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, (Int32) value);
-
-            }
-
-        }
-
-        #endregion
-
-        #region ReceiveBufferSize
-
-        /// <summary>
-        /// The size of the underlying receive buffer in bytes.
-        /// </summary>
-        public UInt64 ReceiveBufferSize
-        {
-
-            get
-            {
-
-                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer);
-
-                if (result is Int32 receiveBufferSize && receiveBufferSize >= 0)
-                    return (UInt64) receiveBufferSize;
-
-                return 0;
-
-            }
-
-            set
-            {
-                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, (Int32) value);
-            }
-
-        }
-
-        #endregion
-
-        #region LingerState
-        public LingerOption? LingerState
+        public new RemoteTLSServerCertificateValidationHandler<IHTTPClient>? RemoteCertificateValidator
         {
             get
             {
-
-                if (tcpSocket is not null)
-                    return tcpSocket.LingerState;
-
-                return null;
-
-            }
-            set
-            {
-                if (tcpSocket is not null && value is not null)
-                    tcpSocket.LingerState = value;
+                return base.RemoteCertificateValidator is not null
+                           ? (a, b, c, d, e) => base.RemoteCertificateValidator.Invoke(a, b, c, (ATLSClient) d, e)
+                           : null;
             }
         }
 
-        #endregion
+        public HTTPHostname? VirtualHostname => throw new NotImplementedException();
 
-        #region NoDelay
+        public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-        /// <summary>
-        /// Whether to use the Nagle algorithm.
-        /// </summary>
-        public Boolean NoDelay
-        {
-            get
-            {
+        public Boolean UseHTTPPipelining => throw new NotImplementedException();
 
-                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay);
-
-                if (result is Int32 noDelay)
-                    return noDelay != 0;
-
-                return false;
-
-            }
-            set
-            {
-                tcpSocket?.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, value ? 1 : 0);
-            }
-        }
-
-        #endregion
-
-        #region TTL
-
-        /// <summary>
-        /// Setting the "time to live"/hop count of IP data packets.
-        /// </summary>
-        public Byte TTL
-        {
-            get
-            {
-
-                if (tcpSocket is not null)
-                    return (Byte) tcpSocket.Ttl;
-
-                return 0;
-
-            }
-            set
-            {
-
-                if (tcpSocket is not null)
-                    tcpSocket.Ttl = value;
-
-            }
-        }
-
-        #endregion
-
-        #endregion
+        public Boolean Connected => throw new NotImplementedException();
 
         #endregion
 
         #region Events
 
-        public delegate Task OnDataReadDelegate(TimeSpan Time, UInt64 BytesRead, UInt64? BytesExpected = null);
-
-        public event OnDataReadDelegate? OnDataRead;
-
-
-
-        public delegate Task OnChunkDataReadDelegate(TimeSpan Time, UInt64 BlockNumber, Byte[] BlockData, UInt32 BlockLength, UInt64 CurrentTotalBytes);
-
-        public event OnChunkDataReadDelegate? OnChunkDataRead;
-
-
-
-        public delegate Task OnChunkBlockFoundDelegate(TimeSpan                           Time,
-                                                       UInt32                             ChunkNumber,
-                                                       UInt32                             ChunkLength,
-                                                       Dictionary<String, List<String>>?  ChunkExtensions,
-                                                       Byte[]                             ChunkData,
-                                                       UInt64                             TotalBytes);
-
-        public event OnChunkBlockFoundDelegate? OnChunkBlockFound;
+        public event ClientRequestLogHandler?   ClientRequestLogDelegate;
+        public event ClientResponseLogHandler?  ClientResponseLogDelegate;
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>
-        /// Create a new abstract HTTP client.
-        /// </summary>
-        /// <param name="RemoteURL">The remote URL of the HTTP endpoint to connect to.</param>
-        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
-        /// <param name="Description">An optional description of this HTTP client.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCertificates">The TLS client certificates to use for HTTP authentication.</param>
-        /// <param name="TLSProtocols">The TLS protocol to use.</param>
-        /// <param name="ContentType">An optional HTTP content type.</param>
-        /// <param name="Accept">The optional HTTP accept header.</param>
-        /// <param name="HTTPAuthentication">The optional HTTP authentication to use.</param>
-        /// <param name="TOTPConfig">The optional Time-Based One-Time Password (TOTP) generator configuration.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="Connection">The optional HTTP connection type.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries for HTTP request.</param>
-        /// <param name="InternalBufferSize">An optional size of the internal HTTP client buffers.</param>
-        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
-        /// <param name="DisableLogging">Whether to disable all logging.</param>
-        /// <param name="HTTPLogger">An optional delegate to log HTTP(S) requests and responses.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        protected AHTTPClient(URL                                                        RemoteURL,
-                              HTTPHostname?                                              VirtualHostname              = null,
-                              I18NString?                                                Description                  = null,
-                              IPVersionPreference?                                       PreferIPv4                   = null,
-                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                              IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
-                              SslStreamCertificateContext?                               ClientCertificateContext     = null,
-                              IEnumerable<X509Certificate2>?                             ClientCertificateChain       = null,
-                              SslProtocols?                                              TLSProtocols                 = null,
-                              HTTPContentType?                                           ContentType                  = null,
-                              AcceptTypes?                                               Accept                       = null,
-                              IHTTPAuthentication?                                       HTTPAuthentication           = null,
-                              TOTPConfig?                                                TOTPConfig                   = null,
-                              String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
-                              ConnectionType?                                            Connection                   = null,
-                              TimeSpan?                                                  RequestTimeout               = null,
-                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
-                              UInt16?                                                    MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                              UInt32?                                                    InternalBufferSize           = DefaultInternalBufferSize,
-                              Boolean?                                                   UseHTTPPipelining            = null,
-                              Boolean?                                                   DisableLogging               = false,
-                              HTTPClientLogger?                                          HTTPLogger                   = null,
-                              IDNSClient?                                                DNSClient                    = null)
+        #region AHTTPClient(IPAddress, ...)
+
+        protected AHTTPClient(IIPAddress                                                 IPAddress,
+                              IPPort?                                                    TCPPort                               = null,
+                              I18NString?                                                Description                           = null,
+                              String?                                                    HTTPUserAgent                         = null,
+                              AcceptTypes?                                               Accept                                = null,
+                              HTTPContentType?                                           ContentType                           = null,
+                              ConnectionType?                                            Connection                            = null,
+                              DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
+
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler    = null,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                              SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                              SslProtocols?                                              TLSProtocols                          = null,
+                              CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                              X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                              X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                              Boolean?                                                   EnforceTLS                            = null,
+                              IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                              Boolean?                                                   AllowRenegotiation                    = null,
+                              Boolean?                                                   AllowTLSResume                        = null,
+                              TOTPConfig?                                                TOTPConfig                            = null,
+
+                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                              IPVersionPreference?                                       PreferIPv4                            = null,
+                              TimeSpan?                                                  ConnectTimeout                        = null,
+                              TimeSpan?                                                  ReceiveTimeout                        = null,
+                              TimeSpan?                                                  SendTimeout                           = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                              UInt16?                                                    MaxNumberOfRetries                    = null,
+                              UInt32?                                                    BufferSize                            = null,
+
+                              Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                              Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                              Boolean?                                                   DisableLogging                        = null)
+
+            : base(IPAddress,
+                   TCPPort ?? IPPort.HTTP,
+                   Description,
+
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as IHTTPClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   BufferSize,
+
+                   DisableLogging)
+
         {
 
-            this.RemoteURL                   = RemoteURL;
-            this.VirtualHostname             = VirtualHostname;
-            this.Description                 = Description            ?? I18NString.Empty;
-            this.PreferIPv4                  = PreferIPv4             ?? IPVersionPreference.None;
-            this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.LocalCertificateSelector    = LocalCertificateSelector;
-            this.ClientCertificates          = ClientCertificates     ?? [];
-            this.ClientCertificateContext    = ClientCertificateContext;
-            this.ClientCertificateChain      = ClientCertificateChain ?? [];
-            this.TLSProtocols                = TLSProtocols           ?? SslProtocols.Tls13;
-            this.ContentType                 = ContentType;
-            this.Accept                      = Accept;
-            this.HTTPAuthentication          = HTTPAuthentication;
-            this.TOTPConfig                  = TOTPConfig;
-            this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
-            this.Connection                  = Connection;
-            this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
-            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
-            this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
-            this.InternalBufferSize          = InternalBufferSize     ?? DefaultInternalBufferSize;
-            this.UseHTTPPipelining           = UseHTTPPipelining      ?? false;
-            this.DisableLogging              = DisableLogging         ?? false;
-            this.HTTPLogger                  = HTTPLogger;
-            this.DNSClient                   = DNSClient              ?? new DNSClient();
+            this.HTTPUserAgent                        = HTTPUserAgent ?? DefaultHTTPUserAgent;
 
-            this.RemotePort                  = RemoteURL.Port         ?? (RemoteURL.Protocol == URLProtocols.http ||
-                                                                          RemoteURL.Protocol == URLProtocols.ws
-                                                                              ? IPPort.HTTP
-                                                                              : IPPort.HTTPS);
+            this.Accept                               = Accept;
+            this.ContentType                          = ContentType;
+            this.Connection                           = Connection;
 
-            if (this.LocalCertificateSelector is null && this.ClientCertificates.Any())
-                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers)
-                                                    => this.ClientCertificates.First();
+            this.HTTPAuthentication                   = HTTPAuthentication;
+
+            this.ConsumeRequestChunkedTEImmediately   = ConsumeRequestChunkedTEImmediately;
+            this.ConsumeResponseChunkedTEImmediately  = ConsumeResponseChunkedTEImmediately;
+
+            this.DefaultRequestBuilder                = DefaultRequestBuilder
+                                                            ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
+                                                                          Host                                       = TCPPort.HasValue
+                                                                                                                           ? HTTPHostname.Parse(IPAddress.ToString(), TCPPort.Value)
+                                                                                                                           : HTTPHostname.Parse(IPAddress.ToString()),
+                                                                          Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
+                                                                          UserAgent                                  = httpClient.HTTPUserAgent,
+                                                                          ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
+                                                                          Connection                                 = ConnectionType.KeepAlive
+                                                                      });
+
+            this.TOTPConfig                           = TOTPConfig;
+
+        }
+
+        #endregion
+
+        #region AHTTPClient(URL, ...)
+
+        protected AHTTPClient(URL                                                        URL,
+                              I18NString?                                                Description                           = null,
+                              String?                                                    HTTPUserAgent                         = null,
+                              AcceptTypes?                                               Accept                                = null,
+                              HTTPContentType?                                           ContentType                           = null,
+                              ConnectionType?                                            Connection                            = null,
+                              DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
+
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler    = null,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                              SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                              SslProtocols?                                              TLSProtocols                          = null,
+                              CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                              X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                              X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                              IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                              Boolean?                                                   AllowRenegotiation                    = null,
+                              Boolean?                                                   AllowTLSResume                        = null,
+                              TOTPConfig?                                                TOTPConfig                            = null,
+
+                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                              IPVersionPreference?                                       PreferIPv4                            = null,
+                              TimeSpan?                                                  ConnectTimeout                        = null,
+                              TimeSpan?                                                  ReceiveTimeout                        = null,
+                              TimeSpan?                                                  SendTimeout                           = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                              UInt16?                                                    MaxNumberOfRetries                    = null,
+                              UInt32?                                                    BufferSize                            = null,
+
+                              Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                              Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                              Boolean?                                                   DisableLogging                        = null,
+                              IDNSClient?                                                DNSClient                             = null)
+
+            : base(URL,
+                   Description,
+
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as IHTTPClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   URL.Protocol == URLProtocols.https || URL.Protocol == URLProtocols.wss,//  EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   BufferSize,
+
+                   DisableLogging,
+                   DNSClient)
+
+        {
+
+            this.HTTPUserAgent                        = HTTPUserAgent ?? DefaultHTTPUserAgent;
+
+            this.Accept                               = Accept;
+            this.ContentType                          = ContentType;
+            this.Connection                           = Connection;
+
+            this.HTTPAuthentication                   = HTTPAuthentication;
+
+            this.ConsumeRequestChunkedTEImmediately   = ConsumeRequestChunkedTEImmediately;
+            this.ConsumeResponseChunkedTEImmediately  = ConsumeResponseChunkedTEImmediately;
+
+            this.DefaultRequestBuilder                = DefaultRequestBuilder
+                                                            ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
+                                                                                    Host                                       = URL.Hostname,
+                                                                                    Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
+                                                                                    UserAgent                                  = httpClient.HTTPUserAgent,
+                                                                                    ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
+                                                                                    Connection                                 = ConnectionType.KeepAlive
+                                                                                });
+
+            this.TOTPConfig                           = TOTPConfig;
+
+        }
+
+        #endregion
+
+        #region AHTTPClient(DomainName, DNSService, ...)
+
+        protected AHTTPClient(DomainName                                                 DomainName,
+                              SRV_Spec                                                   DNSService,
+                              I18NString?                                                Description                           = null,
+                              String?                                                    HTTPUserAgent                         = null,
+                              AcceptTypes?                                               Accept                                = null,
+                              HTTPContentType?                                           ContentType                           = null,
+                              ConnectionType?                                            Connection                            = null,
+                              DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
+
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler    = null,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
+                              SslStreamCertificateContext?                               ClientCertificateContext              = null,
+                              IEnumerable<X509Certificate2>?                             ClientCertificateChain                = null,
+                              SslProtocols?                                              TLSProtocols                          = null,
+                              CipherSuitesPolicy?                                        CipherSuitesPolicy                    = null,
+                              X509ChainPolicy?                                           CertificateChainPolicy                = null,
+                              X509RevocationMode?                                        CertificateRevocationCheckMode        = null,
+                              Boolean?                                                   EnforceTLS                            = null,
+                              IEnumerable<SslApplicationProtocol>?                       ApplicationProtocols                  = null,
+                              Boolean?                                                   AllowRenegotiation                    = null,
+                              Boolean?                                                   AllowTLSResume                        = null,
+                              TOTPConfig?                                                TOTPConfig                            = null,
+
+                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
+
+                              IPVersionPreference?                                       PreferIPv4                            = null,
+                              TimeSpan?                                                  ConnectTimeout                        = null,
+                              TimeSpan?                                                  ReceiveTimeout                        = null,
+                              TimeSpan?                                                  SendTimeout                           = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
+                              UInt16?                                                    MaxNumberOfRetries                    = null,
+                              UInt32?                                                    BufferSize                            = null,
+
+                              Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
+                              Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
+
+                              Boolean?                                                   DisableLogging                        = null,
+                              IDNSClient?                                                DNSClient                             = null)
+
+            : base(DomainName,
+                   DNSService,
+                   Description,
+
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as IHTTPClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   BufferSize,
+
+                   DisableLogging,
+                   DNSClient)
+
+        {
+
+            this.HTTPUserAgent                        = HTTPUserAgent ?? DefaultHTTPUserAgent;
+
+            this.Accept                               = Accept;
+            this.ContentType                          = ContentType;
+            this.Connection                           = Connection;
+
+            this.HTTPAuthentication                   = HTTPAuthentication;
+
+            this.ConsumeRequestChunkedTEImmediately   = ConsumeRequestChunkedTEImmediately;
+            this.ConsumeResponseChunkedTEImmediately  = ConsumeResponseChunkedTEImmediately;
+
+            this.DefaultRequestBuilder                = DefaultRequestBuilder
+                                                            ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
+                                                                          Host                                       = HTTPHostname.Parse(DomainName.FullName.TrimEnd('.')),
+                                                                          Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
+                                                                          UserAgent                                  = httpClient.HTTPUserAgent,
+                                                                          ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
+                                                                          Connection                                 = ConnectionType.KeepAlive
+                                                                      });
+
+            this.TOTPConfig                           = TOTPConfig;
+
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region ReconnectAsync()
+
+        public override async Task<TCPConnectionResult>
+
+            ReconnectAsync(CancellationToken CancellationToken = default)
+
+        {
+
+            try
+            {
+
+                clientCancellationTokenSource?.Cancel();
+
+                try { httpStream?.Dispose(); } catch { }
+
+                IsHTTPConnected = false;
+
+                return await base.ReconnectAsync(CancellationToken);
+
+            }
+            catch (Exception e)
+            {
+
+                await Log(e.Message);
+
+                if (e.StackTrace is not null)
+                    await Log(e.StackTrace);
+
+            }
+
+            return new TCPConnectionResult(
+                       false,
+                       [ "Reconnection failed!" ]
+                   );
+
+        }
+
+        #endregion
+
+        #region (protected) ConnectAsync(CancellationToken = default)
+
+        protected override async Task<TCPConnectionResult>
+
+            ConnectAsync(CancellationToken CancellationToken = default)
+
+        {
+
+            var response = await base.ConnectAsync(CancellationToken);
+
+            if (!response.Success)
+                return response;
+
+            httpStream = tcpClient?.GetStream();
+
+            if (EnforceTLS ||
+                RemoteURL.Protocol.EnforcesTLS() == true)
+            {
+
+                if (tlsStream is null || tlsStream.IsAuthenticated == false)
+                    return new TCPConnectionResult(false, [ "TLS Authentication failed!" ]);
+
+                httpStream = tlsStream;
+
+            }
+
+            IsHTTPConnected        = true;
+            KeepAliveMessageCount  = 0;
+
+            return response;
+
+        }
+
+        #endregion
+
+
+        #region CreateRequest (HTTPMethod, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
+                                                 HTTPPath                      HTTPPath,
+                                                 QueryString?                  QueryString                          = null,
+                                                 AcceptTypes?                  Accept                               = null,
+                                                 IHTTPAuthentication?          Authentication                       = null,
+                                                 Byte[]?                       Content                              = null,
+                                                 HTTPContentType?              ContentType                          = null,
+                                                 String?                       UserAgent                            = null,
+                                                 ConnectionType?               Connection                           = null,
+                                                 Action<HTTPRequest.Builder>?  RequestBuilder                       = null,
+                                                 Boolean?                      ConsumeRequestChunkedTEImmediately   = null,
+                                                 CancellationToken             CancellationToken                    = default)
+        {
+
+            var requestBuilder  = DefaultRequestBuilder(this);
+            var requestBuilder2 = DefaultRequestBuilder(this);
+
+            //requestBuilder.Host                                       = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
+            //requestBuilder.Host                                       = HTTPHostname.Parse((RemoteURL.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
+            //                                                                        (RemoteURL.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
+            //                                                                             ? ":" + RemoteURL.Port.ToString()
+            //                                                                             : String.Empty));
+            requestBuilder.HTTPMethod                                 = HTTPMethod;
+            requestBuilder.Path                                       = HTTPPath;
+
+            requestBuilder.ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately;
+            requestBuilder.CancellationToken                          = CancellationToken;
+
+            requestBuilder.QueryString                                = QueryString    ??                            requestBuilder2.QueryString   ?? QueryString.Empty;
+            requestBuilder.Accept                                     = Accept         ?? this.Accept             ?? requestBuilder2.Accept        ?? [];
+
+            requestBuilder.Authorization                              = Authentication ?? this.HTTPAuthentication ?? requestBuilder2.Authorization;
+            requestBuilder.UserAgent                                  = UserAgent      ?? this.HTTPUserAgent      ?? requestBuilder2.UserAgent;
+            requestBuilder.Content                                    = Content;
+            requestBuilder.ContentType                                = ContentType    ?? this.ContentType        ?? requestBuilder2.ContentType;
+
+            if (Content is not null && requestBuilder.ContentType is null)
+                requestBuilder.ContentType                            = HTTPContentType.Application.OCTETSTREAM;
+
+            requestBuilder.Connection                                 = Connection     ?? this.Connection         ?? requestBuilder2.Connection;
+            requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig         ?? requestBuilder2.TOTPConfig;
+
+            RequestBuilder?.Invoke(requestBuilder);
+
+            return requestBuilder;
+
+        }
+
+        #endregion
+
+        #region RunRequest    (HTTPMethod, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public Task<HTTPResponse>
+
+            RunRequest(HTTPMethod                    HTTPMethod,
+                       HTTPPath                      HTTPPath,
+                       QueryString?                  QueryString                           = null,
+                       AcceptTypes?                  Accept                                = null,
+                       IHTTPAuthentication?          Authentication                        = null,
+                       Byte[]?                       Content                               = null,
+                       HTTPContentType?              ContentType                           = null,
+                       String?                       UserAgent                             = null,
+                       ConnectionType?               Connection                            = null,
+                       Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+                       Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                       Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+                       EventTracking_Id?             EventTrackingId                       = null,
+                       TimeSpan?                     RequestTimeout                        = null,
+
+                       ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                       ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                       CancellationToken             CancellationToken                     = default)
+
+                => SendRequest(
+                       CreateRequest(
+                           HTTPMethod,
+                           HTTPPath,
+                           QueryString,
+                           Accept,
+                           Authentication,
+                           Content,
+                           ContentType,
+                           UserAgent,
+                           Connection,
+                           RequestBuilder,
+                           ConsumeRequestChunkedTEImmediately,
+                           CancellationToken
+                       ).AsImmutable,
+                       ConsumeResponseChunkedTEImmediately ?? this.ConsumeResponseChunkedTEImmediately,
+                       RequestLogDelegate,
+                       ResponseLogDelegate,
+                       null, // MaxSemaphoreWaitTime
+                       CancellationToken
+                   );
+
+        #endregion
+
+        #region SendRequest   (Request)
+
+        /// <summary>
+        /// Send the given HTTP Request to the server and receive the HTTP Response.
+        /// </summary>
+        /// <param name="Request">The HTTP Request to send.</param>
+        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        public async Task<HTTPResponse>
+
+            SendRequest(HTTPRequest                Request,
+                        Boolean?                   ConsumeResponseChunkedTEImmediately   = null,
+                        ClientRequestLogHandler?   RequestLogDelegate                    = null,
+                        ClientResponseLogHandler?  ResponseLogDelegate                   = null,
+                        TimeSpan?                  MaxSemaphoreWaitTime                  = null,
+                        CancellationToken          CancellationToken                     = default)
+
+        {
+
+            var success = await sendRequestSemaphore.WaitAsync(
+                                    MaxSemaphoreWaitTime ?? this.MaxSemaphoreWaitTime,
+                                    CancellationToken
+                                );
+
+            if (success)
+            {
+                try
+                {
+
+                    var retry = 1;
+
+                    while (retry <= MaxNumberOfRetries)
+                    {
+
+                        if (retry > 1)
+                            DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{retry} of {MaxNumberOfRetries}...");
+
+                        if (!IsConnected || !IsHTTPConnected || IsConnectionClosed)
+                        {
+                            try
+                            {
+
+                                var connectionResult = await ReconnectAsync();
+
+                                if (!connectionResult.Success)
+                                {
+                                    await Log($"Error in SendRequest: {connectionResult.Errors.AggregateWith(", ")}");
+                                    DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)}: {connectionResult.Errors.AggregateWith(", ")}");
+                                    IsHTTPConnected = false;
+                                    retry++;
+                                    continue;
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                await Log($"Error in SendRequest: {ex.Message}");
+                                DebugX.LogException(ex, nameof(AHTTPClient) + "." + nameof(SendRequest));
+                                IsHTTPConnected = false;
+                                retry++;
+                                continue;
+                            }
+                        }
+
+                        if (httpStream is null)
+                        {
+                            await Log("HTTP stream is not available!");
+                            DebugX.Log($"{nameof(AHTTPClient)}.{nameof(SendRequest)} HTTP stream is not available!");
+                            IsHTTPConnected = false;
+                            retry++;
+                            continue;
+                        }
+
+                        var stopwatch = Stopwatch.StartNew();
+
+                        try
+                        {
+
+                            using var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
+                                                                    clientCancellationTokenSource.Token,
+                                                                    CancellationToken
+                                                                );
+
+                            #region Set optional Time-Based One-Time Password (TOTP)
+
+                            if (TOTPConfig is not null)
+                                Request.TOTP = GenerateCurrentTOTP();
+
+                            #endregion
+
+                            #region Log  HTTP Request
+
+                            if (LocalSocket. HasValue) {
+                                Request.LocalSocket   = LocalSocket.Value;
+                                Request.HTTPSource    = new HTTPSource(LocalSocket.Value);
+                            }
+
+                            if (RemoteSocket.HasValue)
+                                Request.RemoteSocket  = RemoteSocket.Value;
+
+                            Request.HTTPClient      ??= this;
+                            KeepAliveMessageCount++;
+
+                            await LogEvent(
+                                      ClientRequestLogDelegate,
+                                      async loggingDelegate => await loggingDelegate.Invoke(
+                                          Timestamp.Now,
+                                          this,
+                                          Request
+                                      ),
+                                      nameof(SendRequest)
+                                  ).ConfigureAwait(false);
+
+                            await LogEvent(
+                                      RequestLogDelegate,
+                                      async loggingDelegate => await loggingDelegate.Invoke(
+                                          Timestamp.Now,
+                                          this,
+                                          Request
+                                      ),
+                                      nameof(SendRequest)
+                                  ).ConfigureAwait(false);
+
+                            #endregion
+
+                            #region Send HTTP Request
+
+                            await httpStream.WriteAsync(
+                                      Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"),
+                                      linkedCancellationToken.Token
+                                  ).ConfigureAwait(false);
+
+                            if (Request.HTTPBody is not null && Request.ContentLength > 0)
+                                await httpStream.WriteAsync(
+                                          Request.HTTPBody,
+                                          linkedCancellationToken.Token
+                                      ).ConfigureAwait(false);
+
+                            await httpStream.FlushAsync(
+                                      linkedCancellationToken.Token
+                                  ).ConfigureAwait(false);
+
+                            #endregion
+
+
+                            IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize * 2);
+                            var buffer = bufferOwner.Memory;
+                            var dataLength = 0;
+
+                            while (IsHTTPConnected)
+                            {
+
+                                #region Read data if no delimiter found yet
+
+                                if (dataLength < endOfHTTPHeaderDelimiterLength ||
+                                    buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
+                                {
+
+                                    if (dataLength > buffer.Length - BufferSize)
+                                        throw new Exception("Header too large.");
+
+                                    var bytesRead = await httpStream.ReadAsync(
+                                                              buffer.Slice(dataLength, (Int32) BufferSize),
+                                                              linkedCancellationToken.Token
+                                                          );
+
+                                    if (bytesRead == 0)
+                                    {
+
+                                        bufferOwner?.Dispose();
+
+                                        await Log("Could not read HTTP response from the HTTP stream!");
+                                        DebugX.Log($"{nameof(AHTTPClient)}.{nameof(SendRequest)} Could not read HTTP response from the HTTP stream!");
+                                        IsHTTPConnected = false;
+                                        retry++;
+                                        continue;
+
+                                    }
+
+                                    dataLength += bytesRead;
+                                    continue;
+
+                                }
+
+                                #endregion
+
+                                #region Search for End-of-HTTPHeader
+
+                                var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
+                                if (endOfHTTPHeaderIndex < 0)
+                                    continue;  // Should not reach here due to the if-condition above.
+
+                                #endregion
+
+                                #region Parse HTTP Response
+
+                                var response = HTTPResponse.Parse(
+                                                   Timestamp.Now,
+                                                   stopwatch.Elapsed,
+                                                   Request,
+                                                   this,
+                                                   LocalSocket!. Value,
+                                                   RemoteSocket!.Value,
+                                                   new HTTPSource(LocalSocket!.Value),
+                                                   Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
+                                                   ConsumeResponseChunkedTEImmediately,
+                                                   CancellationToken: Request.CancellationToken
+                                               );
+
+                                response.HTTPClient ??= this;
+
+                                #endregion
+
+                                #region Shift remaining data
+
+                                var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+                                var remainingLength = dataLength - remainingStart;
+                                buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
+                                dataLength = remainingLength;
+
+                                #endregion
+
+                                #region Setup HTTP body stream
+
+                                Stream? bodyDataStream  = null;
+                                Stream? bodyStream      = null;
+
+                                var prefix = buffer[..dataLength];
+                                if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
+                                {
+
+                                    bodyDataStream = new PrefixStream(
+                                                         prefix,
+                                                         httpStream,
+                                                         LeaveInnerStreamOpen: true
+                                                     );
+
+                                    if (response.IsChunkedTransferEncoding)
+                                    {
+
+                                        var chunkedStream = new ChunkedTransferEncodingStream(
+                                                                bodyDataStream,
+                                                                LeaveInnerStreamOpen: true
+                                                            );
+
+                                        bodyStream = chunkedStream;
+
+                                        if (response.ConsumeChunkedTransferEncodingImmediately == true)
+                                        {
+
+                                            var chunks         = new MemoryStream();
+
+                                            var trailers       = await chunkedStream.ReadAllChunks(
+                                                                           async (timestamp, elapsed, counter, data) => await chunks.WriteAsync(data),
+                                                                           CancellationToken
+                                                                       );
+
+                                            response.HTTPBody  = chunks.ToArray();
+
+                                        }
+
+                                    }
+
+                                    else if (response.ContentLength.HasValue && response.ContentLength.Value > 0)
+                                        bodyStream = new LengthLimitedStream(
+                                                         bodyDataStream,
+                                                         response.ContentLength.Value,
+                                                         LeaveInnerStreamOpen: true
+                                                     );
+
+                                }
+
+                                response.HTTPBodyStream = bodyStream;
+                                //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
+
+                                #endregion
+
+                                if (response.ContentType == HTTPContentType.Text.EVENTSTREAM)
+                                    response.HTTPBodyStream = httpStream;
+
+                                if (response.IsConnectionClose)
+                                {
+
+                                    // An optional close action after the HTTP body stream has been read!
+                                    response.CloseActionAfterBodyWasRead = () => {
+                                        try
+                                        {
+                                            httpStream.Close();
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.LogException(e, $"while closing {RemoteSocket}!");
+                                        }
+                                    };
+
+                                    // Mark connection for closure after response handling!
+                                    IsHTTPConnected = false;
+
+                                }
+
+                                #region Log HTTP Response
+
+                                await LogEvent(
+                                          ClientResponseLogDelegate,
+                                          async loggingDelegate => await loggingDelegate.Invoke(
+                                              Timestamp.Now,
+                                              this,
+                                              Request,
+                                              response
+                                          ),
+                                          nameof(SendRequest)
+                                      ).ConfigureAwait(false);
+
+                                await LogEvent(
+                                          ResponseLogDelegate,
+                                          async loggingDelegate => await loggingDelegate.Invoke(
+                                              Timestamp.Now,
+                                              this,
+                                              Request,
+                                              response
+                                          ),
+                                          nameof(SendRequest)
+                                      ).ConfigureAwait(false);
+
+                                #endregion
+
+                                response.Runtime = stopwatch.Elapsed;
+
+                                return response;
+
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+
+                            // Persistend HTTP connection was probably just closed...
+                            if (retry > 1 || ex.InnerException is not SocketException)
+                            {
+                                await Log($"Error in SendRequest: {ex.Message}");
+                                DebugX.LogException(ex, nameof(AHTTPClient) + "." + nameof(SendRequest));
+                            }
+
+                            IsHTTPConnected = false;
+                            retry++;
+
+                        }
+                        finally
+                        {
+                            stopwatch.Stop();
+                        }
+
+                    }
+
+                    return new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                               Content         = "Maximum HTTP retries reached!".ToUTF8Bytes(),
+                               ContentType     = HTTPContentType.Text.PLAIN,
+                               Runtime         = TimeSpan.Zero
+                           };
+
+                }
+                catch (Exception e)
+                {
+
+                    DebugX.LogT(e.Message);
+
+                    return new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                               Content         = JSONObject.Create(
+                                                     new JProperty("message",     $"Exception in {nameof(AHTTPClient)}.{nameof(SendRequest)}: {e.Message}"),
+                                                     new JProperty("exception",   e.Message),
+                                                     new JProperty("stackTrace",  e.StackTrace)
+                                                 ).ToUTF8Bytes(),
+                               ContentType     = HTTPContentType.Application.JSON_UTF8,
+                               Runtime         = TimeSpan.Zero
+                           };
+
+                }
+                finally
+                {
+
+                    // Was "booked" by a connection pool...
+                    if (IsBusy)
+                    {
+
+                        //while (Interlocked.CompareExchange(ref IsBusy, false, true) == false)
+                        //{
+                        //    DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)}: Waiting for IsBusy to be released...");
+                        //    Thread.Sleep(1);
+                        //}
+
+                        // As not other thread should be writing to IsBusy at the same time!
+                        Interlocked.Exchange(ref IsBusy, false);
+
+                    }
+
+                    sendRequestSemaphore.Release();
+
+                }
+            }
+
+            return new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       Content         = $"Could not acquire semaphore for {nameof(AHTTPClient)}.{nameof(SendRequest)}.".ToUTF8Bytes(),
+                       ContentType     = HTTPContentType.Text.PLAIN,
+                       Runtime         = TimeSpan.Zero
+                   };
+
+        }
+
+        #endregion
+
+        #region SendText      (Text)
+
+        /// <summary>
+        /// Send the given message to the echo server and receive the echoed response.
+        /// </summary>
+        /// <param name="Text">The text message to send and echo.</param>
+        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        public async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
+        {
+
+            if (!IsConnected || tcpClient is null)
+                return (false, "", "Client is not connected.", TimeSpan.Zero);
+
+            try
+            {
+
+                var stopwatch = Stopwatch.StartNew();
+                var stream = tcpClient.GetStream();
+                clientCancellationTokenSource ??= new CancellationTokenSource();
+
+                // Send the data
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), clientCancellationTokenSource.Token).ConfigureAwait(false);
+                await stream.FlushAsync(clientCancellationTokenSource.Token).ConfigureAwait(false);
+
+                using var responseStream = new MemoryStream();
+                var buffer = new Byte[8192];
+                var bytesRead = 0;
+
+                while ((bytesRead = await stream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false)) > 0)
+                {
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientCancellationTokenSource.Token).ConfigureAwait(false);
+                }
+
+                stopwatch.Stop();
+
+                return (true, Encoding.UTF8.GetString(responseStream.ToArray()), null, stopwatch.Elapsed);
+
+            }
+            catch (Exception ex)
+            {
+                await Log($"Error in SendBinary: {ex.Message}");
+                return (false, "", ex.Message, TimeSpan.Zero);
+            }
 
         }
 
@@ -695,1348 +1149,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateRequest (HTTPMethod, HTTPPath, ...)
+        #region (private)   LogEvent     (Logger, LogHandler, ...)
 
-        /// <summary>
-        /// Create a new HTTP request.
-        /// </summary>
-        /// <param name="HTTPMethod">An HTTP method.</param>
-        /// <param name="HTTPPath">An HTTP path.</param>
-        /// <param name="QueryString">An optional HTTP Query String.</param>
-        /// <param name="Accept">An optional HTTP accept header.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        /// <param name="UserAgent">An optional HTTP user agent.</param>
-        /// <param name="Connection">An optional HTTP connection type.</param>
-        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="CancellationToken">An optional cancellation token.</param>
-        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
-                                                 HTTPPath                      HTTPPath,
-                                                 QueryString?                  QueryString         = null,
-                                                 AcceptTypes?                  Accept              = null,
-                                                 IHTTPAuthentication?          Authentication      = null,
-                                                 TOTPConfig?                   TOTPConfig          = null,
-                                                 String?                       UserAgent           = null,
-                                                 ConnectionType?               Connection          = null,
-                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
-                                                 CancellationToken             CancellationToken   = default)
-        {
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
+                                         [CallerMemberName()]                       String  OICPCommand   = "")
 
-            var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-                              HTTPMethod     = HTTPMethod,
-                              Path           = HTTPPath,
-                              QueryString    = QueryString    ?? QueryString.Empty,
-                              Authorization  = Authentication ?? HTTPAuthentication,
-                              TOTPConfig     = TOTPConfig,
-                              UserAgent      = UserAgent      ?? HTTPUserAgent,
-                              Connection     = Connection
-                          };
+            where TDelegate : Delegate
 
-            if (Accept is not null)
-                builder.Accept = Accept;
-
-            RequestBuilder?.Invoke(builder);
-
-            return builder;
-
-        }
-
-        #endregion
-
-        #region CreateRequest (HTTPMethod, HTTPPath,   Content, ContentType, ...)
-
-        /// <summary>
-        /// Create a new HTTP request.
-        /// </summary>
-        /// <param name="HTTPMethod">An HTTP method.</param>
-        /// <param name="HTTPPath">An HTTP path.</param>
-        /// <param name="Content">An HTTP content.</param>
-        /// <param name="ContentType">An HTTP content type.</param>
-        /// <param name="QueryString">An optional HTTP Query String.</param>
-        /// <param name="Accept">An optional HTTP accept header.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        /// <param name="UserAgent">An optional HTTP user agent.</param>
-        /// <param name="Connection">An optional HTTP connection type.</param>
-        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="CancellationToken">An optional cancellation token.</param>
-        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
-                                                 HTTPPath                      HTTPPath,
-                                                 Byte[]                        Content,
-                                                 HTTPContentType               ContentType,
-                                                 QueryString?                  QueryString         = null,
-                                                 AcceptTypes?                  Accept              = null,
-                                                 IHTTPAuthentication?          Authentication      = null,
-                                                 TOTPConfig?                   TOTPConfig          = null,
-                                                 String?                       UserAgent           = null,
-                                                 ConnectionType?               Connection          = null,
-                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
-                                                 CancellationToken             CancellationToken   = default)
-        {
-
-            var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-                              HTTPMethod     = HTTPMethod,
-                              Path           = HTTPPath,
-                              QueryString    = QueryString    ?? QueryString.Empty,
-                              Authorization  = Authentication ?? HTTPAuthentication,
-                              TOTPConfig     = TOTPConfig,
-                              Content        = Content,
-                              ContentType    = ContentType,
-                              UserAgent      = UserAgent      ?? HTTPUserAgent,
-                              Connection     = Connection
-                          };
-
-            if (Accept is not null)
-                builder.Accept = Accept;
-
-            RequestBuilder?.Invoke(builder);
-
-            return builder;
-
-        }
-
-        #endregion
-
-        #region CreateRequest (HTTPMethod, RequestURL, ...)
-
-        /// <summary>
-        /// Create a new HTTP request.
-        /// </summary>
-        /// <param name="HTTPMethod">An HTTP method.</param>
-        /// <param name="RequestURL">The URL of this request.</param>
-        /// <param name="Accept">An optional HTTP accept header.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        /// <param name="UserAgent">An optional HTTP user agent.</param>
-        /// <param name="Connection">An optional HTTP connection type.</param>
-        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="CancellationToken">An optional cancellation token.</param>
-        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
-                                                 URL                           RequestURL,
-                                                 AcceptTypes?                  Accept              = null,
-                                                 IHTTPAuthentication?          Authentication      = null,
-                                                 TOTPConfig?                   TOTPConfig          = null,
-                                                 String?                       UserAgent           = null,
-                                                 ConnectionType?               Connection          = null,
-                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
-                                                 CancellationToken             CancellationToken   = default)
-        {
-
-            var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-                              HTTPMethod     = HTTPMethod,
-                              Path           = RequestURL.Path,
-                              QueryString    = RequestURL.QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication         ?? HTTPAuthentication,
-                              TOTPConfig     = TOTPConfig,
-                              UserAgent      = UserAgent              ?? HTTPUserAgent,
-                              Connection     = Connection
-                          };
-
-            if (Accept is not null)
-                builder.Accept = Accept;
-
-            RequestBuilder?.Invoke(builder);
-
-            return builder;
-
-        }
-
-        #endregion
-
-        #region CreateRequest (HTTPMethod, RequestURL, Content, ContentType, ...)
-
-        /// <summary>
-        /// Create a new HTTP request.
-        /// </summary>
-        /// <param name="HTTPMethod">An HTTP method.</param>
-        /// <param name="RequestURL">The URL of this request.</param>
-        /// <param name="Content">An HTTP content.</param>
-        /// <param name="ContentType">An HTTP content type.</param>
-        /// <param name="Accept">An optional HTTP accept header.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        /// <param name="UserAgent">An optional HTTP user agent.</param>
-        /// <param name="Connection">An optional HTTP connection type.</param>
-        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="CancellationToken">An optional cancellation token.</param>
-        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
-                                                 URL                           RequestURL,
-                                                 Byte[]                        Content,
-                                                 HTTPContentType               ContentType,
-                                                 AcceptTypes?                  Accept              = null,
-                                                 IHTTPAuthentication?          Authentication      = null,
-                                                 TOTPConfig?                   TOTPConfig          = null,
-                                                 String?                       UserAgent           = null,
-                                                 ConnectionType?               Connection          = null,
-                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
-                                                 CancellationToken             CancellationToken   = default)
-        {
-
-            var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-                              HTTPMethod     = HTTPMethod,
-                              Path           = RequestURL.Path,
-                              QueryString    = RequestURL.QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication         ?? HTTPAuthentication,
-                              TOTPConfig     = TOTPConfig,
-                              Content        = Content,
-                              ContentType    = ContentType,
-                              UserAgent      = UserAgent              ?? HTTPUserAgent,
-                              Connection     = Connection
-                          };
-
-            if (Accept is not null)
-                builder.Accept = Accept;
-
-            RequestBuilder?.Invoke(builder);
-
-            return builder;
-
-        }
-
-        #endregion
-
-
-        #region Execute (HTTPRequestDelegate, RequestLogDelegate = null, ResponseLogDelegate = null, Timeout = null, CancellationToken = null)
-
-        /// <summary>
-        /// Execute the given HTTP request and return its result.
-        /// </summary>
-        /// <param name="HTTPRequestDelegate">A delegate for producing a HTTP request for a given HTTP client.</param>
-        /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
-        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
-        /// 
-        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        /// <param name="RequestTimeout">An optional HTTP request timeout.</param>
-        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        /// <param name="CancellationToken">A cancellation token.</param>
-        public Task<HTTPResponse> Execute(Func<AHTTPClient, HTTPRequest>  HTTPRequestDelegate,
-                                          ClientRequestLogHandler?        RequestLogDelegate    = null,
-                                          ClientResponseLogHandler?       ResponseLogDelegate   = null,
-
-                                          EventTracking_Id?               EventTrackingId       = null,
-                                          TimeSpan?                       RequestTimeout        = null,
-                                          Byte                            NumberOfRetry         = 0,
-                                          CancellationToken               CancellationToken     = default)
-
-            => Execute(
-                   HTTPRequestDelegate(this),
-                   RequestLogDelegate,
-                   ResponseLogDelegate,
-
-                   EventTrackingId,
-                   RequestTimeout,
-                   NumberOfRetry,
-                   CancellationToken
+            => LogEvent(
+                   nameof(AHTTPClient),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   OICPCommand
                );
 
         #endregion
 
-        #region Execute (Request,             RequestLogDelegate = null, ResponseLogDelegate = null, Timeout = null, CancellationToken = null)
-
-        /// <summary>
-        /// Execute the given HTTP request and return its result.
-        /// </summary>
-        /// <param name="Request">An HTTP request.</param>
-        /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
-        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
-        /// 
-        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        /// <param name="RequestTimeout">An optional timeout.</param>
-        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        /// <param name="CancellationToken">A cancellation token.</param>
-        public async Task<HTTPResponse> Execute(HTTPRequest                Request,
-                                                ClientRequestLogHandler?   RequestLogDelegate    = null,
-                                                ClientResponseLogHandler?  ResponseLogDelegate   = null,
-
-                                                EventTracking_Id?          EventTrackingId       = null,
-                                                TimeSpan?                  RequestTimeout        = null,
-                                                Byte                       NumberOfRetry         = 0,
-                                                CancellationToken          CancellationToken     = default)
-
-        {
-
-            #region Data
-
-            var timings          = new HTTPClientTimings(Request);
-            var restart          = false;
-            var httpHeaderBytes  = Array.Empty<Byte>();
-            var httpBodyBytes    = Array.Empty<Byte>();
-            var clientClose      = false;
-
-            RequestTimeout     ??= Request.Timeout ?? this.RequestTimeout;
-
-            HTTPResponse? Response = null;
-
-            #endregion
-
-            #region Call the optional HTTP request log delegate
-
-            timings.RequestLogging1 = timings.Elapsed;
-
-            try
-            {
-
-                if (RequestLogDelegate is not null)
-                    await Task.WhenAll(RequestLogDelegate.GetInvocationList().
-                                       Cast<ClientRequestLogHandler>().
-                                       Select(async e => {
-                                           await e((timings.Start + timings.RequestLogging1.Value).DateTime,
-                                                   this,
-                                                   Request);
-                                       })).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                timings.AddError($"{nameof(RequestLogDelegate)}: {e.Message}");
-            }
-
-            timings.RequestLogging2 = timings.Elapsed;
-
-            #endregion
-
-
-            try
-            {
-
-                do
-                {
-
-                    if (timings.RestartCounter > 0)
-                        timings.AddError($"{timings.RestartCounter}. restart!");
-
-                    timings.RestartCounter++;
-                    restart = false;
-
-                    #region Create TCP connection (maybe also some DNS lookups)
-
-                    if (tcpSocket is null)
-                    {
-
-                        System.Net.IPEndPoint? remoteIPEndPoint = null;
-
-                        if (RemoteIPAddress is null)
-                        {
-
-                            #region Localhost
-
-                            if      (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
-                                RemoteIPAddress = IPv4Address.Localhost;
-
-                            else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
-                                RemoteIPAddress = IPv6Address.Localhost;
-
-                            else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-                                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
-
-                            else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-                                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
-
-                            #endregion
-
-                            #region DNS lookup...
-
-                            if (RemoteIPAddress is null)
-                            {
-
-                                var IPv4AddressLookupTask = DNSClient.
-                                                                Query<A>   (DNSServiceName.Parse(RemoteURL.Hostname.Name), true, true, CancellationToken).
-                                                                ContinueWith(query => query.Result.FilteredAnswers.Select(ARecord    => ARecord.   IPv4Address));
-
-                                var IPv6AddressLookupTask = DNSClient.
-                                                                Query<AAAA>(DNSServiceName.Parse(RemoteURL.Hostname.Name), true, true, CancellationToken).
-                                                                ContinueWith(query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address));
-
-                                await Task.WhenAll(IPv4AddressLookupTask,
-                                                   IPv6AddressLookupTask).
-                                           ConfigureAwait(false);
-
-                                if (PreferIPv4 == IPVersionPreference.IPv4)
-                                {
-                                    if (IPv6AddressLookupTask.Result.Any())
-                                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
-
-                                    if (IPv4AddressLookupTask.Result.Any())
-                                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
-                                }
-                                else
-                                {
-                                    if (IPv4AddressLookupTask.Result.Any())
-                                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
-
-                                    if (IPv6AddressLookupTask.Result.Any())
-                                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
-                                }
-
-                                timings.DNSLookup = timings.Elapsed;
-
-                            }
-
-                            #endregion
-
-                        }
-
-                        if (RemoteIPAddress is not null &&
-                            RemotePort      is not null)
-                        {
-
-                            remoteIPEndPoint = new System.Net.IPEndPoint(
-                                                   new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                   RemotePort.Value.ToInt32()
-                                               );
-
-                            if (RemoteIPAddress.IsIPv4)
-                                tcpSocket = new Socket(
-                                                AddressFamily.InterNetwork,
-                                                SocketType.Stream,
-                                                ProtocolType.Tcp
-                                            );
-
-                            if (RemoteIPAddress.IsIPv6)
-                                tcpSocket = new Socket(
-                                                AddressFamily.InterNetworkV6,
-                                                SocketType.Stream,
-                                                ProtocolType.Tcp
-                                            );
-
-                            if (tcpSocket is not null)
-                            {
-                                try
-                                {
-
-                                    NoDelay         = true;
-                                    SendTimeout     = RequestTimeout.Value;
-                                    ReceiveTimeout  = RequestTimeout.Value;
-
-                                    await tcpSocket.ConnectAsync(remoteIPEndPoint);
-
-                                    ReceiveTimeout  = RequestTimeout.Value;
-
-                                }
-                                catch (Exception e)
-                                {
-                                    DebugX.Log($"TCP Connection to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
-                                    timings.AddError($"TCP Connection to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
-                                    tcpSocket  = null;
-                                    restart    = true;
-                                }
-                            }
-
-                            timings.Connected = timings.Elapsed;
-
-                        }
-                        else
-                        {
-                            tcpSocket  = null;
-                            restart    = true;
-                        }
-
-                    }
-
-                    tcpStream = tcpSocket is not null
-                                    ? new MyNetworkStream(tcpSocket, true) {
-                                          ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-                                      }
-                                    : null;
-
-                    #endregion
-
-                    #region Create (Crypto-)Stream
-
-                    if (RemoteURL.Protocol == URLProtocols.https &&
-                        RemoteCertificateValidator is not null    &&
-                        tcpStream                  is not null)
-                    {
-
-                        if (tlsStream is null)
-                        {
-
-                            var remoteCertificateValidatorErrors = new List<String>();
-
-                            tlsStream = new SslStream(
-                                            innerStream:                         tcpStream,
-                                            leaveInnerStreamOpen:                false,
-                                            userCertificateValidationCallback:  (sender,
-                                                                                 certificate,
-                                                                                 chain,
-                                                                                 policyErrors) => {
-
-                                                                                     RemoteCertificate       = certificate is not null
-                                                                                                                   ? new X509Certificate2(certificate)
-                                                                                                                   : null;
-
-                                                                                     RemoteCertificateChain  = chain;
-
-                                                                                     var check               = RemoteCertificateValidator(
-                                                                                                                   sender,
-                                                                                                                   RemoteCertificate,
-                                                                                                                   RemoteCertificateChain,
-                                                                                                                   this,
-                                                                                                                   policyErrors
-                                                                                                               );
-
-                                                                                     if (check.Item2.Any())
-                                                                                         remoteCertificateValidatorErrors.AddRange(check.Item2);
-
-                                                                                     return check.Item1;
-
-                                                                                 },
-
-                                            userCertificateSelectionCallback:    LocalCertificateSelector is null
-                                                                                     ? null
-                                                                                     : (sender,
-                                                                                        targetHost,
-                                                                                        localCertificates,
-                                                                                        remoteCertificate,
-                                                                                        acceptableIssuers) => LocalCertificateSelector(
-                                                                                                                  sender,
-                                                                                                                  targetHost,
-                                                                                                                  localCertificates.
-                                                                                                                      Cast<X509Certificate>().
-                                                                                                                      Select(certificate => new X509Certificate2(certificate)),
-                                                                                                                  remoteCertificate is not null
-                                                                                                                      ? new X509Certificate2(remoteCertificate)
-                                                                                                                      : null,
-                                                                                                                  acceptableIssuers
-                                                                                                              ),
-                                            encryptionPolicy:                    EncryptionPolicy.RequireEncryption
-                                        )
-                            {
-                                ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-                            };
-
-                            httpStream = tlsStream;
-
-                            try
-                            {
-
-                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name ?? "",
-                                                                          clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
-                                                                          enabledSslProtocols:         TLSProtocols,
-                                                                          checkCertificateRevocation:  false);// true);
-
-                                timings.TLSHandshake = timings.Elapsed;
-
-                            }
-                            catch (Exception e)
-                            {
-
-                                DebugX.Log($"TLS AuthenticateAsClientAsync to {RemoteURL} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
-                                timings.AddError($"TLS AuthenticateAsClientAsync to {RemoteURL} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
-
-                                foreach (var error in remoteCertificateValidatorErrors)
-                                    timings.AddError(error);
-
-                                tcpSocket  = null;
-                                restart    = true;
-
-                            }
-
-                        }
-
-                    }
-                    else
-                    {
-                        tlsStream   = null;
-                        httpStream  = tcpStream;
-                    }
-
-                    #endregion
-
-                    if (httpStream is not null)
-                        httpStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-                }
-                while (restart && timings.RestartCounter < MaxNumberOfRetries);
-
-                if (tcpStream is not null)
-                {
-                    Request.LocalSocket   =                IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint)  ?? IPSocket.Zero;
-                    Request.HTTPSource    = new HTTPSource(IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint)  ?? IPSocket.Zero);
-                    Request.RemoteSocket  =                IPSocket.FromIPEndPoint(tcpStream.Socket.RemoteEndPoint) ?? IPSocket.Zero;
-                }
-
-                if (httpStream is not null)
-                {
-
-                    #region Set optional Time-Based One-Time Password (TOTP)
-
-                    if (TOTPConfig is not null)
-                        Request.TOTP = GenerateCurrentTOTP();
-
-                    #endregion
-
-                    #region Send request header
-
-                    timings.RequestHeaderLength = (UInt64) Request.EntireRequestHeader.Length + 4;
-
-                    await httpStream.WriteAsync($"{Request.EntireRequestHeader}\r\n\r\n".ToUTF8Bytes(), CancellationToken);
-
-                    timings.WriteRequestHeader = timings.Elapsed;
-
-                    #endregion
-
-                    #region Send (optional) request body
-
-                    var requestBodyLength = Request.HTTPBody is null
-                                                ? Request.ContentLength.HasValue
-                                                      ? (Int32) Request.ContentLength.Value
-                                                      : 0
-                                                : Request.ContentLength.HasValue
-                                                      ? Math.Min((Int32) Request.ContentLength.Value,
-                                                                 Request.HTTPBody.Length)
-                                                      : Request.HTTPBody.Length;
-
-                    if (Request.HTTPBody is not null && requestBodyLength > 0)
-                    {
-                        timings.RequestBodyLength = (UInt64) requestBodyLength;
-                        await httpStream.WriteAsync(Request.HTTPBody, 0, requestBodyLength, CancellationToken);
-                    }
-
-                    await httpStream.FlushAsync(CancellationToken);
-
-                    timings.WriteRequestBody = timings.Elapsed;
-
-                    #endregion
-
-
-                    #region Read at least the HTTP header
-
-                    var currentDataLength    = 0;
-                    var currentHeaderLength  = 0;
-                    var httpHeaderEndsAt     = 0;
-                    var receiveBuffer        = new Byte[InternalBufferSize];
-
-                    do
-                    {
-
-                        currentDataLength = await httpStream.ReadAsync(receiveBuffer, CancellationToken);
-
-                        if (currentDataLength > 0)
-                        {
-
-                            timings.DataReceived.Add(new Elapsed<UInt64>(timings.Elapsed, (UInt64) currentDataLength));
-
-                            if (currentDataLength > 3 || currentHeaderLength > 3)
-                            {
-
-                                #region Find the \r\n\r\n separator between HTTP header and HTTP body
-
-                                for (var pos = 3; pos < receiveBuffer.Length; pos++)
-                                {
-                                    if (receiveBuffer[pos    ] == 0x0a &&
-                                        receiveBuffer[pos - 1] == 0x0d &&
-                                        receiveBuffer[pos - 2] == 0x0a &&
-                                        receiveBuffer[pos - 3] == 0x0d)
-                                    {
-                                        httpHeaderEndsAt = pos - 3;
-                                        break;
-                                    }
-                                }
-
-                                #endregion
-
-                                #region We found the \r\n\r\n separator...
-
-                                if (httpHeaderEndsAt > 0)
-                                {
-
-                                    Array.Resize(ref httpHeaderBytes, currentHeaderLength + httpHeaderEndsAt);
-                                    Array.Copy(receiveBuffer, 0, httpHeaderBytes, currentHeaderLength, httpHeaderEndsAt);
-                                    currentHeaderLength += httpHeaderEndsAt;
-
-                                    // We already read a bit of the HTTP body!
-                                    if (httpHeaderEndsAt + 4 < currentDataLength)
-                                    {
-                                        Array.Resize(ref httpBodyBytes, currentDataLength - 4 - httpHeaderEndsAt);
-                                        Array.Copy(receiveBuffer, httpHeaderEndsAt + 4, httpBodyBytes, 0, httpBodyBytes.Length);
-                                    }
-
-                                }
-
-                                #endregion
-
-                                #region We did not find the \r\n\r\n separator... try to read next fragment!
-
-                                else
-                                {
-                                    Array.Resize(ref httpHeaderBytes, currentHeaderLength + receiveBuffer.Length);
-                                    Array.Copy(receiveBuffer, 0, httpHeaderBytes, currentHeaderLength, receiveBuffer.Length);
-                                    currentHeaderLength += receiveBuffer.Length;
-                                    //Thread.Sleep(1);
-                                }
-
-                                #endregion
-
-                            }
-
-                        }
-
-                    } while (httpHeaderEndsAt == 0 &&
-                             timings.Elapsed.TotalMilliseconds < httpStream.ReadTimeout);
-
-                    #endregion
-
-                    if (httpHeaderBytes.Any())
-                    {
-
-                        #region Try to parse the HTTP header
-
-                        Response = HTTPResponse.Parse(ResponseHeader:       httpHeaderBytes.ToUTF8String(),
-                                                      ResponseBody:         httpBodyBytes,
-                                                      Request:              Request,
-                                                      SubprotocolResponse:  null,
-                                                      EventTrackingId:      EventTrackingId,
-                                                      //Runtime:              timings.Elapsed, // Will be calculated internally!
-                                                      NumberOfRetries:      NumberOfRetry,
-                                                      CancellationToken:    CancellationToken);
-
-                        timings.AddHTTPResponse(Response);
-
-                        Response.ClientTimings   = timings;
-
-                        timings.ResponseHeaderParsed = timings.Elapsed;
-
-                        #endregion
-
-                        #region A single fixed-length HTTP request -> read '$Content-Length' bytes...
-
-                        //receiveBuffer = new Byte[50 * 1024 * 1024];
-
-                        // Copy only the number of bytes given within
-                        // the HTTP header element 'Content-Length'!
-                        if (Response.ContentLength.HasValue &&
-                            Response.ContentLength.Value > 0 &&
-                            Response.HTTPBody is not null)
-                        {
-
-                            // Test via:
-                            // var aaa = new HTTPClient("www.networksorcery.com").GET("/enp/rfc/rfc1000.txt").ExecuteReturnResult().Result;
-
-                            var stillToRead  = (Int32) Response.ContentLength.Value - Response.HTTPBody.Length;
-                            var isError      = false;
-
-                            do
-                            {
-
-                                while (//TCPStream.DataAvailable &&  <= Does not work as expected!
-                                       stillToRead > 0)
-                                {
-
-                                    try
-                                    {
-
-                                        currentDataLength = await httpStream.ReadAsync(receiveBuffer, 0, Math.Min(receiveBuffer.Length, stillToRead), CancellationToken);
-
-                                        if (currentDataLength > 0)
-                                        {
-
-                                            timings.DataReceived.Add(new Elapsed<UInt64>(timings.Elapsed, (UInt64) currentDataLength));
-
-                                            var oldSize = Response.HTTPBody.Length;
-                                            Response.ResizeBody(oldSize + currentDataLength);
-                                            Array.Copy(receiveBuffer, 0, Response.HTTPBody, oldSize, currentDataLength);
-                                            stillToRead -= currentDataLength;
-
-                                        }
-
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        timings.AddError($"StillToRead: {receiveBuffer.Length}, {stillToRead}: {e.Message}!");
-                                        isError = true;
-                                        break;
-                                    }
-
-                                }
-
-                                OnDataRead?.Invoke(timings.Elapsed,
-                                                   Response.ContentLength.Value - (UInt64) stillToRead,
-                                                   Response.ContentLength.Value);
-
-                                if (stillToRead <= 0)
-                                    break;
-
-                                Thread.Sleep(1);
-
-                            }
-                            while (timings.Elapsed.TotalMilliseconds < httpStream.ReadTimeout && !isError);
-
-                            // Do a friendly close of the TCP connection to avoid TCP RST packets!
-                            clientClose = true;
-
-                        }
-
-                        #endregion
-
-                        //ToDo: HTTP/1.1 100 Continue
-
-                        #region ...or chunked transport...
-
-                        else if (Response.TransferEncoding == "chunked")
-                        {
-
-                            //DebugX.Log("HTTP Client: Chunked Transport detected...");
-
-                            try
-                            {
-
-                                var blockNumber              = 1UL;
-                                var decodedStream            = new MemoryStream();
-                                var currentPosition          = 2U;
-                                var lastPosition             = 0U;
-                                var currentBlockNumber       = 0U;
-                                var chunkedDecodingFinished  = 0;
-                                var trailingHeaders          = new Dictionary<String, String?>();
-
-                                Response.NewContentStream();
-                                var chunkedStream            = new MemoryStream();
-
-                                #region Maybe there is already some data
-
-                                if (httpBodyBytes.Length > 0)
-                                {
-
-                                    chunkedStream.Write(httpBodyBytes, 0, httpBodyBytes.Length);
-
-                                    OnChunkDataRead?.Invoke(timings.Elapsed,
-                                                            blockNumber++,
-                                                            httpBodyBytes,
-                                                            (UInt32) httpBodyBytes.Length,
-                                                            (UInt64) httpBodyBytes.Length);
-
-                                }
-
-                                #endregion
-
-                                var chunkedArray = chunkedStream.ToArray();
-
-                                do
-                                {
-
-                                    #region Read more data from network
-
-                                    // Skip first read when we already have some HTTP body bytes!
-                                    if (chunkedStream.Length == 0 || currentPosition > 2)
-                                    {
-
-                                        currentDataLength = httpStream.Read(receiveBuffer, 0, receiveBuffer.Length);
-
-                                        if (currentDataLength > 0)
-                                        {
-
-                                            chunkedStream.Write(receiveBuffer, 0, currentDataLength);
-
-                                            if (OnChunkDataRead is not null)
-                                            {
-
-                                                var blockData = new Byte[currentDataLength];
-                                                Array.Copy(receiveBuffer, 0, blockData, 0, currentDataLength);
-
-                                                OnChunkDataRead?.Invoke(timings.Elapsed,
-                                                                        blockNumber++,
-                                                                        blockData,
-                                                                        (UInt32) currentDataLength,
-                                                                        (UInt64) chunkedStream.Length);
-
-                                            }
-
-                                        }
-
-                                    }
-
-                                    #endregion
-
-                                    #region Documentation
-
-                                    // [size]n
-                                    // [data]n
-                                    // [size]n
-                                    // [data]n
-                                    // ...
-                                    // 0n
-                                    // n
-                                    // [trailer fields]n
-                                    // n
-
-                                    // HTTP/1.1 200 OK\r\n
-                                    // Server:             Apache/1.3.27\r\n
-                                    // Transfer-Encoding:  chunked\r\n
-                                    // Content-Type:       text/html; charset=iso-8859-1\r\n
-                                    // Trailer:            Cache-Control\r\n
-                                    // \r\n
-                                    // ee1;XXX\r\n
-                                    // [Die ersten 3809 Zeichen der Datei]
-                                    // \r\n
-                                    // ffb;XXX\r\n
-                                    // [Weitere 4091 Zeichen der Datei]
-                                    // \r\n
-                                    // c40;XXX\r\n
-                                    // [Die letzten 3136 Zeichen der Datei]
-                                    // \r\n
-                                    // 0\r\n
-                                    // Cache-Control: no-cache\r\n
-                                    // \r\n
-                                    // [Ende]
-
-                                    // A process for decoding the chunked transfer coding can be represented
-                                    //    in pseudo-code as:
-                                    //
-                                    //      length := 0
-                                    //      read chunk-size, chunk-ext (if any), and CRLF
-                                    //      while (chunk-size > 0) {
-                                    //         read chunk-data and CRLF
-                                    //         append chunk-data to decoded-body
-                                    //         length := length + chunk-size
-                                    //         read chunk-size, chunk-ext (if any), and CRLF
-                                    //      }
-                                    //      read trailer field
-                                    //      while (trailer field is not empty) {
-                                    //         if (trailer field is allowed to be sent in a trailer) {
-                                    //             append trailer field to existing header fields
-                                    //         }
-                                    //         read trailer-field
-                                    //      }
-                                    //      Content-Length := length
-                                    //      Remove "chunked" from Transfer-Encoding
-                                    //      Remove Trailer from existing header fields
-
-                                    #endregion
-
-                                    #region Process chunks
-
-                                    chunkedArray = chunkedStream.ToArray();
-
-                                    while (currentPosition <= chunkedArray.Length)
-                                    {
-
-                                        if (chunkedArray[currentPosition - 1] == '\n' &&
-                                            chunkedArray[currentPosition - 2] == '\r')
-                                        {
-
-                                            #region Read chunks
-
-                                            if (chunkedDecodingFinished == 0)
-                                            {
-
-                                                currentBlockNumber++;
-
-                                                var chunkInfo = ChunkInfos.Parse(chunkedArray,
-                                                                                 lastPosition,
-                                                                                 currentPosition - lastPosition - 2);
-
-                                                #region The final chunk was received
-
-                                                if (chunkInfo.Length == 0)
-                                                {
-
-                                                    OnChunkBlockFound?.Invoke(timings.Elapsed,
-                                                                              currentBlockNumber,
-                                                                              0,
-                                                                              chunkInfo.Extensions,
-                                                                              Array.Empty<Byte>(),
-                                                                              (UInt64) decodedStream.Length);
-
-                                                    Response.ContentStreamToArray(decodedStream);
-
-                                                    chunkedDecodingFinished = 1;
-                                                    lastPosition = currentPosition;
-                                                    currentPosition += 1;
-
-                                                }
-
-                                                #endregion
-
-                                                #region Read a chunk...
-
-                                                //if (chunkedDecodingFinished == 0 &&
-                                                //    currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
-                                                else if (currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
-                                                {
-
-                                                    decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
-
-                                                    if (OnChunkBlockFound is not null)
-                                                    {
-
-                                                        var chunkData = new Byte[chunkInfo.Length];
-                                                        Array.Copy(chunkedArray, currentPosition, chunkData, 0, chunkInfo.Length);
-
-                                                        await OnChunkBlockFound.Invoke(timings.Elapsed,
-                                                                                       currentBlockNumber,
-                                                                                       chunkInfo.Length,
-                                                                                       chunkInfo.Extensions,
-                                                                                       chunkData,
-                                                                                       (UInt64)decodedStream.Length);
-
-                                                    }
-
-                                                    currentPosition += chunkInfo.Length + 2;
-                                                    lastPosition = currentPosition;
-                                                    currentPosition += 1;
-
-                                                }
-
-                                                #endregion
-
-                                                else
-                                                    break;
-
-                                            }
-
-                                            #endregion
-
-                                            else
-                                            {
-
-                                                // 1. Now, continue to read lines from the connection. If you read a line that is just a CRLF, this indicates the end of the HTTP message. If the line contains text, then it's a trailing header.
-                                                // 2. Continue reading trailing headers until you read an empty line.
-
-                                                if (currentPosition - lastPosition == 2)
-                                                {
-                                                    chunkedDecodingFinished = 2;
-                                                    break;
-                                                }
-
-                                                var trailingHeaderBuffer = new Byte[currentPosition - lastPosition - 2];
-                                                Array.Copy(chunkedArray, lastPosition, trailingHeaderBuffer, 0, currentPosition - lastPosition - 2);
-
-                                                var trailingHeader = trailingHeaderBuffer?.ToUTF8String()?.Trim()?.Split(':');
-
-                                                if (trailingHeader is not null &&
-                                                    trailingHeader?.Length > 1 &&
-                                                    trailingHeader[0]?.Trim()?.IsNotNullOrEmpty() == true)
-                                                {
-                                                    trailingHeaders.Add(trailingHeader[0]!,
-                                                                        trailingHeader?.Length > 1 ? trailingHeader[1]?.Trim() : null);
-                                                }
-
-                                                lastPosition     = currentPosition;
-                                                currentPosition += 1;
-
-                                            }
-
-                                        }
-                                        else
-                                            currentPosition++;
-
-                                    }
-
-                                    #endregion
-
-                                    if (timings.Elapsed.TotalMilliseconds > httpStream.ReadTimeout)
-                                        chunkedDecodingFinished = 3;
-
-                                } while (chunkedDecodingFinished < 2);
-
-                                if (chunkedDecodingFinished == 3)
-                                    DebugX.Log("HTTP Client: Chunked decoding timeout!");
-                                //else
-                                //    DebugX.Log("HTTP Client: Chunked decoding finished!");
-
-                                if (Response.TryGetHeaderField("Transfer-Encoding", out var transferEncoding))
-                                {
-                                    if (transferEncoding is "chunked")
-                                        Response.RemoveHeaderField("Transfer-Encoding");
-                                }
-
-                                if (Response.TryGetHeaderField(HTTPHeaderField.Trailer, out var trailerHeaders) &&
-                                    trailerHeaders is not null)
-                                {
-
-                                    // A sender MUST NOT generate a trailer that contains a field necessary for
-                                    //   - message framing (e.g., Transfer-Encoding and Content-Length)
-                                    //   - routing (e.g., Host)
-                                    //   - request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231])
-                                    //   - authentication (e.g., see [RFC7235] and [RFC6265])
-                                    //   - response control data (e.g., see Section 7.1 of [RFC7231])
-                                    //   - or determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
-                                    var forbiddenTrailingHeaders  = new HashSet<String>(StringComparer.OrdinalIgnoreCase) {
-                                        "Transfer-Encoding", "Content-Length",
-                                        "Host",
-                                        "Content-Encoding", "Content-Type", "Content-Range", "Trailer"
-                                    };
-
-                                    var validTrailingHeaders      = new List<String>();
-
-                                    foreach (var trailerHeader in trailerHeaders.Split(',').
-                                                                      Select(element => element?.Trim()).
-                                                                      Where (element => element is not null && element.IsNotNullOrEmpty()))
-                                    {
-                                        if (trailerHeader is not null &&
-                                            !forbiddenTrailingHeaders.Contains(trailerHeader))
-                                        {
-
-                                            validTrailingHeaders.Add(trailerHeader!);
-
-                                            //ToDo: What to do with duplicate header fields?
-                                            Response.SetHeaderField(trailerHeader,
-                                                                    trailingHeaders[trailerHeader] ?? String.Empty);
-
-                                            Response.RawHTTPHeader += "\r\n" +
-                                                                      trailerHeader + ": " +
-                                                                      trailingHeaders[trailerHeader];
-
-                                        }
-                                    }
-
-                                }
-
-                            }
-                            catch (Exception e)
-                            {
-                                timings.AddError($"Chunked decoding failed: {e.Message}");
-                            }
-
-                        }
-
-                        #endregion
-
-                        #region ...or just connect HTTP stream to network stream!
-
-                        else
-                            Response.ContentStreamToArray();
-
-                        #endregion
-
-                        #region Close connection if requested!
-
-                        if (Response.Connection is null                 ||
-                            Response.Connection == ConnectionType.Close ||
-                            clientClose)
-                        {
-
-                            if (tlsStream is not null)
-                            {
-                                tlsStream.Close();
-                                tlsStream = null;
-                            }
-
-                            if (tcpSocket is not null)
-                            {
-                                tcpSocket.Close();
-                                //TCPClient.Dispose();
-                                tcpSocket = null;
-                            }
-
-                            httpStream = null;
-
-                        }
-
-                        #endregion
-
-                    }
-
-                }
-
-            }
-
-            #region HTTP timeout exception handling
-
-            catch (HTTPTimeoutException e)
-            {
-
-                #region Create a HTTP response for the exception...
-
-                Response = new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
-                               ContentType     = HTTPContentType.Application.JSON_UTF8,
-                               Content         = JSONObject.Create(
-                                                     new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
-                                                     new JProperty("message",     e.Message),
-                                                     new JProperty("stackTrace",  e.StackTrace),
-                                                     new JProperty("timings",     timings.ToString())
-                                                 ).ToUTF8Bytes()
-
-                           };
-
-                #endregion
-
-                timings.AddError($"HTTP Timeout Exception: {e.Message}");
-
-                if (tlsStream is not null)
-                {
-                    tlsStream.Close();
-                    tlsStream = null;
-                }
-
-                if (tcpSocket is not null)
-                {
-                    tcpSocket.Close();
-                    //TCPClient.Dispose();
-                    tcpSocket = null;
-                }
-
-            }
-
-            #endregion
-
-            #region Exception handling
-
-            catch (Exception e)
-            {
-
-                #region Create a HTTP response for the exception...
-
-                while (e.InnerException is not null)
-                    e = e.InnerException;
-
-                Response = new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                               ContentType     = HTTPContentType.Application.JSON_UTF8,
-                               Content         = JSONObject.Create(
-                                                     new JProperty("message",     e.Message),
-                                                     new JProperty("stackTrace",  e.StackTrace),
-                                                     new JProperty("timings",     timings.ToString())
-                                                 ).ToUTF8Bytes()
-                           };
-
-                #endregion
-
-                timings.AddError($"Exception: {e.Message}");
-
-                if (tlsStream is not null)
-                {
-                    tlsStream.Close();
-                    tlsStream = null;
-                }
-
-                if (tcpSocket is not null)
-                {
-                    tcpSocket.Close();
-                    //TCPClient.Dispose();
-                    tcpSocket = null;
-                }
-
-            }
-
-            #endregion
-
-
-            if (Response is null)
-            {
-
-                Response = new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                               ContentType     = HTTPContentType.Application.JSON_UTF8,
-                               Content         = JSONObject.Create(
-                                                     new JProperty("message",  "Something wicked happened!"),
-                                                     new JProperty("timings",  timings.ToString())
-                                                 ).ToUTF8Bytes()
-                           };
-
-                timings.AddError("Something wicked happened!");
-
-            }
-
-
-            #region Call the optional HTTP response log delegate
-
-            timings.ResponseLogging1 = timings.Elapsed;
-
-            try
-            {
-
-                if (ResponseLogDelegate is not null)
-                    await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
-                                       Cast<ClientResponseLogHandler>().
-                                       Select(e => e((timings.Start + timings.ResponseLogging1.Value).DateTime,
-                                                     this,
-                                                     Request,
-                                                     Response))).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e2)
-            {
-                DebugX.LogException(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
-            }
-
-            timings.ResponseLogging2 = timings.Elapsed;
-
-            #endregion
-
-            return Response;
-
-        }
-
-        #endregion
-
-
-        #region Close()
-
-        public void Close()
-        {
-
-            try
-            {
-                if (httpStream is not null)
-                {
-                    httpStream.Close();
-                    httpStream.Dispose();
-                }
-            }
-            catch
-            { }
-
-            try
-            {
-                if (tlsStream is not null)
-                {
-                    tlsStream.Close();
-                    tlsStream.Dispose();
-                }
-            }
-            catch
-            { }
-
-            try
-            {
-                if (tcpStream is not null)
-                {
-                    tcpStream.Close();
-                    tcpStream.Dispose();
-                }
-            }
-            catch
-            { }
-
-            try
-            {
-                if (tcpSocket is not null)
-                {
-                    tcpSocket.Close();
-                    //TCPClient.Dispose();
-                }
-            }
-            catch
-            { }
-
-        }
-
-        #endregion
-
-        #region Dispose()
-
-        /// <summary>
-        /// Dispose this object.
-        /// </summary>
-        public virtual void Dispose()
-        {
-            Close();
-        }
-
-        #endregion
 
         #region (override) ToString()
 
         /// <summary>
         /// Returns a text representation of this object.
         /// </summary>
-        public override String ToString()
+        public override string ToString()
 
-            => $"{GetType().Name} {RemoteURL}";
+            => $"{nameof(HTTPClient)}: {LocalSocket} -> {RemoteSocket} (Connected: {IsConnected})";
 
         #endregion
 

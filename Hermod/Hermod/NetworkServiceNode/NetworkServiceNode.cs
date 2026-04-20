@@ -22,7 +22,6 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -71,14 +70,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public HTTPTestServerX             HTTPServer        { get; }
 
         /// <summary>
-        /// The optional default HTTP API.
-        /// </summary>
-        public HTTPAPI?                    DefaultHTTPAPI    { get; }
-
-        /// <summary>
         /// The optional default HTTP APIX.
         /// </summary>
-        public HTTPExtAPIX                 DefaultHTTPAPIX   { get; }
+        public HTTPExtAPI                 DefaultHTTPAPI   { get; }
 
 
         /// <summary>
@@ -109,8 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IEnumerable<CryptoKeyInfo>?  IdentityGroups   = null,
 
                                   HTTPTestServerX?             HTTPTestServer   = null,
-                                  HTTPAPI?                     DefaultHTTPAPI   = null,
-                                  HTTPExtAPIX?                 DefaultHTTPAPIX  = null,
+                                  HTTPExtAPI?                  DefaultHTTPAPIX  = null,
 
                                   IDNSClient?                  DNSClient        = null)
         {
@@ -135,9 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                            DNSClient:       DNSClient
                                                        );
 
-            this.DefaultHTTPAPI   = DefaultHTTPAPI;
-
-            this.DefaultHTTPAPIX  = DefaultHTTPAPIX ?? new HTTPExtAPIX(
+            this.DefaultHTTPAPI  = DefaultHTTPAPIX ?? new HTTPExtAPI(
                                                            this.HTTPServer,
                                                            Description:     this.Description
                                                        );
@@ -172,25 +163,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        private readonly ConcurrentDictionary<String, HTTPAPI> httpAPIs = [];
+        private readonly ConcurrentDictionary<String, HTTPExtAPI> httpAPIs = [];
 
         /// <summary>
         /// An enumeration of all HTTP APIs.
         /// </summary>
-        public IEnumerable<HTTPAPI> HTTPAPIs
+        public IEnumerable<HTTPExtAPI> HTTPAPIs
             => httpAPIs.Values;
 
         #endregion
 
-        public Boolean AddHTTPAPI(String   HTTPAPIId,
-                                  HTTPAPI  HTTPAPI)
+        public Boolean AddHTTPAPI(String       HTTPAPIId,
+                                  HTTPExtAPI  HTTPAPI)
         {
 
             return httpAPIs.TryAdd(HTTPAPIId, HTTPAPI);
 
         }
 
-        public HTTPAPI? GetHTTPAPI(String HTTPAPIId)
+        public HTTPExtAPI? GetHTTPAPI(String HTTPAPIId)
         {
 
             return httpAPIs.TryGet(HTTPAPIId);

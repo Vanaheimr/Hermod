@@ -17,939 +17,183 @@
 
 #region Usings
 
-using System.Globalization;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Collections.Concurrent;
 using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
 
-using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
-#endregion
+#endregion 
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    #region (class) HTTPRequestLogEvent
-
-    /// <summary>
-    /// An async event notifying about HTTP requests.
-    /// </summary>
-    public class HTTPRequestLogEvent
+    public static class HTTPAPIXExtensions
     {
 
-        #region Data
-
-        private readonly List<HTTPRequestLogHandler> subscribers = [];
-
-        #endregion
-
-        #region Constructor(s)
+        #region StartServer(this HTTPAPIX, ...)
 
         /// <summary>
-        /// Create a new async event notifying about incoming HTTP requests.
+        /// Add a method callback for the given URL template.
         /// </summary>
-        public HTTPRequestLogEvent()
-        { }
+        /// <param name="HTTPAPIX">An HTTP API.</param>
+        public static HTTPTestServerX
 
-        #endregion
+            StartServer(this HTTPAPI                                             HTTPAPIX,
+                        HTTPPath                                                  Path,
+                        HTTPHostname?                                             Hostname                     = null,
 
+                        IIPAddress?                                               IPAddress                    = null,
+                        IPPort?                                                   TCPPort                      = null,
+                        String?                                                   HTTPServerName               = null,
+                        UInt32?                                                   BufferSize                   = null,
+                        TimeSpan?                                                 ReceiveTimeout               = null,
+                        TimeSpan?                                                 SendTimeout                  = null,
+                        TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
 
-        #region + / Add
+                        ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                        RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                        LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                        SslProtocols?                                             AllowedTLSProtocols          = null,
+                        Boolean?                                                  ClientCertificateRequired    = null,
+                        Boolean?                                                  CheckCertificateRevocation   = null,
 
-        public static HTTPRequestLogEvent operator + (HTTPRequestLogEvent e, HTTPRequestLogHandler callback)
+                        ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                        UInt32?                                                   MaxClientConnections         = null,
+                        IDNSClient?                                               DNSClient                    = null,
+
+                        Boolean?                                                  DisableMaintenanceTasks      = false,
+                        TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                        TimeSpan?                                                 MaintenanceEvery             = null,
+
+                        Boolean?                                                  DisableWardenTasks           = false,
+                        TimeSpan?                                                 WardenInitialDelay           = null,
+                        TimeSpan?                                                 WardenCheckEvery             = null)
+
         {
 
-            lock (e.subscribers)
-            {
-                e.subscribers.Add(callback);
-            }
-
-            return e;
-
-        }
-
-        public HTTPRequestLogEvent Add(HTTPRequestLogHandler callback)
-        {
-
-            lock (subscribers)
-            {
-                subscribers.Add(callback);
-            }
-
-            return this;
-
-        }
-
-        #endregion
-
-        #region - / Remove
-
-        public static HTTPRequestLogEvent operator - (HTTPRequestLogEvent e, HTTPRequestLogHandler callback)
-        {
-
-            lock (e.subscribers)
-            {
-                e.subscribers.Remove(callback);
-            }
-
-            return e;
-
-        }
-
-        public HTTPRequestLogEvent Remove(HTTPRequestLogHandler callback)
-        {
-
-            lock (subscribers)
-            {
-                subscribers.Remove(callback);
-            }
-
-            return this;
-
-        }
-
-        #endregion
-
-
-        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request)
-
-        /// <summary>
-        /// Call all subscribers sequentially.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
-                                      HTTPAPI         HTTPAPI,
-                                      HTTPRequest     Request)
-        {
-
-            HTTPRequestLogHandler[] invocationList;
-
-            lock (subscribers)
-            {
-                invocationList = [.. subscribers];
-            }
-
-            foreach (var callback in invocationList)
-                await callback(ServerTimestamp, HTTPAPI, Request).ConfigureAwait(false);
-
-        }
-
-        #endregion
-
-        #region WhenAny    (ServerTimestamp, HTTPAPI, Request,               Timeout = null)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for any to complete.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTimeOffset  ServerTimestamp,
-                            HTTPAPI         HTTPAPI,
-                            HTTPRequest     Request,
-                            TimeSpan?       Timeout   = null)
-        {
-
-            List<Task> invocationList;
-
-            lock (subscribers)
-            {
-
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
-
-                if (Timeout.HasValue)
-                    invocationList.Add(Task.Delay(Timeout.Value));
-
-            }
-
-            return Task.WhenAny(invocationList);
-
-        }
-
-        #endregion
-
-        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, VerifyResult, Timeout = null, DefaultResult = null)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for all to complete.
-        /// </summary>
-        /// <typeparam name="T">The type of the results.</typeparam>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
-        /// <param name="Timeout">A timeout for this operation.</param>
-        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
-                                    HTTPAPI             HTTPAPI,
-                                    HTTPRequest         Request,
-                                    Func<T, Boolean>    VerifyResult,
-                                    TimeSpan?           Timeout         = null,
-                                    Func<TimeSpan, T>?  DefaultResult   = null)
-        {
-
-            #region Data
-
-            List<Task>      invocationList;
-            Task?           WorkDone;
-            Task<T>?        Result;
-            DateTimeOffset  StartTime     = Timestamp.Now;
-            Task?           TimeoutTask   = null;
-
-            #endregion
-
-            lock (subscribers)
-            {
-
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
-
-                if (Timeout.HasValue)
-                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
-
-            }
-
-            do
-            {
-
-                try
-                {
-
-                    WorkDone = Task.WhenAny(invocationList);
-
-                    invocationList.Remove(WorkDone);
-
-                    if (WorkDone != TimeoutTask)
-                    {
-
-                        Result = WorkDone as Task<T>;
-
-                        if (Result is not null &&
-                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
-                            VerifyResult(Result.Result))
-                        {
-                            return Result;
-                        }
-
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogT(e.Message);
-                    WorkDone = null;
-                }
-
-            }
-            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
-
-            return Task.FromResult(DefaultResult(Timestamp.Now - StartTime));
-
-        }
-
-        #endregion
-
-        #region WhenAll    (ServerTimestamp, HTTPAPI, Request)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for all to complete.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        public Task WhenAll(DateTimeOffset  ServerTimestamp,
-                            HTTPAPI         HTTPAPI,
-                            HTTPRequest     Request)
-        {
-
-            Task[] invocationList;
-
-            lock (subscribers)
-            {
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
-            }
-
-            return Task.WhenAll(invocationList);
-
-        }
-
-        #endregion
-
-    }
-
-    #endregion
-
-    #region (class) HTTPResponseLogEvent
-
-    /// <summary>
-    /// An async event notifying about HTTP responses.
-    /// </summary>
-    public class HTTPResponseLogEvent
-    {
-
-        #region Data
-
-        private readonly List<HTTPResponseLogHandler> subscribers = [];
-
-        #endregion
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Create a new async event notifying about HTTP responses.
-        /// </summary>
-        public HTTPResponseLogEvent()
-        { }
-
-        #endregion
-
-
-        #region + / Add
-
-        public static HTTPResponseLogEvent operator + (HTTPResponseLogEvent e, HTTPResponseLogHandler callback)
-        {
-
-            lock (e.subscribers)
-            {
-                e.subscribers.Add((timestamp, api, request, response) => callback(timestamp, api, request, response));
-            }
-
-            return e;
-
-        }
-
-        public HTTPResponseLogEvent Add(HTTPResponseLogHandler callback)
-        {
-
-            lock (subscribers)
-            {
-                subscribers.Add(callback);
-            }
-
-            return this;
-
-        }
-
-        #endregion
-
-        #region - / Remove
-
-        public static HTTPResponseLogEvent operator - (HTTPResponseLogEvent e, HTTPResponseLogHandler callback)
-        {
-
-            lock (e.subscribers)
-            {
-                e.subscribers.Remove(callback);
-            }
-
-            return e;
-
-        }
-
-        public HTTPResponseLogEvent Remove(HTTPResponseLogHandler callback)
-        {
-
-            lock (subscribers)
-            {
-                subscribers.Remove(callback);
-            }
-
-            return this;
+            var server = new HTTPTestServerX(
+
+                             IPAddress,
+                             TCPPort,
+                             HTTPServerName,
+                             BufferSize,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             LoggingHandler,
+
+                             ServerCertificateSelector,
+                             ClientCertificateValidator,
+                             LocalCertificateSelector,
+                             AllowedTLSProtocols,
+                             ClientCertificateRequired,
+                             CheckCertificateRevocation,
+
+                             ConnectionIdBuilder,
+                             MaxClientConnections,
+                             DNSClient,
+
+                             DisableMaintenanceTasks,
+                             MaintenanceInitialDelay,
+                             MaintenanceEvery,
+
+                             DisableWardenTasks,
+                             WardenInitialDelay,
+                             WardenCheckEvery,
+
+                             HTTPAPIX
+
+                         );
+
+            return server;
 
         }
 
         #endregion
 
 
-        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request, Response)
+        #region AddJSONEventSource(this HTTPAPI, EventSourceId, ...)
 
-        /// <summary>
-        /// Call all subscribers sequentially.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
-                                      HTTPAPI         HTTPAPI,
-                                      HTTPRequest     Request,
-                                      HTTPResponse    Response)
-        {
+        public static HTTPEventSource<JObject>
 
-            HTTPResponseLogHandler[] invocationList;
+            AddJSONEventSource(this HTTPAPI                          HTTPAPI,
+                               HTTPEventSource_Id                     EventSourceId,
+                               UInt32                                 MaxNumberOfCachedEvents      = 500,
+                               TimeSpan?                              RetryInterval                = null,
+                               Boolean                                EnableLogging                = true,
+                               String?                                LogfilePath                  = null,
+                               String?                                LogfilePrefix                = null,
+                               Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                               String?                                LogfileReloadSearchPattern   = null)
 
-            lock (subscribers)
-            {
-                invocationList = [.. subscribers];
-            }
 
-            foreach (var callback in invocationList)
-                await callback(ServerTimestamp, HTTPAPI, Request, Response).ConfigureAwait(false);
-
-        }
-
-        #endregion
-
-        #region WhenAny    (ServerTimestamp, HTTPAPI, Request, Response,               Timeout = null)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for any to complete.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTimeOffset  ServerTimestamp,
-                            HTTPAPI         HTTPAPI,
-                            HTTPRequest     Request,
-                            HTTPResponse    Response,
-                            TimeSpan?       Timeout = null)
-        {
-
-            List<Task> invocationList;
-
-            lock (subscribers)
-            {
-
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
-
-                if (Timeout.HasValue)
-                    invocationList.Add(Task.Delay(Timeout.Value));
-
-            }
-
-            return Task.WhenAny(invocationList);
-
-        }
+                => HTTPAPI.AddEventSource<JObject>(
+                       EventSourceId:    EventSourceId,
+                       MaxNumberOfCachedEvents:      MaxNumberOfCachedEvents,
+                       RetryInterval:                RetryInterval,
+                       DataSerializer:               json => json.ToString(Newtonsoft.Json.Formatting.None),
+                       DataDeserializer:             null,
+                       EnableLogging:                EnableLogging,
+                       LogfilePath:                  LogfilePath,
+                       LogfilePrefix:                LogfilePrefix,
+                       LogfileName:                  LogfileName,
+                       LogfileReloadSearchPattern:   LogfileReloadSearchPattern
+                   );
 
         #endregion
 
-        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, Response, VerifyResult, Timeout = null, DefaultResult = null)
+        #region MapJSONEventSource(this HTTPAPI, EventSource, ...)
 
-        /// <summary>
-        /// Call all subscribers in parallel and wait for all to complete.
-        /// </summary>
-        /// <typeparam name="T">The type of the results.</typeparam>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
-        /// <param name="Timeout">A timeout for this operation.</param>
-        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
-                                    HTTPAPI             HTTPAPI,
-                                    HTTPRequest         Request,
-                                    HTTPResponse        Response,
-                                    Func<T, Boolean>    VerifyResult,
-                                    TimeSpan?           Timeout         = null,
-                                    Func<TimeSpan, T>?  DefaultResult   = null)
-        {
+        public static Boolean
 
-            #region Data
+            MapJSONEventSource(this HTTPAPI                       HTTPAPI,
+                               IHTTPEventSource                    EventSource,
+                               HTTPPath                            URLTemplate,
 
-            List<Task>      invocationList;
-            Task?           WorkDone;
-            Task<T>?        Result;
-            DateTimeOffset  StartTime     = Timestamp.Now;
-            Task?           TimeoutTask   = null;
+                               Func<HTTPEvent<JObject>, Boolean>?  IncludeFilterAtRuntime     = null,
 
-            #endregion
+                               HTTPHostname?                       Hostname                   = null,
+                               HTTPMethod?                         HttpMethod                 = null,
+                               HTTPContentType?                    HTTPContentType            = null,
 
-            lock (subscribers)
-            {
+                               Boolean                             RequireAuthentication      = true,
+                               HTTPAuthentication?                 URLAuthentication          = null,
+                               HTTPAuthentication?                 HTTPMethodAuthentication   = null,
 
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
+                               HTTPDelegate?                       DefaultErrorHandler        = null)
 
-                if (Timeout.HasValue)
-                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
 
-            }
+                => HTTPAPI.MapEventSource<JObject>(
 
-            do
-            {
+                       EventSource,
+                       URLTemplate,
 
-                try
-                {
+                       IncludeFilterAtRuntime,
 
-                    WorkDone = Task.WhenAny(invocationList);
+                       Hostname,
+                       HttpMethod,
+                       HTTPContentType,
 
-                    invocationList.Remove(WorkDone);
+                       RequireAuthentication,
+                       URLAuthentication,
+                       HTTPMethodAuthentication,
 
-                    if (WorkDone != TimeoutTask)
-                    {
+                       DefaultErrorHandler
 
-                        Result = WorkDone as Task<T>;
-
-                        if (Result is not null &&
-                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
-                            VerifyResult(Result.Result))
-                        {
-                            return Result;
-                        }
-
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogT(e.Message);
-                    WorkDone = null;
-                }
-
-            }
-            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
-
-            return Task.FromResult(DefaultResult(Timestamp.Now - StartTime));
-
-        }
-
-        #endregion
-
-        #region WhenAll    (ServerTimestamp, HTTPAPI, Request, Response)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for all to complete.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        public Task WhenAll(DateTimeOffset  ServerTimestamp,
-                            HTTPAPI         HTTPAPI,
-                            HTTPRequest     Request,
-                            HTTPResponse    Response)
-        {
-
-            Task[] invocationList;
-
-            lock (subscribers)
-            {
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
-            }
-
-            return Task.WhenAll(invocationList);
-
-        }
-
-        #endregion
-
-    }
-
-    #endregion
-
-    #region (class) HTTPErrorLogEvent
-
-    /// <summary>
-    /// An async event notifying about HTTP errors.
-    /// </summary>
-    public class HTTPErrorLogEvent
-    {
-
-        #region Data
-
-        private readonly List<HTTPErrorLogHandler> subscribers = [];
-
-        #endregion
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Create a new async event notifying about HTTP errors.
-        /// </summary>
-        public HTTPErrorLogEvent()
-        { }
-
-        #endregion
-
-
-        #region + / Add
-
-        public static HTTPErrorLogEvent operator + (HTTPErrorLogEvent e, HTTPErrorLogHandler callback)
-        {
-
-            e ??= new HTTPErrorLogEvent();
-
-            lock (e.subscribers)
-            {
-                e.subscribers.Add(callback);
-            }
-
-            return e;
-
-        }
-
-        public HTTPErrorLogEvent Add(HTTPErrorLogHandler callback)
-        {
-
-            lock (subscribers)
-            {
-                subscribers.Add(callback);
-            }
-
-            return this;
-
-        }
-
-        #endregion
-
-        #region - / Remove
-
-        public static HTTPErrorLogEvent operator - (HTTPErrorLogEvent e, HTTPErrorLogHandler callback)
-        {
-
-            lock (e.subscribers)
-            {
-                e.subscribers.Remove(callback);
-            }
-
-            return e;
-
-        }
-
-        public HTTPErrorLogEvent Remove(HTTPErrorLogHandler callback)
-        {
-
-            lock (subscribers)
-            {
-                subscribers.Remove(callback);
-            }
-
-            return this;
-
-        }
-
-        #endregion
-
-
-        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request, Response, Error = null, LastException = null)
-
-        /// <summary>
-        /// Call all subscribers sequentially.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occurred.</param>
-        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
-                                      HTTPAPI         HTTPAPI,
-                                      HTTPRequest     Request,
-                                      HTTPResponse    Response,
-                                      String?         Error           = null,
-                                      Exception?      LastException   = null)
-        {
-
-            HTTPErrorLogHandler[] invocationList;
-
-            lock (subscribers)
-            {
-                invocationList = [.. subscribers];
-            }
-
-            foreach (var callback in invocationList)
-                await callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException).ConfigureAwait(false);
-
-        }
-
-        #endregion
-
-        #region WhenAny    (ServerTimestamp, HTTPAPI, Request, Response, Error = null, LastException = null, Timeout = null)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for any to complete.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occurred.</param>
-        /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTimeOffset  ServerTimestamp,
-                            HTTPAPI         HTTPAPI,
-                            HTTPRequest     Request,
-                            HTTPResponse    Response,
-                            String?         Error           = null,
-                            Exception?      LastException   = null,
-                            TimeSpan?       Timeout         = null)
-        {
-
-            List<Task> invocationList;
-
-            lock (subscribers)
-            {
-
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException))];
-
-                if (Timeout.HasValue)
-                    invocationList.Add(Task.Delay(Timeout.Value));
-
-            }
-
-            return Task.WhenAny(invocationList);
-
-        }
-
-        #endregion
-
-        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, Response, Error, LastException, VerifyResult, Timeout = null, DefaultResult = null)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for all to complete.
-        /// </summary>
-        /// <typeparam name="T">The type of the results.</typeparam>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occurred.</param>
-        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
-        /// <param name="Timeout">A timeout for this operation.</param>
-        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
-                                    HTTPAPI             HTTPAPI,
-                                    HTTPRequest         Request,
-                                    HTTPResponse        Response,
-                                    String              Error,
-                                    Exception           LastException,
-                                    Func<T, Boolean>    VerifyResult,
-                                    TimeSpan?           Timeout         = null,
-                                    Func<TimeSpan, T>?  DefaultResult   = null)
-
-            where T: notnull
-
-        {
-
-            #region Data
-
-            List<Task>      invocationList;
-            Task?           WorkDone;
-            Task<T>?        Result;
-            DateTimeOffset  StartTime     = Timestamp.Now;
-            Task?           TimeoutTask   = null;
-
-            #endregion
-
-            lock (subscribers)
-            {
-
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException))];
-
-                if (Timeout.HasValue)
-                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
-
-            }
-
-            do
-            {
-
-                try
-                {
-
-                    WorkDone = Task.WhenAny(invocationList);
-
-                    invocationList.Remove(WorkDone);
-
-                    if (WorkDone != TimeoutTask)
-                    {
-
-                        Result = WorkDone as Task<T>;
-
-                        if (Result is not null &&
-                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
-                            VerifyResult(Result.Result))
-                        {
-                            return Result;
-                        }
-
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogT(e.Message);
-                    WorkDone = null;
-                }
-
-            }
-            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
-
-            return Task.FromResult((DefaultResult is not null
-                                        ? DefaultResult(Timestamp.Now - StartTime)
-                                        : default)!);
-
-        }
-
-        #endregion
-
-        #region WhenAll    (ServerTimestamp, HTTPAPI, Request, Response, Error = null, LastException = null)
-
-        /// <summary>
-        /// Call all subscribers in parallel and wait for all to complete.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="HTTPAPI">The sending HTTP API.</param>
-        /// <param name="Request">The HTTP request.</param>
-        /// <param name="Response">The HTTP response.</param>
-        /// <param name="Error">An error message.</param>
-        /// <param name="LastException">The last exception occurred.</param>
-        public Task WhenAll(DateTimeOffset  ServerTimestamp,
-                            HTTPAPI         HTTPAPI,
-                            HTTPRequest     Request,
-                            HTTPResponse    Response,
-                            String?         Error           = null,
-                            Exception?      LastException   = null)
-        {
-
-            Task[] invocationList;
-
-            lock (subscribers)
-            {
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException))];
-            }
-
-            return Task.WhenAll(invocationList);
-
-        }
-
-        #endregion
-
-    }
-
-    #endregion
-
-
-    /// <summary>
-    /// Extension methods for the HTTP API.
-    /// </summary>
-    public static class HTTPAPIExtensions
-    {
-
-        #region AddJSONEventSource(this HTTPAPI, EventIdentification, ...)
-
-        ///// <summary>
-        ///// Add a HTTP Sever Sent Events source.
-        ///// </summary>
-        ///// <param name="EventIdentification">The unique identification of the event source.</param>
-        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        ///// <param name="RetryInterval ">The retry interval.</param>
-        ///// <param name="EnableLogging">Enables storing and reloading events </param>
-        ///// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
-        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        //public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
-        //                                                          HTTPEventSource_Id                     EventIdentification,
-        //                                                          UInt32                                 MaxNumberOfCachedEvents      = 500,
-        //                                                          TimeSpan?                              RetryInterval                = null,
-        //                                                          Boolean                                EnableLogging                = true,
-        //                                                          String?                                LogfilePath                  = null,
-        //                                                          String?                                LogfilePrefix                = null,
-        //                                                          Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-        //                                                          String?                                LogfileReloadSearchPattern   = null)
-
-        //    => HTTPAPI.AddEventSource(
-
-        //           EventIdentification,
-        //           MaxNumberOfCachedEvents,
-        //           RetryInterval ,
-        //           data => data.ToString(Newtonsoft.Json.Formatting.None),
-        //           JObject.Parse,
-        //           EnableLogging,
-        //           LogfilePath,
-        //           LogfilePrefix,
-        //           LogfileName,
-        //           LogfileReloadSearchPattern
-
-        //       );
-
-        #endregion
-
-        #region AddJSONEventSource(this HTTPAPI, EventIdentification, URLTemplate, ...)
-
-        ///// <summary>
-        ///// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
-        ///// </summary>
-        ///// <param name="EventIdentification">The unique identification of the event source.</param>
-        ///// <param name="URLTemplate">The URL template.</param>
-        ///// 
-        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        ///// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
-        ///// <param name="RetryInterval ">The retry interval.</param>
-        ///// <param name="EnableLogging">Enables storing and reloading events </param>
-        ///// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
-        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        ///// 
-        ///// <param name="Hostname">The HTTP host.</param>
-        ///// <param name="HTTPMethod">The HTTP method.</param>
-        ///// <param name="HTTPContentType">The HTTP content type.</param>
-        ///// 
-        ///// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        ///// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        ///// 
-        ///// <param name="DefaultErrorHandler">The default error handler.</param>
-        //public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
-        //                                                          HTTPEventSource_Id                     EventIdentification,
-        //                                                          HTTPPath                               URLTemplate,
-
-        //                                                          UInt32                                 MaxNumberOfCachedEvents      = 500,
-        //                                                          Func<HTTPEvent<JObject>, Boolean>?     IncludeFilterAtRuntime       = null,
-        //                                                          TimeSpan?                              RetryInterval                = null,
-        //                                                          Boolean                                EnableLogging                = false,
-        //                                                          String?                                LogfilePath                  = null,
-        //                                                          String?                                LogfilePrefix                = null,
-        //                                                          Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-        //                                                          String?                                LogfileReloadSearchPattern   = null,
-
-        //                                                          HTTPHostname?                          Hostname                     = null,
-        //                                                          HTTPMethod?                            HTTPMethod                   = null,
-        //                                                          HTTPContentType?                       HTTPContentType              = null,
-
-        //                                                          HTTPAuthentication?                    URLAuthentication            = null,
-        //                                                          HTTPAuthentication?                    HTTPMethodAuthentication     = null,
-
-        //                                                          HTTPDelegate?                          DefaultErrorHandler          = null)
-
-        //    => HTTPAPI.AddEventSource(
-
-        //           EventIdentification,
-        //           URLTemplate,
-
-        //           MaxNumberOfCachedEvents,
-        //           IncludeFilterAtRuntime,
-        //           RetryInterval ,
-        //           data => data.ToString(Newtonsoft.Json.Formatting.None),
-        //           JObject.Parse,
-        //           EnableLogging,
-        //           LogfilePath,
-        //           LogfilePrefix,
-        //           LogfileName,
-        //           LogfileReloadSearchPattern,
-
-        //           Hostname,
-        //           HTTPMethod,
-        //           HTTPContentType,
-
-        //           false,
-        //           URLAuthentication,
-        //           HTTPMethodAuthentication,
-
-        //           DefaultErrorHandler
-
-        //       );
+                   );
 
         #endregion
 
@@ -957,387 +201,210 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// An HTTP API.
+    /// A URL node which stores some child nodes and a callback
     /// </summary>
-    public class HTTPAPI : AHTTPAPIBase,
-                           IServerStartStop
+    public class HTTPAPI : AHTTPAPIBase
     {
 
         #region Data
-
-        /// <summary>
-        /// ASCII unit/cell separator
-        /// </summary>
-        protected const Char US = (Char) 0x1F;
-
-        /// <summary>
-        /// ASCII record/row separator
-        /// </summary>
-        protected const Char RS = (Char) 0x1E;
-
-        /// <summary>
-        /// ASCII group separator
-        /// </summary>
-        protected const Char GS = (Char) 0x1D;
-
-
-        /// <summary>
-        /// The default HTTP service name.
-        /// </summary>
-        public  const              String                  DefaultHTTPServiceName          = "GraphDefined HTTP API";
-
-        /// <summary>
-        /// The default HTTP server name.
-        /// </summary>
-        public  const              String                  DefaultHTTPServerName           = DefaultHTTPServiceName;
-
-        /// <summary>
-        /// The default HTTP server port.
-        /// </summary>
-        public  static readonly    IPPort                  DefaultHTTPServerPort           = IPPort.HTTP;
-
-        /// <summary>
-        /// The default HTTP URL path prefix.
-        /// </summary>
-        public  static readonly    HTTPPath                DefaultURLPathPrefix            = HTTPPath.Parse("/");
 
         /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public  const              String                  HTTPRoot                        = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public    const    String                                                      HTTPRoot       = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
-        /// <summary>
-        /// The default maintenance interval.
-        /// </summary>
-        public           readonly  TimeSpan                DefaultMaintenanceEvery         = TimeSpan.FromMinutes(1);
-
-        private          readonly  Timer                   MaintenanceTimer;
-
-        protected static readonly  TimeSpan                SemaphoreSlimTimeout            = TimeSpan.FromSeconds(5);
-
-        protected static readonly  SemaphoreSlim           MaintenanceSemaphore            = new (1, 1);
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// The HTTP server of the API.
-        /// </summary>
-        public HTTPServer               HTTPServer                  { get; }
-
-        /// <summary>
-        /// The HTTP hostname for all URIs within this API.
-        /// </summary>
-        public HTTPHostname             Hostname                    { get; }
-
-        /// <summary>
-        /// The official URL/DNS name of this service, e.g. for sending e-mails.
-        /// </summary>
-        public String                   ExternalDNSName             { get; }
-
-        /// <summary>
-        /// The default request timeout for incoming HTTP requests.
-        /// </summary>
-        public TimeSpan                 DefaultRequestTimeout       { get; set; } = TimeSpan.FromSeconds(60);
-
-        /// <summary>
-        /// The API version hash (git commit hash value).
-        /// </summary>
-        public String?                  APIVersionHash              { get; }
-
-
-        public RunEnvironment           RunEnvironment              { get; }
-
-        /// <summary>
-        /// The unique identification of this HTTP API instance.
-        /// </summary>
-        public System_Id                SystemId                    { get; }
-
-
-        public X509Certificate?         ServerCertificate           { get; }
-
-
-
-        /// <summary>
-        /// Whether the reload of the system is finished.
-        /// </summary>
-        public Boolean                  ReloadFinished              { get; protected set; }
-
-        /// <summary>
-        /// The maintenance interval.
-        /// </summary>
-        public TimeSpan                 MaintenanceEvery            { get; }
-
-        /// <summary>
-        /// Disable all maintenance tasks.
-        /// </summary>
-        public Boolean                  DisableMaintenanceTasks     { get; set; }
-
-
-
-
-
-        public String                   HTTPRequestsPath            { get; }
-
-        public String                   HTTPResponsesPath           { get; }
-
-        public String                   HTTPSSEsPath                { get; }
-
-        public String                   MetricsPath                 { get; }
-
-
-
-
-        /// <summary>
-        /// The HTTP logger.
-        /// </summary>
-        public HTTPServerLogger?        HTTPLogger                  { get; set; }
-
-
-        public Warden.Warden            Warden                      { get; }
-
-        public ECPrivateKeyParameters?  ServiceCheckPrivateKey      { get; set; }
-
-        public ECPublicKeyParameters?   ServiceCheckPublicKey       { get; set; }
-
-
-        public DNSClient                DNSClient
-            => HTTPServer.DNSClient;
+        private   readonly ConcurrentDictionary<String, PathNode>                      routeNodes     = [];
+        protected readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources   = [];
 
         #endregion
 
         #region Events
 
-        /// <summary>
-        /// An event called whenever a HTTP request came in.
-        /// </summary>
-        public HTTPRequestLogEvent   RequestLog    = new();
+        #region (protected internal) RestartRequest  (Request)
 
         /// <summary>
-        /// An event called whenever a HTTP request could successfully be processed.
+        /// An event sent whenever a restart request was received.
         /// </summary>
-        public HTTPResponseLogEvent  ResponseLog   = new();
+        public HTTPRequestLogEvent OnRestartHTTPRequest = new();
 
         /// <summary>
-        /// An event called whenever a HTTP request resulted in an error.
+        /// An event sent whenever a restart request was received.
         /// </summary>
-        public HTTPErrorLogEvent     ErrorLog      = new();
+        /// <param name="Timestamp">The timestamp of the request.</param>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="Request">An HTTP request.</param>
+        protected internal Task RestartRequest(DateTimeOffset     Timestamp,
+                                               HTTPAPI            HTTPAPI,
+                                               HTTPRequest        Request,
+                                               CancellationToken  CancellationToken)
+
+            => OnRestartHTTPRequest.WhenAll(
+                   Timestamp,
+                   HTTPAPI,
+                   Request,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region (protected internal) RestartResponse (Response)
+
+        /// <summary>
+        /// An event sent whenever a restart response was sent.
+        /// </summary>
+        public HTTPResponseLogEvent OnRestartHTTPResponse = new();
+
+        /// <summary>
+        /// An event sent whenever a restart response was sent.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the request.</param>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
+        protected internal Task RestartResponse(DateTimeOffset     Timestamp,
+                                                HTTPAPI            HTTPAPI,
+                                                HTTPRequest        Request,
+                                                HTTPResponse       Response,
+                                                CancellationToken  CancellationToken)
+
+            => OnRestartHTTPResponse.WhenAll(
+                   Timestamp,
+                   HTTPAPI,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
+
+        #endregion
+
+
+        #region (protected internal) StopRequest  (Request)
+
+        /// <summary>
+        /// An event sent whenever a stop request was received.
+        /// </summary>
+        public HTTPRequestLogEvent OnStopHTTPRequest = new();
+
+        /// <summary>
+        /// An event sent whenever a stop request was received.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the request.</param>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="Request">An HTTP request.</param>
+        protected internal Task StopRequest(DateTimeOffset     Timestamp,
+                                            HTTPAPI            HTTPAPI,
+                                            HTTPRequest        Request,
+                                            CancellationToken  CancellationToken)
+
+            => OnStopHTTPRequest.WhenAll(
+                   Timestamp,
+                   HTTPAPI,
+                   Request,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region (protected internal) StopResponse (Response)
+
+        /// <summary>
+        /// An event sent whenever a stop response was sent.
+        /// </summary>
+        public HTTPResponseLogEvent OnStopHTTPResponse = new();
+
+        /// <summary>
+        /// An event sent whenever a stop response was sent.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the request.</param>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
+        protected internal Task StopResponse(DateTimeOffset     Timestamp,
+                                             HTTPAPI            HTTPAPI,
+                                             HTTPRequest        Request,
+                                             HTTPResponse       Response,
+                                             CancellationToken  CancellationToken)
+
+            => OnStopHTTPResponse.WhenAll(
+                   Timestamp,
+                   HTTPAPI,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #endregion
+
+        #region Properties
+
+        public HTTPTestServerX               HTTPServer                  { get; internal set; }
+
+        /// <summary>
+        /// The HTTP hostname of this HTTP API.
+        /// </summary>
+        public IEnumerable<HTTPHostname>     Hostnames                   { get; }
+
+        /// <summary>
+        /// The HTTP root path of this HTTP API.
+        /// </summary>
+        public HTTPPath                      RootPath
+            => URLPathPrefix;
+
+
+        /// <summary>
+        /// The HTTP content types served by this HTTP API.
+        /// </summary>
+        public IEnumerable<HTTPContentType>  HTTPContentTypes            { get; }
+
+        public ServiceCheckKeys?             ServiceCheckKeys            { get; }
+
+        public System_Id?                    SystemId                    { get; set; }
+
+
+        /// <summary>
+        /// Whether the reload of the system is finished.
+        /// </summary>
+        public Boolean                       ReloadFinished              { get; protected set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPAPI(HTTPHostname = null, ...)
+        public HTTPAPI(HTTPTestServerX                HTTPServer,
+                        IEnumerable<HTTPHostname>?     Hostnames                 = null,
+                        HTTPPath?                      RootPath                  = null,
+                        IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
+                        I18NString?                    Description               = null,
 
-        /// <summary>
-        /// Create a new HTTP API.
-        /// </summary>
-        /// <param name="HTTPHostname">The HTTP hostname for all URLs within this API.</param>
-        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="HTTPServerPort">A TCP port to listen on.</param>
-        /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
-        /// <param name="HTTPServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
-        /// 
-        /// <param name="URLPathPrefix">A common prefix for all URLs.</param>
-        /// <param name="HTTPServiceName">The name of the HTTP service.</param>
-        /// <param name="HTMLTemplate">An optional HTML template.</param>
-        /// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
-        /// 
-        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
-        /// 
-        /// <param name="ServerThreadNameCreator">Sets the optional name of the TCP server thread.</param>
-        /// <param name="ServerThreadPrioritySetter">Sets the optional priority of the TCP server thread.</param>
-        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
-        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// 
-        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
-        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance interval.</param>
-        /// 
-        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
-        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden interval.</param>
-        /// 
-        /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
-        /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
-        /// <param name="DisableLogging">Disable any logging.</param>
-        /// <param name="LoggingPath">The path for all logfiles.</param>
-        /// <param name="LogfileName">The name of the logfile.</param>
-        /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        /// <param name="DNSClient">The DNS client of the API.</param>
-        /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPAPI(HTTPHostname?                                              HTTPHostname                 = null,
-                       String?                                                    ExternalDNSName              = null,
-                       IPPort?                                                    HTTPServerPort               = null,
-                       HTTPPath?                                                  BasePath                     = null,
-                       String?                                                    HTTPServerName               = DefaultHTTPServerName,
+                        HTTPPath?                      BasePath                  = null,  // For URL prefixes in HTML!
 
-                       HTTPPath?                                                  URLPathPrefix                = null,
-                       String?                                                    HTTPServiceName              = DefaultHTTPServiceName,
-                       String?                                                    HTMLTemplate                 = null,
-                       JObject?                                                   APIVersionHashes             = null,
+                        String?                        ExternalDNSName           = null,
+                        String?                        HTTPServerName            = null,
+                        String?                        HTTPServiceName           = null,
+                        String?                        APIVersionHash            = null,
+                        JObject?                       APIVersionHashes          = null,
 
-                       ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
-                       RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator   = null,
-                       LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
-                       SslProtocols?                                              AllowedTLSProtocols          = null,
-                       Boolean?                                                   ClientCertificateRequired    = null,
-                       Boolean?                                                   CheckCertificateRevocation   = null,
+                        ServiceCheckKeys?              ServiceCheckKeys          = null,
 
-                       ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator      = null,
-                       ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter   = null,
-                       Boolean?                                                   ServerThreadIsBackground     = null,
-                       ConnectionIdBuilder?                                       ConnectionIdBuilder          = null,
-                       TimeSpan?                                                  ConnectionTimeout            = null,
-                       UInt32?                                                    MaxClientConnections         = null,
+                        Boolean?                       IsDevelopment             = null,
+                        IEnumerable<String>?           DevelopmentServers        = null,
+                        Boolean?                       DisableLogging            = null,
+                        String?                        LoggingPath               = null,
+                        String?                        LoggingContext            = null,
+                        String?                        LogfileName               = null,
+                        LogfileCreatorDelegate?        LogfileCreator            = null)
 
-                       Boolean?                                                   DisableMaintenanceTasks      = null,
-                       TimeSpan?                                                  MaintenanceInitialDelay      = null,
-                       TimeSpan?                                                  MaintenanceEvery             = null,
+            : base(Description ?? I18NString.Create(nameof(HTTPAPI)),
+                   RootPath,
+                   BasePath,
 
-                       Boolean?                                                   DisableWardenTasks           = null,
-                       TimeSpan?                                                  WardenInitialDelay           = null,
-                       TimeSpan?                                                  WardenCheckEvery             = null,
-
-                       Boolean?                                                   IsDevelopment                = null,
-                       IEnumerable<String>?                                       DevelopmentServers           = null,
-                       Boolean?                                                   DisableLogging               = null,
-                       String?                                                    LoggingPath                  = null,
-                       String?                                                    LogfileName                  = null,
-                       LogfileCreatorDelegate?                                    LogfileCreator               = null,
-                       DNSClient?                                                 DNSClient                    = null,
-                       String?                                                    Description                  = null,
-                       Boolean                                                    AutoStart                    = false)
-
-            : this(new HTTPServer(
-                       HTTPServerPort ?? DefaultHTTPServerPort,
-                       HTTPServerName ?? DefaultHTTPServerName,
-                       HTTPServiceName,
-                       Description,
-
-                       ServerCertificateSelector,
-                       ClientCertificateValidator,
-                       LocalCertificateSelector,
-                       AllowedTLSProtocols,
-                       ClientCertificateRequired,
-                       CheckCertificateRevocation,
-
-                       ServerThreadNameCreator,
-                       ServerThreadPrioritySetter,
-                       ServerThreadIsBackground,
-                       ConnectionIdBuilder,
-                       ConnectionTimeout,
-                       MaxClientConnections,
-
-                       DNSClient,
-                       AutoStart: false
-                   ),
-
-                   HTTPHostname,
                    ExternalDNSName,
-                   HTTPServiceName ?? DefaultHTTPServiceName,
-
-                   BasePath,
-                   URLPathPrefix   ?? DefaultURLPathPrefix,
-                   HTMLTemplate,
+                   HTTPServerName,
+                   HTTPServiceName,
+                   APIVersionHash ?? APIVersionHashes?[nameof(HTTPAPI)]?.Value<String>()?.Trim(),
                    APIVersionHashes,
-
-                   DisableMaintenanceTasks,
-                   MaintenanceInitialDelay,
-                   MaintenanceEvery,
-
-                   DisableWardenTasks,
-                   WardenInitialDelay,
-                   WardenCheckEvery,
-
-                   IsDevelopment,
-                   DevelopmentServers,
-                   DisableLogging,
-                   LoggingPath,
-                   LogfileName,
-                   LogfileCreator,
-                   AutoStart: false)
-
-        {
-
-            if (AutoStart)
-                HTTPServer.Start(EventTracking_Id.New).Wait();
-
-            //if (AutoStart && HTTPServer.Start())
-            //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
-
-        }
-
-        #endregion
-
-        #region HTTPAPI(HTTPServer, HTTPHostname = null, ...)
-
-        /// <summary>
-        /// Create a new HTTP API.
-        /// </summary>
-        /// <param name="HTTPServer">An HTTP server.</param>
-        /// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
-        /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
-        /// 
-        /// <param name="URLPathPrefix">An optional URL path prefix, used when defining URL templates.</param>
-        /// <param name="HTMLTemplate">An optional HTML template.</param>
-        /// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
-        /// 
-        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
-        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance interval.</param>
-        /// 
-        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
-        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden interval.</param>
-        /// 
-        /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
-        /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
-        /// <param name="DisableLogging">Disable the log file.</param>
-        /// <param name="LoggingPath">The path for all logfiles.</param>
-        /// <param name="LogfileName">The name of the logfile.</param>
-        /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        /// 
-        /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPAPI(HTTPServer               HTTPServer,
-                       HTTPHostname?            HTTPHostname              = null,
-                       String?                  ExternalDNSName           = "",
-                       String?                  HTTPServiceName           = DefaultHTTPServiceName,
-                       HTTPPath?                BasePath                  = null,
-
-                       HTTPPath?                URLPathPrefix             = null,
-                       String?                  HTMLTemplate              = null,
-                       JObject?                 APIVersionHashes          = null,
-
-                       Boolean?                 DisableMaintenanceTasks   = false,
-                       TimeSpan?                MaintenanceInitialDelay   = null,
-                       TimeSpan?                MaintenanceEvery          = null,
-
-                       Boolean?                 DisableWardenTasks        = false,
-                       TimeSpan?                WardenInitialDelay        = null,
-                       TimeSpan?                WardenCheckEvery          = null,
-
-                       Boolean?                 IsDevelopment             = false,
-                       IEnumerable<String>?     DevelopmentServers        = null,
-                       Boolean?                 DisableLogging            = false,
-                       String?                  LoggingPath               = null,
-                       String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
-                       LogfileCreatorDelegate?  LogfileCreator            = null,
-
-                       Boolean                  AutoStart                 = false)
-
-            : base(HTTPServiceName ?? DefaultHTTPServiceName,
-                   URLPathPrefix,
-                   BasePath,
-                   HTMLTemplate,
 
                    IsDevelopment,
                    DevelopmentServers,
@@ -1348,430 +415,1096 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPServer               = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
-            this.Hostname                 = HTTPHostname    ?? HTTP.HTTPHostname.Any;
-            this.ExternalDNSName          = ExternalDNSName ?? "";
+            this.HTTPServer        = HTTPServer;
+            this.Hostnames         = Hostnames?.       Distinct() ?? [];
+            this.HTTPContentTypes  = HTTPContentTypes?.Distinct() ?? [];
 
-            this.APIVersionHash           = APIVersionHashes?[nameof(HTTPAPI)]?.Value<String>()?.Trim();
+            this.ServiceCheckKeys  = ServiceCheckKeys;
 
-            this.HTTPRequestsPath         = this.LoggingPath + "HTTPRequests"   + Path.DirectorySeparatorChar;
-            this.HTTPResponsesPath        = this.LoggingPath + "HTTPResponses"  + Path.DirectorySeparatorChar;
-            this.HTTPSSEsPath             = this.LoggingPath + "HTTPSSEs"       + Path.DirectorySeparatorChar;
-            this.MetricsPath              = this.LoggingPath + "Metrics"        + Path.DirectorySeparatorChar;
+            RegisterURLTemplates();
 
-            this.RunEnvironment           = Application.RunEnvironment;
-            this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
+            // Register HTTP API within the HTTP server!
+            HTTPServer?.AddHTTPAPI(
+                this.RootPath,
+                HTTPHostname.Any,
+                (server, path) => this
+            );
 
-            if (this.DisableLogging == false)
+        }
+
+
+        //internal HTTPAPIX(IEnumerable<HTTPHostname>?     Hostnames                 = null,
+        //                  HTTPPath?                      RootPath                  = null,
+        //                  IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
+        //                  I18NString?                    Description               = null,
+        //                  HTTPTestServerX?               HTTPServer                = null,
+
+        //                  String?                        ExternalDNSName           = null,
+        //                  HTTPPath?                      BasePath                  = null,
+
+        //                  String?                        HTTPServerName            = null,
+        //                  String?                        HTTPServiceName           = null,
+        //                  String?                        APIVersionHash            = null,
+        //                  JObject?                       APIVersionHashes          = null,
+
+        //                  Boolean?                       DisableMaintenanceTasks   = false,
+        //                  TimeSpan?                      MaintenanceInitialDelay   = null,
+        //                  TimeSpan?                      MaintenanceEvery          = null,
+
+        //                  Boolean?                       DisableWardenTasks        = false,
+        //                  TimeSpan?                      WardenInitialDelay        = null,
+        //                  TimeSpan?                      WardenCheckEvery          = null,
+
+        //                  Boolean?                       IsDevelopment             = null,
+        //                  IEnumerable<String>?           DevelopmentServers        = null,
+        //                  Boolean?                       DisableLogging            = false,
+        //                  String?                        LoggingPath               = DefaultHTTPAPI_LoggingPath,
+        //                  String?                        LoggingContext            = DefaultLoggingContext,
+        //                  String?                        LogfileName               = DefaultHTTPAPI_LogfileName,
+        //                  LogfileCreatorDelegate?        LogfileCreator            = null)
+
+        //    : base(HTTPServerName,
+        //           HTTPServiceName,
+        //           APIVersionHash ?? APIVersionHashes?[nameof(HTTPAPIX)]?.Value<String>()?.Trim(),
+        //           APIVersionHashes,
+
+        //           IsDevelopment,
+        //           DevelopmentServers,
+        //           DisableLogging,
+        //           LoggingPath,
+        //           LogfileName,
+        //           LogfileCreator)
+
+        //{
+
+        //    this.Hostnames           = Hostnames?.       Distinct() ?? [];
+        //    this.RootPath            = RootPath                     ?? HTTPPath.Root;
+        //    this.HTTPContentTypes    = HTTPContentTypes?.Distinct() ?? [];
+        //    this.Description         = Description                  ?? I18NString.Empty;
+        //    this.HTTPServer          = HTTPServer;
+
+        //    this.ExternalDNSName     = ExternalDNSName;
+        //    this.BasePath            = BasePath;
+
+        //    // Register HTTP API within the HTTP server!
+        //    HTTPServer?.AddHTTPAPI(
+        //        this.RootPath,
+        //        HTTPHostname.Any,
+        //        (server, path) => this
+        //    );
+
+        //    // Setup Maintenance Task
+        //    this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
+        //    this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
+        //    this.MaintenanceTimer         = new Timer(
+        //                                        DoMaintenanceSync,
+        //                                        this,
+        //                                        MaintenanceInitialDelay ?? this.MaintenanceEvery,
+        //                                        this.MaintenanceEvery
+        //                                    );
+
+        //    // Setup Warden
+        //    this.Warden = new Warden.Warden(
+        //                      WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+        //                      WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+        //                      this.HTTPServer.DNSClient
+        //                  );
+
+        //}
+
+        #endregion
+
+
+        #region AddHandler(HTTPMethod, URLTemplate, HTTPDelegate, ...
+
+        public void AddHandler(HTTPMethod                                 HTTPMethod,
+                               HTTPPath                                   URLTemplate,
+                               HTTPDelegate                               HTTPDelegate,
+
+                               HTTPContentType?                           HTTPContentType             = null,
+
+                               HTTPAuthentication?                        URLAuthentication           = null,
+                               HTTPAuthentication?                        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?                        ContentTypeAuthentication   = null,
+
+                               OnHTTPRequestLogDelegate2?                 HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?                HTTPResponseLogger          = null,
+
+                               HTTPDelegate?                              DefaultErrorHandler         = null,
+                               Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
+                               URLReplacement?                            AllowReplacement            = null)
+
+            => AddHandler(
+                   URLTemplate,
+                   HTTPDelegate,
+
+                   HTTPMethod,
+                   HTTPContentType,
+
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+
+                   DefaultErrorHandler,
+                   ErrorHandlers,
+                   AllowReplacement
+               );
+
+        #endregion
+
+        #region AddHandler(HTTPMethod, URLTemplate, HTTPContentType, HTTPDelegate, ...
+
+        public void AddHandler(HTTPMethod                                 HTTPMethod,
+                               HTTPPath                                   URLTemplate,
+                               HTTPContentType                            HTTPContentType,
+                               HTTPDelegate                               HTTPDelegate,
+
+                               HTTPAuthentication?                        URLAuthentication           = null,
+                               HTTPAuthentication?                        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?                        ContentTypeAuthentication   = null,
+
+                               OnHTTPRequestLogDelegate2?                  HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?                 HTTPResponseLogger          = null,
+
+                               HTTPDelegate?                              DefaultErrorHandler         = null,
+                               Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
+                               URLReplacement?                            AllowReplacement            = null)
+
+            => AddHandler(
+                   URLTemplate,
+                   HTTPDelegate,
+
+                   HTTPMethod,
+                   HTTPContentType,
+
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+
+                   DefaultErrorHandler,
+                   ErrorHandlers,
+                   AllowReplacement
+               );
+
+        #endregion
+
+        #region AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
+
+        /// <summary>
+        /// Add a method callback for the given URL template.
+        /// </summary>
+        /// <param name="HTTPDelegate">A delegate called for each incoming HTTP request.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        public void AddHandler(HTTPPath                                   URLTemplate,
+                               HTTPDelegate                               HTTPDelegate,
+
+                               HTTPMethod?                                HTTPMethod                  = null,
+                               HTTPContentType?                           HTTPContentType             = null,
+
+                               HTTPAuthentication?                        URLAuthentication           = null,
+                               HTTPAuthentication?                        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?                        ContentTypeAuthentication   = null,
+
+                               OnHTTPRequestLogDelegate2?                  HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?                 HTTPResponseLogger          = null,
+
+                               HTTPDelegate?                              DefaultErrorHandler         = null,
+                               Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
+                               URLReplacement?                            AllowReplacement            = null)
+
+        {
+
+            #region Initial Checks
+
+            if (HTTPDelegate is null)
+                throw new ArgumentNullException(nameof(HTTPDelegate), "The given parameter must not be null!");
+
+            if (HTTPMethod is null && HTTPContentType is not null)
+                throw new ArgumentException("If HTTPMethod is null the HTTPContentType must also be null!");
+
+            #endregion
+
+            var requestHandle = new HTTPRequestHandlersX(
+                                    this,
+                                    HTTPDelegate,
+                                    HTTPRequestLogger,
+                                    HTTPResponseLogger,
+                                    DefaultErrorHandler,
+                                    ErrorHandlers
+                                );
+
+            var segments      = URLTemplate.ToString().Trim('/').Split('/');
+
+            if (segments[0] == "")
+                segments[0] = "/";
+
+            var routeNode1    = routeNodes.GetOrAdd(
+                                    segments[0],
+                                    segment => {
+
+                                        if (segment.StartsWith('{') && segment.EndsWith('}'))
+                                        {
+
+                                            var paramName = segment[1..^1];
+
+                                            if (segment.EndsWith("..}") && ("/" + segment) == URLTemplate.ToString())
+                                                return PathNode.ForCatchRestOfPath(
+                                                           "/" + segment,
+                                                           paramName[..^2],
+                                                           AllowReplacement: AllowReplacement
+                                                       );
+
+                                            return PathNode.ForParameter(
+                                                       "/" + segment,
+                                                       paramName,
+                                                       AllowReplacement: AllowReplacement
+                                                   );
+
+                                        }
+
+                                        return PathNode.FromPath(
+                                                   "/" + segments[0],
+                                                   HTTPPath.Root.ToString()
+                                               );
+
+                                    }
+                                );
+
+            foreach (var segment in segments.Skip(1))
             {
-                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.LoggingPath));
-                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.HTTPRequestsPath));
-                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.HTTPResponsesPath));
-                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.HTTPSSEsPath));
-                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.MetricsPath));
+
+                var routeNode2 = routeNode1.Children.GetOrAdd(
+                                     segment,
+                                     segment => {
+
+                                         if (segment.StartsWith('{') && segment.EndsWith('}'))
+                                         {
+
+                                             var paramName = segment[1..^1];
+
+                                             if (segment.EndsWith("..}") && $"{routeNode1.FullPath}/{segment}" == URLTemplate.ToString())
+                                                 return PathNode.ForCatchRestOfPath(
+                                                            routeNode1.FullPath + "/" + segment,
+                                                            paramName[..^2],
+                                                            AllowReplacement: AllowReplacement
+                                                        );
+
+                                             //if ((routeNode1.FullPath + "/" + segment) == URLTemplate.ToString())
+                                             //{
+                                             //    return PathNode.ForCatchRestOfPath(
+                                             //               routeNode1.FullPath + "/" + segment,
+                                             //               paramName,
+                                             //               AllowReplacement: AllowReplacement
+                                             //           );
+                                             //}
+
+                                             return PathNode.ForParameter(
+                                                        routeNode1.FullPath + "/" + segment,
+                                                        paramName,
+                                                        AllowReplacement: AllowReplacement
+                                                    );
+
+                                         }
+
+                                         return PathNode.FromPath(
+                                                    routeNode1.FullPath + "/" + segment,
+                                                    "/" + segment
+                                                );
+
+                                     }
+                                 );
+
+                routeNode1 = routeNode2;
+
             }
 
 
-            // Link HTTP events...
-            HTTPServer.RequestLog   += RequestLog. WhenAll;
-            HTTPServer.ResponseLog  += ResponseLog.WhenAll;
-            HTTPServer.ErrorLog     += ErrorLog.   WhenAll;
+            if (HTTPMethod is null)
+                routeNode1.RequestHandlers = requestHandle;
+
+            else
+            {
+
+                var methodNode = routeNode1.Methods.GetOrAdd(
+                                     HTTPMethod,
+                                     new MethodNode(
+                                         HTTPMethod,
+                                         AllowReplacement: AllowReplacement
+                                     )
+                                 );
+
+                if (HTTPContentType is null)
+                    methodNode.RequestHandlers  = requestHandle;
+
+                else
+                    methodNode.AddContentType(
+                        HTTPContentType,
+                        requestHandle
+                    );
+
+            }
+
+        }
+
+        #endregion
 
 
-            // Setup Maintenance Task
-            this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
-            this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
-            this.MaintenanceTimer         = new Timer(
-                                                DoMaintenanceSync,
-                                                this,
-                                                MaintenanceInitialDelay ?? this.MaintenanceEvery,
-                                                this.MaintenanceEvery
+
+        internal ParsedRequest2 GetRequestHandle(HTTPPath    Path,
+                                                 HTTPMethod  Method)
+        {
+
+            var parsedRequest = GetRequestHandle(Path);
+
+            if (parsedRequest.RouteNode?.Methods.ContainsKey(Method) == true)
+                return ParsedRequest2.Parsed(parsedRequest.RouteNode, parsedRequest.Parameters);
+
+            return ParsedRequest2.Error($"Unknown method {Method}!", parsedRequest.Parameters);
+
+        }
+
+        internal ParsedRequest2 GetRequestHandle(HTTPPath         Path,
+                                                 HTTPMethod       Method,
+                                                 HTTPContentType  ContentType)
+        {
+
+            var parsedRequest = GetRequestHandle(Path);
+
+            if (parsedRequest.ErrorResponse is not null)
+                return parsedRequest;
+
+            if (parsedRequest.RouteNode?.Methods.TryGetValue(Method, out var methodNode) == true)
+            {
+
+                if (methodNode.ContentTypes.Any(a => a == ContentType))
+                    return ParsedRequest2.Parsed(parsedRequest.RouteNode, parsedRequest.Parameters);
+
+                return ParsedRequest2.Error($"Unknown content type {ContentType}!", parsedRequest.Parameters);
+
+            }
+
+            return ParsedRequest2.Error($"Unknown method {Method}!", parsedRequest.Parameters);
+
+        }
+
+
+        #region (internal) GetRequestHandle(Path)
+
+        internal ParsedRequest2 GetRequestHandle(HTTPPath Path)
+        {
+
+            // https://datatracker.ietf.org/doc/html/rfc3986#section-2.4
+            // ...parsed and separated before the percent-encoded octets
+            // within those components can be safely decoded...
+            // "//" => "/" as most implementations do
+            var segments     = Path.ToString().Trim   ('/').
+                                               Split  ('/', StringSplitOptions.RemoveEmptyEntries).
+                                               Select (s => s.URLDecode()).
+                                               ToArray();
+
+            var parameters   = new Dictionary<String, String>();
+
+            var pathSegment  = segments.Length > 0 && !segments[0].IsNullOrWhiteSpace()
+                                   ? segments[0].Trim()
+                                   : "/";
+
+            if (!routeNodes.TryGetValue(pathSegment, out var routeNode))
+            {
+
+                var parameterCatcher = routeNodes.Values.FirstOrDefault(routeNode => routeNode.ParameterName is not null);
+                if (parameterCatcher is not null && parameterCatcher.ParameterName is not null)
+                {
+
+                    parameters.Add(
+                        parameterCatcher.ParameterName,
+                        parameterCatcher.CatchRestOfPath2
+                            ? Path.ToString().TrimStart('/')
+                            : pathSegment
+                    );
+
+                    if (parameterCatcher.CatchRestOfPath2)
+                        return ParsedRequest2.Parsed(parameterCatcher, parameters);
+
+                }
+                else
+                    return ParsedRequest2.Error(
+                               $"Unknown path '{Path}'!",
+                               parameters
+                           );
+
+            }
+            else
+            {
+                if (routeNode.ParameterName is not null)
+                {
+                    parameters.Add(
+                        routeNode.ParameterName,
+                        routeNode.CatchRestOfPath2
+                            ? segments.Skip(1).AggregateWith('/')
+                            : segments[0]
+                    );
+                }
+            }
+
+            if (routeNode is not null && segments.Length > 1)
+            {
+
+                for (var i = 1; i < segments.Length; i++)
+                {
+
+                    if (!routeNode.Children.TryGetValue(segments[i], out var routeNode2))
+                    {
+
+                        var parameterCatcher = routeNode.Children.Values.FirstOrDefault(routeNode => routeNode.ParameterName is not null);
+                        if (parameterCatcher is not null && parameterCatcher.ParameterName is not null)
+                        {
+
+                            if (parameterCatcher.CatchRestOfPath2 && i <= segments.Length-1)
+                            {
+
+                                parameters.Add(
+                                    parameterCatcher.ParameterName,
+                                    parameterCatcher.CatchRestOfPath2 && i <= segments.Length-1
+                                        ? segments.Skip(i).AggregateWith('/')
+                                        : segments[i]
+                                );
+
+                                return ParsedRequest2.Parsed(
+                                           parameterCatcher,
+                                           parameters
+                                       );
+
+                            }
+
+                            parameters.Add(
+                                parameterCatcher.ParameterName,
+                                segments[i]
+                            );
+
+                        }
+                        else
+                            goto Error;
+                            //return ParsedRequest2.Error(
+                            //           $"Unknown path {Path}!",
+                            //           parameters
+                            //       );
+
+                        routeNode = parameterCatcher;
+
+                    }
+
+                    else
+                        routeNode = routeNode2;
+
+                }
+
+                if (routeNode.FullPath.EndsWith(routeNode.Path))
+                    return ParsedRequest2.Parsed(
+                               routeNode,
+                               parameters
+                           );
+
+            }
+
+            if (routeNode is not null)
+                return ParsedRequest2.Parsed(
+                    routeNode,
+                    parameters
+                );
+
+Error:
+
+            var parameterCatchers = routeNodes.Where(routeNode => routeNode.Value.ParameterName is not null &&
+                                                                  routeNode.Value.CatchRestOfPath2).
+                                               ToArray();
+
+            if (parameterCatchers.Length > 0)
+            {
+
+                var parameterCatcher = parameterCatchers.First().Value;
+
+                parameters.Add(
+                    parameterCatcher.ParameterName!,
+                    Path.ToString().Trim('/')
+                );
+
+                return ParsedRequest2.Parsed(parameterCatcher, parameters);
+
+            }
+
+            return ParsedRequest2.Error(
+                       $"Unknown path {Path}!",
+                       parameters
+                   );
+
+        }
+
+        #endregion
+
+
+        #region (private) RegisterURLTemplates()
+
+        #region (protected virtual) GetResourceStream             (ResourceName, ResourceAssemblies)
+
+        //protected virtual Stream? GetResourceStream(String ResourceName)
+
+        //    => GetResourceStream(ResourceName,
+        //                         new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        //protected virtual Stream? GetResourceStream(String                            ResourceName,
+        //                                            params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //{
+
+        //    foreach (var resourceAssembly in ResourceAssemblies)
+        //    {
+        //        try
+        //        {
+
+        //            var resourceStream = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+
+        //            if (resourceStream is not null)
+        //                return resourceStream;
+
+        //        }
+        //        catch
+        //        { }
+        //    }
+
+        //    return null;
+
+        //}
+
+        #endregion
+
+        #region (protected virtual) GetResourceMemoryStream       (ResourceName, ResourceAssemblies)
+
+        //protected virtual MemoryStream? GetResourceMemoryStream(String ResourceName)
+
+        //    => GetResourceMemoryStream(ResourceName,
+        //                               new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        //protected virtual MemoryStream? GetResourceMemoryStream(String                            ResourceName,
+        //                                                        params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //{
+
+        //    try
+        //    {
+
+        //        var resourceStream = GetResourceStream(
+        //                                 ResourceName,
+        //                                 ResourceAssemblies
+        //                             );
+
+        //        if (resourceStream is not null)
+        //        {
+
+        //            var outputStream = new MemoryStream();
+        //            resourceStream.CopyTo(outputStream);
+        //            outputStream.Seek(0, SeekOrigin.Begin);
+
+        //            return outputStream;
+
+        //        }
+
+        //    }
+        //    catch
+        //    { }
+
+        //    return null;
+
+        //}
+
+        #endregion
+
+        #region (protected virtual) GetResourceString             (ResourceName, ResourceAssemblies)
+
+        //protected virtual String GetResourceString(String ResourceName)
+
+        //    => GetResourceString(ResourceName,
+        //                         new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        //protected virtual String GetResourceString(String                            ResourceName,
+        //                                           params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+        //    => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+
+        #endregion
+
+        #region (protected virtual) GetResourceBytes              (ResourceName, ResourceAssemblies)
+
+        //protected virtual Byte[] GetResourceBytes(String ResourceName)
+
+        //    => GetResourceBytes(ResourceName,
+        //                        new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        //protected virtual Byte[] GetResourceBytes(String                            ResourceName,
+        //                                          params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+        //    => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+
+        #endregion
+
+
+        #region (protected virtual) GetMergedResourceMemoryStream (ResourceName, ResourceAssemblies)
+
+        //protected virtual MemoryStream? GetMergedResourceMemoryStream(String ResourceName)
+
+        //    => GetMergedResourceMemoryStream(ResourceName,
+        //                                     new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        //protected virtual MemoryStream? GetMergedResourceMemoryStream(String                            ResourceName,
+        //                                                              params Tuple<String, Assembly>[]  ResourceAssemblies)
+        //{
+
+        //    try
+        //    {
+
+        //        var outputStream = new MemoryStream();
+        //        var newLine      = "\r\n"u8.ToArray();
+
+        //        foreach (var resourceAssembly in ResourceAssemblies)
+        //        {
+        //            try
+        //            {
+
+        //                var data = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+        //                if (data is not null)
+        //                {
+
+        //                    data.CopyTo(outputStream);
+
+        //                    outputStream.Write(newLine, 0, newLine.Length);
+
+        //                }
+
+        //            }
+        //            catch
+        //            { }
+        //        }
+
+        //        outputStream.Seek(0, SeekOrigin.Begin);
+
+        //        return outputStream;
+
+        //    }
+        //    catch
+        //    { }
+
+        //    return null;
+
+        //}
+
+        #endregion
+
+        #region (protected virtual) GetMergedResourceString       (ResourceName, ResourceAssemblies)
+
+        //protected virtual String GetMergedResourceString(String ResourceName)
+
+        //    => GetMergedResourceString(ResourceName,
+        //                               new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        //protected virtual String GetMergedResourceString(String                            ResourceName,
+        //                                                 params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+        //    => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+
+        #endregion
+
+        #region (protected virtual) GetMergedResourceBytes        (ResourceName, ResourceAssemblies)
+
+        //protected virtual Byte[] GetMergedResourceBytes(String ResourceName)
+
+        //    => GetMergedResourceBytes(ResourceName,
+        //                              new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        //protected virtual Byte[] GetMergedResourceBytes(String                            ResourceName,
+        //                                                params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+        //    => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+
+        #endregion
+
+
+        private void RegisterURLTemplates()
+        {
+
+            var URLPathPrefix = HTTPPath.Root;
+
+
+            #region GET   ~/serviceCheck
+
+            // -----------------------------------------
+            // curl http://127.0.0.1:2000/serviceCheck
+            // -----------------------------------------
+            AddHandler(
+                HTTPMethod.GET,
+                URLPathPrefix + "serviceCheck",
+                HTTPDelegate: request => {
+
+                    var jsonResponse  = JSONObject.Create(
+                                            new JProperty("timestamp",  Timestamp.Now),
+                                            new JProperty("service",    HTTPServer.HTTPServerName),
+                                            new JProperty("instance",   Environment.MachineName),
+                                            new JProperty("content",    RandomExtensions.RandomString(20))
+                                        );
+
+                    if (ServiceCheckKeys?.PublicKey is not null)
+                    {
+
+                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+
+                        if (ServiceCheckKeys.PrivateKey is not null)
+                        {
+
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
+
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckKeys.PrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
+
+                            jsonResponse.Add("signature", signature);
+
+                        }
+
+                    }
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "POST" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = jsonResponse.ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable);
+
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
+
+            #endregion
+
+            #region POST  ~/serviceCheck
+
+            // -----------------------------------------------------------------------------------------------------------------
+            // curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"123\"}" http://127.0.0.1:2000/serviceCheck
+            // -----------------------------------------------------------------------------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "serviceCheck",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: request => {
+
+                    var content = String.Empty;
+
+                    #region Try to parse a text HTTP body...
+
+                    HTTPResponse.Builder? httpResponse = null;
+
+                    if (request.ContentType == HTTPContentType.Text.PLAIN &&
+                        request.TryParseUTF8StringRequestBody(out content, out httpResponse))
+                    {
+                        
+                    }
+
+                    #endregion
+
+                    #region ...or parse a JSON HTTP body
+
+                    else if (request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
+                        request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
+                        jsonRequest is not null)
+                    {
+                        content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
+                    }
+
+                    if (httpResponse is not null)
+                        return Task.FromResult(httpResponse.AsImmutable);
+
+                    #endregion
+
+
+                    var jsonResponse  = JSONObject.Create(
+                                            new JProperty("timestamp",  Timestamp.Now),
+                                            new JProperty("service",    HTTPServer.HTTPServerName),
+                                            new JProperty("instance",   Environment.MachineName),
+                                            new JProperty("content",    content?.Reverse())
+                                        );
+
+                    if (ServiceCheckKeys?.PublicKey is not null)
+                    {
+
+                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+
+                        if (ServiceCheckKeys.PrivateKey is not null)
+                        {
+
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
+
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckKeys.PrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
+
+                            jsonResponse.Add("signature", signature);
+
+                        }
+
+                    }
+
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = [ "POST" ],
+                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                            Content                    = jsonResponse.ToUTF8Bytes(),
+                            CacheControl               = "no-cache",
+                            Connection                 = ConnectionType.KeepAlive
+                        }.AsImmutable);
+
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
+
+            #endregion
+
+            #region GET   ~/monitoring
+
+            // ---------------------------------------
+            // curl http://127.0.0.1:2000/monitoring
+            // ---------------------------------------
+            AddHandler(
+                HTTPMethod.GET,
+                URLPathPrefix + "monitoring",
+                HTTPDelegate: request => {
+
+                    var process           = Process.GetCurrentProcess();
+                    process.Refresh();
+
+                    var freeSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+                                            RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                                                ? ResourcesMonitor.GetMemoryMetricsOnUnix()
+                                                : ResourcesMonitor.GetMemoryMetricsOnWindows();
+
+                    var driveInfo         = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
+                    var freeDiscSpace     = (Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100;
+
+                    var jsonResponse      = JSONObject.Create(
+                                                new JProperty("timestamp",  Timestamp.Now),
+                                                new JProperty("service",    HTTPServer.HTTPServerName),
+                                                new JProperty("instance",   Environment.MachineName),
+                                                new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
+                                                new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
+                                                new JProperty("content",    RandomExtensions.RandomString(20))
                                             );
 
-            // Setup Warden
-            this.Warden = new Warden.Warden(
-                              ExternalDNSName    ?? $"{nameof(HTTPAPI)}:{HTTPServer.IPPorts.AggregateWith(',')}",
-                              WardenInitialDelay ?? TimeSpan.FromMinutes(3),
-                              WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
-                              DNSClient
-                          );
+                    if (ServiceCheckKeys?.PublicKey is not null)
+                    {
 
-            #region Warden: Observe CPU/RAM
+                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
 
-            Thread.CurrentThread.CurrentCulture   = CultureInfo.InvariantCulture;
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+                        if (ServiceCheckKeys.PrivateKey is not null)
+                        {
 
-            //if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            //{
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-            //    //// If those lines fail, try to run "lodctr /R" as administrator in an cmd.exe environment
-            //    //totalRAM_PerformanceCounter = new PerformanceCounter("Process", "Working Set",      Process.GetCurrentProcess().ProcessName);
-            //    //totalCPU_PerformanceCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
-            //    //totalRAM_PerformanceCounter.NextValue();
-            //    //totalCPU_PerformanceCounter.NextValue();
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckKeys.PrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
 
-            //    Warden.EveryMinutes(1,
-            //                        Process.GetCurrentProcess(),
-            //                        async (timestamp, process, ct) => {
-            //                            using (var writer = File.AppendText(String.Concat(this.MetricsPath,
-            //                                                                              Path.DirectorySeparatorChar,
-            //                                                                              "process-stats_",
-            //                                                                              DateTime.Now.Year, "-",
-            //                                                                              DateTime.Now.Month.ToString("D2"),
-            //                                                                              ".log")))
-            //                            {
+                            jsonResponse.Add("signature", signature);
 
-            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToISO8601(), ";",
-            //                                                                          process.VirtualMemorySize64, ";",
-            //                                                                          process.WorkingSet64, ";",
-            //                                                                          process.TotalProcessorTime, ";",
-            //                                                                          totalRAM_PerformanceCounter.NextValue() / 1024 / 1024, ";",
-            //                                                                          totalCPU_PerformanceCounter.NextValue())).
-            //                                             ConfigureAwait(false);
+                        }
 
-            //                            }
+                    }
 
-            //                        });
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = [ "POST" ],
+                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                            Content                    = jsonResponse.ToUTF8Bytes(),
+                            CacheControl               = "no-cache",
+                            Connection                 = ConnectionType.KeepAlive
+                        }.AsImmutable);
 
-            //    Warden.EveryMinutes(15,
-            //                        Environment.OSVersion.Platform == PlatformID.Unix
-            //                            ? new DriveInfo("/")
-            //                            : new DriveInfo(Directory.GetCurrentDirectory()),
-            //                        async (timestamp, driveInfo, ct) => {
-            //                            using (var writer = File.AppendText(String.Concat(this.MetricsPath,
-            //                                                                              Path.DirectorySeparatorChar,
-            //                                                                              "disc-stats_",
-            //                                                                              DateTime.Now.Year, "-",
-            //                                                                              DateTime.Now.Month.ToString("D2"),
-            //                                                                              ".log")))
-            //                            {
-
-            //                                var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
-            //                                var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
-
-            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToISO8601(), ";",
-            //                                                                          MBytesFree, ";",
-            //                                                                          HDPercentageFree)).
-            //                                             ConfigureAwait(false);
-
-            //                            }
-
-            //                        });
-
-            //}
-
-            #endregion
-
-
-            if (AutoStart)
-                HTTPServer.Start(EventTracking_Id.New).Wait();
-
-            //if (AutoStart == true && HTTPServer.Start())
-            //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
-
-        }
-
-        #endregion
-
-        #region HTTPAPI(HTTPAPI)
-
-        public HTTPAPI(HTTPAPI HTTPAPI)
-
-            : this(HTTPServer:               HTTPAPI.HTTPServer,
-                   HTTPHostname:             HTTPAPI.Hostname,
-                   ExternalDNSName:          HTTPAPI.ExternalDNSName,
-                   HTTPServiceName:          HTTPAPI.HTTPServiceName,
-                   BasePath:                 HTTPAPI.BasePath,
-
-                   URLPathPrefix:            HTTPAPI.URLPathPrefix,
-                   HTMLTemplate:             HTTPAPI.HTMLTemplate,
-                   APIVersionHashes:         null,
-
-                   DisableMaintenanceTasks:  HTTPAPI.DisableMaintenanceTasks,
-                   MaintenanceInitialDelay:  null,
-                   MaintenanceEvery:         HTTPAPI.MaintenanceEvery,
-
-                   DisableWardenTasks:       null, //HTTPAPI.DisableWardenTasks,
-                   WardenInitialDelay:       null,
-                   WardenCheckEvery:         null, //HTTPAPI.WardenCheckEvery,
-
-                   IsDevelopment:            HTTPAPI.IsDevelopment,
-                   DevelopmentServers:       HTTPAPI.DevelopmentServers,
-                   DisableLogging:           HTTPAPI.DisableLogging,
-                   LoggingPath:              HTTPAPI.LoggingPath,
-                   LogfileName:              HTTPAPI.LogfileName,
-                   LogfileCreator:           HTTPAPI.LogfileCreator)
-
-        { }
-
-        #endregion
-
-        #endregion
-
-
-        #region Add Method Callbacks
-
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentType = null, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
-
-        /// <summary>
-        /// Add a method callback for the given URL template.
-        /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URLTemplate">The URL template.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
-        /// <param name="DefaultErrorHandler">The default error handler.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname             Hostname,
-                                      HTTPMethod               HTTPMethod,
-                                      HTTPPath                 URLTemplate,
-                                      HTTPContentType?         HTTPContentType             = null,
-                                      Boolean                  OpenEnd                     = false,
-                                      HTTPAuthentication?      URLAuthentication           = null,
-                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
-                                      HTTPDelegate?            DefaultErrorHandler         = null,
-                                      HTTPDelegate?            HTTPDelegate                = null,
-                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
-
-        {
-
-            #region Initial checks
-
-            if (URLTemplate.IsNullOrEmpty)
-                throw new ArgumentNullException(nameof(URLTemplate),   "The given URL template must not be null or empty!");
-
-            if (HTTPDelegate is null)
-                throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
-
-            #endregion
-
-            HTTPServer.AddMethodCallback(
-                this,
-                Hostname,
-                HTTPMethod,
-                URLTemplate,
-                HTTPContentType,
-                OpenEnd,
-                URLAuthentication,
-                HTTPMethodAuthentication,
-                ContentTypeAuthentication,
-                HTTPRequestLogger,
-                HTTPResponseLogger,
-                DefaultErrorHandler,
-                HTTPDelegate,
-                AllowReplacement
+                },
+                AllowReplacement: URLReplacement.Allow
             );
 
-        }
+            #endregion
 
-        #endregion
+            #region GET   ~/connections
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplates, HTTPContentType = null, ..., HTTPDelegate = null, AllowReplacement = URLReplacement.Fail)
+            // ---------------------------------------
+            // curl http://127.0.0.1:3004/connections
+            // ---------------------------------------
+            AddHandler(
+                HTTPMethod.GET,
+                URLPathPrefix + "connections",
+                HTTPDelegate: request => {
 
-        /// <summary>
-        /// Add a method callback for the given URL template.
-        /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URLTemplates">An enumeration of URL templates.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
-        /// <param name="DefaultErrorHandler">The default error handler.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname             Hostname,
-                                      HTTPMethod               HTTPMethod,
-                                      IEnumerable<HTTPPath>    URLTemplates,
-                                      HTTPContentType?         HTTPContentType             = null,
-                                      Boolean                  OpenEnd                     = false,
-                                      HTTPAuthentication?      URLAuthentication           = null,
-                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
-                                      HTTPDelegate?            DefaultErrorHandler         = null,
-                                      HTTPDelegate?            HTTPDelegate                = null,
-                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
+                    var jsonResponse  = new JArray(
+                                            HTTPServer.ClientConnections.Select(connection => connection.ToJSON())
+                                        );
 
-        {
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = [ "POST" ],
+                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                            Content                    = jsonResponse.
+                                                             ToString(Newtonsoft.Json.Formatting.Indented).
+                                                             ToUTF8Bytes(),
+                            CacheControl               = "no-cache",
+                            Connection                 = ConnectionType.KeepAlive
+                        }.AsImmutable);
 
-            #region Initial checks
-
-            if (!URLTemplates.SafeAny())
-                throw new ArgumentNullException(nameof(URLTemplates),  "The given URL template must not be null or empty!");
-
-            if (HTTPDelegate is null)
-                throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
 
             #endregion
 
-            HTTPServer.AddMethodCallback(
-                this,
-                Hostname,
-                HTTPMethod,
-                URLTemplates,
-                HTTPContentType,
-                OpenEnd,
-                URLAuthentication,
-                HTTPMethodAuthentication,
-                ContentTypeAuthentication,
-                HTTPRequestLogger,
-                HTTPResponseLogger,
-                DefaultErrorHandler,
-                HTTPDelegate,
-                AllowReplacement
+
+            #region POST  ~/restart
+
+            // -----------------------------------------------
+            // curl -v -X POST http://127.0.0.1:2000/restart
+            // -----------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "/restart",
+                HTTPRequestLogger:   RestartRequest,
+                HTTPResponseLogger:  RestartResponse,
+                HTTPDelegate:        request => {
+
+                    #region Try to get HTTP user and its organizations
+
+                    //// Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    //if (!TryGetHTTPUser(Request,
+                    //                    out var httpUser,
+                    //                    out var httpOrganizations,
+                    //                    out var httpResponseBuilder,
+                    //                    Access_Levels.Admin,
+                    //                    Recursive: true) ||
+                    //    httpUser is null ||
+                    //   !httpOrganizations.Any())
+                    //{
+                    //    return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                    //}
+
+                    #endregion
+
+
+                    //Task.Run(() => {
+                    //    Task.Delay(10000);
+            //            Environment.Exit(1000);
+                    //});
+
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode  = HTTPStatusCode.OK,
+                            Server          = HTTPServer?.HTTPServerName,
+                            Connection      = ConnectionType.KeepAlive
+                        }.AsImmutable);
+
+                }
             );
-
-        }
-
-        #endregion
-
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
-
-        /// <summary>
-        /// Add a method callback for the given URL template.
-        /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URLTemplate">The URL template.</param>
-        /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
-        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
-        /// <param name="DefaultErrorHandler">The default error handler.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPAPI                       HTTPAPI,
-                                      HTTPHostname                  Hostname,
-                                      HTTPMethod                    HTTPMethod,
-                                      HTTPPath                      URLTemplate,
-                                      IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      Boolean                       OpenEnd                     = false,
-                                      HTTPAuthentication?           URLAuthentication           = null,
-                                      HTTPAuthentication?           HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication?           ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler?        HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler?       HTTPResponseLogger          = null,
-                                      HTTPDelegate?                 DefaultErrorHandler         = null,
-                                      HTTPDelegate?                 HTTPDelegate                = null,
-                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
-
-        {
-
-            #region Initial checks
-
-            if (URLTemplate.IsNullOrEmpty)
-                throw new ArgumentNullException(nameof(URLTemplate),       "The given URL template must not be null or empty!");
-
-            if (!HTTPContentTypes.Any())
-                throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
-
-            if (HTTPDelegate is null)
-                throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
 
             #endregion
 
-            HTTPServer.AddMethodCallback(
-                this,
-                Hostname,
-                HTTPMethod,
-                URLTemplate,
-                HTTPContentTypes,
-                OpenEnd,
-                URLAuthentication,
-                HTTPMethodAuthentication,
-                ContentTypeAuthentication,
-                HTTPRequestLogger,
-                HTTPResponseLogger,
-                DefaultErrorHandler,
-                HTTPDelegate,
-                AllowReplacement
+            #region POST  ~/stop
+
+            // --------------------------------------------
+            // curl -v -X POST http://127.0.0.1:2000/stop
+            // --------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "/stop",
+                HTTPRequestLogger:   StopRequest,
+                HTTPResponseLogger:  StopResponse,
+                HTTPDelegate:        request => {
+
+                    #region Try to get HTTP user and its organizations
+
+                    //// Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    //if (!TryGetHTTPUser(request,
+                    //                    out var httpUser,
+                    //                    out var httpOrganizations,
+                    //                    out var httpResponseBuilder,
+                    //                    Access_Levels.Admin,
+                    //                    Recursive: true) ||
+                    //    httpUser is null ||
+                    //   !httpOrganizations.Any())
+                    //{
+                    //    return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                    //}
+
+                    #endregion
+
+
+                    //Task.Run(() => {
+                    //    Task.Delay(1000);
+          //          Environment.Exit(0);
+                    //});
+
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode  = HTTPStatusCode.OK,
+                            Server          = HTTPServer?.HTTPServerName,
+                            Connection      = ConnectionType.KeepAlive
+                        }.AsImmutable);
+
+                }
             );
-
-        }
-
-        #endregion
-
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, HostAuthentication = false, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
-
-        /// <summary>
-        /// Add a method callback for the given URL template.
-        /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URLTemplates">An enumeration of URL templates.</param>
-        /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
-        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
-        /// <param name="DefaultErrorHandler">The default error handler.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPAPI                       HTTPAPI,
-                                      HTTPHostname                  Hostname,
-                                      HTTPMethod                    HTTPMethod,
-                                      IEnumerable<HTTPPath>         URLTemplates,
-                                      IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      Boolean                       OpenEnd                     = false,
-                                      HTTPAuthentication?           URLAuthentication           = null,
-                                      HTTPAuthentication?           HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication?           ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler?        HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler?       HTTPResponseLogger          = null,
-                                      HTTPDelegate?                 DefaultErrorHandler         = null,
-                                      HTTPDelegate?                 HTTPDelegate                = null,
-                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
-
-        {
-
-            #region Initial checks
-
-            if (!URLTemplates.Any())
-                throw new ArgumentNullException(nameof(URLTemplates),      "The given URL template must not be null or empty!");
-
-            if (!HTTPContentTypes.Any())
-                throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
-
-            if (HTTPDelegate is null)
-                throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
 
             #endregion
 
-            HTTPServer.AddMethodCallback(
-                this,
-                Hostname,
-                HTTPMethod,
-                URLTemplates,
-                HTTPContentTypes,
-                OpenEnd,
-                URLAuthentication,
-                HTTPMethodAuthentication,
-                ContentTypeAuthentication,
-                HTTPRequestLogger,
-                HTTPResponseLogger,
-                DefaultErrorHandler,
-                HTTPDelegate,
-                AllowReplacement
-            );
-
         }
 
         #endregion
 
-        #endregion
+
+
+
+
 
         #region HTTP Server Sent Events
 
@@ -1816,84 +1549,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         //#endregion
 
-        //#region AddEventSource(EventIdentification, URLTemplate, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null, ...)
-
-        ///// <summary>
-        ///// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
-        ///// </summary>
-        ///// <param name="EventIdentification">The unique identification of the event source.</param>
-        ///// <param name="URLTemplate">The URI template.</param>
-        ///// 
-        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        ///// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
-        ///// <param name="RetryInterval ">The retry interval.</param>
-        ///// <param name="DataSerializer">A delegate to serialize the stored events.</param>
-        ///// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
-        ///// <param name="EnableLogging">Whether to enable event logging.</param>
-        ///// <param name="LogfilePrefix">The prefix of the logfile names.</param>
-        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        ///// 
-        ///// <param name="Hostname">The HTTP host.</param>
-        ///// <param name="HttpMethod">The HTTP method.</param>
-        ///// <param name="HTTPContentType">The HTTP content type.</param>
-        ///// 
-        ///// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        ///// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        ///// 
-        ///// <param name="DefaultErrorHandler">The default error handler.</param>
-        //public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventIdentification,
-        //                                            HTTPPath                               URLTemplate,
-
-        //                                            UInt32                                 MaxNumberOfCachedEvents      = 500,
-        //                                            Func<HTTPEvent<T>, Boolean>?           IncludeFilterAtRuntime       = null,
-        //                                            TimeSpan?                              RetryInterval                = null,
-        //                                            Func<T, String>?                       DataSerializer               = null,
-        //                                            Func<String, T>?                       DataDeserializer             = null,
-        //                                            Boolean                                EnableLogging                = true,
-        //                                            String?                                LogfilePath                  = null,
-        //                                            String?                                LogfilePrefix                = null,
-        //                                            Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-        //                                            String?                                LogfileReloadSearchPattern   = null,
-
-        //                                            HTTPHostname?                          Hostname                     = null,
-        //                                            HTTPMethod?                            HttpMethod                   = null,
-        //                                            HTTPContentType?                       HTTPContentType              = null,
-
-        //                                            Boolean                                RequireAuthentication        = true,
-        //                                            HTTPAuthentication?                    URLAuthentication            = null,
-        //                                            HTTPAuthentication?                    HTTPMethodAuthentication     = null,
-
-        //                                            HTTPDelegate?                          DefaultErrorHandler          = null)
-
-        //    => HTTPServer.AddEventSource(
-        //           EventIdentification,
-        //           this,
-        //           URLTemplate,
-
-        //           MaxNumberOfCachedEvents,
-        //           IncludeFilterAtRuntime,
-        //           RetryInterval ,
-        //           DataSerializer,
-        //           DataDeserializer,
-        //           EnableLogging,
-        //           LogfilePath,
-        //           LogfilePrefix,
-        //           LogfileName,
-        //           LogfileReloadSearchPattern,
-
-        //           Hostname,
-        //           HttpMethod,
-        //           HTTPContentType,
-
-        //           RequireAuthentication,
-        //           URLAuthentication,
-        //           HTTPMethodAuthentication,
-
-        //           DefaultErrorHandler
-        //       );
-
-        //#endregion
 
 
         //#region Get   (EventSourceId)
@@ -1964,137 +1619,363 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (Timer) DoMaintenance(State)
+        #region HTTP Server Sent Events
 
-        private void DoMaintenanceSync(Object? State)
+        #region AddEventSource      (EventSourceId, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source.
+        /// </summary>
+        /// <param name="EventSourceId">The unique identification of the event source.</param>
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="RetryInterval ">The retry interval.</param>
+        /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
+        /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
+        /// <param name="EnableLogging">Whether to enable event logging.</param>
+        /// <param name="LogfilePrefix">The prefix of the logfile names.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventSourceId,
+                                                    UInt32                                 MaxNumberOfCachedEvents      = 500,
+                                                    TimeSpan?                              RetryInterval                = null,
+                                                    Func<T, String>?                       DataSerializer               = null,
+                                                    Func<String, T>?                       DataDeserializer             = null,
+                                                    Boolean                                EnableLogging                = true,
+                                                    String?                                LogfilePath                  = null,
+                                                    String?                                LogfilePrefix                = null,
+                                                    Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                                                    String?                                LogfileReloadSearchPattern   = null)
+
         {
-            if (ReloadFinished && !DisableMaintenanceTasks)
-                DoMaintenanceAsync(State).ConfigureAwait(false);
+
+            var result = eventSources.TryAdd(
+                             EventSourceId,
+                             new HTTPEventSource<T>(
+                                 EventSourceId,
+                                 this,
+                                 MaxNumberOfCachedEvents,
+                                 RetryInterval ,
+                                 DataSerializer,
+                                 DataDeserializer,
+                                 EnableLogging,
+                                 LogfilePath,
+                                 EnableLogging || LogfileName is not null
+                                     ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
+                                                                                        eventid, "_",
+                                                                                        time.Year, "-", time.Month.ToString("D2"),
+                                                                                        ".log"))
+                                     : null,
+                                 LogfileReloadSearchPattern ?? String.Concat(EventSourceId, "_*.log")
+                             )
+                         );
+
+            return (HTTPEventSource<T>) eventSources[EventSourceId];
+
         }
 
-        protected internal virtual Task DoMaintenance(Object? State)
-            => Task.CompletedTask;
+        #endregion
 
-        private async Task DoMaintenanceAsync(Object? State)
+        #region MapEventSource      (EventSource, URLTemplate, RetryInterval  = null, ...)
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
+        /// </summary>
+        /// <param name="EventSource">The event source.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// 
+        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
+        /// 
+        /// <param name="Hostname">The HTTP host.</param>
+        /// <param name="HttpMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// 
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// 
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        public Boolean MapEventSource<T>(IHTTPEventSource              EventSource,
+                                         HTTPPath                      URLTemplate,
+
+                                         Func<HTTPEvent<T>, Boolean>?  IncludeFilterAtRuntime     = null,
+
+                                         HTTPHostname?                 Hostname                   = null,
+                                         HTTPMethod?                   HttpMethod                 = null,
+                                         HTTPContentType?              HTTPContentType            = null,
+
+                                         Boolean                       RequireAuthentication      = true,
+                                         HTTPAuthentication?           URLAuthentication          = null,
+                                         HTTPAuthentication?           HTTPMethodAuthentication   = null,
+
+                                         HTTPDelegate?                 DefaultErrorHandler        = null)
+
         {
 
-            if (await MaintenanceSemaphore.WaitAsync(SemaphoreSlimTimeout).
-                                           ConfigureAwait(false))
+            if (eventSources.TryGetValue(EventSource.Id, out var httpEventSource) &&
+                httpEventSource is IHTTPEventSource<T> eventSource)
             {
-                try
-                {
 
-                    await DoMaintenance(State);
+                IncludeFilterAtRuntime ??= httpEvent => true;
 
-                }
-                catch (Exception e)
-                {
+                AddHandler(
 
-                    while (e.InnerException is not null)
-                        e = e.InnerException;
+                    HttpMethod      ?? HTTPMethod.GET,
+                    URLTemplate,
+                    HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
 
-                    DebugX.LogException(e);
+                    async request =>
 
-                }
-                finally
-                {
-                    MaintenanceSemaphore.Release();
-                }
+                        new HTTPResponse.Builder(request) {
+
+                            HTTPStatusCode            = HTTPStatusCode.OK,
+                            Server                    = HTTPServer.HTTPServerName,
+                            ContentType               = HTTPContentType.Text.EVENTSTREAM,
+                            CacheControl              = "no-cache",
+                            Connection                = ConnectionType.KeepAlive,
+                            AccessControlAllowOrigin  = "*",
+
+                            // As it is an obsolete HTTP/1.0 header, we do not set the "Keep-Alive" header.
+                            //KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval.TotalSeconds)),
+
+                            // We DO NOT follow the default behavior of the web server/framework for SSE streaming responses to
+                            // enable "Transfer-Encoding: chunked" automagically, just because some old web servers/frameworks
+                            // will buffer the whole response. If you experience such problems, please enable chunked transfer
+                            // encoding or adapt your middleware to support streaming responses.
+                            //TransferEncoding          = "chunked",
+
+                            HTTPSSEWorker             = async (response, stream) => {
+
+                                                            try
+                                                            {
+
+                                                                // A stream identification to allow server-side filtering of events for this stream.
+                                                                // By default the remote socket is used as stream identification.
+                                                                var streamId = request.QueryString.GetString("streamId")?.URLDecode();
+
+                                                                await stream.WriteAsync("retry: ");
+                                                                await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
+                                                                await stream.WriteAsync("\n\n");
+
+                                                                await foreach (var httpEvent in eventSource.GetAllEventsGreater(
+                                                                                                    streamId ?? request.RemoteSocket.ToString(),
+                                                                                                    request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
+                                                                                                    request.CancellationToken
+                                                                                                ).Where(IncludeFilterAtRuntime))
+                                                                {
+                                                                    await stream.WriteAsync(httpEvent.SerializedHeader);
+                                                                    await stream.WriteAsync(httpEvent.SerializedData);
+                                                                    await stream.WriteAsync("\n\n");
+                                                                    await stream.FlushAsync(request.CancellationToken);
+                                                                }
+
+                                                            }
+
+                                                            // Connection might be closed by the client while waiting for new events,
+                                                            // so we catch ObjectDisposedException here to unsubscribe the client.
+                                                            catch (ObjectDisposedException) {
+                                                                await eventSource.Unsubscribe(request.RemoteSocket.ToString());
+                                                            }
+
+                                                            catch (Exception e) {
+                                                                await HandleErrors(
+                                                                    nameof(MapEventSource),
+                                                                    e
+                                                                );
+                                                            }
+
+                                                        }
+
+                        }.AsImmutable
+
+                );
+
+                return true;
+
             }
-            else
-                DebugX.LogT("Could not aquire the maintenance tasks lock!");
+
+            return false;
 
         }
 
         #endregion
 
 
-        #region Start    (EventTrackingId = null)
+        #region GetEventSource      (EventSourceId)
 
         /// <summary>
-        /// Start this HTTP API.
+        /// Return the event source identified by the given event source identification.
         /// </summary>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public async virtual Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
+        /// <param name="EventSourceId">A string to identify an event source.</param>
+        public IHTTPEventSource? GetEventSource(HTTPEventSource_Id EventSourceId)
         {
 
-            var result = await HTTPServer.Start(
-                                   EventTrackingId ?? EventTracking_Id.New
-                               );
+            if (eventSources.TryGetValue(EventSourceId, out var httpEventSource))
+                return httpEventSource;
 
-            //SendStarted(this, CurrentTimestamp);
-
-            return result;
+            return null;
 
         }
 
-        #endregion
-
-        #region Start    (Delay, EventTrackingId = null, InBackground = true)
 
         /// <summary>
-        /// Start the server after a little delay.
+        /// Return the event source identified by the given event source identification.
         /// </summary>
-        /// <param name="Delay">The delay.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public async virtual Task<Boolean> Start(TimeSpan           Delay,
-                                                 EventTracking_Id?  EventTrackingId   = null,
-                                                 Boolean            InBackground      = true)
+        /// <param name="EventSourceId">A string to identify an event source.</param>
+        public IHTTPEventSource<TData>? GetEventSource<TData>(HTTPEventSource_Id EventSourceId)
         {
 
-            var result = await HTTPServer.Start(
-                                   Delay,
-                                   EventTrackingId ?? EventTracking_Id.New,
-                                   InBackground
-                               );
+            if (eventSources.TryGetValue(EventSourceId, out var httpEventSource))
+                return httpEventSource as IHTTPEventSource<TData>;
 
-            //SendStarted(this, CurrentTimestamp);
-
-            return result;
+            return null;
 
         }
 
         #endregion
 
-        #region Shutdown (EventTrackingId = null, Message = null, Wait = true)
+        #region TryGetEventSource   (EventSourceId, out EventSource)
 
         /// <summary>
-        /// Shutdown this HTTP API.
+        /// Return the event source identified by the given event source identification.
         /// </summary>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="Message">An optional shutdown message.</param>
-        /// <param name="Wait">Whether to wait for the shutdown to complete.</param>
-        public async virtual Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
-                                                    String?            Message           = null,
-                                                    Boolean            Wait              = true)
+        /// <param name="EventSourceId">A string to identify an event source.</param>
+        /// <param name="EventSource">The event source.</param>
+        public Boolean TryGetEventSource(HTTPEventSource_Id                         EventSourceId,
+                                         [NotNullWhen(true)] out IHTTPEventSource?  EventSource)
+
+            => eventSources.TryGetValue(
+                   EventSourceId,
+                   out EventSource
+               );
+
+        #endregion
+
+        #region TryGetEventSourceOf (EventSourceId, out EventSource)
+
+        /// <summary>
+        /// Return the event source identified by the given event source identification.
+        /// </summary>
+        /// <param name="EventSourceId">A string to identify an event source.</param>
+        /// <param name="EventSource">The event source.</param>
+        public Boolean TryGetEventSourceOf<TData>(HTTPEventSource_Id                                EventSourceId,
+                                                  [NotNullWhen(true)] out IHTTPEventSource<TData>?  EventSource)
         {
 
-            var result = await HTTPServer.Shutdown(
-                                   EventTrackingId ?? EventTracking_Id.New,
-                                   Message,
-                                   Wait
-                               );
+            if (eventSources.TryGetValue(EventSourceId, out var eventSource) &&
+                eventSource is IHTTPEventSource<TData> eventSourceTData)
+            {
+                EventSource = eventSourceTData;
+                return true;
+            }
 
-            //SendShutdown(this, CurrentTimestamp);
-
-            return result;
+            EventSource = null;
+            return false;
 
         }
 
         #endregion
 
+        #region EventSources        (IncludeEventSource = null)
 
-        #region Dispose()
+        /// <summary>
+        /// Return a filtered enumeration of all event sources.
+        /// </summary>
+        /// <param name="IncludeEventSource">An event source filter delegate.</param>
+        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
 
-        public virtual void Dispose()
+            => IncludeEventSource is not null
+                   ? eventSources.Values.Where(IncludeEventSource)
+                   : eventSources.Values;
+
+        #endregion
+
+        #region EventSourcesOf      (IncludeEventSource = null)
+
+        /// <summary>
+        /// Return a filtered enumeration of all event sources of the given type.
+        /// </summary>
+        /// <param name="IncludeEventSource">An event source filter delegate.</param>
+        public IEnumerable<IHTTPEventSource<TData>> EventSourcesOf<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
         {
-            HTTPServer.Dispose();
-            GC.SuppressFinalize(this);
+
+            var sources          = IncludeEventSource is not null
+                                       ? eventSources.Values.Where(IncludeEventSource)
+                                       : eventSources.Values;
+
+            var filteredSources  = new List<IHTTPEventSource<TData>>();
+
+            foreach (var eventSource in sources.Select(eventSource => eventSource as IHTTPEventSource<TData>))
+            {
+
+                if (eventSource is not null)
+                    filteredSources.Add(eventSource);
+
+            }
+
+            return filteredSources;
+
         }
 
         #endregion
 
+        #endregion
+
+
+
+        #region (private)  LogEvent     (Logger, LogHandler, ...)
+
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                         [CallerMemberName()]                       String  Command     = "")
+
+            where TDelegate : Delegate
+
+            => LogEvent(
+                   nameof(HTTPAPI),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   Command
+               );
+
+        #endregion
+
+        #region (private)  HandleErrors (Caller, ExceptionOccurred)
+
+        private Task HandleErrors(String     Caller,
+                                  Exception  ExceptionOccurred)
+
+            => HandleErrors(
+                   nameof(HTTPAPI),
+                   Caller,
+                   ExceptionOccurred
+               );
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   Hostnames.Any()
+                       ? $" ({Hostnames.AggregateCSV()})"
+                       : String.Empty,
+
+                   RootPath,
+
+                   HTTPContentTypes.Any()
+                       ? $" ({HTTPContentTypes.AggregateCSV()})"
+                       : String.Empty
+
+               );
+
+        #endregion
 
     }
 

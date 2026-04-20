@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// A DNS TLS client for a single DNS server.
     /// Requests will be pipelined when the server supports it.
     /// </summary>
-    public class DNSTLSClient : ATLSTestClient,
+    public class DNSTLSClient : ATLSClient,
                                 IDNSClient2
     {
 
@@ -90,7 +90,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             TimeSpan?                                                   SendTimeout                          = null,
                             TransmissionRetryDelayDelegate?                             TransmissionRetryDelay               = null,
                             UInt16?                                                     MaxNumberOfRetries                   = null,
-                            UInt32?                                                     BufferSize                           = null)
+                            UInt32?                                                     BufferSize                           = null,
+
+                            Boolean?                                                    DisableLogging                       = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.DNS_TLS,
@@ -128,7 +130,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512)
+                   BufferSize ?? 512,
+
+                   DisableLogging)
 
         {
 
@@ -166,10 +170,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             TransmissionRetryDelayDelegate?                             TransmissionRetryDelay               = null,
                             UInt16?                                                     MaxNumberOfRetries                   = null,
                             UInt32?                                                     BufferSize                           = null,
-                            TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
+                            TCPEchoLoggingDelegate?                                     LoggingHandler                       = null,
+
+                            Boolean?                                                    DisableLogging                       = null)
 
             : base(URL,
-                   null,
                    Description,
 
                    RemoteCertificateValidationHandler is not null
@@ -204,7 +209,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512)
+                   BufferSize ?? 512,
+
+                   DisableLogging)
 
         {
 

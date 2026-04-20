@@ -25,7 +25,6 @@ using org.GraphDefined.Vanaheimr.Aegir;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
-using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -37,8 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              IComparable
     {
 
-        HTTPExtAPI?  API  { get; set; }
-        HTTPExtAPIX? APIX { get; set; }
+        //HTTPExtAPI?  API  { get; set; }
+        HTTPExtAPI? API { get; set; }
 
 
         /// <summary>

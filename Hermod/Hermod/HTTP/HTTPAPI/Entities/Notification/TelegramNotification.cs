@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region AddTelegramNotification(this HTTPExtAPI, User, NotificationMessageType,  Username, TextTemplate = null)
 
-        public static Task AddTelegramNotification(this HTTPExtAPI            HTTPExtAPI,
+        public static Task AddTelegramNotification(this HTTPExtAPI           HTTPExtAPI,
                                                    User                     User,
                                                    NotificationMessageType  NotificationMessageType,
                                                    String                   Username,
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region GetTelegramNotifications(this HTTPExtAPI, User,         params NotificationMessageTypes)
 
-        public static IEnumerable<TelegramNotification> GetTelegramNotifications(this HTTPExtAPI                     HTTPExtAPI,
+        public static IEnumerable<TelegramNotification> GetTelegramNotifications(this HTTPExtAPI                    HTTPExtAPI,
                                                                                  User                              User,
                                                                                  params NotificationMessageType[]  NotificationMessageTypes)
 
@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region GetTelegramNotifications(this HTTPExtAPI, Organization, params NotificationMessageTypes)
 
-        public static IEnumerable<TelegramNotification> GetTelegramNotifications(this HTTPExtAPI                     HTTPExtAPI,
+        public static IEnumerable<TelegramNotification> GetTelegramNotifications(this HTTPExtAPI                    HTTPExtAPI,
                                                                                  Organization                      Organization,
                                                                                  params NotificationMessageType[]  NotificationMessageTypes)
 
@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region GetTelegramNotifications(this HTTPExtAPI, UserGroup,    params NotificationMessageTypes)
 
-        public static IEnumerable<TelegramNotification> GetTelegramNotifications(this HTTPExtAPI                     HTTPExtAPI,
+        public static IEnumerable<TelegramNotification> GetTelegramNotifications(this HTTPExtAPI                    HTTPExtAPI,
                                                                                  UserGroup                         UserGroup,
                                                                                  params NotificationMessageType[]  NotificationMessageTypes)
 

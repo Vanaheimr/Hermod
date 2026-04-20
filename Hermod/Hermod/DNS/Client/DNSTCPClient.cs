@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// A DNS TCP client for a single DNS server.
     /// Requests will be pipelined when the server supports it.
     /// </summary>
-    public class DNSTCPClient : ATCPTestClient,
+    public class DNSTCPClient : ATCPClient,
                                 IDNSClient2
     {
 
