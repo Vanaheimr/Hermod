@@ -24,10 +24,11 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.TLS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 {
 
     /// <summary>
@@ -80,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         public DomainName                  RemoteHost               { get; }
 
-        public DNSServiceName                  ServiceName              { get; }
+        public DNSServiceName              ServiceName              { get; }
 
         public IPPort                      RemotePort               { get; }
 
@@ -133,25 +134,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         public X509CertificateCollection?  TLSClientCertificates    { get; }
 
+        public RemoteTLSServerCertificateValidationHandler<TCPClient_old>?  RemoteCertificateValidator    { get; }
+
         #endregion
 
         #region Events
 
-        #region Connected
-
         public delegate void TCPConnectedDelegate(Object Sender, DomainName DNSName, IPSocket IPSocket);
 
         public event TCPConnectedDelegate Connected;
-
-        #endregion
-
-        #region ValidateRemoteCertificate
-
-        public delegate Boolean ValidateRemoteCertificateDelegate(TCPClient_old Sender, X509Certificate? Certificate, X509Chain? CertificateChain, SslPolicyErrors PolicyErrors);
-
-        public event ValidateRemoteCertificateDelegate? ValidateServerCertificate;
-
-        #endregion
 
         #endregion
 
@@ -164,20 +155,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient_old(IIPAddress                          IPAddress,
-                         IPPort                              RemotePort,
-                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
-                         TimeSpan?                           ConnectionTimeout           = null,
-                         Boolean                             AutoConnect                 = false)
+        public TCPClient_old(IIPAddress                                                   IPAddress,
+                             IPPort                                                       RemotePort,
+                             TLSUsage                                                     UseTLS                       = TLSUsage.STARTTLS,
+                             RemoteTLSServerCertificateValidationHandler<TCPClient_old>?  RemoteCertificateValidator   = null,
+                             TimeSpan?                                                    ConnectionTimeout            = null,
+                             Boolean                                                      AutoConnect                  = false)
         {
 
-            this.RemotePort                 = RemotePort;
-            this.UseTLS                     = UseTLS;
-            this.ValidateServerCertificate  = ValidateServerCertificate;
-            this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this.DNSClient                  = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
-                                                                                 SearchForIPv6DNSServers: this.UseIPv6);
+            this.RemotePort                  = RemotePort;
+            this.UseTLS                      = UseTLS;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this._ConnectionTimeout          = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
+            this.DNSClient                   = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+                                                                                  SearchForIPv6DNSServers: this.UseIPv6);
 
             this._IPSocketList               = [ new IPSocket(IPAddress, RemotePort) ];
 
@@ -201,30 +192,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient_old(DomainName                          RemoteHost,
-                         DNSServiceName                      ServiceName,
-                         Boolean                             UseIPv4                     = true,
-                         Boolean                             UseIPv6                     = false,
-                         Boolean                             PreferIPv6                  = false,
-                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
-                         TimeSpan?                           ConnectionTimeout           = null,
-                         IDNSClient?                         DNSClient                   = null,
-                         Boolean                             AutoConnect                 = false)
+        public TCPClient_old(DomainName                                                   RemoteHost,
+                             DNSServiceName                                               ServiceName,
+                             Boolean                                                      UseIPv4                      = true,
+                             Boolean                                                      UseIPv6                      = false,
+                             Boolean                                                      PreferIPv6                   = false,
+                             TLSUsage                                                     UseTLS                       = TLSUsage.STARTTLS,
+                             RemoteTLSServerCertificateValidationHandler<TCPClient_old>?  RemoteCertificateValidator   = null,
+                             TimeSpan?                                                    ConnectionTimeout            = null,
+                             IDNSClient?                                                  DNSClient                    = null,
+                             Boolean                                                      AutoConnect                  = false)
         {
 
-            this.RemoteHost                 = RemoteHost;
-            this.ServiceName                = ServiceName;
-            this.UseIPv4                    = UseIPv4;
-            this.UseIPv6                    = UseIPv6;
-            this.PreferIPv6                 = PreferIPv6;
-            this.UseTLS                     = UseTLS;
-            this.ValidateServerCertificate  = ValidateServerCertificate;
-            this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this.DNSClient                  = DNSClient         ?? new DNSClient(
-                                                                       SearchForIPv4DNSServers: this.UseIPv4,
-                                                                       SearchForIPv6DNSServers: this.UseIPv6
-                                                                   );
+            this.RemoteHost                  = RemoteHost;
+            this.ServiceName                 = ServiceName;
+            this.UseIPv4                     = UseIPv4;
+            this.UseIPv6                     = UseIPv6;
+            this.PreferIPv6                  = PreferIPv6;
+            this.UseTLS                      = UseTLS;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this._ConnectionTimeout          = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
+            this.DNSClient                   = DNSClient         ?? new DNSClient(
+                                                                        SearchForIPv4DNSServers: this.UseIPv4,
+                                                                        SearchForIPv6DNSServers: this.UseIPv6
+                                                                    );
 
             this._IPSocketList              = [];
 
@@ -257,30 +248,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
-        public TCPClient_old(DomainName                          RemoteHost,
-                         IPPort                              RemotePort,
-                         Boolean                             UseIPv4                     = true,
-                         Boolean                             UseIPv6                     = false,
-                         Boolean                             PreferIPv6                  = false,
-                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
-                         TimeSpan?                           ConnectionTimeout           = null,
-                         IDNSClient?                         DNSClient                   = null,
-                         Boolean                             AutoConnect                 = false,
-                         CancellationToken?                  CancellationToken           = null)
+        public TCPClient_old(DomainName                                                   RemoteHost,
+                             IPPort                                                       RemotePort,
+                             Boolean                                                      UseIPv4                      = true,
+                             Boolean                                                      UseIPv6                      = false,
+                             Boolean                                                      PreferIPv6                   = false,
+                             TLSUsage                                                     UseTLS                       = TLSUsage.STARTTLS,
+                             RemoteTLSServerCertificateValidationHandler<TCPClient_old>?  RemoteCertificateValidator   = null,
+                             TimeSpan?                                                    ConnectionTimeout            = null,
+                             IDNSClient?                                                  DNSClient                    = null,
+                             Boolean                                                      AutoConnect                  = false,
+                             CancellationToken?                                           CancellationToken            = null)
         {
 
-            this.RemoteHost                 = RemoteHost;
-            this.RemotePort                 = RemotePort;
-            this.CancellationToken          = CancellationToken is not null ? CancellationToken : new CancellationToken();
-            this.UseIPv4                    = UseIPv4;
-            this.UseIPv6                    = UseIPv6;
-            this.PreferIPv6                 = PreferIPv6;
-            this.UseTLS                     = UseTLS;
-            this.ValidateServerCertificate  = ValidateServerCertificate ?? ((TCPClient, Certificate, CertificateChain, PolicyErrors) => false);
-            this._ConnectionTimeout         = ConnectionTimeout         ?? TimeSpan.FromSeconds(60);
-            this.DNSClient                  = DNSClient                 ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
-                                                                                         SearchForIPv6DNSServers: this.UseIPv6);
+            this.RemoteHost                  = RemoteHost;
+            this.RemotePort                  = RemotePort;
+            this.CancellationToken           = CancellationToken is not null ? CancellationToken : new CancellationToken();
+            this.UseIPv4                     = UseIPv4;
+            this.UseIPv6                     = UseIPv6;
+            this.PreferIPv6                  = PreferIPv6;
+            this.UseTLS                      = UseTLS;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this._ConnectionTimeout          = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
+            this.DNSClient                   = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+                                                                                  SearchForIPv6DNSServers: this.UseIPv6);
 
             this._IPSocketList              = [];
 
@@ -472,32 +463,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             try
             {
-                TLSStream  = new SslStream(Stream, false, ValidateRemoteCertificate);
-                TLSStream.AuthenticateAsClient(RemoteHost.FullName, TLSClientCertificates, DefaultSslProtocols, true);
-                Stream     = TLSStream;
+
+                TLSStream = new SslStream(
+                                Stream,
+                                false,
+                                RemoteCertificateValidator is not null
+                                    ? (sender,
+                                       certificate,
+                                       certificateChain,
+                                       policyErrors) => RemoteCertificateValidator.Invoke(
+                                                            sender,
+                                                            certificate is not null
+                                                                ? new X509Certificate2(certificate)
+                                                                : null,
+                                                            certificateChain,
+                                                            this,
+                                                            policyErrors
+                                                        ).IsValid
+                                    : null
+                            );
+
+                TLSStream.AuthenticateAsClient(
+                    RemoteHost.FullName,
+                    TLSClientCertificates,
+                    DefaultSslProtocols,
+                    checkCertificateRevocation: true
+                );
+
+                Stream = TLSStream;
+
             }
             catch (Exception e)
             {
                 DebugX.LogT("EnableTLS() failed!" + Environment.NewLine +
                             e.Message);
             }
-
-        }
-
-        #endregion
-
-        #region (private) ValidateRemoteCertificate(Sender, Certificate, Chain, Errors)
-        private Boolean ValidateRemoteCertificate(Object            Sender,
-                                                  X509Certificate?  Certificate,
-                                                  X509Chain?        Chain,
-                                                  SslPolicyErrors   Errors)
-        {
-
-            var ValidateRemoteCertificateLocal = ValidateServerCertificate;
-            if (ValidateRemoteCertificateLocal is not null)
-                return ValidateRemoteCertificateLocal(this, Certificate, Chain, Errors);
-
-            return false;
 
         }
 

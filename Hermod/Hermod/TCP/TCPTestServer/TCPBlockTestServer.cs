@@ -17,8 +17,9 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using System.Buffers;
+
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
 

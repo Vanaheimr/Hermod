@@ -15,8 +15,14 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 {
+
+    public sealed record TCPConnectionResult(Boolean                  Success,
+                                             IReadOnlyList<String>    Errors    = null!,
+                                             TCPClientConnectTimings  Timings   = null!);
+
+
 
     public enum TCPConnectResult
     {

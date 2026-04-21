@@ -23,6 +23,7 @@ using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -36,65 +37,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="RetryCount">The retry counter.</param>
     public delegate TimeSpan TransmissionRetryDelayDelegate(UInt32 RetryCount);
 
-
-    public sealed record TCPConnectionResult(Boolean                  Success,
-                                             IReadOnlyList<String>    Errors    = null!,
-                                             TCPClientConnectTimings  Timings   = null!);
-
-
-    #region (class) TCPClientConnectTimings
-
-    public class TCPClientConnectTimings
-    {
-
-        public TimeSpan               Elapsed
-            => Timestamp.Now - Start;
-
-        public List<Elapsed<String>>  Errors                  { get; }
-
-
-        public DateTimeOffset         Start                   { get; }
-        public TimeSpan?              DNSSRVLookup            { get; internal set; }
-        public TimeSpan?              DNSLookup               { get; internal set; }
-        public TimeSpan?              Connected               { get; internal set; }
-        public TimeSpan?              TLSHandshake            { get; internal set; }
-        public Byte                   RestartCounter          { get; internal set; }
-
-
-        public TCPClientConnectTimings()
-        {
-
-            this.Start         = Timestamp.Now;
-            this.Errors        = [];
-
-        }
-
-
-        public void AddError(String Error)
-        {
-            Errors.Add(new Elapsed<String>(Timestamp.Now - Start, Error));
-        }
-
-
-        public String ErrorsAsString()
-
-            => Errors.Select(elapsed => elapsed.Time.TotalMilliseconds.ToString("F2") + ": " + elapsed.Value).AggregateWith(Environment.NewLine);
-
-
-        public override String ToString()
-
-            => String.Concat(
-                    "Start: ",                Start.                                      ToISO8601(),                             " > ",
-                    "DNS SRV Lookup: ",       DNSSRVLookup?.                              TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "DNS Lookup: ",           DNSLookup?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "Connected: ",            Connected?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "TLSHandshake: ",         TLSHandshake?.                              TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "RestartCounter: ",       RestartCounter - 1,                                                                  " > "
-                );
-
-    }
-
-    #endregion
 
     #region (enum)  IPVersionPreference
 

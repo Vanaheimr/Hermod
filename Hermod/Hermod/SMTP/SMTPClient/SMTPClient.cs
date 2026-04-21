@@ -23,8 +23,9 @@ using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.TLS;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -104,25 +105,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="UseIPv6">Whether to use IPv6 as networking protocol.</param>
         /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
         /// <param name="UseTLS">Whether Transport Layer Security should be used or not.</param>
-        /// <param name="ValidateServerCertificate">A callback for validating the remote server certificate.</param>
+        /// <param name="RemoteCertificateValidator">A callback for validating the remote server certificate.</param>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
-        public SMTPClient(DomainName                          RemoteHost,
-                          IPPort                              RemotePort,
-                          String?                             Login                       = null,
-                          String?                             Password                    = null,
-                          String?                             LocalDomain                 = null,
-                          Boolean                             UseIPv4                     = true,
-                          Boolean                             UseIPv6                     = false,
-                          Boolean                             PreferIPv6                  = false,
-                          TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
-                          ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
-                          TimeSpan?                           ConnectionTimeout           = null,
-                          IDNSClient?                         DNSClient                   = null,
-                          Boolean                             AutoConnect                 = false,
-                          CancellationToken?                  CancellationToken           = null)
+        public SMTPClient(DomainName                                                RemoteHost,
+                          IPPort                                                    RemotePort,
+                          String?                                                   Login                        = null,
+                          String?                                                   Password                     = null,
+                          String?                                                   LocalDomain                  = null,
+                          Boolean                                                   UseIPv4                      = true,
+                          Boolean                                                   UseIPv6                      = false,
+                          Boolean                                                   PreferIPv6                   = false,
+                          TLSUsage                                                  UseTLS                       = TLSUsage.STARTTLS,
+                          RemoteTLSServerCertificateValidationHandler<SMTPClient>?  RemoteCertificateValidator   = null,
+                          TimeSpan?                                                 ConnectionTimeout            = null,
+                          IDNSClient?                                               DNSClient                    = null,
+                          Boolean                                                   AutoConnect                  = false,
+                          CancellationToken?                                        CancellationToken            = null)
 
             : base(RemoteHost,
                    RemotePort,
@@ -130,7 +131,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    UseIPv6,
                    PreferIPv6,
                    UseTLS,
-                   ValidateServerCertificate,
+                   RemoteCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as SMTPClient,
+                                               policyErrors
+                                           )
+                       : null,
                    ConnectionTimeout,
                    DNSClient,
                    AutoConnect,
@@ -141,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.Login               = Login;
             this.Password            = Password;
             this.LocalDomain         = LocalDomain ?? System.Net.Dns.GetHostName();
-            this.UnknownAuthMethods  = new List<String>();
+            this.UnknownAuthMethods  = [];
 
         }
 

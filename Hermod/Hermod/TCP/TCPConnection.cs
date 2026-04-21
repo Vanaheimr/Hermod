@@ -28,10 +28,11 @@ using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 {
 
     public static class TCPClientExtensions
@@ -64,7 +65,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
     }
 
-    public delegate X509Certificate2 ServerCertificateSelectorDelegate(ITCPServer TCPServer, TcpClient TCPClient);
 
     /// <summary>
     /// A TCP connection.

@@ -19,7 +19,6 @@
 
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Security.Authentication;
 
 using Newtonsoft.Json.Linq;
 
@@ -30,8 +29,6 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Passkeys;
 
 #endregion

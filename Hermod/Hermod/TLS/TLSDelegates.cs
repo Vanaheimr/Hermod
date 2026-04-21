@@ -17,13 +17,19 @@
 
 #region Usings
 
+using System.Net.Sockets;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
+
+    public delegate X509Certificate2 ServerCertificateSelectorDelegate(ITCPServer TCPServer, TcpClient TCPClient);
+
 
     /// <summary>
     /// Verifies the remote Transport Layer Security (TLS) certificate used for authentication.

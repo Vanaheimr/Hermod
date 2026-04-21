@@ -26,8 +26,8 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -149,35 +149,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="DefaultAPI"></param>
-        public HTTPTestServerX(IIPAddress?                                               IPAddress                    = null,
-                               IPPort?                                                   TCPPort                      = null,
-                               String?                                                   HTTPServerName               = null,
-                               UInt32?                                                   BufferSize                   = null,
-                               TimeSpan?                                                 ReceiveTimeout               = null,
-                               TimeSpan?                                                 SendTimeout                  = null,
-                               TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+        public HTTPTestServerX(IIPAddress?                                                    IPAddress                    = null,
+                               IPPort?                                                        TCPPort                      = null,
+                               String?                                                        HTTPServerName               = null,
+                               UInt32?                                                        BufferSize                   = null,
+                               TimeSpan?                                                      ReceiveTimeout               = null,
+                               TimeSpan?                                                      SendTimeout                  = null,
+                               TCPEchoLoggingDelegate?                                        LoggingHandler               = null,
 
-                               ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
-                               RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
-                               SslProtocols?                                             AllowedTLSProtocols          = null,
-                               Boolean?                                                  ClientCertificateRequired    = null,
-                               Boolean?                                                  CheckCertificateRevocation   = null,
+                               ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
+                               RemoteTLSClientCertificateValidationHandler<HTTPTestServerX>?  ClientCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
+                               SslProtocols?                                                  AllowedTLSProtocols          = null,
+                               Boolean?                                                       ClientCertificateRequired    = null,
+                               Boolean?                                                       CheckCertificateRevocation   = null,
 
-                               ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
-                               UInt32?                                                   MaxClientConnections         = null,
-                               IDNSClient?                                               DNSClient                    = null,
+                               ConnectionIdBuilder?                                           ConnectionIdBuilder          = null,
+                               UInt32?                                                        MaxClientConnections         = null,
+                               IDNSClient?                                                    DNSClient                    = null,
 
-                               Boolean?                                                  DisableMaintenanceTasks      = false,
-                               TimeSpan?                                                 MaintenanceInitialDelay      = null,
-                               TimeSpan?                                                 MaintenanceEvery             = null,
+                               Boolean?                                                       DisableMaintenanceTasks      = false,
+                               TimeSpan?                                                      MaintenanceInitialDelay      = null,
+                               TimeSpan?                                                      MaintenanceEvery             = null,
 
-                               Boolean?                                                  DisableWardenTasks           = false,
-                               TimeSpan?                                                 WardenInitialDelay           = null,
-                               TimeSpan?                                                 WardenCheckEvery             = null,
+                               Boolean?                                                       DisableWardenTasks           = false,
+                               TimeSpan?                                                      WardenInitialDelay           = null,
+                               TimeSpan?                                                      WardenCheckEvery             = null,
 
-                               HTTPAPI?                                                 DefaultAPI                   = null,
-                               Boolean?                                                  AutoStart                    = false)
+                               HTTPAPI?                                                      DefaultAPI                   = null,
+                               Boolean?                                                       AutoStart                    = false)
 
             : base(IPAddress,
                    TCPPort,
@@ -188,7 +188,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LoggingHandler,
 
                    ServerCertificateSelector,
-                   ClientCertificateValidator,
+                   ClientCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsServer,
+                          policyErrors) => ClientCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsServer as HTTPTestServerX,
+                                               policyErrors
+                                           )
+                       : null,
                    LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
@@ -250,34 +262,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static async Task<HTTPTestServerX>
 
-            StartNew(IIPAddress?                                               IPAddress                    = null,
-                     IPPort?                                                   TCPPort                      = null,
-                     String?                                                   HTTPServerName               = null,
-                     UInt32?                                                   BufferSize                   = null,
-                     TimeSpan?                                                 ReceiveTimeout               = null,
-                     TimeSpan?                                                 SendTimeout                  = null,
-                     TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+            StartNew(IIPAddress?                                                    IPAddress                    = null,
+                     IPPort?                                                        TCPPort                      = null,
+                     String?                                                        HTTPServerName               = null,
+                     UInt32?                                                        BufferSize                   = null,
+                     TimeSpan?                                                      ReceiveTimeout               = null,
+                     TimeSpan?                                                      SendTimeout                  = null,
+                     TCPEchoLoggingDelegate?                                        LoggingHandler               = null,
 
-                     ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
-                     RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
-                     LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
-                     SslProtocols?                                             AllowedTLSProtocols          = null,
-                     Boolean?                                                  ClientCertificateRequired    = null,
-                     Boolean?                                                  CheckCertificateRevocation   = null,
+                     ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
+                     RemoteTLSClientCertificateValidationHandler<HTTPTestServerX>?  ClientCertificateValidator   = null,
+                     LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
+                     SslProtocols?                                                  AllowedTLSProtocols          = null,
+                     Boolean?                                                       ClientCertificateRequired    = null,
+                     Boolean?                                                       CheckCertificateRevocation   = null,
 
-                     ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
-                     UInt32?                                                   MaxClientConnections         = null,
-                     IDNSClient?                                               DNSClient                    = null,
+                     ConnectionIdBuilder?                                           ConnectionIdBuilder          = null,
+                     UInt32?                                                        MaxClientConnections         = null,
+                     IDNSClient?                                                    DNSClient                    = null,
 
-                     Boolean?                                                  DisableMaintenanceTasks      = false,
-                     TimeSpan?                                                 MaintenanceInitialDelay      = null,
-                     TimeSpan?                                                 MaintenanceEvery             = null,
+                     Boolean?                                                       DisableMaintenanceTasks      = false,
+                     TimeSpan?                                                      MaintenanceInitialDelay      = null,
+                     TimeSpan?                                                      MaintenanceEvery             = null,
 
-                     Boolean?                                                  DisableWardenTasks           = false,
-                     TimeSpan?                                                 WardenInitialDelay           = null,
-                     TimeSpan?                                                 WardenCheckEvery             = null,
+                     Boolean?                                                       DisableWardenTasks           = false,
+                     TimeSpan?                                                      WardenInitialDelay           = null,
+                     TimeSpan?                                                      WardenCheckEvery             = null,
 
-                     HTTPAPI?                                                 DefaultAPI                   = null)
+                     HTTPAPI?                                                      DefaultAPI                   = null)
 
         {
 

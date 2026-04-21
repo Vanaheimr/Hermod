@@ -17,12 +17,8 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Diagnostics;
-
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
 

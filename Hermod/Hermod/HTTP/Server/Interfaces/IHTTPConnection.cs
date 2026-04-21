@@ -22,7 +22,7 @@
 //using System.Net;
 //using System.Net.Sockets;
 
-//using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+//using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 //#endregion
 

@@ -27,8 +27,8 @@ using System.Runtime.CompilerServices;
 using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Warden;
 
 #endregion
@@ -859,16 +859,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             await LogEvent(
-                          OnTCPConnectionClosed,
-                          loggingDelegate => loggingDelegate.Invoke(
-                              this,
-                              DateTimeOffset.UtcNow,
-                              EventTrackingId,
-                              RemoteSocket,
-                              ConnectionId,
-                              ClosedBy
-                          )
-                      );
+                      OnTCPConnectionClosed,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          this,
+                          DateTimeOffset.UtcNow,
+                          EventTrackingId,
+                          RemoteSocket,
+                          ConnectionId,
+                          ClosedBy
+                      )
+                  );
 
         }
 
