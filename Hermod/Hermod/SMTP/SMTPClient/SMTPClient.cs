@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <summary>
     /// A SMTP client for sending e-mails.
     /// </summary>
-    public class SMTPClient : TCPClient, ISMTPClient
+    public class SMTPClient : TCPClient_old, ISMTPClient
     {
 
         #region Data

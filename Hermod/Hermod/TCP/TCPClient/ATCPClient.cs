@@ -394,8 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteURL   = URL;
-            this.DNSService  = DNSService;
+            this.RemoteURL = URL;
 
         }
 

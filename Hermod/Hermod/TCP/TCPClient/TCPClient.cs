@@ -17,499 +17,326 @@
 
 #region Usings
 
-using System.Net.Sockets;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Diagnostics;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod
 {
-
-    /// <summary>
-    /// Extension methods for sockets.
-    /// </summary>
-    public static class SocketExtensions
-    {
-
-        #region Poll(this Socket, Mode, CancellationToken)
-
-        public static void Poll(this Socket        Socket,
-                                SelectMode         Mode,
-                                CancellationToken  CancellationToken)
-        {
-
-            if (!CancellationToken.CanBeCanceled)
-                return;
-
-            if (Socket is not null)
-            {
-                do
-                {
-                    CancellationToken.ThrowIfCancellationRequested();
-                } while (!Socket.Poll(1000, Mode));
-            }
-
-            else
-                CancellationToken.ThrowIfCancellationRequested();
-
-        }
-
-        #endregion
-
-    }
 
     /// <summary>
     /// A TCP client.
     /// </summary>
-    public class TCPClient
+    public class TCPClient : ATCPClient
     {
-
-        #region Data
-
-        private readonly List<IPSocket>  _IPSocketList;
-        public const     SslProtocols    DefaultSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-
-        #endregion
-
-        #region Properties
-
-        public DomainName                  RemoteHost               { get; }
-
-        public DNSServiceName                  ServiceName              { get; }
-
-        public IPPort                      RemotePort               { get; }
-
-        public IEnumerable<IPSocket>       IPSocketList
-            => _IPSocketList;
-
-        public IPSocket                    CurrentIPSocket          { get; private set; }
-
-        public Boolean                     UseIPv4                  { get; }
-
-        public Boolean                     UseIPv6                  { get; }
-
-        public Boolean                     PreferIPv6               { get; }
-
-        public TLSUsage                    UseTLS                   { get; }
-
-        #region ConnectionTimeout
-
-        private TimeSpan _ConnectionTimeout;
-
-        public TimeSpan ConnectionTimeout
-        {
-
-            get
-            {
-                return _ConnectionTimeout;
-            }
-
-            set
-            {
-                _ConnectionTimeout = value;
-                // Change DNSClient!
-            }
-
-        }
-
-        #endregion
-
-        public IDNSClient?                 DNSClient                { get; }
-
-        public CancellationToken?          CancellationToken        { get; private set; }
-
-        public Socket?                     TCPSocket                { get; private set; }
-
-        public Stream?                     Stream                   { get; private set; }
-
-        public NetworkStream?              TCPStream                { get; private set; }
-
-        public SslStream?                  TLSStream                { get; private set; }
-
-        public X509CertificateCollection?  TLSClientCertificates    { get; }
-
-        #endregion
-
-        #region Events
-
-        #region Connected
-
-        public delegate void TCPConnectedDelegate(Object Sender, DomainName DNSName, IPSocket IPSocket);
-
-        public event TCPConnectedDelegate Connected;
-
-        #endregion
-
-        #region ValidateRemoteCertificate
-
-        public delegate Boolean ValidateRemoteCertificateDelegate(TCPClient Sender, X509Certificate? Certificate, X509Chain? CertificateChain, SslPolicyErrors PolicyErrors);
-
-        public event ValidateRemoteCertificateDelegate? ValidateServerCertificate;
-
-        #endregion
-
-        #endregion
 
         #region Constructor(s)
 
-        #region TCPClient(IPAddress, AutoConnect = false)
+        #region (protected) ATCPClient(IPAddress,  TCPPort,           ...)
+
+        public TCPClient(IIPAddress                       IPAddress,
+                             IPPort                           TCPPort,
+                             I18NString?                      Description              = null,
+
+                             IPVersionPreference?             PreferIPv4               = null,
+                             TimeSpan?                        ConnectTimeout           = null,
+                             TimeSpan?                        ReceiveTimeout           = null,
+                             TimeSpan?                        SendTimeout              = null,
+                             TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                             UInt16?                          MaxNumberOfRetries       = null,
+                             UInt32?                          BufferSize               = null,
+                             Boolean?                         DisableLogging           = null
+                             // String?                         LoggingPath              = null,
+                             // String?                         LoggingContext           = Logger.DefaultContext,
+                             // LogfileCreatorDelegate?         LogfileCreator           = null
+                             )
+
+            : base(IPAddress,
+                   TCPPort,
+                   Description,
+
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   BufferSize,
+                   DisableLogging)
+
+        { }
+
+        #endregion
+
+        #region (protected) ATCPClient(URL, ...)
+
+        public TCPClient(URL                              URL,
+                             I18NString?                      Description              = null,
+
+                             IPVersionPreference?             PreferIPv4               = null,
+                             TimeSpan?                        ConnectTimeout           = null,
+                             TimeSpan?                        ReceiveTimeout           = null,
+                             TimeSpan?                        SendTimeout              = null,
+                             TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                             UInt16?                          MaxNumberOfRetries       = null,
+                             UInt32?                          BufferSize               = null,
+                             Boolean?                         DisableLogging           = null,
+                             // String?                         LoggingPath              = null,
+                             // String?                         LoggingContext           = Logger.DefaultContext,
+                             // LogfileCreatorDelegate?         LogfileCreator           = null,
+                             IDNSClient?                      DNSClient                = null)
+
+            : base(URL,
+                   Description,
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   BufferSize,
+                   DisableLogging,
+                   DNSClient)
+
+        { }
+
+        #endregion
+
+        #region (protected) ATCPClient(DomainName, DNSService,        ...)
+
+        public TCPClient(DomainName                       DomainName,
+                             SRV_Spec                         DNSService,
+                             I18NString?                      Description              = null,
+
+                             IPVersionPreference?             PreferIPv4               = null,
+                             TimeSpan?                        ConnectTimeout           = null,
+                             TimeSpan?                        ReceiveTimeout           = null,
+                             TimeSpan?                        SendTimeout              = null,
+                             TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                             UInt16?                          MaxNumberOfRetries       = null,
+                             UInt32?                          BufferSize               = null,
+                             Boolean?                         DisableLogging           = null,
+                             // String?                         LoggingPath              = null,
+                             // String?                         LoggingContext           = Logger.DefaultContext,
+                             // LogfileCreatorDelegate?         LogfileCreator           = null,
+                             IDNSClient?                      DNSClient                = null)
+
+            : base(DomainName,
+                   DNSService,
+                   Description,
+                   PreferIPv4,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   BufferSize,
+                   DisableLogging,
+                   DNSClient)
+
+        { }
+
+        #endregion
+
+        #endregion
+
+
+        #region ConnectNew (         TCPPort, ConnectTimeout = null, ReceiveTimeout = null, SendTimeout = null, BufferSize = null, LoggingHandler = null)
 
         /// <summary>
-        /// Create a new TCPClient connecting to a remote service using an IP address.
+        /// Create a new EchoTestClient and connect to the given address and TCP port.
         /// </summary>
-        /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
-        /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient(IIPAddress                          IPAddress,
-                         IPPort                              RemotePort,
-                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
-                         TimeSpan?                           ConnectionTimeout           = null,
-                         Boolean                             AutoConnect                 = false)
-        {
+        /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        public static async Task<TCPClient>
 
-            this.RemotePort                 = RemotePort;
-            this.UseTLS                     = UseTLS;
-            this.ValidateServerCertificate  = ValidateServerCertificate;
-            this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this.DNSClient                  = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
-                                                                                 SearchForIPv6DNSServers: this.UseIPv6);
+            ConnectNew(IPPort                           TCPPort,
+                       I18NString?                      Description              = null,
 
-            this._IPSocketList               = [ new IPSocket(IPAddress, RemotePort) ];
+                       IPVersionPreference?             PreferIPv4               = null,
+                       TimeSpan?                        ConnectTimeout           = null,
+                       TimeSpan?                        ReceiveTimeout           = null,
+                       TimeSpan?                        SendTimeout              = null,
+                       UInt32?                          BufferSize               = null,
+                       TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                       UInt16?                          MaxNumberOfRetries       = null)
 
-            if (AutoConnect)
-                Connect();
+                => await ConnectNew(
+                             IPvXAddress.Localhost,
+                             TCPPort,
+                             Description,
 
-        }
+                             PreferIPv4,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
+                             BufferSize
+                         );
 
         #endregion
 
-        #region TCPClient(DNSName = null, ServiceName = "", ConnectionTimeout = null, DNSClient = null, AutoConnect = false)
+        #region ConnectNew (Address, TCPPort, ConnectTimeout = null, ReceiveTimeout = null, SendTimeout = null, BufferSize = null, LoggingHandler = null)
 
         /// <summary>
-        /// Create a new TCPClient connecting to a remote service using DNS SRV records.
+        /// Create a new EchoTestClient and connect to the given address and TCP port.
         /// </summary>
-        /// <param name="RemoteHost">The optional DNS name of the remote service to connect to.</param>
-        /// <param name="ServiceName">The optional DNS SRV service name of the remote service to connect to.</param>
-        /// <param name="UseIPv4">Whether to use IPv4 as networking protocol.</param>
-        /// <param name="UseIPv6">Whether to use IPv6 as networking protocol.</param>
-        /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
-        /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
-        /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
-        /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient(DomainName                          RemoteHost,
-                         DNSServiceName                      ServiceName,
-                         Boolean                             UseIPv4                     = true,
-                         Boolean                             UseIPv6                     = false,
-                         Boolean                             PreferIPv6                  = false,
-                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
-                         TimeSpan?                           ConnectionTimeout           = null,
-                         IDNSClient?                         DNSClient                   = null,
-                         Boolean                             AutoConnect                 = false)
+        /// <param name="IPAddress">The IP address to connect to.</param>
+        /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        public static async Task<TCPClient>
+
+            ConnectNew(IIPAddress                       IPAddress,
+                       IPPort                           TCPPort,
+                       I18NString?                      Description              = null,
+
+                       IPVersionPreference?             PreferIPv4               = null,
+                       TimeSpan?                        ConnectTimeout           = null,
+                       TimeSpan?                        ReceiveTimeout           = null,
+                       TimeSpan?                        SendTimeout              = null,
+                       TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                       UInt16?                          MaxNumberOfRetries       = null,
+                       UInt32?                          BufferSize               = null)
+
         {
 
-            this.RemoteHost                 = RemoteHost;
-            this.ServiceName                = ServiceName;
-            this.UseIPv4                    = UseIPv4;
-            this.UseIPv6                    = UseIPv6;
-            this.PreferIPv6                 = PreferIPv6;
-            this.UseTLS                     = UseTLS;
-            this.ValidateServerCertificate  = ValidateServerCertificate;
-            this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this.DNSClient                  = DNSClient         ?? new DNSClient(
-                                                                       SearchForIPv4DNSServers: this.UseIPv4,
-                                                                       SearchForIPv6DNSServers: this.UseIPv6
-                                                                   );
+            var client = new TCPClient(
+                             IPAddress,
+                             TCPPort,
+                             Description,
 
-            this._IPSocketList              = [];
+                             PreferIPv4,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
+                             BufferSize
+                         );
 
-            if (IPv4Address.TryParse(this.RemoteHost, out IPv4Address ipv4address))
-                _IPSocketList.Add(new IPSocket(ipv4address, RemotePort));
+            await client.ConnectAsync();
 
-            if (IPv6Address.TryParse(this.RemoteHost, out IPv6Address ipv6address))
-                _IPSocketList.Add(new IPSocket(ipv6address, RemotePort));
-
-            if (AutoConnect)
-                Connect();
+            return client;
 
         }
 
         #endregion
 
-        #region TCPClient(RemoteHost, RemotePort, ...)
+
+        #region ReconnectAsync()
+
+        public async Task ReconnectAsync()
+        {
+            await base.ReconnectAsync().ConfigureAwait(false);
+        }
+
+        #endregion
+
+        #region ConnectAsync()
+
+        public async Task<TCPConnectionResult> ConnectAsync()
+        {
+
+            return await base.ConnectAsync();
+
+        }
+
+        #endregion
+
+
+        #region SendText   (Text)
 
         /// <summary>
-        /// 
+        /// Send the given message to the echo server and receive the echoed response.
         /// </summary>
-        /// <param name="RemoteHost"></param>
-        /// <param name="RemotePort"></param>
-        /// <param name="UseIPv4">Whether to use IPv4 as networking protocol.</param>
-        /// <param name="UseIPv6">Whether to use IPv6 as networking protocol.</param>
-        /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
-        /// <param name="UseTLS">Whether Transport Layer Security should be used or not.</param>
-        /// <param name="ValidateServerCertificate">A callback for validating the remote server certificate.</param>
-        /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
-        /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
-        /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        /// <param name="CancellationToken"></param>
-        public TCPClient(DomainName                          RemoteHost,
-                         IPPort                              RemotePort,
-                         Boolean                             UseIPv4                     = true,
-                         Boolean                             UseIPv6                     = false,
-                         Boolean                             PreferIPv6                  = false,
-                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
-                         TimeSpan?                           ConnectionTimeout           = null,
-                         IDNSClient?                         DNSClient                   = null,
-                         Boolean                             AutoConnect                 = false,
-                         CancellationToken?                  CancellationToken           = null)
+        /// <param name="Text">The text message to send and echo.</param>
+        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        public async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
         {
 
-            this.RemoteHost                 = RemoteHost;
-            this.RemotePort                 = RemotePort;
-            this.CancellationToken          = CancellationToken is not null ? CancellationToken : new CancellationToken();
-            this.UseIPv4                    = UseIPv4;
-            this.UseIPv6                    = UseIPv6;
-            this.PreferIPv6                 = PreferIPv6;
-            this.UseTLS                     = UseTLS;
-            this.ValidateServerCertificate  = ValidateServerCertificate ?? ((TCPClient, Certificate, CertificateChain, PolicyErrors) => false);
-            this._ConnectionTimeout         = ConnectionTimeout         ?? TimeSpan.FromSeconds(60);
-            this.DNSClient                  = DNSClient                 ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
-                                                                                         SearchForIPv6DNSServers: this.UseIPv6);
+            var response  = await SendBinary(Encoding.UTF8.GetBytes(Text));
+            var text      = Encoding.UTF8.GetString(response.Item2, 0, response.Item2.Length);
 
-            this._IPSocketList              = [];
-
-            if (IPv4Address.TryParse(RemoteHost, out IPv4Address ipv4address))
-                _IPSocketList.Add(new IPSocket(ipv4address, RemotePort));
-
-            if (IPv6Address.TryParse(RemoteHost, out IPv6Address ipv6address))
-                _IPSocketList.Add(new IPSocket(ipv6address, RemotePort));
-
-            if (AutoConnect)
-                Connect();
+            return (response.Item1,
+                    text,
+                    response.Item3,
+                    response.Item4);
 
         }
 
         #endregion
 
-        #endregion
+        #region SendBinary (Bytes)
 
-
-        #region (private) QueryDNS()
-
-        private async Task QueryDNS()
-        {
-            if (DNSClient is not null)
-            {
-
-                foreach (var socket in (await DNSClient.Query<A>   (RemoteHost)).FilteredAnswers.SafeSelect(ARecord => new IPSocket(ARecord.IPv4Address, RemotePort)))
-                    _IPSocketList.Add(socket);
-
-                foreach (var socket in (await DNSClient.Query<AAAA>(RemoteHost)).FilteredAnswers.SafeSelect(ARecord => new IPSocket(ARecord.IPv6Address, RemotePort)))
-                    _IPSocketList.Add(socket);
-
-            }
-        }
-
-        #endregion
-
-        #region (private) CreateAndConnectTCPSocket(_IPAddress, Port)
-
-        private Socket CreateAndConnectTCPSocket(IIPAddress ipAddress, IPPort Port)
+        /// <summary>
+        /// Send the given bytes to the echo server and receive the echoed response.
+        /// </summary>
+        /// <param name="Bytes">The bytes to send and echo.</param>
+        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        public async Task<(Boolean, Byte[], String?, TimeSpan)> SendBinary(Byte[] Bytes)
         {
 
-            Socket tcpSocket;
-
-            if      (ipAddress is IPv4Address)
-                tcpSocket = new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp);
-
-            else if (ipAddress is IPv6Address)
-                tcpSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
-
-            else
-                throw new Exception("IP address '" + ipAddress.ToString() + "' is invalid!");
-
-            tcpSocket.Connect(System.Net.IPAddress.Parse(ipAddress.ToString()), Port.ToUInt16());
-
-            return tcpSocket;
-
-        }
-
-        #endregion
-
-        #region Connect()
-
-        public TCPConnectResult Connect()
-        {
-
-            // if already connected => return!
-
-            // If an ip address was given, this list will be pre-populated!
-            var UseDNS  = _IPSocketList.Count == 0;
-            var retry   = 0;
-
-            do
-            {
-
-                if (UseDNS)
-                    QueryDNS().Wait();
-
-                if (_IPSocketList.Count == 0)
-                    return TCPConnectResult.NoIPAddressFound;
-
-                foreach (var ipSocket in _IPSocketList)
-                {
-
-                    CurrentIPSocket = ipSocket;
-
-                    #region Close previous streams and sockets...
-
-                    try
-                    {
-
-                        if (TCPStream is not null)
-                        {
-                            TCPStream.Close();
-                            TCPStream = null;
-                        }
-
-                    }
-                    catch
-                    { }
-
-                    try
-                    {
-
-                        if (TLSStream is not null)
-                        {
-                            TLSStream.Close();
-                            TLSStream = null;
-                        }
-
-                    }
-                    catch
-                    { }
-
-                    Stream = null;
-
-                    try
-                    {
-
-                        if (TCPSocket is not null)
-                        {
-                            TCPSocket.Close();
-                            TCPSocket = null;
-                        }
-
-                    }
-                    catch
-                    { }
-
-                    #endregion
-
-                    try
-                    {
-
-                        TCPSocket  = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
-                        TCPStream = new NetworkStream(TCPSocket, true);// {
-                        //    ReadTimeout = 5000
-                        //};
-                        Stream     = TCPStream;
-
-                        if (UseTLS == TLSUsage.TLSSocket)
-                            EnableTLS();
-
-                        Connected?.Invoke(this,
-                                          RemoteHost,
-                                          CurrentIPSocket);
-
-                        return TCPConnectResult.Ok;
-
-                    }
-                    catch (Exception e)
-                    {
-
-                        DebugX.LogT("TCP client reconnect failed!" + Environment.NewLine +
-                                    e.Message);
-
-                        Stream     = null;
-                        TCPStream  = null;
-                        TLSStream  = null;
-                        TCPSocket  = null;
-
-                    }
-
-                }
-
-                retry++;
-
-                if (UseDNS)
-                    _IPSocketList.Clear();
-
-                Thread.Sleep(5000);
-
-            } while (retry < 2);
-
-            return TCPConnectResult.UnknownError;
-
-        }
-
-        #endregion
-
-
-        #region (protected) EnableTLS()
-
-        protected void EnableTLS()
-        {
-
-            if (Stream is null)
-                throw new Exception("Cannot enable TLS on a null stream!");
+            if (!IsConnected || tcpClient is null)
+                return (false, Array.Empty<Byte>(), "Client is not connected.", TimeSpan.Zero);
 
             try
             {
-                TLSStream  = new SslStream(Stream, false, ValidateRemoteCertificate);
-                TLSStream.AuthenticateAsClient(RemoteHost.FullName, TLSClientCertificates, DefaultSslProtocols, true);
-                Stream     = TLSStream;
+
+                var stopwatch   = Stopwatch.StartNew();
+                var stream      = tcpClient.GetStream();
+                clientCancellationTokenSource           ??= new CancellationTokenSource();
+
+                // Send the data
+                await stream.WriteAsync(Bytes, clientCancellationTokenSource.Token).ConfigureAwait(false);
+                await stream.FlushAsync(clientCancellationTokenSource.Token).ConfigureAwait(false);
+
+                using var responseStream = new MemoryStream();
+                var buffer     = new Byte[8192];
+                var bytesRead  = 0;
+
+                while ((bytesRead = await stream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false)) > 0)
+                {
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientCancellationTokenSource.Token).ConfigureAwait(false);
+                }
+
+                stopwatch.Stop();
+
+                return (true, responseStream.ToArray(), null, stopwatch.Elapsed);
+
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                DebugX.LogT("EnableTLS() failed!" + Environment.NewLine +
-                            e.Message);
+                await Log($"Error in SendBinary: {ex.Message}");
+                return (false, Array.Empty<Byte>(), ex.Message, TimeSpan.Zero);
             }
 
         }
 
         #endregion
 
-        #region (private) ValidateRemoteCertificate(Sender, Certificate, Chain, Errors)
-        private Boolean ValidateRemoteCertificate(Object            Sender,
-                                                  X509Certificate?  Certificate,
-                                                  X509Chain?        Chain,
-                                                  SslPolicyErrors   Errors)
-        {
 
-            var ValidateRemoteCertificateLocal = ValidateServerCertificate;
-            if (ValidateRemoteCertificateLocal is not null)
-                return ValidateRemoteCertificateLocal(this, Certificate, Chain, Errors);
+        #region (override) ToString()
 
-            return false;
+        /// <summary>
+        /// Returns a text representation of this object.
+        /// </summary>
+        public override string ToString()
 
-        }
-
-        #endregion
-
-
-        #region Disconnect()
-
-        public TCPDisconnectResult Disconnect()
-        {
-            return TCPDisconnectResult.Ok;
-        }
+            => $"{nameof(TCPClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
 
         #endregion
 
