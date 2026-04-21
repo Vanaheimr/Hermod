@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
     public delegate Task HTTPRequestLogHandler(DateTimeOffset  Timestamp,
-                                               HTTPAPI        HTTPAPI,
+                                               HTTPAPI         HTTPAPI,
                                                HTTPRequest     Request);
 
 
@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
     public delegate Task HTTPRequestLogHandlerX(DateTimeOffset     Timestamp,
-                                                HTTPAPI           HTTPAPI,
+                                                HTTPAPI            HTTPAPI,
                                                 HTTPRequest        Request,
                                                 CancellationToken  CancellationToken);
 
