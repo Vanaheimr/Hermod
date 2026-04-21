@@ -407,6 +407,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                                                                             remoteCertificateValidationErrors = [.. result.Errors];
 
+                                                                                            DebugX.LogT(certificate?.Subject ?? "<nocert!>");
+
                                                                                             return result.IsValid;
 
                                                                                         }

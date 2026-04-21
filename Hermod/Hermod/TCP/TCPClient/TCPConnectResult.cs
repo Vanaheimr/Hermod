@@ -28,6 +28,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
     {
 
         public Boolean                   IsSuccess    { get; }
+
+        public Boolean                   IsFailure
+            => !IsSuccess;
+
         public IEnumerable<Error>        Errors       { get; }
         public TCPClientConnectTimings?  Timings      { get; }
 

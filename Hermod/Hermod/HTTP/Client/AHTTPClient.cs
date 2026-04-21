@@ -473,7 +473,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 IsHTTPConnected = false;
 
-                return await base.ReconnectAsync(CancellationToken);
+                var tcpConnectionResult = await base.ReconnectAsync(CancellationToken);
+
+                if (tcpConnectionResult.IsFailure)
+                    return tcpConnectionResult;
+
+                httpStream = tcpClient?.GetStream();
+
+                if (EnforceTLS ||
+                    RemoteURL.Protocol.EnforcesTLS() == true)
+                {
+
+                    if (tlsStream is null || tlsStream.IsAuthenticated == false)
+                        return TCPConnectionResult.Failed("TLS Authentication failed!");
+
+                    httpStream = tlsStream;
+
+                }
+
+                IsHTTPConnected        = true;
+                KeepAliveMessageCount  = 0;
+
+                return tcpConnectionResult;
 
             }
             catch (Exception e)
@@ -484,9 +505,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (e.StackTrace is not null)
                     await Log(e.StackTrace);
 
-            }
+                return TCPConnectionResult.Failed("Reconnection failed!");
 
-            return TCPConnectionResult.Failed("Reconnection failed!");
+            }
 
         }
 

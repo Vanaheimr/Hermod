@@ -423,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
             // recreates _cts and tcpClient
-            return await ConnectAsync(CancellationToken);
+            return await ConnectAsync__(CancellationToken);
 
         }
 
@@ -434,6 +434,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected virtual async Task<TCPConnectionResult>
 
             ConnectAsync(CancellationToken CancellationToken = default)
+
+        {
+
+            return await ConnectAsync__(CancellationToken);
+
+        }
+
+        #endregion
+
+
+
+        #region (protected) ConnectAsync(CancellationToken = default)
+
+        private async Task<TCPConnectionResult>
+
+            ConnectAsync__(CancellationToken CancellationToken = default)
 
         {
 
