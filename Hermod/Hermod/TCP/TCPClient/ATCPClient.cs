@@ -574,7 +574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     var remotePort   = RemoteURL.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
-                        return new TCPConnectionResult(false, [ "The remote TCP port must not be null!" ]);
+                        return TCPConnectionResult.Failed("The remote TCP port must not be null!");
 
                     RemotePort     ??= remotePort;
 
@@ -629,7 +629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     catch (OperationCanceledException)
                     {
                         ResolvedIPAddresses.Clear();
-                        return new TCPConnectionResult(false, [ "Connection timeout!" ]);
+                        return TCPConnectionResult.Failed("Connection timeout!");
                     }
                     finally
                     {
@@ -641,7 +641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     if (!tcpClient.Connected)
                     {
                         ResolvedIPAddresses.Clear();
-                        return new TCPConnectionResult(false, [ $"Error connecting {nameof(ATCPClient)}" ]);
+                        return TCPConnectionResult.Failed($"Error connecting {nameof(ATCPClient)}");
                     }
 
                     var localEndpoint = tcpClient.Client.LocalEndPoint;
@@ -663,16 +663,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
 
                 else
-                    return new TCPConnectionResult(false, [ "No valid remote IP address found!" ]);
+                    return TCPConnectionResult.Failed("No valid remote IP address found!");
 
             }
             catch (Exception ex)
             {
                 ResolvedIPAddresses.Clear();
-                return new TCPConnectionResult(false, [ $"Error connecting {nameof(ATCPClient)}: {ex.Message}" ]);
+                return TCPConnectionResult.Failed($"Error connecting {nameof(ATCPClient)}: {ex.Message}");
             }
 
-            return new TCPConnectionResult(true, []);
+            return TCPConnectionResult.Success();
 
         }
 

@@ -23,6 +23,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
 
@@ -344,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        public static async Task<(HTTPSClient?, IReadOnlyList<String>)>
+        public static async Task<(HTTPSClient?, TCPConnectionResult)>
 
             ConnectNew(IPPort                                                    TCPPort,
                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>  RemoteCertificateValidator,
@@ -443,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<(HTTPSClient?, IReadOnlyList<String>)>
+        public static async Task<(HTTPSClient?, TCPConnectionResult)>
 
             ConnectNew(IIPAddress                                                IPAddress,
                        IPPort                                                    TCPPort,
@@ -532,9 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var response = await client.ConnectAsync();
 
-            return response.Success
-                       ? (client, [])
-                       : (null,   response.Errors);
+            return (client, response);
 
         }
 

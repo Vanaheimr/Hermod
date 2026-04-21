@@ -299,10 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
-            return new TCPConnectionResult(
-                       false,
-                       [ $"{nameof(ATLSClient)}.{nameof(ReconnectAsync)} TCP reconnect failed!" ]
-                   );
+            return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(ReconnectAsync)} TCP reconnect failed!");
 
         }
 
@@ -318,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var response = await base.ConnectAsync(CancellationToken);
 
-            if (!response.Success)
+            if (!response.IsSuccess)
                 return response;
 
             return await AfterSuccessfulConnect(response, CancellationToken);
@@ -336,10 +333,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (tcpClient is null)
-                return new TCPConnectionResult(false, [ $"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(tcpClient)} is null!" ]);
+                return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(tcpClient)} is null!");
 
             if (RemoteCertificateValidator is null)
-                return new TCPConnectionResult(false, [ $"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidator)} is null!" ]);
+                return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidator)} is null!");
 
             var remoteCertificateValidationErrors = new List<Error>();
 
@@ -349,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 var tcpStream = tcpClient.GetStream();
 
                 if (tcpStream is null)
-                    return new TCPConnectionResult(false, new List<String>() { $"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!" });
+                    return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!");
 
                 tlsStream = new SslStream(
                                 tcpStream,
@@ -453,11 +450,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (remoteCertificateValidationErrors.Count > 0)
                     errors.AddRange($"Remote Certificate Validation Errors: {remoteCertificateValidationErrors.AggregateWith(", ")}");
 
-                return new TCPConnectionResult(false, errors);
+                return TCPConnectionResult.Failed(errors);
 
             }
 
-            return new TCPConnectionResult(true, []);
+            return TCPConnectionResult.Success();
 
         }
 
@@ -477,7 +474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 var startTLSResult = await StartTLS(CancellationToken);
 
-                if (startTLSResult.Success == false)
+                if (startTLSResult.IsSuccess == false)
                 {
                     ResolvedIPAddress = null;
                     ResolvedIPAddresses.Clear();

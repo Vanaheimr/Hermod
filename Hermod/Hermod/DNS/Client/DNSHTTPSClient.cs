@@ -24,6 +24,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
 
@@ -381,7 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<(DNSHTTPSClient?, IReadOnlyList<String>)>
+        public static async Task<(DNSHTTPSClient?, TCPConnectionResult)>
 
             ConnectNew(IIPAddress                                                 IPAddress,
                        IPPort?                                                    TCPPort                              = null,
@@ -445,9 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var response = await client.ConnectAsync();
 
-            return response.Success
-                       ? (client, [])
-                       : (null,   response.Errors);
+            return (client, response);
 
         }
 
@@ -465,7 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<(DNSHTTPSClient?, IReadOnlyList<String>)>
+        public static async Task<(DNSHTTPSClient?, TCPConnectionResult)>
 
             ConnectNew(URL                                                        URL,
                        SRV_Spec?                                                  DNSService                           = null,
@@ -534,9 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var response = await client.ConnectAsync();
 
-            return response.Success
-                       ? (client, [])
-                       : (null,   response.Errors);
+            return (client, response);
 
         }
 

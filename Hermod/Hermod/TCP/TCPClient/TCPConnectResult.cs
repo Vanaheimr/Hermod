@@ -15,12 +15,67 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 {
 
-    public sealed record TCPConnectionResult(Boolean                  Success,
-                                             IReadOnlyList<String>    Errors    = null!,
-                                             TCPClientConnectTimings  Timings   = null!);
+    public readonly struct TCPConnectionResult
+    {
+
+        public Boolean                   IsSuccess    { get; }
+        public IEnumerable<Error>        Errors       { get; }
+        public TCPClientConnectTimings?  Timings      { get; }
+
+
+        public TCPConnectionResult(Boolean                   IsSuccess,
+                                   IEnumerable<Error>?       Errors    = null,
+                                   TCPClientConnectTimings?  Timings   = null)
+        {
+
+            this.IsSuccess  = IsSuccess;
+            this.Errors     = Errors ?? [];
+            this.Timings    = Timings;
+
+        }
+
+
+        public static TCPConnectionResult Success(TCPClientConnectTimings? Timings = null)
+
+            => new (true,
+                    [],
+                    Timings);
+
+
+        public static TCPConnectionResult Failed(IEnumerable<Error>?       Errors    = null,
+                                                 TCPClientConnectTimings?  Timings   = null)
+
+            => new (false,
+                    Errors,
+                    Timings);
+
+
+        public static TCPConnectionResult Failed(IEnumerable<String>?      ErrorMessages   = null,
+                                                 TCPClientConnectTimings?  Timings         = null)
+
+            => new (false,
+                    ErrorMessages?.Select(errorMessage => Error.Create(errorMessage)) ?? [],
+                    Timings);
+
+
+        public static TCPConnectionResult Failed(String                    ErrorMessage,
+                                                 TCPClientConnectTimings?  Timings   = null)
+
+            => new (false,
+                    [ Error.Create(ErrorMessage) ],
+                    Timings);
+
+
+    }
 
 
 

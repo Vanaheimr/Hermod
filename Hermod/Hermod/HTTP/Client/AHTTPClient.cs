@@ -486,10 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return new TCPConnectionResult(
-                       false,
-                       [ "Reconnection failed!" ]
-                   );
+            return TCPConnectionResult.Failed("Reconnection failed!");
 
         }
 
@@ -505,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var response = await base.ConnectAsync(CancellationToken);
 
-            if (!response.Success)
+            if (!response.IsSuccess)
                 return response;
 
             httpStream = tcpClient?.GetStream();
@@ -515,7 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 if (tlsStream is null || tlsStream.IsAuthenticated == false)
-                    return new TCPConnectionResult(false, [ "TLS Authentication failed!" ]);
+                    return TCPConnectionResult.Failed("TLS Authentication failed!");
 
                 httpStream = tlsStream;
 
@@ -695,9 +692,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                var connectionResult = await ReconnectAsync();
+                                var connectionResult = await ReconnectAsync(CancellationToken);
 
-                                if (!connectionResult.Success)
+                                if (!connectionResult.IsSuccess)
                                 {
                                     await Log($"Error in SendRequest: {connectionResult.Errors.AggregateWith(", ")}");
                                     DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)}: {connectionResult.Errors.AggregateWith(", ")}");
