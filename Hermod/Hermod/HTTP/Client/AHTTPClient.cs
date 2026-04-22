@@ -83,6 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPAuthentication?           HTTPAuthentication                     { get; set; }
         public TOTPConfig?                    TOTPConfig                             { get; set; }
         public ConnectionType?                Connection                             { get;}
+        public TimeSpan                       RequestTimeout                         { get; set; }         = TimeSpan.FromSeconds(10);
 
         public Boolean?                       ConsumeRequestChunkedTEImmediately     { get;}
         public Boolean?                       ConsumeResponseChunkedTEImmediately    { get;}
@@ -104,13 +105,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
-        public HTTPHostname? VirtualHostname => throw new NotImplementedException();
+        public HTTPHostname? VirtualHostname { get; set; }
 
-        public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public Boolean UseHTTPPipelining { get; set; }
 
-        public Boolean UseHTTPPipelining => throw new NotImplementedException();
-
-        public Boolean Connected => throw new NotImplementedException();
+        public Boolean Connected
+            => IsHTTPConnected;
 
         #endregion
 
