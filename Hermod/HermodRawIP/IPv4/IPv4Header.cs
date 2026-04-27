@@ -1,7 +1,6 @@
 ﻿
 
 using org.GraphDefined.Vanaheimr.Hermod;
-using System;
 
 /// <summary>
 /// This is the IPv4 protocol header.
