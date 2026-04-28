@@ -236,9 +236,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                                       HTTPUserAgent,
                                       null,  // Connection
                                       null,  // RequestBuilder
-                                      null,  // ConsumeRequestChunkedTEImmediately
+                                      ConsumeRequestChunkedTEImmediately:  true,
                                   //    RequestLogDelegate,
                                   //    ResponseLogDelegate,
+                                      EventTrackingId,
                                       CancellationToken
                                  );
 
@@ -250,69 +251,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             var httpResponse = await SendRequest(
                                          requestBuilder.AsImmutable,
-                                         ConsumeResponseChunkedTEImmediately,
+                                         true, // ConsumeResponseChunkedTEImmediately,
                                          RequestLogDelegate,
                                          ResponseLogDelegate,
                                          MaxSemaphoreWaitTime,
                                          CancellationToken
                                      );
 
-            //var httpResponse = await Execute(requestBuilder,
-            //                                 RequestLogDelegate,
-            //                                 ResponseLogDelegate,
-
-            //                                 EventTrackingId,
-            //                                 RequestTimeout ?? DefaultRequestTimeout,
-            //                                 NumberOfRetry,
-            //                                 CancellationToken);
-
-
-            if (httpResponse                is not null          &&
-                httpResponse.HTTPStatusCode == HTTPStatusCode.OK &&
-                httpResponse.HTTPBody       is not null          &&
-                httpResponse.HTTPBody.Length > 0)
+            if (httpResponse                     is not null       &&
+                httpResponse.HTTPStatusCode   == HTTPStatusCode.OK &&
+                httpResponse.HTTPBody?.Length  > 0)
             {
 
                 try
                 {
 
-                    var SOAPXML = XDocument.Parse(httpResponse.HTTPBody.ToUTF8String()).
-                                            Root.
-                                            Element((Namespace ?? NS.SOAPEnvelope) + "Body").
-                                            Descendants().
-                                            FirstOrDefault();
+                    var text     = httpResponse.HTTPBodyAsUTF8String;
 
-                    // <S:Fault xmlns:ns4="http://www.w3.org/2003/05/soap-envelope" xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
-                    //   <faultcode>S:Client</faultcode>
-                    //   <faultstring>Validation error: The request message is invalid</faultstring>
-                    //   <detail>
-                    //     <Validation>
-                    //       <Errors>
-                    //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">Value '+45*045*010*0A96296' is not facet-valid with respect to pattern '([A-Za-z]{2}\*?[A-Za-z0-9]{3}\*?E[A-Za-z0-9\*]{1,30})|(\+?[0-9]{1,3}\*[0-9]{3,6}\*[0-9\*]{1,32})' for type 'EvseIDType'.</Error>
-                    //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">The value '+45*045*010*0A96296' of element 'EVSEStatus:EvseId' is not valid.</Error>
-                    //       </Errors>
-                    //       <OriginalDocument>
-                    //         ...
-                    //       </OriginalDocument>
-                    //     </Validation>
-                    //   </detail>
-                    // </S:Fault>
+                    var SOAPXML  = text.IsNotNullOrEmpty()
+                                       ? XDocument.Parse(text)?.
+                                                   Root?.
+                                                   Element((Namespace ?? NS.SOAPEnvelope) + "Body")?.
+                                                   Descendants().
+                                                   FirstOrDefault()
+                                       : null;
 
-                    if (SOAPXML.Name.LocalName != "Fault")
+                    if (SOAPXML is not null)
                     {
 
-                        var OnSuccessLocal = OnSuccess;
-                        if (OnSuccessLocal is not null)
-                            return OnSuccessLocal(new HTTPResponse<XElement>(httpResponse, SOAPXML));
+                        // <S:Fault xmlns:ns4="http://www.w3.org/2003/05/soap-envelope" xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+                        //   <faultcode>S:Client</faultcode>
+                        //   <faultstring>Validation error: The request message is invalid</faultstring>
+                        //   <detail>
+                        //     <Validation>
+                        //       <Errors>
+                        //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">Value '+45*045*010*0A96296' is not facet-valid with respect to pattern '([A-Za-z]{2}\*?[A-Za-z0-9]{3}\*?E[A-Za-z0-9\*]{1,30})|(\+?[0-9]{1,3}\*[0-9]{3,6}\*[0-9\*]{1,32})' for type 'EvseIDType'.</Error>
+                        //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">The value '+45*045*010*0A96296' of element 'EVSEStatus:EvseId' is not valid.</Error>
+                        //       </Errors>
+                        //       <OriginalDocument>
+                        //         ...
+                        //       </OriginalDocument>
+                        //     </Validation>
+                        //   </detail>
+                        // </S:Fault>
+
+                        if (SOAPXML.Name.LocalName != "Fault")
+                        {
+
+                            var onSuccess = OnSuccess;
+                            if (onSuccess is not null)
+                                return onSuccess(
+                                           new HTTPResponse<XElement>(
+                                               httpResponse,
+                                               SOAPXML
+                                           )
+                                       );
+
+                        }
+
+                        var onSOAPFault = OnSOAPFault;
+                        if (onSOAPFault is not null)
+                            return onSOAPFault(
+                                       Timestamp.Now,
+                                       this,
+                                       new HTTPResponse<XElement>(
+                                           httpResponse,
+                                           SOAPXML
+                                       )
+                                   );
 
                     }
 
-                    var OnSOAPFaultLocal = OnSOAPFault;
-                    if (OnSOAPFaultLocal is not null)
-                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
-
-                    return HTTPResponse<XElement>.FromError(httpResponse,
-                                                          new XElement("SOAPFault")) as HTTPResponse<T>;
+                    return HTTPResponse<XElement>.FromError(
+                               httpResponse,
+                               new XElement("SOAPFault")
+                           ) as HTTPResponse<T>;
 
 
                 } catch (Exception e)
@@ -324,8 +337,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     //if (OnFaultLocal is not null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return HTTPResponse<XElement>.FromError(httpResponse,
-                                                          new XElement("exception", e.Message)) as HTTPResponse<T>;
+                    return HTTPResponse<XElement>.FromError(
+                               httpResponse,
+                               new XElement("exception", e.Message)
+                           ) as HTTPResponse<T>;
 
                 }
 
@@ -334,12 +349,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
             else
             {
 
-                var OnHTTPErrorLocal = OnHTTPError;
-                if (OnHTTPErrorLocal is not null)
-                    return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
+                var onHTTPError = OnHTTPError;
+                if (onHTTPError is not null)
+                    return onHTTPError(
+                               Timestamp.Now,
+                               this,
+                               httpResponse
+                           );
 
-                return HTTPResponse<XElement>.FromError(httpResponse,
-                                                      new XElement("HTTPError")) as HTTPResponse<T>;
+                return HTTPResponse<XElement>.FromError(
+                           httpResponse,
+                           new XElement("HTTPError")
+                       ) as HTTPResponse<T>;
 
             }
 
@@ -502,7 +523,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="OnException">The delegate to call whenever an exception occurred.</param>
         /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public async Task<HTTPResponse<T>>
 
             Query<T>(XElement                                                               QueryXML,
@@ -565,102 +585,130 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
          //                            FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
          //                        };
 
-            var requestBuilder = CreateRequest(
+            var requestBuilder  = CreateRequest(
                                       HTTPMethod.POST,
                                       //Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
                                       //FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
                                       URLPathPrefix + RemoteURL.Path,
                                       null,  // QueryString
-                                      AcceptTypes.FromHTTPContentTypes(ContentType ?? this.ContentType ?? new HTTPContentType("application",
-                                                                                                                              "soap+xml",
-                                                                                                                              "utf-8",
-                                                                                                                              null,
-                                                                                                                              null)),
+                                      AcceptTypes.FromHTTPContentTypes(
+                                          ContentType ?? this.ContentType ?? new HTTPContentType(
+                                                                                 "application",
+                                                                                 "soap+xml",
+                                                                                 "utf-8",
+                                                                                 null,
+                                                                                 null
+                                                                             )
+                                      ),
                                       null,  // Authentication
                                       QueryXML.ToUTF8Bytes(),
-                                      ContentType ?? this.ContentType ?? new HTTPContentType("application",
-                                                                                             "soap+xml",
-                                                                                             "utf-8",
-                                                                                             SOAPAction,
-                                                                                             null),
+                                      ContentType ?? this.ContentType ?? new HTTPContentType(
+                                                                             "application",
+                                                                             "soap+xml",
+                                                                             "utf-8",
+                                                                             SOAPAction,
+                                                                             null
+                                                                         ),
                                       HTTPUserAgent,
                                       null,  // Connection
                                       null,  // RequestBuilder
-                                      null,  // ConsumeRequestChunkedTEImmediately
+                                      ConsumeRequestChunkedTEImmediately:  true,
                                   //    RequestLogDelegate,
                                   //    ResponseLogDelegate,
+                                      EventTrackingId,
                                       CancellationToken
                                  );
 
-                // Always send a Content-Length header, even when it's value is zero
-                requestBuilder.SetContentLength(0);
+            // Always send a Content-Length header, even when it's value is zero
+            requestBuilder.SetContentLength(0);
 
-                HTTPRequestBuilder?.Invoke(requestBuilder);
+            HTTPRequestBuilder?.Invoke(requestBuilder);
 
-                var httpResponse = await SendRequest(
-                                             requestBuilder.AsImmutable,
-                                             ConsumeResponseChunkedTEImmediately,
-                                             RequestLogDelegate,
-                                             ResponseLogDelegate,
-                                             MaxSemaphoreWaitTime,
-                                             CancellationToken
-                                         );
+            var httpResponse = await SendRequest(
+                                         requestBuilder.AsImmutable,
+                                         true, //ConsumeResponseChunkedTEImmediately,
+                                         RequestLogDelegate,
+                                         ResponseLogDelegate,
+                                         MaxSemaphoreWaitTime,
+                                         CancellationToken
+                                     );
 
-                                     //           EventTrackingId,
-                                     //           RequestTimeout ?? TimeSpan.FromSeconds(30),// DefaultRequestTimeout,
-                                     //           NumberOfRetry,
-                                     //           CancellationToken);
+                                 //           EventTrackingId,
+                                 //           RequestTimeout ?? TimeSpan.FromSeconds(30),// DefaultRequestTimeout,
+                                 //           NumberOfRetry,
+                                 //           CancellationToken);
 
-
-            if (httpResponse                is not null          &&
-                httpResponse.HTTPStatusCode == HTTPStatusCode.OK &&
-                httpResponse.HTTPBody       is not null          &&
-                httpResponse.HTTPBody.Length > 0)
+            if (httpResponse                    is not null       &&
+                httpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
+                httpResponse.HTTPBody?.Length > 0)
             {
 
                 try
                 {
 
-                    var SOAPXML = XDocument.Parse(httpResponse.HTTPBody.ToUTF8String()).
-                                            Root.
-                                            Element((Namespace ?? NS.SOAPEnvelope) + "Body").
-                                            Descendants().
-                                            FirstOrDefault();
+                    var text     = httpResponse.HTTPBodyAsUTF8String;
 
-                    // <S:Fault xmlns:ns4="http://www.w3.org/2003/05/soap-envelope" xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
-                    //   <faultcode>S:Client</faultcode>
-                    //   <faultstring>Validation error: The request message is invalid</faultstring>
-                    //   <detail>
-                    //     <Validation>
-                    //       <Errors>
-                    //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">Value '+45*045*010*0A96296' is not facet-valid with respect to pattern '([A-Za-z]{2}\*?[A-Za-z0-9]{3}\*?E[A-Za-z0-9\*]{1,30})|(\+?[0-9]{1,3}\*[0-9]{3,6}\*[0-9\*]{1,32})' for type 'EvseIDType'.</Error>
-                    //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">The value '+45*045*010*0A96296' of element 'EVSEStatus:EvseId' is not valid.</Error>
-                    //       </Errors>
-                    //       <OriginalDocument>
-                    //         ...
-                    //       </OriginalDocument>
-                    //     </Validation>
-                    //   </detail>
-                    // </S:Fault>
+                    var SOAPXML  = text.IsNotNullOrEmpty()
+                                       ? XDocument.Parse(text)?.
+                                                   Root?.
+                                                   Element((Namespace ?? NS.SOAPEnvelope) + "Body")?.
+                                                   Descendants().
+                                                   FirstOrDefault()
+                                       : null;
 
-                    if (SOAPXML.Name.LocalName != "Fault")
+                    if (SOAPXML is not null)
                     {
 
-                        var OnSuccessLocal = OnSuccess;
-                        if (OnSuccessLocal is not null)
-                            return OnSuccessLocal(new HTTPResponse<XElement>(httpResponse, SOAPXML));
+                        // <S:Fault xmlns:ns4="http://www.w3.org/2003/05/soap-envelope" xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+                        //   <faultcode>S:Client</faultcode>
+                        //   <faultstring>Validation error: The request message is invalid</faultstring>
+                        //   <detail>
+                        //     <Validation>
+                        //       <Errors>
+                        //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">Value '+45*045*010*0A96296' is not facet-valid with respect to pattern '([A-Za-z]{2}\*?[A-Za-z0-9]{3}\*?E[A-Za-z0-9\*]{1,30})|(\+?[0-9]{1,3}\*[0-9]{3,6}\*[0-9\*]{1,32})' for type 'EvseIDType'.</Error>
+                        //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">The value '+45*045*010*0A96296' of element 'EVSEStatus:EvseId' is not valid.</Error>
+                        //       </Errors>
+                        //       <OriginalDocument>
+                        //         ...
+                        //       </OriginalDocument>
+                        //     </Validation>
+                        //   </detail>
+                        // </S:Fault>
+
+                        if (SOAPXML.Name.LocalName != "Fault")
+                        {
+
+                            var onSuccess = OnSuccess;
+                            if (onSuccess is not null)
+                                return onSuccess(
+                                           new HTTPResponse<XElement>(
+                                               httpResponse,
+                                               SOAPXML
+                                           )
+                                       );
+
+                        }
+
+                        var onSOAPFault = OnSOAPFault;
+                        if (onSOAPFault is not null)
+                            return onSOAPFault(
+                                       Timestamp.Now,
+                                       this,
+                                       new HTTPResponse<XElement>(
+                                           httpResponse,
+                                           SOAPXML
+                                       )
+                                   );
 
                     }
 
-                    var OnSOAPFaultLocal = OnSOAPFault;
-                    if (OnSOAPFaultLocal is not null)
-                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
+                    return HTTPResponse<XElement>.FromError(
+                               httpResponse,
+                               new XElement("SOAPFault")
+                           ) as HTTPResponse<T>;
 
-                    return HTTPResponse<XElement>.FromError(httpResponse,
-                                                          new XElement("SOAPFault")) as HTTPResponse<T>;
-
-
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
 
                     OnException?.Invoke(Timestamp.Now, this, e);
@@ -669,8 +717,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     //if (OnFaultLocal is not null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return HTTPResponse<XElement>.FromError(httpResponse,
-                                                          new XElement("exception", e.Message)) as HTTPResponse<T>;
+                    return HTTPResponse<XElement>.FromError(
+                               httpResponse,
+                               new XElement("exception", e.Message)
+                           ) as HTTPResponse<T>;
 
                 }
 
@@ -679,12 +729,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             else
             {
 
-                var OnHTTPErrorLocal = OnHTTPError;
-                if (OnHTTPErrorLocal is not null)
-                    return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
+                var onHTTPError = OnHTTPError;
+                if (onHTTPError is not null)
+                    return onHTTPError(Timestamp.Now, this, httpResponse);
 
-                return HTTPResponse<XElement>.FromError(httpResponse,
-                                                      new XElement("HTTPError")) as HTTPResponse<T>;
+                return HTTPResponse<XElement>.FromError(
+                           httpResponse,
+                           new XElement("HTTPError")
+                       ) as HTTPResponse<T>;
 
             }
 

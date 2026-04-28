@@ -559,9 +559,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="Content">An optional HTTP body content.</param>
+        /// <param name="ContentType">An optional HTTP content type header.</param>
         /// <param name="UserAgent">An optional HTTP user agent.</param>
         /// <param name="Connection">An optional HTTP connection type.</param>
         /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="ConsumeRequestChunkedTEImmediately">Whether to consume the request chunked transfer encoding immediately.</param>
+        /// <param name="EventTrackingId">An optional event tracking identifier to correlate this request with other events in the system.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
                                                  HTTPPath                      HTTPPath,
@@ -574,6 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ConnectionType?               Connection                           = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder                       = null,
                                                  Boolean?                      ConsumeRequestChunkedTEImmediately   = null,
+                                                 EventTracking_Id?             EventTrackingId                      = null,
                                                  CancellationToken             CancellationToken                    = default)
         {
 
@@ -604,6 +609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             requestBuilder.Connection                                 = Connection     ?? this.Connection         ?? requestBuilder2.Connection;
             requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig         ?? requestBuilder2.TOTPConfig;
+            requestBuilder.EventTrackingId                            = EventTrackingId;
 
             RequestBuilder?.Invoke(requestBuilder);
 
@@ -661,6 +667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Connection,
                            RequestBuilder,
                            ConsumeRequestChunkedTEImmediately,
+                           EventTrackingId,
                            CancellationToken
                        ).AsImmutable,
                        ConsumeResponseChunkedTEImmediately ?? this.ConsumeResponseChunkedTEImmediately,
@@ -678,7 +685,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Send the given HTTP Request to the server and receive the HTTP Response.
         /// </summary>
         /// <param name="Request">The HTTP Request to send.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
         public async Task<HTTPResponse>
 
             SendRequest(HTTPRequest                Request,
@@ -686,6 +692,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         ClientRequestLogHandler?   RequestLogDelegate                    = null,
                         ClientResponseLogHandler?  ResponseLogDelegate                   = null,
                         TimeSpan?                  MaxSemaphoreWaitTime                  = null,
+                        //EventTracking_Id?          EventTrackingId                       = null,
                         CancellationToken          CancellationToken                     = default)
 
         {

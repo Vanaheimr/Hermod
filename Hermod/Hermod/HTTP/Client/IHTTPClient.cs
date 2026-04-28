@@ -403,6 +403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      String?                       UserAgent           = null,
                                                      ConnectionType?               Connection          = null,
                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     EventTracking_Id?             EventTrackingId     = null,
                                                      CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -418,6 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -482,6 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       String?                       UserAgent           = null,
                                                       ConnectionType?               Connection          = null,
                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                      EventTracking_Id?             EventTrackingId     = null,
                                                       CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -497,6 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -525,6 +529,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       String?                       UserAgent           = null,
                                                       ConnectionType?               Connection          = null,
                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                      EventTracking_Id?             EventTrackingId     = null,
                                                       CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -540,6 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                ).
                // Always send a Content-Length header, even when it's value is zero!
@@ -609,6 +615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      String?                       UserAgent           = null,
                                                      ConnectionType?               Connection          = null,
                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     EventTracking_Id?             EventTrackingId     = null,
                                                      CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -624,6 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -652,6 +660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        String?                       UserAgent           = null,
                                                        ConnectionType?               Connection          = null,
                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       EventTracking_Id?             EventTrackingId     = null,
                                                        CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -667,6 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -695,6 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         String?                       UserAgent           = null,
                                                         ConnectionType?               Connection          = null,
                                                         Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        EventTracking_Id?             EventTrackingId     = null,
                                                         CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -710,6 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -738,6 +750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          String?                       UserAgent           = null,
                                                          ConnectionType?               Connection          = null,
                                                          Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                         EventTracking_Id?             EventTrackingId     = null,
                                                          CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -753,6 +766,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -784,6 +798,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        String?                       UserAgent           = null,
                                                        ConnectionType?               Connection          = null,
                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       EventTracking_Id?             EventTrackingId     = null,
                                                        CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -799,6 +814,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -827,6 +843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        String?                       UserAgent           = null,
                                                        ConnectionType?               Connection          = null,
                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       EventTracking_Id?             EventTrackingId     = null,
                                                        CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -842,6 +859,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -870,6 +888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        String?                       UserAgent           = null,
                                                        ConnectionType?               Connection          = null,
                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       EventTracking_Id?             EventTrackingId     = null,
                                                        CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -885,6 +904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -913,6 +933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         String?                       UserAgent           = null,
                                                         ConnectionType?               Connection          = null,
                                                         Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        EventTracking_Id?             EventTrackingId     = null,
                                                         CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -928,6 +949,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -956,6 +978,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      String?                       UserAgent           = null,
                                                      ConnectionType?               Connection          = null,
                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     EventTracking_Id?             EventTrackingId     = null,
                                                      CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -971,6 +994,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -999,6 +1023,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      String?                       UserAgent           = null,
                                                      ConnectionType?               Connection          = null,
                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     EventTracking_Id?             EventTrackingId     = null,
                                                      CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -1014,6 +1039,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -1042,6 +1068,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        String?                       UserAgent           = null,
                                                        ConnectionType?               Connection          = null,
                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       EventTracking_Id?             EventTrackingId     = null,
                                                        CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -1057,6 +1084,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -1085,6 +1113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         String?                       UserAgent           = null,
                                                         ConnectionType?               Connection          = null,
                                                         Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        EventTracking_Id?             EventTrackingId     = null,
                                                         CancellationToken             CancellationToken   = default)
 
             => HTTPClient.CreateRequest(
@@ -1100,6 +1129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    RequestBuilder,
                    null,  // ConsumeRequestChunkedTEImmediately
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -1270,6 +1300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           ConnectionType?               Connection                           = null,
                                           Action<HTTPRequest.Builder>?  RequestBuilder                       = null,
                                           Boolean?                      ConsumeRequestChunkedTEImmediately   = null,
+                                          EventTracking_Id?             EventTrackingId                      = null,
                                           CancellationToken             CancellationToken                    = default);
 
         /// <summary>
