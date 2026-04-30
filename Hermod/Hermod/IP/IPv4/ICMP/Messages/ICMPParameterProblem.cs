@@ -21,34 +21,38 @@ using System;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>
     /// The ICMP Time Exceeded message.
     /// </summary>
-    public class ICMPSourceQuench : IICMPMessage<ICMPSourceQuench>
+    public class ICMPParameterProblem : IICMPMessage<ICMPParameterProblem>
     {
 
         #region Properties
 
-        public Byte[]                        Data          { get; }
+        public Byte[]                            Data                  { get; }
 
-        public ICMPPacket<ICMPSourceQuench>  ICMPPacket    { get; internal set; }
+        public ICMPPacket<ICMPParameterProblem>  ICMPPacket            { get; internal set; }
 
-        public IPv4Packet                    EmbeddedIPv4Packet    { get; internal set; }
+        public IPv4Packet                        EmbeddedIPv4Packet    { get; internal set; }
+
+        public Byte                              Pointer               { get; }
 
         #endregion
 
-        #region (private) ICMPTTLExceeded(Data, IPv4Packet = null)
+        #region (private) ICMPParameterProblem(Data, IPv4Packet = null)
 
-        private ICMPSourceQuench(Byte[]                        Data,
-                                 IPv4Packet                    EmbeddedIPv4Packet   = null,
-                                 ICMPPacket<ICMPSourceQuench>  ICMPPacket           = null)
+        private ICMPParameterProblem(Byte[]                            Data,
+                                     IPv4Packet                        EmbeddedIPv4Packet   = null,
+                                     Byte                              Pointer              = 0,
+                                     ICMPPacket<ICMPParameterProblem>  ICMPPacket           = null)
         {
 
             this.Data                = Data;
             this.EmbeddedIPv4Packet  = EmbeddedIPv4Packet;
+            this.Pointer             = Pointer;
             this.ICMPPacket          = ICMPPacket;
 
         }
@@ -58,15 +62,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region (static) Create(Data, ICMPPacket = null)
 
-        public static ICMPSourceQuench Create(Byte[]      Data,
+        public static ICMPParameterProblem Create(Byte[]      Data,
                                               IPv4Packet  IPv4Packet = null)
         {
 
-            var echoReply =  new ICMPSourceQuench(Data,
+            var echoReply =  new ICMPParameterProblem(Data,
                                                   IPv4Packet);
 
             //if (ICMPPacket is null)
-            //    echoReply.ICMPPacket = new ICMPPacket<ICMPSourceQuench>(Type:      8,
+            //    echoReply.ICMPPacket = new ICMPPacket<ICMPParameterProblem>(Type:      8,
             //                                                         Code:      0,
             //                                                         Checksum:  0,
             //                                                         Payload:   echoReply);
@@ -84,30 +88,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         #endregion
 
 
-        public static Boolean TryParse(ICMPPacket Packet, out ICMPSourceQuench ICMPSourceQuench)
+        public static Boolean TryParse(ICMPPacket Packet, out ICMPParameterProblem ICMPParameterProblem)
         {
 
-            ICMPSourceQuench = null;
+            ICMPParameterProblem = null;
 
             try
             {
 
-                var data = new Byte[Packet.PayloadBytes.Length - 4];
+                var pointer  = Packet.PayloadBytes[0];
+
+                var data     = new Byte[Packet.PayloadBytes.Length - 4];
                 Buffer.BlockCopy(Packet.PayloadBytes, 4, data, 0, data.Length);
 
                 if (IPv4Packet.TryParse(data, out IPv4Packet ipv4Packet))
                 {
 
-                    ICMPSourceQuench = new ICMPSourceQuench(data,
-                                                            ipv4Packet);
+                    ICMPParameterProblem = new ICMPParameterProblem(data,
+                                                                    ipv4Packet,
+                                                                    pointer);
 
-                    ICMPSourceQuench.ICMPPacket = new ICMPPacket<ICMPSourceQuench>(Packet.Type, Packet.Code, Packet.Checksum, ICMPSourceQuench, ipv4Packet);
+                    ICMPParameterProblem.ICMPPacket = new ICMPPacket<ICMPParameterProblem>(Packet.Type, Packet.Code, Packet.Checksum, ICMPParameterProblem, ipv4Packet);
 
                     return true;
 
                 }
 
-                ICMPSourceQuench = new ICMPSourceQuench(data);
+                ICMPParameterProblem = new ICMPParameterProblem(data);
                 return true;
 
             }
@@ -119,10 +126,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         }
 
 
-        public static Boolean TryParse(Byte[] Data, out ICMPSourceQuench ICMPSourceQuench)
+        public static Boolean TryParse(Byte[] Data, out ICMPParameterProblem ICMPParameterProblem)
         {
 
-            ICMPSourceQuench = null;
+            ICMPParameterProblem = null;
 
             try
             {
@@ -133,8 +140,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 }
 
 
-                ICMPSourceQuench = new ICMPSourceQuench(Data,
-                                                        ipv4Packet);
+                ICMPParameterProblem = new ICMPParameterProblem(Data,
+                                                                ipv4Packet);
                 return true;
 
             } catch

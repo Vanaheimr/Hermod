@@ -15,59 +15,38 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// ICMP results/errors.
+    /// Defines the IP version preference for network connections.
     /// </summary>
-    public enum ICMPErrors
+    public enum IPVersionPreference
     {
 
         /// <summary>
-        /// Success / No error(s).
+        /// Prefer IPv6 addresses,
+        /// but fall back to IPv4 if no IPv6 address is available.
         /// </summary>
-        Success,
+        PreferIPv6,
 
         /// <summary>
-        /// DNS error(s).
+        /// Prefer IPv4 addresses,
+        /// but fall back to IPv6 if no IPv4 address is available.
         /// </summary>
-        DNSError,
+        PreferIPv4,
 
         /// <summary>
-        /// The ping(s) could not be sent.
+        /// Only use IPv6 addresses.
+        /// If no IPv6 address is available, the connection will fail.
         /// </summary>
-        SendError,
+        IPv6Only,
 
         /// <summary>
-        /// A timeout occurred.
+        /// Only use IPv4 addresses.
+        /// If no IPv4 address is available, the connection will fail.
         /// </summary>
-        Timeout,
-
-        /// <summary>
-        /// The time-to-live of the underlying IP packet was exceeded.
-        /// </summary>
-        TTLExceeded,
-
-        /// <summary>
-        /// The host or network was unreachable.
-        /// </summary>
-        Unreachable,
-
-        /// <summary>
-        /// Invalid reply/replies.
-        /// </summary>
-        InvalidReply,
-
-        /// <summary>
-        /// Mixed result(s).
-        /// </summary>
-        Mixed,
-
-        /// <summary>
-        /// Unknown result(s).
-        /// </summary>
-        Unknown
+        IPv4Only
 
     }
 

@@ -15,14 +15,7 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.IO;
-
-#endregion
-
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     public interface IICMPMessage<TICMPMessage>
@@ -30,8 +23,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         where TICMPMessage : IICMPMessage<TICMPMessage>
 
     {
-        ICMPPacket<TICMPMessage> ICMPPacket { get; }
 
+        ICMPPacket<TICMPMessage> ICMPPacket { get; }
 
         Byte[] GetBytes();
 

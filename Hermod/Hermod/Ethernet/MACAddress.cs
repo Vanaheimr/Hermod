@@ -24,7 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.RAWIP
+namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 {
 
     /// <summary>

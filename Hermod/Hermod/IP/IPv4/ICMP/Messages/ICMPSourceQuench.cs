@@ -21,20 +21,20 @@ using System;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>
     /// The ICMP Time Exceeded message.
     /// </summary>
-    public class ICMPTimeExceeded : IICMPMessage<ICMPTimeExceeded>
+    public class ICMPSourceQuench : IICMPMessage<ICMPSourceQuench>
     {
 
         #region Properties
 
         public Byte[]                        Data          { get; }
 
-        public ICMPPacket<ICMPTimeExceeded>  ICMPPacket    { get; internal set; }
+        public ICMPPacket<ICMPSourceQuench>  ICMPPacket    { get; internal set; }
 
         public IPv4Packet                    EmbeddedIPv4Packet    { get; internal set; }
 
@@ -42,9 +42,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region (private) ICMPTTLExceeded(Data, IPv4Packet = null)
 
-        private ICMPTimeExceeded(Byte[]                        Data,
+        private ICMPSourceQuench(Byte[]                        Data,
                                  IPv4Packet                    EmbeddedIPv4Packet   = null,
-                                 ICMPPacket<ICMPTimeExceeded>  ICMPPacket           = null)
+                                 ICMPPacket<ICMPSourceQuench>  ICMPPacket           = null)
         {
 
             this.Data                = Data;
@@ -58,15 +58,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region (static) Create(Data, ICMPPacket = null)
 
-        public static ICMPTimeExceeded Create(Byte[]      Data,
+        public static ICMPSourceQuench Create(Byte[]      Data,
                                               IPv4Packet  IPv4Packet = null)
         {
 
-            var echoReply =  new ICMPTimeExceeded(Data,
+            var echoReply =  new ICMPSourceQuench(Data,
                                                   IPv4Packet);
 
             //if (ICMPPacket is null)
-            //    echoReply.ICMPPacket = new ICMPPacket<ICMPTimeExceeded>(Type:      8,
+            //    echoReply.ICMPPacket = new ICMPPacket<ICMPSourceQuench>(Type:      8,
             //                                                         Code:      0,
             //                                                         Checksum:  0,
             //                                                         Payload:   echoReply);
@@ -84,10 +84,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         #endregion
 
 
-        public static Boolean TryParse(ICMPPacket Packet, out ICMPTimeExceeded ICMPTimeExceeded)
+        public static Boolean TryParse(ICMPPacket Packet, out ICMPSourceQuench ICMPSourceQuench)
         {
 
-            ICMPTimeExceeded = null;
+            ICMPSourceQuench = null;
 
             try
             {
@@ -98,16 +98,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 if (IPv4Packet.TryParse(data, out IPv4Packet ipv4Packet))
                 {
 
-                    ICMPTimeExceeded = new ICMPTimeExceeded(data,
+                    ICMPSourceQuench = new ICMPSourceQuench(data,
                                                             ipv4Packet);
 
-                    ICMPTimeExceeded.ICMPPacket = new ICMPPacket<ICMPTimeExceeded>(Packet.Type, Packet.Code, Packet.Checksum, ICMPTimeExceeded, ipv4Packet);
+                    ICMPSourceQuench.ICMPPacket = new ICMPPacket<ICMPSourceQuench>(Packet.Type, Packet.Code, Packet.Checksum, ICMPSourceQuench, ipv4Packet);
 
                     return true;
 
                 }
 
-                ICMPTimeExceeded = new ICMPTimeExceeded(data);
+                ICMPSourceQuench = new ICMPSourceQuench(data);
                 return true;
 
             }
@@ -119,10 +119,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         }
 
 
-        public static Boolean TryParse(Byte[] Data, out ICMPTimeExceeded ICMPTimeExceeded)
+        public static Boolean TryParse(Byte[] Data, out ICMPSourceQuench ICMPSourceQuench)
         {
 
-            ICMPTimeExceeded = null;
+            ICMPSourceQuench = null;
 
             try
             {
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 }
 
 
-                ICMPTimeExceeded = new ICMPTimeExceeded(Data,
+                ICMPSourceQuench = new ICMPSourceQuench(Data,
                                                         ipv4Packet);
                 return true;
 

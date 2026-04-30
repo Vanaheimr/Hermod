@@ -21,7 +21,7 @@ using System;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>

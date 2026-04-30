@@ -38,18 +38,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public delegate TimeSpan TransmissionRetryDelayDelegate(UInt32 RetryCount);
 
 
-    #region (enum)  IPVersionPreference
-
-    public enum IPVersionPreference
-    {
-        None,
-        IPv4,
-        IPv6
-    }
-
-    #endregion
-
-
     /// <summary>
     /// An abstract TCP client.
     /// </summary>
@@ -179,11 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  Boolean                         IsConnected
             => tcpClient?.Connected ?? false;
 
-
-        /// <summary>
-        /// Prefer IPv4 instead of IPv6.
-        /// </summary>
-        public  IPVersionPreference             PreferIPv4                { get; }
+        public  IPVersionPreference             IPVersionPreference       { get; }
         public  TimeSpan                        ConnectTimeout            { get; }
         public  TimeSpan                        ReceiveTimeout            { get; }
         public  TimeSpan                        SendTimeout               { get; }
@@ -215,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (private)   ATCPClient(...)
 
         private ATCPClient(I18NString?                      Description              = null,
-                           IPVersionPreference?             PreferIPv4               = null,
+                           IPVersionPreference?             IPVersionPreference      = null,
                            TimeSpan?                        ConnectTimeout           = null,
                            TimeSpan?                        ReceiveTimeout           = null,
                            TimeSpan?                        SendTimeout              = null,
@@ -240,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
             this.Description                    = Description            ?? I18NString.Empty;
-            this.PreferIPv4                     = PreferIPv4             ?? IPVersionPreference.None;
+            this.IPVersionPreference            = IPVersionPreference    ?? Hermod.IPVersionPreference.PreferIPv6;
             this.BufferSize                     = BufferSize.HasValue
                                                       ? BufferSize.Value > Int32.MaxValue
                                                             ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
@@ -618,9 +602,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     try
                     {
 
-                        ResolvedIPAddress  = PreferIPv4 switch {
-                                                 IPVersionPreference.IPv4  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement(),
-                                                 IPVersionPreference.IPv6  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement(),
+                        ResolvedIPAddress  = IPVersionPreference switch {
+                                                 IPVersionPreference.PreferIPv4  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement(),
+                                                 IPVersionPreference.PreferIPv6  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement(),
                                                  _                         => ResolvedIPAddresses.GetRandomElement()
                                              } ?? ResolvedIPAddresses.GetRandomElement();
 

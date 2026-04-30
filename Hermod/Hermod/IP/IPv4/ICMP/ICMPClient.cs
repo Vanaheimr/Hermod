@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Diagnostics;
 using System.Net.Sockets;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -24,7 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>
@@ -44,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region Data
 
-        private readonly TestRunResultDelegate ResultHandler;
+        private readonly TestRunResultDelegate? ResultHandler;
 
         #endregion
 
@@ -64,8 +65,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// </summary>
         /// <param name="ResultHandler">A delegate called for each ping result.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
-        public ICMPClient(TestRunResultDelegate  ResultHandler   = null,
-                          DNSClient              DNSClient       = null)
+        public ICMPClient(TestRunResultDelegate?  ResultHandler   = null,
+                          DNSClient?              DNSClient       = null)
         {
 
             this.ResultHandler  = ResultHandler;
@@ -76,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         #endregion
 
 
-        #region Ping(Hostname, ...)
+        #region Ping (Hostname, ...)
 
         /// <summary>
         /// Ping the given DNS hostname.
@@ -101,8 +102,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                             DNSClient?              DNSClient            = null)
         {
 
-            var startTimestamp  = Timestamp.Now;
             var dnsClient       = DNSClient ?? this.DNSClient;
+            var startTimestamp  = Timestamp.Now;
+            var stopWatch       = Stopwatch.StartNew();
 
             if (dnsClient is not null)
             {
@@ -144,24 +146,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             }
 
 
-            var pingResult = new PingResult(Timestamp.Now - startTimestamp,
-                                            ICMPErrors.DNSError);
+            stopWatch.Stop();
 
-            (ResultHandler ?? this.ResultHandler)?.Invoke(1, NumberOfTests, pingResult);
+            var pingResult = new PingResult(
+                                 stopWatch.Elapsed,
+                                 ICMPErrors.DNSError
+                             );
+
+            (ResultHandler ?? this.ResultHandler)?.Invoke(
+                                                       1,
+                                                       NumberOfTests,
+                                                       pingResult
+                                                   );
 
             return new PingResults(
-                        new PingResult[] {
-                            pingResult
-                        },
-                        Timeout ?? TimeSpan.FromMilliseconds(500),
-                        Timestamp.Now - startTimestamp
-                    );
+                       [ pingResult ],
+                       Timeout ?? TimeSpan.FromMilliseconds(500),
+                       stopWatch.Elapsed
+                   );
 
         }
 
         #endregion
 
-        #region Ping(IPv4Address, ...)
+        #region Ping (IPv4Address, ...)
 
         /// <summary>
         /// Ping the given IPv4 address.
@@ -241,14 +249,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                             //var receivedLenght  = socket.Receive(packet);
                             var receivedLenght  = await socket.ReceiveAsync(packet, SocketFlags.None);
 
-                            if (IPv4Packet.TryParse(packet.Array,    out IPv4Packet ipv4PacketReply) &&
+                            if (IPv4Packet.TryParse(packet.Array,    out var ipv4PacketReply) &&
                                 ipv4PacketReply.Protocol == IPv4Protocols.ICMP                       &&
-                                ICMPPacket.TryParse(ipv4PacketReply, out ICMPPacket icmpPacketReply))
+                                ICMPPacket.TryParse(ipv4PacketReply, out var icmpPacketReply))
                             {
 
                                 if (icmpPacketReply.Type         == 0 &&
                                     icmpPacketReply.Code         == 0 &&
-                                    ICMPEchoReply.TryParse(icmpPacketReply.PayloadBytes, out ICMPEchoReply icmpEchoReply)   &&
+                                    ICMPEchoReply.TryParse(icmpPacketReply.PayloadBytes, out var icmpEchoReply)   &&
                                     icmpEchoReply.Identifier     == Identifier.Value &&
                                     icmpEchoReply.SequenceNumber == testRunId)
                                 {
@@ -272,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                          ICMPDestinationUnreachable.TryParse(icmpPacketReply, out ICMPDestinationUnreachable icmpDestinationUnreachable) &&
                                          icmpDestinationUnreachable.EmbeddedIPv4Packet is not null &&
                                          icmpDestinationUnreachable.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
-                                         ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out ICMPEchoRequest embeddedICMPEchoRequest) &&
+                                         ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out var embeddedICMPEchoRequest) &&
                                          embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
                                          embeddedICMPEchoRequest.SequenceNumber == testRunId       &&
                                          embeddedICMPEchoRequest.Text           == TestData)
@@ -297,8 +305,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                         embeddedICMPEchoRequest.Text           == TestData)
                                 {
 
-                                    pingResult = new PingResult(Timestamp.Now - runStartTimestamp,
-                                                                ICMPErrors.TTLExceeded);
+                                    pingResult = new PingResult(
+                                                     Timestamp.Now - runStartTimestamp,
+                                                     ICMPErrors.TTLExceeded
+                                                 );
 
                                     break;
 
@@ -382,223 +392,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
             socket.Close();
 
-            return new PingResults(pingResults,
-                                   Timeout.Value,
-                                   Timestamp.Now - startTimestamp);
-
-        }
-
-        #endregion
-
-        #region Ping(IPv6Address, ...)
-
-        /// <summary>
-        /// Ping the given IPv6 address.
-        /// </summary>
-        /// <param name="IPv6Address">An IPv6 address.</param>
-        /// <param name="NumberOfTests">The number of pings.</param>
-        /// <param name="Timeout">The timeout of each ping.</param>
-        /// <param name="ResultHandler">A delegate called for each ping result.</param>
-        /// <param name="Identifier">The ICMP identifier.</param>
-        /// <param name="SequenceStartValue">The ICMP echo request start value.</param>
-        /// <param name="TestData">The ICMP echo request test data.</param>
-        /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
-        public async Task<PingResults> Ping(IPv6Address             IPv6Address,
-                                            UInt32                  NumberOfTests        = 3,
-                                            TimeSpan?               Timeout              = null,
-                                            TestRunResultDelegate?  ResultHandler        = null,
-                                            UInt16?                 Identifier           = null,
-                                            UInt16                  SequenceStartValue   = 0,
-                                            String?                 TestData             = null,
-                                            Byte                    TTL                  = 64)
-        {
-
-            if (!Identifier.HasValue)
-                Identifier  = (UInt16) Random.Shared.Next(UInt16.MaxValue);
-
-            if (TestData is null || TestData.IsNullOrEmpty())
-                TestData    = RandomExtensions.RandomString(30);
-
-            if (!Timeout.HasValue)
-                Timeout     = TimeSpan.FromSeconds(3);
-
-            var startTimestamp  = Timestamp.Now;
-            var ipEndPoint      = new System.Net.IPEndPoint(IPv6Address, 0);
-            var pingResults     = new List<PingResult>();
-            var socket          = new Socket(
-                                      AddressFamily.InterNetworkV6,
-                                      SocketType.Raw,
-                                      ProtocolType.IcmpV6
-                                  ) {
-                                      ReceiveTimeout = (Int32)Timeout.Value.TotalMilliseconds
-                                  };
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) Timeout.Value.TotalMilliseconds);
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) Timeout.Value.TotalMilliseconds);
-            socket.SetSocketOption(SocketOptionLevel.IP,     SocketOptionName.IpTimeToLive,   TTL);
-            //Socket.IOControl(System.Net.Sockets.IOControlCode.ReceiveAll, new byte[] { 1, 0, 0, 0 }, new byte[] { 1, 0, 0, 0 });
-
-            for (var repetition = SequenceStartValue; repetition < NumberOfTests; repetition++)
-            {
-
-                var runStartTimestamp  = Timestamp.Now;
-
-                var echoRequest        = ICMPEchoRequest.Create(Identifier.Value,
-                                                                repetition,
-                                                                TestData);
-
-                var sentLength         = socket.SendTo(echoRequest.ICMPPacket.GetBytes(),
-                                                       ipEndPoint);
-
-                if (sentLength == 0)
-                {
-
-                    pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                   ICMPErrors.SendError));
-
-                    continue;
-
-                }
-
-                do
-                {
-
-                    try
-                    {
-
-                        var packet         = new Byte[65536];
-                        var receivedLenght = socket.Receive(packet);
-
-
-                        // ToDo: Implement IPv6Packet and ICMPv6!!!
-                        if (IPv4Packet.TryParse(packet,          out IPv4Packet ipv4PacketReply) &&
-                            ipv4PacketReply.Protocol == IPv4Protocols.ICMP                       &&
-                            ICMPPacket.TryParse(ipv4PacketReply, out ICMPPacket icmpPacketReply))
-                        {
-
-                            if (icmpPacketReply.Type         == 0 &&
-                                icmpPacketReply.Code         == 0 &&
-                                ICMPEchoReply.TryParse(icmpPacketReply.PayloadBytes, out ICMPEchoReply icmpEchoReply)   &&
-                                icmpEchoReply.Identifier     == Identifier.Value &&
-                                icmpEchoReply.SequenceNumber == repetition)
-                            {
-
-                                if (icmpEchoReply.Text == TestData)
-                                    pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                                   ICMPErrors.Success));
-                                else
-                                    pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                                   ICMPErrors.InvalidReply));
-
-                                break;
-
-                            }
-
-
-                            // In theory here we could receive ICMP error messages.
-                            // On Windows you might have to allow ICMP replies within your firewall settings!
-
-                            else if (icmpPacketReply.Type                   ==  3 &&
-                                     ICMPDestinationUnreachable.TryParse(icmpPacketReply, out ICMPDestinationUnreachable icmpDestinationUnreachable) &&
-                                     icmpDestinationUnreachable.EmbeddedIPv4Packet is not null &&
-                                     icmpDestinationUnreachable.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
-                                     ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out ICMPEchoRequest embeddedICMPEchoRequest) &&
-                                     embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
-                                     embeddedICMPEchoRequest.SequenceNumber == repetition       &&
-                                     embeddedICMPEchoRequest.Text           == TestData)
-                            {
-
-                                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                               ICMPErrors.Unreachable));
-
-                                break;
-
-                            }
-
-                            else if (icmpPacketReply.Type                  == 11 &&
-                                    (icmpPacketReply.Code                  ==  0 ||
-                                     icmpPacketReply.Code                  ==  1) &&
-                                    ICMPTimeExceeded.TryParse(icmpPacketReply, out ICMPTimeExceeded icmpTimeExceeded) &&
-                                    icmpTimeExceeded.EmbeddedIPv4Packet          is not null &&
-                                    icmpTimeExceeded.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
-                                    ICMPEchoRequest.TryParse(icmpTimeExceeded.EmbeddedIPv4Packet.Payload, out embeddedICMPEchoRequest) &&
-                                    embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
-                                    embeddedICMPEchoRequest.SequenceNumber == repetition       &&
-                                    embeddedICMPEchoRequest.Text           == TestData)
-                            {
-
-                                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                               ICMPErrors.TTLExceeded));
-
-                                break;
-
-                            }
-
-                            // Source Quench     ==  4
-                            // Redirect          ==  5
-                            // Parameter Problem == 12
-
-                        }
-
-                    }
-                    catch (SocketException se)
-                    {
-
-                        switch (se.SocketErrorCode)
-                        {
-
-                            // ICMP Destination Unreachable
-                            case SocketError.ConnectionReset:
-                                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                               ICMPErrors.SendError));
-                                break;
-
-                            // ICMP TTL exceeded
-                            case SocketError.NetworkReset:
-                                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                               ICMPErrors.SendError));
-                                break;
-
-                            // Client sent a message larger than the max message size allowed
-                            case SocketError.MessageSize:
-                                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                               ICMPErrors.SendError));
-                                break;
-
-                            case SocketError.TimedOut:
-                                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                               ICMPErrors.Timeout));
-                                break;
-
-
-                            default:
-                                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                               ICMPErrors.Unknown));
-                                break;
-
-                        }
-
-                        break;
-
-                    }
-                    catch (Exception e)
-                    {
-
-                        DebugX.LogException(e, "ICMP client");
-
-                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                       ICMPErrors.InvalidReply));
-
-                        break;
-
-                    }
-
-                // Restart, whenever the received packet is not the one we expected!
-                } while (Timestamp.Now - runStartTimestamp < Timeout.Value);
-
-            }
-
-            socket.Close();
-
             return new PingResults(
                        pingResults,
                        Timeout.Value,
@@ -606,6 +399,225 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                    );
 
         }
+
+        #endregion
+
+        #region Ping (IPv6Address, ...)
+
+        ///// <summary>
+        ///// Ping the given IPv6 address.
+        ///// </summary>
+        ///// <param name="IPv6Address">An IPv6 address.</param>
+        ///// <param name="NumberOfTests">The number of pings.</param>
+        ///// <param name="Timeout">The timeout of each ping.</param>
+        ///// <param name="ResultHandler">A delegate called for each ping result.</param>
+        ///// <param name="Identifier">The ICMP identifier.</param>
+        ///// <param name="SequenceStartValue">The ICMP echo request start value.</param>
+        ///// <param name="TestData">The ICMP echo request test data.</param>
+        ///// <param name="TTL">The time-to-live of the underlying IP packet.</param>
+        //public async Task<PingResults> Ping(IPv6Address             IPv6Address,
+        //                                    UInt32                  NumberOfTests        = 3,
+        //                                    TimeSpan?               Timeout              = null,
+        //                                    TestRunResultDelegate?  ResultHandler        = null,
+        //                                    UInt16?                 Identifier           = null,
+        //                                    UInt16                  SequenceStartValue   = 0,
+        //                                    String?                 TestData             = null,
+        //                                    Byte                    TTL                  = 64)
+        //{
+
+        //    if (!Identifier.HasValue)
+        //        Identifier  = (UInt16) Random.Shared.Next(UInt16.MaxValue);
+
+        //    if (TestData is null || TestData.IsNullOrEmpty())
+        //        TestData    = RandomExtensions.RandomString(30);
+
+        //    if (!Timeout.HasValue)
+        //        Timeout     = TimeSpan.FromSeconds(3);
+
+        //    var startTimestamp  = Timestamp.Now;
+        //    var ipEndPoint      = new System.Net.IPEndPoint(IPv6Address, 0);
+        //    var pingResults     = new List<PingResult>();
+        //    var socket          = new Socket(
+        //                              AddressFamily.InterNetworkV6,
+        //                              SocketType.Raw,
+        //                              ProtocolType.IcmpV6
+        //                          ) {
+        //                              ReceiveTimeout = (Int32)Timeout.Value.TotalMilliseconds
+        //                          };
+        //    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) Timeout.Value.TotalMilliseconds);
+        //    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) Timeout.Value.TotalMilliseconds);
+        //    socket.SetSocketOption(SocketOptionLevel.IP,     SocketOptionName.IpTimeToLive,   TTL);
+        //    //Socket.IOControl(System.Net.Sockets.IOControlCode.ReceiveAll, new byte[] { 1, 0, 0, 0 }, new byte[] { 1, 0, 0, 0 });
+
+        //    for (var repetition = SequenceStartValue; repetition < NumberOfTests; repetition++)
+        //    {
+
+        //        var runStartTimestamp  = Timestamp.Now;
+
+        //        var echoRequest        = ICMPEchoRequest.Create(Identifier.Value,
+        //                                                        repetition,
+        //                                                        TestData);
+
+        //        var sentLength         = socket.SendTo(echoRequest.ICMPPacket.GetBytes(),
+        //                                               ipEndPoint);
+
+        //        if (sentLength == 0)
+        //        {
+
+        //            pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                           ICMPErrors.SendError));
+
+        //            continue;
+
+        //        }
+
+        //        do
+        //        {
+
+        //            try
+        //            {
+
+        //                var packet         = new Byte[65536];
+        //                var receivedLenght = socket.Receive(packet);
+
+
+        //                // ToDo: Implement IPv6Packet and ICMPv6!!!
+        //                if (IPv4Packet.TryParse(packet,          out var ipv4PacketReply) &&
+        //                    ipv4PacketReply.Protocol == IPv4Protocols.ICMP                       &&
+        //                    ICMPPacket.TryParse(ipv4PacketReply, out var icmpPacketReply))
+        //                {
+
+        //                    if (icmpPacketReply.Type         == 0 &&
+        //                        icmpPacketReply.Code         == 0 &&
+        //                        ICMPEchoReply.TryParse(icmpPacketReply.PayloadBytes, out var icmpEchoReply)   &&
+        //                        icmpEchoReply.Identifier     == Identifier.Value &&
+        //                        icmpEchoReply.SequenceNumber == repetition)
+        //                    {
+
+        //                        if (icmpEchoReply.Text == TestData)
+        //                            pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                           ICMPErrors.Success));
+        //                        else
+        //                            pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                           ICMPErrors.InvalidReply));
+
+        //                        break;
+
+        //                    }
+
+
+        //                    // In theory here we could receive ICMP error messages.
+        //                    // On Windows you might have to allow ICMP replies within your firewall settings!
+
+        //                    else if (icmpPacketReply.Type                   ==  3 &&
+        //                             ICMPDestinationUnreachable.TryParse(icmpPacketReply, out ICMPDestinationUnreachable icmpDestinationUnreachable) &&
+        //                             icmpDestinationUnreachable.EmbeddedIPv4Packet is not null &&
+        //                             icmpDestinationUnreachable.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
+        //                             ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out var embeddedICMPEchoRequest) &&
+        //                             embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
+        //                             embeddedICMPEchoRequest.SequenceNumber == repetition       &&
+        //                             embeddedICMPEchoRequest.Text           == TestData)
+        //                    {
+
+        //                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                       ICMPErrors.Unreachable));
+
+        //                        break;
+
+        //                    }
+
+        //                    else if (icmpPacketReply.Type                  == 11 &&
+        //                            (icmpPacketReply.Code                  ==  0 ||
+        //                             icmpPacketReply.Code                  ==  1) &&
+        //                            ICMPTimeExceeded.TryParse(icmpPacketReply, out ICMPTimeExceeded icmpTimeExceeded) &&
+        //                            icmpTimeExceeded.EmbeddedIPv4Packet          is not null &&
+        //                            icmpTimeExceeded.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
+        //                            ICMPEchoRequest.TryParse(icmpTimeExceeded.EmbeddedIPv4Packet.Payload, out embeddedICMPEchoRequest) &&
+        //                            embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
+        //                            embeddedICMPEchoRequest.SequenceNumber == repetition       &&
+        //                            embeddedICMPEchoRequest.Text           == TestData)
+        //                    {
+
+        //                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                       ICMPErrors.TTLExceeded));
+
+        //                        break;
+
+        //                    }
+
+        //                    // Source Quench     ==  4
+        //                    // Redirect          ==  5
+        //                    // Parameter Problem == 12
+
+        //                }
+
+        //            }
+        //            catch (SocketException se)
+        //            {
+
+        //                switch (se.SocketErrorCode)
+        //                {
+
+        //                    // ICMP Destination Unreachable
+        //                    case SocketError.ConnectionReset:
+        //                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                       ICMPErrors.SendError));
+        //                        break;
+
+        //                    // ICMP TTL exceeded
+        //                    case SocketError.NetworkReset:
+        //                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                       ICMPErrors.SendError));
+        //                        break;
+
+        //                    // Client sent a message larger than the max message size allowed
+        //                    case SocketError.MessageSize:
+        //                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                       ICMPErrors.SendError));
+        //                        break;
+
+        //                    case SocketError.TimedOut:
+        //                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                       ICMPErrors.Timeout));
+        //                        break;
+
+
+        //                    default:
+        //                        pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                                       ICMPErrors.Unknown));
+        //                        break;
+
+        //                }
+
+        //                break;
+
+        //            }
+        //            catch (Exception e)
+        //            {
+
+        //                DebugX.LogException(e, "ICMP client");
+
+        //                pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
+        //                                               ICMPErrors.InvalidReply));
+
+        //                break;
+
+        //            }
+
+        //        // Restart, whenever the received packet is not the one we expected!
+        //        } while (Timestamp.Now - runStartTimestamp < Timeout.Value);
+
+        //    }
+
+        //    socket.Close();
+
+        //    return new PingResults(
+        //               pingResults,
+        //               Timeout.Value,
+        //               Timestamp.Now - startTimestamp
+        //           );
+
+        //}
 
         #endregion
 

@@ -184,6 +184,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region IPv4Address(Bytes)
+
+        /// <summary>
+        /// Create a new IPv4 address based on the given span of bytes representation.
+        /// </summary>
+        public IPv4Address(ReadOnlySpan<Byte> Bytes)
+        {
+
+            if (Bytes.Length != length)
+                throw new FormatException("The given span of bytes length is invalid!");
+
+            ipAddressArray = Bytes.ToArray();
+
+        }
+
+        #endregion
+
         #region IPv4Address(Stream)
 
         /// <summary>

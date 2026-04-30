@@ -17,11 +17,11 @@
 
 #region Usings
 
-using System;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>
@@ -58,12 +58,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                           Byte          Code,
                           UInt16        Checksum,
                           TICMPMessage  Payload,
-                          IPv4Packet    IPv4Packet   = null)
+                          IPv4Packet?   IPv4Packet   = null)
 
             : base(Type,
                    Code,
                    Checksum,
-                   Payload?.GetBytes(),
+                   Payload.GetBytes(),
                    IPv4Packet)
 
         {
@@ -89,27 +89,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <summary>
         /// The ICMP message type.
         /// </summary>
-        public Byte        Type            { get; }
+        public Byte         Type            { get; }
 
         /// <summary>
         /// The ICMP code.
         /// </summary>
-        public Byte        Code            { get; }
+        public Byte         Code            { get; }
 
         /// <summary>
         /// The ICMP checksum.
         /// </summary>
-        public UInt16      Checksum        { get; private set; }
+        public UInt16       Checksum        { get; private set; }
 
         /// <summary>
         /// The binary ICMP payload.
         /// </summary>
-        public Byte[]      PayloadBytes    { get; }
+        public Byte[]       PayloadBytes    { get; }
 
         /// <summary>
         /// The optional transporting IPv4 packet.
         /// </summary>
-        public IPv4Packet  IPv4Packet      { get; }
+        public IPv4Packet?  IPv4Packet      { get; }
 
         #endregion
 
@@ -123,17 +123,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="Checksum">The ICMP checksum.</param>
         /// <param name="PayloadBytes">The binary ICMP payload.</param>
         /// <param name="IPv4Packet">The optional transporting IPv4 packet.</param>
-        public ICMPPacket(Byte        Type,
-                          Byte        Code,
-                          UInt16      Checksum,
-                          Byte[]      PayloadBytes   = null,
-                          IPv4Packet  IPv4Packet     = null)
+        public ICMPPacket(Byte         Type,
+                          Byte         Code,
+                          UInt16       Checksum,
+                          Byte[]?      PayloadBytes   = null,
+                          IPv4Packet?  IPv4Packet     = null)
         {
 
             this.Type          = Type;
             this.Code          = Code;
             this.Checksum      = Checksum;
-            this.PayloadBytes  = PayloadBytes ?? new Byte[0];
+            this.PayloadBytes  = PayloadBytes ?? [];
             this.IPv4Packet    = IPv4Packet;
 
         }
@@ -141,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         #endregion
 
 
-        #region TryParse(IPv4Packet, out ICMPPacket, Offset = 4)
+        #region TryParse (IPv4Packet, out ICMPPacket, Offset = 4)
 
         /// <summary>
         /// Try to parse the ICMP packet embedded within the given IPv4 packet.
@@ -149,9 +149,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="IPv4Packet">An IPv4 packet.</param>
         /// <param name="ICMPPacket">The parsed ICMP packet.</param>
         /// <param name="Offset">The offset of the ICMP pakcet within the array of bytes.</param>
-        public static Boolean TryParse(IPv4Packet      IPv4Packet,
-                                       out ICMPPacket  ICMPPacket,
-                                       Byte            Offset   = 4)
+        public static Boolean TryParse(IPv4Packet                           IPv4Packet,
+                                       [NotNullWhen(true)] out ICMPPacket?  ICMPPacket,
+                                       Byte                                 Offset   = 4)
 
             => TryParse(IPv4Packet.Payload,
                         out ICMPPacket,
@@ -160,31 +160,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #endregion
 
-        #region (Packet, out ICMPPacket, Offset = 4, IPv4Packet = null)
+        #region TryParse (ByteArray,  out ICMPPacket, Offset = 4, IPv4Packet = null)
 
         /// <summary>
         /// Try to parse the given ICMP packet.
         /// </summary>
-        /// <param name="Packet">An array of bytes to parse.</param>
+        /// <param name="ByteArray">An array of bytes to parse.</param>
         /// <param name="ICMPPacket">The parsed ICMP packet.</param>
         /// <param name="Offset">The offset of the ICMP pakcet within the array of bytes.</param>
         /// <param name="IPv4Packet"></param>
-        public static Boolean TryParse(Byte[]          Packet,
-                                       out ICMPPacket  ICMPPacket,
-                                       Byte            Offset       = 4,
-                                       IPv4Packet      IPv4Packet   = null)
+        public static Boolean TryParse(Byte[]                               ByteArray,
+                                       [NotNullWhen(true)] out ICMPPacket?  ICMPPacket,
+                                       Byte                                 Offset       = 4,
+                                       IPv4Packet?                          IPv4Packet   = null)
         {
 
             try
             {
 
-                var payload = new Byte[Packet.Length - Offset];
-                Buffer.BlockCopy(Packet, Offset, payload, 0, payload.Length);
+                var payload = new Byte[ByteArray.Length - Offset];
+                Buffer.BlockCopy(ByteArray, Offset, payload, 0, payload.Length);
 
                 ICMPPacket = new ICMPPacket(
-                                 Packet[0],
-                                 Packet[1],
-                                 BitConverter.ToUInt16(Packet, 2),
+                                 ByteArray[0],
+                                 ByteArray[1],
+                                 BitConverter.ToUInt16(ByteArray, 2),
                                  payload,
                                  IPv4Packet
                              );

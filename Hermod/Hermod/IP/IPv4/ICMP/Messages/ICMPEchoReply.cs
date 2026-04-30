@@ -17,11 +17,11 @@
 
 #region Usings
 
-using System;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>
@@ -32,10 +32,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region Properties
 
-        public UInt16                     Identifier        { get; }
-        public UInt16                     SequenceNumber    { get; }
-        public Byte[]                     Data              { get; }
-        public ICMPPacket<ICMPEchoReply>  ICMPPacket        { get; internal set; }
+        public UInt16                      Identifier        { get; }
+        public UInt16                      SequenceNumber    { get; }
+        public Byte[]                      Data              { get; }
+        public ICMPPacket<ICMPEchoReply>?  ICMPPacket        { get; internal set; }
 
         public String Text
         {
@@ -58,10 +58,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region (private) ICMPEchoReply(Identifier, SequenceNumber, Data, ICMPPacket = null)
 
-        private ICMPEchoReply(UInt16                     Identifier,
-                              UInt16                     SequenceNumber,
-                              Byte[]                     Data,
-                              ICMPPacket<ICMPEchoReply>  ICMPPacket = null)
+        private ICMPEchoReply(UInt16                      Identifier,
+                              UInt16                      SequenceNumber,
+                              Byte[]                      Data,
+                              ICMPPacket<ICMPEchoReply>?  ICMPPacket   = null)
         {
 
             this.Identifier      = Identifier;
@@ -76,39 +76,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region (static) Create(Identifier, SequenceNumber, Text, ICMPPacket = null)
 
-        public static ICMPEchoReply Create(UInt16                     Identifier,
-                                           UInt16                     SequenceNumber,
-                                           String                     Text,
-                                           ICMPPacket<ICMPEchoReply>  ICMPPacket = null)
+        public static ICMPEchoReply Create(UInt16                      Identifier,
+                                           UInt16                      SequenceNumber,
+                                           String                      Text,
+                                           ICMPPacket<ICMPEchoReply>?  ICMPPacket = null)
 
-            => Create(Identifier,
-                      SequenceNumber,
-                      System.Text.Encoding.UTF8.GetBytes(Text ?? ""),
-                      ICMPPacket);
+            => Create(
+                   Identifier,
+                   SequenceNumber,
+                   System.Text.Encoding.UTF8.GetBytes(Text ?? ""),
+                   ICMPPacket
+               );
 
         #endregion
 
         #region (static) Create(Identifier, SequenceNumber, Data, ICMPPacket = null)
 
-        public static ICMPEchoReply Create(UInt16                     Identifier,
-                                           UInt16                     SequenceNumber,
-                                           Byte[]                     Data,
-                                           ICMPPacket<ICMPEchoReply>  ICMPPacket = null)
+        public static ICMPEchoReply Create(UInt16                      Identifier,
+                                           UInt16                      SequenceNumber,
+                                           Byte[]                      Data,
+                                           ICMPPacket<ICMPEchoReply>?  ICMPPacket = null)
         {
 
-            var echoReply =  new ICMPEchoReply(Identifier,
-                                               SequenceNumber,
-                                               Data,
-                                               ICMPPacket);
+            var echoReply =  new ICMPEchoReply(
+                                 Identifier,
+                                 SequenceNumber,
+                                 Data,
+                                 ICMPPacket
+                             );
 
             if (ICMPPacket is null)
-                echoReply.ICMPPacket = new ICMPPacket<ICMPEchoReply>(Type:      8,
-                                                                     Code:      0,
-                                                                     Checksum:  0,
-                                                                     Payload:   echoReply);
+                echoReply.ICMPPacket = new ICMPPacket<ICMPEchoReply>(
+                                           Type:      8,
+                                           Code:      0,
+                                           Checksum:  0,
+                                           Payload:   echoReply
+                                       );
 
             else
-                echoReply.ICMPPacket.Payload = echoReply;
+                echoReply.ICMPPacket?.Payload = echoReply;
 
             // Will calculate the checksum
             echoReply.ICMPPacket?.GetBytes();
@@ -120,7 +126,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         #endregion
 
 
-        public static Boolean TryParse(Byte[] Packet, out ICMPEchoReply ICMPEchoReply)
+        public static Boolean TryParse(Byte[]                                  Packet,
+                                       [NotNullWhen(true)] out ICMPEchoReply?  ICMPEchoReply)
         {
 
             try
@@ -160,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         public override String ToString()
 
-            => String.Concat(Identifier, " / ", SequenceNumber, ": ", Text);
+            => $"{Identifier} / {SequenceNumber}: {Text}";
 
     }
 

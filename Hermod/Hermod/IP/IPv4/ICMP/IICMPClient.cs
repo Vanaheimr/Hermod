@@ -21,7 +21,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>
@@ -74,25 +74,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                Byte                    TTL                  = 64);
 
 
-        /// <summary>
-        /// Ping the given IPv6 address.
-        /// </summary>
-        /// <param name="IPv6Address">An IPv6 address.</param>
-        /// <param name="NumberOfTests">The number of pings.</param>
-        /// <param name="Timeout">The timeout of each ping.</param>
-        /// <param name="ResultHandler">A delegate called for each ping result.</param>
-        /// <param name="Identifier">The ICMP identifier.</param>
-        /// <param name="SequenceStartValue">The ICMP echo request start value.</param>
-        /// <param name="TestData">The ICMP echo request test data.</param>
-        /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
-        Task<PingResults> Ping(IPv6Address             IPv6Address,
-                               UInt32                  NumberOfTests        = 3,
-                               TimeSpan?               Timeout              = null,
-                               TestRunResultDelegate?  ResultHandler        = null,
-                               UInt16?                 Identifier           = null,
-                               UInt16                  SequenceStartValue   = 0,
-                               String?                 TestData             = null,
-                               Byte                    TTL                  = 64);
+        ///// <summary>
+        ///// Ping the given IPv6 address.
+        ///// </summary>
+        ///// <param name="IPv6Address">An IPv6 address.</param>
+        ///// <param name="NumberOfTests">The number of pings.</param>
+        ///// <param name="Timeout">The timeout of each ping.</param>
+        ///// <param name="ResultHandler">A delegate called for each ping result.</param>
+        ///// <param name="Identifier">The ICMP identifier.</param>
+        ///// <param name="SequenceStartValue">The ICMP echo request start value.</param>
+        ///// <param name="TestData">The ICMP echo request test data.</param>
+        ///// <param name="TTL">The time-to-live of the underlying IP packet.</param>
+        //Task<PingResults> Ping(IPv6Address             IPv6Address,
+        //                       UInt32                  NumberOfTests        = 3,
+        //                       TimeSpan?               Timeout              = null,
+        //                       TestRunResultDelegate?  ResultHandler        = null,
+        //                       UInt16?                 Identifier           = null,
+        //                       UInt16                  SequenceStartValue   = 0,
+        //                       String?                 TestData             = null,
+        //                       Byte                    TTL                  = 64);
 
     }
 

@@ -1193,7 +1193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        IPVersionPreference                                        PreferIPv4                    { get; }
+        IPVersionPreference                                        IPVersionPreference                    { get; }
 
         /// <summary>
         /// An optional HTTP content type.
