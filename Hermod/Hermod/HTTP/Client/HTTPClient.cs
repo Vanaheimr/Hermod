@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                           IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
-                          IPVersionPreference?                                       PreferIPv4                            = null,
+                          IPVersionPreference?                                       IPVersionPreference                   = null,
                           TimeSpan?                                                  ConnectTimeout                        = null,
                           TimeSpan?                                                  ReceiveTimeout                        = null,
                           TimeSpan?                                                  SendTimeout                           = null,
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    HTTPAuthentication,
 
-                   PreferIPv4,
+                   IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                           IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
-                          IPVersionPreference?                                       PreferIPv4                            = null,
+                          IPVersionPreference?                                       IPVersionPreference                   = null,
                           TimeSpan?                                                  ConnectTimeout                        = null,
                           TimeSpan?                                                  ReceiveTimeout                        = null,
                           TimeSpan?                                                  SendTimeout                           = null,
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    HTTPAuthentication,
 
-                   PreferIPv4,
+                   IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -258,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                           IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
-                          IPVersionPreference?                                       PreferIPv4                            = null,
+                          IPVersionPreference?                                       IPVersionPreference                   = null,
                           TimeSpan?                                                  ConnectTimeout                        = null,
                           TimeSpan?                                                  ReceiveTimeout                        = null,
                           TimeSpan?                                                  SendTimeout                           = null,
@@ -311,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    HTTPAuthentication,
 
-                   PreferIPv4,
+                   IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,

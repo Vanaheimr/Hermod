@@ -250,7 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPClient(IIPAddress                       IPAddress,
                              IPPort                           TCPPort,
                              I18NString?                      Description              = null,
-                             IPVersionPreference?             PreferIPv4               = null,
+                             IPVersionPreference?             IPVersionPreference      = null,
                              TimeSpan?                        ConnectTimeout           = null,
                              TimeSpan?                        ReceiveTimeout           = null,
                              TimeSpan?                        SendTimeout              = null,
@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              Boolean?                         DisableLogging           = null)
 
             : this(Description,
-                   PreferIPv4,
+                   IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected ATCPClient(URL                              URL,
                              I18NString?                      Description              = null,
-                             IPVersionPreference?             PreferIPv4               = null,
+                             IPVersionPreference?             IPVersionPreference      = null,
                              TimeSpan?                        ConnectTimeout           = null,
                              TimeSpan?                        ReceiveTimeout           = null,
                              TimeSpan?                        SendTimeout              = null,
@@ -307,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              IDNSClient?                      DNSClient                = null)
 
             : this(Description,
-                   PreferIPv4,
+                   IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -331,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPClient(DomainName                       DomainName,
                              SRV_Spec                         DNSService,
                              I18NString?                      Description              = null,
-                             IPVersionPreference?             PreferIPv4               = null,
+                             IPVersionPreference?             IPVersionPreference      = null,
                              TimeSpan?                        ConnectTimeout           = null,
                              TimeSpan?                        ReceiveTimeout           = null,
                              TimeSpan?                        SendTimeout              = null,
@@ -346,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              IDNSClient?                      DNSClient                = null)
 
             : this(Description,
-                   PreferIPv4,
+                   IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
