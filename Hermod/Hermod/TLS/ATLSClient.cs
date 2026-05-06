@@ -380,15 +380,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                                             ? ApplicationProtocols?.ToList()
                                                                                             : null,
                                                 AllowRenegotiation                    = AllowRenegotiation ?? true,
-                                                AllowTlsResume                        = AllowTLSResume     ?? true,
-                                                TargetHost                            = RemoteURL.Hostname.ToString() ?? //SNI!
-                                                                                        DomainName?.       ToString() ??
-                                                                                        RemoteIPAddress?.  ToString(),
+                                                AllowTlsResume                        = AllowTLSResume     ?? false,
+                                                TargetHost                            = !RemoteURL.IsNullOrEmpty
+                                                                                            ? RemoteURL.Hostname.ToString() // SNI!
+                                                                                            : DomainName?.      ToString() ??
+                                                                                              RemoteIPAddress?. ToString(),
                                                 ClientCertificates                    = ClientCertificates.IsNeitherNullNorEmpty()
                                                                                             ? [.. ClientCertificates]
                                                                                             : null,
                                                 ClientCertificateContext              = ClientCertificateContext,
-                                                CertificateRevocationCheckMode        = X509RevocationMode.NoCheck,
+                                                CertificateRevocationCheckMode        = CertificateRevocationCheckMode ?? X509RevocationMode.NoCheck,
                                                 EncryptionPolicy                      = EncryptionPolicy.RequireEncryption,
                                                 EnabledSslProtocols                   = TLSProtocols,
                                                 CipherSuitesPolicy                    = CipherSuitesPolicy,

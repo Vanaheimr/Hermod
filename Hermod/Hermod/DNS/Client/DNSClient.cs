@@ -309,36 +309,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
 
-        public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
-                                   IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                   Boolean?                             RecursionDesired    = true,
-                                   Boolean?                             BypassCache         = false,
-                                   CancellationToken                    CancellationToken   = default)
+        public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
+                                         IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                         Boolean?                             RecursionDesired    = true,
+                                         Boolean?                             BypassCache         = false,
+                                         CancellationToken                    CancellationToken   = default)
         {
 
             #region Initial checks
 
             if (DNSServiceName.IsNullOrEmpty() || !DNSServers.Any())
-                return Task.FromResult(
-                           new DNSInfo(
-                               Origin:                 new DNSServerConfig(
-                                                           IPv4Address.Localhost,
-                                                           IPPort.DNS
-                                                       ),
-                               QueryId:                0,
-                               IsAuthoritativeAnswer:  false,
-                               IsTruncated:            false,
-                               RecursionDesired:       true,
-                               RecursionAvailable:     false,
-                               ResponseCode:           DNSResponseCodes.NameError,
-                               Answers:                [],
-                               Authorities:            [],
-                               AdditionalRecords:      [],
-                               IsValid:                true,
-                               IsTimeout:              false,
-                               Timeout:                QueryTimeout
-                           )
-                      );
+                return new DNSInfo(
+                           Origin:                 new DNSServerConfig(
+                                                       IPv4Address.Localhost,
+                                                       IPPort.DNS
+                                                   ),
+                           QueryId:                0,
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       true,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.NameError,
+                           Answers:                [],
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                QueryTimeout
+                       );
 
             var resourceRecordTypes = ResourceRecordTypes.ToList();
 
@@ -366,21 +364,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                            ((cnameRecord is null) || (cnameRecord.EndOfLife > now))).
                                           ToArray();
 
-               if (resourceRecords.Length != 0)
-                   return Task.FromResult(
-                       cachedResults
-                              //new DNSInfo(
-                              //    cachedResults.Origin,
-                              //    cachedResults.QueryId,
-                              //    cachedResults.AuthoritativeAnswer,
-                              //    cachedResults.IsTruncated,
-                              //    cachedResults.RecursionRequested,
-                              //    cachedResults.RecursionAvailable,
-                              //    cachedResults.ResponseCode,
-                              //    resourceRecords,
-
-                              //)
-                          );
+                if (resourceRecords.Length != 0)
+                    return cachedResults;
 
             }
 
@@ -493,7 +478,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #endregion
 
 
-            Task<DNSInfo>? firstResponse = null;
+            DNSInfo? firstResponse = null;
 
             if (allDNSServerRequests.Count != 0)
             {
@@ -505,19 +490,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     {
 
                         // Return first/fastest reply
-                        firstResponse = Task.WhenAny(allDNSServerRequests).Result;
+                        var firstResponseTask = await Task.WhenAny(allDNSServerRequests).
+                                                          ConfigureAwait(false);
 
-                        allDNSServerRequests.Remove(firstResponse);
+                        allDNSServerRequests.Remove(firstResponseTask);
+
+                        firstResponse = await firstResponseTask.
+                                                ConfigureAwait(false);
 
                         // Cache first useful response...
-                        if (firstResponse.Result?.ResponseCode == DNSResponseCodes.NoError)
+                        if (firstResponse?.ResponseCode == DNSResponseCodes.NoError)
                         {
 
-                            foreach (var domainNameGroup in firstResponse.Result.Answers.GroupBy(group => group.DomainName))
+                            foreach (var domainNameGroup in firstResponse.Answers.GroupBy(group => group.DomainName))
                             {
                                 AddToCache(
                                     domainNameGroup.Key,
-                                    firstResponse.Result // Records should perhaps be filtered!
+                                    firstResponse // Records should perhaps be filtered!
                                 );
                             }
 
@@ -534,27 +523,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            return Task.FromResult(
-                       firstResponse?.Result ??
-                           new DNSInfo(
-                               Origin:                 new DNSServerConfig(
-                                                            IPv4Address.Localhost,
-                                                            IPPort.DNS
-                                                       ),
-                               QueryId:                0,
-                               IsAuthoritativeAnswer:  false,
-                               IsTruncated:            false,
-                               RecursionDesired:       true,
-                               RecursionAvailable:     false,
-                               ResponseCode:           DNSResponseCodes.NameError,
-                               Answers:                [],
-                               Authorities:            [],
-                               AdditionalRecords:      [],
-                               IsValid:                true,
-                               IsTimeout:              false,
-                               Timeout:                QueryTimeout
-                           )
-                   );
+            return firstResponse ??
+                       new DNSInfo(
+                           Origin:                 new DNSServerConfig(
+                                                        IPv4Address.Localhost,
+                                                        IPPort.DNS
+                                                   ),
+                           QueryId:                0,
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       true,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.NameError,
+                           Answers:                [],
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                QueryTimeout
+                       );
 
         }
 

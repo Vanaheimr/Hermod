@@ -431,6 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region HTTPBody
 
         private Byte[]? httpBody;
+        private readonly SemaphoreSlim httpBodyStreamSemaphore = new (1, 1);
 
         /// <summary>
         /// The HTTP body/content as an array of bytes.
@@ -1478,19 +1479,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryReadHTTPBodyStream()
 
         public Boolean TryReadHTTPBodyStream()
+            => TryReadHTTPBodyStreamAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+
+        public async Task<Boolean> TryReadHTTPBodyStreamAsync(CancellationToken CancellationToken = default)
         {
 
-            //var text = "";
+            var invokeCloseAction = false;
 
-            //if (Response.HTTPBody?.Length > 0)
-            //    text = Response.HTTPBodyAsUTF8String;
+            await httpBodyStreamSemaphore.WaitAsync(CancellationToken).ConfigureAwait(false);
 
-
-            lock (headerFields)
+            try
             {
 
                 if (httpBody is not null)
                     return true;
+
+                invokeCloseAction = true;
 
                 if (HTTPBodyStream is null ||
                    !ContentLength.HasValue ||
@@ -1500,32 +1504,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return true;
                 }
 
-                httpBody      ??= new Byte[(Int32) ContentLength.Value];
-                var read        = 0;
-                var position    = 0;
-                var retry       = 0;
-                var maxRetries  = 20;
+                if (ContentLength.Value > Int32.MaxValue)
+                    throw new IOException($"The HTTP body is too large to buffer in memory: {ContentLength.Value} bytes!");
 
-                while (position < httpBody.Length && retry < maxRetries)
+                httpBody      = new Byte[(Int32) ContentLength.Value];
+                var position  = 0;
+
+                while (position < httpBody.Length)
                 {
 
                     try
                     {
 
-                        read = HTTPBodyStream.Read(
-                                   httpBody,
-                                   position,
-                                   httpBody.Length - position
-                               );
+                        var read = await HTTPBodyStream.ReadAsync(
+                                             httpBody.AsMemory(
+                                                 position,
+                                                 httpBody.Length - position
+                                             ),
+                                             CancellationToken
+                                         ).ConfigureAwait(false);
 
-                        if (read == 0) {
-                            Thread.Sleep(5);
-                            retry++;
-                            continue;
-                        }
+                        if (read == 0)
+                            break;
 
                         position += read;
-                        retry     = 0;
 
                     }
                     catch (IOException ex)
@@ -1549,10 +1551,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-
-                CloseActionAfterBodyWasRead?.Invoke();
-
-
                 if (position == httpBody.Length)
                     return true;
 
@@ -1562,6 +1560,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return false;
                 }
 
+            }
+            finally
+            {
+
+                if (invokeCloseAction)
+                    InvokeCloseActionAfterBodyWasRead();
+
+                httpBodyStreamSemaphore.Release();
+
+            }
+
+        }
+
+        #endregion
+
+        #region InvokeCloseActionAfterBodyWasRead()
+
+        private void InvokeCloseActionAfterBodyWasRead()
+        {
+
+            var closeAction = CloseActionAfterBodyWasRead;
+            CloseActionAfterBodyWasRead = null;
+
+            try
+            {
+                closeAction?.Invoke();
+            }
+            catch (Exception e)
+            {
+                DebugX.LogException(e, $"while closing HTTP body stream!");
             }
 
         }
@@ -1609,6 +1637,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public void Dispose()
         {
+
+            InvokeCloseActionAfterBodyWasRead();
 
             HTTPBodyStream?.Dispose();
             HTTPBodyStream = null;

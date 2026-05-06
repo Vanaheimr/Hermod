@@ -911,6 +911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 Stream? bodyDataStream  = null;
                                 Stream? bodyStream      = null;
+                                var bodyAlreadyConsumed  = false;
 
                                 var prefix = buffer[..dataLength];
                                 if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
@@ -940,11 +941,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             var trailers       = await chunkedStream.ReadAllChunks(
                                                                            async (timestamp, elapsed, counter, data) => await chunks.WriteAsync(data),
                                                                            CancellationToken
-                                                                       );
+                                             );
 
-                                            response.HTTPBody  = chunks.ToArray();
+                                             response.HTTPBody  = chunks.ToArray();
+                                             bodyAlreadyConsumed = true;
 
-                                        }
+                                         }
 
                                     }
 
@@ -958,30 +960,100 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 }
 
                                 response.HTTPBodyStream = bodyStream;
-                                //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
 
                                 #endregion
 
                                 if (response.ContentType == HTTPContentType.Text.EVENTSTREAM)
-                                    response.HTTPBodyStream = httpStream;
+                                {
+
+                                    bodyStream?.Dispose();
+
+                                    if (!ReferenceEquals(bodyStream, bodyDataStream))
+                                        bodyDataStream?.Dispose();
+
+                                    response.HTTPBodyStream = dataLength > 0
+                                                                  ? new PrefixStream(
+                                                                        prefix.ToArray(),
+                                                                        httpStream,
+                                                                        LeaveInnerStreamOpen: true
+                                                                    )
+                                                                  : httpStream;
+
+                                    IsHTTPConnected = false;
+                                    response.CloseActionAfterBodyWasRead = () => {
+                                        try
+                                        {
+                                            Dispose();
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.LogException(e, $"while disposing event stream client {RemoteSocket}!");
+                                        }
+                                    };
+
+                                    bufferOwner?.Dispose();
+                                    bufferOwner = null;
+
+                                }
+                                else
+                                {
+
+                                    try
+                                    {
+
+                                        if (bodyStream is not null)
+                                        {
+
+                                            if (!bodyAlreadyConsumed)
+                                                response.HTTPBody = await ReadHTTPBodyStream(
+                                                                        bodyStream,
+                                                                        linkedCancellationToken.Token
+                                                                    ).ConfigureAwait(false);
+
+                                            response.HTTPBodyStream = null;
+
+                                        }
+                                        else if (!response.ContentLength.HasValue || response.ContentLength.Value == 0)
+                                            response.HTTPBody = [];
+
+                                    }
+                                    finally
+                                    {
+
+                                        bodyStream?.Dispose();
+
+                                        if (!ReferenceEquals(bodyStream, bodyDataStream))
+                                            bodyDataStream?.Dispose();
+
+                                        bufferOwner?.Dispose();
+                                        bufferOwner = null;
+
+                                    }
+
+                                }
 
                                 if (response.IsConnectionClose)
                                 {
 
-                                    // An optional close action after the HTTP body stream has been read!
-                                    response.CloseActionAfterBodyWasRead = () => {
-                                        try
-                                        {
-                                            httpStream.Close();
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            DebugX.LogException(e, $"while closing {RemoteSocket}!");
-                                        }
-                                    };
-
-                                    // Mark connection for closure after response handling!
                                     IsHTTPConnected = false;
+
+                                    if (response.ContentType == HTTPContentType.Text.EVENTSTREAM)
+                                    {
+
+                                        response.CloseActionAfterBodyWasRead ??= () => {
+                                            try
+                                            {
+                                                Dispose();
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                DebugX.LogException(e, $"while disposing event stream client {RemoteSocket}!");
+                                            }
+                                        };
+
+                                    }
+                                    else
+                                        await CloseHTTPConnectionAfterFailure().ConfigureAwait(false);
 
                                 }
 
@@ -1098,6 +1170,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region (private)   ReadHTTPBodyStream(BodyStream, CancellationToken)
+
+        private static async Task<Byte[]> ReadHTTPBodyStream(Stream             BodyStream,
+                                                             CancellationToken  CancellationToken)
+        {
+
+            using var memoryStream = new MemoryStream();
+
+            await BodyStream.CopyToAsync(
+                      memoryStream,
+                      CancellationToken
+                  ).ConfigureAwait(false);
+
+            return memoryStream.ToArray();
+
+        }
+
+        #endregion
 
         #region (private)   CloseHTTPConnectionAfterFailure()
 

@@ -790,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public ConnectionType?                                            Connection                    { get; }
 
         public Boolean Connected
-            => throw new NotImplementedException();
+            => Volatile.Read(ref isDisposed) == 0;
 
         /// <summary>
         /// The default delay between transmission retries.
@@ -853,7 +853,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public IHTTPAuthentication? Authentication
-            => throw new NotImplementedException();
+            => HTTPAuthentication;
 
         #endregion
 
@@ -1270,13 +1270,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private) ReturnClientAsync(Client)
 
-        private ValueTask ReturnClientAsync(HTTPClient Client)
+        private ValueTask ReturnClientAsync(HTTPClient    Client,
+                                            HTTPResponse? Response = null)
         {
 
             try
             {
 
-                if (Volatile.Read(ref isDisposed) != 0 /* || !client.IsReusable */)
+                if (Response?.HTTPBodyStream is not null)
+                    return ValueTask.CompletedTask;
+
+                if (Volatile.Read(ref isDisposed) != 0 ||
+                    !Client.Connected                ||
+                    !Client.IsHTTPConnected)
                 {
                     Client.Dispose();
                     return ValueTask.CompletedTask;
@@ -1342,35 +1348,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var httpClient = await GetClientAsync(CancellationToken);
+            HTTPResponse? response = null;
 
             try
             {
 
-                return await httpClient.RunRequest(
-                                 HTTPMethod,
-                                 HTTPPath,
-                                 QueryString,
-                                 Accept,
-                                 Authentication,
-                                 Content,
-                                 ContentType,
-                                 UserAgent,
-                                 Connection,
-                                 RequestBuilder,
-                                 ConsumeRequestChunkedTEImmediately,
-                                 ConsumeResponseChunkedTEImmediately,
-                                 EventTrackingId,
-                                 RequestTimeout,
-                                 RequestLogDelegate,
-                                 ResponseLogDelegate,
-                                 CancellationToken
-                             ).ConfigureAwait(false);
+                response = await httpClient.RunRequest(
+                                     HTTPMethod,
+                                     HTTPPath,
+                                     QueryString,
+                                     Accept,
+                                     Authentication,
+                                     Content,
+                                     ContentType,
+                                     UserAgent,
+                                     Connection,
+                                     RequestBuilder,
+                                     ConsumeRequestChunkedTEImmediately,
+                                     ConsumeResponseChunkedTEImmediately,
+                                     EventTrackingId,
+                                     RequestTimeout,
+                                     RequestLogDelegate,
+                                     ResponseLogDelegate,
+                                     CancellationToken
+                                 ).ConfigureAwait(false);
+
+                return response;
 
             }
             finally
             {
-                await ReturnClientAsync(httpClient).
-                          ConfigureAwait(false);
+                await ReturnClientAsync(httpClient, response).
+                           ConfigureAwait(false);
             }
 
         }

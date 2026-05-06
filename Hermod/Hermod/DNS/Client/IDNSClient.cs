@@ -160,13 +160,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           BypassCache         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<A>(
-                             DNSServiceName.Parse(DomainName.FullName),
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(ARecord => ARecord.IPv4Address)).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<A>(
+                              DNSServiceName.Parse(DomainName.FullName),
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers.Select(ARecord => ARecord.IPv4Address);
 
         #endregion
 
@@ -180,13 +179,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           BypassCache         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<A>(
-                             DNSServiceName,
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(ARecord => ARecord.IPv4Address)).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<A>(
+                              DNSServiceName,
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers.Select(ARecord => ARecord.IPv4Address);
 
         #endregion
 
@@ -200,13 +198,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           BypassCache         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<A>(
-                             DomainName.Parse(RemoteURL.Hostname.Name),
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv4Address)).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<A>(
+                              DomainName.Parse(RemoteURL.Hostname.Name),
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers.Select(ARecord => ARecord.IPv4Address);
 
         #endregion
 
@@ -221,13 +218,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           BypassCache         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<AAAA>(
-                             DNSServiceName.Parse(DomainName.FullName),
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<AAAA>(
+                              DNSServiceName.Parse(DomainName.FullName),
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address);
 
         #endregion
 
@@ -241,13 +237,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           BypassCache         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<AAAA>(
-                             DNSServiceName,
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<AAAA>(
+                              DNSServiceName,
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address);
 
         #endregion
 
@@ -261,13 +256,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           BypassCache         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<AAAA>(
-                             DomainName.Parse(RemoteURL.Hostname.Name),
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<AAAA>(
+                              DomainName.Parse(RemoteURL.Hostname.Name),
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address);
 
         #endregion
 
@@ -292,8 +286,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                       ipv6AddressLookupTask
                   ).ConfigureAwait(false);
 
-            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
+            var ipv4Addresses = await ipv4AddressLookupTask.ConfigureAwait(false);
+            var ipv6Addresses = await ipv6AddressLookupTask.ConfigureAwait(false);
+
+            return       ipv4Addresses.Distinct().Select(v => v as IIPAddress).
+                   Union(ipv6Addresses.Distinct().Select(v => v as IIPAddress));
 
         }
 
@@ -319,8 +316,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                       ipv6AddressLookupTask
                   ).ConfigureAwait(false);
 
-            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
+            var ipv4Addresses = await ipv4AddressLookupTask.ConfigureAwait(false);
+            var ipv6Addresses = await ipv6AddressLookupTask.ConfigureAwait(false);
+
+            return       ipv4Addresses.Distinct().Select(v => v as IIPAddress).
+                   Union(ipv6Addresses.Distinct().Select(v => v as IIPAddress));
 
         }
 
@@ -346,8 +346,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                       ipv6AddressLookupTask
                   ).ConfigureAwait(false);
 
-            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
+            var ipv4Addresses = await ipv4AddressLookupTask.ConfigureAwait(false);
+            var ipv6Addresses = await ipv6AddressLookupTask.ConfigureAwait(false);
+
+            return       ipv4Addresses.Distinct().Select(v => v as IIPAddress).
+                   Union(ipv6Addresses.Distinct().Select(v => v as IIPAddress));
 
         }
 
@@ -365,16 +368,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              Boolean?           BypassCache         = false,
                              CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<SRV>(
-                             DNSServiceName.From(
-                                 DomainName,
-                                 DNSServiceSpec
-                             ),
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<SRV>(
+                              DNSServiceName.From(
+                                  DomainName,
+                                  DNSServiceSpec
+                              ),
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers;
 
         #endregion
 
@@ -388,13 +390,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              Boolean?           BypassCache         = false,
                              CancellationToken  CancellationToken   = default)
 
-                => await IDNSClient.Query<SRV>(
-                             DNSServiceName,
-                             RecursionDesired,
-                             BypassCache,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers).
-                           ConfigureAwait(false);
+                => (await IDNSClient.Query<SRV>(
+                              DNSServiceName,
+                              RecursionDesired,
+                              BypassCache,
+                              CancellationToken
+                          ).ConfigureAwait(false)).FilteredAnswers;
 
         #endregion
 
