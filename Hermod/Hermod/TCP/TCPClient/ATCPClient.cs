@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -65,6 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected                 TcpClient?               tcpClient;
         protected                 CancellationTokenSource  clientCancellationTokenSource;
+        private                   Int32                    bypassDNSCacheOnNextConnect;
 
         #endregion
 
@@ -174,6 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  TransmissionRetryDelayDelegate  TransmissionRetryDelay    { get; }
         public  UInt16                          MaxNumberOfRetries        { get; } = 3;
         public  UInt32                          BufferSize                { get; }
+        public  Boolean                         BypassDNSCacheOnReconnect { get; set; } = true;
 
 
         /// <summary>
@@ -395,6 +398,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 LocalSocket           = null;
                 RemoteSocket          = null;
 
+                if (BypassDNSCacheOnReconnect)
+                    BypassDNSCacheOnNextConnect();
+
             }
             catch (Exception e)
             {
@@ -438,6 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             var timings = new TCPClientConnectTimings();
+            var bypassDNSCache = Interlocked.Exchange(ref bypassDNSCacheOnNextConnect, 0) == 1;
 
             try
             {
@@ -477,11 +484,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         // Look up the DNS Name or the hostname of the URL...
                         var serviceRecords         = await DNSClient.Query_DNSService(
-                                                               DNSServiceName:     DNSServiceName.Parse($"{DNSService}.{hostname}"),
-                                                               RecursionDesired:   true,
-                                                               BypassCache:        false,
-                                                               CancellationToken:  CancellationToken
-                                                           ).ConfigureAwait(false);
+                                                                DNSServiceName:     DNSServiceName.Parse($"{DNSService}.{hostname}"),
+                                                                RecursionDesired:   true,
+                                                                BypassCache:        bypassDNSCache,
+                                                                CancellationToken:  CancellationToken
+                                                            ).ConfigureAwait(false);
 
                         DebugX.LogT($"DNS SRV: {serviceRecords.Count()} service records found:" + serviceRecords.Select(serviceRecord => serviceRecord.ToString()).AggregateWith(", "));
 
@@ -531,18 +538,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         // Look up the DNS SRV remote host or the hostname of the URL...
                         var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(
-                                                        dnsSRVRemoteHost ?? DomainName.Parse(hostname),
-                                                        RecursionDesired:   true,
-                                                        BypassCache:        false,
-                                                        CancellationToken:  CancellationToken
-                                                    );
+                                                         dnsSRVRemoteHost ?? DomainName.Parse(hostname),
+                                                         RecursionDesired:   true,
+                                                         BypassCache:        bypassDNSCache,
+                                                         CancellationToken:  CancellationToken
+                                                     );
 
                         var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(
-                                                        dnsSRVRemoteHost ?? DomainName.Parse(hostname),
-                                                        RecursionDesired:   true,
-                                                        BypassCache:        false,
-                                                        CancellationToken:  CancellationToken
-                                                    );
+                                                         dnsSRVRemoteHost ?? DomainName.Parse(hostname),
+                                                         RecursionDesired:   true,
+                                                         BypassCache:        bypassDNSCache,
+                                                         CancellationToken:  CancellationToken
+                                                     );
 
                         await Task.WhenAll(
                                   ipv4AddressLookupTask,
@@ -673,6 +680,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
             return TCPConnectionResult.Success();
+
+        }
+
+        #endregion
+
+
+        #region (protected) BypassDNSCacheOnNextConnect()
+
+        protected void BypassDNSCacheOnNextConnect()
+        {
+
+            Interlocked.Exchange(ref bypassDNSCacheOnNextConnect, 1);
 
         }
 
@@ -832,19 +851,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public async Task Close()
         {
 
-            if (IsConnected)
-            {
+            try { tcpClient?.Client?.Shutdown(SocketShutdown.Both); } catch { }
+            try { tcpClient?.Close();                               } catch { }
+            try { tcpClient?.Dispose();                             } catch { }
 
-                try
-                {
-                    tcpClient?.Client.Shutdown(SocketShutdown.Both);
-                    tcpClient?.Close();
-                }
-                catch { }
+            tcpClient             = null;
+            CurrentLocalEndPoint  = null;
+            CurrentRemoteEndPoint = null;
+            LocalSocket           = null;
+            RemoteSocket          = null;
 
-                await Log("TCP Client closed!");
-
-            }
+            await Log("TCP Client closed!");
 
             ResolvedIPAddresses.Clear();
             clientCancellationTokenSource.Cancel();

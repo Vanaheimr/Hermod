@@ -255,6 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                                          RequestLogDelegate,
                                          ResponseLogDelegate,
                                          MaxSemaphoreWaitTime,
+                                         null,
                                          CancellationToken
                                      );
 
@@ -630,6 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                          RequestLogDelegate,
                                          ResponseLogDelegate,
                                          MaxSemaphoreWaitTime,
+                                         null,
                                          CancellationToken
                                      );
 

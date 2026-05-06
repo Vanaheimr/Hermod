@@ -668,6 +668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                               HTTPRequestLogDelegate,
                                               HTTPResponseLogDelegate,
                                               null,
+                                              null,
                                               CancellationToken
                                           );
 

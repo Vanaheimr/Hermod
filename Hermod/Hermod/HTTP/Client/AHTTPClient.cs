@@ -674,8 +674,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        RequestLogDelegate,
                        ResponseLogDelegate,
                        null, // MaxSemaphoreWaitTime
+                       RequestTimeout,
                        CancellationToken
-                   );
+                    );
 
         #endregion
 
@@ -693,6 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         ClientResponseLogHandler?  ResponseLogDelegate                   = null,
                         TimeSpan?                  MaxSemaphoreWaitTime                  = null,
                         //EventTracking_Id?          EventTrackingId                       = null,
+                        TimeSpan?                  RequestTimeout                        = null,
                         CancellationToken          CancellationToken                     = default)
 
         {
@@ -756,9 +758,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
+                            using var requestTimeoutCancellationToken = new CancellationTokenSource(
+                                                                          RequestTimeout ?? this.RequestTimeout
+                                                                      );
+
                             using var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
                                                                     clientCancellationTokenSource.Token,
-                                                                    CancellationToken
+                                                                    CancellationToken,
+                                                                    requestTimeoutCancellationToken.Token
                                                                 );
 
                             #region Set optional Time-Based One-Time Password (TOTP)
@@ -851,7 +858,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         await Log("Could not read HTTP response from the HTTP stream!");
                                         DebugX.Log($"{nameof(AHTTPClient)}.{nameof(SendRequest)} Could not read HTTP response from the HTTP stream!");
-                                        IsHTTPConnected = false;
+                                        await CloseHTTPConnectionAfterFailure().ConfigureAwait(false);
                                         retry++;
                                         continue;
 
@@ -1021,7 +1028,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 DebugX.LogException(ex, nameof(AHTTPClient) + "." + nameof(SendRequest));
                             }
 
-                            IsHTTPConnected = false;
+                            await CloseHTTPConnectionAfterFailure().ConfigureAwait(false);
                             retry++;
 
                         }
@@ -1086,6 +1093,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ContentType     = HTTPContentType.Text.PLAIN,
                        Runtime         = TimeSpan.Zero
                    };
+
+        }
+
+        #endregion
+
+
+        #region (private)   CloseHTTPConnectionAfterFailure()
+
+        private async Task CloseHTTPConnectionAfterFailure()
+        {
+
+            IsHTTPConnected = false;
+
+            try { httpStream?.Dispose(); } catch { }
+
+            if (!ReferenceEquals(httpStream, tlsStream))
+            {
+                try { tlsStream?.Dispose(); } catch { }
+            }
+
+            httpStream = null;
+            tlsStream  = null;
+
+            await Close().ConfigureAwait(false);
 
         }
 
