@@ -40,6 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Task<HTTPResponse> OPTIONS(this IHTTPClient              HTTPClient,
                                                  HTTPPath                      Path,
                                                  IHTTPAuthentication?          Authentication                        = null,
+                                                 String?                       UserAgent                             = null,
                                                  ConnectionType?               Connection                            = null,
                                                  TimeSpan?                     RequestTimeout                        = null,
                                                  EventTracking_Id?             EventTrackingId                       = null,
@@ -60,9 +61,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    null,
                    Authentication,
-                   null, //UserAgent
                    null, //Content,
                    null, //ContentType,
+                   UserAgent,
                    Connection,
                    RequestBuilder,
 
@@ -110,8 +111,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    QueryString,
                    Accept,
                    Authentication,
-                   null, //Content,
-                   null, //ContentType,
+                   null,  // Content,
+                   null,  // ContentType,
                    UserAgent,
                    Connection ?? ConnectionType.KeepAlive,
                    RequestBuilder,
@@ -132,13 +133,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region POST    (Path, Content, ...)
 
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>
+        /// <param name="HTTPClient"></param>
+        /// <param name="Path"></param>
+        /// <param name="Content">The content to send. If null, no content will be sent and no Content-Length header will be added. When an empty byte array is given, a Content-Length header with value 0 will be sent.</param>
+        /// <param name="ContentType"></param>
+        /// <param name="QueryString"></param>
+        /// <param name="Accept"></param>
+        /// <param name="Authentication"></param>
+        /// <param name="UserAgent"></param>
+        /// <param name="Connection"></param>
+        /// <param name="RequestTimeout"></param>
+        /// <param name="EventTrackingId"></param>
+        /// <param name="NumberOfRetry"></param>
+        /// <param name="RequestBuilder"></param>
+        /// <param name="ConsumeRequestChunkedTEImmediately"></param>
+        /// <param name="ConsumeResponseChunkedTEImmediately"></param>
+        /// <param name="RequestLogDelegate"></param>
+        /// <param name="ResponseLogDelegate"></param>
+        /// <param name="CancellationToken"></param>
         public static Task<HTTPResponse> POST(this IHTTPClient              HTTPClient,
                                               HTTPPath                      Path,
-                                              Byte[]                        Content,
+                                              Byte[]?                       Content,
                                               HTTPContentType?              ContentType                           = null,
                                               QueryString?                  QueryString                           = null,
                                               AcceptTypes?                  Accept                                = null,
                                               IHTTPAuthentication?          Authentication                        = null,
+                                              String?                       UserAgent                             = null,
                                               ConnectionType?               Connection                            = null,
                                               TimeSpan?                     RequestTimeout                        = null,
                                               EventTracking_Id?             EventTrackingId                       = null,
@@ -161,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Authentication,
                    Content,
                    ContentType,
-                   null, //UserAgent
+                   UserAgent,
                    Connection,
                    RequestBuilder,
 
@@ -188,6 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              QueryString?                  QueryString                           = null,
                                              AcceptTypes?                  Accept                                = null,
                                              IHTTPAuthentication?          Authentication                        = null,
+                                             String?                       UserAgent                             = null,
                                              ConnectionType?               Connection                            = null,
                                              TimeSpan?                     RequestTimeout                        = null,
                                              EventTracking_Id?             EventTrackingId                       = null,
@@ -210,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Authentication,
                    Content,
                    ContentType,
-                   null, //UserAgent
+                   UserAgent,
                    Connection,
                    RequestBuilder,
 
@@ -237,6 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                QueryString?                  QueryString                           = null,
                                                AcceptTypes?                  Accept                                = null,
                                                IHTTPAuthentication?          Authentication                        = null,
+                                               String?                       UserAgent                             = null,
                                                ConnectionType?               Connection                            = null,
                                                TimeSpan?                     RequestTimeout                        = null,
                                                EventTracking_Id?             EventTrackingId                       = null,
@@ -259,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Authentication,
                    Content,
                    ContentType,
-                   null, //UserAgent
+                   UserAgent,
                    Connection,
                    RequestBuilder,
 
@@ -286,6 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 QueryString?                  QueryString                           = null,
                                                 AcceptTypes?                  Accept                                = null,
                                                 IHTTPAuthentication?          Authentication                        = null,
+                                                String?                       UserAgent                             = null,
                                                 ConnectionType?               Connection                            = null,
                                                 TimeSpan?                     RequestTimeout                        = null,
                                                 EventTracking_Id?             EventTrackingId                       = null,
@@ -308,7 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Authentication,
                    Content,
                    ContentType,
-                   null, //UserAgent
+                   UserAgent,
                    Connection,
                    RequestBuilder,
 
@@ -336,6 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 QueryString?                  QueryString                           = null,
                                                 AcceptTypes?                  Accept                                = null,
                                                 IHTTPAuthentication?          Authentication                        = null,
+                                                String?                       UserAgent                             = null,
                                                 ConnectionType?               Connection                            = null,
                                                 TimeSpan?                     RequestTimeout                        = null,
                                                 EventTracking_Id?             EventTrackingId                       = null,
@@ -358,7 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Authentication,
                    Content,
                    ContentType,
-                   null, //UserAgent
+                   UserAgent,
                    Connection,
                    RequestBuilder,
 
@@ -414,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Authentication,
                    null,  // Content
                    null,  // ContentType
-                          // TOTPConfig
+                          // TOTPConfig,
                    UserAgent,
                    Connection,
                    RequestBuilder,
