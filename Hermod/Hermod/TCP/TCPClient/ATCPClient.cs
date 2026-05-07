@@ -556,18 +556,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   ipv6AddressLookupTask
                               ).ConfigureAwait(false);
 
-                        var ipv4Addresses = await ipv4AddressLookupTask.ConfigureAwait(false);
-                        var ipv6Addresses = await ipv6AddressLookupTask.ConfigureAwait(false);
-
                         //DebugX.LogT(   $"A{(PreferIPv4 == IPVersionPreference.IPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
                         //DebugX.LogT($"AAAA{(PreferIPv4 == IPVersionPreference.IPv6 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
 
-                        if (ipv4Addresses.Any())
-                            foreach (var ipAddress in ipv4Addresses.Cast<IIPAddress>())
+                        if (ipv4AddressLookupTask.Result.Any())
+                            foreach (var ipAddress in ipv4AddressLookupTask.Result.Cast<IIPAddress>())
                                 ResolvedIPAddresses.Add(ipAddress);
 
-                        if (ipv6Addresses.Any())
-                            foreach (var ipAddress in ipv6Addresses.Cast<IIPAddress>())
+                        if (ipv6AddressLookupTask.Result.Any())
+                            foreach (var ipAddress in ipv6AddressLookupTask.Result.Cast<IIPAddress>())
                                 ResolvedIPAddresses.Add(ipAddress);
 
                         timings.DNSLookup = timings.Elapsed;
@@ -854,11 +851,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public async Task Close()
         {
 
-            try { tcpClient?.Client?.Shutdown(SocketShutdown.Both); } catch { }
-            try { tcpClient?.Close();                               } catch { }
-            try { tcpClient?.Dispose();                             } catch { }
+            var tcpClientToClose = tcpClient;
+            tcpClient = null;
 
-            tcpClient             = null;
+            try { tcpClientToClose?.Close();   } catch { }
+            try { tcpClientToClose?.Dispose(); } catch { }
+
             CurrentLocalEndPoint  = null;
             CurrentRemoteEndPoint = null;
             LocalSocket           = null;
@@ -867,7 +865,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             await Log("TCP Client closed!");
 
             ResolvedIPAddresses.Clear();
-            clientCancellationTokenSource.Cancel();
+
+            try { clientCancellationTokenSource?.Cancel(); } catch { }
 
         }
 
