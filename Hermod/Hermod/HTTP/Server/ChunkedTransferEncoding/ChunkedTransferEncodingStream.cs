@@ -166,10 +166,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var buf  = new Byte[2];
-            var r    = await innerStream.ReadAsync(
-                                 buf,
-                                 CancellationToken
-                             );
+            var r    = 0;
+
+            while (r < buf.Length)
+            {
+
+                var bytesRead = await innerStream.ReadAsync(
+                                          buf.AsMemory(r, buf.Length - r),
+                                          CancellationToken
+                                      ).ConfigureAwait(false);
+
+                if (bytesRead == 0)
+                    break;
+
+                r += bytesRead;
+
+            }
 
             if (r < 2 || buf[0] != (Byte) '\r' || buf[1] != (Byte) '\n')
                 throw new Exception("Expected CRLF");
@@ -184,7 +196,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var buf  = new Byte[2];
-            var r    = innerStream.Read(buf, 0, 2);
+            var r    = 0;
+
+            while (r < buf.Length)
+            {
+
+                var bytesRead = innerStream.Read(buf, r, buf.Length - r);
+                if (bytesRead == 0)
+                    break;
+
+                r += bytesRead;
+
+            }
 
             if (r < 2 || buf[0] != (Byte) '\r' || buf[1] != (Byte) '\n')
                 throw new Exception("Expected CRLF");
@@ -226,8 +249,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (currentChunkSize == 0)
                     {
 
-                        ReadCRLF();
-
                         // Skip trailers
                         while (true)
                         {
@@ -263,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 else
                 {
-                    // 0 canRead, but since if == size, loop will go to next chunk
+                    throw new InvalidOperationException("Invalid chunk state: no bytes can be read, but the current chunk is not complete.");
                 }
 
             }
@@ -307,8 +328,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (currentChunkSize == 0)
                     {
 
-                        await ReadCRLFAsync(CancellationToken);
-
                         // Skip trailers
                         while (true)
                         {
@@ -333,7 +352,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (canRead > 0)
                 {
 
-                    var read = await innerStream.ReadAsync(currentDestination, CancellationToken);
+                    var read = await innerStream.ReadAsync(
+                                           currentDestination[..canRead],
+                                           CancellationToken
+                                       ).ConfigureAwait(false);
+
                     if (read == 0)
                         throw new Exception("Unexpected end of stream during chunk data");
 
@@ -349,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 else
                 {
-                    // 0 canRead, but since if == size, loop will go to next chunk
+                    throw new InvalidOperationException("Invalid chunk state: no bytes can be read, but the current chunk is not complete.");
                 }
 
             }
