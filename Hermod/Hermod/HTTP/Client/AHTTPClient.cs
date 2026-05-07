@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               ConnectionType?                                            Connection                            = null,
                               DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
-                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler    = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
                               IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
                               SslStreamCertificateContext?                               ClientCertificateContext              = null,
@@ -168,12 +168,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    TCPPort ?? IPPort.HTTP,
                    Description,
 
-                   RemoteCertificateValidationHandler is not null
+                   RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
                           certificateChain,
                           tlsClient,
-                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                          policyErrors) => RemoteCertificateValidator.Invoke(
                                                sender,
                                                certificate,
                                                certificateChain,
@@ -244,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               ConnectionType?                                            Connection                            = null,
                               DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
-                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler    = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
                               IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
                               SslStreamCertificateContext?                               ClientCertificateContext              = null,
@@ -277,12 +277,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             : base(URL,
                    Description,
 
-                   RemoteCertificateValidationHandler is not null
+                   RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
                           certificateChain,
                           tlsClient,
-                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                          policyErrors) => RemoteCertificateValidator.Invoke(
                                                sender,
                                                certificate,
                                                certificateChain,
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               ConnectionType?                                            Connection                            = null,
                               DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
-                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler    = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator            = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
                               IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
                               SslStreamCertificateContext?                               ClientCertificateContext              = null,
@@ -388,12 +388,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    DNSService,
                    Description,
 
-                   RemoteCertificateValidationHandler is not null
+                   RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
                           certificateChain,
                           tlsClient,
-                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                          policyErrors) => RemoteCertificateValidator.Invoke(
                                                sender,
                                                certificate,
                                                certificateChain,

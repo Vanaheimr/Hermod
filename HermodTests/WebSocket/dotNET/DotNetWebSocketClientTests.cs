@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Key:       +LYHhVOGskWz/0bFFcK8dQ==
             // Sec-WebSocket-Version:   13
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest.Connection);
+            ClassicAssert.AreEqual("Upgrade",                                         httpRequest.Connection.ToString());
             ClassicAssert.AreEqual("websocket",                                       httpRequest.Upgrade);
 
             ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
@@ -212,8 +212,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",              httpResponse.Server);
+            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection.ToString());
             ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
             #endregion

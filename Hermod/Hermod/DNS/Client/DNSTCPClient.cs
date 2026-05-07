@@ -151,7 +151,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             dnsQuery.Serialize(ms, false, []);
 
             if (!IsConnected || tcpClient is null)
-                await ReconnectAsync().ConfigureAwait(false);
+                await ReconnectAsync(CancellationToken).
+                          ConfigureAwait(false);
 
             var data        = ms.ToArray();
             var dataLength  = data.Length-2;

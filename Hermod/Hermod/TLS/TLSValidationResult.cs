@@ -18,11 +18,50 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
+using System.Text;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
+
+    public static class TLSValidationExtensions
+    {
+
+        public static TLSValidationResult AskTheOS<T>(Object             Sender,
+                                                      X509Certificate2?  Certificate,
+                                                      X509Chain?         CertificateChain,
+                                                      T                  TLSClient,
+                                                      SslPolicyErrors    PolicyErrors)
+        {
+
+            var sans   = Certificate?.DecodeSubjectAlternativeNames() ?? [];
+
+            var errors = new List<Error>();
+
+            if (PolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateNotAvailable))
+                errors.Add(Error.Create("Remote certificate not available!", TLSClient));
+
+            if (PolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch))
+                errors.Add(Error.Create("Remote certificate name mismatch!", TLSClient));
+
+            if (PolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateChainErrors))
+                errors.Add(Error.Create("Remote certificate chain errors!",  TLSClient));
+
+
+            return new TLSValidationResult(
+                       IsValid:   PolicyErrors == SslPolicyErrors.None,
+                       Errors:    errors,
+                       Warnings:  null
+                   );
+
+        }
+
+    }
+
 
     /// <summary>
     /// A TLS validation result.
@@ -132,7 +171,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                );
 
 
+        #region ToString()
 
+        /// <summary>
+        /// Return a text representation of this TLS validation result.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   IsValid
+                       ? "success"
+                       : "failed",
+
+                   Errors.  Any()
+                       ? $", {Errors.Count()} error(s)"
+                       : String.Empty,
+
+                   Warnings. Any()
+                       ? $", {Warnings.Count()} warning(s)"
+                       : String.Empty
+
+               );
+
+        #endregion
 
     }
 

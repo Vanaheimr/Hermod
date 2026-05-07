@@ -407,9 +407,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
 
-                return (UInt32) tcpStream.Read(Buffer,
-                                               (Int32) Offset,
-                                               (Int32) Count);
+                //return (UInt32) tcpStream.Read(Buffer,
+                //                               (Int32) Offset,
+                //                               (Int32) Count);
+
+                return (UInt32) httpStream.Read(
+                                    Buffer,
+                                    (Int32) Offset,
+                                    (Int32) Count
+                                );
 
             }
             catch
@@ -434,9 +440,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
 
-                return (UInt32) tcpStream.Read(Buffer,
-                                               Offset,
-                                               Count);
+                //return (UInt32) tcpStream.Read(Buffer,
+                //                               Offset,
+                //                               Count);
+
+                return (UInt32) httpStream.Read(
+                                    Buffer,
+                                    Offset,
+                                    Count
+                                );
 
             }
             catch

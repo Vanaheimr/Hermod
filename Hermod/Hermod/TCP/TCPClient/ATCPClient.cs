@@ -26,6 +26,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
 
 #endregion
 
@@ -452,10 +453,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 DomainName? dnsSRVRemoteHost   = null;
                 IPPort?     dnsSRVRemotePort   = null;
 
+                if (RemoteIPAddress is not null)
+                    ResolvedIPAddresses.Add(RemoteIPAddress);
+
                 if (ResolvedIPAddresses.Count == 0)
                 {
 
-                    var hostname = (DomainName?.FullName ?? RemoteURL.Hostname.Name).Trim();
+                    var hostname = (DomainName?.FullName ?? RemoteURL.Hostname.Name)?.Trim() ?? "";
 
                     #region Localhost / URL looks like an IP address...
 
@@ -537,14 +541,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         //DebugX.LogT($"DNS A/AAAA queries for '{remote}'...");
 
                         // Look up the DNS SRV remote host or the hostname of the URL...
-                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(
+                        var ipv4AddressLookupTask  = DNSClient.Query_IPv4Addresses(
                                                          dnsSRVRemoteHost ?? DomainName.Parse(hostname),
                                                          RecursionDesired:   true,
                                                          BypassCache:        bypassDNSCache,
                                                          CancellationToken:  CancellationToken
                                                      );
 
-                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(
+                        var ipv6AddressLookupTask  = DNSClient.Query_IPv6Addresses(
                                                          dnsSRVRemoteHost ?? DomainName.Parse(hostname),
                                                          RecursionDesired:   true,
                                                          BypassCache:        bypassDNSCache,
@@ -612,7 +616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         ResolvedIPAddress  = IPVersionPreference switch {
                                                  IPVersionPreference.PreferIPv4  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement(),
                                                  IPVersionPreference.PreferIPv6  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement(),
-                                                 _                         => ResolvedIPAddresses.GetRandomElement()
+                                                 _                               => ResolvedIPAddresses.GetRandomElement()
                                              } ?? ResolvedIPAddresses.GetRandomElement();
 
                         var connectTask    = tcpClient.ConnectAsync(

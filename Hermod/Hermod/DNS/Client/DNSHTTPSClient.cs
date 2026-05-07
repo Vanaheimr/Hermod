@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                               String?                                                    HTTPUserAgent                        = null,
 
-                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
                               X509ChainPolicy?                                           CertificateChainPolicy               = null,
@@ -124,12 +124,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    null,
 
-                   RemoteCertificateValidationHandler is not null
+                   RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
                           certificateChain,
                           tlsClient,
-                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                          policyErrors) => RemoteCertificateValidator.Invoke(
                                                sender,
                                                certificate,
                                                certificateChain,
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                               String?                                                    HTTPUserAgent                        = null,
 
-                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
                               X509ChainPolicy?                                           CertificateChainPolicy               = null,
@@ -218,12 +218,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    null,
 
-                   RemoteCertificateValidationHandler is not null
+                   RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
                           certificateChain,
                           tlsClient,
-                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                          policyErrors) => RemoteCertificateValidator.Invoke(
                                                sender,
                                                certificate,
                                                certificateChain,
@@ -284,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                               String?                                                    HTTPUserAgent                        = null,
 
-                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
                               X509ChainPolicy?                                           CertificateChainPolicy               = null,
@@ -313,12 +313,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,  // Connection
                    null,  // DefaultRequestBuilder
 
-                   RemoteCertificateValidationHandler is not null
+                   RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
                           certificateChain,
                           aHTTPTestClient,
-                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                          policyErrors) => RemoteCertificateValidator.Invoke(
                                                sender,
                                                certificate,
                                                certificateChain,
@@ -728,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             Boolean?                                                   RecursionDesired                     = null,
                                             TimeSpan?                                                  QueryTimeout                         = null,
 
-                                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                                             SslProtocols?                                              TLSProtocols                         = null,
                                             CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
                                             X509ChainPolicy?                                           CertificateChainPolicy               = null,
@@ -757,7 +757,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                    HTTPUserAgent,
 
-                   RemoteCertificateValidationHandler,
+                   RemoteCertificateValidator,
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
@@ -789,7 +789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                                         String?                                                    HTTPUserAgent                        = null,
 
-                                                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                                                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                                                         SslProtocols?                                              TLSProtocols                         = null,
                                                         CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
                                                         X509ChainPolicy?                                           CertificateChainPolicy               = null,
@@ -817,7 +817,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                    HTTPUserAgent,
 
-                   RemoteCertificateValidationHandler,
+                   RemoteCertificateValidator,
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,

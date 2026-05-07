@@ -38,20 +38,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         public void InitTests()
         {
 
-            RemoteTLSServerCertificateValidationHandler<DNSTLSClient> validateServerCertificate = (sender,
-                                                                                                   certificate,
-                                                                                                   certificateChain,
-                                                                                                   tlsClient,
-                                                                                                   policyErrors) => {
-
-                                                                                                       var sans = certificate?.DecodeSubjectAlternativeNames() ?? [];
-
-                                                                                                       // Accept all certificates!
-                                                                                                       return TLSValidationResult.Success();
-
-                                                                                                   };
-
-            client = DNSTLSClient.Google_Random(RemoteCertificateValidationHandler: validateServerCertificate);
+            client = DNSTLSClient.Google_Random(
+                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS
+                         //DNSClient:                    new DNSClient(
+                         //                                  SearchForIPv4DNSServers: true,
+                         //                                  SearchForIPv6DNSServers: false
+                         //                              )
+                     );
 
         }
 

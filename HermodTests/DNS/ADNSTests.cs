@@ -345,10 +345,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region Test__ocpp_tls_api_charging_cloud__SRV()
+        #region Test__ocpp_tcp_api_charging_cloud__SRV()
 
         [Test]
-        public async Task Test_ocpp_tls_api_charging_cloud__SRV()
+        public async Task Test_ocpp_tcp_api_charging_cloud__SRV()
         {
 
             if (client is null)
@@ -357,7 +357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                 return;
             }
 
-            var response = await client.Query<SRV>(DNSServiceName.Parse("_ocpp._tls.api.charging.cloud"));
+            var response = await client.Query<SRV>(DNSServiceName.Parse("_ocpp._tcp.api.charging.cloud"));
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
@@ -381,15 +381,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                 return;
             }
 
-            Assert.That(answer1.DomainName.ToString(),   Is.EqualTo("_ocpp._tls.api.charging.cloud."));
+            Assert.That(answer1.DomainName.ToString(),   Is.EqualTo("_ocpp._tcp.api.charging.cloud."));
             Assert.That(answer1.Class,                   Is.EqualTo(DNSQueryClasses.IN));
             Assert.That(answer1.Type,                    Is.EqualTo(DNSResourceRecordTypes.SRV));
 
-            Assert.That(answer2.DomainName.ToString(),   Is.EqualTo("_ocpp._tls.api.charging.cloud."));
+            Assert.That(answer2.DomainName.ToString(),   Is.EqualTo("_ocpp._tcp.api.charging.cloud."));
             Assert.That(answer2.Class,                   Is.EqualTo(DNSQueryClasses.IN));
             Assert.That(answer2.Type,                    Is.EqualTo(DNSResourceRecordTypes.SRV));
 
-            Assert.That(answer3.DomainName.ToString(),   Is.EqualTo("_ocpp._tls.api.charging.cloud."));
+            Assert.That(answer3.DomainName.ToString(),   Is.EqualTo("_ocpp._tcp.api.charging.cloud."));
             Assert.That(answer3.Class,                   Is.EqualTo(DNSQueryClasses.IN));
             Assert.That(answer3.Type,                    Is.EqualTo(DNSResourceRecordTypes.SRV));
 

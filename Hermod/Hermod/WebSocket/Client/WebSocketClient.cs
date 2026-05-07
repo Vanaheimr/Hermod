@@ -617,7 +617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     };
                 }
 
-                if (RemoteURL.Protocol == URLProtocols.https &&
+                if ((RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https) &&
                     TCPNetworkStream           is not null   &&
                     RemoteCertificateValidator is not null)
                 {
@@ -698,7 +698,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             //    timings.AddError(error);
 
                             TCPSocket  = null;
-                            restart2    = true;
+                            restart2   = true;
 
                         }
 
@@ -712,8 +712,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     HTTPStream  = TCPNetworkStream;
                 }
 
-                if (HTTPStream is not null)
-                    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                HTTPStream?.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 #endregion
 
@@ -1195,8 +1194,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     // The close handshake demands that we send a close frame back!
                                                     await webSocketClientConnection.Close(
-                                                                WebSocketFrame.ClosingStatusCode.NormalClosure
-                                                            );
+                                                              WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                          );
 
                                                     break;
 

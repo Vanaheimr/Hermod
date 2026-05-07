@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Upgrade the connection.
         /// </summary>
         public static ConnectionType  Upgrade      { get; }
-            = Parse("upgrade");
+            = Parse("Upgrade");
 
         #endregion
 

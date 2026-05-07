@@ -79,6 +79,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                     Timings);
 
 
+
+        #region ToString()
+
+        /// <summary>
+        /// Return a text representation of this TCP connection result.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   IsSuccess
+                       ? "success"
+                       : "failed",
+
+                   Errors.  Any()
+                       ? $", {Errors.Count()} error(s)"
+                       : String.Empty
+
+               );
+
+        #endregion
+
+
     }
 
 

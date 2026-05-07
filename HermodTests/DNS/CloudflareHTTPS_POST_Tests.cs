@@ -42,11 +42,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         {
 
             client  = DNSHTTPSClient.Cloudflare_DNSName(
-                          Mode:       DNSHTTPSMode.POST,
-                          DNSClient:  new DNSClient(
-                                          SearchForIPv4DNSServers: true,
-                                          SearchForIPv6DNSServers: false
-                                      )
+                          Mode:                         DNSHTTPSMode.POST,
+                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                          DNSClient:                    new DNSClient(
+                                                            SearchForIPv4DNSServers: true,
+                                                            SearchForIPv6DNSServers: false
+                                                        )
                       );
 
         }

@@ -45,23 +45,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         public void InitTests()
         {
 
-            RemoteTLSServerCertificateValidationHandler<DNSTLSClient> validateServerCertificate = (sender,
-                                                                                                   certificate,
-                                                                                                   certificateChain,
-                                                                                                   tlsClient,
-                                                                                                   policyErrors) => {
-
-                var sans = certificate?.DecodeSubjectAlternativeNames() ?? [];
-
-                // Accept all certificates!
-                return TLSValidationResult.Success();
-
-            };
-
-            client = DNSTLSClient.Cloudflare_Random(RemoteCertificateValidationHandler: validateServerCertificate);
-            //    URL.Parse("tls://one.one.one.one"),
-            //    RemoteCertificateValidationHandler: validateServerCertificate
-            //);
+            client = DNSTLSClient.Cloudflare_DNSName(
+                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                         DNSClient:                    new DNSClient(
+                                                           SearchForIPv4DNSServers: true,
+                                                           SearchForIPv6DNSServers: false
+                                                       )
+                     );
 
         }
 
