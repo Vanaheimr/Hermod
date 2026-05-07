@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPAuthentication?           HTTPAuthentication                     { get; set; }
         public TOTPConfig?                    TOTPConfig                             { get; set; }
         public ConnectionType?                Connection                             { get;}
-        public TimeSpan                       RequestTimeout                         { get; set; }         = TimeSpan.FromSeconds(10);
+        public TimeSpan                       RequestTimeout                         { get; set; }         = TimeSpan.FromSeconds(120);
 
         public Boolean?                       ConsumeRequestChunkedTEImmediately     { get;}
         public Boolean?                       ConsumeResponseChunkedTEImmediately    { get;}
