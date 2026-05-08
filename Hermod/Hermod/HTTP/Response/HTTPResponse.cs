@@ -929,10 +929,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         if      (relativelinenumber == 1 && copy == "request")
-                            requestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
+                            requestTimestamp  = DateTimeOffset.Parse(line);
 
                         else if (relativelinenumber == 1 && copy == "response")
-                            responseTimestamp = DateTime.SpecifyKind(DateTime.Parse(line.Substring(0, line.IndexOf(" "))), DateTimeKind.Utc);
+                            responseTimestamp = DateTimeOffset.Parse(line.Substring(0, line.IndexOf(" ")));
 
                         else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
@@ -955,12 +955,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 if (HTTPRequest. TryParse(requestLines,
                                                           out var parsedHTTPRequest,
-                                                          Timestamp:  requestTimestamp)  &&
+                                                          Timestamp:          requestTimestamp,
+                                                          CancellationToken:  CancellationToken) &&
 
                                     HTTPResponse.TryParse(responseLines,
                                                           out var parsedHTTPResponse,
-                                                          Timestamp:  responseTimestamp,
-                                                          Request:    parsedHTTPRequest) &&
+                                                          Timestamp:          responseTimestamp,
+                                                          Request:            parsedHTTPRequest,
+                                                          CancellationToken:  CancellationToken) &&
 
                                     parsedHTTPResponse is not null)
                                 {

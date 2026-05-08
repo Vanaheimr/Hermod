@@ -1221,8 +1221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            QueryString?                           QueryString                                 = null,
                            Byte[]?                                HTTPBody                                    = null,
                            Stream?                                HTTPBodyStream                              = null,
-                           //HTTPServer?                            HTTPServer                                  = null,
-                           AHTTPTestServer?                       HTTPServerX                                 = null,
+                           AHTTPTestServer?                       HTTPServer                                  = null,
                            X509Certificate2?                      ServerCertificate                           = null,
                            X509Certificate2?                      ClientCertificate                           = null,
 
@@ -1246,8 +1245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            //this.HTTPServer         = HTTPServer;
-            this.HTTPServer        = HTTPServerX;
+            this.HTTPServer         = HTTPServer;
             this.ServerCertificate  = ServerCertificate;
             this.ClientCertificate  = ClientCertificate;
 
@@ -1261,7 +1259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             foreach (var kvp in HTTPHeaderFields)
                 this.headerFields.TryAdd(kvp.Key, kvp.Value);
 
-            this.Cookies = GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
+            this.Cookies            = GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
 
         }
 
@@ -1293,7 +1291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              String             HTTPHeader,
                              Byte[]?            HTTPBody                                    = null,
                              Stream?            HTTPBodyStream                              = null,
-                             AHTTPTestServer?   HTTPServerX                                 = null,
+                             AHTTPTestServer?   HTTPServer                                  = null,
                              X509Certificate2?  ServerCertificate                           = null,
                              X509Certificate2?  ClientCertificate                           = null,
 
@@ -1318,7 +1316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPServer        = HTTPServerX;
+            this.HTTPServer         = HTTPServer;
             this.ServerCertificate  = ServerCertificate;
             this.ClientCertificate  = ClientCertificate;
 
@@ -1981,7 +1979,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   Header,
                                   Body,
 
-                                  HTTPServerX:        HTTPServer,
+                                  HTTPServer:        HTTPServer,
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
@@ -2060,7 +2058,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   EndOfHeader == -1 ? Text : Text[..(EndOfHeader + 2)],
                                   Body,
 
-                                  HTTPServerX:         HTTPServer,
+                                  HTTPServer:         HTTPServer,
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
@@ -2136,7 +2134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   null,
                                   Body,
 
-                                  HTTPServerX:         HTTPServer,
+                                  HTTPServer:         HTTPServer,
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
@@ -2210,7 +2208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   Lines.TakeWhile(line => line != "").        AggregateWith("\r\n"),
                                   Lines.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n").ToUTF8Bytes(),
 
-                                  HTTPServerX:         HTTPServer,
+                                  HTTPServer:         HTTPServer,
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
@@ -2285,7 +2283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   Lines.TakeWhile(line => line != "").AggregateWith("\r\n"),
                                   Body,
 
-                                  HTTPServerX:         HTTPServer,
+                                  HTTPServer:         HTTPServer,
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
@@ -2357,7 +2355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   null,
                                   Body,
 
-                                  HTTPServerX:         HTTPServer,
+                                  HTTPServer:         HTTPServer,
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
@@ -2426,7 +2424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       header.        AggregateWith("\r\n"),
                                       [],
 
-                                      HTTPServerX:         HTTPServer,
+                                      HTTPServer:         HTTPServer,
                                       EventTrackingId:    EventTrackingId,
                                       CancellationToken:  CancellationToken
                                   );
