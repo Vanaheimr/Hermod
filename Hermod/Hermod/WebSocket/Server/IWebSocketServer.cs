@@ -33,21 +33,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     #region Delegates
 
 
-    public delegate Task<WebSocketTextMessageResponse>    OnWebSocketServerTextMessageDelegate  (DateTime                     Timestamp,
-                                                                                                 AWebSocketServer             Server,
-                                                                                                 WebSocketServerConnection    Connection,
-                                                                                                 EventTracking_Id             EventTrackingId,
-                                                                                                 DateTime                     RequestTimestamp,
-                                                                                                 String                       TextMessage,
-                                                                                                 CancellationToken            CancellationToken);
+    //public delegate Task OnWebSocketServerTextMessageDelegate  (DateTimeOffset               Timestamp,
+    //                                                            AWebSocketServer             Server,
+    //                                                            WebSocketServerConnection    Connection,
+    //                                                            EventTracking_Id             EventTrackingId,
+    //                                                            DateTimeOffset               RequestTimestamp,
+    //                                                            String                       TextMessage,
+    //                                                            CancellationToken            CancellationToken);
 
-    public delegate Task<WebSocketBinaryMessageResponse>  OnWebSocketServerBinaryMessageDelegate(DateTime                     Timestamp,
-                                                                                                 AWebSocketServer             Server,
-                                                                                                 WebSocketServerConnection    Connection,
-                                                                                                 EventTracking_Id             EventTrackingId,
-                                                                                                 DateTime                     RequestTimestamp,
-                                                                                                 Byte[]                       BinaryMessage,
-                                                                                                 CancellationToken            CancellationToken);
+    //public delegate Task OnWebSocketServerBinaryMessageDelegate(DateTimeOffset               Timestamp,
+    //                                                            AWebSocketServer             Server,
+    //                                                            WebSocketServerConnection    Connection,
+    //                                                            EventTracking_Id             EventTrackingId,
+    //                                                            DateTimeOffset               RequestTimestamp,
+    //                                                            Byte[]                       BinaryMessage,
+    //                                                            CancellationToken            CancellationToken);
 
     #endregion
 
@@ -219,33 +219,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Process(Text/Binary)Message
 
-        /// <summary>
-        /// The default HTTP WebSocket text message processor.
-        /// </summary>
-        /// <param name="RequestTimestamp">The timestamp of the request message.</param>
-        /// <param name="Connection">The web socket connection.</param>
-        /// <param name="TextMessage">The web socket text message.</param>
-        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        /// <param name="CancellationToken">A token to cancel the processing.</param>
-        Task<WebSocketTextMessageResponse>    ProcessTextMessage  (DateTime                   RequestTimestamp,
-                                                                   WebSocketServerConnection  Connection,
-                                                                   String                     TextMessage,
-                                                                   EventTracking_Id           EventTrackingId,
-                                                                   CancellationToken          CancellationToken);
+        ///// <summary>
+        ///// The default HTTP WebSocket text message processor.
+        ///// </summary>
+        ///// <param name="RequestTimestamp">The timestamp of the request message.</param>
+        ///// <param name="Connection">The web socket connection.</param>
+        ///// <param name="TextMessage">The web socket text message.</param>
+        ///// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        ///// <param name="CancellationToken">A token to cancel the processing.</param>
+        //Task ProcessTextMessage  (DateTimeOffset             RequestTimestamp,
+        //                          WebSocketServerConnection  Connection,
+        //                          String                     TextMessage,
+        //                          EventTracking_Id           EventTrackingId,
+        //                          CancellationToken          CancellationToken);
 
-        /// <summary>
-        /// The default HTTP WebSocket binary message processor.
-        /// </summary>
-        /// <param name="RequestTimestamp">The timestamp of the request message.</param>
-        /// <param name="Connection">The web socket connection.</param>
-        /// <param name="BinaryMessage">The web socket binary message.</param>
-        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        /// <param name="CancellationToken">A token to cancel the processing.</param>
-        Task<WebSocketBinaryMessageResponse>  ProcessBinaryMessage(DateTime                   RequestTimestamp,
-                                                                   WebSocketServerConnection  Connection,
-                                                                   Byte[]                     BinaryMessage,
-                                                                   EventTracking_Id           EventTrackingId,
-                                                                   CancellationToken          CancellationToken);
+        ///// <summary>
+        ///// The default HTTP WebSocket binary message processor.
+        ///// </summary>
+        ///// <param name="RequestTimestamp">The timestamp of the request message.</param>
+        ///// <param name="Connection">The web socket connection.</param>
+        ///// <param name="BinaryMessage">The web socket binary message.</param>
+        ///// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        ///// <param name="CancellationToken">A token to cancel the processing.</param>
+        //Task ProcessBinaryMessage(DateTimeOffset             RequestTimestamp,
+        //                          WebSocketServerConnection  Connection,
+        //                          Byte[]                     BinaryMessage,
+        //                          EventTracking_Id           EventTrackingId,
+        //                          CancellationToken          CancellationToken);
 
         #endregion
 

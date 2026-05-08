@@ -116,20 +116,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnTextMessageReceived         += (timestamp, server, connection, frame, eventTrackingId, textMessage, cancellationToken) => {
-                textMessageRequests.   Add(textMessage);
-                return Task.CompletedTask;
-            };
+            //webSocketChatServer.OnTextMessageReceived         += (timestamp, server, connection, frame, eventTrackingId, textMessage, cancellationToken) => {
+            //    textMessageRequests.   Add(textMessage);
+            //    return Task.CompletedTask;
+            //};
 
             webSocketChatServer.OnTextMessageSent             += (timestamp, server, connection, frame, eventTrackingId, textMessage, sentStatus, cancellationToken) => {
                 textMessageResponses.  Add(textMessage ?? "-");
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnBinaryMessageReceived       += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, cancellationToken) => {
-                binaryMessageRequests. Add(binaryMessage);
-                return Task.CompletedTask;
-            };
+            //webSocketChatServer.OnBinaryMessageReceived       += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, cancellationToken) => {
+            //    binaryMessageRequests. Add(binaryMessage);
+            //    return Task.CompletedTask;
+            //};
 
             webSocketChatServer.OnBinaryMessageSent           += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, sentStatus, cancellationToken) => {
                 binaryMessageResponses.Add(binaryMessage);

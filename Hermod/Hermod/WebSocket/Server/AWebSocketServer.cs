@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <summary>
     /// An HTTP WebSocket server.
     /// </summary>
-    public abstract class AWebSocketServer : IWebSocketServer
+    public abstract class AWebSocketServer
     {
 
         #region Data
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public I18NString                                                      Description                     { get; set; }
 
         public Func<X509Certificate2>?                                         ServerCertificateSelector       { get; }
-        public RemoteTLSClientCertificateValidationHandler<IWebSocketServer>?  ClientCertificateValidator      { get; }
+        public RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator      { get; }
         public LocalCertificateSelectionHandler?                               LocalCertificateSelector        { get; }
         public SslProtocols?                                                   AllowedTLSProtocols             { get; }
         public Boolean?                                                        ClientCertificateRequired       { get; }
@@ -385,10 +385,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public event OnWebSocketServerTextMessageSentDelegate?          OnTextMessageSent;
 
-        /// <summary>
-        /// An event sent whenever a text message was received.
-        /// </summary>
-        public event OnWebSocketServerTextMessageReceivedDelegate?      OnTextMessageReceived;
+        ///// <summary>
+        ///// An event sent whenever a text message was received.
+        ///// </summary>
+        //public event OnWebSocketServerTextMessageReceivedDelegate?      OnTextMessageReceived;
 
 
         /// <summary>
@@ -396,10 +396,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public event OnWebSocketServerBinaryMessageSentDelegate?        OnBinaryMessageSent;
 
-        /// <summary>
-        /// An event sent whenever a binary message was received.
-        /// </summary>
-        public event OnWebSocketServerBinaryMessageReceivedDelegate?    OnBinaryMessageReceived;
+        ///// <summary>
+        ///// An event sent whenever a binary message was received.
+        ///// </summary>
+        //public event OnWebSocketServerBinaryMessageReceivedDelegate?    OnBinaryMessageReceived;
 
 
         /// <summary>
@@ -488,7 +488,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
 
                                 Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
-                                RemoteTLSClientCertificateValidationHandler<IWebSocketServer>?  ClientCertificateValidator   = null,
+                                RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator   = null,
                                 LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                                 SslProtocols?                                                   AllowedTLSProtocols          = null,
                                 Boolean?                                                        ClientCertificateRequired    = null,
@@ -581,7 +581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
 
                                 Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
-                                RemoteTLSClientCertificateValidationHandler<IWebSocketServer>?  ClientCertificateValidator   = null,
+                                RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator   = null,
                                 LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                                 SslProtocols?                                                   AllowedTLSProtocols          = null,
                                 Boolean?                                                        ClientCertificateRequired    = null,
@@ -1538,18 +1538,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 case WebSocketFrame.Opcodes.Text:
 
-                                                                    await LogEvent(
-                                                                        OnTextMessageReceived,
-                                                                        loggingDelegate => loggingDelegate.Invoke(
-                                                                            now,
-                                                                            this,
-                                                                            webSocketConnection,
-                                                                            frame,
-                                                                            frame.EventTrackingId,
-                                                                            frame.Payload.ToUTF8String(),
-                                                                            token2
-                                                                        )
-                                                                    );
+                                                                    //await LogEvent(
+                                                                    //    OnTextMessageReceived,
+                                                                    //    loggingDelegate => loggingDelegate.Invoke(
+                                                                    //        now,
+                                                                    //        this,
+                                                                    //        webSocketConnection,
+                                                                    //        frame,
+                                                                    //        frame.EventTrackingId,
+                                                                    //        frame.Payload.ToUTF8String(),
+                                                                    //        token2
+                                                                    //    )
+                                                                    //);
+
+                                                                    try
+                                                                    {
+
+                                                                        await ProcessTextMessage(
+                                                                                  now,
+                                                                                  this,
+                                                                                  webSocketConnection,
+                                                                                  frame.EventTrackingId,
+                                                                                  frame,
+                                                                                  frame.Payload.ToUTF8String(),
+                                                                                  token2
+                                                                              );
+
+                                                                    }
+                                                                    catch (Exception e)
+                                                                    {
+                                                                        DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessTextMessage)}");
+                                                                    }
 
                                                                     break;
 
@@ -1559,18 +1578,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 case WebSocketFrame.Opcodes.Binary:
 
-                                                                    await LogEvent(
-                                                                        OnBinaryMessageReceived,
-                                                                        loggingDelegate => loggingDelegate.Invoke(
-                                                                            now,
-                                                                            this,
-                                                                            webSocketConnection,
-                                                                            frame,
-                                                                            frame.EventTrackingId,
-                                                                            frame.Payload,
-                                                                            token2
-                                                                        )
-                                                                    );
+                                                                    //await LogEvent(
+                                                                    //    OnBinaryMessageReceived,
+                                                                    //    loggingDelegate => loggingDelegate.Invoke(
+                                                                    //        now,
+                                                                    //        this,
+                                                                    //        webSocketConnection,
+                                                                    //        frame,
+                                                                    //        frame.EventTrackingId,
+                                                                    //        frame.Payload,
+                                                                    //        token2
+                                                                    //    )
+                                                                    //);
+
+                                                                    try
+                                                                    {
+
+                                                                        await ProcessBinaryMessage(
+                                                                                  now,
+                                                                                  this,
+                                                                                  webSocketConnection,
+                                                                                  frame.EventTrackingId,
+                                                                                  frame,
+                                                                                  frame.Payload,
+                                                                                  token2
+                                                                              );
+
+                                                                    }
+                                                                    catch (Exception e)
+                                                                    {
+                                                                        DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessTextMessage)}");
+                                                                    }
 
                                                                     break;
 
@@ -1889,7 +1927,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region (virtual) ProcessTextMessage  (RequestTimestamp, Connection, TextMessage,   ...)
+        #region (virtual) ProcessTextMessage   (RequestTimestamp, Connection, TextMessage,   ...)
 
         /// <summary>
         /// The default HTTP WebSocket text message processor.
@@ -1899,26 +1937,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="TextMessage">The web socket text message.</param>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the processing.</param>
-        public virtual Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime                   RequestTimestamp,
-                                                                             WebSocketServerConnection  Connection,
-                                                                             String                     TextMessage,
-                                                                             EventTracking_Id           EventTrackingId,
-                                                                             CancellationToken          CancellationToken)
+        public virtual Task ProcessTextMessage(DateTimeOffset             Timestamp,
+                                               AWebSocketServer           Server,
+                                               WebSocketServerConnection  Connection,
+                                               EventTracking_Id           EventTrackingId,
+                                               WebSocketFrame             TextFrame,
+                                               String                     TextMessage,
+                                               CancellationToken          CancellationToken)
 
-            => Task.FromResult(
-                   new WebSocketTextMessageResponse(
-                       RequestTimestamp,
-                       TextMessage,
-                       Timestamp.Now,
-                       "No text message handler found!!",
-                       EventTrackingId,
-                       CancellationToken
-                   )
-               );
+            => Task.CompletedTask;
+
+            //=> Task.FromResult(
+            //       new WebSocketTextMessageResponse(
+            //           RequestTimestamp,
+            //           TextMessage,
+            //           Timestamp.Now,
+            //           "No text message handler found!!",
+            //           EventTrackingId,
+            //           CancellationToken
+            //       )
+            //   );
 
         #endregion
 
-        #region (virtual) ProcessBinaryMessage(RequestTimestamp, Connection, BinaryMessage, ...)
+        #region (virtual) ProcessBinaryMessage (RequestTimestamp, Connection, BinaryMessage, ...)
 
         /// <summary>
         /// The default HTTP WebSocket binary message processor.
@@ -1928,22 +1970,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="BinaryMessage">The web socket binary message.</param>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the processing.</param>
-        public virtual Task<WebSocketBinaryMessageResponse> ProcessBinaryMessage(DateTime                   RequestTimestamp,
-                                                                                 WebSocketServerConnection  Connection,
-                                                                                 Byte[]                     BinaryMessage,
-                                                                                 EventTracking_Id           EventTrackingId,
-                                                                                 CancellationToken          CancellationToken)
+        public virtual Task ProcessBinaryMessage(DateTimeOffset             Timestamp,
+                                                 AWebSocketServer           Server,
+                                                 WebSocketServerConnection  Connection,
+                                                 EventTracking_Id           EventTrackingId,
+                                                 WebSocketFrame             BinaryFrame,
+                                                 Byte[]                     BinaryMessage,
+                                                 CancellationToken          CancellationToken)
 
-            => Task.FromResult(
-                   new WebSocketBinaryMessageResponse(
-                       RequestTimestamp,
-                       BinaryMessage,
-                       Timestamp.Now,
-                       "No binary message handler found!".ToUTF8Bytes(),
-                       EventTrackingId,
-                       CancellationToken
-                   )
-               );
+            => Task.CompletedTask;
+
+            //=> Task.FromResult(
+            //       new WebSocketBinaryMessageResponse(
+            //           RequestTimestamp,
+            //           BinaryMessage,
+            //           Timestamp.Now,
+            //           "No binary message handler found!".ToUTF8Bytes(),
+            //           EventTrackingId,
+            //           CancellationToken
+            //       )
+            //   );
 
         #endregion
 

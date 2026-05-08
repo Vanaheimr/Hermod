@@ -41,15 +41,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Events
 
-        /// <summary>
-        /// An event sent whenever a text message was received.
-        /// </summary>
-        public event OnWebSocketServerTextMessageDelegate?    OnTextMessage;
+        ///// <summary>
+        ///// An event sent whenever a text message was received.
+        ///// </summary>
+        //public event OnWebSocketServerTextMessageDelegate?    OnTextMessage;
 
-        /// <summary>
-        /// An event sent whenever a binary message was received.
-        /// </summary>
-        public event OnWebSocketServerBinaryMessageDelegate?  OnBinaryMessage;
+        ///// <summary>
+        ///// An event sent whenever a binary message was received.
+        ///// </summary>
+        //public event OnWebSocketServerBinaryMessageDelegate?  OnBinaryMessage;
 
         #endregion
 
@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                    Boolean?                                                        RequireAuthentication        = true,
                                    Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
                                    SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
-                                   RemoteTLSClientCertificateValidationHandler<IWebSocketServer>?  ClientCertificateValidator   = null,
+                                   RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator   = null,
                                    LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                                    SslProtocols?                                                   AllowedTLSProtocols          = null,
                                    Boolean?                                                        ClientCertificateRequired    = null,
@@ -160,43 +160,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="TextMessage">The web socket text message.</param>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        public async override Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime                   RequestTimestamp,
-                                                                                    WebSocketServerConnection  Connection,
-                                                                                    String                     TextMessage,
-                                                                                    EventTracking_Id           EventTrackingId,
-                                                                                    CancellationToken          CancellationToken)
+        public async override Task ProcessTextMessage(DateTimeOffset             RequestTimestamp,
+                                                      AWebSocketServer           Server,
+                                                      WebSocketServerConnection  Connection,
+                                                      EventTracking_Id           EventTrackingId,
+                                                      WebSocketFrame             TextFrame,
+                                                      String                     TextMessage,
+                                                      CancellationToken          CancellationToken)
         {
 
             var responses = Array.Empty<WebSocketTextMessageResponse>();
 
-            var onTextMessage = OnTextMessage;
-            if (onTextMessage is not null)
-            {
-                try
-                {
+            //var onTextMessage = OnTextMessageReceived;
+            //if (onTextMessage is not null)
+            //{
+            //    try
+            //    {
 
-                    responses = await Task.WhenAll(onTextMessage.GetInvocationList().
-                                                       OfType<OnWebSocketServerTextMessageDelegate>().
-                                                       Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                     RequestTimestamp,
-                                                                                     this,
-                                                                                     Connection,
-                                                                                     EventTrackingId,
-                                                                                     RequestTimestamp,
-                                                                                     TextMessage,
-                                                                                     CancellationToken
-                                                                                 )));
+            //        await Task.WhenAll(onTextMessage.GetInvocationList().
+            //                               OfType<OnWebSocketServerTextMessageReceivedDelegate>().
+            //                               Select(loggingDelegate => loggingDelegate.Invoke(
+            //                                                             RequestTimestamp,
+            //                                                             this,
+            //                                                             Connection,
+            //                                                             TextFrame,
+            //                                                             EventTrackingId,
+            //                                                             TextMessage,
+            //                                                             CancellationToken
+            //                                                         )));
 
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
-                }
-            }
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessageReceived)}");
+            //    }
+            //}
 
-            var response = responses.Where(response => response                 is not null &&
-                                                       response.ResponseMessage.IsNotNullOrEmpty()).
-                                     FirstOrDefault();
+            //var response = responses.Where(response => response                 is not null &&
+            //                                           response.ResponseMessage.IsNotNullOrEmpty()).
+            //                         FirstOrDefault();
 
 
             if (TextMessage.StartsWith("chat::"))
@@ -211,16 +213,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
 
-            response ??= new WebSocketTextMessageResponse(
-                             RequestTimestamp,
-                             TextMessage,
-                             Timestamp.Now,
-                             "Unknown Error!",
-                             EventTrackingId,
-                             CancellationToken
-                         );
+            //response ??= new WebSocketTextMessageResponse(
+            //                 RequestTimestamp,
+            //                 TextMessage,
+            //                 Timestamp.Now,
+            //                 "Unknown Error!",
+            //                 EventTrackingId,
+            //                 CancellationToken
+            //             );
 
-            return response;
+            //return response;
 
         }
 
@@ -236,55 +238,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="BinaryMessage">The web socket binary message.</param>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        public async override Task<WebSocketBinaryMessageResponse> ProcessBinaryMessage(DateTime                   RequestTimestamp,
-                                                                                        WebSocketServerConnection  Connection,
-                                                                                        Byte[]                     BinaryMessage,
-                                                                                        EventTracking_Id           EventTrackingId,
-                                                                                        CancellationToken          CancellationToken)
+        public async override Task ProcessBinaryMessage(DateTimeOffset             RequestTimestamp,
+                                                        AWebSocketServer           Server,
+                                                        WebSocketServerConnection  Connection,
+                                                        EventTracking_Id           EventTrackingId,
+                                                        WebSocketFrame             BinaryFrame,
+                                                        Byte[]                     BinaryMessage,
+                                                        CancellationToken          CancellationToken)
         {
 
             var responses = Array.Empty<WebSocketBinaryMessageResponse>();
 
-            var onTextMessage = OnTextMessage;
-            if (onTextMessage is not null)
-            {
-                try
-                {
+            //var onTextMessage = OnTextMessage;
+            //if (onTextMessage is not null)
+            //{
+            //    try
+            //    {
 
-                    responses = await Task.WhenAll(onTextMessage.GetInvocationList().
-                                                       OfType<OnWebSocketServerBinaryMessageDelegate>().
-                                                       Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                     RequestTimestamp,
-                                                                                     this,
-                                                                                     Connection,
-                                                                                     EventTrackingId,
-                                                                                     RequestTimestamp,
-                                                                                     BinaryMessage,
-                                                                                     CancellationToken
-                                                                                 )));
+            //        responses = await Task.WhenAll(onTextMessage.GetInvocationList().
+            //                                           OfType<OnWebSocketServerBinaryMessageDelegate>().
+            //                                           Select(loggingDelegate => loggingDelegate.Invoke(
+            //                                                                         RequestTimestamp,
+            //                                                                         this,
+            //                                                                         Connection,
+            //                                                                         EventTrackingId,
+            //                                                                         RequestTimestamp,
+            //                                                                         BinaryMessage,
+            //                                                                         CancellationToken
+            //                                                                     )));
 
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
-                }
-            }
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
+            //    }
+            //}
 
-            var response = responses.Where(response => response                 is not null &&
-                                                       response.ResponseMessage.IsNeitherNullNorEmpty()).
-                                     FirstOrDefault();
+            //var response = responses.Where(response => response                 is not null &&
+            //                                           response.ResponseMessage.IsNeitherNullNorEmpty()).
+            //                         FirstOrDefault();
 
 
-            response ??= new WebSocketBinaryMessageResponse(
-                             RequestTimestamp,
-                             BinaryMessage,
-                             Timestamp.Now,
-                             "Unknown error!".ToUTF8Bytes(),
-                             EventTrackingId,
-                             CancellationToken
-                         );
+            //response ??= new WebSocketBinaryMessageResponse(
+            //                 RequestTimestamp,
+            //                 BinaryMessage,
+            //                 Timestamp.Now,
+            //                 "Unknown error!".ToUTF8Bytes(),
+            //                 EventTrackingId,
+            //                 CancellationToken
+            //             );
 
-            return response;
+            //return response;
 
         }
 

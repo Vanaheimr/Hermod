@@ -34,9 +34,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #region Data
 
-        protected AWebSocketServer?     webSocketServer;
-        protected IPPort                HTTPPort;
-        protected IEnumerable<String>?  SecWebSocketProtocols;
+        protected WebSocketMirrorServer?  webSocketServer;
+        protected IPPort                  HTTPPort;
+        protected IEnumerable<String>?    SecWebSocketProtocols;
 
         public AWebSocketServerTests(IPPort                HTTPPort,
                                      IEnumerable<String>?  SecWebSocketProtocols   = null)
@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public void Init_WebSocketServer()
         {
 
-            webSocketServer = new WebSocketServer(
+            webSocketServer = new WebSocketMirrorServer(
                                   HTTPPort:               HTTPPort,
                                   SecWebSocketProtocols:  SecWebSocketProtocols,
                                   AutoStart:              true
@@ -75,7 +75,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         }
 
         #endregion
-
 
     }
 

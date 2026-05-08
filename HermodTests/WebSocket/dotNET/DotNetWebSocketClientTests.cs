@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
-            var messageRequests         = new List<WebSocketFrame>();
+            var framesReceived          = new List<WebSocketFrame>();
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             };
 
             webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame, cancellationToken) => {
-                messageRequests.       Add(requestFrame);
+                framesReceived.       Add(requestFrame);
                 return Task.CompletedTask;
             };
 
@@ -114,6 +114,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 messageResponses.      Add(responseFrame);
                 return Task.CompletedTask;
             };
+
+            //webSocketServer.OnTextMessage       += (timestamp, server, connection, frame, eventTrackingId, textMessage, cancellationToken) => {
+            //    textMessageRequests.   Add(textMessage);
+            //    return Task.CompletedTask;
+            //};
 
             webSocketServer.OnTextMessageReceived         += (timestamp, server, connection, frame, eventTrackingId, textMessage, cancellationToken) => {
                 textMessageRequests.   Add(textMessage);
@@ -219,31 +224,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
-            #region Send messages
+            #region Send text message
 
             await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
                                             messageType:        WebSocketMessageType.Text,
                                             endOfMessage:       true,
                                             cancellationToken:  CancellationToken.None);
 
-            while (textMessageResponses.  Count == 0)
+
+            // The WebSocket frame was received by the WebSocket server
+            var sleepCounter = 0;
+            while (framesReceived.Count == 0 && sleepCounter < 50)
+            {
                 Thread.Sleep(10);
+                sleepCounter++;
+            }
+
+            Assert.That(framesReceived.Count,   Is.GreaterThan(0), $"No WebSocket frame was received by the WebSocket server after {sleepCounter * 10} ms!");
+
+
+            // The text message was received by the WebSocket server
+            sleepCounter = 0;
+            while (textMessageRequests.Count == 0 && sleepCounter < 50)
+            {
+                Thread.Sleep(10);
+                sleepCounter++;
+            }
+
+            Assert.That(textMessageRequests.Count,   Is.GreaterThan(0), $"No text message was received by the WebSocket server after {sleepCounter * 10} ms!");
+
+
+            // The response is received from the WebSocket server
+            sleepCounter = 0;
+            while (textMessageResponses.Count == 0 && sleepCounter < 50)
+            {
+                Thread.Sleep(10);
+                sleepCounter++;
+            }
+
+            Assert.That(textMessageResponses.Count,   Is.GreaterThan(0), $"No text message response received after {sleepCounter * 10} ms!");
+
+            #endregion
+
+            #region Send binary message
 
             await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("ABCD")),
                                             messageType:        WebSocketMessageType.Binary,
                                             endOfMessage:       true,
                                             cancellationToken:  CancellationToken.None);
 
-            while (binaryMessageResponses.Count == 0)
+            sleepCounter = 0;
+            while (binaryMessageResponses.Count == 0 && sleepCounter < 50)
+            {
                 Thread.Sleep(10);
+                sleepCounter++;
+            }
+
+            Assert.That(binaryMessageResponses.Count,   Is.GreaterThan(0), $"No binary message response received after {sleepCounter * 10} ms!");
 
             #endregion
 
             #region Validate message delivery
 
-            ClassicAssert.AreEqual(2,       messageRequests. Count);
-            ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+            ClassicAssert.AreEqual(2,       framesReceived. Count);
+            ClassicAssert.AreEqual("1234",  framesReceived. ElementAt(0).Payload.ToUTF8String());
+            ClassicAssert.AreEqual("ABCD",  framesReceived. ElementAt(1).Payload.ToUTF8String());
 
             ClassicAssert.AreEqual(2,       messageResponses.Count);
             ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
@@ -266,9 +311,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             try
             {
 
-                await clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
-                                                 "Done",
-                                                 CancellationToken.None);
+                await clientWebSocket.CloseAsync(
+                          WebSocketCloseStatus.NormalClosure,
+                          "Done",
+                          CancellationToken.None
+                      );
 
             }
             catch (Exception e)

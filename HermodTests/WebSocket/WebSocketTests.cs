@@ -132,10 +132,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
-                textMessageRequests. Add(requestMessage);
-                return Task.CompletedTask;
-            };
+            //webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
+            //    textMessageRequests. Add(requestMessage);
+            //    return Task.CompletedTask;
+            //};
 
             //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
             //    textMessageResponses.Add(responseMessage ?? "-");
@@ -242,10 +242,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
-                textMessageRequests. Add(requestMessage);
-                return Task.CompletedTask;
-            };
+            //webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
+            //    textMessageRequests. Add(requestMessage);
+            //    return Task.CompletedTask;
+            //};
 
             //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
             //    textMessageResponses.Add(responseMessage ?? "-");
