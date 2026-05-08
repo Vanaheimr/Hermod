@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  TimeSpan                        ReceiveTimeout            { get; }
         public  TimeSpan                        SendTimeout               { get; }
         public  TransmissionRetryDelayDelegate  TransmissionRetryDelay    { get; }
-        public  UInt16                          MaxNumberOfRetries        { get; } = 3;
+        public  UInt16                          MaxNumberOfRetries        { get; } = DefaultMaxNumberOfRetries;
         public  UInt32                          BufferSize                { get; }
         public  Boolean                         BypassDNSCacheOnReconnect { get; set; } = true;
 

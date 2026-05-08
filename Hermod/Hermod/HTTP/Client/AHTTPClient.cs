@@ -644,6 +644,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        HTTPContentType?              ContentType                           = null,
                        String?                       UserAgent                             = null,
                        ConnectionType?               Connection                            = null,
+                       UInt16?                       MaxNumberOfRetries                    = null,
                        Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
                        Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
                        Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
@@ -675,6 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ResponseLogDelegate,
                        null, // MaxSemaphoreWaitTime
                        RequestTimeout,
+                       MaxNumberOfRetries,
                        CancellationToken
                     );
 
@@ -695,6 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         TimeSpan?                  MaxSemaphoreWaitTime                  = null,
                         //EventTracking_Id?          EventTrackingId                       = null,
                         TimeSpan?                  RequestTimeout                        = null,
+                        UInt16?                    MaxNumberOfRetries                    = null,
                         CancellationToken          CancellationToken                     = default)
 
         {
@@ -711,7 +714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var retry = 1;
 
-                    while (retry <= MaxNumberOfRetries)
+                    while (retry <= (MaxNumberOfRetries ?? this.MaxNumberOfRetries))
                     {
 
                         if (retry > 1)

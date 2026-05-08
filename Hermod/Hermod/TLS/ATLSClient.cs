@@ -54,18 +54,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The remote TLS server certificate validation handler.
         /// </summary>
         public RemoteTLSServerCertificateValidationHandler<ATLSClient>?  RemoteCertificateValidator       { get; }
-        public LocalCertificateSelectionHandler?                             LocalCertificateSelector         { get; }
-        public IEnumerable<X509Certificate2>                                 ClientCertificates               { get; private set; } = [];
-        public SslStreamCertificateContext?                                  ClientCertificateContext         { get; private set; }
-        public IEnumerable<X509Certificate2>                                 ClientCertificateChain           { get; } = [];
-        public SslProtocols                                                  TLSProtocols                     { get; } = SslProtocols.Tls13;
-        public CipherSuitesPolicy?                                           CipherSuitesPolicy               { get; }
-        public X509ChainPolicy?                                              CertificateChainPolicy           { get; }
-        public X509RevocationMode?                                           CertificateRevocationCheckMode   { get; }
-        public IEnumerable<SslApplicationProtocol>                           ApplicationProtocols             { get; } = [];
-        public Boolean                                                       EnforceTLS                       { get; }
-        public Boolean?                                                      AllowRenegotiation               { get; }
-        public Boolean?                                                      AllowTLSResume                   { get; }
+        public LocalCertificateSelectionHandler?                         LocalCertificateSelector         { get; }
+        public IEnumerable<X509Certificate2>                             ClientCertificates               { get; private set; } = [];
+        public SslStreamCertificateContext?                              ClientCertificateContext         { get; private set; }
+        public IEnumerable<X509Certificate2>                             ClientCertificateChain           { get; } = [];
+        public SslProtocols                                              TLSProtocols                     { get; } = SslProtocols.Tls13;
+        public CipherSuitesPolicy?                                       CipherSuitesPolicy               { get; }
+        public X509ChainPolicy?                                          CertificateChainPolicy           { get; }
+        public X509RevocationMode?                                       CertificateRevocationCheckMode   { get; }
+        public IEnumerable<SslApplicationProtocol>                       ApplicationProtocols             { get; } = [];
+        public Boolean                                                   EnforceTLS                       { get; }
+        public Boolean?                                                  AllowRenegotiation               { get; }
+        public Boolean?                                                  AllowTLSResume                   { get; }
 
         #endregion
 

@@ -61,6 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 TimeSpan?                     RequestTimeout                        = null,
                 EventTracking_Id?             EventTrackingId                       = null,
                 Byte                          NumberOfRetry                         = 0,
+                UInt16?                       MaxNumberOfRetries                    = null,
                 Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
                 Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
@@ -80,6 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null, //ContentType,
                    UserAgent,
                    Connection ?? ConnectionType.KeepAlive,
+                   MaxNumberOfRetries,
                    RequestBuilder,
 
                    ConsumeRequestChunkedTEImmediately,
@@ -120,6 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                      TimeSpan?                     RequestTimeout                        = null,
                      EventTracking_Id?             EventTrackingId                       = null,
                      Byte                          NumberOfRetry                         = 0,
+                     UInt16?                       MaxNumberOfRetries                    = null,
                      Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
                      Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
@@ -141,6 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      null, //ContentType,
                                      UserAgent,
                                      Connection ?? ConnectionType.KeepAlive,
+                                     MaxNumberOfRetries,
                                      RequestBuilder,
 
                                      ConsumeRequestChunkedTEImmediately,
@@ -188,6 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            TimeSpan?                     RequestTimeout                        = null,
                            EventTracking_Id?             EventTrackingId                       = null,
                            Byte                          NumberOfRetry                         = 0,
+                           UInt16?                       MaxNumberOfRetries                    = null,
                            Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
                            Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
@@ -209,6 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       null, //ContentType,
                                       UserAgent,
                                       Connection ?? ConnectionType.KeepAlive,
+                                      MaxNumberOfRetries,
                                       RequestBuilder,
 
                                       ConsumeRequestChunkedTEImmediately,
@@ -273,6 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           ConnectionType?               Connection                            = null,
                           TimeSpan?                     RequestTimeout                        = null,
                           EventTracking_Id?             EventTrackingId                       = null,
+                          UInt16?                       MaxNumberOfRetries                    = null,
                           Byte                          NumberOfRetry                         = 0,
                           Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
@@ -295,6 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       null, //ContentType,
                                       UserAgent,
                                       Connection ?? ConnectionType.KeepAlive,
+                                      MaxNumberOfRetries,
                                       RequestBuilder,
 
                                       ConsumeRequestChunkedTEImmediately,
@@ -363,6 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                  TimeSpan?                     RequestTimeout                        = null,
                  EventTracking_Id?             EventTrackingId                       = null,
                  Byte                          NumberOfRetry                         = 0,
+                 UInt16?                       MaxNumberOfRetries                    = null,
                  Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
                  Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
@@ -382,6 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ContentType,
                    UserAgent,
                    Connection  ?? ConnectionType.KeepAlive,
+                   MaxNumberOfRetries,
                    RequestBuilder,
 
                    ConsumeRequestChunkedTEImmediately,
@@ -423,6 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       ConnectionType?               Connection                            = null,
                       TimeSpan?                     RequestTimeout                        = null,
                       EventTracking_Id?             EventTrackingId                       = null,
+                      UInt16?                       MaxNumberOfRetries                    = null,
                       Byte                          NumberOfRetry                         = 0,
                       Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
@@ -445,6 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      ContentType ?? HTTPContentType.Text.PLAIN,
                                      UserAgent,
                                      Connection  ?? ConnectionType.KeepAlive,
+                                     MaxNumberOfRetries,
                                      RequestBuilder,
 
                                      ConsumeRequestChunkedTEImmediately,
@@ -493,6 +505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             ConnectionType?               Connection                            = null,
                             TimeSpan?                     RequestTimeout                        = null,
                             EventTracking_Id?             EventTrackingId                       = null,
+                            UInt16?                       MaxNumberOfRetries                    = null,
                             Byte                          NumberOfRetry                         = 0,
                             Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
@@ -515,6 +528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       ContentType ?? HTTPContentType.Application.JSONLD_UTF8,
                                       UserAgent,
                                       Connection  ?? ConnectionType.KeepAlive,
+                                      MaxNumberOfRetries,
                                       RequestBuilder,
 
                                       ConsumeRequestChunkedTEImmediately,
@@ -581,6 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            ConnectionType?               Connection                            = null,
                            TimeSpan?                     RequestTimeout                        = null,
                            EventTracking_Id?             EventTrackingId                       = null,
+                           UInt16?                       MaxNumberOfRetries                    = null,
                            Byte                          NumberOfRetry                         = 0,
                            Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
@@ -603,6 +618,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       ContentType ?? HTTPContentType.Application.JSONLD_UTF8,
                                       UserAgent,
                                       Connection  ?? ConnectionType.KeepAlive,
+                                      MaxNumberOfRetries,
                                       RequestBuilder,
 
                                       ConsumeRequestChunkedTEImmediately,
@@ -1334,6 +1350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    HTTPContentType?              ContentType                           = null,
                                                    String?                       UserAgent                             = null,
                                                    ConnectionType?               Connection                            = null,
+                                                   UInt16?                       MaxNumberOfRetries                    = null,
                                                    Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
 
                                                    Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
@@ -1363,6 +1380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      ContentType,
                                      UserAgent,
                                      Connection,
+                                     MaxNumberOfRetries,
                                      RequestBuilder,
                                      ConsumeRequestChunkedTEImmediately,
                                      ConsumeResponseChunkedTEImmediately,

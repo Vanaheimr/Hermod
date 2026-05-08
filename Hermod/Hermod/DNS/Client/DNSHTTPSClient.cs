@@ -667,9 +667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                               true,
                                               HTTPRequestLogDelegate,
                                               HTTPResponseLogDelegate,
-                                              null,
-                                              null,
-                                              CancellationToken
+                                              CancellationToken: CancellationToken
                                           );
 
                 stopwatch.Stop();

@@ -255,8 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                                          RequestLogDelegate,
                                          ResponseLogDelegate,
                                          MaxSemaphoreWaitTime,
-                                         null,
-                                         CancellationToken
+                                         CancellationToken: CancellationToken
                                      );
 
             if (httpResponse                     is not null       &&
@@ -631,8 +630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                          RequestLogDelegate,
                                          ResponseLogDelegate,
                                          MaxSemaphoreWaitTime,
-                                         null,
-                                         CancellationToken
+                                         CancellationToken: CancellationToken
                                      );
 
                                  //           EventTrackingId,
