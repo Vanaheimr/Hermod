@@ -486,24 +486,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Constructor(s)
 
+            #region Builder(HTTPRequest, ResponseTimestamp = null, Runtime = null)
+
             /// <summary>
             /// Create a new HTTP response.
             /// </summary>
             /// <param name="HTTPRequest">An optional HTTP request for this response.</param>
-            public Builder(HTTPRequest? HTTPRequest = null)
+            public Builder(HTTPRequest      HTTPRequest,
+                           DateTimeOffset?  ResponseTimestamp   = null,
+                           TimeSpan?        Runtime             = null)
+
+                : base(HTTPRequest.HTTPSource,
+                       HTTPRequest.LocalSocket,
+                       HTTPRequest.RemoteSocket,
+                       HTTPRequest.CancellationToken)
+
             {
 
-                this.HTTPRequest        = HTTPRequest;
-                this.Timestamp          = Illias.Timestamp.Now;
-                this.Date               = Illias.Timestamp.Now;
-                this.ProtocolName       = "HTTP";
-                this.ProtocolVersion    = new HTTPVersion(1, 1);
-                base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
-                this.Runtime            = HTTPRequest is not null
-                                              ? Illias.Timestamp.Now - HTTPRequest.Timestamp
-                                              : TimeSpan.Zero;
+                ResponseTimestamp   ??= Illias.Timestamp.Now;
+
+                this.HTTPRequest      = HTTPRequest;
+                this.Timestamp        = ResponseTimestamp.Value;
+                this.Date             = ResponseTimestamp.Value;
+                this.ProtocolName     = "HTTP";
+                this.ProtocolVersion  = new HTTPVersion(1, 1);
+                base.EventTrackingId  = HTTPRequest.EventTrackingId ?? EventTracking_Id.New;
+                this.Runtime          = Runtime                     ?? ResponseTimestamp - HTTPRequest.Timestamp;
 
             }
+
+            #endregion
+
+            #region Builder(ResponseTimestamp, EventTrackingId, Runtime, HTTPSource, LocalSocket, RemoteSocket, Connection, HTTPStatusCode, ...)
+
+            /// <summary>
+            /// Create a new HTTP response.
+            /// </summary>
+            public Builder(DateTimeOffset     ResponseTimestamp,
+                           EventTracking_Id   EventTrackingId,
+                           TimeSpan           Runtime,
+
+                           HTTPSource         HTTPSource,
+                           IPSocket           LocalSocket,
+                           IPSocket           RemoteSocket,
+                           ConnectionType     Connection,
+
+                           HTTPStatusCode     HTTPStatusCode,
+                           String?            ErrorMessage        = null,
+                           CancellationToken  CancellationToken   = default)
+
+                : base(HTTPSource,
+                       LocalSocket,
+                       RemoteSocket,
+                       CancellationToken)
+
+            {
+
+                this.Timestamp        = ResponseTimestamp;
+                this.Date             = ResponseTimestamp;
+                this.ProtocolName     = "HTTP";
+                this.ProtocolVersion  = new HTTPVersion(1, 1);
+                base.EventTrackingId  = EventTrackingId;
+                this.Runtime          = Runtime;
+
+                this.Connection       = Connection;
+                this.HTTPStatusCode   = HTTPStatusCode;
+
+                if (ErrorMessage.IsNotNullOrEmpty())
+                {
+                    this.ContentType  = HTTPContentType.Text.PLAIN;
+                    this.Content      = ErrorMessage.ToUTF8Bytes();
+                }
+
+            }
+
+            #endregion
 
             #endregion
 

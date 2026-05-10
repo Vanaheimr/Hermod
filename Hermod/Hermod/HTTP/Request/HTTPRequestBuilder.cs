@@ -778,7 +778,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Builder(IHTTPClient        Client,
                            CancellationToken  CancellationToken   = default)
 
-                : base(CancellationToken)
+                : base(CancellationToken: CancellationToken)
 
             {
 
@@ -804,7 +804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public Builder(HTTPRequest Request)
 
-                : base(Request.CancellationToken)
+                : base(CancellationToken: Request.CancellationToken)
 
             {
 

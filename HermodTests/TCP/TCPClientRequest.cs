@@ -88,7 +88,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
                 var memoryStream  = new MemoryStream();
                 var buffer        = new Byte[65335];
 
-                while (!TCPStream.DataAvailable)
+                var timeoutAt = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+
+                while (!TCPStream.DataAvailable && DateTime.UtcNow < timeoutAt)
                     Thread.Sleep(1);
 
                 while (TCPStream.DataAvailable)
@@ -97,6 +99,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
                     memoryStream.Write(buffer, 0, read);
                     Thread.Sleep(10);
                 }
+
+                TCPClient.Close();
 
                 return memoryStream.ToArray().ToUTF8String();
 

@@ -1431,11 +1431,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         }
 
-                                                        httpResponse ??= new HTTPResponse.Builder() {
-                                                                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                                             Server          = HTTPServiceName,
-                                                                             Date            = Timestamp.Now,
-                                                                             Connection      = ConnectionType.Close
+                                                        httpResponse ??= new HTTPResponse.Builder(
+
+                                                                             Timestamp.Now,
+                                                                             EventTracking_Id.New,
+                                                                             TimeSpan.Zero,
+
+                                                                             new HTTPSource(),
+                                                                             webSocketConnection.LocalSocket,
+                                                                             webSocketConnection.RemoteSocket,
+                                                                             ConnectionType.Close,
+
+                                                                             HTTPStatusCode.BadRequest
+
+                                                                         ) {
+                                                                             Server = HTTPServiceName
                                                                          }.AsImmutable;
 
                                                         #endregion

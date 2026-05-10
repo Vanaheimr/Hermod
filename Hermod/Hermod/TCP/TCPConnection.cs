@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// <summary>
         /// The optional HTTP client certificate.
         /// </summary>
-        public X509Certificate2?  ClientCertificate    { get; }
+        public X509Certificate2?  ClientCertificate    { get; private set; }
 
         /// <summary>
         /// The TLS protocol(s) to use.
@@ -319,7 +319,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                              SslProtocols?                                             AllowedTLSProtocols          = null,
                              SslStream?                                                SSLStream                    = null,
                              TimeSpan?                                                 ReadTimeout                  = null,
-                             TimeSpan?                                                 WriteTimeout                 = null)
+                             TimeSpan?                                                 WriteTimeout                 = null,
+                             Boolean                                                   DeferTLSAuthentication      = false)
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             : base(new IPSocket(IPAddress.FromDotNet((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
@@ -401,15 +402,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                                               encryptionPolicy:                    EncryptionPolicy.RequireEncryption
                                           );
 
-                    this.SSLStream.AuthenticateAsServer(
-                        serverCertificate:           ServerCertificate,
-                        clientCertificateRequired:   ClientCertificateValidator is not null,
-                        enabledSslProtocols:         AllowedTLSProtocols ?? SslProtocols.Tls13,
-                        checkCertificateRevocation:  false
-                    );
-
-                    if (this.SSLStream.RemoteCertificate is not null)
-                        this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
+                    if (!DeferTLSAuthentication)
+                        AuthenticateAsServer();
 
                 }
                 catch (Exception e)
@@ -419,6 +413,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 }
 
             }
+
+        }
+
+        #endregion
+
+
+        #region AuthenticateAsServer()
+
+        public void AuthenticateAsServer()
+        {
+
+            if (SSLStream        is null ||
+                ServerCertificate is null ||
+                SSLStream.IsAuthenticated)
+            {
+                return;
+            }
+
+            SSLStream.AuthenticateAsServer(
+                serverCertificate:           ServerCertificate,
+                clientCertificateRequired:   ClientCertificateValidator is not null,
+                enabledSslProtocols:         AllowedTLSProtocols ?? SslProtocols.Tls13,
+                checkCertificateRevocation:  false
+            );
+
+            if (SSLStream.RemoteCertificate is not null)
+                ClientCertificate = new X509Certificate2(SSLStream.RemoteCertificate);
+
+        }
+
+        #endregion
+
+        #region AuthenticateAsServerAsync(Timeout, CancellationToken = default)
+
+        public async Task AuthenticateAsServerAsync(TimeSpan?          Timeout             = null,
+                                                    CancellationToken  CancellationToken   = default)
+        {
+
+            if (SSLStream         is null ||
+                ServerCertificate is null ||
+                SSLStream.IsAuthenticated)
+            {
+                return;
+            }
+
+            var authenticateTask = SSLStream.AuthenticateAsServerAsync(
+                                       serverCertificate:           ServerCertificate,
+                                       clientCertificateRequired:   ClientCertificateValidator is not null,
+                                       enabledSslProtocols:         AllowedTLSProtocols ?? SslProtocols.Tls13,
+                                       checkCertificateRevocation:  false
+                                   );
+
+            var timeout = Timeout ?? ReadTimeout;
+
+            if (timeout > TimeSpan.Zero)
+            {
+
+                var completedTask = await Task.WhenAny(
+                                             authenticateTask,
+                                             Task.Delay(timeout, CancellationToken)
+                                         ).ConfigureAwait(false);
+
+                if (completedTask != authenticateTask)
+                {
+                    _ = authenticateTask.ContinueWith(
+                            task => _ = task.Exception,
+                            TaskContinuationOptions.OnlyOnFaulted |
+                            TaskContinuationOptions.ExecuteSynchronously
+                        );
+
+                    try
+                    {
+                        SSLStream.Dispose();
+                    }
+                    catch
+                    { }
+
+                    CancellationToken.ThrowIfCancellationRequested();
+
+                    throw new TimeoutException(
+                        $"TLS server authentication timed out after {timeout.TotalMilliseconds:N0} ms."
+                    );
+                }
+
+            }
+
+            await authenticateTask.ConfigureAwait(false);
+
+            if (SSLStream.RemoteCertificate is not null)
+                ClientCertificate = new X509Certificate2(SSLStream.RemoteCertificate);
 
         }
 

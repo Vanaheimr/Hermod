@@ -140,10 +140,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             httpAPI.AddHandler(
 
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => {
+                                         requestLogger. Add(request);
+                                         return Task.CompletedTask;
+                                     },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => {
+                                         responseLogger.Add(response);
+                                         return Task.CompletedTask;
+                                     },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
@@ -614,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             httpAPI.AddHandler(
 
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:          HTTPMethod.GET,
                 //HTTPContentType:     HTTPContentType.Text.PLAIN,
                 HTTPRequestLogger:   (ts, server, request,           ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
@@ -642,7 +648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             httpAPI.AddHandler(
 
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:          HTTPMethod.POST,
                 //HTTPContentType:     HTTPContentType.Text.PLAIN,
                 HTTPRequestLogger:   (ts, server, request,           ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
@@ -705,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api1        = httpServer.AddHTTPAPI();
 
             api1.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:       HTTPMethod.GET,
                 HTTPContentType:  HTTPContentType.Text.HTML_UTF8,
                 HTTPDelegate:     request => {
@@ -730,7 +736,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             );
 
             api1.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:       HTTPMethod.GET,
                 HTTPContentType:  HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate:     request => {
@@ -810,7 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             httpAPI.AddHandler(
 
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:          HTTPMethod.GET,
                 HTTPContentType:     HTTPContentType.Text.HTML_UTF8,
                 HTTPRequestLogger:   (ts, server, request,           ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
@@ -838,7 +844,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             httpAPI.AddHandler(
 
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:          HTTPMethod.GET,
                 HTTPContentType:     HTTPContentType.Application.JSON_UTF8,
                 HTTPRequestLogger:   (ts, server, request,           ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
@@ -905,7 +911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api1        = httpServer.AddHTTPAPI();
 
             api1.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:   HTTPMethod.GET,
                 HTTPDelegate: request => {
 
@@ -1019,11 +1025,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api1        = httpServer.AddHTTPAPI();
 
             api1.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename1}",
                 HTTPMethod:   HTTPMethod.GET,
                 HTTPDelegate: request => {
 
-                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename))
                         return Task.FromResult(
                                    new HTTPResponse.Builder(request) {
                                        HTTPStatusCode  = HTTPStatusCode.OK,
@@ -1044,11 +1050,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api2        = httpServer.AddHTTPAPI(HTTPPath.Parse("/api2/test/"));
 
-            api2.AddHandler(HTTPPath.Root + "{filename1}",
+            api2.AddHandler(HTTPPath.Root + "{filename2}",
                             HTTPMethod:    HTTPMethod.GET,
                             HTTPDelegate:  request => {
 
-                                if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1))
+                                if (request.ParsedURLParametersX.TryGetValue("filename2", out var filename1))
                                     return Task.FromResult(
                                                new HTTPResponse.Builder(request) {
                                                    HTTPStatusCode  = HTTPStatusCode.OK,
@@ -1066,11 +1072,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                             });
 
-            api2.AddHandler(HTTPPath.Root + "/test2/{filename2}",
+            api2.AddHandler(HTTPPath.Root + "/test2/{filename3}",
                             HTTPMethod:    HTTPMethod.GET,
                             HTTPDelegate:  request => {
 
-                                if (request.ParsedURLParametersX.TryGetValue("filename2", out var filename2))
+                                if (request.ParsedURLParametersX.TryGetValue("filename3", out var filename2))
                                     return Task.FromResult(
                                                new HTTPResponse.Builder(request) {
                                                    HTTPStatusCode  = HTTPStatusCode.OK,
@@ -1784,7 +1790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api1         = httpServer1.AddHTTPAPI();
 
             api1.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:   HTTPMethod.GET,
                 HTTPDelegate: request => {
 
@@ -1811,7 +1817,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api2         = httpServer2.AddHTTPAPI();
 
             api2.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:   HTTPMethod.GET,
                 HTTPDelegate: request => {
 
@@ -1838,7 +1844,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api3         = httpServer3.AddHTTPAPI();
 
             api3.AddHandler(
-                HTTPPath.Root + "{filename}",
+                HTTPPath.Root + "{filename..}",
                 HTTPMethod:   HTTPMethod.GET,
                 HTTPDelegate: request => {
 
@@ -1883,7 +1889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var srv = await dnsClient.Query_DNSService(
                                 DomainName.Parse("api.example.local"),
-                                SRV_Spec.  TLS  ("ocpp")
+                                SRV_Spec.  TCP  ("ocpp")
                             );
             Assert.That(srv, Is.Not.Null);
             Assert.That(srv.Count(), Is.EqualTo(3));

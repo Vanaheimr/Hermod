@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
         #region Constructor(s)
 
         public DotNetHTTPClientTests()
-            : base(HTTPPort)
+            : base(IPPort.Zero)
         { }
 
         #endregion
@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
             var httpRequests = new List<Task<Tuple<HttpResponseMessage?, TimeSpan>>>();
 
             for (var i = 0; i < 1000; i++)
-                httpRequests.Add(POST_Timestamped("http://127.0.0.1:82/mirror/httpBody", i.ToString()));
+                httpRequests.Add(POST_Timestamped($"http://127.0.0.1:{httpServer.TCPPort}/mirror/httpBody", i.ToString()));
 
             var responeses = await Task.WhenAll(httpRequests.ToArray());
 

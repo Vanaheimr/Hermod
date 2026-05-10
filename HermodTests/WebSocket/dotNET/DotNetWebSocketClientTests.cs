@@ -22,7 +22,6 @@ using System.Net;
 using System.Net.WebSockets;
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -169,14 +168,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
+            Assert.That(validatedTCP.          Count, Is.EqualTo(1), validatedTCP.          AggregateCSV());
+            Assert.That(newTCPConnection.      Count, Is.EqualTo(1), newTCPConnection.      AggregateCSV());
+            Assert.That(validatedWebSocket.    Count, Is.EqualTo(1), validatedWebSocket.    AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(1), newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(1, httpRequests.          Count);
-            ClassicAssert.AreEqual(1, httpResponses.         Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests.          Count, Is.EqualTo(1));
+            Assert.That(httpResponses.         Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             var httpRequest          = httpRequests.First();
@@ -189,15 +188,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Key:       +LYHhVOGskWz/0bFFcK8dQ==
             // Sec-WebSocket-Version:   13
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest.Connection.ToString());
-            ClassicAssert.AreEqual("websocket",                                       httpRequest.Upgrade);
+            Assert.That(httpRequest.Connection.ToString(), Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
 
-            ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
-            ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
-            ClassicAssert.IsTrue  (request.Contains($"Connection: Upgrade"),          request);
-            ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
 
             #endregion
 
@@ -215,11 +214,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
             // Sec-WebSocket-Version:    13
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",              httpResponse.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection.ToString());
-            ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection.ToString(), Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
 
@@ -286,24 +285,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            ClassicAssert.AreEqual(2,       framesReceived. Count);
-            ClassicAssert.AreEqual("1234",  framesReceived. ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  framesReceived. ElementAt(1).Payload.ToUTF8String());
+            Assert.That(framesReceived. Count, Is.EqualTo(2));
+            Assert.That(framesReceived. ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(framesReceived. ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(2,       messageResponses.Count);
-            ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageResponses.Count, Is.EqualTo(2));
+            Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
 
-            ClassicAssert.AreEqual(1,       textMessageRequests.   Count);
-            ClassicAssert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageRequests. Count);
-            ClassicAssert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
+            Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
+            Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
+            Assert.That(binaryMessageRequests. ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(1,       textMessageResponses.  Count);
-            ClassicAssert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageResponses.Count);
-            ClassicAssert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
+            Assert.That(textMessageResponses.  Count, Is.EqualTo(1));
+            Assert.That(textMessageResponses.  ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(binaryMessageResponses.Count, Is.EqualTo(1));
+            Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
 
@@ -450,14 +449,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
+            Assert.That(validatedTCP.          Count, Is.EqualTo(1), validatedTCP.          AggregateCSV());
+            Assert.That(newTCPConnection.      Count, Is.EqualTo(1), newTCPConnection.      AggregateCSV());
+            Assert.That(validatedWebSocket.    Count, Is.EqualTo(1), validatedWebSocket.    AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(1), newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(1, httpRequests.          Count);
-            ClassicAssert.AreEqual(1, httpResponses.         Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests.          Count, Is.EqualTo(1));
+            Assert.That(httpResponses.         Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             var httpRequest          = httpRequests.First();
@@ -471,15 +470,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp1.6
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest.Connection);
-            ClassicAssert.AreEqual("websocket",                                       httpRequest.Upgrade);
+            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
 
-            ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
-            ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
-            ClassicAssert.IsTrue  (request.Contains($"Connection: Upgrade"),          request);
-            ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
 
             #endregion
 
@@ -497,11 +496,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
             // Sec-WebSocket-Version:    13
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
-            ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
 
@@ -528,24 +527,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            ClassicAssert.AreEqual(2,       messageRequests. Count);
-            ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageRequests. Count, Is.EqualTo(2));
+            Assert.That(messageRequests. ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(messageRequests. ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(2,       messageResponses.Count);
-            ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageResponses.Count, Is.EqualTo(2));
+            Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
 
-            ClassicAssert.AreEqual(1,       textMessageRequests.   Count);
-            ClassicAssert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageRequests. Count);
-            ClassicAssert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
+            Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
+            Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
+            Assert.That(binaryMessageRequests. ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(1,       textMessageResponses.  Count);
-            ClassicAssert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageResponses.Count);
-            ClassicAssert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
+            Assert.That(textMessageResponses.  Count, Is.EqualTo(1));
+            Assert.That(textMessageResponses.  ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(binaryMessageResponses.Count, Is.EqualTo(1));
+            Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
 
@@ -691,14 +690,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
+            Assert.That(validatedTCP.          Count, Is.EqualTo(1), validatedTCP.          AggregateCSV());
+            Assert.That(newTCPConnection.      Count, Is.EqualTo(1), newTCPConnection.      AggregateCSV());
+            Assert.That(validatedWebSocket.    Count, Is.EqualTo(1), validatedWebSocket.    AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(1), newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(1, httpRequests.          Count);
-            ClassicAssert.AreEqual(1, httpResponses.         Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests.          Count, Is.EqualTo(1));
+            Assert.That(httpResponses.         Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             var httpRequest          = httpRequests.First();
@@ -712,15 +711,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp1.6
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest.Connection);
-            ClassicAssert.AreEqual("websocket",                                       httpRequest.Upgrade);
+            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
 
-            ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
-            ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
-            ClassicAssert.IsTrue  (request.Contains($"Connection: Upgrade"),          request);
-            ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
 
             #endregion
 
@@ -739,11 +738,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Protocol:   ocpp1.6
             // Sec-WebSocket-Version:    13
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
-            ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
 
@@ -770,24 +769,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            ClassicAssert.AreEqual(2,       messageRequests. Count);
-            ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageRequests. Count, Is.EqualTo(2));
+            Assert.That(messageRequests. ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(messageRequests. ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(2,       messageResponses.Count);
-            ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageResponses.Count, Is.EqualTo(2));
+            Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
 
-            ClassicAssert.AreEqual(1,       textMessageRequests.   Count);
-            ClassicAssert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageRequests. Count);
-            ClassicAssert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
+            Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
+            Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
+            Assert.That(binaryMessageRequests. ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(1,       textMessageResponses.  Count);
-            ClassicAssert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageResponses.Count);
-            ClassicAssert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
+            Assert.That(textMessageResponses.  Count, Is.EqualTo(1));
+            Assert.That(textMessageResponses.  ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(binaryMessageResponses.Count, Is.EqualTo(1));
+            Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
 
@@ -935,14 +934,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
+            Assert.That(validatedTCP.          Count, Is.EqualTo(1), validatedTCP.          AggregateCSV());
+            Assert.That(newTCPConnection.      Count, Is.EqualTo(1), newTCPConnection.      AggregateCSV());
+            Assert.That(validatedWebSocket.    Count, Is.EqualTo(1), validatedWebSocket.    AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(1), newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(1, httpRequests.          Count);
-            ClassicAssert.AreEqual(1, httpResponses.         Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests.          Count, Is.EqualTo(1));
+            Assert.That(httpResponses.         Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             var httpRequest          = httpRequests.First();
@@ -956,15 +955,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp2.0
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest.Connection);
-            ClassicAssert.AreEqual("websocket",                                       httpRequest.Upgrade);
+            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
 
-            ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
-            ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
-            ClassicAssert.IsTrue  (request.Contains($"Connection: Upgrade"),          request);
-            ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
 
             #endregion
 
@@ -983,11 +982,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Protocol:   ocpp2.0
             // Sec-WebSocket-Version:    13
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
-            ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
 
@@ -1014,24 +1013,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            ClassicAssert.AreEqual(2,       messageRequests. Count);
-            ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageRequests. Count, Is.EqualTo(2));
+            Assert.That(messageRequests. ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(messageRequests. ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(2,       messageResponses.Count);
-            ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageResponses.Count, Is.EqualTo(2));
+            Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
 
-            ClassicAssert.AreEqual(1,       textMessageRequests.   Count);
-            ClassicAssert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageRequests. Count);
-            ClassicAssert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
+            Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
+            Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
+            Assert.That(binaryMessageRequests. ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(1,       textMessageResponses.  Count);
-            ClassicAssert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageResponses.Count);
-            ClassicAssert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
+            Assert.That(textMessageResponses.  Count, Is.EqualTo(1));
+            Assert.That(textMessageResponses.  ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(binaryMessageResponses.Count, Is.EqualTo(1));
+            Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
 
@@ -1179,14 +1178,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
+            Assert.That(validatedTCP.          Count, Is.EqualTo(1), validatedTCP.          AggregateCSV());
+            Assert.That(newTCPConnection.      Count, Is.EqualTo(1), newTCPConnection.      AggregateCSV());
+            Assert.That(validatedWebSocket.    Count, Is.EqualTo(1), validatedWebSocket.    AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(1), newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(1, httpRequests.          Count);
-            ClassicAssert.AreEqual(1, httpResponses.         Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests.          Count, Is.EqualTo(1));
+            Assert.That(httpResponses.         Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             var httpRequest          = httpRequests.First();
@@ -1201,18 +1200,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp2.0
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest.Connection);
-            ClassicAssert.AreEqual("websocket",                                       httpRequest.Upgrade);
-            ClassicAssert.IsTrue  (httpRequest.Authorization is HTTPBasicAuthentication, "Is not HTTP Basic Authentication!");
-            ClassicAssert.AreEqual("username",                                       (httpRequest.Authorization as HTTPBasicAuthentication)?.Username);
-            ClassicAssert.AreEqual("password",                                       (httpRequest.Authorization as HTTPBasicAuthentication)?.Password);
+            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest.Authorization is HTTPBasicAuthentication, Is.True, "Is not HTTP Basic Authentication!");
+            Assert.That((httpRequest.Authorization as HTTPBasicAuthentication)?.Username, Is.EqualTo("username"));
+            Assert.That((httpRequest.Authorization as HTTPBasicAuthentication)?.Password, Is.EqualTo("password"));
 
-            ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
-            ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
-            ClassicAssert.IsTrue  (request.Contains($"Connection: Upgrade"),          request);
-            ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
-            ClassicAssert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
 
             #endregion
 
@@ -1231,11 +1230,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Protocol:   ocpp2.0
             // Sec-WebSocket-Version:    13
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
-            ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
 
@@ -1262,24 +1261,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            ClassicAssert.AreEqual(2,       messageRequests. Count);
-            ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageRequests. Count, Is.EqualTo(2));
+            Assert.That(messageRequests. ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(messageRequests. ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(2,       messageResponses.Count);
-            ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageResponses.Count, Is.EqualTo(2));
+            Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
 
-            ClassicAssert.AreEqual(1,       textMessageRequests.   Count);
-            ClassicAssert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageRequests. Count);
-            ClassicAssert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
+            Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
+            Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
+            Assert.That(binaryMessageRequests. ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(1,       textMessageResponses.  Count);
-            ClassicAssert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageResponses.Count);
-            ClassicAssert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
+            Assert.That(textMessageResponses.  Count, Is.EqualTo(1));
+            Assert.That(textMessageResponses.  ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(binaryMessageResponses.Count, Is.EqualTo(1));
+            Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
 
@@ -1425,7 +1424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             }
             catch (Exception e)
             {
-                ClassicAssert.AreEqual("The server returned status code '401' when status code '101' was expected.", e.Message);
+                Assert.That(e.Message, Is.EqualTo("The server returned status code '401' when status code '101' was expected."));
             }
 
             var state                = clientWebSocket.State;
@@ -1443,14 +1442,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 Thread.Sleep(10);
 
             // 2 because of the way .NET handles HTTP authentication!
-            ClassicAssert.AreEqual(2, validatedTCP.          Count, validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(2, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(2, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
+            Assert.That(validatedTCP.          Count, Is.EqualTo(2), validatedTCP.          AggregateCSV());
+            Assert.That(newTCPConnection.      Count, Is.EqualTo(2), newTCPConnection.      AggregateCSV());
+            Assert.That(validatedWebSocket.    Count, Is.EqualTo(1), validatedWebSocket.    AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(2), newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(2, httpRequests.          Count);
-            ClassicAssert.AreEqual(2, httpResponses.         Count);
-            ClassicAssert.AreEqual(2, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests.          Count, Is.EqualTo(2));
+            Assert.That(httpResponses.         Count, Is.EqualTo(2));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(2));
 
 
             var httpRequest1          = httpRequests.First();
@@ -1478,18 +1477,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Protocol:   ocpp2.0
             // Authorization:            Basic dXNlcm5hbWU6cGFzc3dvcmQ=
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest2.Connection);
-            ClassicAssert.AreEqual("websocket",                                       httpRequest2.Upgrade);
-            ClassicAssert.IsTrue  (httpRequest2.Authorization is HTTPBasicAuthentication, "Is not HTTP Basic Authentication!");
-            ClassicAssert.AreEqual("username",                                       (httpRequest2.Authorization as HTTPBasicAuthentication)?.Username);
-            ClassicAssert.AreEqual("password",                                       (httpRequest2.Authorization as HTTPBasicAuthentication)?.Password);
+            Assert.That(httpRequest2.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest2.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest2.Authorization is HTTPBasicAuthentication, Is.True, "Is not HTTP Basic Authentication!");
+            Assert.That((httpRequest2.Authorization as HTTPBasicAuthentication)?.Username, Is.EqualTo("username"));
+            Assert.That((httpRequest2.Authorization as HTTPBasicAuthentication)?.Password, Is.EqualTo("password"));
 
-            ClassicAssert.IsTrue  (request2.Contains("GET / HTTP/1.1"),                request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Connection: Upgrade"),          request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Upgrade: websocket"),           request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Sec-WebSocket-Key:"),           request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Sec-WebSocket-Version:"),       request2);
+            Assert.That(request2.Contains("GET / HTTP/1.1"), Is.True, request2);
+            Assert.That(request2.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request2);
+            Assert.That(request2.Contains($"Connection: Upgrade"), Is.True, request2);
+            Assert.That(request2.Contains($"Upgrade: websocket"), Is.True, request2);
+            Assert.That(request2.Contains($"Sec-WebSocket-Key:"), Is.True, request2);
+            Assert.That(request2.Contains($"Sec-WebSocket-Version:"), Is.True, request2);
 
             #endregion
 
@@ -1519,11 +1518,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Protocol:   ocpp2.0
             // Sec-WebSocket-Version:    13
 
-            ClassicAssert.IsTrue  (response2.Contains("HTTP/1.1 101 Switching Protocols"),   response2);
+            Assert.That(response2.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response2);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse2.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse2.Connection);
-            ClassicAssert.AreEqual("websocket",                                             httpResponse2.Upgrade);
+            Assert.That(httpResponse2.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse2.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse2.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
 
@@ -1550,24 +1549,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            ClassicAssert.AreEqual(2,       messageRequests. Count);
-            ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageRequests. Count, Is.EqualTo(2));
+            Assert.That(messageRequests. ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(messageRequests. ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(2,       messageResponses.Count);
-            ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageResponses.Count, Is.EqualTo(2));
+            Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
 
-            ClassicAssert.AreEqual(1,       textMessageRequests.   Count);
-            ClassicAssert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageRequests. Count);
-            ClassicAssert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
+            Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
+            Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
+            Assert.That(binaryMessageRequests. ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(1,       textMessageResponses.  Count);
-            ClassicAssert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageResponses.Count);
-            ClassicAssert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
+            Assert.That(textMessageResponses.  Count, Is.EqualTo(1));
+            Assert.That(textMessageResponses.  ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(binaryMessageResponses.Count, Is.EqualTo(1));
+            Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
 
@@ -1714,7 +1713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             }
             catch (Exception e)
             {
-                ClassicAssert.AreEqual("The server returned status code '401' when status code '101' was expected.", e.Message);
+                Assert.That(e.Message, Is.EqualTo("The server returned status code '401' when status code '101' was expected."));
             }
 
             var state                = clientWebSocket.State;
@@ -1732,14 +1731,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 Thread.Sleep(10);
 
             // 2 because of the way .NET handles HTTP authentication!
-            ClassicAssert.AreEqual(2, validatedTCP.          Count, validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(2, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(0, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(2, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
+            Assert.That(validatedTCP.          Count, Is.EqualTo(2), validatedTCP.          AggregateCSV());
+            Assert.That(newTCPConnection.      Count, Is.EqualTo(2), newTCPConnection.      AggregateCSV());
+            Assert.That(validatedWebSocket.    Count, Is.EqualTo(0), validatedWebSocket.    AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(2), newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(2, httpRequests.          Count);
-            ClassicAssert.AreEqual(2, httpResponses.         Count);
-            ClassicAssert.AreEqual(2, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests.          Count, Is.EqualTo(2));
+            Assert.That(httpResponses.         Count, Is.EqualTo(2));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(2));
 
 
             var httpRequest1          = httpRequests.First();
@@ -1765,19 +1764,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:   13
             // Authorization:           Basic bmFtZU9mVXNlcjpwYXNzcGhyYXNl
 
-            ClassicAssert.AreEqual("Upgrade",                                         httpRequest2.Connection);
-            ClassicAssert.AreEqual("websocket",                                       httpRequest2.Upgrade);
-            ClassicAssert.IsTrue  (httpRequest2.Authorization is HTTPBasicAuthentication, "Is not HTTP Basic Authentication!");
-            ClassicAssert.AreEqual("nameOfUser",                                     (httpRequest2.Authorization as HTTPBasicAuthentication)?.Username);
-            ClassicAssert.AreEqual("passphrase",                                     (httpRequest2.Authorization as HTTPBasicAuthentication)?.Password);
+            Assert.That(httpRequest2.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest2.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest2.Authorization is HTTPBasicAuthentication, Is.True, "Is not HTTP Basic Authentication!");
+            Assert.That((httpRequest2.Authorization as HTTPBasicAuthentication)?.Username, Is.EqualTo("nameOfUser"));
+            Assert.That((httpRequest2.Authorization as HTTPBasicAuthentication)?.Password, Is.EqualTo("passphrase"));
 
-            ClassicAssert.IsTrue  (request2.Contains("GET / HTTP/1.1"),                                       request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Host: 127.0.0.1:{HTTPPort}"),                          request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Connection: Upgrade"),                                 request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Upgrade: websocket"),                                  request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Sec-WebSocket-Key:"),                                  request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Sec-WebSocket-Version:"),                              request2);
-            ClassicAssert.IsTrue  (request2.Contains($"Authorization: Basic bmFtZU9mVXNlcjpwYXNzcGhyYXNl"),   request2);
+            Assert.That(request2.Contains("GET / HTTP/1.1"), Is.True, request2);
+            Assert.That(request2.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request2);
+            Assert.That(request2.Contains($"Connection: Upgrade"), Is.True, request2);
+            Assert.That(request2.Contains($"Upgrade: websocket"), Is.True, request2);
+            Assert.That(request2.Contains($"Sec-WebSocket-Key:"), Is.True, request2);
+            Assert.That(request2.Contains($"Sec-WebSocket-Version:"), Is.True, request2);
+            Assert.That(request2.Contains($"Authorization: Basic bmFtZU9mVXNlcjpwYXNzcGhyYXNl"), Is.True, request2);
 
             #endregion
 
@@ -1803,11 +1802,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // WWW-Authenticate:   Basic realm="Access to the web sockets server", charset ="UTF-8"
             // Connection:         Close
 
-            ClassicAssert.IsTrue  (response2.Contains("HTTP/1.1 401 Unauthorized"),   response2);
+            Assert.That(response2.Contains("HTTP/1.1 401 Unauthorized"), Is.True, response2);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",                              httpResponse2.Server);
-            ClassicAssert.AreEqual("Basic realm=\"Access to the web sockets server\", charset =\"UTF-8\"",   httpResponse2.WWWAuthenticate);
-            ClassicAssert.AreEqual("Close",                                                                  httpResponse2.Connection);
+            Assert.That(httpResponse2.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse2.WWWAuthenticate, Is.EqualTo("Basic realm=\"Access to the web sockets server\", charset =\"UTF-8\""));
+            Assert.That(httpResponse2.Connection, Is.EqualTo("Close"));
 
             #endregion
 

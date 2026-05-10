@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
 
         #region Data
 
-        public static readonly IPPort HTTPPort = IPPort.Parse(185);
+        public static readonly IPPort HTTPPort = IPPort.Zero;
 
         #endregion
 
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
             var httpRequests = new List<Task<Tuple<HttpResponseMessage?, TimeSpan>>>();
 
             for (var i = 0; i < 1000; i++)
-                httpRequests.Add(POST_Timestamped("http://127.0.0.1:82/mirror/httpBody", i.ToString()));
+                httpRequests.Add(POST_Timestamped($"{BaseURL}/mirror/httpBody", i.ToString()));
 
             var responeses = await Task.WhenAll(httpRequests.ToArray());
 

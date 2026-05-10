@@ -307,175 +307,198 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Parse HTTP Request
 
-                    var request  = HTTPRequest.Parse(
+                    if (HTTPRequest.TryParse(
 
-                                       Timestamp.Now,
-                                       httpSource,
-                                       localSocket,
-                                       remoteSocket,
+                            Timestamp.Now,
+                            httpSource,
+                            localSocket,
+                            remoteSocket,
 
-                                       HTTPHeader:                 Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
-                                       HTTPBody:                   null,
-                                       HTTPBodyStream:             null,
-                                       HTTPServerX:                this,
-                                       ServerCertificate:          TCPConnection.ServerCertificate,
-                                       ClientCertificate:          TCPConnection.ClientCertificate,
+                            Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
 
-                                       //HTTPBodyReceiveBufferSize:  null,
-                                       EventTrackingId:            EventTracking_Id.New,
-                                       CancellationToken:          CancellationToken
+                            out var request,
+                            out var httpParsingFailedResponse,
 
-                                   );
+                            HTTPBody:                   null,
+                            HTTPBodyStream:             null,
+                            HTTPServer:                 this,
+                            ServerCertificate:          TCPConnection.ServerCertificate,
+                            ClientCertificate:          TCPConnection.ClientCertificate,
 
-                    connection.IsHTTPKeepAlive        = request.IsKeepAlive;
-                    connection.IncrementKeepAliveMessageCount();
-                    request.   KeepAliveMessageCount  = connection.KeepAliveMessageCount;
+                            //HTTPBodyReceiveBufferSize:  null,
+                            EventTrackingId:            EventTracking_Id.New,
+                            CancellationToken:          CancellationToken
 
-                    #endregion
-
-
-                    #region Shift remaining data
-
-                    var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
-                    var remainingLength = dataLength           - remainingStart;
-                    buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
-                    dataLength = remainingLength;
-
-                    #endregion
-
-                    #region Setup HTTP body stream
-
-                    Stream? bodyDataStream  = null;
-                    Stream? bodyStream      = null;
-
-                    var prefix = buffer[..dataLength];
-                    if (request.IsChunkedTransferEncoding || request.ContentLength.HasValue)
+                        ))
                     {
 
-                        bodyDataStream = new PrefixStream(
-                                             prefix,
-                                             stream,
-                                             LeaveInnerStreamOpen: true
-                                         );
+                        connection.IsHTTPKeepAlive        = request.IsKeepAlive;
+                        connection.IncrementKeepAliveMessageCount();
+                        request.   KeepAliveMessageCount  = connection.KeepAliveMessageCount;
 
-                        if (request.IsChunkedTransferEncoding)
-                            bodyStream = new ChunkedTransferEncodingStream(
-                                             bodyDataStream,
-                                             LeaveInnerStreamOpen: true
-                                         );
+                        #region Shift remaining data
 
-                        else if (request.ContentLength.HasValue && request.ContentLength.Value > 0)
-                            bodyStream = new LengthLimitedStream(
-                                             bodyDataStream,
-                                             request.ContentLength.Value,
-                                             LeaveInnerStreamOpen: true
-                                         );
+                        var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+                        var remainingLength = dataLength           - remainingStart;
+                        buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
+                        dataLength = remainingLength;
 
-                    }
+                        #endregion
 
-                    request.HTTPBodyStream = bodyStream;
+                        #region Setup HTTP body stream
 
-                    #endregion
+                        Stream? bodyDataStream  = null;
+                        Stream? bodyStream      = null;
 
+                        var prefix = buffer[..dataLength];
+                        if (request.IsChunkedTransferEncoding || request.ContentLength.HasValue)
+                        {
 
-                    var httpResponse = await ProcessHTTPRequest(
-                                                 request,
+                            bodyDataStream = new PrefixStream(
+                                                 prefix,
                                                  stream,
-                                                 CancellationToken
+                                                 LeaveInnerStreamOpen: true
                                              );
 
-                    #region When the upper layer did not consume all of the body stream, we will discard the remaining data to support pipelining
+                            if (request.IsChunkedTransferEncoding)
+                                bodyStream = new ChunkedTransferEncodingStream(
+                                                 bodyDataStream,
+                                                 LeaveInnerStreamOpen: true
+                                             );
 
-                    if (bodyStream is not null)
-                    {
+                            else if (request.ContentLength.HasValue && request.ContentLength.Value > 0)
+                                bodyStream = new LengthLimitedStream(
+                                                 bodyDataStream,
+                                                 request.ContentLength.Value,
+                                                 LeaveInnerStreamOpen: true
+                                             );
 
-                        var discardBuffer = new Byte[4096];
-                        int read;
+                        }
 
-                        while ((read = await bodyStream.ReadAsync(discardBuffer, CancellationToken)) > 0)
-                        { }
+                        request.HTTPBodyStream = bodyStream;
+
+                        #endregion
+
+
+                        var httpResponse = await ProcessHTTPRequest(
+                                                     request,
+                                                     stream,
+                                                     CancellationToken
+                                                 );
+
+                        #region When the upper layer did not consume all of the body stream, we will discard the remaining data to support pipelining
+
+                        if (bodyStream is not null)
+                        {
+
+                            var discardBuffer = new Byte[4096];
+                            int read;
+
+                            while ((read = await bodyStream.ReadAsync(discardBuffer, CancellationToken)) > 0)
+                            { }
+
+                        }
+
+                        #endregion
+
+                        #region Get prefix consumed and shift buffer
+
+                        UInt64 prefixConsumed = 0;
+                        if (bodyDataStream is not null)
+                        {
+
+                            if (bodyDataStream is IPrefixInfo pi)
+                                prefixConsumed = pi.PrefixConsumed;
+
+                            bodyStream?.   Dispose();
+                            bodyDataStream.Dispose();
+
+                        }
+
+                        if (prefixConsumed < (UInt64) dataLength)
+                        {
+                            buffer[(int) prefixConsumed..dataLength].CopyTo(buffer[..]);
+                            dataLength -= (int) prefixConsumed;
+                        }
+                        else
+                            dataLength = 0;
+
+                        #endregion
+
+
+                        await SendResponse(
+                                  stream,
+                                  httpResponse,
+                                  CancellationToken
+                              );
+
+                        #region Fire & Forget the worker for chunked HTTP respones
+
+                        if (httpResponse.ChunkWorker    is not null &&
+                            httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
+                        {
+                            try
+                            {
+                                _ = httpResponse.ChunkWorker(
+                                        httpResponse,
+                                        chunkedStream
+                                    );
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.LogT("HTTP server response worker exception: " + e.Message);
+                            }
+                        }
+
+                        #endregion
+
+                        #region Fire & Forget the worker for HTTP SSE respones
+
+                        if (httpResponse.ContentType == HTTPContentType.Text.EVENTSTREAM &&
+                            httpResponse.HTTPSSEWorker  is not null)
+                        {
+
+                            httpResponse.HTTPBodyStream = stream;
+
+                            try
+                            {
+                                _ = httpResponse.HTTPSSEWorker(
+                                        httpResponse,
+                                        new StreamWriter(httpResponse.HTTPBodyStream)
+                                    );
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.LogT("HTTP server response worker exception: " + e.Message);
+                            }
+
+                        }
+
+                        #endregion
+
+                        if (!httpResponse.IsKeepAlive)
+                            break;
 
                     }
 
                     #endregion
 
-                    #region Get prefix consumed and shift buffer
+                    #region Parsing failed, send error response
 
-                    UInt64 prefixConsumed = 0;
-                    if (bodyDataStream is not null)
-                    {
-
-                        if (bodyDataStream is IPrefixInfo pi)
-                            prefixConsumed = pi.PrefixConsumed;
-
-                        bodyStream?.   Dispose();
-                        bodyDataStream.Dispose();
-
-                    }
-
-                    if (prefixConsumed < (UInt64) dataLength)
-                    {
-                        buffer[(int) prefixConsumed..dataLength].CopyTo(buffer[..]);
-                        dataLength -= (int) prefixConsumed;
-                    }
                     else
-                        dataLength = 0;
-
-                    #endregion
-
-
-                    await SendResponse(
-                              stream,
-                              httpResponse,
-                              CancellationToken
-                          );
-
-                    #region Fire & Forget the worker for chunked HTTP respones
-
-                    if (httpResponse.ChunkWorker    is not null &&
-                        httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
-                    {
-                        try
-                        {
-                            _ = httpResponse.ChunkWorker(
-                                    httpResponse,
-                                    chunkedStream
-                                );
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.LogT("HTTP server response worker exception: " + e.Message);
-                        }
-                    }
-
-                    #endregion
-
-                    #region Fire & Forget the worker for HTTP SSE respones
-
-                    if (httpResponse.ContentType == HTTPContentType.Text.EVENTSTREAM &&
-                        httpResponse.HTTPSSEWorker  is not null)
                     {
 
-                        httpResponse.HTTPBodyStream = stream;
+                        await SendResponse(
+                                  stream,
+                                  httpParsingFailedResponse,
+                                  CancellationToken
+                              );
 
-                        try
-                        {
-                            _ = httpResponse.HTTPSSEWorker(
-                                    httpResponse,
-                                    new StreamWriter(httpResponse.HTTPBodyStream)
-                                );
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.LogT("HTTP server response worker exception: " + e.Message);
-                        }
-
-                    }
-
-                    #endregion
-
-                    if (!httpResponse.IsKeepAlive)
                         break;
+
+                    }
+
+                    #endregion
 
                 }
 
@@ -490,17 +513,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // The connection was disposed, e.g. by the client closing the connection.
                 //DebugX.LogT("ObjectDisposedException in HTTPTestServer.HandleConnection(...)!");
             }
-            catch (IOException ie)
+            catch (IOException)
             {
                 // An I/O error occurred, e.g. the connection was closed by the client.
                 //DebugX.LogException(ie, "IOException in HTTPTestServer.HandleConnection(...)");
             }
             catch (Exception e)
             {
+
+                if (e.Message == "HTTP version not supported!")
+
+
                 DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...)");
+
             }
             finally
             {
+
+                activeClients.TryRemove(connection, out _);
+
                 try
                 {
                     connection.IsClosed = true;

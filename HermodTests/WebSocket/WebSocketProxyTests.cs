@@ -18,7 +18,6 @@
 #region Usings
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -274,14 +273,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (proxy_newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, proxy_validatedTCP.          Count, proxy_validatedTCP.          AggregateCSV());
-            ClassicAssert.AreEqual(1, proxy_newTCPConnection.      Count, proxy_newTCPConnection.      AggregateCSV());
-            ClassicAssert.AreEqual(1, proxy_validatedWebSocket.    Count, proxy_validatedWebSocket.    AggregateCSV());
-            ClassicAssert.AreEqual(1, proxy_newWebSocketConnection.Count, proxy_newWebSocketConnection.AggregateCSV());
+            Assert.That(proxy_validatedTCP.          Count, Is.EqualTo(1), proxy_validatedTCP.          AggregateCSV());
+            Assert.That(proxy_newTCPConnection.      Count, Is.EqualTo(1), proxy_newTCPConnection.      AggregateCSV());
+            Assert.That(proxy_validatedWebSocket.    Count, Is.EqualTo(1), proxy_validatedWebSocket.    AggregateCSV());
+            Assert.That(proxy_newWebSocketConnection.Count, Is.EqualTo(1), proxy_newWebSocketConnection.AggregateCSV());
 
-            ClassicAssert.AreEqual(1, proxy_httpRequests.          Count);
-            ClassicAssert.AreEqual(1, proxy_httpResponses.         Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(proxy_httpRequests.          Count, Is.EqualTo(1));
+            Assert.That(proxy_httpResponses.         Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
@@ -294,10 +293,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse (request.Contains("Date:"),                              request);
-            ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                     request);
-            ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPortProxy}"),   request);
-            ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),                request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPortProxy}"), Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
 
             #endregion
 
@@ -314,11 +313,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
             // Sec-WebSocket-Version:    13
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
-            ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
-            ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
 
@@ -341,50 +340,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             //Note: If you are debugging too slowly HTTP WebSocket PING/PONG messages will arrive!
 
-            ClassicAssert.AreEqual(2,       proxy_messageRequests.        Count);
-            ClassicAssert.AreEqual("1234",  proxy_messageRequests.        ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  proxy_messageRequests.        ElementAt(1).Payload.ToUTF8String());
+            Assert.That(proxy_messageRequests.        Count, Is.EqualTo(2));
+            Assert.That(proxy_messageRequests.        ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(proxy_messageRequests.        ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(2,       server_messageRequests.       Count);
-            ClassicAssert.AreEqual("1234",  server_messageRequests.       ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD",  server_messageRequests.       ElementAt(1).Payload.ToUTF8String());
-
-
-            ClassicAssert.AreEqual(2,       proxy_messageResponses.       Count);
-            ClassicAssert.AreEqual("4321",  proxy_messageResponses.       ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  proxy_messageResponses.       ElementAt(1).Payload.ToUTF8String());
-
-            ClassicAssert.AreEqual(2,       server_messageResponses.      Count);
-            ClassicAssert.AreEqual("4321",  server_messageResponses.      ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("DCBA",  server_messageResponses.      ElementAt(1).Payload.ToUTF8String());
+            Assert.That(server_messageRequests.       Count, Is.EqualTo(2));
+            Assert.That(server_messageRequests.       ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(server_messageRequests.       ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
 
-            ClassicAssert.AreEqual(1,       proxy_textMessageRequests.    Count);
-            ClassicAssert.AreEqual("1234",  proxy_textMessageRequests.    ElementAt(0));
-            ClassicAssert.AreEqual(1,       proxy_binaryMessageRequests.  Count);
-            ClassicAssert.AreEqual("ABCD",  proxy_binaryMessageRequests.  ElementAt(0).ToUTF8String());
+            Assert.That(proxy_messageResponses.       Count, Is.EqualTo(2));
+            Assert.That(proxy_messageResponses.       ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(proxy_messageResponses.       ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-            ClassicAssert.AreEqual(1,       server_textMessageRequests.   Count);
-            ClassicAssert.AreEqual("1234",  server_textMessageRequests.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       server_binaryMessageRequests. Count);
-            ClassicAssert.AreEqual("ABCD",  server_binaryMessageRequests. ElementAt(0).ToUTF8String());
+            Assert.That(server_messageResponses.      Count, Is.EqualTo(2));
+            Assert.That(server_messageResponses.      ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
+            Assert.That(server_messageResponses.      ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
 
-            ClassicAssert.AreEqual(1,       proxy_textMessageResponses.   Count);
-            ClassicAssert.AreEqual("4321",  proxy_textMessageResponses.   ElementAt(0));
-            ClassicAssert.AreEqual(1,       proxy_binaryMessageResponses. Count);
-            ClassicAssert.AreEqual("DCBA",  proxy_binaryMessageResponses. ElementAt(0).ToUTF8String());
+            Assert.That(proxy_textMessageRequests.    Count, Is.EqualTo(1));
+            Assert.That(proxy_textMessageRequests.    ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(proxy_binaryMessageRequests.  Count, Is.EqualTo(1));
+            Assert.That(proxy_binaryMessageRequests.  ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(1,       server_textMessageResponses.  Count);
-            ClassicAssert.AreEqual("4321",  server_textMessageResponses.  ElementAt(0));
-            ClassicAssert.AreEqual(1,       server_binaryMessageResponses.Count);
-            ClassicAssert.AreEqual("DCBA",  server_binaryMessageResponses.ElementAt(0).ToUTF8String());
+            Assert.That(server_textMessageRequests.   Count, Is.EqualTo(1));
+            Assert.That(server_textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
+            Assert.That(server_binaryMessageRequests. Count, Is.EqualTo(1));
+            Assert.That(server_binaryMessageRequests. ElementAt(0).ToUTF8String(), Is.EqualTo("ABCD"));
 
 
-            ClassicAssert.AreEqual(1,       textMessageLog.               Count);
-            ClassicAssert.AreEqual("4321",  textMessageLog.               ElementAt(0));
-            ClassicAssert.AreEqual(1,       binaryMessageLog.             Count);
-            ClassicAssert.AreEqual("DCBA",  binaryMessageLog.             ElementAt(0));
+            Assert.That(proxy_textMessageResponses.   Count, Is.EqualTo(1));
+            Assert.That(proxy_textMessageResponses.   ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(proxy_binaryMessageResponses. Count, Is.EqualTo(1));
+            Assert.That(proxy_binaryMessageResponses. ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
+
+            Assert.That(server_textMessageResponses.  Count, Is.EqualTo(1));
+            Assert.That(server_textMessageResponses.  ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(server_binaryMessageResponses.Count, Is.EqualTo(1));
+            Assert.That(server_binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
+
+
+            Assert.That(textMessageLog.               Count, Is.EqualTo(1));
+            Assert.That(textMessageLog.               ElementAt(0), Is.EqualTo("4321"));
+            Assert.That(binaryMessageLog.             Count, Is.EqualTo(1));
+            Assert.That(binaryMessageLog.             ElementAt(0), Is.EqualTo("DCBA"));
 
             #endregion
 

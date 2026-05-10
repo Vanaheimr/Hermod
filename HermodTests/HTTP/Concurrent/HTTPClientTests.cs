@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
         #region Constructor(s)
 
         public HTTPClientTests()
-            : base(HTTPPort)
+            : base(IPPort.Zero)
         { }
 
         #endregion
@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
             {
                 httpRequests.Add(
                     new HTTPClient(
-                        URL.Parse("http://127.0.0.1:82")
+                        URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}")
                     ).
                     POST(
                         HTTPPath.Root + "mirror" + "httpBody",

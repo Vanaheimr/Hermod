@@ -18,7 +18,6 @@
 //#region Usings
 
 //using NUnit.Framework;
-//using NUnit.Framework.Legacy;
 
 //using org.GraphDefined.Vanaheimr.Illias;
 //using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -277,8 +276,8 @@
 //                                             requestBuilder.Connection  = ConnectionType.Close;
 //                                         });
 
-//            ClassicAssert.AreEqual(200,                       response?.HTTPStatusCode.Code);
-//            ClassicAssert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+//            Assert.That(response?.HTTPStatusCode.Code, Is.EqualTo(200));
+//            Assert.That(response?.HTTPBodyAsUTF8String, Is.EqualTo("MozillaDeveloperNetwork"));
 
 //        }
 
@@ -298,8 +297,8 @@
 //                                             requestBuilder.Connection = ConnectionType.Close;
 //                                         });
 
-//            ClassicAssert.AreEqual(200,                       response?.HTTPStatusCode.Code);
-//            ClassicAssert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+//            Assert.That(response?.HTTPStatusCode.Code, Is.EqualTo(200));
+//            Assert.That(response?.HTTPBodyAsUTF8String, Is.EqualTo("MozillaDeveloperNetwork"));
 
 //        }
 
@@ -319,8 +318,8 @@
 //                                             requestBuilder.Connection = ConnectionType.Close;
 //                                         });
 
-//            ClassicAssert.AreEqual(200,                       response?.HTTPStatusCode.Code);
-//            ClassicAssert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+//            Assert.That(response?.HTTPStatusCode.Code, Is.EqualTo(200));
+//            Assert.That(response?.HTTPBodyAsUTF8String, Is.EqualTo("MozillaDeveloperNetwork"));
 
 //        }
 
@@ -356,39 +355,39 @@
 //                                                    });
 
 
-//            ClassicAssert.AreEqual (200,                       response?.HTTPStatusCode.Code);
-//            ClassicAssert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
-//            ClassicAssert.AreEqual (4,                         chunkExtensions.Count);
+//            Assert.That(response?.HTTPStatusCode.Code, Is.EqualTo(200));
+//            Assert.That(response?.HTTPBodyAsUTF8String, Is.EqualTo("MozillaDeveloperNetwork"));
+//            Assert.That(chunkExtensions.Count, Is.EqualTo(4));
 
-//            ClassicAssert.AreEqual (7, chunkLengths[0]);
-//            ClassicAssert.IsNull   (chunkExtensions[0]);
-//            ClassicAssert.AreEqual ("Mozilla",                 chunkData[0]);
+//            Assert.That(chunkLengths[0], Is.EqualTo(7));
+//            Assert.That(chunkExtensions[0], Is.Null);
+//            Assert.That(chunkData[0], Is.EqualTo("Mozilla"));
 
-//            ClassicAssert.AreEqual (9, chunkLengths[1]);
-//            ClassicAssert.IsNotNull(chunkExtensions[1]);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.Count);
-//            ClassicAssert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
-//            ClassicAssert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
-//            ClassicAssert.AreEqual ("Developer",               chunkData[1]);
+//            Assert.That(chunkLengths[1], Is.EqualTo(9));
+//            Assert.That(chunkExtensions[1], Is.Not.Null);
+//            Assert.That(chunkExtensions[1]?.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[1]?.First().Key, Is.EqualTo("a"));
+//            Assert.That(chunkExtensions[1]?.First().Value.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[1]?.First().Value.First(), Is.EqualTo("b"));
+//            Assert.That(chunkData[1], Is.EqualTo("Developer"));
 
-//            ClassicAssert.AreEqual (7, chunkLengths[2]);
-//            ClassicAssert.IsNotNull(chunkExtensions[2]);
-//            ClassicAssert.AreEqual (2,                         chunkExtensions[2]?.Count);
-//            ClassicAssert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
-//            ClassicAssert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
-//            ClassicAssert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
-//            ClassicAssert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
-//            ClassicAssert.AreEqual ("Network",                 chunkData[2]);
+//            Assert.That(chunkLengths[2], Is.EqualTo(7));
+//            Assert.That(chunkExtensions[2], Is.Not.Null);
+//            Assert.That(chunkExtensions[2]?.Count, Is.EqualTo(2));
+//            Assert.That(chunkExtensions[2]?.First().Key, Is.EqualTo("a"));
+//            Assert.That(chunkExtensions[2]?.First().Value.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[2]?.First().Value.First(), Is.EqualTo("b"));
+//            Assert.That(chunkExtensions[2]?.Skip(1).First().Key, Is.EqualTo("c"));
+//            Assert.That(chunkExtensions[2]?.Skip(1).First().Value.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[2]?.Skip(1).First().Value.First(), Is.EqualTo("d"));
+//            Assert.That(chunkData[2], Is.EqualTo("Network"));
 
-//            ClassicAssert.AreEqual (0, chunkLengths[3]);
-//            ClassicAssert.IsNull   (chunkExtensions[3]);
-//            ClassicAssert.AreEqual ("",                        chunkData[3]);
+//            Assert.That(chunkLengths[3], Is.EqualTo(0));
+//            Assert.That(chunkExtensions[3], Is.Null);
+//            Assert.That(chunkData[3], Is.EqualTo(""));
 
 //            //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
-//            //ClassicAssert.IsNotNull(json);
+//            //Assert.That(json, Is.Not.Null);
 
 //        }
 
@@ -423,39 +422,39 @@
 //                                                        requestBuilder.Connection = ConnectionType.Close;
 //                                                    });
 
-//            ClassicAssert.AreEqual (200,                       response?.HTTPStatusCode.Code);
-//            ClassicAssert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
-//            ClassicAssert.AreEqual (4,                         chunkExtensions.Count);
+//            Assert.That(response?.HTTPStatusCode.Code, Is.EqualTo(200));
+//            Assert.That(response?.HTTPBodyAsUTF8String, Is.EqualTo("MozillaDeveloperNetwork"));
+//            Assert.That(chunkExtensions.Count, Is.EqualTo(4));
 
-//            ClassicAssert.AreEqual (7, chunkLengths[0]);
-//            ClassicAssert.IsNull   (chunkExtensions[0]);
-//            ClassicAssert.AreEqual ("Mozilla",                 chunkData[0]);
+//            Assert.That(chunkLengths[0], Is.EqualTo(7));
+//            Assert.That(chunkExtensions[0], Is.Null);
+//            Assert.That(chunkData[0], Is.EqualTo("Mozilla"));
 
-//            ClassicAssert.AreEqual (9, chunkLengths[1]);
-//            ClassicAssert.IsNotNull(chunkExtensions[1]);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.Count);
-//            ClassicAssert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
-//            ClassicAssert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
-//            ClassicAssert.AreEqual ("Developer",               chunkData[1]);
+//            Assert.That(chunkLengths[1], Is.EqualTo(9));
+//            Assert.That(chunkExtensions[1], Is.Not.Null);
+//            Assert.That(chunkExtensions[1]?.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[1]?.First().Key, Is.EqualTo("a"));
+//            Assert.That(chunkExtensions[1]?.First().Value.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[1]?.First().Value.First(), Is.EqualTo("b"));
+//            Assert.That(chunkData[1], Is.EqualTo("Developer"));
 
-//            ClassicAssert.AreEqual (7, chunkLengths[2]);
-//            ClassicAssert.IsNotNull(chunkExtensions[2]);
-//            ClassicAssert.AreEqual (2,                         chunkExtensions[2]?.Count);
-//            ClassicAssert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
-//            ClassicAssert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
-//            ClassicAssert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
-//            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
-//            ClassicAssert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
-//            ClassicAssert.AreEqual ("Network",                 chunkData[2]);
+//            Assert.That(chunkLengths[2], Is.EqualTo(7));
+//            Assert.That(chunkExtensions[2], Is.Not.Null);
+//            Assert.That(chunkExtensions[2]?.Count, Is.EqualTo(2));
+//            Assert.That(chunkExtensions[2]?.First().Key, Is.EqualTo("a"));
+//            Assert.That(chunkExtensions[2]?.First().Value.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[2]?.First().Value.First(), Is.EqualTo("b"));
+//            Assert.That(chunkExtensions[2]?.Skip(1).First().Key, Is.EqualTo("c"));
+//            Assert.That(chunkExtensions[2]?.Skip(1).First().Value.Count, Is.EqualTo(1));
+//            Assert.That(chunkExtensions[2]?.Skip(1).First().Value.First(), Is.EqualTo("d"));
+//            Assert.That(chunkData[2], Is.EqualTo("Network"));
 
-//            ClassicAssert.AreEqual (0, chunkLengths[3]);
-//            ClassicAssert.IsNull   (chunkExtensions[3]);
-//            ClassicAssert.AreEqual ("",                        chunkData[3]);
+//            Assert.That(chunkLengths[3], Is.EqualTo(0));
+//            Assert.That(chunkExtensions[3], Is.Null);
+//            Assert.That(chunkData[3], Is.EqualTo(""));
 
 //            //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
-//            //ClassicAssert.IsNotNull(json);
+//            //Assert.That(json, Is.Not.Null);
 
 //        }
 
@@ -490,46 +489,46 @@
 //                                                  requestBuilder.Connection = ConnectionType.Close;
 //                                              });
 
-//            ClassicAssert.IsNotNull(response);
+//            Assert.That(response, Is.Not.Null);
 
 //            if (response is not null)
 //            {
 
-//                //ClassicAssert.AreEqual (200,                       response.HTTPStatusCode.Code);
-//                //ClassicAssert.AreEqual ("MozillaDeveloperNetwork", response.HTTPBodyAsUTF8String);
-//                ClassicAssert.AreEqual (4,                         chunkExtensions.Count);
+//                //Assert.That(response.HTTPStatusCode.Code, Is.EqualTo(200));
+//                //Assert.That(response.HTTPBodyAsUTF8String, Is.EqualTo("MozillaDeveloperNetwork"));
+//                Assert.That(chunkExtensions.Count, Is.EqualTo(4));
 
-//                ClassicAssert.AreEqual (7, chunkLengths[0]);
-//                ClassicAssert.IsNull   (chunkExtensions[0]);
-//                ClassicAssert.AreEqual ("Mozilla",                 chunkData[0]);
+//                Assert.That(chunkLengths[0], Is.EqualTo(7));
+//                Assert.That(chunkExtensions[0], Is.Null);
+//                Assert.That(chunkData[0], Is.EqualTo("Mozilla"));
 
-//                ClassicAssert.AreEqual (9, chunkLengths[1]);
-//                ClassicAssert.IsNotNull(chunkExtensions[1]);
-//                ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.Count);
-//                ClassicAssert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
-//                ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
-//                ClassicAssert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
-//                ClassicAssert.AreEqual ("Developer",               chunkData[1]);
+//                Assert.That(chunkLengths[1], Is.EqualTo(9));
+//                Assert.That(chunkExtensions[1], Is.Not.Null);
+//                Assert.That(chunkExtensions[1]?.Count, Is.EqualTo(1));
+//                Assert.That(chunkExtensions[1]?.First().Key, Is.EqualTo("a"));
+//                Assert.That(chunkExtensions[1]?.First().Value.Count, Is.EqualTo(1));
+//                Assert.That(chunkExtensions[1]?.First().Value.First(), Is.EqualTo("b"));
+//                Assert.That(chunkData[1], Is.EqualTo("Developer"));
 
-//                ClassicAssert.AreEqual (7, chunkLengths[2]);
-//                ClassicAssert.IsNotNull(chunkExtensions[2]);
-//                ClassicAssert.AreEqual (2,                         chunkExtensions[2]?.Count);
-//                ClassicAssert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
-//                ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
-//                ClassicAssert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
-//                ClassicAssert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
-//                ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
-//                ClassicAssert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
-//                ClassicAssert.AreEqual ("Network",                 chunkData[2]);
+//                Assert.That(chunkLengths[2], Is.EqualTo(7));
+//                Assert.That(chunkExtensions[2], Is.Not.Null);
+//                Assert.That(chunkExtensions[2]?.Count, Is.EqualTo(2));
+//                Assert.That(chunkExtensions[2]?.First().Key, Is.EqualTo("a"));
+//                Assert.That(chunkExtensions[2]?.First().Value.Count, Is.EqualTo(1));
+//                Assert.That(chunkExtensions[2]?.First().Value.First(), Is.EqualTo("b"));
+//                Assert.That(chunkExtensions[2]?.Skip(1).First().Key, Is.EqualTo("c"));
+//                Assert.That(chunkExtensions[2]?.Skip(1).First().Value.Count, Is.EqualTo(1));
+//                Assert.That(chunkExtensions[2]?.Skip(1).First().Value.First(), Is.EqualTo("d"));
+//                Assert.That(chunkData[2], Is.EqualTo("Network"));
 
-//                ClassicAssert.AreEqual (0, chunkLengths[3]);
-//                ClassicAssert.IsNull   (chunkExtensions[3]);
-//                ClassicAssert.AreEqual ("",                        chunkData[3]);
+//                Assert.That(chunkLengths[3], Is.EqualTo(0));
+//                Assert.That(chunkExtensions[3], Is.Null);
+//                Assert.That(chunkData[3], Is.EqualTo(""));
 
-//                //ClassicAssert.AreEqual (String.Empty,              response.GetHeaderField(HTTPHeaderField.TransferEncoding));
-//                //ClassicAssert.AreEqual ("no-cache",                response.GetHeaderField(HTTPHeaderField.CacheControl));
-//                //ClassicAssert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader"));
-//                //ClassicAssert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader2"));
+//                //Assert.That(response.GetHeaderField(HTTPHeaderField.TransferEncoding), Is.EqualTo(String.Empty));
+//                //Assert.That(response.GetHeaderField(HTTPHeaderField.CacheControl), Is.EqualTo("no-cache"));
+//                //Assert.That(response.GetHeaderField("TrailingHeader"), Is.EqualTo(String.Empty));
+//                //Assert.That(response.GetHeaderField("TrailingHeader2"), Is.EqualTo(String.Empty));
 
 //            }
 

@@ -1372,10 +1372,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 Thread.Sleep(10);
             }
 
-            waitingForHTTPResponse ??= new HTTPResponse.Builder() {
-                                           HTTPStatusCode = HTTPStatusCode.BadRequest,
-                                           Content        = $"Timeout of {RequestTimeout.Value.TotalSeconds} seconds reached!!!".ToUTF8Bytes()
-                                       };
+            waitingForHTTPResponse ??= new HTTPResponse.Builder(
+
+                                           Timestamp.Now,
+                                           EventTracking_Id.New,
+                                           TimeSpan.Zero,
+
+                                           new HTTPSource(),
+                                           webSocketClientConnection?.LocalSocket  ?? IPSocket.Zero,
+                                           webSocketClientConnection?.RemoteSocket ?? IPSocket.Zero,
+                                           ConnectionType.Close,
+
+                                           HTTPStatusCode.BadRequest,
+                                           $"Timeout of {RequestTimeout.Value.TotalSeconds} seconds reached!!!"
+
+                                       ).AsImmutable;
 
             return Task.FromResult(
                        new Tuple<WebSocketClientConnection, HTTPResponse>(

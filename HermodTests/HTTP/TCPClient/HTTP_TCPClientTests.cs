@@ -18,7 +18,6 @@
 #region Usings
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -49,172 +48,177 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #region Start/Stop HTTPServer
 
         private HTTPTestServerX? httpServer;
+        private HTTPAPI?         httpAPI;
 
         [OneTimeSetUp]
         public void Init_HTTPServer()
         {
 
             httpServer = new HTTPTestServerX(
-                             TCPPort: IPPort.Parse(81),
+                             TCPPort: IPPort.Zero,
                              AutoStart: true
-                         );
+                          );
+
+            httpAPI = new HTTPAPI(
+                          httpServer
+                      );
 
             #region /
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root,
-                                         HTTPDelegate: Request => Task.FromResult(
-                                                                       new HTTPResponse.Builder(Request) {
-                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
-                                                                           Date                       = Timestamp.Now,
-                                                                           AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "GET" ],
-                                                                           AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                                           ContentType                = HTTPContentType.Text.PLAIN,
-                                                                           Content                    = "Hello World!".ToUTF8Bytes(),
-                                                                           Connection                 = ConnectionType.Close
-                                                                       }.AsImmutable));
+            httpAPI.AddHandler(HTTPPath.Root,
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: Request => Task.FromResult(
+                                                             new HTTPResponse.Builder(Request) {
+                                                                 HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                 Server                     = "Test Server",
+                                                                 Date                       = Timestamp.Now,
+                                                                 AccessControlAllowOrigin   = "*",
+                                                                 AccessControlAllowMethods  = [ "GET" ],
+                                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                                 ContentType                = HTTPContentType.Text.PLAIN,
+                                                                 Content                    = "Hello World!".ToUTF8Bytes(),
+                                                                 Connection                 = ConnectionType.Close
+                                                             }.AsImmutable));
 
             #endregion
 
         }
 
         [OneTimeTearDown]
-        public void Shutdown_HTTPServer()
+        public async Task Shutdown_HTTPServer()
         {
-            //httpServer?.Shutdown();
+            if (httpServer is not null)
+                await httpServer.Stop();
         }
 
         #endregion
 
         #region NewTCPClientRequest()
 
-        private static TCPClientRequest NewTCPClientRequest()
+        private TCPClientRequest NewTCPClientRequest()
 
-            => new ("localhost", 81);
+            => new ("localhost", httpServer?.TCPPort.ToInt32() ?? throw new InvalidOperationException("HTTP server was not initialized!"));
 
         #endregion
 
 
-        #region HTTP_TCPClientTest_001()
+        #region HTTP_TCPClientTest_HTTP1_1()
 
         [Test]
-        public void HTTP_TCPClientTest_001()
+        public void HTTP_TCPClientTest_HTTP1_1()
         {
 
             var response = NewTCPClientRequest().
-                           Send("GET / HTTP/1.1\r\nHost: localhost").
+                           Send("GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close").
                            FinishCurrentRequest().
                            Response;
 
-            ClassicAssert.IsTrue(response.Contains("200 OK"),       response);
-            ClassicAssert.IsTrue(response.Contains("Hello World!"), response);
+            Assert.That(response.Contains("200 OK"), Is.True, response);
+            Assert.That(response.Contains("Hello World!"), Is.True, response);
 
         }
 
         #endregion
 
-        #region HTTP_TCPClientTest_002()
+        #region HTTP_TCPClientTest_HTTP2_0()
 
         [Test]
-        public void HTTP_TCPClientTest_002()
+        public void HTTP_TCPClientTest_HTTP2_0()
         {
 
             var response = NewTCPClientRequest().
-                           Send("GET / HTTP/2.0\r\nHost: localhost").
+                           Send("GET / HTTP/2.0\r\nHost: localhost\r\nConnection: close").
                            FinishCurrentRequest().
                            Response;
 
-            ClassicAssert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
+            Assert.That(response.Contains(_505_HTTPVersionNotSupported), Is.True, response);
 
         }
 
         #endregion
 
-        #region HTTP_TCPClientTest_003()
+        #region HTTP_TCPClientTest_InvalidHTTPVersion1()
 
         [Test]
-        public void HTTP_TCPClientTest_003()
+        public void HTTP_TCPClientTest_InvalidHTTPVersion1()
         {
 
             var response = NewTCPClientRequest().
-                           Send("GET / HTTP 2.0\r\nHost: localhost").
+                           Send("GET / HTTP 2.0\r\nHost: localhost\r\nConnection: close").
                            FinishCurrentRequest().
                            Response;
 
-            ClassicAssert.IsTrue(response.Contains(_400_BadRequest), response);
+            Assert.That(response.Contains(_400_BadRequest), Is.True, response);
 
         }
 
         #endregion
 
-        #region HTTP_TCPClientTest_004()
+        #region HTTP_TCPClientTest_InvalidHTTPVersion2()
 
         [Test]
-        public void HTTP_TCPClientTest_004()
+        public void HTTP_TCPClientTest_InvalidHTTPVersion2()
         {
 
             var response = NewTCPClientRequest().
-                           Send("GET / HTTP/1\r\nHost: localhost").
+                           Send("GET / HTTP/1\r\nHost: localhost\r\nConnection: close").
                            FinishCurrentRequest().
                            Response;
 
-            ClassicAssert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
+            Assert.That(response.Contains(_400_BadRequest), Is.True, response);
 
         }
 
         #endregion
 
-        #region HTTP_TCPClientTest_005()
+        #region HTTP_TCPClientTest_InvalidHTTPVersion3()
 
         [Test]
-        public void HTTP_TCPClientTest_005()
+        public void HTTP_TCPClientTest_InvalidHTTPVersion3()
         {
 
             var response = NewTCPClientRequest().
-                           Send("GET / HTTo/2.0\r\nHost: localhost").
+                           Send("GET / HTTo/2.0\r\nHost: localhost\r\nConnection: close").
                            FinishCurrentRequest().
                            Response;
 
-            ClassicAssert.IsTrue(response.Contains(_400_BadRequest), response);
+            Assert.That(response.Contains(_400_BadRequest), Is.True, response);
 
         }
 
         #endregion
 
-        #region HTTP_TCPClientTest_006()
+        #region HTTP_TCPClientTest_SlowClient()
 
         [Test]
-        public void HTTP_TCPClientTest_006()
+        public void HTTP_TCPClientTest_SlowClient()
         {
 
             var response = NewTCPClientRequest().
                            Send("GE").
                            Wait(100).
-                           Send("T / HTTo/2.0\r\nHost: localhost").
+                           Send("T / HTTo/2.0\r\nHost: localhost\r\nConnection: close").
                            FinishCurrentRequest().
                            Response;
 
-            ClassicAssert.IsTrue(response.Contains(_400_BadRequest), response);
+            Assert.That(response.Contains(_400_BadRequest), Is.True, response);
 
         }
 
         #endregion
 
-        #region HTTP_TCPClientTest_007()
+        #region HTTP_TCPClientTest_InvalidHTTPMethod()
 
         [Test]
-        public void HTTP_TCPClientTest_007()
+        public void HTTP_TCPClientTest_InvalidHTTPMethod()
         {
 
             var response = NewTCPClientRequest().
-                           Send("GETTT / HTTP/1.1\r\nHost: localhost").
+                           Send("GETTT / HTTP/1.1\r\nHost: localhost\r\nConnection: close").
                            FinishCurrentRequest().
                            Response;
 
-            ClassicAssert.IsTrue(response.Contains(_405_MethodNotAllowed), response);
+            Assert.That(response.Contains(_405_MethodNotAllowed), Is.True, response);
 
         }
 

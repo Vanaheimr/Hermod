@@ -51,6 +51,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Non-HTTP header fields
 
+        public HTTPSource?        HTTPSource         { get; set; }
+        public IPSocket?          LocalSocket        { get; set; }
+        public IPSocket?          RemoteSocket       { get; set; }
+
         /// <summary>
         /// A unique identification for tracking related events.
         /// </summary>
@@ -757,9 +761,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP header builder.
         /// </summary>
         /// <param name="CancellationToken">An optional cancellation token.</param>
-        public AHTTPPDUBuilder(CancellationToken CancellationToken = default)
+        public AHTTPPDUBuilder(HTTPSource?        HTTPSource          = null,
+                               IPSocket?          LocalSocket         = null,
+                               IPSocket?          RemoteSocket        = null,
+                               CancellationToken  CancellationToken   = default)
         {
 
+            this.HTTPSource         = HTTPSource;
+            this.LocalSocket        = LocalSocket;
+            this.RemoteSocket       = RemoteSocket;
             this.CancellationToken  = CancellationToken;
 
         }

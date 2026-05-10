@@ -20,7 +20,6 @@
 using System.Security.Cryptography.X509Certificates;
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -46,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         #region Constructor(s)
 
         public HTTPSClientTests()
-            : base(HTTPSPort)
+            : base(IPPort.Zero)
         { }
 
         #endregion
@@ -59,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         {
 
             var httpsClient    = new HTTPClient(
-                                     URL.Parse($"https://127.0.0.1:{HTTPSPort}"),
+                                     URL.Parse($"https://127.0.0.1:{httpsServer.TCPPort}"),
                                      RemoteCertificateValidator: (sender, certificate, chain, server, policyErrors) => {
 
                                          // Certificate verification
@@ -112,9 +111,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                          request);
-            ClassicAssert.IsTrue (request.Contains("GET / HTTP/1.1"),                  request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPSPort}"),   request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -132,13 +131,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             // 
             // Hello World!
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains("Hello World!"),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains("Hello World!"), Is.True, response);
 
-            ClassicAssert.AreEqual("Hello World!",                         httpsBody);
+            Assert.That(httpsBody, Is.EqualTo("Hello World!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpsResponse.Server);
-            ClassicAssert.AreEqual("Hello World!".Length,                  httpsResponse.ContentLength);
+            Assert.That(httpsResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpsResponse.ContentLength, Is.EqualTo("Hello World!".Length));
 
         }
 

@@ -18,7 +18,6 @@
 #region Usings
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -44,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #region Constructor(s)
 
         public HTTPClientTests()
-            : base(HTTPPort)
+            : base(IPPort.Zero)
         { }
 
         #endregion
@@ -56,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_001()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root).
                                                  ConfigureAwait(false);
 
@@ -68,9 +67,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                         request);
-            ClassicAssert.IsTrue (request.Contains("GET / HTTP/1.1"),                request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -88,13 +87,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // Hello World!
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains("Hello World!"),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains("Hello World!"), Is.True, response);
 
-            ClassicAssert.AreEqual("Hello World!",                         httpBody);
+            Assert.That(httpBody, Is.EqualTo("Hello World!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
-            ClassicAssert.AreEqual("Hello World!".Length,                  httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.ContentLength, Is.EqualTo("Hello World!".Length));
 
         }
 
@@ -106,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_002()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root,
                                                      RequestBuilder: requestBuilder => {
                                                          requestBuilder.Host = HTTPHostname.Localhost;
@@ -121,9 +120,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: localhost
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),             request);
-            ClassicAssert.IsTrue (request.Contains("GET / HTTP/1.1"),    request);
-            ClassicAssert.IsTrue (request.Contains("Host: localhost"),   request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: localhost"), Is.True, request);
 
 
 
@@ -141,13 +140,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // Hello World!
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains("Hello World!"),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains("Hello World!"), Is.True, response);
 
-            ClassicAssert.AreEqual("Hello World!",                         httpBody);
+            Assert.That(httpBody, Is.EqualTo("Hello World!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
-            ClassicAssert.AreEqual("Hello World!".Length,                  httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.ContentLength, Is.EqualTo("Hello World!".Length));
 
         }
 
@@ -161,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_NotForEveryone_MissingBasicAuth()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone").
                                                  ConfigureAwait(false);
 
@@ -173,9 +172,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                          request);
-            ClassicAssert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET /NotForEveryone HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -191,13 +190,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // WWWAuthenticate:               Basic realm="Access to the staging site"
             // Connection:                    close
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 401 Unauthorized"),                      response);
+            Assert.That(response.Contains("HTTP/1.1 401 Unauthorized"), Is.True, response);
 
-            ClassicAssert.AreEqual(String.Empty,                                                        httpBody);
+            Assert.That(httpBody, Is.EqualTo(String.Empty));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                                                httpResponse.Server);
-            ClassicAssert.AreEqual(@"Basic realm=""Access to the staging site"", charset =""UTF-8""",   httpResponse.WWWAuthenticate);
-            ClassicAssert.IsNull  (httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.WWWAuthenticate, Is.EqualTo(@"Basic realm=""Access to the staging site"", charset =""UTF-8"""));
+            Assert.That(httpResponse.ContentLength, Is.Null);
 
         }
 
@@ -209,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_NotForEveryone_ValidBasicAuth()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
                                                      Authentication:  HTTPBasicAuthentication.Create("testUser1", "testPassword1")).
                                                  ConfigureAwait(false);
@@ -222,9 +221,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                          request);
-            ClassicAssert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET /NotForEveryone HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -242,12 +241,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Connection:                     close
             // X-Environment-ManagedThreadId:  10
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
 
-            ClassicAssert.AreEqual("Hello 'testUser1'!",                   httpBody);
+            Assert.That(httpBody, Is.EqualTo("Hello 'testUser1'!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
-            ClassicAssert.AreEqual("Hello 'testUser1'!".Length,            httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.ContentLength, Is.EqualTo("Hello 'testUser1'!".Length));
 
         }
 
@@ -259,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_NotForEveryone_ValidBasicAuth_MissingAuthorization()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
                                                      Authentication:  HTTPBasicAuthentication.Create("testUser2", "testPassword2")).
                                                  ConfigureAwait(false);
@@ -272,9 +271,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                          request);
-            ClassicAssert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET /NotForEveryone HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -294,13 +293,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // Sorry 'testUser2' please contact your administrator!
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 403 Forbidden"),                         response);
+            Assert.That(response.Contains("HTTP/1.1 403 Forbidden"), Is.True, response);
 
-            ClassicAssert.AreEqual("Sorry 'testUser2' please contact your administrator!",              httpBody);
+            Assert.That(httpBody, Is.EqualTo("Sorry 'testUser2' please contact your administrator!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                                                httpResponse.Server);
-            ClassicAssert.AreEqual(@"Basic realm=""Access to the staging site"", charset =""UTF-8""",   httpResponse.WWWAuthenticate);
-            ClassicAssert.AreEqual("Sorry 'testUser2' please contact your administrator!".Length,       httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.WWWAuthenticate, Is.EqualTo(@"Basic realm=""Access to the staging site"", charset =""UTF-8"""));
+            Assert.That(httpResponse.ContentLength, Is.EqualTo("Sorry 'testUser2' please contact your administrator!".Length));
 
         }
 
@@ -315,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var randomString  = RandomExtensions.RandomString(50);
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.POST(
                                           HTTPPath.Root + "mirror" + ("queryString?q=" + randomString),
                                           null,
@@ -331,11 +330,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Content-Length:  0
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                                                 request);
-            ClassicAssert.IsTrue (request.Contains($"POST /mirror/queryString?q={randomString} HTTP/1.1"),   request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),                           request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains($"POST /mirror/queryString?q={randomString} HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
             // 'Content-Length: 0' is a recommended header for HTTP/1.1 POST requests without a body!
-            ClassicAssert.IsTrue (request.Contains("Content-Length: 0"),                                     request);
+            Assert.That(request.Contains("Content-Length: 0"), Is.True, request);
 
 
 
@@ -354,13 +353,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // hgfedcba
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains(mirroredString),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains(mirroredString), Is.True, response);
 
-            ClassicAssert.AreEqual(mirroredString,                         httpBody);
+            Assert.That(httpBody, Is.EqualTo(mirroredString));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
-            ClassicAssert.AreEqual(mirroredString.Length,                  httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.ContentLength, Is.EqualTo(mirroredString.Length));
 
         }
 
@@ -373,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var randomString  = RandomExtensions.RandomString(50);
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.POST(
                                           HTTPPath.Root + "mirror" + "httpBody",
                                           randomString.ToUTF8Bytes(),
@@ -392,10 +391,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 123456789
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                                    request);
-            ClassicAssert.IsTrue (request.Contains("POST /mirror/httpBody HTTP/1.1"),           request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),              request);
-            ClassicAssert.IsTrue (request.Contains($"Content-Length: {randomString.Length}"),   request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("POST /mirror/httpBody HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
+            Assert.That(request.Contains($"Content-Length: {randomString.Length}"), Is.True, request);
 
 
 
@@ -414,13 +413,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // 987654321
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains(mirroredString),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains(mirroredString), Is.True, response);
 
-            ClassicAssert.AreEqual(mirroredString,                         httpBody);
+            Assert.That(httpBody, Is.EqualTo(mirroredString));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
-            ClassicAssert.AreEqual(mirroredString.Length,                  httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.ContentLength, Is.EqualTo(mirroredString.Length));
 
         }
 
@@ -433,7 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var randomString  = RandomExtensions.RandomString(50);
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.MIRROR(
                                           HTTPPath.Root + "mirror" + "httpBody",
                                           randomString.ToUTF8Bytes(),
@@ -452,10 +451,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 123456789
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                                    request);
-            ClassicAssert.IsTrue (request.Contains("MIRROR /mirror/httpBody HTTP/1.1"),         request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),              request);
-            ClassicAssert.IsTrue (request.Contains($"Content-Length: {randomString.Length}"),   request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("MIRROR /mirror/httpBody HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
+            Assert.That(request.Contains($"Content-Length: {randomString.Length}"), Is.True, request);
 
 
 
@@ -474,13 +473,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // 987654321
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains(mirroredString),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains(mirroredString), Is.True, response);
 
-            ClassicAssert.AreEqual(mirroredString,                         httpBody);
+            Assert.That(httpBody, Is.EqualTo(mirroredString));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
-            ClassicAssert.AreEqual(mirroredString.Length,                  httpResponse.ContentLength);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
+            Assert.That(httpResponse.ContentLength, Is.EqualTo(mirroredString.Length));
 
         }
 
@@ -495,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var chunkData     = new List<String>();
             var chunkBlocks   = new List<String>();
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
 
             //httpClient.OnChunkDataRead += (time,
             //                               blockNumber,
@@ -531,9 +530,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                         request);
-            ClassicAssert.IsTrue (request.Contains("GET /chunked HTTP/1.1"),         request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET /chunked HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -552,21 +551,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // Hello World!
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains("Hello World!"),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains("Hello World!"), Is.True, response);
 
-            ClassicAssert.AreEqual("Hello World!",                         httpBody);
+            Assert.That(httpBody, Is.EqualTo("Hello World!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
 
-            ClassicAssert.AreEqual(1,                                                                                      chunkData.Count,   "chunkData.Count");
-            ClassicAssert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
+            Assert.That(chunkData.Count, Is.EqualTo(1), "chunkData.Count");
+            Assert.That(chunkData.First(), Is.EqualTo("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total"));
 
-            ClassicAssert.AreEqual(4,                                                                                      chunkBlocks.Count, "chunkBlocks.Count");
-            ClassicAssert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                                chunkBlocks.ElementAt(0));
-            ClassicAssert.AreEqual("2: ' ' 1 byte(s), 6 byte(s) total",                                                    chunkBlocks.ElementAt(1));
-            ClassicAssert.AreEqual("3: 'World!' 6 byte(s), 12 byte(s) total",                                              chunkBlocks.ElementAt(2));
-            ClassicAssert.AreEqual("4: '' 0 byte(s), 12 byte(s) total",                                                    chunkBlocks.ElementAt(3));
+            Assert.That(chunkBlocks.Count, Is.EqualTo(4), "chunkBlocks.Count");
+            Assert.That(chunkBlocks.ElementAt(0), Is.EqualTo("1: 'Hello' 5 byte(s), 5 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(1), Is.EqualTo("2: ' ' 1 byte(s), 6 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(2), Is.EqualTo("3: 'World!' 6 byte(s), 12 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(3), Is.EqualTo("4: '' 0 byte(s), 12 byte(s) total"));
 
         }
 
@@ -580,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var chunkData     = new List<String>();
             var chunkBlocks   = new List<String>();
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
 
             //httpClient.OnChunkDataRead += (time,
             //                               blockNumber,
@@ -616,9 +615,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                         request);
-            ClassicAssert.IsTrue (request.Contains("GET /chunkedSlow HTTP/1.1"),     request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET /chunkedSlow HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -637,21 +636,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // Hello World!
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains("Hello World!"),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains("Hello World!"), Is.True, response);
 
-            ClassicAssert.AreEqual("Hello World!",                         httpBody);
+            Assert.That(httpBody, Is.EqualTo("Hello World!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
 
-            ClassicAssert.AreEqual(1,                                                                                  chunkData.Count,   "chunkData.Count");
-            ClassicAssert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n' 30 byte(s), 30 byte(s) total",   chunkData.First());
+            Assert.That(chunkData.Count, Is.EqualTo(1), "chunkData.Count");
+            Assert.That(chunkData.First(), Is.EqualTo("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n' 30 byte(s), 30 byte(s) total"));
 
-            ClassicAssert.AreEqual(4,                                                                                  chunkBlocks.Count, "chunkBlocks.Count");
-            ClassicAssert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                            chunkBlocks.ElementAt(0));
-            ClassicAssert.AreEqual("2: ' ' 1 byte(s), 6 byte(s) total",                                                chunkBlocks.ElementAt(1));
-            ClassicAssert.AreEqual("3: 'World!' 6 byte(s), 12 byte(s) total",                                          chunkBlocks.ElementAt(2));
-            ClassicAssert.AreEqual("4: '' 0 byte(s), 12 byte(s) total",                                                chunkBlocks.ElementAt(3));
+            Assert.That(chunkBlocks.Count, Is.EqualTo(4), "chunkBlocks.Count");
+            Assert.That(chunkBlocks.ElementAt(0), Is.EqualTo("1: 'Hello' 5 byte(s), 5 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(1), Is.EqualTo("2: ' ' 1 byte(s), 6 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(2), Is.EqualTo("3: 'World!' 6 byte(s), 12 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(3), Is.EqualTo("4: '' 0 byte(s), 12 byte(s) total"));
 
         }
 
@@ -665,7 +664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var chunkData     = new List<String>();
             var chunkBlocks   = new List<String>();
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
 
             //httpClient.OnChunkDataRead += (time,
             //                               blockNumber,
@@ -701,9 +700,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            ClassicAssert.IsFalse(request.Contains("Date:"),                                 request);
-            ClassicAssert.IsTrue (request.Contains("GET /chunkedTrailerHeaders HTTP/1.1"),   request);
-            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),           request);
+            Assert.That(request.Contains("Date:"), Is.False, request);
+            Assert.That(request.Contains("GET /chunkedTrailerHeaders HTTP/1.1"), Is.True, request);
+            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
 
 
 
@@ -725,21 +724,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // Hello World!
 
-            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            ClassicAssert.IsTrue  (response.Contains("Hello World!"),      response);
+            Assert.That(response.Contains("HTTP/1.1 200 OK"), Is.True, response);
+            Assert.That(response.Contains("Hello World!"), Is.True, response);
 
-            ClassicAssert.AreEqual("Hello World!",                         httpBody);
+            Assert.That(httpBody, Is.EqualTo("Hello World!"));
 
-            ClassicAssert.AreEqual("Hermod Test Server",                   httpResponse.Server);
+            Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
 
-            ClassicAssert.AreEqual(1,                                                                                  chunkData.Count,   "chunkData.Count");
-            ClassicAssert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n' 30 byte(s), 30 byte(s) total",   chunkData.First());
+            Assert.That(chunkData.Count, Is.EqualTo(1), "chunkData.Count");
+            Assert.That(chunkData.First(), Is.EqualTo("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n' 30 byte(s), 30 byte(s) total"));
 
-            ClassicAssert.AreEqual(4,                                                                                  chunkBlocks.Count, "chunkBlocks.Count");
-            ClassicAssert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                            chunkBlocks.ElementAt(0));
-            ClassicAssert.AreEqual("2: ' ' 1 byte(s), 6 byte(s) total",                                                chunkBlocks.ElementAt(1));
-            ClassicAssert.AreEqual("3: 'World!' 6 byte(s), 12 byte(s) total",                                          chunkBlocks.ElementAt(2));
-            ClassicAssert.AreEqual("4: '' 0 byte(s), 12 byte(s) total",                                                chunkBlocks.ElementAt(3));
+            Assert.That(chunkBlocks.Count, Is.EqualTo(4), "chunkBlocks.Count");
+            Assert.That(chunkBlocks.ElementAt(0), Is.EqualTo("1: 'Hello' 5 byte(s), 5 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(1), Is.EqualTo("2: ' ' 1 byte(s), 6 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(2), Is.EqualTo("3: 'World!' 6 byte(s), 12 byte(s) total"));
+            Assert.That(chunkBlocks.ElementAt(3), Is.EqualTo("4: '' 0 byte(s), 12 byte(s) total"));
 
         }
 

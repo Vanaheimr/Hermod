@@ -524,96 +524,106 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         )
                     );
 
-                    while (!cts.IsCancellationRequested)
+                    async Task AcceptClientsAsync(TcpListener tcpListener)
                     {
-                        try
+
+                        while (!cts.IsCancellationRequested)
                         {
-
-                            var listenerTasks = new List<Task<TcpClient>>();
-
-                            if (IPAddress.IsIPv6 && tcpListenerIPv6 is not null)
-                                listenerTasks.Add(tcpListenerIPv6.AcceptTcpClientAsync(cts.Token).AsTask());
-
-                            if (IPAddress.IsIPv4 && tcpListenerIPv4 is not null)
-                                listenerTasks.Add(tcpListenerIPv4.AcceptTcpClientAsync(cts.Token).AsTask());
-
-                            var clientTasks = await Task.WhenAny(listenerTasks);
-                            var client      = await clientTasks;
-
-                            #region Check MaxClientConnections
-
-                            if (activeClients.Count >= MaxClientConnections)
+                            try
                             {
 
-                                var remoteIPEndPoint  = (client.Client.RemoteEndPoint as IPEndPoint)!;
-                                var remoteSocket      = IPSocket.FromIPEndPoint(remoteIPEndPoint);
+                                var client = await tcpListener.AcceptTcpClientAsync(cts.Token);
 
-                                // This will/might cause a TCP RST (Reset) packet being send!
-                                client.LingerState = new LingerOption(false, 0);
+                                #region Check MaxClientConnections
 
-                                client.Close();
+                                if (activeClients.Count >= MaxClientConnections)
+                                {
 
-                                DebugX.LogT($"Rejected new client connection due to maximum of {MaxClientConnections} concurrent connections reached!");
+                                    var remoteIPEndPoint  = (client.Client.RemoteEndPoint as IPEndPoint)!;
+                                    var remoteSocket      = IPSocket.FromIPEndPoint(remoteIPEndPoint);
 
-                                await LogEvent(
-                                          OnNewTCPConnectionRejected,
-                                          loggingDelegate => loggingDelegate.Invoke(
-                                              this,
-                                              DateTimeOffset.UtcNow,
-                                              eventTrackingId,
-                                              remoteSocket,
-                                              ConnectionIdBuilder(this, DateTimeOffset.UtcNow, IPSocket, remoteSocket),
-                                              I18NString.Create($"Rejected new client connection due to maximum of {MaxClientConnections} concurrent connections reached!")
-                                          )
-                                      );
+                                    // This will/might cause a TCP RST (Reset) packet being send!
+                                    client.LingerState = new LingerOption(false, 0);
 
-                                continue;
+                                    client.Close();
+
+                                    DebugX.LogT($"Rejected new client connection due to maximum of {MaxClientConnections} concurrent connections reached!");
+
+                                    await LogEvent(
+                                              OnNewTCPConnectionRejected,
+                                              loggingDelegate => loggingDelegate.Invoke(
+                                                  this,
+                                                  DateTimeOffset.UtcNow,
+                                                  eventTrackingId,
+                                                  remoteSocket,
+                                                  ConnectionIdBuilder(this, DateTimeOffset.UtcNow, IPSocket, remoteSocket),
+                                                  I18NString.Create($"Rejected new client connection due to maximum of {MaxClientConnections} concurrent connections reached!")
+                                              )
+                                          );
+
+                                    continue;
+
+                                }
+
+                                #endregion
+
+                                var tcpConnection  = new TCPConnection(
+                                                         TCPServer:                   this,
+                                                         TCPClient:                   client,
+                                                         ServerCertificateSelector:   ServerCertificateSelector,
+                                                         ClientCertificateValidator:  ClientCertificateValidator,
+                                                         LocalCertificateSelector:    LocalCertificateSelector,
+                                                         AllowedTLSProtocols:         AllowedTLSProtocols,
+                                                         SSLStream:                   null,
+                                                         ReadTimeout:                 ReceiveTimeout,
+                                                         WriteTimeout:                SendTimeout,
+                                                         DeferTLSAuthentication:      true
+                                                      );
+
+                                activeClients.TryAdd(
+                                    tcpConnection,
+                                    Task.CompletedTask
+                                );
+
+                                var clientTask = HandleNewTCPClientAsync(tcpConnection);
+
+                                activeClients.TryUpdate(tcpConnection, clientTask, Task.CompletedTask);
 
                             }
-
-                            #endregion
-
-                            var tcpConnection  = new TCPConnection(
-                                                     TCPServer:                   this,
-                                                     TCPClient:                   client,
-                                                     ServerCertificateSelector:   ServerCertificateSelector,
-                                                     ClientCertificateValidator:  ClientCertificateValidator,
-                                                     LocalCertificateSelector:    LocalCertificateSelector,
-                                                     AllowedTLSProtocols:         AllowedTLSProtocols,
-                                                     SSLStream:                   null,
-                                                     ReadTimeout:                 ReceiveTimeout,
-                                                     WriteTimeout:                SendTimeout
-                                                 );
-
-                            activeClients.TryAdd(
-                                tcpConnection,
-                                Task.CompletedTask
-                            );
-
-                            var clientTask = HandleNewTCPClientAsync(tcpConnection);
-
-                            activeClients.TryUpdate(tcpConnection, clientTask, Task.CompletedTask);
-
+                            catch (OperationCanceledException) {
+                                // Graceful exit on cancel
+                            }
+                            catch (ObjectDisposedException) {
+                                // Expected when listener is stopped
+                            }
+                            catch (SocketException se) {
+                                await Log($"Socket error accepting client: {se.Message}");
+                            }
+                            catch (Exception e)
+                            {
+                                await Log($"Error accepting client: {e.Message}");
+                            }
                         }
-                        catch (OperationCanceledException) {
-                            // Graceful exit on cancel
-                        }
-                        catch (ObjectDisposedException) {
-                            // Expected when listener is stopped
-                        }
-                        catch (SocketException se) {
-                            await Log($"Socket error accepting client: {se.Message}");
-                        }
-                        catch (Exception e)
-                        {
-                            await Log($"Error accepting client: {e.Message}");
-                        }
+
                     }
+
+                    var listenerTasks = new List<Task>();
+
+                    if (IPAddress.IsIPv6 && tcpListenerIPv6 is not null)
+                        listenerTasks.Add(AcceptClientsAsync(tcpListenerIPv6));
+
+                    if (IPAddress.IsIPv4 && tcpListenerIPv4 is not null)
+                        listenerTasks.Add(AcceptClientsAsync(tcpListenerIPv4));
+
+                    if (listenerTasks.Count == 0)
+                        throw new InvalidOperationException("No TCP listener available for accepting clients!");
+
+                    await Task.WhenAll(listenerTasks);
 
                 },
                 cts.Token,
                 TaskCreationOptions.LongRunning,
-                TaskScheduler.Default);
+                TaskScheduler.Default).Unwrap();
 
             }
             catch (Exception e)
@@ -641,6 +651,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 Connection.TCPClient.ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds;
                 Connection.TCPClient.SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds;
                 Connection.TCPClient.LingerState     = new LingerOption(true, 1);
+
+                await Connection.AuthenticateAsServerAsync(
+                          ReceiveTimeout,
+                          cts.Token
+                      );
 
                 #region Validate connection
 

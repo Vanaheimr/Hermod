@@ -18,9 +18,11 @@
 #region Usings
 
 using System.Text;
-using System.Text.Encodings.Web;
+using System.Diagnostics;
+using System.Globalization;
 using System.Security.Claims;
 using System.Net.Http.Headers;
+using System.Text.Encodings.Web;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -32,11 +34,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using NUnit.Framework;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Diagnostics;
-using Org.BouncyCastle.Utilities;
-using System.Net.Http;
 
 #endregion
 
@@ -45,63 +46,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
     #region (class) BasicAuthenticationHandler
 
-    public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    public class BasicAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions>  Options,
+                                            ILoggerFactory                                Logger,
+                                            UrlEncoder                                    Encoder)
+
+        : AuthenticationHandler<AuthenticationSchemeOptions>(
+              Options,
+              Logger,
+              Encoder
+          )
+
     {
 
-        public BasicAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions>  Options,
-                                          ILoggerFactory                                Logger,
-                                          UrlEncoder                                    Encoder,
-                                          ISystemClock                                  Clock)
+        public const String AuthenticationScheme  = "BasicAuthentication";
+        public const String ChallengeHeaderValue  = @"Basic realm=""Access to the staging site"", charset =""UTF-8""";
 
-            : base(Options,
-                   Logger,
-                   Encoder,
-                   Clock)
-
-        { }
+        private static readonly IReadOnlyDictionary<String, String> validCredentials = new Dictionary<String, String> {
+            { "testUser1", "testPassword1" },
+            { "testUser2", "testPassword2" }
+        };
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
 
+            if (!Request.Headers.TryGetValue("Authorization", out Microsoft.Extensions.Primitives.StringValues authorizationValue))
+                return Task.FromResult(AuthenticateResult.Fail("The received authorization header not found!"));
+
+            if (authorizationValue.Count != 1)
+                return Task.FromResult(AuthenticateResult.Fail("Multiple authorization headers are not supported!"));
+
+            var authHeaderString  = authorizationValue.ToString();
+
+            if (String.IsNullOrWhiteSpace(authHeaderString))
+                return Task.FromResult(AuthenticateResult.Fail("The received authorization header is empty!"));
+
+            if (!AuthenticationHeaderValue.TryParse(authHeaderString, out var authHeader))
+                return Task.FromResult(AuthenticateResult.Fail("The received authorization header is invalid!"));
+
+            if (!authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
+                return Task.FromResult(AuthenticateResult.Fail($"Unsupported authorization scheme '{authHeader.Scheme}'!"));
+
+            if (String.IsNullOrWhiteSpace(authHeader.Parameter))
+                return Task.FromResult(AuthenticateResult.Fail("The received authorization header is missing credentials!"));
+
+            String decodedCredentials;
+
             try
             {
-
-                if (!Request.Headers.ContainsKey("Authorization"))
-                    return Task.FromResult(AuthenticateResult.Fail("The received authorization header not found!"));
-
-                var authHeader   = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
-
-                if (authHeader is null || authHeader.Parameter is null || authHeader.Parameter.IsNullOrEmpty())
-                    return Task.FromResult(AuthenticateResult.Fail("The received authorization header is invalid!"));
-
-                var credentials  = Encoding.UTF8.GetString(Convert.FromBase64String(authHeader.Parameter)).Split(':');
-                var username     = credentials[0];
-                var password     = credentials[1];
-
-                if (!username.Equals("testUser1")     && !username.Equals("testUser2"))
-                    return Task.FromResult(AuthenticateResult.Fail($"Invalid username '{username}'!"));
-
-                if (!password.Equals("testPassword1") && !password.Equals("testPassword2"))
-                    return Task.FromResult(AuthenticateResult.Fail($"Invalid password '{password}'!"));
-
-                var claims       = new[] {
-                                       new Claim(
-                                           ClaimTypes.Name,
-                                           username
-                                       )
-                                   };
-
-                var identity     = new ClaimsIdentity      (claims,    Scheme.Name);
-                var principal    = new ClaimsPrincipal     (identity);
-                var ticket       = new AuthenticationTicket(principal, Scheme.Name);
-
-                return Task.FromResult(AuthenticateResult.Success(ticket));
-
+                decodedCredentials = Encoding.UTF8.GetString(Convert.FromBase64String(authHeader.Parameter));
             }
-            catch (Exception e)
+            catch (FormatException e)
             {
-                return Task.FromResult(AuthenticateResult.Fail($"The received authorization header is invalid: {e.Message}"));
+                return Task.FromResult(AuthenticateResult.Fail($"The received authorization header credentials are invalid: {e.Message}"));
             }
+
+            var separatorIndex = decodedCredentials.IndexOf(':');
+
+            if (separatorIndex < 0)
+                return Task.FromResult(AuthenticateResult.Fail("The received authorization header credentials are missing a password separator!"));
+
+            var username       = decodedCredentials[..separatorIndex];
+            var password       = decodedCredentials[(separatorIndex + 1)..];
+
+            if (String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password))
+                return Task.FromResult(AuthenticateResult.Fail("The received authorization header credentials are incomplete!"));
+
+            if (!validCredentials.TryGetValue(username, out var expectedPassword) ||
+                !password.Equals(expectedPassword, StringComparison.Ordinal))
+                return Task.FromResult(AuthenticateResult.Fail("Invalid username or password!"));
+
+            var claims         = new[] {
+                                     new Claim(
+                                         ClaimTypes.Name,
+                                         username
+                                     )
+                                 };
+
+            var identity       = new ClaimsIdentity      (claims,    Scheme.Name);
+            var principal      = new ClaimsPrincipal     (identity);
+            var ticket         = new AuthenticationTicket(principal, Scheme.Name);
+
+            return Task.FromResult(AuthenticateResult.Success(ticket));
 
         }
 
@@ -110,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             // This method will be called whenever HandleAuthenticateAsync() failed to authenticate a user.
 
-            Response.Headers["WWW-Authenticate"] = @"Basic realm=""Access to the staging site"", charset =""UTF-8""";
+            Response.Headers.WWWAuthenticate = ChallengeHeaderValue;
 
             return base.HandleChallengeAsync(properties);
 
@@ -122,31 +147,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
     #region StatisticsMiddleware
 
-    public class StatisticsMiddleware
+    public class StatisticsMiddleware(RequestDelegate Next)
     {
 
-        private readonly RequestDelegate _next;
+        public const String ResponseStartHeader = "X-Response-Start-Ms";
 
-        public StatisticsMiddleware(RequestDelegate Next)
-        {
-
-            this._next = Next;
-
-        }
+        private readonly RequestDelegate _next = Next;
 
         public async Task InvokeAsync(HttpContext HTTPContext)
         {
 
-            // Before calling the next middleware, you can add pre-processing logic here.
             var watch = Stopwatch.StartNew();
 
-            // Calls the next middleware in the pipeline,
-            // or terminates the request at once!
-            await _next(HTTPContext);
+            HTTPContext.Response.OnStarting(() => {
 
-            // After calling the next middleware, you can add post-processing logic here.
-            watch.Stop();
-            var elapsedMs = watch.ElapsedMilliseconds;
+                watch.Stop();
+
+                HTTPContext.Response.Headers[ResponseStartHeader] = watch.Elapsed.TotalMilliseconds.ToString(
+                                                                        "F3",
+                                                                        CultureInfo.InvariantCulture
+                                                                    );
+
+                return Task.CompletedTask;
+
+            });
+
+            await _next(HTTPContext).
+                      ConfigureAwait(false);
 
         }
 
@@ -166,6 +193,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         protected readonly WebApplicationBuilder  builder;
         protected readonly WebApplication         app;
 
+        protected          Uri                    BaseURI  { get; private set; } = null!;
+        protected          String                 BaseURL  { get; private set; } = String.Empty;
+
+        private            Boolean                isStarted;
+
         #endregion
 
         #region Constructor(s)
@@ -174,14 +206,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             builder  = WebApplication.CreateBuilder();
-            builder.WebHost. UseUrls($"http://localhost:{HTTPPort}");
-            builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+            builder.WebHost.UseUrls($"http://127.0.0.1:{HTTPPort}");
+            builder.Services.AddAuthentication(BasicAuthenticationHandler.AuthenticationScheme).
+                             AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(
+                                 BasicAuthenticationHandler.AuthenticationScheme,
+                                 null
+                             );
             builder.Services.AddAuthorization();
 
             app      = builder.Build();
             app.UseMiddleware<StatisticsMiddleware>();
             app.Use((context, next) => {
-                context.Response.Headers["Server"] = "Kestrel Test Server";
+                context.Response.Headers.Server = "Kestrel Test Server";
                 return next.Invoke();
             });
             app.UseAuthentication();
@@ -191,52 +227,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             #region GET     /
 
             app.MapGet("/",
-                        async (HttpRequest   httpRequest,
-                               HttpResponse  httpResponse) => {
+                       (HttpRequest   httpRequest,
+                        HttpResponse  httpResponse) =>
 
-                var responseString = "Hello World!";
+                           WriteTextAsync(
+                               httpResponse,
+                               "Hello World!"
+                           )
 
-                // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                httpResponse.ContentLength  = Encoding.UTF8.GetByteCount(responseString);
-                httpResponse.ContentType    = "text/plain; charset=utf-8";
-
-                await httpResponse.WriteAsync(responseString);
-
-            });
+            );
 
             #endregion
 
             #region GET     /NotForEveryone
 
             app.MapGet("/NotForEveryone",
-                       [Authorize(AuthenticationSchemes = "BasicAuthentication")] 
-                       async (HttpContext context) => {
+                       [Authorize(AuthenticationSchemes = BasicAuthenticationHandler.AuthenticationScheme)]
+                       async (context) => {
 
                 var username = context.User?.Identity?.Name ?? "-";
 
                 if (username == "testUser2")
                 {
 
-                    var responseString = $"Sorry '{username}' please contact your administrator!";
-
-                    context.Response.StatusCode     = 403;
-                    // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                    context.Response.ContentLength  = Encoding.UTF8.GetByteCount(responseString);
-                    context.Response.ContentType    = "text/plain; charset=utf-8";
-
-                    await context.Response.WriteAsync(responseString);
+                    await WriteTextAsync(
+                              context.Response,
+                              $"Sorry '{username}' please contact your administrator!",
+                              StatusCodes.Status403Forbidden
+                          );
 
                 }
                 else
                 {
 
-                    var responseString = $"Hello '{username}'!";
-
-                    // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                    context.Response.ContentLength  = Encoding.UTF8.GetByteCount(responseString);
-                    context.Response.ContentType    = "text/plain; charset=utf-8";
-
-                    await context.Response.WriteAsync(responseString);
+                    await WriteTextAsync(
+                              context.Response,
+                              $"Hello '{username}'!"
+                          );
 
                 }
 
@@ -250,14 +277,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                         async (HttpRequest   httpRequest,
                                HttpResponse  httpResponse) => {
 
-                var requestBody   = httpRequest.Query["q"].ToString();
-                var reversedBody  = requestBody.Reverse();
-
-                // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                httpResponse.ContentLength  = Encoding.UTF8.GetByteCount(reversedBody);
-                httpResponse.ContentType    = "text/plain; charset=utf-8";
-
-                await httpResponse.WriteAsync(reversedBody);
+                await WriteTextAsync(
+                          httpResponse,
+                          httpRequest.Query["q"].ToString().Reverse()
+                      );
 
             });
 
@@ -269,14 +292,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                         async (HttpRequest   httpRequest,
                                HttpResponse  httpResponse) => {
 
-                var requestBody   = await new StreamReader(httpRequest.Body).ReadToEndAsync();
-                var reversedBody  = requestBody.Reverse();
+                var requestBody = await new StreamReader(httpRequest.Body).ReadToEndAsync();
 
-                // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                httpResponse.ContentLength  = Encoding.UTF8.GetByteCount(reversedBody);
-                httpResponse.ContentType    = "text/plain; charset=utf-8";
-
-                await httpResponse.WriteAsync(reversedBody);
+                await WriteTextAsync(
+                          httpResponse,
+                          requestBody.Reverse()
+                      );
 
             });
 
@@ -285,18 +306,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             #region MIRROR  /mirror/httpBody
 
             app.MapMethods("/mirror/httpBody",
-                           new[] { "MIRROR" },
+                           [ "MIRROR" ],
                            async (HttpRequest   httpRequest,
                                   HttpResponse  httpResponse) => {
 
-                var requestBody   = await new StreamReader(httpRequest.Body).ReadToEndAsync();
-                var reversedBody  = requestBody.Reverse();
+                var requestBody = await new StreamReader(httpRequest.Body).ReadToEndAsync();
 
-                // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                httpResponse.ContentLength  = Encoding.UTF8.GetByteCount(reversedBody);
-                httpResponse.ContentType    = "text/plain; charset=utf-8";
-
-                await httpResponse.WriteAsync(reversedBody);
+                await WriteTextAsync(
+                          httpResponse,
+                          requestBody.Reverse()
+                      );
 
             });
 
@@ -305,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunked
 
-            app.MapGet("/chunked", async (HttpContext http) => {
+            app.MapGet("/chunked", async (http) => {
 
                 http.Response.StatusCode   = 200;
                 http.Response.ContentType  = "text/plain";
@@ -325,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedSlow
 
-            app.MapGet("/chunkedSlow", async (HttpContext http) => {
+            app.MapGet("/chunkedSlow", async (http) => {
 
                 http.Response.StatusCode   = 200;
                 http.Response.ContentType  = "text/plain";
@@ -334,10 +353,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 await httpStream.WriteAsync("Hello".ToUTF8Bytes());
                 await httpStream.FlushAsync();
-                await Task.Delay(100);
+                await Task.Delay(100, http.RequestAborted);
                 await httpStream.WriteAsync(" ".ToUTF8Bytes());
                 await httpStream.FlushAsync();
-                await Task.Delay(100);
+                await Task.Delay(100, http.RequestAborted);
                 await httpStream.WriteAsync("World!".ToUTF8Bytes());
                 await httpStream.FlushAsync();
 
@@ -347,7 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedSlowTrailerHeaders
 
-            app.MapGet("/chunkedSlowTrailerHeaders", async (HttpContext http) => {
+            app.MapGet("/chunkedSlowTrailerHeaders", async (http) => {
 
                 http.Response.StatusCode   = 200;
                 http.Response.ContentType  = "text/plain";
@@ -380,8 +399,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
+        }
 
-            app.Start();
+        #endregion
+
+
+        #region WriteTextAsync(HTTPResponse, Text, ...)
+
+        private static Task WriteTextAsync(HttpResponse  HTTPResponse,
+                                           String        Text,
+                                           Int32         StatusCode   = StatusCodes.Status200OK,
+                                           String        ContentType  = "text/plain; charset=utf-8")
+        {
+
+            HTTPResponse.StatusCode     = StatusCode;
+            HTTPResponse.ContentLength  = Encoding.UTF8.GetByteCount(Text);
+            HTTPResponse.ContentType    = ContentType;
+
+            return HTTPResponse.WriteAsync(Text);
+
+        }
+
+        #endregion
+
+
+        #region StartWebAPI()
+
+        [OneTimeSetUp]
+        public async Task StartWebAPI()
+        {
+
+            await app.StartAsync().
+                      ConfigureAwait(false);
+
+            var baseURL = app.Urls.FirstOrDefault()
+                              ?? throw new InvalidOperationException("The minimal web API did not expose a listening URL!");
+
+            BaseURI  = new Uri(baseURL);
+            BaseURL  = baseURL.TrimEnd('/');
+
+            isStarted = true;
+
+        }
+
+        #endregion
+
+
+        #region StopWebAPI()
+
+        [OneTimeTearDown]
+        public async Task StopWebAPI()
+        {
+
+            if (isStarted)
+            {
+
+                await app.StopAsync().
+                          ConfigureAwait(false);
+
+                isStarted = false;
+
+            }
+
+            await app.DisposeAsync().
+                      ConfigureAwait(false);
 
         }
 

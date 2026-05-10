@@ -562,7 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region (private)  HTTPResponse(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPHeader, ...)
+        #region (internal) HTTPResponse(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPHeader, ...)
 
         /// <summary>
         /// Parse the given HTTP response header.
@@ -582,23 +582,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
         /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
-        private HTTPResponse(DateTimeOffset     Timestamp,
-                             HTTPSource         HTTPSource,
-                             IPSocket           LocalSocket,
-                             IPSocket           RemoteSocket,
-                             String             HTTPHeader,
-                             HTTPRequest?       HTTPRequest                                 = null,
-                             Byte[]?            HTTPBody                                    = null,
-                             Stream?            HTTPBodyStream                              = null,
-                             UInt32?            HTTPBodyReceiveBufferSize                   = DefaultHTTPBodyReceiveBufferSize,
-                             Boolean?           ConsumeChunkedTransferEncodingImmediately   = true,
-                             Object?            SubprotocolResponse                         = null,
-                             AHTTPClient?   HTTPClient                                  = null,
+        internal HTTPResponse(DateTimeOffset     Timestamp,
+                              HTTPSource         HTTPSource,
+                              IPSocket           LocalSocket,
+                              IPSocket           RemoteSocket,
+                              String             HTTPHeader,
+                              HTTPRequest?       HTTPRequest                                 = null,
+                              Byte[]?            HTTPBody                                    = null,
+                              Stream?            HTTPBodyStream                              = null,
+                              UInt32?            HTTPBodyReceiveBufferSize                   = DefaultHTTPBodyReceiveBufferSize,
+                              Boolean?           ConsumeChunkedTransferEncodingImmediately   = true,
+                              Object?            SubprotocolResponse                         = null,
+                              AHTTPClient?       HTTPClient                                  = null,
 
-                             EventTracking_Id?  EventTrackingId                             = null,
-                             TimeSpan?          Runtime                                     = null,
-                             Byte               NumberOfRetries                             = 0,
-                             CancellationToken  CancellationToken                           = default)
+                              EventTracking_Id?  EventTrackingId                             = null,
+                              TimeSpan?          Runtime                                     = null,
+                              Byte               NumberOfRetries                             = 0,
+                              CancellationToken  CancellationToken                           = default)
 
 
             : base(Timestamp,
@@ -2019,9 +2019,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (static) GatewayTimeout
 
-        public static HTTPResponse<TContent> GatewayTimeout(TContent Content)
+        public static HTTPResponse<TContent> GatewayTimeout(HTTPRequest  HTTPRequest, TContent Content)
 
-            => new (new Builder() {
+            => new (new Builder(HTTPRequest) {
                         HTTPStatusCode = HTTPStatusCode.GatewayTimeout
                     },
                     Content);

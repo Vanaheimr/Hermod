@@ -18,7 +18,6 @@
 #region Usings
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 #endregion
 
@@ -44,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var ipv4String  = "141.24.12.2";
             var ipv4Address = IPv4Address.Parse(ipv4String);
 
-            ClassicAssert.AreEqual(ipv4String, ipv4Address.ToString());
+            Assert.That(ipv4Address.ToString(), Is.EqualTo(ipv4String));
 
         }
 
@@ -124,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [Test]
         public void ParseIPv4ByteArray_001()
         {
-            ClassicAssert.AreEqual("0.0.0.0", new IPv4Address(new Byte[4]).ToString());
+            Assert.That(new IPv4Address(new Byte[4]).ToString(), Is.EqualTo("0.0.0.0"));
         }
 
         #endregion
@@ -137,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [Test]
         public void ParseIPv4ByteArray_002()
         {
-            ClassicAssert.AreEqual("10.11.12.13", new IPv4Address(new Byte[] { 0x0A, 0x0B, 0x0C, 0x0D }).ToString());
+            Assert.That(new IPv4Address(new Byte[] { 0x0A, 0x0B, 0x0C, 0x0D }).ToString(), Is.EqualTo("10.11.12.13"));
         }
 
         #endregion
@@ -168,10 +167,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var a = IPv4Address.Parse("141.24.12.2");
             var b = IPv4Address.Parse("141.24.12.2");
 
-            ClassicAssert.IsTrue   (a.Equals(b));
-            ClassicAssert.IsTrue   (a == b);
-            ClassicAssert.IsFalse  (a != b);
-            ClassicAssert.AreEqual (a, b);
+            Assert.That(a.Equals(b), Is.True);
+            Assert.That(a == b, Is.True);
+            Assert.That(a != b, Is.False);
+            Assert.That(b, Is.EqualTo(a));
 
         }
 
@@ -189,10 +188,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var a = IPv4Address.Parse("141.24.12.2");
             var b = IPv4Address.Parse("127.0.0.1");
 
-            ClassicAssert.IsFalse     (a.Equals(b));
-            ClassicAssert.IsFalse     (a == b);
-            ClassicAssert.IsTrue      (a != b);
-            ClassicAssert.AreNotEqual (a, b);
+            Assert.That(a.Equals(b), Is.False);
+            Assert.That(a == b, Is.False);
+            Assert.That(a != b, Is.True);
+            Assert.That(b, Is.Not.EqualTo(a));
 
         }
 
@@ -211,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var a = IPv4Address.Parse("141.24.12.2");
             var b = IPv4Address.Parse("127.0.0.1");
 
-            ClassicAssert.IsTrue(a.CompareTo(b) > 0);
+            Assert.That(a.CompareTo(b) > 0, Is.True);
 
         }
 

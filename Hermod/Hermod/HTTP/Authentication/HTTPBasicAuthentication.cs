@@ -211,33 +211,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             BasicAuthentication = null;
 
-            Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                return false;
-
-            var splitted = Text.Split(splitter1, StringSplitOptions.RemoveEmptyEntries);
-
-            if (splitted.Length == 2 &&
-                String.Equals(splitted[0], "Basic", StringComparison.OrdinalIgnoreCase))
+            try
             {
 
-                var credentials  = Encoding.UTF8.GetString(Convert.FromBase64String(splitted[1])).
-                                                 Split    (splitter2, 2);
+                Text = Text.Trim();
 
-                if (credentials.Length == 2)
+                if (Text.IsNullOrEmpty())
+                    return false;
+
+                var splitted = Text.Split(splitter1, StringSplitOptions.RemoveEmptyEntries);
+
+                if (splitted.Length == 2 &&
+                    String.Equals(splitted[0], "Basic", StringComparison.OrdinalIgnoreCase))
                 {
 
-                    BasicAuthentication = new HTTPBasicAuthentication(
-                                              credentials[0],
-                                              credentials[1]
-                                          );
+                    var credentials  = Encoding.UTF8.GetString(Convert.FromBase64String(splitted[1])).
+                                                     Split    (splitter2, 2);
 
-                    return true;
+                    if (credentials.Length == 2)
+                    {
+
+                        BasicAuthentication = new HTTPBasicAuthentication(
+                                                  credentials[0],
+                                                  credentials[1]
+                                              );
+
+                        return true;
+
+                    }
 
                 }
 
             }
+            catch { }
 
             return false;
 

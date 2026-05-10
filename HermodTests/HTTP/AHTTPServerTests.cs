@@ -46,8 +46,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             httpServer  = new HTTPTestServerX(
-                              TCPPort: HTTPPort,
-                              AutoStart: true
+                              TCPPort:    HTTPPort,
+                              AutoStart:  true
                           );
 
             httpAPI     = new HTTPAPI(
@@ -67,13 +67,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root,
-                                         HTTPDelegate: request => Task.FromResult(
-                                                                       new HTTPResponse.Builder(request) {
-                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Hermod Test Server",
+            httpAPI.AddHandler(HTTPPath.Root,
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => Task.FromResult(
+                                                                        new HTTPResponse.Builder(request) {
+                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
                                                                            AccessControlAllowMethods  = [ "GET" ],
@@ -87,10 +86,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /NotForEveryone
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root + "NotForEveryone",
-                                         HTTPDelegate: request => {
+            httpAPI.AddHandler(HTTPPath.Root + "NotForEveryone",
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => {
 
                                              if (request.Authorization is HTTPBasicAuthentication httpBasicAuthentication)
                                              {
@@ -106,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                  //           Connection                 = ConnectionType.Close
                                                  //       }.AsImmutable;
 
-                                                 if (httpBasicAuthentication.Username == "testUser1" ||
+                                                 if (httpBasicAuthentication.Username == "testUser1" &&
                                                      httpBasicAuthentication.Password == "testPassword1")
                                                  {
                                                      return Task.FromResult(
@@ -126,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                  }
 
                                                  // HTTP 403 Forbidden for authentication is ok, but authorization is still not given!
-                                                 if (httpBasicAuthentication.Username == "testUser2" ||
+                                                 if (httpBasicAuthentication.Username == "testUser2" &&
                                                      httpBasicAuthentication.Password == "testPassword2")
                                                  {
                                                      return Task.FromResult(
@@ -168,10 +166,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirror/queryString
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.POST,
-                                         HTTPPath.Root + "mirror" + "queryString",
-                                         HTTPDelegate: request => Task.FromResult(
+            httpAPI.AddHandler(HTTPPath.Root + "mirror" + "queryString",
+                               HTTPMethod:   HTTPMethod.POST,
+                               HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
                                                                            Server                     = "Hermod Test Server",
@@ -187,10 +184,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirror/httpBody
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.POST,
-                                         HTTPPath.Root + "mirror" + "httpBody",
-                                         HTTPDelegate: request => Task.FromResult(
+            httpAPI.AddHandler(HTTPPath.Root + "mirror" + "httpBody",
+                               HTTPMethod:   HTTPMethod.POST,
+                               HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
                                                                            Server                     = "Hermod Test Server",
@@ -206,16 +202,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region MIRROR  /mirror/httpBody
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.MIRROR,
-                                         HTTPPath.Root + "mirror" + "httpBody",
-                                         HTTPDelegate: request => Task.FromResult(
+            httpAPI.AddHandler(HTTPPath.Root + "mirror" + "httpBody",
+                               HTTPMethod:   HTTPMethod.MIRROR,
+                               HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = new[] { "MIRROR" },
+                                                                           AccessControlAllowMethods  = [ "MIRROR" ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
                                                                            Connection                 = ConnectionType.Close
@@ -226,10 +221,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunked
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root + "chunked",
-                                         HTTPDelegate: request => Task.FromResult(
+            var chunks = new[] { "5", "Hello", "1", " ", "6", "World!", "0" };
+
+            httpAPI.AddHandler(HTTPPath.Root + "chunked",
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
                                                                            Server                     = "Hermod Test Server",
@@ -238,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            AccessControlAllowMethods  = [ "GET" ],
                                                                            TransferEncoding           = "chunked",
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
-                                                                           Content                    = (new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes(),
+                                                                           Content                    = (chunks.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes(),
                                                                            Connection                 = ConnectionType.Close
                                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                          AsImmutable));
@@ -247,13 +243,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedSlow
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root + "chunkedSlow",
-                                         HTTPDelegate: request => {
+            httpAPI.AddHandler(HTTPPath.Root + "chunkedSlow",
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => {
 
                                              var responseStream  = new MemoryStream();
-                                             responseStream.Write((new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes());
+                                             responseStream.Write((chunks.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes());
 
                                              return Task.FromResult(
                                                         new HTTPResponse.Builder(request) {
@@ -276,10 +271,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedTrailerHeaders
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root + "chunkedTrailerHeaders",
-                                         HTTPDelegate: request => Task.FromResult(
+            httpAPI.AddHandler(HTTPPath.Root + "chunkedTrailerHeaders",
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
                                                                            Server                     = "Hermod Test Server",
@@ -289,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            TransferEncoding           = "chunked",
                                                                            Trailer                    = "X-Message-Length, X-Protocol-Version",
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
-                                                                           Content                    = (new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\nX-Message-Length: 13\r\nX-Protocol-Version: 1.0\r\n\r\n").ToUTF8Bytes(),
+                                                                           Content                    = (chunks.AggregateWith("\r\n") + "\r\nX-Message-Length: 13\r\nX-Protocol-Version: 1.0\r\n\r\n").ToUTF8Bytes(),
                                                                            Connection                 = ConnectionType.Close
                                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                          AsImmutable));
@@ -299,10 +293,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirrorBody2
 
-            httpServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.POST,
-                                         HTTPPath.Root + "mirrorBody2",
-                                         HTTPDelegate: request => {
+            httpAPI.AddHandler(HTTPPath.Root + "mirrorBody2",
+                               HTTPMethod:   HTTPMethod.POST,
+                               HTTPDelegate: request => {
 
                                              var queryParameter = request.HTTPBodyAsUTF8String ?? "";
 
@@ -331,9 +324,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #region Shutdown_HTTPServer()
 
         [OneTimeTearDown]
-        public void Shutdown_HTTPServer()
+        public async Task Shutdown_HTTPServer()
         {
-            //httpServer?.Shutdown();
+            await httpServer.Stop();
         }
 
         #endregion

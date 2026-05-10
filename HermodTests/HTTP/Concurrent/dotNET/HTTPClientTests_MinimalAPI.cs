@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
 
         #region Data
 
-        public static readonly IPPort HTTPPort = IPPort.Parse(184);
+        public static readonly IPPort HTTPPort = IPPort.Zero;
 
         #endregion
 
@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
             {
                 httpRequests.Add(
                     new HTTPClient(
-                        URL.Parse("http://127.0.0.1:82")
+                        URL.Parse(BaseURL)
                     ).
                     POST(
                         HTTPPath.Root + "mirror" + "httpBody",
