@@ -543,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                     var remoteSocket      = IPSocket.FromIPEndPoint(remoteIPEndPoint);
 
                                     // This will/might cause a TCP RST (Reset) packet being send!
-                                    client.LingerState = new LingerOption(false, 0);
+                                    client.LingerState    = new LingerOption(false, 0);
 
                                     client.Close();
 
@@ -568,17 +568,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 #endregion
 
                                 var tcpConnection  = new TCPConnection(
-                                                         TCPServer:                   this,
-                                                         TCPClient:                   client,
-                                                         ServerCertificateSelector:   ServerCertificateSelector,
-                                                         ClientCertificateValidator:  ClientCertificateValidator,
-                                                         LocalCertificateSelector:    LocalCertificateSelector,
-                                                         AllowedTLSProtocols:         AllowedTLSProtocols,
-                                                         SSLStream:                   null,
-                                                         ReadTimeout:                 ReceiveTimeout,
-                                                         WriteTimeout:                SendTimeout,
-                                                         DeferTLSAuthentication:      true
-                                                      );
+                                                         TCPServer:                    this,
+                                                         TCPClient:                    client,
+                                                         ServerCertificateSelector:    ServerCertificateSelector,
+                                                         ClientCertificateValidator:   ClientCertificateValidator,
+                                                         LocalCertificateSelector:     LocalCertificateSelector,
+                                                         SSLStream:                    null,
+                                                         ReadTimeout:                  ReceiveTimeout,
+                                                         WriteTimeout:                 SendTimeout
+                                                     );
 
                                 activeClients.TryAdd(
                                     tcpConnection,
@@ -587,7 +585,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 var clientTask = HandleNewTCPClientAsync(tcpConnection);
 
-                                activeClients.TryUpdate(tcpConnection, clientTask, Task.CompletedTask);
+                                activeClients.TryUpdate(
+                                    tcpConnection,
+                                    clientTask,
+                                    Task.CompletedTask
+                                );
 
                             }
                             catch (OperationCanceledException) {
@@ -652,7 +654,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 Connection.TCPClient.SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds;
                 Connection.TCPClient.LingerState     = new LingerOption(true, 1);
 
-                await Connection.AuthenticateAsServerAsync(
+                await Connection.AuthenticateAsServer(
+                          this,
                           ReceiveTimeout,
                           cts.Token
                       );
@@ -777,6 +780,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        protected abstract Task HandleConnection(TCPConnection      Connection,
+                                                 CancellationToken  Token);
+
+
         #region (virtual) ValidateConnection(Timestamp, Server, Connection, EventTrackingId, CancellationToken)
 
         /// <summary>
@@ -798,9 +805,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-
-        protected abstract Task HandleConnection(TCPConnection      Connection,
-                                                 CancellationToken  Token);
 
 
         #region Stop (EventTrackingId = null)

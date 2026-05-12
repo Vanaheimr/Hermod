@@ -469,7 +469,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                                                     ServerCertificateSelector:    ServerCertificateSelector,
                                                     ClientCertificateValidator:   ClientCertificateValidator,
                                                     LocalCertificateSelector:     LocalCertificateSelector,
-                                                    AllowedTLSProtocols:          AllowedTLSProtocols,
                                                     ReadTimeout:                  ConnectionTimeout,
                                                     WriteTimeout:                 ConnectionTimeout
                                                 );
