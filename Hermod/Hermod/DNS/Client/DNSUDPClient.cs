@@ -190,10 +190,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
-
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+         
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
                                    Boolean?                             BypassCache         = false,
                                    CancellationToken                    CancellationToken   = default)
@@ -201,6 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => Query(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
+                   Timeout,
                    RecursionDesired,
                    BypassCache,
                    CancellationToken
@@ -208,10 +210,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                         TimeSpan?                            Timeout             = null,
                                          Boolean?                             RecursionDesired    = true,
                                          Boolean?                             BypassCache         = false,
                                          CancellationToken                    CancellationToken   = default)
@@ -263,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var serverAddress      = System.Net.IPAddress.Parse(RemoteIPAddress.ToString());
-                CurrentRemoteEndPoint  = new IPEndPoint(serverAddress, RemotePort.Value.ToInt32());
+                CurrentRemoteEndPoint  = new IPEndPoint(serverAddress, (RemotePort ?? IPPort.DNS).ToInt32());
                 var endPoint           = (EndPoint) CurrentRemoteEndPoint;
                 socket                 = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
@@ -287,7 +290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return new DNSInfo(
                                 Origin:                 new DNSServerConfig(
                                                             RemoteIPAddress,
-                                                            RemotePort.Value
+                                                            RemotePort ?? IPPort.DNS
                                                         ),
                                 QueryId:                dnsQuery.TransactionId,
                                 IsAuthoritativeAnswer:  false,
@@ -308,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.TimedOut(
                             new DNSServerConfig(
                                 RemoteIPAddress,
-                                RemotePort.Value
+                                RemotePort ?? IPPort.DNS
                             ),
                             dnsQuery.TransactionId,
                             QueryTimeout
@@ -322,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.TimedOut(
                             new DNSServerConfig(
                                 RemoteIPAddress,
-                                RemotePort.Value
+                                RemotePort ?? IPPort.DNS
                             ),
                             dnsQuery.TransactionId,
                             QueryTimeout
@@ -336,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return DNSInfo.ReadResponse(
                         new DNSServerConfig(
                             RemoteIPAddress!,
-                            RemotePort.Value,
+                            RemotePort ?? IPPort.DNS,
                             DNSTransport.UDP,
                             QueryTimeout
                         ),

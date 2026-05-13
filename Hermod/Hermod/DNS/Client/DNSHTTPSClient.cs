@@ -540,10 +540,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
                                    Boolean?                             BypassCache         = false,
                                    CancellationToken                    CancellationToken   = default)
@@ -551,6 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => QueryHTTP(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
+                   Timeout,
                    RecursionDesired,
                    BypassCache,
                    null,
@@ -561,6 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public Task<DNSInfo> QueryHTTP(DomainName                           DomainName,
                                        IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                       TimeSpan?                            Timeout                   = null,
                                        Boolean?                             RecursionDesired          = true,
                                        Boolean?                             BypassCache               = false,
                                        ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,
@@ -570,6 +573,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => QueryHTTP(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
+                   Timeout,
                    RecursionDesired,
                    BypassCache,
                    HTTPRequestLogDelegate,
@@ -583,6 +587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
                                    Boolean?                             BypassCache         = false,
                                    CancellationToken                    CancellationToken   = default)
@@ -590,6 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => QueryHTTP(
                    DNSServiceName,
                    ResourceRecordTypes,
+                   Timeout,
                    RecursionDesired,
                    BypassCache,
                    null,
@@ -599,6 +605,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public async Task<DNSInfo> QueryHTTP(DNSServiceName                       DNSServiceName,
                                              IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                             TimeSpan?                            Timeout                   = null,
                                              Boolean?                             RecursionDesired          = true,
                                              Boolean?                             BypassCache               = false,
                                              ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,

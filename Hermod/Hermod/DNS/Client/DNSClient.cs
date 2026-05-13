@@ -289,10 +289,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
                                    Boolean?                             BypassCache         = false,
                                    CancellationToken                    CancellationToken   = default)
@@ -300,6 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => Query(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
+                   Timeout,
                    RecursionDesired,
                    BypassCache,
                    CancellationToken
@@ -307,10 +309,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                         TimeSpan?                            Timeout             = null,
                                          Boolean?                             RecursionDesired    = true,
                                          Boolean?                             BypassCache         = false,
                                          CancellationToken                    CancellationToken   = default)
@@ -415,22 +418,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
                             return new DNSInfo(
-                                       Origin:                 new DNSServerConfig(
-                                                                   dnsServer.IPAddress,
-                                                                   dnsServer.Port
-                                                               ),
-                                       QueryId:                dnsQuery.TransactionId,
-                                       IsAuthoritativeAnswer:  false,
-                                       IsTruncated:            false,
-                                       RecursionDesired:       false,
-                                       RecursionAvailable:     false,
-                                       ResponseCode:           DNSResponseCodes.ServerFailure,
-                                       Answers:                [],
-                                       Authorities:            [],
-                                       AdditionalRecords:      [],
-                                       IsValid:                true,
-                                       IsTimeout:              false,
-                                       Timeout:                QueryTimeout
+                                       Origin:                  new DNSServerConfig(
+                                                                    dnsServer.IPAddress,
+                                                                    dnsServer.Port
+                                                                ),
+                                       QueryId:                 dnsQuery.TransactionId,
+                                       IsAuthoritativeAnswer:   false,
+                                       IsTruncated:             false,
+                                       RecursionDesired:        false,
+                                       RecursionAvailable:      false,
+                                       ResponseCode:            DNSResponseCodes.ServerFailure,
+                                       Answers:                 [],
+                                       Authorities:             [],
+                                       AdditionalRecords:       [],
+                                       IsValid:                 true,
+                                       IsTimeout:               false,
+                                       Timeout:                 QueryTimeout
                                    );
 
                         // A SocketException might be thrown after the timeout was reached!

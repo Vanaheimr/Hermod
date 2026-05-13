@@ -78,13 +78,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
+        /// <summary>
+        /// The full name of this domain.
+        /// </summary>
         public String                 FullName    { get; }
 
+        /// <summary>
+        /// The full name of this domain, without the trailing dot
+        /// (e.g. "www.example.com" for "www.example.com.").
+        /// </summary>
+        public String                 Trimmed
+            => FullName.EndsWith('.')
+                   ? FullName[..^1]
+                   : FullName;
+
+        /// <summary>
+        /// The short name of this domain, i.e. the first label
+        /// (e.g. "www" for "www.example.com.")
+        /// </summary>
+        public String                 ShortName
+            => FullName.Substring(0, FullName.IndexOf('.'));
+
+        /// <summary>
+        /// The labels of this domain.
+        /// </summary>
         public IReadOnlyList<String>  Labels
             => labels.AsReadOnly();
 
 
-
+        /// <summary>
+        /// The parent domain of this domain,
+        /// i.e. all labels except the first one.
+        /// </summary>
         public DomainName?            ParentDomain
 
             => labels.Length > 1
@@ -93,20 +118,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      )
                    : null;
 
+        /// <summary>
+        /// The top-level domain of this domain, i.e. the last label.
+        /// </summary>
         public String                 TopLevelDomain
 
             => labels.Last();
 
+        /// <summary>
+        /// The top-level domain of this domain, i.e. the last label.
+        /// </summary>
         public DomainName             TopLevelDomainName
 
             => new (labels.Last());
 
+        /// <summary>
+        /// The second-level domain of this domain, i.e. the second to last label.
+        /// </summary>
         public String                 SecondLevelDomain
 
             => labels.Length >= 2
                    ? labels[^2]
                    : String.Empty;
 
+        /// <summary>
+        /// The second-level domain of this domain, i.e. the second to last label.
+        /// </summary>
         public DomainName?            SecondLevelDomainName
 
             => labels.Length >= 2
@@ -115,19 +152,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      )
                    : null;
 
-
+        /// <summary>
+        /// The localhost domain name.
+        /// </summary>
         public static DomainName      Localhost
 
             => new ("localhost");
 
+        /// <summary>
+        /// The loopback domain name.
+        /// </summary>
         public static DomainName      Loopback
 
             => new ("loopback");
 
+        /// <summary>
+        /// The empty domain name (root domain).
+        /// </summary>
         public static DomainName      Empty
 
             => new ([]);
 
+        /// <summary>
+        /// The wildcard domain name.
+        /// </summary>
         public static DomainName      Any
 
             => new ("*");

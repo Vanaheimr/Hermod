@@ -286,17 +286,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
         //private static List<IDNSResourceRecord> ParseResourceRecords(Byte[] packet, ref Int32 position, UInt16 count)
-        private static List<IDNSResourceRecord> ParseResourceRecords(Stream stream, UInt16 count)
+        private static List<IDNSResourceRecord> ParseResourceRecords(Stream  Stream,
+                                                                     UInt16  Count)
         {
 
             var records = new List<IDNSResourceRecord>();
 
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < Count; i++)
             {
 
-                var name         = DNSTools.ExtractName(stream);
+                var name         = DNSTools.ExtractName(Stream);
 
-                var recordType   = (DNSResourceRecordTypes) stream.ReadUInt16BE(); //((packet[position++] <<  8) |  packet[position++]);
+                var recordType   = (DNSResourceRecordTypes) Stream.ReadUInt16BE(); //((packet[position++] <<  8) |  packet[position++]);
                 //var queryClass   = (DNSQueryClasses)        stream.ReadUInt16BE(); //((packet[position++] <<  8) |  packet[position++]);
                 //var rawTTL       =                          stream.ReadUInt32BE(); //((packet[position++] << 24) | (packet[position++] << 16) | (packet[position++] << 8) | packet[position++]);
                 //var timeToLive   = TimeSpan.FromSeconds     (rawTTL);
@@ -304,14 +305,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 //var rdataOffset  = position;
 
                 IDNSResourceRecord record = recordType switch {
-                    DNSResourceRecordTypes.A     => new A      (DNSServiceName.Parse(name), stream),
+                    DNSResourceRecordTypes.A     => new A      (DNSServiceName.Parse(name), Stream),
                 //    DNSResourceRecordTypes.A     => new ARecord      (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
                 //    DNSResourceRecordTypes.AAAA  => new AAAARecord   (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
                 //    DNSResourceRecordTypes.SRV   => new SRVRecord    (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
                 //    DNSResourceRecordTypes.URI   => new URIRecord    (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
                 //    DNSResourceRecordTypes.NAPTR => new NAPTRRecord  (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
                 //    DNSResourceRecordTypes.OPT   => new OPTRecord    (DNS.DomainName.    Parse(name),             queryClass, rawTTL,     rdataLength, packet, rdataOffset),
-                    DNSResourceRecordTypes.OPT   => new OPT    (DNSServiceName.Parse(name), stream),
+                    DNSResourceRecordTypes.OPT   => new OPT    (DNSServiceName.Parse(name), Stream),
                 //    _                            => new GenericRecord(DNS.DomainName.    Parse(name), recordType, queryClass, timeToLive, rdataLength, packet, rdataOffset)
                 };
 
