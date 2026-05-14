@@ -40,10 +40,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static readonly    TimeSpan                  DefaultQueryTimeout              = TimeSpan.FromSeconds(23.5);
 
-        public static readonly    TimeSpan                  DefaultConnectTimeout            = TimeSpan.FromSeconds(5);
-        public static readonly    TimeSpan                  DefaultReceiveTimeout            = TimeSpan.FromSeconds(5);
-        public static readonly    TimeSpan                  DefaultSendTimeout               = TimeSpan.FromSeconds(5);
-        public const              Int32                     DefaultBufferSize                = 4096;
+        // Note: ConnectTimeout, ReceiveTimeout, SendTimeout and BufferSize are required by IDNSClient2
+        // but are meaningless for a connectionless UDP client. UDP uses QueryTimeout as a single
+        // unified timeout, and the receive buffer is determined by UDPPayloadSize (EDNS0).
 
         private Boolean disposedValue;
 
@@ -86,58 +85,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => false;
 
 
-        /// <summary>
-        /// The local IP end point of the connected server.
-        /// </summary>
-        public IPEndPoint?  CurrentLocalEndPoint { get; private set; }
+        // Note: UDP is connectionless — each query creates and disposes its own socket.
+        // These "Current*" properties are required by IDNSClient2 but are meaningless
+        // for a stateless UDP client and always return null to avoid race conditions.
 
         /// <summary>
-        /// The local TCP port of the connected server.
+        /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public UInt16?      CurrentLocalPort
-
-            => CurrentLocalEndPoint is not null
-                   ? (UInt16) CurrentLocalEndPoint.Port
-                   : null;
+        public IPEndPoint?  CurrentLocalEndPoint     => null;
 
         /// <summary>
-        /// The local IP address of the connected server.
+        /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public IIPAddress?  CurrentLocalIPAddress
-
-            => CurrentLocalEndPoint is not null
-                   ? IPAddress.Parse(CurrentLocalEndPoint.Address.GetAddressBytes())
-                   : null;
-
+        public UInt16?      CurrentLocalPort         => null;
 
         /// <summary>
-        /// The remote IP end point of the connected server.
+        /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public IPEndPoint?  CurrentRemoteEndPoint { get; private set; }
+        public IIPAddress?  CurrentLocalIPAddress    => null;
 
         /// <summary>
-        /// The remote TCP port of the connected server.
+        /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public UInt16?      CurrentRemotePort
-
-            => CurrentRemoteEndPoint is not null
-                   ? (UInt16) CurrentRemoteEndPoint.Port
-                   : null;
+        public IPEndPoint?  CurrentRemoteEndPoint    => null;
 
         /// <summary>
-        /// The remote IP address of the connected server.
+        /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public IIPAddress?  CurrentRemoteIPAddress
+        public UInt16?      CurrentRemotePort        => null;
 
-            => CurrentRemoteEndPoint is not null
-                   ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
-                   : null;
+        /// <summary>
+        /// Always null for UDP (connectionless, no persistent endpoint).
+        /// </summary>
+        public IIPAddress?  CurrentRemoteIPAddress   => null;
 
         public  URL                      RemoteURL          { get; }
-        public  TimeSpan                 ConnectTimeout     { get; }
-        public  TimeSpan                 ReceiveTimeout     { get; }
-        public  TimeSpan                 SendTimeout        { get; }
-        public  UInt32                   BufferSize         { get; }
+
+        // These timeouts and buffer size are required by IDNSClient2 but irrelevant for UDP.
+        // UDP is connectionless — each query creates its own socket with QueryTimeout as the
+        // single unified timeout, and the receive buffer is sized by UDPPayloadSize (EDNS0).
+        public  TimeSpan                 ConnectTimeout     => QueryTimeout;
+        public  TimeSpan                 ReceiveTimeout     => QueryTimeout;
+        public  TimeSpan                 SendTimeout        => QueryTimeout;
+        public  UInt32                   BufferSize         => (UInt32) Math.Max(4096, (Int32) UDPPayloadSize);
 
         #endregion
 
@@ -150,17 +140,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The UDP port of the DNS server to query.</param>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">An optional DNS query timeout. Default is 23.5 seconds.</param>
-        public DNSUDPClient(IIPAddress               IPAddress,
-                            IPPort?                  Port               = null,
-                            Boolean?                 RecursionDesired   = null,
-                            TimeSpan?                QueryTimeout       = null,
-
-                            TimeSpan?                ConnectTimeout     = null,
-                            TimeSpan?                ReceiveTimeout     = null,
-                            TimeSpan?                SendTimeout        = null,
-                            UInt32?                  BufferSize         = null,
-
-                            TCPEchoLoggingDelegate?  LoggingHandler     = null)
+        public DNSUDPClient(IIPAddress   IPAddress,
+                            IPPort?      Port               = null,
+                            Boolean?     RecursionDesired   = null,
+                            TimeSpan?    QueryTimeout       = null)
 
         {
 
@@ -169,27 +152,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RemoteURL         = URL.Parse($"dns://{IPAddress}:{this.RemotePort}");
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? DefaultQueryTimeout;
-
-
-            if (ConnectTimeout.HasValue && ConnectTimeout.Value.TotalMilliseconds > Int32.MaxValue)
-                throw new ArgumentOutOfRangeException(nameof(ConnectTimeout), "Timeout too large for socket.");
-
-            if (ReceiveTimeout.HasValue && ReceiveTimeout.Value.TotalMilliseconds > Int32.MaxValue)
-                throw new ArgumentOutOfRangeException(nameof(ReceiveTimeout), "Timeout too large for socket.");
-
-            if (SendTimeout.   HasValue && SendTimeout.   Value.TotalMilliseconds > Int32.MaxValue)
-                throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
-
-            this.BufferSize       = BufferSize.HasValue
-                                        ? BufferSize.Value > Int32.MaxValue
-                                              ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                              : BufferSize.Value
-                                        : DefaultBufferSize;
-            this.ConnectTimeout   = ConnectTimeout ?? DefaultConnectTimeout;
-            this.ReceiveTimeout   = ReceiveTimeout ?? DefaultReceiveTimeout;
-            this.SendTimeout      = SendTimeout    ?? DefaultSendTimeout;
-       //     this.loggingHandler   = LoggingHandler;
-
 
         }
 
@@ -270,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var serverAddress      = System.Net.IPAddress.Parse(RemoteIPAddress.ToString());
-                CurrentRemoteEndPoint  = new IPEndPoint(serverAddress, (RemotePort ?? IPPort.DNS).ToInt32());
+                var remoteEndPoint     = new IPEndPoint(serverAddress, (RemotePort ?? IPPort.DNS).ToInt32());
 
                 socket                 = RemoteIPAddress.IsIPv4
                                              ? new Socket(AddressFamily.InterNetwork,   SocketType.Dgram, ProtocolType.Udp)
@@ -279,18 +241,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 using var timeoutCTS   = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
                 timeoutCTS.CancelAfter(effectiveTimeout);
 
-                await socket.ConnectAsync(CurrentRemoteEndPoint, timeoutCTS.Token).
+                await socket.ConnectAsync(remoteEndPoint, timeoutCTS.Token).
                              ConfigureAwait(false);
-
-                CurrentLocalEndPoint   = socket.LocalEndPoint as IPEndPoint;
 
                 using var ms = new MemoryStream();
                 dnsQuery.Serialize(ms, false, []);
 
-                await socket.SendToAsync(ms.ToArray(), SocketFlags.None, CurrentRemoteEndPoint, timeoutCTS.Token).
+                await socket.SendToAsync(ms.ToArray(), SocketFlags.None, remoteEndPoint, timeoutCTS.Token).
                              ConfigureAwait(false);
 
-                var data      = new Byte[4096];
+                var data      = new Byte[Math.Max(4096, (Int32) UDPPayloadSize)];
                 var received  = await socket.ReceiveAsync(data, SocketFlags.None, timeoutCTS.Token).
                                              ConfigureAwait(false);
 

@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Byte                     ExtendedRCODE     { get; }
         public Byte                     Version           { get; }
         public UInt16                   Flags             { get; }
-        public IEnumerable<EDNSOption>  Options           { get; }
+        public IEnumerable<EDNSOption>  Options           { get; } = [];
 
 
 

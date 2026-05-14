@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Diagnostics;
+using System.Net.Sockets;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -190,52 +191,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 try
                 {
-                    await tcpStream.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
-                    await tcpStream.FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                                     ConfigureAwait(false);
                 }
                 catch (IOException)
                 {
                     await ReconnectAsync(CancellationToken).ConfigureAwait(false);
-
                     tcpStream = tcpClient!.GetStream();
-
-                    await tcpStream.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
-                    await tcpStream.FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                                     ConfigureAwait(false);
                 }
-
-                var responseLength = await tcpStream.ReadUInt16BEAsync(timeoutCTS.Token).
-                                                     ConfigureAwait(false);
-
-                var buffer    = new Byte[responseLength];
-                var totalRead = 0;
-
-                while (totalRead < responseLength)
-                {
-
-                    var bytesRead = await tcpStream.ReadAsync(
-                                              buffer.AsMemory(totalRead, responseLength - totalRead),
-                                              timeoutCTS.Token
-                                          ).ConfigureAwait(false);
-
-                    if (bytesRead == 0)
-                        break;
-
-                    totalRead += bytesRead;
-
-                }
-
-                stopwatch.Stop();
-
-                return DNSInfo.ReadResponse(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.DNS,
-                               DNSTransport.TCP,
-                               effectiveTimeout
-                           ),
-                           dnsQuery.TransactionId,
-                           new MemoryStream(buffer, 0, totalRead)
-                       );
 
             }
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
@@ -272,6 +237,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             #endregion
+
+        }
+
+        #endregion
+
+        #region (private) SendAndReceiveTCPAsync(...)
+
+        /// <summary>
+        /// Send a DNS query over the TCP stream and read the response.
+        /// Extracted so that the IOException retry logic covers both write and read.
+        /// </summary>
+        private async Task<DNSInfo> SendAndReceiveTCPAsync(NetworkStream      TCPStream,
+                                                           Byte[]             Data,
+                                                           DNSPacket          DNSQuery,
+                                                           TimeSpan           EffectiveTimeout,
+                                                           CancellationToken  CancellationToken)
+        {
+
+            await TCPStream.WriteAsync(Data, CancellationToken).ConfigureAwait(false);
+            await TCPStream.FlushAsync(CancellationToken).      ConfigureAwait(false);
+
+            var responseLength = await TCPStream.ReadUInt16BEAsync(CancellationToken).
+                                                 ConfigureAwait(false);
+
+            var buffer    = new Byte[responseLength];
+            var totalRead = 0;
+
+            while (totalRead < responseLength)
+            {
+
+                var bytesRead = await TCPStream.ReadAsync(
+                                          buffer.AsMemory(totalRead, responseLength - totalRead),
+                                          CancellationToken
+                                      ).ConfigureAwait(false);
+
+                if (bytesRead == 0)
+                    break;
+
+                totalRead += bytesRead;
+
+            }
+
+            return DNSInfo.ReadResponse(
+                       new DNSServerConfig(
+                           RemoteIPAddress!,
+                           RemotePort ?? IPPort.DNS,
+                           DNSTransport.TCP,
+                           EffectiveTimeout
+                       ),
+                       DNSQuery.TransactionId,
+                       new MemoryStream(buffer, 0, totalRead)
+                   );
 
         }
 

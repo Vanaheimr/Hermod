@@ -362,6 +362,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 = Register("application", "soap+xml",                   "utf-8", null, null, "soap");
             public static HTTPContentType DNSMessage             { get; }
                 = Register("application", "dns-message",                "utf-8", null, null, "dns");
+            public static HTTPContentType DNSJson                { get; }
+                = Register("application", "dns-json",                   null,    null, null, "json");
 
             public static HTTPContentType GEXF_UTF8              { get; }
                 = Register("application", "gexf+xml",                   "utf-8", null, null, "gexf");

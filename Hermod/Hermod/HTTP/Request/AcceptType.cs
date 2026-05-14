@@ -316,7 +316,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
         {
-            return String.Concat(ContentType, "; q=", Quality);
+
+            // q=1 is the default quality value per RFC 7231 and can be omitted.
+            // Some servers (e.g. Cloudflare DNS JSON API) reject Accept headers
+            // with any extra parameters.
+            if (Quality >= 1.0)
+                return ContentType.ToString();
+
+            return String.Concat(ContentType, "; q=", Quality.ToString().Replace(',', '.'));
+
         }
 
         #endregion

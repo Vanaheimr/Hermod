@@ -319,50 +319,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 try
                 {
-                    await tlsStream!.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
-                    await tlsStream. FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                                     ConfigureAwait(false);
                 }
                 catch (IOException)
                 {
                     await ReconnectAsync(CancellationToken).ConfigureAwait(false);
-
-                    await tlsStream!.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
-                    await tlsStream. FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                                     ConfigureAwait(false);
                 }
-
-                var responseLength = await tlsStream.ReadUInt16BEAsync(timeoutCTS.Token).
-                                                     ConfigureAwait(false);
-
-                var buffer    = new Byte[responseLength];
-                var totalRead = 0;
-
-                while (totalRead < responseLength)
-                {
-
-                    var bytesRead = await tlsStream.ReadAsync(
-                                              buffer.AsMemory(totalRead, responseLength - totalRead),
-                                              timeoutCTS.Token
-                                          ).ConfigureAwait(false);
-
-                    if (bytesRead == 0)
-                        break;
-
-                    totalRead += bytesRead;
-
-                }
-
-                stopwatch.Stop();
-
-                return DNSInfo.ReadResponse(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.DNS,
-                               DNSTransport.TLS,
-                               effectiveTimeout
-                           ),
-                           dnsQuery.TransactionId,
-                           new MemoryStream(buffer, 0, totalRead)
-                       );
 
             }
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
@@ -399,6 +364,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             #endregion
+
+        }
+
+        #endregion
+
+        #region (private) SendAndReceiveTLSAsync(...)
+
+        /// <summary>
+        /// Send a DNS query over the TLS stream and read the response.
+        /// Extracted so that the IOException retry logic covers both write and read.
+        /// </summary>
+        private async Task<DNSInfo> SendAndReceiveTLSAsync(SslStream           TLSStream,
+                                                           Byte[]              Data,
+                                                           DNSPacket           DNSQuery,
+                                                           TimeSpan            EffectiveTimeout,
+                                                           CancellationToken   CancellationToken)
+        {
+
+            await TLSStream.WriteAsync(Data, CancellationToken).ConfigureAwait(false);
+            await TLSStream.FlushAsync(CancellationToken).      ConfigureAwait(false);
+
+            var responseLength = await TLSStream.ReadUInt16BEAsync(CancellationToken).
+                                                  ConfigureAwait(false);
+
+            var buffer    = new Byte[responseLength];
+            var totalRead = 0;
+
+            while (totalRead < responseLength)
+            {
+
+                var bytesRead = await TLSStream.ReadAsync(
+                                          buffer.AsMemory(totalRead, responseLength - totalRead),
+                                          CancellationToken
+                                      ).ConfigureAwait(false);
+
+                if (bytesRead == 0)
+                    break;
+
+                totalRead += bytesRead;
+
+            }
+
+            return DNSInfo.ReadResponse(
+                       new DNSServerConfig(
+                           RemoteIPAddress!,
+                           RemotePort ?? IPPort.DNS_TLS,
+                           DNSTransport.TLS,
+                           EffectiveTimeout
+                       ),
+                       DNSQuery.TransactionId,
+                       new MemoryStream(buffer, 0, totalRead)
+                   );
 
         }
 

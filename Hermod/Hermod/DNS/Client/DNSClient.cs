@@ -552,7 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 await socket.SendToAsync(ms.ToArray(), SocketFlags.None, endPoint, timeoutCTS.Token).
                              ConfigureAwait(false);
 
-                var data      = new Byte[4096];
+                var data      = new Byte[Math.Max(4096, (Int32) UDPPayloadSize)];
                 var received  = await socket.ReceiveAsync(data, SocketFlags.None, timeoutCTS.Token).
                                              ConfigureAwait(false);
 

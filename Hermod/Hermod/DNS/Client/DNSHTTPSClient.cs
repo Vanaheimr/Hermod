@@ -22,8 +22,11 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
@@ -667,9 +670,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     httpRequestBuilder.ContentLength  = (UInt64) dnsBytes.Length;
                     httpRequestBuilder.Content        = dnsBytes;
                 }
-                else
+                else if (Mode == DNSHTTPSMode.JSON)
                 {
-                    throw new ArgumentException($"Unsupported DNS HTTPS mode: {Mode}");
+                    httpRequestBuilder.HTTPMethod     = HTTPMethod.GET;
+                    httpRequestBuilder.Path           = RemoteURL.Path;
+                    httpRequestBuilder.Accept         = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.DNSJson);
+                    httpRequestBuilder.QueryString.Add("name", DNSServiceName.ToString().TrimEnd('.'));
+                    httpRequestBuilder.QueryString.Add("type", ((UInt16) resourceRecordTypes.First()).ToString());
                 }
 
                 var httpRequest = httpRequestBuilder.AsImmutable;
@@ -701,13 +708,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 stopwatch.Stop();
 
+                var serverConfig = new DNSServerConfig(
+                                       RemoteIPAddress!,
+                                       RemotePort ?? IPPort.HTTPS,
+                                       DNSTransport.HTTPS,
+                                       effectiveTimeout
+                                   );
+
+                // JSON mode: parse the JSON response
+                if (Mode == DNSHTTPSMode.JSON)
+                    return ParseJSONResponse(serverConfig, httpResponse);
+
+                // Binary mode: parse the wire-format response
                 return DNSInfo.ReadResponse(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.HTTPS,
-                               DNSTransport.HTTPS,
-                               effectiveTimeout
-                           ),
+                           serverConfig,
                            dnsQuery.TransactionId,
                            new MemoryStream(httpResponse.HTTPBody ?? [])
                        );
@@ -746,6 +760,261 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private static) ParseJSONResponse(ServerConfig, HTTPResponse)
+
+        /// <summary>
+        /// Parse a DNS JSON response (application/dns-json) as returned by
+        /// Google (https://dns.google/resolve) and Cloudflare (https://cloudflare-dns.com/dns-query).
+        /// </summary>
+        private static DNSInfo ParseJSONResponse(DNSServerConfig  ServerConfig,
+                                                 HTTPResponse     HTTPResponse)
+        {
+
+            var body = HTTPResponse.HTTPBodyAsUTF8String?.Trim();
+
+            if (String.IsNullOrEmpty(body))
+                return new DNSInfo(
+                           Origin:                 ServerConfig,
+                           QueryId:                0,
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       true,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.ServerFailure,
+                           Answers:                [],
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                false,
+                           IsTimeout:              false,
+                           Timeout:                ServerConfig.QueryTimeout ?? TimeSpan.Zero
+                       );
+
+            var json = JObject.Parse(body);
+
+            var status = json["Status"]?.Value<Int32>() ?? 2;
+            var tc     = json["TC"]?.    Value<Boolean>() ?? false;
+            var rd     = json["RD"]?.    Value<Boolean>() ?? true;
+            var ra     = json["RA"]?.    Value<Boolean>() ?? false;
+
+            var answers     = new List<IDNSResourceRecord>();
+            var authorities = new List<IDNSResourceRecord>();
+
+            if (json["Answer"] is JArray answerArray)
+                foreach (var record in answerArray)
+                {
+                    var parsed = ParseJSONResourceRecord(record);
+                    if (parsed is not null)
+                        answers.Add(parsed);
+                }
+
+            if (json["Authority"] is JArray authorityArray)
+                foreach (var record in authorityArray)
+                {
+                    var parsed = ParseJSONResourceRecord(record);
+                    if (parsed is not null)
+                        authorities.Add(parsed);
+                }
+
+            return new DNSInfo(
+                       Origin:                 ServerConfig,
+                       QueryId:                0,
+                       IsAuthoritativeAnswer:  false,
+                       IsTruncated:            tc,
+                       RecursionDesired:       rd,
+                       RecursionAvailable:     ra,
+                       ResponseCode:           (DNSResponseCodes) status,
+                       Answers:                answers,
+                       Authorities:            authorities,
+                       AdditionalRecords:      [],
+                       IsValid:                true,
+                       IsTimeout:              false,
+                       Timeout:                ServerConfig.QueryTimeout ?? TimeSpan.Zero
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) ParseJSONResourceRecord(JToken)
+
+        /// <summary>
+        /// Parse a single resource record from the DNS JSON response.
+        /// </summary>
+        private static IDNSResourceRecord? ParseJSONResourceRecord(JToken Record)
+        {
+
+            var name = Record["name"]?.Value<String>() ?? "";
+            var type = Record["type"]?.Value<UInt16>() ?? 0;
+            var ttl  = Record["TTL"]?. Value<UInt32>() ?? 0;
+            var data = Record["data"]?.Value<String>() ?? "";
+
+            // Ensure the domain name ends with a dot (FQDN)
+            if (!name.EndsWith('.'))
+                name += ".";
+
+            var timeToLive  = TimeSpan.FromSeconds(ttl);
+
+            // SRV and PTR record names may contain underscores (e.g. _ocpp._tcp.api.charging.cloud.)
+            // which are not valid in DomainName. Handle them before DomainName.Parse().
+            if ((DNSResourceRecordTypes) type == DNSResourceRecordTypes.SRV)
+                return ParseSRVFromJSON(name, timeToLive, data);
+
+            if ((DNSResourceRecordTypes) type == DNSResourceRecordTypes.PTR)
+                return new PTR(
+                           DomainName.TryParse(name, out var ptrName, out _)
+                               ? ptrName
+                               : DomainName.Parse(name.Replace("_", "")),
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           DNSServiceName.Parse(data.EndsWith('.') ? data : data + ".")
+                       );
+
+            var domainName  = DomainName.Parse(name);
+
+            return (DNSResourceRecordTypes) type switch {
+
+                DNSResourceRecordTypes.A
+                    => new A(
+                           domainName,
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           IPv4Address.Parse(data)
+                       ),
+
+                DNSResourceRecordTypes.AAAA
+                    => new AAAA(
+                           domainName,
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           IPv6Address.Parse(data)
+                       ),
+
+                DNSResourceRecordTypes.CNAME
+                    => new CNAME(
+                           domainName,
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           DomainName.Parse(data.EndsWith('.') ? data : data + ".")
+                       ),
+
+                DNSResourceRecordTypes.MX
+                    => ParseMXFromJSON(domainName, timeToLive, data),
+
+                DNSResourceRecordTypes.TXT
+                    => new TXT(
+                           domainName,
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           data.Trim('"')
+                       ),
+
+                DNSResourceRecordTypes.NS
+                    => new NS(
+                           domainName,
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           DomainName.Parse(data.EndsWith('.') ? data : data + ".")
+                       ),
+
+                DNSResourceRecordTypes.SOA
+                    => ParseSOAFromJSON(domainName, timeToLive, data),
+
+                _ => null
+
+            };
+
+        }
+
+        #endregion
+
+        #region (private static) ParseMXFromJSON (...)
+
+        /// <summary>
+        /// Parse an MX record from the JSON "data" field (e.g. "10 mail.example.com.").
+        /// </summary>
+        private static MX ParseMXFromJSON(DomainName  DomainName,
+                                          TimeSpan    TimeToLive,
+                                          String      Data)
+        {
+
+            var parts      = Data.Split(' ', 2);
+            var preference = UInt16.Parse(parts[0]);
+            var exchange   = parts[1];
+
+            if (!exchange.EndsWith('.'))
+                exchange += ".";
+
+            return new MX(
+                       DomainName,
+                       DNSQueryClasses.IN,
+                       TimeToLive,
+                       preference,
+                       DNS.DomainName.Parse(exchange)
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) ParseSOAFromJSON(...)
+
+        /// <summary>
+        /// Parse a SOA record from the JSON "data" field
+        /// (e.g. "ns1.example.com. admin.example.com. 2024010101 3600 900 604800 86400").
+        /// </summary>
+        private static SOA ParseSOAFromJSON(DomainName  DomainName,
+                                            TimeSpan    TimeToLive,
+                                            String      Data)
+        {
+
+            var parts = Data.Split(' ');
+
+            return new SOA(
+                       DomainName,
+                       DNSQueryClasses.IN,
+                       TimeToLive,
+                       DNS.DomainName.Parse(parts[0].EndsWith('.') ? parts[0] : parts[0] + "."),
+                       SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(parts[1].TrimEnd('.'))),
+                       UInt32.Parse(parts[2]),
+                       TimeSpan.FromSeconds(UInt32.Parse(parts[3])),
+                       TimeSpan.FromSeconds(UInt32.Parse(parts[4])),
+                       TimeSpan.FromSeconds(UInt32.Parse(parts[5])),
+                       TimeSpan.FromSeconds(UInt32.Parse(parts[6]))
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) ParseSRVFromJSON(...)
+
+        /// <summary>
+        /// Parse a SRV record from the JSON "data" field
+        /// (e.g. "10 5 8080 target.example.com.").
+        /// The name is passed as a string because SRV names contain underscores
+        /// (e.g. _ocpp._tcp.api.charging.cloud.) which DomainName rejects.
+        /// </summary>
+        private static SRV ParseSRVFromJSON(String    Name,
+                                            TimeSpan  TimeToLive,
+                                            String    Data)
+        {
+
+            var parts = Data.Split(' ');
+
+            return new SRV(
+                       DNSServiceName.Parse(Name),
+                       DNSQueryClasses.IN,
+                       TimeToLive,
+                       UInt16.Parse(parts[0]),
+                       UInt16.Parse(parts[1]),
+                       IPPort.Parse(parts[2]),
+                       DNS.DomainName.Parse(parts[3].EndsWith('.') ? parts[3] : parts[3] + ".")
+                   );
+
+        }
+
+        #endregion
+
 
         #region Google DNS
 
@@ -774,7 +1043,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             DNSClient?                                                 DNSClient                            = null)
 
             => new (
-                   URL.Parse("https://dns.google/dns-query"),
+                   URL.Parse(Mode == DNSHTTPSMode.JSON
+                                 ? "https://dns.google/resolve"
+                                 : "https://dns.google/dns-query"),
                    I18NString.Create("Google"),
                    Mode,
                    RecursionDesired,

@@ -237,7 +237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (acceptedTypes.Count == 0)
                 return String.Empty;
 
-            return String.Join(",", acceptedTypes.Select(a => a.ContentType + ";q=" + a.Quality.ToString().Replace(',', '.')));
+            return String.Join(", ", acceptedTypes.Select(a => a.ToString()));
 
         }
 
