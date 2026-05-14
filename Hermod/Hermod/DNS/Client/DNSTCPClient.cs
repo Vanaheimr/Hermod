@@ -28,7 +28,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     /// <summary>
     /// A DNS TCP client for a single DNS server.
-    /// Requests will be pipelined when the server supports it.
+    /// Reuses the TCP connection across queries; concurrent callers
+    /// are serialized via an internal semaphore.
     /// </summary>
     public class DNSTCPClient : ATCPClient,
                                 IDNSClient2
@@ -41,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
 
-        //private Boolean disposedValue;
+        private readonly SemaphoreSlim tcpStreamLock = new(1, 1);
 
         #endregion
 
@@ -89,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512)
+                   BufferSize ?? 4096)
 
         {
 
@@ -143,65 +144,131 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
+                               0,
                                this.RecursionDesired ?? RecursionDesired ?? true,
                                [.. resourceRecordTypes]
                            );
 
 
-            var ms = new MemoryStream();
-            ms.WriteByte(0);
-            ms.WriteByte(0);
-            dnsQuery.Serialize(ms, false, []);
+            Byte[] data;
 
-            if (!IsConnected || tcpClient is null)
-                await ReconnectAsync(CancellationToken).
-                          ConfigureAwait(false);
+            using (var ms = new MemoryStream())
+            {
+                ms.WriteByte(0);
+                ms.WriteByte(0);
+                dnsQuery.Serialize(ms, false, []);
+                data = ms.ToArray();
+            }
 
-            var data        = ms.ToArray();
-            var dataLength  = data.Length-2;
+            var dataLength  = data.Length - 2;
             data[0] = (Byte) (dataLength >> 8);
             data[1] = (Byte) (dataLength & 0xFF);
 
-            #region TCP
+            #region TCP (serialized via semaphore, auto-reconnect on broken connection)
+
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+
+            await tcpStreamLock.WaitAsync(CancellationToken).
+                                ConfigureAwait(false);
 
             try
             {
 
+                if (!IsConnected || tcpClient is null)
+                    await ReconnectAsync(CancellationToken).
+                              ConfigureAwait(false);
+
                 var stopwatch = Stopwatch.StartNew();
-                var tcpStream = tcpClient.GetStream();
+                var tcpStream = tcpClient!.GetStream();
                 clientCancellationTokenSource ??= new CancellationTokenSource();
 
-                // Send the data
-                await tcpStream.WriteAsync(data, clientCancellationTokenSource.Token).ConfigureAwait(false);
-                await tcpStream.FlushAsync(clientCancellationTokenSource.Token).      ConfigureAwait(false);
+                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
+                                           clientCancellationTokenSource.Token,
+                                           CancellationToken
+                                       );
+                timeoutCTS.CancelAfter(effectiveTimeout);
 
-                var responseLength = tcpStream.ReadUInt16BE();
+                try
+                {
+                    await tcpStream.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
+                    await tcpStream.FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                }
+                catch (IOException)
+                {
+                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
 
-                using var responseStream = new MemoryStream();
+                    tcpStream = tcpClient!.GetStream();
+
+                    await tcpStream.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
+                    await tcpStream.FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                }
+
+                var responseLength = await tcpStream.ReadUInt16BEAsync(timeoutCTS.Token).
+                                                     ConfigureAwait(false);
+
                 var buffer    = new Byte[responseLength];
-                var bytesRead = await tcpStream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false);
+                var totalRead = 0;
+
+                while (totalRead < responseLength)
+                {
+
+                    var bytesRead = await tcpStream.ReadAsync(
+                                              buffer.AsMemory(totalRead, responseLength - totalRead),
+                                              timeoutCTS.Token
+                                          ).ConfigureAwait(false);
+
+                    if (bytesRead == 0)
+                        break;
+
+                    totalRead += bytesRead;
+
+                }
 
                 stopwatch.Stop();
 
+                return DNSInfo.ReadResponse(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS,
+                               DNSTransport.TCP,
+                               effectiveTimeout
+                           ),
+                           dnsQuery.TransactionId,
+                           new MemoryStream(buffer, 0, totalRead)
+                       );
 
-                var dnsInfo  = DNSInfo.ReadResponse(
-                                   new DNSServerConfig(
-                                       RemoteIPAddress!,
-                                       RemotePort ?? IPPort.DNS,
-                                       DNSTransport.TCP,
-                                       QueryTimeout
-                                   ),
-                                   dnsQuery.TransactionId,
-                                   new MemoryStream(buffer)
-                               );
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
 
-                return dnsInfo;
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
 
             }
             catch (Exception ex)
             {
+
                 await Log($"Error in SendBinary: {ex.Message}");
-                return null;
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
+            }
+            finally
+            {
+                tcpStreamLock.Release();
             }
 
             #endregion
@@ -616,28 +683,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        //protected virtual void Dispose(Boolean Disposing)
-        //{
-
-        //    base.Dispose();
-
-        //    if (!disposedValue)
-        //        disposedValue = true;
-
-        //}
-
-        //public override void Dispose()
-        //{ 
-        //    Dispose(Disposing: true);
-        //    GC.SuppressFinalize(this);
-        //}
-
-        //public override ValueTask DisposeAsync()
-        //{
-        //    Dispose(Disposing: false);
-        //    GC.SuppressFinalize(this);
-        //    return default;
-        //}
+        public override async ValueTask DisposeAsync()
+        {
+            tcpStreamLock.Dispose();
+            await base.DisposeAsync();
+        }
 
 
     }

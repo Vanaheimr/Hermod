@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Collections.Concurrent;
 using System.Net;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -31,6 +32,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// </summary>
     public static class IDNSTCPClientExtensions
     {
+
+        #region Data
+
+        private static readonly ConcurrentDictionary<Type, DNSResourceRecordTypes> typeIdCache = new();
+
+        private static DNSResourceRecordTypes GetResourceRecordType<T>() where T : ADNSResourceRecord
+
+            => typeIdCache.GetOrAdd(typeof(T), type => {
+
+                   var typeIdField = type.GetField("TypeId")
+                                        ?? throw new ArgumentException($"Constant field 'TypeId' of type '{type.Name}' was not found!");
+
+                   var typeIdValue = typeIdField.GetValue(null);
+
+                   if (typeIdValue is not DNSResourceRecordTypes dnsResourceRecordType)
+                       throw new ArgumentException($"Constant field 'TypeId' of type '{type.Name}' was not of type '{nameof(DNSResourceRecordTypes)}'!");
+
+                   return dnsResourceRecordType;
+
+               });
+
+        #endregion
 
         #region Query<T>            (DomainName,             Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
@@ -47,22 +70,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            var typeIdField  = typeof(T).GetField("TypeId")
-                                   ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
-
-            var typeIdValue  = typeIdField.GetValue(typeof(T));
-
-            if (typeIdValue is not DNSResourceRecordTypes dnsResourceRecordType)
-                throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not of type '{typeof(DNSResourceRecordTypes).Name}'!");
-
-            var dnsInfo      = await IDNSClient.Query(
-                                         DomainName,
-                                         [ dnsResourceRecordType ],
-                                         Timeout,
-                                         RecursionDesired,
-                                         BypassCache,
-                                         CancellationToken
-                                     ).ConfigureAwait(false);
+            var dnsInfo = await IDNSClient.Query(
+                                    DomainName,
+                                    [ GetResourceRecordType<T>() ],
+                                    Timeout,
+                                    RecursionDesired,
+                                    BypassCache,
+                                    CancellationToken
+                                ).ConfigureAwait(false);
 
             return new DNSInfo<T>(dnsInfo);
 
@@ -85,22 +100,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            var typeIdField  = typeof(T).GetField("TypeId")
-                                   ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
-
-            var typeIdValue  = typeIdField.GetValue(typeof(T));
-
-            if (typeIdValue is not DNSResourceRecordTypes dnsResourceRecordType)
-                throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not of type '{typeof(DNSResourceRecordTypes).Name}'!");
-
-            var dnsInfo      = await IDNSClient.Query(
-                                         DNSServiceName,
-                                         [ dnsResourceRecordType ],
-                                         Timeout,
-                                         RecursionDesired,
-                                         BypassCache,
-                                         CancellationToken
-                                     ).ConfigureAwait(false);
+            var dnsInfo = await IDNSClient.Query(
+                                    DNSServiceName,
+                                    [ GetResourceRecordType<T>() ],
+                                    Timeout,
+                                    RecursionDesired,
+                                    BypassCache,
+                                    CancellationToken
+                                ).ConfigureAwait(false);
 
             return new DNSInfo<T>(dnsInfo);
 

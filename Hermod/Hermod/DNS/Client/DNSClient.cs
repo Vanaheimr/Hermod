@@ -78,6 +78,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public DNSCache                      DNSCache            { get; }
 
+        /// <summary>
+        /// The default EDNS0 UDP payload size to advertise in DNS queries.
+        /// </summary>
+        public UInt16                        UDPPayloadSize      { get; } = DNSPacket.DefaultUDPPayloadSize;
+
         #endregion
 
         #region Constructor(s)
@@ -288,6 +293,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region RemoveFromCache(DomainName)
+
+        /// <summary>
+        /// Remove a cached DNS entry by its domain name.
+        /// Useful when HTTP clients encounter errors indicating
+        /// stale DNS entries (e.g. AWS endpoint changes).
+        /// </summary>
+        /// <param name="DomainName">The domain name to remove from cache.</param>
+        public Boolean RemoveFromCache(DomainName DomainName)
+
+            => DNSCache.Remove(DomainName);
+
+        /// <summary>
+        /// Remove a cached DNS entry by its DNS service name.
+        /// Useful when HTTP clients encounter errors indicating
+        /// stale DNS entries (e.g. AWS endpoint changes).
+        /// </summary>
+        /// <param name="DNSServiceName">The DNS service name to remove from cache.</param>
+        public Boolean RemoveFromCache(DNSServiceName DNSServiceName)
+
+            => DNSCache.Remove(DNSServiceName);
+
+        #endregion
+
 
         #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
@@ -354,18 +383,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSCache.TryGetDNSInfo(DNSServiceName, out var cachedResults))
             {
 
-               var now              = Timestamp.Now;
+                // Return cached negative responses (NXDOMAIN, Refused)
+                if (cachedResults.ResponseCode is DNSResponseCodes.NameError or
+                                                   DNSResponseCodes.Refused)
+                    return cachedResults;
 
-               // Some load balancers have shorter timeouts for CNAME records than for A/AAAA records!
-               // Yet CNAME records must be valid in order to use A/AAAA records!
-               var cnameRecord      = cachedResults.Answers.
-                                          FirstOrDefault(resourceRecord => resourceRecord.Type == DNSResourceRecordTypes.CNAME);
+                var now              = Timestamp.Now;
 
-               var resourceRecords  = cachedResults.Answers.
-                                          Where         (resourceRecord => resourceRecordTypes.Contains(resourceRecord.Type) &&
-                                                                           resourceRecord.EndOfLife > now &&
-                                                                           ((cnameRecord is null) || (cnameRecord.EndOfLife > now))).
-                                          ToArray();
+                // Some load balancers have shorter timeouts for CNAME records than for A/AAAA records!
+                // Yet CNAME records must be valid in order to use A/AAAA records!
+                var cnameRecord      = cachedResults.Answers.
+                                           FirstOrDefault(resourceRecord => resourceRecord.Type == DNSResourceRecordTypes.CNAME);
+
+                var resourceRecords  = cachedResults.Answers.
+                                           Where         (resourceRecord => resourceRecordTypes.Contains(resourceRecord.Type) &&
+                                                                            resourceRecord.EndOfLife > now &&
+                                                                            ((cnameRecord is null) || (cnameRecord.EndOfLife > now))).
+                                           ToArray();
 
                 if (resourceRecords.Length != 0)
                     return cachedResults;
@@ -377,104 +411,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
+                               UDPPayloadSize,
                                this.RecursionDesired ?? RecursionDesired ?? true,
                                [.. resourceRecordTypes]
                            );
 
             #region Query all DNS server(s) in parallel...
 
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+
+            using var raceCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
             var allDNSServerRequests = DNSServers.Select(dnsServer =>
 
-                Task<DNSInfo>.Factory.StartNew((token) => {
-
-                    var data = new Byte[512];
-                    Int32  length;
-                    Socket? socket = null;
-
-                    try
-                    {
-
-                        var serverAddress  = System.Net.IPAddress.Parse(dnsServer.IPAddress.ToString());
-                        var endPoint       = (EndPoint) new IPEndPoint(serverAddress, dnsServer.Port.ToInt32());
-
-                        socket             = dnsServer.IPAddress.IsIPv4
-                                                 ? new Socket(AddressFamily.InterNetwork,   SocketType.Dgram, ProtocolType.Udp)
-                                                 : new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
-
-                        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
-                        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
-                        socket.Connect(endPoint);
-
-                        var ms = new MemoryStream();
-                        dnsQuery.Serialize(ms, false, []);
-
-                        socket.SendTo(ms.ToArray(), endPoint);
-
-                        length = socket.ReceiveFrom(data, ref endPoint);
-
-                    }
-                    catch (SocketException se)
-                    {
-
-                        if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
-                            return new DNSInfo(
-                                       Origin:                  new DNSServerConfig(
-                                                                    dnsServer.IPAddress,
-                                                                    dnsServer.Port
-                                                                ),
-                                       QueryId:                 dnsQuery.TransactionId,
-                                       IsAuthoritativeAnswer:   false,
-                                       IsTruncated:             false,
-                                       RecursionDesired:        false,
-                                       RecursionAvailable:      false,
-                                       ResponseCode:            DNSResponseCodes.ServerFailure,
-                                       Answers:                 [],
-                                       Authorities:             [],
-                                       AdditionalRecords:       [],
-                                       IsValid:                 true,
-                                       IsTimeout:               false,
-                                       Timeout:                 QueryTimeout
-                                   );
-
-                        // A SocketException might be thrown after the timeout was reached!
-                        //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
-                        return DNSInfo.TimedOut(
-                                   new DNSServerConfig(
-                                       dnsServer.IPAddress,
-                                       dnsServer.Port
-                                   ),
-                                   dnsQuery.TransactionId,
-                                   QueryTimeout
-                               );
-
-                    }
-                    catch
-                    {
-                        // A SocketException might be thrown after the timeout was reached!
-                        //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
-                        return DNSInfo.TimedOut(
-                                   new DNSServerConfig(
-                                       dnsServer.IPAddress,
-                                       dnsServer.Port
-                                   ),
-                                   dnsQuery.TransactionId,
-                                   QueryTimeout
-                               );
-                    }
-                    finally
-                    {
-                        socket?.Shutdown(SocketShutdown.Both);
-                    }
-
-                    return DNSInfo.ReadResponse(
-                               dnsServer,
-                               dnsQuery.TransactionId,
-                               new MemoryStream(data)
-                           );
-
-                },
-                TaskCreationOptions.AttachedToParent,
-                CancellationToken)
+                QueryDNSServerAsync(dnsServer, dnsQuery, effectiveTimeout, raceCTS.Token)
 
             ).ToList();
 
@@ -492,7 +442,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     try
                     {
 
-                        // Return first/fastest reply
                         var firstResponseTask = await Task.WhenAny(allDNSServerRequests).
                                                           ConfigureAwait(false);
 
@@ -501,7 +450,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         firstResponse = await firstResponseTask.
                                                 ConfigureAwait(false);
 
-                        // Cache first useful response...
                         if (firstResponse?.ResponseCode == DNSResponseCodes.NoError)
                         {
 
@@ -509,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             {
                                 AddToCache(
                                     domainNameGroup.Key,
-                                    firstResponse // Records should perhaps be filtered!
+                                    firstResponse
                                 );
                             }
 
@@ -517,12 +465,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         }
 
+                        if (firstResponse?.ResponseCode is DNSResponseCodes.NameError or
+                                                            DNSResponseCodes.Refused)
+                        {
+
+                            AddToCache(
+                                DNSServiceName,
+                                firstResponse
+                            );
+
+                            break;
+
+                        }
+
+                    }
+                    catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested)
+                    {
+                        throw;
                     }
                     catch
                     { }
 
                 }
                 while (allDNSServerRequests.Count > 0);
+
+                // Cancel remaining in-flight requests
+                await raceCTS.CancelAsync();
 
             }
 
@@ -550,6 +518,227 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+
+        #region (private) QueryDNSServerAsync(DNSServer, DNSQuery, Timeout, CancellationToken)
+
+        private async Task<DNSInfo> QueryDNSServerAsync(DNSServerConfig    DNSServer,
+                                                        DNSPacket          DNSQuery,
+                                                        TimeSpan           Timeout,
+                                                        CancellationToken  CancellationToken)
+        {
+
+            Socket? socket = null;
+
+            try
+            {
+
+                var serverAddress  = System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString());
+                var endPoint       = new IPEndPoint(serverAddress, DNSServer.Port.ToInt32());
+
+                socket             = DNSServer.IPAddress.IsIPv4
+                                         ? new Socket(AddressFamily.InterNetwork,   SocketType.Dgram, ProtocolType.Udp)
+                                         : new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+
+                using var timeoutCTS  = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                timeoutCTS.CancelAfter(Timeout);
+
+                await socket.ConnectAsync(endPoint, timeoutCTS.Token).
+                             ConfigureAwait(false);
+
+                using var ms = new MemoryStream();
+                DNSQuery.Serialize(ms, false, []);
+
+                await socket.SendToAsync(ms.ToArray(), SocketFlags.None, endPoint, timeoutCTS.Token).
+                             ConfigureAwait(false);
+
+                var data      = new Byte[4096];
+                var received  = await socket.ReceiveAsync(data, SocketFlags.None, timeoutCTS.Token).
+                                             ConfigureAwait(false);
+
+                var response = DNSInfo.ReadResponse(
+                                  DNSServer,
+                                  DNSQuery.TransactionId,
+                                  new MemoryStream(data, 0, received)
+                              );
+
+                // RFC 5966: If the UDP response is truncated, retry via TCP
+                if (response.IsTruncated)
+                    return await QueryDNSServerViaTCPAsync(DNSServer, DNSQuery, Timeout, CancellationToken).
+                                     ConfigureAwait(false);
+
+                return response;
+
+            }
+            catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
+            {
+
+                return new DNSInfo(
+                           Origin:                 new DNSServerConfig(
+                                                       DNSServer.IPAddress,
+                                                       DNSServer.Port
+                                                   ),
+                           QueryId:                DNSQuery.TransactionId,
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       false,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.ServerFailure,
+                           Answers:                [],
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                Timeout
+                       );
+
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               DNSServer.IPAddress,
+                               DNSServer.Port
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            catch
+            {
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               DNSServer.IPAddress,
+                               DNSServer.Port
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            finally
+            {
+                socket?.Dispose();
+            }
+
+        }
+
+        #endregion
+
+        #region (private) QueryDNSServerViaTCPAsync(DNSServer, DNSQuery, Timeout, CancellationToken)
+
+        /// <summary>
+        /// TCP fallback for truncated UDP responses (RFC 5966).
+        /// </summary>
+        private async Task<DNSInfo> QueryDNSServerViaTCPAsync(DNSServerConfig    DNSServer,
+                                                               DNSPacket          DNSQuery,
+                                                               TimeSpan           Timeout,
+                                                               CancellationToken  CancellationToken)
+        {
+
+            Socket? socket = null;
+
+            try
+            {
+
+                var serverAddress  = System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString());
+                var endPoint       = new IPEndPoint(serverAddress, DNSServer.Port.ToInt32());
+
+                socket             = DNSServer.IPAddress.IsIPv4
+                                         ? new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp)
+                                         : new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+
+                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                timeoutCTS.CancelAfter(Timeout);
+
+                await socket.ConnectAsync(endPoint, timeoutCTS.Token).
+                             ConfigureAwait(false);
+
+                using var networkStream = new NetworkStream(socket, ownsSocket: false);
+
+                // TCP DNS: 2-byte length prefix (RFC 1035 Section 4.2.2)
+                using var ms = new MemoryStream();
+                ms.WriteByte(0);
+                ms.WriteByte(0);
+                DNSQuery.Serialize(ms, false, []);
+                var data       = ms.ToArray();
+                var dataLength = data.Length - 2;
+                data[0] = (Byte) (dataLength >> 8);
+                data[1] = (Byte) (dataLength & 0xFF);
+
+                await networkStream.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
+                await networkStream.FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+
+                var responseLength = await networkStream.ReadUInt16BEAsync(timeoutCTS.Token).
+                                                         ConfigureAwait(false);
+
+                var buffer    = new Byte[responseLength];
+                var totalRead = 0;
+
+                while (totalRead < responseLength)
+                {
+
+                    var bytesRead = await networkStream.ReadAsync(
+                                              buffer.AsMemory(totalRead, responseLength - totalRead),
+                                              timeoutCTS.Token
+                                          ).ConfigureAwait(false);
+
+                    if (bytesRead == 0)
+                        break;
+
+                    totalRead += bytesRead;
+
+                }
+
+                return DNSInfo.ReadResponse(
+                           new DNSServerConfig(
+                               DNSServer.IPAddress,
+                               DNSServer.Port,
+                               DNSTransport.TCP,
+                               Timeout
+                           ),
+                           DNSQuery.TransactionId,
+                           new MemoryStream(buffer, 0, totalRead)
+                       );
+
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               DNSServer.IPAddress,
+                               DNSServer.Port
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            catch
+            {
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               DNSServer.IPAddress,
+                               DNSServer.Port
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            finally
+            {
+                socket?.Dispose();
+            }
+
+        }
+
+        #endregion
 
 
         #region Google DNS
@@ -641,6 +830,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             if (!disposedValue)
             {
+                if (Disposing)
+                    DNSCache.Dispose();
+
                 disposedValue = true;
             }
         }
@@ -653,7 +845,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public ValueTask DisposeAsync()
         {
-            Dispose(Disposing: false);
+            Dispose(Disposing: true);
             GC.SuppressFinalize(this);
             return default;
         }

@@ -167,86 +167,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Byte[] Serialize()
         {
 
-            var rrBytes = new List<byte>();
+            var rrBytes = new List<Byte> {
 
-            // Name: Root domain (empty label followed by 0)
-            rrBytes.Add(0x00);  // End of domain name
+                              // Name: Root domain (empty label followed by 0)
+                              0x00,                // End of domain name
 
-            // Type: OPT (41)
-            rrBytes.Add((byte)(41 >> 8));  // 0x00
-            rrBytes.Add((byte)(41 & 0xFF));  // 0x29
+                              // Type: OPT (41)
+                              (Byte) (41 >> 8),    // 0x00
+                              (Byte) (41 & 0xFF),  // 0x29
 
-            // Class: UDP payload size
-            rrBytes.Add((byte) (UDPPayloadSize >> 8));
-            rrBytes.Add((byte) (UDPPayloadSize & 0xFF));
+                              // Class: UDP payload size
+                              (Byte) (UDPPayloadSize >> 8),
+                              (Byte) (UDPPayloadSize & 0xFF),
 
-            // TTL: Encoded extended RCODE, version, flags
-            rrBytes.Add(ExtendedRCODE);
-            rrBytes.Add(Version);
+                              // TTL: Encoded extended RCODE, version, flags
+                              ExtendedRCODE,
+                              Version,
+                              (Byte) (Flags >> 8),
+                              (Byte) (Flags & 0xFF)
 
-            rrBytes.Add((byte)(Flags >> 8));
-            rrBytes.Add((byte)(Flags & 0xFF));
+                          };
 
             // RDLength: Total length of options
-            UInt16 rdLength = (UInt16)Options.Sum(opt => 4 + opt.Length);
-            rrBytes.Add((byte)(rdLength >> 8));
-            rrBytes.Add((byte)(rdLength & 0xFF));
+            UInt16 rdLength = (UInt16) Options.Sum(opt => 4 + opt.Length);
+            rrBytes.Add((Byte) (rdLength >> 8));
+            rrBytes.Add((Byte) (rdLength & 0xFF));
 
             foreach (var opt in Options)
             {
 
-                rrBytes.Add((byte) (opt.Code   >>    8));
-                rrBytes.Add((byte) (opt.Code   &  0xFF));
+                rrBytes.Add((Byte) (opt.Code   >>    8));
+                rrBytes.Add((Byte) (opt.Code   &  0xFF));
 
-                rrBytes.Add((byte) (opt.Length >>    8));
-                rrBytes.Add((byte) (opt.Length &  0xFF));
+                rrBytes.Add((Byte) (opt.Length >>    8));
+                rrBytes.Add((Byte) (opt.Length &  0xFF));
 
                 rrBytes.AddRange(opt.Data);
 
             }
 
-            return rrBytes.ToArray();
+            return [.. rrBytes];
 
         }
 
-        public void Serialize(Stream                      stream,
+        public void Serialize(Stream                      Stream,
                               Boolean                     UseCompression       = true,
                               Dictionary<String, Int32>?  CompressionOffsets   = null)
         {
 
             // Name: Root domain (empty label followed by 0)
-            stream.WriteByte(0x00);  // End of domain name
+            Stream.WriteByte(0x00);  // End of domain name
 
             // Type: OPT (41)
-            stream.WriteByte((Byte) (41 >>    8));  // 0x00
-            stream.WriteByte((Byte) (41 &  0xFF));  // 0x29
+            Stream.WriteByte((Byte) (41 >>    8));  // 0x00
+            Stream.WriteByte((Byte) (41 &  0xFF));  // 0x29
 
             // Class: UDP payload size
-            stream.WriteByte((Byte) (UDPPayloadSize >> 8));
-            stream.WriteByte((Byte) (UDPPayloadSize & 0xFF));
+            Stream.WriteByte((Byte) (UDPPayloadSize >> 8));
+            Stream.WriteByte((Byte) (UDPPayloadSize & 0xFF));
 
             // TTL: Encoded extended RCODE, version, flags
-            stream.WriteByte(ExtendedRCODE);
-            stream.WriteByte(Version);
+            Stream.WriteByte(ExtendedRCODE);
+            Stream.WriteByte(Version);
 
-            stream.WriteByte((Byte) (Flags >> 8));
-            stream.WriteByte((Byte) (Flags & 0xFF));
+            Stream.WriteByte((Byte) (Flags >> 8));
+            Stream.WriteByte((Byte) (Flags & 0xFF));
 
             // RDLength: Total length of options
             UInt16 rdLength = (UInt16) Options.Sum(opt => 4 + opt.Length);
-            stream.WriteByte((Byte)  (rdLength >> 8));
-            stream.WriteByte((Byte)  (rdLength & 0xFF));
+            Stream.WriteByte((Byte)  (rdLength >> 8));
+            Stream.WriteByte((Byte)  (rdLength & 0xFF));
 
             foreach (var opt in Options)
             {
 
-                stream.WriteByte((Byte) (opt.Code >> 8));
-                stream.WriteByte((Byte) (opt.Code & 0xFF));
+                Stream.WriteByte((Byte) (opt.Code >> 8));
+                Stream.WriteByte((Byte) (opt.Code & 0xFF));
 
-                stream.WriteByte((Byte) (opt.Length >> 8));
-                stream.WriteByte((Byte) (opt.Length & 0xFF));
+                Stream.WriteByte((Byte) (opt.Length >> 8));
+                Stream.WriteByte((Byte) (opt.Length & 0xFF));
 
-                stream.Write(opt.Data, 0, opt.Data.Length);
+                Stream.Write(opt.Data, 0, opt.Data.Length);
 
             }
 

@@ -31,8 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// A DNS TLS client for a single DNS server.
-    /// Requests will be pipelined when the server supports it.
+    /// A DNS TLS client (DNS-over-TLS) for a single DNS server.
+    /// Reuses the TLS connection across queries; concurrent callers
+    /// are serialized via an internal semaphore.
     /// </summary>
     public class DNSTLSClient : ATLSClient,
                                 IDNSClient2
@@ -44,6 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The default DNS query timeout.
         /// </summary>
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
+
+        private readonly SemaphoreSlim tlsStreamLock = new(1, 1);
 
         #endregion
 
@@ -130,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
+                   BufferSize ?? 4096,
 
                    DisableLogging)
 
@@ -210,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
+                   BufferSize ?? 4096,
 
                    DisableLogging,
                    DNSClient)
@@ -271,63 +274,128 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
+                               0,
                                this.RecursionDesired ?? RecursionDesired ?? true,
                                [.. resourceRecordTypes]
                            );
 
 
-            var ms = new MemoryStream();
-            ms.WriteByte(0);
-            ms.WriteByte(0);
-            dnsQuery.Serialize(ms, false, []);
+            Byte[] data;
 
-            if (!IsConnected || tcpClient is null)
-                await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+            using (var ms = new MemoryStream())
+            {
+                ms.WriteByte(0);
+                ms.WriteByte(0);
+                dnsQuery.Serialize(ms, false, []);
+                data = ms.ToArray();
+            }
 
-            var data        = ms.ToArray();
-            var dataLength  = data.Length-2;
+            var dataLength  = data.Length - 2;
             data[0] = (Byte) (dataLength >> 8);
             data[1] = (Byte) (dataLength & 0xFF);
 
-            #region TLS
+            #region TLS (serialized via semaphore, auto-reconnect on broken connection)
+
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+
+            await tlsStreamLock.WaitAsync(CancellationToken).
+                                ConfigureAwait(false);
 
             try
             {
 
+                if (!IsConnected || tcpClient is null)
+                    await ReconnectAsync(CancellationToken).
+                              ConfigureAwait(false);
+
                 var stopwatch = Stopwatch.StartNew();
                 clientCancellationTokenSource ??= new CancellationTokenSource();
 
-                // Send the data
-                await tlsStream.WriteAsync(data, clientCancellationTokenSource.Token).ConfigureAwait(false);
-                await tlsStream.FlushAsync(clientCancellationTokenSource.Token).      ConfigureAwait(false);
+                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
+                                           clientCancellationTokenSource.Token,
+                                           CancellationToken
+                                       );
+                timeoutCTS.CancelAfter(effectiveTimeout);
 
-                var responseLength = tlsStream.ReadUInt16BE();
+                try
+                {
+                    await tlsStream!.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
+                    await tlsStream. FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                }
+                catch (IOException)
+                {
+                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
 
-                using var responseStream = new MemoryStream();
+                    await tlsStream!.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
+                    await tlsStream. FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+                }
+
+                var responseLength = await tlsStream.ReadUInt16BEAsync(timeoutCTS.Token).
+                                                     ConfigureAwait(false);
+
                 var buffer    = new Byte[responseLength];
-                var bytesRead = await tlsStream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false);
+                var totalRead = 0;
+
+                while (totalRead < responseLength)
+                {
+
+                    var bytesRead = await tlsStream.ReadAsync(
+                                              buffer.AsMemory(totalRead, responseLength - totalRead),
+                                              timeoutCTS.Token
+                                          ).ConfigureAwait(false);
+
+                    if (bytesRead == 0)
+                        break;
+
+                    totalRead += bytesRead;
+
+                }
 
                 stopwatch.Stop();
 
+                return DNSInfo.ReadResponse(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS,
+                               DNSTransport.TLS,
+                               effectiveTimeout
+                           ),
+                           dnsQuery.TransactionId,
+                           new MemoryStream(buffer, 0, totalRead)
+                       );
 
-                var dnsInfo  = DNSInfo.ReadResponse(
-                                   new DNSServerConfig(
-                                       RemoteIPAddress!,
-                                       RemotePort ?? IPPort.DNS,
-                                       DNSTransport.TLS,
-                                       QueryTimeout
-                                   ),
-                                   dnsQuery.TransactionId,
-                                   new MemoryStream(buffer)
-                               );
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
 
-                return dnsInfo;
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS_TLS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
 
             }
             catch (Exception ex)
             {
+
                 await Log($"Error in SendBinary: {ex.Message}");
-                return null;
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS_TLS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
+            }
+            finally
+            {
+                tlsStreamLock.Release();
             }
 
             #endregion
@@ -809,6 +877,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => $"Using DNS server: {RemoteIPAddress}:{RemotePort}";
 
         #endregion
+
+
+        public override async ValueTask DisposeAsync()
+        {
+            tlsStreamLock.Dispose();
+            await base.DisposeAsync();
+        }
 
 
     }

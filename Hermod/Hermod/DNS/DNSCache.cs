@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
@@ -31,13 +30,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A cache for DNS entries.
     /// </summary>
-    public class DNSCache
+    public class DNSCache : IDisposable
     {
 
         #region Data
 
-        private readonly ConcurrentDictionary<DNSServiceName, DNSCacheEntry>  dnsCache = [];
+        private readonly ConcurrentDictionary<DNSServiceName, DNSCacheEntry>  dnsCache       = [];
         private readonly Timer                                                cleanUpTimer;
+        private readonly Object                                               cleanUpLock    = new();
 
         #endregion
 
@@ -55,7 +55,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             dnsCache.TryAdd(
                 DNSServiceName.Parse(DomainName.Localhost.FullName),
                 new DNSCacheEntry(
-                    RefreshTime:  Timestamp.Now,
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
                     DNSInfo:      new DNSInfo(
                                       Origin:                 new DNSServerConfig(
@@ -86,9 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #region Cache "loopback"
 
             dnsCache.TryAdd(
-                DNSServiceName.Parse(DomainName.Localhost.FullName),
+                DNSServiceName.Parse(DomainName.Loopback.FullName),
                 new DNSCacheEntry(
-                    RefreshTime:  Timestamp.Now,
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
                     DNSInfo:      new DNSInfo(
                                       Origin:                 new DNSServerConfig(
@@ -132,37 +130,94 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Add(DomainName, DNSInformation)
 
         /// <summary>
+        /// The default TTL for negative cache entries (NXDOMAIN, etc.).
+        /// RFC 2308 recommends caching for the SOA minimum TTL, but since
+        /// we may not have that, we use a conservative default.
+        /// </summary>
+        public static readonly TimeSpan  DefaultNegativeCacheTTL   = TimeSpan.FromMinutes(5);
+
+        /// <summary>
         /// Add the given DNS information to the DNS cache.
+        /// Supports negative caching (NXDOMAIN) and merging of answers
+        /// when an entry for the same domain already exists.
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
         /// <param name="DNSInformation">The DNS information to add.</param>
         public DNSCache Add(DNSServiceName  DomainName,
-                            DNSInfo     DNSInformation)
+                            DNSInfo         DNSInformation)
         {
 
-            if (!dnsCache.TryAdd(
-                    DomainName,
-                    new DNSCacheEntry(
-                        Timestamp.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                        Timestamp.Now + DNSInformation.Answers.First().TimeToLive,
-                        DNSInformation
-                    )
-               ))
+            #region Negative caching (NXDOMAIN, Refused, etc.)
+
+            if (!DNSInformation.Answers.Any())
             {
 
-                if (DNSInformation.Answers.Any())
+                if (DNSInformation.ResponseCode is DNSResponseCodes.NameError or
+                                                    DNSResponseCodes.Refused)
                 {
 
-                    // ToDo: Merge of DNS responses!
+                    var negativeTTL = DNSInformation.Authorities.
+                                          OfType<SOA>().
+                                          Select(soa => soa.TimeToLive).
+                                          FirstOrDefault(DefaultNegativeCacheTTL);
+
                     dnsCache[DomainName] = new DNSCacheEntry(
-                                               Timestamp.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                               Timestamp.Now + DNSInformation.Answers.First().TimeToLive,
+                                               Timestamp.Now + negativeTTL,
                                                DNSInformation
                                            );
 
                 }
 
-                // ToDo: Add negative answers to avoid asking again and again...
+                return this;
+
+            }
+
+            #endregion
+
+            var endOfLife = Timestamp.Now + DNSInformation.Answers.Min(a => a.TimeToLive);
+
+            if (!dnsCache.TryAdd(
+                    DomainName,
+                    new DNSCacheEntry(
+                        endOfLife,
+                        DNSInformation
+                    )
+               ))
+            {
+
+                #region Merge answers into existing cache entry
+
+                var existingEntry = dnsCache[DomainName];
+
+                var newAnswerTypes = DNSInformation.Answers.
+                                        Select(a => a.Type).
+                                        ToHashSet();
+
+                var mergedAnswers = existingEntry.DNSInfo.Answers.
+                                        Where(a => !newAnswerTypes.Contains(a.Type)).
+                                        Concat(DNSInformation.Answers).
+                                        ToArray();
+
+                dnsCache[DomainName] = new DNSCacheEntry(
+                                           endOfLife,
+                                           new DNSInfo(
+                                               DNSInformation.Origin,
+                                               DNSInformation.QueryId,
+                                               DNSInformation.AuthoritativeAnswer,
+                                               DNSInformation.IsTruncated,
+                                               DNSInformation.RecursionRequested,
+                                               DNSInformation.RecursionAvailable,
+                                               DNSInformation.ResponseCode,
+                                               mergedAnswers,
+                                               DNSInformation.Authorities,
+                                               DNSInformation.AdditionalRecords,
+                                               DNSInformation.IsValid,
+                                               DNSInformation.IsTimeout,
+                                               DNSInformation.Timeout
+                                           )
+                                       );
+
+                #endregion
 
             }
 
@@ -208,7 +263,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!dnsCache.TryAdd(
                               DomainName,
                               new DNSCacheEntry(
-                                  Timestamp.Now + TimeSpan.FromSeconds(ResourceRecords.Min(rr => rr.TimeToLive.TotalSeconds) / 2),
                                   Timestamp.Now + ResourceRecords.Min(rr => rr.TimeToLive),
                                   new DNSInfo(
                                       Origin:                 Origin,
@@ -236,6 +290,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return this;
 
         }
+
+        #endregion
+
+
+        #region Remove(DomainName)
+
+        /// <summary>
+        /// Remove a cached DNS entry by its domain name.
+        /// </summary>
+        /// <param name="DomainName">The domain name to remove.</param>
+        public Boolean Remove(DomainName DomainName)
+
+            => dnsCache.TryRemove(
+                   DNSServiceName.Parse(DomainName.FullName),
+                   out _
+               );
+
+        #endregion
+
+        #region Remove(DNSServiceName)
+
+        /// <summary>
+        /// Remove a cached DNS entry by its DNS service name.
+        /// </summary>
+        /// <param name="DNSServiceName">The DNS service name to remove.</param>
+        public Boolean Remove(DNSServiceName DNSServiceName)
+
+            => dnsCache.TryRemove(
+                   DNSServiceName,
+                   out _
+               );
 
         #endregion
 
@@ -287,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private void RemoveExpiredCacheEntries(Object? State)
         {
 
-            if (Monitor.TryEnter(dnsCache))
+            if (Monitor.TryEnter(cleanUpLock))
             {
 
                 try
@@ -315,11 +400,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 finally
                 {
-                    Monitor.Exit(dnsCache);
+                    Monitor.Exit(cleanUpLock);
                 }
 
             }
 
+        }
+
+        #endregion
+
+
+        #region Dispose()
+
+        /// <summary>
+        /// Dispose the DNS cache and its cleanup timer.
+        /// </summary>
+        public void Dispose()
+        {
+            cleanUpTimer.Dispose();
         }
 
         #endregion

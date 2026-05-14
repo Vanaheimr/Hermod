@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
+                   BufferSize ?? 4096,
 
                    true,
                    true,
@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 512,
+                   BufferSize ?? 4096,
 
                    true,
                    true,
@@ -347,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize  ?? 512,
+                   BufferSize  ?? 4096,
 
                    true,  // ConsumeRequestChunkedTEImmediately
                    true,  // ConsumeResponseChunkedTEImmediately
@@ -529,8 +529,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                          );
 
-            await client.ConnectAsync();
-
             var response = await client.ConnectAsync();
 
             return (client, response);
@@ -625,6 +623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery  = DNSPacket.Query(
                                 DNSServiceName,
+                                0,
                                 this.RecursionDesired ?? RecursionDesired ?? true,
                                 [.. resourceRecordTypes]
                             );
@@ -634,21 +633,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!IsConnected || tcpClient is null)
                 await ReconnectAsync(CancellationToken).ConfigureAwait(false);
 
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+
             try
             {
 
                 var stopwatch = Stopwatch.StartNew();
                 clientCancellationTokenSource ??= new CancellationTokenSource();
 
-                var httpRequestBuilder = DefaultRequestBuilder(this);// {
-                                             //Host:   RemoteURL.Value.Hostname
-                                         //};
+                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
+                                           clientCancellationTokenSource.Token,
+                                           CancellationToken
+                                       );
+                timeoutCTS.CancelAfter(effectiveTimeout);
+
+                var httpRequestBuilder = DefaultRequestBuilder(this);
 
                 httpRequestBuilder.SetHost(RemoteURL.Hostname);
 
                 if (Mode == DNSHTTPSMode.GET)
                 {
-                    // GET https://dns.google/dns-query?dns=fZABAAABAAAAAAAACGNoYXJnaW5nBWNsb3VkAAABAAE
                     httpRequestBuilder.HTTPMethod     = HTTPMethod.GET;
                     httpRequestBuilder.Path           = RemoteURL.Path;
                     httpRequestBuilder.Accept         = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.DNSMessage);
@@ -656,7 +660,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
                 else if (Mode == DNSHTTPSMode.POST)
                 {
-                    // POST https://dns.google/dns-query
                     httpRequestBuilder.HTTPMethod     = HTTPMethod.POST;
                     httpRequestBuilder.Path           = RemoteURL.Path;
                     httpRequestBuilder.Accept         = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.DNSMessage);
@@ -669,48 +672,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     throw new ArgumentException($"Unsupported DNS HTTPS mode: {Mode}");
                 }
 
-                var httpResponse  = await SendRequest(
-                                              httpRequestBuilder.AsImmutable,
-                                              true,
-                                              HTTPRequestLogDelegate,
-                                              HTTPResponseLogDelegate,
-                                              CancellationToken: CancellationToken
-                                          );
+                var httpRequest = httpRequestBuilder.AsImmutable;
+
+                HTTPResponse httpResponse;
+
+                try
+                {
+                    httpResponse = await SendRequest(
+                                             httpRequest,
+                                             true,
+                                             HTTPRequestLogDelegate,
+                                             HTTPResponseLogDelegate,
+                                             CancellationToken: timeoutCTS.Token
+                                         );
+                }
+                catch (IOException)
+                {
+                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+
+                    httpResponse = await SendRequest(
+                                             httpRequest,
+                                             true,
+                                             HTTPRequestLogDelegate,
+                                             HTTPResponseLogDelegate,
+                                             CancellationToken: timeoutCTS.Token
+                                         );
+                }
 
                 stopwatch.Stop();
 
-                // GET /dns-query?dns=9q8BAAABAAAAAAAACGNoYXJnaW5nBWNsb3VkAAABAAE HTTP/1.1
-                // Accept:      application/dns-message; charset=utf-8; q=1
-                // Host:        one.one.one.one
-                // User-Agent:  Hermod DNS HTTP Test Client
-                // Connection:  keep-alive
+                return DNSInfo.ReadResponse(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.HTTPS,
+                               DNSTransport.HTTPS,
+                               effectiveTimeout
+                           ),
+                           dnsQuery.TransactionId,
+                           new MemoryStream(httpResponse.HTTPBody ?? [])
+                       );
 
-                // HTTP/1.1 200 OK
-                // X-Content-Type-Options:       nosniff
-                // Strict-Transport-Security:    max-age=31536000; includeSubDomains; preload
-                // Access-Control-Allow-Origin:  *
-                // Date:                         Sat, 02 Aug 2025 22:32:12 GMT
-                // Expires:                      Sat, 02 Aug 2025 22:32:12 GMT
-                // Cache-Control:                private, max-age=3600
-                // Content-Type:                 application/dns-message
-                // Server:                       HTTP server (unknown)
-                // Content-Length:               48
-                // X-XSS-Protection:             0
-                // X-Frame-Options:              SAMEORIGIN
-                // Alt-Svc:                      h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
 
-                var dnsInfo  = DNSInfo.ReadResponse(
-                                   new DNSServerConfig(
-                                       RemoteIPAddress!,
-                                       RemotePort ?? IPPort.DNS,
-                                       DNSTransport.HTTPS,
-                                       QueryTimeout
-                                   ),
-                                   dnsQuery.TransactionId,
-                                   new MemoryStream(httpResponse.HTTPBody ?? [])
-                               );
-
-                return dnsInfo;
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.HTTPS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
 
             }
             catch (Exception ex)
@@ -718,7 +731,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 await Log($"Error in {nameof(QueryHTTP)}: {ex.Message}");
 
-                return null;
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.HTTPS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
 
             }
 

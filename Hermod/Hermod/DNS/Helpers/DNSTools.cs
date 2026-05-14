@@ -270,6 +270,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
+        public static async Task<UInt16> ReadUInt16BEAsync(this Stream       stream,
+                                                           CancellationToken  CancellationToken = default)
+        {
+
+            var buffer    = new Byte[2];
+            var totalRead = 0;
+
+            while (totalRead < buffer.Length)
+            {
+
+                var bytesRead = await stream.ReadAsync(
+                                          buffer.AsMemory(totalRead, buffer.Length - totalRead),
+                                          CancellationToken
+                                      ).ConfigureAwait(false);
+
+                if (bytesRead == 0)
+                    throw new EndOfStreamException("Unable to read 2 bytes for UInt16");
+
+                totalRead += bytesRead;
+
+            }
+
+            return BinaryPrimitives.ReadUInt16BigEndian(buffer);
+
+        }
+
         public static UInt32 ReadUInt32BE(this Stream stream)
         {
 

@@ -67,6 +67,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Boolean?    RecursionDesired    { get; set; }
 
         /// <summary>
+        /// The default EDNS0 UDP payload size to advertise in DNS queries.
+        /// </summary>
+        public UInt16      UDPPayloadSize      { get; } = DNSPacket.DefaultUDPPayloadSize;
+
+        /// <summary>
         /// The DNS query timeout.
         /// </summary>
         public TimeSpan    QueryTimeout        { get; set; }
@@ -161,6 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.RemoteIPAddress   = IPAddress;
             this.RemotePort        = Port             ?? IPPort.DNS;
+            this.RemoteURL         = URL.Parse($"dns://{IPAddress}:{this.RemotePort}");
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? DefaultQueryTimeout;
 
@@ -191,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
         #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
-         
+
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
@@ -252,102 +258,224 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
+                               UDPPayloadSize,
                                this.RecursionDesired ?? RecursionDesired ?? true,
                                [.. resourceRecordTypes]
                            );
 
-            #region Query all DNS server(s) in parallel...
-
-            var data = new Byte[512];
-            Int32  length;
-            Socket? socket = null;
+            var effectiveTimeout  = Timeout ?? QueryTimeout;
+            Socket? socket        = null;
 
             try
             {
 
                 var serverAddress      = System.Net.IPAddress.Parse(RemoteIPAddress.ToString());
                 CurrentRemoteEndPoint  = new IPEndPoint(serverAddress, (RemotePort ?? IPPort.DNS).ToInt32());
-                var endPoint           = (EndPoint) CurrentRemoteEndPoint;
-                socket                 = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
-                socket.Connect(endPoint);
 
-                CurrentLocalEndPoint   = endPoint as IPEndPoint;
+                socket                 = RemoteIPAddress.IsIPv4
+                                             ? new Socket(AddressFamily.InterNetwork,   SocketType.Dgram, ProtocolType.Udp)
+                                             : new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
 
-                var ms = new MemoryStream();
+                using var timeoutCTS   = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                timeoutCTS.CancelAfter(effectiveTimeout);
+
+                await socket.ConnectAsync(CurrentRemoteEndPoint, timeoutCTS.Token).
+                             ConfigureAwait(false);
+
+                CurrentLocalEndPoint   = socket.LocalEndPoint as IPEndPoint;
+
+                using var ms = new MemoryStream();
                 dnsQuery.Serialize(ms, false, []);
 
-                socket.SendTo(ms.ToArray(), endPoint);
+                await socket.SendToAsync(ms.ToArray(), SocketFlags.None, CurrentRemoteEndPoint, timeoutCTS.Token).
+                             ConfigureAwait(false);
 
-                length = socket.ReceiveFrom(data, ref endPoint);
+                var data      = new Byte[4096];
+                var received  = await socket.ReceiveAsync(data, SocketFlags.None, timeoutCTS.Token).
+                                             ConfigureAwait(false);
+
+                var response = DNSInfo.ReadResponse(
+                                  new DNSServerConfig(
+                                      RemoteIPAddress!,
+                                      RemotePort ?? IPPort.DNS,
+                                      DNSTransport.UDP,
+                                      effectiveTimeout
+                                  ),
+                                  dnsQuery.TransactionId,
+                                  new MemoryStream(data, 0, received)
+                              );
+
+                // RFC 5966: If the UDP response is truncated, retry via TCP
+                if (response.IsTruncated)
+                    return await QueryViaTCPFallbackAsync(dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                                     ConfigureAwait(false);
+
+                return response;
 
             }
-            catch (SocketException se)
+            catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
             {
 
-                if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
-                    return new DNSInfo(
-                                Origin:                 new DNSServerConfig(
-                                                            RemoteIPAddress,
-                                                            RemotePort ?? IPPort.DNS
-                                                        ),
-                                QueryId:                dnsQuery.TransactionId,
-                                IsAuthoritativeAnswer:  false,
-                                IsTruncated:            false,
-                                RecursionDesired:       false,
-                                RecursionAvailable:     false,
-                                ResponseCode:           DNSResponseCodes.ServerFailure,
-                                Answers:                [],
-                                Authorities:            [],
-                                AdditionalRecords:      [],
-                                IsValid:                true,
-                                IsTimeout:              false,
-                                Timeout:                QueryTimeout
-                            );
+                return new DNSInfo(
+                           Origin:                 new DNSServerConfig(
+                                                       RemoteIPAddress,
+                                                       RemotePort ?? IPPort.DNS
+                                                   ),
+                           QueryId:                dnsQuery.TransactionId,
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       false,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.ServerFailure,
+                           Answers:                [],
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                effectiveTimeout
+                       );
 
-                // A SocketException might be thrown after the timeout was reached!
-                //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
+
                 return DNSInfo.TimedOut(
-                            new DNSServerConfig(
-                                RemoteIPAddress,
-                                RemotePort ?? IPPort.DNS
-                            ),
-                            dnsQuery.TransactionId,
-                            QueryTimeout
-                        );
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
 
             }
             catch
             {
-                // A SocketException might be thrown after the timeout was reached!
-                //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+
                 return DNSInfo.TimedOut(
-                            new DNSServerConfig(
-                                RemoteIPAddress,
-                                RemotePort ?? IPPort.DNS
-                            ),
-                            dnsQuery.TransactionId,
-                            QueryTimeout
-                        );
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
             }
             finally
             {
-                socket?.Shutdown(SocketShutdown.Both);
+                socket?.Dispose();
             }
 
-            return DNSInfo.ReadResponse(
-                        new DNSServerConfig(
-                            RemoteIPAddress!,
-                            RemotePort ?? IPPort.DNS,
-                            DNSTransport.UDP,
-                            QueryTimeout
-                        ),
-                        dnsQuery.TransactionId,
-                        new MemoryStream(data)
-                    );
+        }
 
-            #endregion
+        #endregion
+
+        #region (private) QueryViaTCPFallbackAsync(DNSQuery, Timeout, CancellationToken)
+
+        /// <summary>
+        /// TCP fallback for truncated UDP responses (RFC 5966).
+        /// </summary>
+        private async Task<DNSInfo> QueryViaTCPFallbackAsync(DNSPacket          DNSQuery,
+                                                              TimeSpan           Timeout,
+                                                              CancellationToken  CancellationToken)
+        {
+
+            Socket? socket = null;
+
+            try
+            {
+
+                var serverAddress  = System.Net.IPAddress.Parse(RemoteIPAddress.ToString());
+                var endPoint       = new IPEndPoint(serverAddress, (RemotePort ?? IPPort.DNS).ToInt32());
+
+                socket             = RemoteIPAddress.IsIPv4
+                                         ? new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp)
+                                         : new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+
+                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                timeoutCTS.CancelAfter(Timeout);
+
+                await socket.ConnectAsync(endPoint, timeoutCTS.Token).
+                             ConfigureAwait(false);
+
+                using var networkStream = new NetworkStream(socket, ownsSocket: false);
+
+                using var ms = new MemoryStream();
+                ms.WriteByte(0);
+                ms.WriteByte(0);
+                DNSQuery.Serialize(ms, false, []);
+                var data       = ms.ToArray();
+                var dataLength = data.Length - 2;
+                data[0] = (Byte) (dataLength >> 8);
+                data[1] = (Byte) (dataLength & 0xFF);
+
+                await networkStream.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
+                await networkStream.FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
+
+                var responseLength = await networkStream.ReadUInt16BEAsync(timeoutCTS.Token).
+                                                         ConfigureAwait(false);
+
+                var buffer    = new Byte[responseLength];
+                var totalRead = 0;
+
+                while (totalRead < responseLength)
+                {
+
+                    var bytesRead = await networkStream.ReadAsync(
+                                              buffer.AsMemory(totalRead, responseLength - totalRead),
+                                              timeoutCTS.Token
+                                          ).ConfigureAwait(false);
+
+                    if (bytesRead == 0)
+                        break;
+
+                    totalRead += bytesRead;
+
+                }
+
+                return DNSInfo.ReadResponse(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS,
+                               DNSTransport.TCP,
+                               Timeout
+                           ),
+                           DNSQuery.TransactionId,
+                           new MemoryStream(buffer, 0, totalRead)
+                       );
+
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            catch
+            {
+
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            finally
+            {
+                socket?.Dispose();
+            }
 
         }
 
@@ -763,7 +891,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public ValueTask DisposeAsync()
         {
-            Dispose(Disposing: false);
+            Dispose(Disposing: true);
             GC.SuppressFinalize(this);
             return default;
         }

@@ -127,6 +127,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public class DNSPacket
     {
 
+        #region Data
+
+        /// <summary>
+        /// The default EDNS0 UDP payload size to advertise in DNS queries.
+        /// </summary>
+        public const UInt16  DefaultUDPPayloadSize = 4096;
+
+        #endregion
+
         #region Properties
 
         public IPSocket                         LocalSocket            { get; }
@@ -207,47 +216,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query(DomainName)
+        #region Query(DomainName, UDPPayloadSize = DefaultUDPPayloadSize)
 
         /// <summary>
         /// Create a new DNS request.
         /// </summary>
         /// <param name="DomainName">The domain name to query.</param>
-        public static DNSPacket Query(DNSServiceName DomainName)
+        /// <param name="UDPPayloadSize">The EDNS0 UDP payload size to advertise. Set to 0 to disable EDNS0.</param>
+        public static DNSPacket Query(DNSServiceName  DomainName,
+                                      UInt16?         UDPPayloadSize = DefaultUDPPayloadSize)
 
             => Query(DomainName,
+                     UDPPayloadSize,
                      true,
                      DNSResourceRecordTypes.Any);
 
         #endregion
 
-        #region Query(DomainName,                   params DNSResourceRecordTypes)
+        #region Query(DomainName, UDPPayloadSize,                   params DNSResourceRecordTypes)
 
         /// <summary>
         /// Create a new DNS request.
         /// </summary>
         /// <param name="DomainName">The domain name to query.</param>
+        /// <param name="UDPPayloadSize">The EDNS0 UDP payload size to advertise. Set to 0 to disable EDNS0.</param>
         /// <param name="DNSResourceRecordTypes">The DNS resource record types to query.</param>
         public static DNSPacket Query(DNSServiceName                   DomainName,
+                                      UInt16                           UDPPayloadSize,
                                       params DNSResourceRecordTypes[]  DNSResourceRecordTypes)
 
             => Query(DomainName,
+                     UDPPayloadSize,
                      true,
                      DNSResourceRecordTypes);
 
         #endregion
 
-        #region Query(DomainName, RecursionDesired, params ResourceRecordTypes)
+        #region Query(DomainName, UDPPayloadSize, RecursionDesired, params ResourceRecordTypes)
+
+        ///// <summary>
+        ///// Create a new DNS request with EDNS0 support (RFC 6891).
+        ///// Advertises a 4096-byte UDP payload size via an OPT pseudo-resource record.
+        ///// </summary>
+        ///// <param name="DomainName">The domain name to query.</param>
+        ///// <param name="RecursionDesired">Whether recursion is desired or not.</param>
+        ///// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
+        //public static DNSPacket Query(DNSServiceName                   DomainName,
+        //                              Boolean                          RecursionDesired,
+        //                              params DNSResourceRecordTypes[]  ResourceRecordTypes)
+
+        //    => Query(DomainName,
+        //             RecursionDesired,
+        //             4096,
+        //             ResourceRecordTypes);
+
+        #endregion
+
+        #region Query(DomainName, UDPPayloadSize, RecursionDesired, ResourceRecordTypes)
 
         /// <summary>
-        /// Create a new DNS request.
+        /// Create a new DNS request with EDNS0 support (RFC 6891).
         /// </summary>
         /// <param name="DomainName">The domain name to query.</param>
+        /// <param name="UDPPayloadSize">The EDNS0 UDP payload size to advertise. Set to 0 to disable EDNS0.</param>
         /// <param name="RecursionDesired">Whether recursion is desired or not.</param>
         /// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
         public static DNSPacket Query(DNSServiceName                   DomainName,
+                                      UInt16?                          UDPPayloadSize,
                                       Boolean                          RecursionDesired,
-                                      //IEnumerable<IDNSResourceRecord>  AdditionalRRs,
                                       params DNSResourceRecordTypes[]  ResourceRecordTypes)
         {
 
@@ -260,9 +296,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 foreach (var resourceRecordType in ResourceRecordTypes)
                     questions.Add(new DNSQuestion(DomainName, resourceRecordType, DNSQueryClasses.IN));
 
+            var additionalRRs = new List<IDNSResourceRecord>();
+
+            if (UDPPayloadSize > 0)
+                additionalRRs.Add(
+                    new OPT(
+                        UDPPayloadSize:  UDPPayloadSize ?? DefaultUDPPayloadSize,
+                        ExtendedRCODE:   0,
+                        Version:         0,
+                        Flags:           0
+                    )
+                );
 
             return new DNSPacket(
-                       TransactionId:         (UInt16) new Random().Next(UInt16.MaxValue),
+                       TransactionId:         (UInt16) Random.Shared.Next(UInt16.MaxValue),
                        QueryOrResponse:       DNSQueryResponse.Query,
                        Opcode:                0x00,
                        AuthoritativeAnswer:   false,
@@ -273,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        Questions:             questions,
                        AnswerRRs:             [],
                        AuthorityRRs:          [],
-                       AdditionalRRs:         []
+                       AdditionalRRs:         additionalRRs
                    );
 
         }
