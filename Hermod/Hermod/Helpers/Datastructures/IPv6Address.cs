@@ -145,17 +145,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region IPv6Address(IPv6Address)
-
-        /// <summary>
-        /// Create a new IPv6 address.
-        /// </summary>
-        public IPv6Address(System.Net.IPAddress IPv6Address)
-            : this(IPv6Address.GetAddressBytes())
-        { }
-
-        #endregion
-
         #region IPv6Address(ByteArray, InterfaceId = null)
 
         /// <summary>
@@ -251,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region GetBytes()
+        #region GetBytes ()
 
         public Byte[] GetBytes()
         {
@@ -268,7 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse   (Text)
+        #region Parse    (Text)
 
         /// <summary>
         /// Parse the given string as an IPv6 address.
@@ -287,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse   (Hostname)
+        #region Parse    (Hostname)
 
         /// <summary>
         /// Parsed the given HTTP hostname as an IPv6 address.
@@ -306,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Text)
+        #region TryParse (Text)
 
         /// <summary>
         /// Try to parse the given text as an IPv6 address.
@@ -324,7 +313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Hostname)
+        #region TryParse (Hostname)
 
         /// <summary>
         /// Try to parse the given text as an IPv6 address.
@@ -342,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Text,       out IPv4Address)
+        #region TryParse (Text,       out IPv4Address)
 
         /// <summary>
         /// Try to parse the given text as an IPv6 address.
@@ -440,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Hostname,   out IPv6Address)
+        #region TryParse (Hostname,   out IPv6Address)
 
         /// <summary>
         /// Try to parse the given HTTP hostname as an IPv6 address.
@@ -453,7 +442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(DomainName, out IPv6Address)
+        #region TryParse (DomainName, out IPv6Address)
 
         /// <summary>
         /// Try to parse the given domain name as an IPv6 address.
@@ -480,7 +469,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region FromIPv4(IPv4Address)
+        #region From     (IPAddress)
+
+        /// <summary>
+        /// Create a new IPv6 address from the given System.Net.IPAddress.
+        /// </summary>
+        public static IPv6Address From(System.Net.IPAddress IPAddress)
+            => new (IPAddress.GetAddressBytes());
+
+        #endregion
+
+        #region FromIPv4 (IPv4Address)
 
         /// <summary>
         /// Create a new IPv6 address by mapping the given IPv4 address to an IPv6 address.

@@ -39,6 +39,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly Timer                                                cleanUpTimer;
         private readonly Object                                               cleanUpLock    = new();
 
+        /// <summary>
+        /// The default interval for removing outdated entries from the DNS cache.
+        /// </summary>
+        public static readonly TimeSpan  DefaultCleanUpEvery       = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The default TTL for negative cache entries (NXDOMAIN, etc.).
+        /// RFC 2308 recommends caching for the SOA minimum TTL, but since
+        /// we may not have that, we use a conservative default.
+        /// </summary>
+        public static readonly TimeSpan  DefaultNegativeCacheTTL   = TimeSpan.FromMinutes(5);
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The interval for removing outdated entries from the DNS cache.
+        /// </summary>
+        public TimeSpan  CleanUpEvery        { get; }
+
+        /// <summary>
+        /// The TTL for negative cache entries (NXDOMAIN, etc.).
+        /// </summary>
+        public TimeSpan  NegativeCacheTTL    { get; }
+
         #endregion
 
         #region Constructor(s)
@@ -47,15 +73,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS cache.
         /// </summary>
         /// <param name="CleanUpEvery">How often to remove outdated entries from DNS cache.</param>
-        public DNSCache(TimeSpan? CleanUpEvery = null)
+        /// <param name="NegativeCacheTTL">The TTL for negative cache entries (NXDOMAIN, etc.).</param>
+        public DNSCache(TimeSpan?  CleanUpEvery       = null,
+                        TimeSpan?  NegativeCacheTTL   = null)
         {
+
+            this.CleanUpEvery      = CleanUpEvery     ?? DefaultCleanUpEvery;
+            this.NegativeCacheTTL  = NegativeCacheTTL ?? DefaultNegativeCacheTTL;
+
+            this.cleanUpTimer      = new Timer(
+                                         RemoveExpiredCacheEntries,
+                                         null,
+                                         // Delayed start...
+                                         CleanUpEvery ?? TimeSpan.FromSeconds(10),
+                                         CleanUpEvery ?? TimeSpan.FromSeconds(10)
+                                     );
 
             #region Cache "localhost"
 
             dnsCache.TryAdd(
-                DNSServiceName.Parse(DomainName.Localhost.FullName),
+
+                DNSServiceName.Parse(
+                    DomainName.Localhost.FullName
+                ),
+
                 new DNSCacheEntry(
+
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
+
                     DNSInfo:      new DNSInfo(
                                       Origin:                 new DNSServerConfig(
                                                                   IPv4Address.Localhost,
@@ -77,6 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       IsTimeout:              false,
                                       Timeout:                TimeSpan.Zero
                                   )
+
                 )
             );
 
@@ -85,9 +131,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #region Cache "loopback"
 
             dnsCache.TryAdd(
-                DNSServiceName.Parse(DomainName.Loopback.FullName),
+
+                DNSServiceName.Parse(
+                    DomainName.Loopback.FullName
+                ),
+
                 new DNSCacheEntry(
+
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
+
                     DNSInfo:      new DNSInfo(
                                       Origin:                 new DNSServerConfig(
                                                                   IPv4Address.Localhost,
@@ -109,32 +161,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       IsTimeout:              false,
                                       Timeout:                TimeSpan.Zero
                                  )
+
                 )
             );
 
             #endregion
-
-            cleanUpTimer  = new Timer(
-                                RemoveExpiredCacheEntries,
-                                null,
-                                // Delayed start...
-                                CleanUpEvery ?? TimeSpan.FromSeconds(10),
-                                CleanUpEvery ?? TimeSpan.FromSeconds(10)
-                            );
 
         }
 
         #endregion
 
 
-        #region Add(DomainName, DNSInformation)
-
-        /// <summary>
-        /// The default TTL for negative cache entries (NXDOMAIN, etc.).
-        /// RFC 2308 recommends caching for the SOA minimum TTL, but since
-        /// we may not have that, we use a conservative default.
-        /// </summary>
-        public static readonly TimeSpan  DefaultNegativeCacheTTL   = TimeSpan.FromMinutes(5);
+        #region Add           (DomainName, DNSInformation)
 
         /// <summary>
         /// Add the given DNS information to the DNS cache.
@@ -153,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 if (DNSInformation.ResponseCode is DNSResponseCodes.NameError or
-                                                    DNSResponseCodes.Refused)
+                                                   DNSResponseCodes.Refused)
                 {
 
                     var negativeTTL = DNSInformation.Authorities.
@@ -174,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
-            var endOfLife = Timestamp.Now + DNSInformation.Answers.Min(a => a.TimeToLive);
+            var endOfLife = Timestamp.Now + DNSInformation.Answers.Min(dnsResourceRecord => dnsResourceRecord.TimeToLive);
 
             if (!dnsCache.TryAdd(
                     DomainName,
@@ -187,35 +225,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 #region Merge answers into existing cache entry
 
-                var existingEntry = dnsCache[DomainName];
+                var existingEntry     = dnsCache[DomainName];
 
-                var newAnswerTypes = DNSInformation.Answers.
-                                        Select(a => a.Type).
-                                        ToHashSet();
+                var newAnswerTypes    = DNSInformation.Answers.
+                                            Select(dnsResourceRecord => dnsResourceRecord.Type).
+                                            ToHashSet();
 
-                var mergedAnswers = existingEntry.DNSInfo.Answers.
-                                        Where(a => !newAnswerTypes.Contains(a.Type)).
-                                        Concat(DNSInformation.Answers).
-                                        ToArray();
+                var mergedAnswers     = existingEntry.DNSInfo.Answers.
+                                            Where (dnsResourceRecord => !newAnswerTypes.Contains(dnsResourceRecord.Type)).
+                                            Concat(DNSInformation.Answers).
+                                            ToArray();
 
-                dnsCache[DomainName] = new DNSCacheEntry(
-                                           endOfLife,
-                                           new DNSInfo(
-                                               DNSInformation.Origin,
-                                               DNSInformation.QueryId,
-                                               DNSInformation.AuthoritativeAnswer,
-                                               DNSInformation.IsTruncated,
-                                               DNSInformation.RecursionRequested,
-                                               DNSInformation.RecursionAvailable,
-                                               DNSInformation.ResponseCode,
-                                               mergedAnswers,
-                                               DNSInformation.Authorities,
-                                               DNSInformation.AdditionalRecords,
-                                               DNSInformation.IsValid,
-                                               DNSInformation.IsTimeout,
-                                               DNSInformation.Timeout
-                                           )
-                                       );
+                dnsCache[DomainName]  = new DNSCacheEntry(
+                                            endOfLife,
+                                            new DNSInfo(
+                                                DNSInformation.Origin,
+                                                DNSInformation.QueryId,
+                                                DNSInformation.AuthoritativeAnswer,
+                                                DNSInformation.IsTruncated,
+                                                DNSInformation.RecursionRequested,
+                                                DNSInformation.RecursionAvailable,
+                                                DNSInformation.ResponseCode,
+                                                mergedAnswers,
+                                                DNSInformation.Authorities,
+                                                DNSInformation.AdditionalRecords,
+                                                DNSInformation.IsValid,
+                                                DNSInformation.IsTimeout,
+                                                DNSInformation.Timeout
+                                            )
+                                        );
 
                 #endregion
 
@@ -227,8 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-
-        #region Add(DomainName,         params ResourceRecords)
+        #region Add           (DomainName,         params ResourceRecords)
 
         /// <summary>
         /// Add the given DNS resource record to the DNS cache.
@@ -238,16 +275,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSCache Add(DNSServiceName               DomainName,
                             params IDNSResourceRecord[]  ResourceRecords)
 
-            => Add(DomainName,
+            => Add(
+                   DomainName,
                    new DNSServerConfig(
                        IPv4Address.Localhost,
                        IPPort.DNS
                     ),
-                   ResourceRecords);
+                   ResourceRecords
+               );
 
         #endregion
 
-        #region Add(DomainName, Origin, params ResourceRecords)
+        #region Add           (DomainName, Origin, params ResourceRecords)
 
         /// <summary>
         /// Add the given DNS resource record to the DNS cache.
@@ -261,30 +300,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             if (!dnsCache.TryAdd(
-                              DomainName,
-                              new DNSCacheEntry(
-                                  Timestamp.Now + ResourceRecords.Min(rr => rr.TimeToLive),
-                                  new DNSInfo(
-                                      Origin:                 Origin,
-                                      QueryId:                Random.Shared.Next(),
-                                      IsAuthoritativeAnswer:  false,
-                                      IsTruncated:            false,
-                                      RecursionDesired:       false,
-                                      RecursionAvailable:     false,
-                                      ResponseCode:           DNSResponseCodes.NoError,
-                                      Answers:                ResourceRecords,
-                                      Authorities:            [],
-                                      AdditionalRecords:      [],
-                                      IsValid:                true,
-                                      IsTimeout:              false,
-                                      Timeout:                TimeSpan.Zero
-                                  )
-                              )
-                          ))
+                   DomainName,
+                   new DNSCacheEntry(
+                       Timestamp.Now + ResourceRecords.Min(dnsResourceRecord => dnsResourceRecord.TimeToLive),
+                       new DNSInfo(
+                           Origin:                 Origin,
+                           QueryId:                Random.Shared.Next(),
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       false,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.NoError,
+                           Answers:                ResourceRecords,
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                TimeSpan.Zero
+                       )
+                   )
+               ))
             {
-
                 dnsCache[DomainName].DNSInfo.AddAnswers(ResourceRecords);
-
             }
 
             return this;
@@ -294,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Remove(DomainName)
+        #region Remove        (DomainName)
 
         /// <summary>
         /// Remove a cached DNS entry by its domain name.
@@ -309,18 +346,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Remove(DNSServiceName)
+        #region Remove        (DNSServiceName)
 
         /// <summary>
-        /// Remove a cached DNS entry by its DNS service name.
+        /// Remove a cached DNS entry by its DNSServiceName.
         /// </summary>
-        /// <param name="DNSServiceName">The DNS service name to remove.</param>
+        /// <param name="DNSServiceName">The DNSServiceName to remove.</param>
         public Boolean Remove(DNSServiceName DNSServiceName)
 
             => dnsCache.TryRemove(
                    DNSServiceName,
                    out _
                );
+
+        #endregion
+
+        #region RemoveAll     ()
+
+        /// <summary>
+        /// Remove all cached DNS entries.
+        /// </summary>
+        public void RemoveAll()
+
+            => dnsCache.Clear();
 
         #endregion
 
@@ -365,6 +413,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
         #endregion
+
 
 
         #region (private, Timer) RemoveExpiredCacheEntries(State)

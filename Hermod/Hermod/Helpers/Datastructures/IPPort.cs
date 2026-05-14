@@ -60,70 +60,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region /etc/services
 
         /// <summary>
-        /// Zero
+        /// Zero (0) means that this port will be chosen randomly by .NET during socket creation!
         /// </summary>
-        public static readonly IPPort Zero        = new (0);
+        public static readonly IPPort  Zero        = new (0);
 
 
         /// <summary>
-        /// SSH
+        /// SSH (22)
         /// </summary>
-        public static readonly IPPort SSH         = new (22);
+        public static readonly IPPort  SSH         = new (22);
 
         /// <summary>
-        /// TELNET
+        /// TELNET (23)
         /// </summary>
-        public static readonly IPPort TELNET      = new (23);
+        public static readonly IPPort  TELNET      = new (23);
 
         /// <summary>
-        /// SMTP
+        /// SMTP (25)
         /// </summary>
-        public static readonly IPPort SMTP        = new (25);
+        public static readonly IPPort  SMTP        = new (25);
 
         /// <summary>
-        /// DNS (over UDP or TCP)
+        /// DNS (53)
         /// </summary>
-        public static readonly IPPort DNS         = new (53);
+        public static readonly IPPort  DNS         = new (53);
 
         /// <summary>
-        /// HTTP
+        /// HTTP (80)
         /// </summary>
-        public static readonly IPPort HTTP        = new (80);
+        public static readonly IPPort  HTTP        = new (80);
 
         /// <summary>
-        /// NTP
+        /// NTP (123)
         /// </summary>
-        public static readonly IPPort NTP         = new (123);
+        public static readonly IPPort  NTP         = new (123);
 
         /// <summary>
-        /// HTTPS
+        /// HTTPS (443)
         /// </summary>
-        public static readonly IPPort HTTPS       = new (443);
+        public static readonly IPPort  HTTPS       = new (443);
 
         /// <summary>
-        /// Modbus/TCP
+        /// Modbus/TCP (502)
         /// </summary>
-        public static readonly IPPort ModbusTCP   = new (502);
+        public static readonly IPPort  ModbusTCP   = new (502);
 
         /// <summary>
-        /// Modbus/TLS
+        /// Modbus/TLS (802)
         /// </summary>
-        public static readonly IPPort ModbusTLS   = new (802);
+        public static readonly IPPort  ModbusTLS   = new (802);
 
         /// <summary>
-        /// DNS over TLS
+        /// DNS over TLS (853)
         /// </summary>
-        public static readonly IPPort DNS_TLS     = new (853);
+        public static readonly IPPort  DNS_TLS     = new (853);
 
         /// <summary>
-        /// MQTT
+        /// MQTT (1883)
         /// </summary>
-        public static readonly IPPort MQTT        = new (1883);
+        public static readonly IPPort  MQTT        = new (1883);
 
         /// <summary>
-        /// NTS-KE
+        /// NTS-KE (4460)
         /// </summary>
-        public static readonly IPPort NTSKE       = new (4460);
+        public static readonly IPPort  NTSKE       = new (4460);
 
         #endregion
 
@@ -156,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (static) Parse   (Number)
+        #region (static) Parse    (Number)
 
         /// <summary>
         /// Parse the given numeric representation of an IP port.
@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (static) TryParse(Number)
+        #region (static) TryParse (Number)
 
         /// <summary>
         /// Try to parse the given numeric representation of an IP port.
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (static) TryParse(Number, out IPPort)
+        #region (static) TryParse (Number, out IPPort)
 
         /// <summary>
         /// Try to parse the given numeric representation of an IP port.
@@ -246,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (static) Parse   (String)
+        #region (static) Parse    (String)
 
         /// <summary>
         /// Parse the given text representation of an IP port.
@@ -258,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (static) TryParse(String)
+        #region (static) TryParse (String)
 
         /// <summary>
         /// Try to parse the given text representation of an IP port.
@@ -276,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (static) TryParse(String, out IPPort)
+        #region (static) TryParse (String, out IPPort)
 
         /// <summary>
         /// Try to parse the given text representation of an IP port.

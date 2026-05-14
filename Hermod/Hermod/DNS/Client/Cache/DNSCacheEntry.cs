@@ -21,7 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS cache entry.
     /// </summary>
-    public class DNSCacheEntry
+    public sealed class DNSCacheEntry
     {
 
         #region Properties

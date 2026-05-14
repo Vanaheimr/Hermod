@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Collections.Concurrent;
-using System.Net;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -474,56 +473,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public String ToString();
 
         #endregion
-
-    }
-
-    /// <summary>
-    /// The interface for all DNS clients.
-    /// </summary>
-    public interface IDNSClient2 : IDNSClient
-    {
-
-        /// <summary>
-        /// The local IP end point.
-        /// </summary>
-        IPEndPoint?  CurrentLocalEndPoint      { get; }
-
-        /// <summary>
-        /// The local port.
-        /// </summary>
-        UInt16?      CurrentLocalPort          { get; }
-
-        /// <summary>
-        /// The local IP address.
-        /// </summary>
-        IIPAddress?  CurrentLocalIPAddress     { get; }
-
-
-        /// <summary>
-        /// The remote IP end point.
-        /// </summary>
-        IPEndPoint?  CurrentRemoteEndPoint     { get; }
-
-        /// <summary>
-        /// The remote port.
-        /// </summary>
-        UInt16?      CurrentRemotePort         { get; }
-
-        /// <summary>
-        /// The remote IP address.
-        /// </summary>
-        IIPAddress?  CurrentRemoteIPAddress    { get; }
-
-
-        URL          RemoteURL                 { get; }
-        IIPAddress?  RemoteIPAddress           { get; }
-        IPPort?      RemotePort                { get; }
-
-
-        TimeSpan     ConnectTimeout            { get; }
-        TimeSpan     ReceiveTimeout            { get; }
-        TimeSpan     SendTimeout               { get; }
-        UInt32       BufferSize                { get; }
 
     }
 

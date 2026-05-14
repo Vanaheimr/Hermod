@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
     public abstract class ADNSTests
     {
 
-        protected IDNSClient2? client;
+        protected IDNSClientWithTransport? client;
 
 
         #region Teardown

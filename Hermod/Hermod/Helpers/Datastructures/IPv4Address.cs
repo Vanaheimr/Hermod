@@ -94,17 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region IPv4Address(IPAddress)
-
-        /// <summary>
-        /// Create a new IPv4 address based on the given System.Net.IPAddress.
-        /// </summary>
-        public IPv4Address(System.Net.IPAddress IPAddress)
-            : this(IPAddress.GetAddressBytes())
-        { }
-
-        #endregion
-
         #region IPv4Address(Int32)
 
         /// <summary>
@@ -283,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region GetBytes()
+        #region GetBytes ()
 
         public Byte[] GetBytes()
         {
@@ -302,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse   (Text)
+        #region Parse    (Text)
 
         /// <summary>
         /// Parse the given string as an IPv4 address.
@@ -321,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse   (Hostname)
+        #region Parse    (Hostname)
 
         /// <summary>
         /// Parsed the given HTTP hostname as an IPv4 address.
@@ -340,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Text)
+        #region TryParse (Text)
 
         /// <summary>
         /// Try to parse the given text as an IPv4 address.
@@ -358,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Hostname)
+        #region TryParse (Hostname)
 
         /// <summary>
         /// Try to parse the given text as an IPv4 address.
@@ -376,7 +365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Text,       out IPv4Address)
+        #region TryParse (Text,       out IPv4Address)
 
         /// <summary>
         /// Try to parse the given text as an IPv4 address.
@@ -415,7 +404,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Hostname,   out IPv4Address)
+        #region TryParse (Hostname,   out IPv4Address)
 
         /// <summary>
         /// Try to parse the given HTTP hostname as an IPv4 address.
@@ -428,7 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(DomainName, out IPv4Address)
+        #region TryParse (DomainName, out IPv4Address)
 
         /// <summary>
         /// Try to parse the given domain name as an IPv4 address.
@@ -451,6 +440,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static implicit operator System.Net.IPAddress(IPv4Address IPv4Address)
 
             => new (IPv4Address.GetBytes());
+
+        #endregion
+
+
+        #region From     (IPAddress)
+
+        /// <summary>
+        /// Create a new IPv4 address from the given System.Net.IPAddress.
+        /// </summary>
+        public static IPv4Address From(System.Net.IPAddress IPAddress)
+            => new (IPAddress.GetAddressBytes());
 
         #endregion
 

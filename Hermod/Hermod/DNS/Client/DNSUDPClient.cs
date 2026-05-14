@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS UDP client for a single DNS server.
     /// </summary>
-    public class DNSUDPClient : IDNSClient2
+    public class DNSUDPClient : IDNSClientWithTransport
     {
 
         #region Data

@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// are serialized via an internal semaphore.
     /// </summary>
     public class DNSTLSClient : ATLSClient,
-                                IDNSClient2
+                                IDNSClientWithTransport
     {
 
         #region Data

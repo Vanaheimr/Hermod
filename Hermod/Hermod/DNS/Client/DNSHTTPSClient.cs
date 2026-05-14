@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// DNS JSON requests/responses are also supported by Google and Cloudflare.
     /// </summary>
     public class DNSHTTPSClient : AHTTPClient,
-                                  IDNSClient2
+                                  IDNSClientWithTransport
     {
 
         #region Data
@@ -852,30 +852,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!name.EndsWith('.'))
                 name += ".";
 
+            // DNSServiceName is more permissive than DomainName (allows underscores in labels,
+            // e.g. _ocpp._tcp.api.charging.cloud. for SRV records). Since ADNSResourceRecord
+            // stores the name as DNSServiceName internally, we use it as the common parser.
+            var serviceName = DNSServiceName.Parse(name);
             var timeToLive  = TimeSpan.FromSeconds(ttl);
-
-            // SRV and PTR record names may contain underscores (e.g. _ocpp._tcp.api.charging.cloud.)
-            // which are not valid in DomainName. Handle them before DomainName.Parse().
-            if ((DNSResourceRecordTypes) type == DNSResourceRecordTypes.SRV)
-                return ParseSRVFromJSON(name, timeToLive, data);
-
-            if ((DNSResourceRecordTypes) type == DNSResourceRecordTypes.PTR)
-                return new PTR(
-                           DomainName.TryParse(name, out var ptrName, out _)
-                               ? ptrName
-                               : DomainName.Parse(name.Replace("_", "")),
-                           DNSQueryClasses.IN,
-                           timeToLive,
-                           DNSServiceName.Parse(data.EndsWith('.') ? data : data + ".")
-                       );
-
-            var domainName  = DomainName.Parse(name);
 
             return (DNSResourceRecordTypes) type switch {
 
                 DNSResourceRecordTypes.A
                     => new A(
-                           domainName,
+                           serviceName,
                            DNSQueryClasses.IN,
                            timeToLive,
                            IPv4Address.Parse(data)
@@ -883,7 +870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 DNSResourceRecordTypes.AAAA
                     => new AAAA(
-                           domainName,
+                           serviceName,
                            DNSQueryClasses.IN,
                            timeToLive,
                            IPv6Address.Parse(data)
@@ -891,18 +878,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 DNSResourceRecordTypes.CNAME
                     => new CNAME(
-                           domainName,
+                           DomainName.Parse(name),
                            DNSQueryClasses.IN,
                            timeToLive,
                            DomainName.Parse(data.EndsWith('.') ? data : data + ".")
                        ),
 
                 DNSResourceRecordTypes.MX
-                    => ParseMXFromJSON(domainName, timeToLive, data),
+                    => ParseMXFromJSON(DomainName.Parse(name), timeToLive, data),
 
                 DNSResourceRecordTypes.TXT
                     => new TXT(
-                           domainName,
+                           DomainName.Parse(name),
                            DNSQueryClasses.IN,
                            timeToLive,
                            data.Trim('"')
@@ -910,14 +897,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 DNSResourceRecordTypes.NS
                     => new NS(
-                           domainName,
+                           DomainName.Parse(name),
                            DNSQueryClasses.IN,
                            timeToLive,
                            DomainName.Parse(data.EndsWith('.') ? data : data + ".")
                        ),
 
                 DNSResourceRecordTypes.SOA
-                    => ParseSOAFromJSON(domainName, timeToLive, data),
+                    => ParseSOAFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.SRV
+                    => ParseSRVFromJSON(name, timeToLive, data),
+
+                DNSResourceRecordTypes.PTR
+                    => new PTR(
+                           DomainName.Parse(name),
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           DNSServiceName.Parse(data.EndsWith('.') ? data : data + ".")
+                       ),
 
                 _ => null
 

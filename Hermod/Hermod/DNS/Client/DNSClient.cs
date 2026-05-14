@@ -29,23 +29,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// Extensions methods for DNS clients.
-    /// </summary>
-    public static class DNSClientExtensions
-    {
-
-        // ...
-
-    }
-
-
-    /// <summary>
     /// A DNS client.
     /// </summary>
     public class DNSClient : IDNSClient
     {
 
         #region Data
+
+        /// <summary>
+        /// The default DNS query timeout.
+        /// </summary>
+        public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(10);
+
 
         private Boolean disposedValue;
 
@@ -56,134 +51,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS servers used by this DNS client.
         /// </summary>
-        public IEnumerable<DNSServerConfig>  DNSServers          { get; }
+        public IReadOnlySet<DNSServerConfig>  DNSServers          { get; }
 
         /// <summary>
         /// The DNS query timeout.
         /// </summary>
-        public TimeSpan                      QueryTimeout        { get; set; }
+        public TimeSpan                       QueryTimeout        { get; }
 
         /// <summary>
         /// Whether DNS recursion is desired as a default.
         /// </summary>
-        public Boolean?                      RecursionDesired    { get; set; }
+        public Boolean?                       RecursionDesired    { get; set; }
 
         /// <summary>
         /// Whether to use the DNS cache.
         /// </summary>
-        public Boolean                       UseCache            { get; set; }
+        public Boolean                        UseCache            { get; set; }
 
         /// <summary>
         /// The DNS cache used by this DNS client.
         /// </summary>
-        public DNSCache                      DNSCache            { get; }
+        public DNSCache                       DNSCache            { get; }
 
         /// <summary>
         /// The default EDNS0 UDP payload size to advertise in DNS queries.
         /// </summary>
-        public UInt16                        UDPPayloadSize      { get; } = DNSPacket.DefaultUDPPayloadSize;
+        public UInt16                         UDPPayloadSize      { get; } = DNSPacket.DefaultUDPPayloadSize;
 
         #endregion
 
         #region Constructor(s)
 
-        #region DNSClient(DNSServer,        UseQueryCache = true)
+        #region DNSClient(DNSServer,  Port = null, QueryTimeout = null, UseQueryCache = true)
 
         /// <summary>
         /// Create a new DNS resolver client.
         /// </summary>
         /// <param name="DNSServer">The DNS server to query.</param>
+        /// <param name="Port">The optional IP port of the DNS server.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
         public DNSClient(IIPAddress  DNSServer,
+                         IPPort?     Port            = null,
+                         TimeSpan?   QueryTimeout    = null,
                          Boolean?    UseQueryCache   = true)
 
-            : this(
-                  [
-                      new DNSServerConfig(
-                          DNSServer,
-                          IPPort.DNS
-                      )
-                  ],
-                  null,
-                  null,
-                  UseQueryCache
-              )
-
-        { }
-
-        #endregion
-
-        #region DNSClient(DNSServer, Port,  UseQueryCache = true)
-
-        /// <summary>
-        /// Create a new DNS resolver client.
-        /// </summary>
-        /// <param name="DNSServer">The DNS server to query.</param>
-        /// <param name="Port">The IP port of the DNS server to query.</param>
-        /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
-        public DNSClient(IIPAddress  DNSServer,
-                         IPPort      Port,
-                         Boolean?    UseQueryCache   = true)
-
-            : this(
+            : this (
                   [
                       new DNSServerConfig(
                           DNSServer,
                           Port
                       )
                   ],
-                  null,
-                  null,
-                  UseQueryCache
-                  )
+                  QueryTimeout:   QueryTimeout,
+                  UseQueryCache:  UseQueryCache
+              )
 
         { }
 
         #endregion
 
-        #region DNSClient(DNSServers,       UseQueryCache = true)
+        #region DNSClient(DNSServers, Port = null, QueryTimeout = null, UseQueryCache = true)
 
         /// <summary>
         /// Create a new DNS resolver client.
         /// </summary>
         /// <param name="DNSServers">A list of DNS servers to query.</param>
+        /// <param name="Port">The optional common IP port of the DNS servers.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
         public DNSClient(IEnumerable<IIPAddress>  DNSServers,
+                         IPPort?                  Port            = null,
+                         TimeSpan?                QueryTimeout    = null,
                          Boolean?                 UseQueryCache   = true)
 
             : this(
-                  DNSServers.Select(IPAddress => new DNSServerConfig(
-                                                     IPAddress,
-                                                     IPPort.DNS
+                  DNSServers.Select(ipAddress => new DNSServerConfig(
+                                                     ipAddress,
+                                                     Port
                                                  )),
-                  null,
-                  null,
-                  UseQueryCache
-              )
-
-        { }
-
-        #endregion
-
-        #region DNSClient(DNSServers, Port, UseQueryCache = true)
-
-        /// <summary>
-        /// Create a new DNS resolver client.
-        /// </summary>
-        /// <param name="DNSServers">A list of DNS servers to query.</param>
-        /// <param name="Port">The common IP port of the DNS servers to query.</param>
-        /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
-        public DNSClient(IEnumerable<IIPAddress>  DNSServers,
-                         IPPort                   Port,
-                         Boolean?                 UseQueryCache   = true)
-
-            : this(
-                  DNSServers.Select(IPAddress => new DNSServerConfig(
-                                                     IPAddress,
-                                                     Port)),
-                  null,
-                  null,
-                  UseQueryCache
+                  QueryTimeout:   QueryTimeout,
+                  UseQueryCache:  UseQueryCache
               )
 
         { }
@@ -191,19 +139,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region DNSClient(                  SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true)
+        #region DNSClient(                  QueryTimeout = null, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true)
 
         /// <summary>
         /// Create a new DNS resolver client.
         /// </summary>
+        /// <param name="QueryTimeout">The optional DNS query timeout.</param>
         /// <param name="SearchForIPv4DNSServers">Whether the DNS client will query a list of DNS servers from the IPv4 network configuration.</param>
         /// <param name="SearchForIPv6DNSServers">Whether the DNS client will query a list of DNS servers from the IPv6 network configuration.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
-        public DNSClient(Boolean?  SearchForIPv4DNSServers   = true,
-                         Boolean?  SearchForIPv6DNSServers   = true,
-                         Boolean?  UseQueryCache             = true)
+        public DNSClient(TimeSpan?  QueryTimeout              = null,
+                         Boolean?   SearchForIPv4DNSServers   = true,
+                         Boolean?   SearchForIPv6DNSServers   = true,
+                         Boolean?   UseQueryCache             = true)
 
             : this([],
+                   QueryTimeout,
                    SearchForIPv4DNSServers,
                    SearchForIPv6DNSServers,
                    UseQueryCache)
@@ -212,52 +163,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region DNSClient(ManualDNSServers, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true)
+        #region DNSClient(ManualDNSServers, QueryTimeout = null, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true)
 
         /// <summary>
         /// Create a new DNS resolver client.
         /// </summary>
         /// <param name="ManualDNSServers">A list of manually configured DNS servers to query.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout.</param>
         /// <param name="SearchForIPv4DNSServers">Whether the DNS client will query a list of DNS servers from the IPv4 network configuration.</param>
         /// <param name="SearchForIPv6DNSServers">Whether the DNS client will query a list of DNS servers from the IPv6 network configuration.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
         public DNSClient(IEnumerable<DNSServerConfig>  ManualDNSServers,
+                         TimeSpan?                     QueryTimeout              = null,
                          Boolean?                      SearchForIPv4DNSServers   = false,
                          Boolean?                      SearchForIPv6DNSServers   = false,
                          Boolean?                      UseQueryCache             = true)
 
         {
 
+            this.QueryTimeout      = QueryTimeout  ?? DefaultQueryTimeout;
+            this.UseCache          = UseQueryCache ?? true;
             this.DNSCache          = new DNSCache();
             this.RecursionDesired  = true;
-            this.UseCache          = UseQueryCache ?? true;
-            this.QueryTimeout      = TimeSpan.FromSeconds(23.5);
 
-            var dnsServers         = new List<DNSServerConfig>(ManualDNSServers);
+            var dnsServers         = new HashSet<DNSServerConfig>(ManualDNSServers);
 
             #region Search for IPv4/IPv6 DNS Servers...
 
             if (SearchForIPv4DNSServers ?? true)
-                dnsServers.AddRange(NetworkInterface.
-                                        GetAllNetworkInterfaces().
-                                        Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
-                                        SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
-                                        Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetwork).
-                                        Select    (IPAddress =>  new DNSServerConfig(
-                                                                     new IPv4Address(IPAddress),
-                                                                     IPPort.DNS
-                                                                 )));
+                NetworkInterface.GetAllNetworkInterfaces().
+                    Where     (networkInterface => networkInterface.OperationalStatus == OperationalStatus.Up).
+                    SelectMany(networkInterface => networkInterface.GetIPProperties().DnsAddresses).
+                    Where     (ipAddress        => ipAddress.AddressFamily == AddressFamily.InterNetwork).
+                    Select    (ipAddress        => new DNSServerConfig(
+                                                       IPv4Address.From(ipAddress),
+                                                       IPPort.DNS
+                                                   )).
+                    ForEach   (dnsServerConfig  => dnsServers.Add(dnsServerConfig));
 
             if (SearchForIPv6DNSServers ?? true)
-                dnsServers.AddRange(NetworkInterface.
-                                        GetAllNetworkInterfaces().
-                                        Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
-                                        SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
-                                        Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetworkV6).
-                                        Select    (IPAddress => new DNSServerConfig(
-                                                                    new IPv6Address(IPAddress),
-                                                                    IPPort.DNS
-                                                                )));
+                NetworkInterface.GetAllNetworkInterfaces().
+                    Where     (networkInterface => networkInterface.OperationalStatus == OperationalStatus.Up).
+                    SelectMany(networkInterface => networkInterface.GetIPProperties().DnsAddresses).
+                    Where     (ipAddress        => ipAddress.AddressFamily == AddressFamily.InterNetworkV6).
+                    Select    (ipAddress        => new DNSServerConfig(
+                                                       IPv6Address.From(ipAddress),
+                                                       IPPort.DNS
+                                                   )).
+                    ForEach   (dnsServerConfig  => dnsServers.Add(dnsServerConfig));
 
             #endregion
 
