@@ -188,6 +188,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          CancellationToken                    CancellationToken   = default)
         {
 
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+
             #region Initial checks
 
             if (DNSServiceName.IsNullOrEmpty())
@@ -204,11 +206,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
                            Authorities:            [],
-                           AdditionalRecords:      [],
-                           IsValid:                true,
-                           IsTimeout:              false,
-                           Timeout:                QueryTimeout
-                       );
+                            AdditionalRecords:      [],
+                            IsValid:                true,
+                            IsTimeout:              false,
+                            Timeout:                effectiveTimeout
+                        );
 
             var resourceRecordTypes = ResourceRecordTypes.ToList();
 
@@ -225,7 +227,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                [.. resourceRecordTypes]
                            );
 
-            var effectiveTimeout  = Timeout ?? QueryTimeout;
             Socket? socket        = null;
 
             try

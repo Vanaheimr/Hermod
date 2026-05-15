@@ -61,6 +61,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
 
+        private readonly SemaphoreSlim httpStreamLock = new(1, 1);
+
         public new const  String DefaultHTTPUserAgent    = "Hermod DNS HTTP Test Client";
 
         #endregion
@@ -624,6 +626,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #endregion
 
 
+            // The DNS JSON API supports only one record type per query parameter.
+            // If multiple types are requested, fan out to sequential queries and merge results.
+            if (Mode == DNSHTTPSMode.JSON && resourceRecordTypes.Count > 1)
+                return await QueryHTTPMultiTypeJSONAsync(
+                                 DNSServiceName,
+                                 resourceRecordTypes,
+                                 Timeout,
+                                 RecursionDesired,
+                                 BypassCache,
+                                 HTTPRequestLogDelegate,
+                                 HTTPResponseLogDelegate,
+                                 CancellationToken
+                             ).ConfigureAwait(false);
+
+
             var dnsQuery  = DNSPacket.Query(
                                 DNSServiceName,
                                 0,
@@ -633,13 +650,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsBytes  = dnsQuery.ToByteArray();
 
-            if (!IsConnected || tcpClient is null)
-                await ReconnectAsync(CancellationToken).ConfigureAwait(false);
-
             var effectiveTimeout = Timeout ?? QueryTimeout;
+
+            await httpStreamLock.WaitAsync(CancellationToken).
+                                 ConfigureAwait(false);
 
             try
             {
+
+                if (!IsConnected || tcpClient is null)
+                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
 
                 var stopwatch = Stopwatch.StartNew();
                 clientCancellationTokenSource ??= new CancellationTokenSource();
@@ -755,10 +775,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
+            finally
+            {
+                httpStreamLock.Release();
+            }
 
         }
 
         #endregion
+
+        #region (private) QueryHTTPMultiTypeJSONAsync(...)
+
+        /// <summary>
+        /// The DNS JSON API supports only one record type per query parameter.
+        /// When multiple types are requested, this method fans out to sequential
+        /// single-type queries and merges the results into a single DNSInfo.
+        /// Sequential because we share one HTTP/1.1 connection with a semaphore.
+        /// </summary>
+        private async Task<DNSInfo> QueryHTTPMultiTypeJSONAsync(DNSServiceName                       DNSServiceName,
+                                                                List<DNSResourceRecordTypes>          ResourceRecordTypes,
+                                                                TimeSpan?                            Timeout,
+                                                                Boolean?                             RecursionDesired,
+                                                                Boolean?                             BypassCache,
+                                                                ClientRequestLogHandler?             HTTPRequestLogDelegate,
+                                                                ClientResponseLogHandler?            HTTPResponseLogDelegate,
+                                                                CancellationToken                    CancellationToken)
+        {
+
+            // Fan out: one query per record type (sequentially, since we share one HTTP/1.1 connection)
+            var allAnswers     = new List<IDNSResourceRecord>();
+            var allAuthorities = new List<IDNSResourceRecord>();
+            DNSInfo? lastResponse = null;
+
+            foreach (var recordType in ResourceRecordTypes)
+            {
+
+                var response = await QueryHTTP(
+                                         DNSServiceName,
+                                         [ recordType ],
+                                         Timeout,
+                                         RecursionDesired,
+                                         BypassCache,
+                                         HTTPRequestLogDelegate,
+                                         HTTPResponseLogDelegate,
+                                         CancellationToken
+                                     ).ConfigureAwait(false);
+
+                lastResponse = response;
+
+                if (response.ResponseCode == DNSResponseCodes.NoError)
+                {
+                    allAnswers.    AddRange(response.Answers);
+                    allAuthorities.AddRange(response.Authorities);
+                }
+
+                // On NXDOMAIN, the domain itself doesn't exist — no point querying further types
+                if (response.ResponseCode == DNSResponseCodes.NameError)
+                    return response;
+
+            }
+
+            if (lastResponse is null)
+                return DNSInfo.TimedOut(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.HTTPS
+                           ),
+                           0,
+                           Timeout ?? QueryTimeout
+                       );
+
+            return new DNSInfo(
+                       Origin:                 lastResponse.Origin,
+                       QueryId:                lastResponse.QueryId,
+                       IsAuthoritativeAnswer:  lastResponse.AuthoritativeAnswer,
+                       IsTruncated:            lastResponse.IsTruncated,
+                       RecursionDesired:       lastResponse.RecursionRequested,
+                       RecursionAvailable:     lastResponse.RecursionAvailable,
+                       ResponseCode:           lastResponse.ResponseCode,
+                       Answers:                allAnswers,
+                       Authorities:            allAuthorities,
+                       AdditionalRecords:      [],
+                       IsValid:                lastResponse.IsValid,
+                       IsTimeout:              lastResponse.IsTimeout,
+                       Timeout:                lastResponse.Timeout
+                   );
+
+        }
+
+        #endregion
+
 
         #region (private static) ParseJSONResponse(ServerConfig, HTTPResponse)
 
@@ -1258,6 +1364,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => $"Using DNS server: {RemoteIPAddress}:{RemotePort}";
 
         #endregion
+
+
+        public override async ValueTask DisposeAsync()
+        {
+            httpStreamLock.Dispose();
+            await base.DisposeAsync();
+        }
 
 
     }

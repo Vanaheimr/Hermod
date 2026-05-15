@@ -301,6 +301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          CancellationToken                    CancellationToken   = default)
         {
 
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+
             #region Initial checks
 
             if (DNSServiceName.IsNullOrEmpty() || !DNSServers.Any())
@@ -317,11 +319,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
                            Authorities:            [],
-                           AdditionalRecords:      [],
-                           IsValid:                true,
-                           IsTimeout:              false,
-                           Timeout:                QueryTimeout
-                       );
+                            AdditionalRecords:      [],
+                            IsValid:                true,
+                            IsTimeout:              false,
+                            Timeout:                effectiveTimeout
+                        );
 
             var resourceRecordTypes = ResourceRecordTypes.ToList();
 
@@ -339,6 +341,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // Return cached negative responses (NXDOMAIN, Refused)
                 if (cachedResults.ResponseCode is DNSResponseCodes.NameError or
                                                    DNSResponseCodes.Refused)
+                    return cachedResults;
+
+                // Check per-type NODATA cache: if all requested types are cached as NODATA,
+                // return the cached result without hitting the network.
+                if (resourceRecordTypes.All(type => DNSCache.IsNoData(DNSServiceName, type)))
                     return cachedResults;
 
                 var now              = Timestamp.Now;
@@ -370,8 +377,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            );
 
             #region Query all DNS server(s) in parallel...
-
-            var effectiveTimeout = Timeout ?? QueryTimeout;
 
             using var raceCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
 
@@ -406,12 +411,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         if (firstResponse?.ResponseCode == DNSResponseCodes.NoError)
                         {
 
-                            foreach (var domainNameGroup in firstResponse.Answers.GroupBy(group => group.DomainName))
+                            if (firstResponse.Answers.Any())
                             {
+
+                                foreach (var domainNameGroup in firstResponse.Answers.GroupBy(group => group.DomainName))
+                                {
+                                    AddToCache(
+                                        domainNameGroup.Key,
+                                        firstResponse
+                                    );
+                                }
+
+                            }
+                            else
+                            {
+
+                                // NODATA: NoError but zero answers — cache per (domain, type)
+                                // so that a NODATA for AAAA does not suppress valid A records.
+                                // Uses the SOA minimum TTL from the authority section (RFC 2308),
+                                // falling back to the configured negative cache TTL.
+                                var noDataTTL = firstResponse.Authorities.
+                                                    OfType<SOA>().
+                                                    Select(soa => soa.TimeToLive).
+                                                    FirstOrDefault(DNSCache.DefaultNegativeCacheTTL);
+
+                                foreach (var recordType in resourceRecordTypes)
+                                {
+                                    DNSCache.AddNoData(
+                                        DNSServiceName,
+                                        recordType,
+                                        noDataTTL
+                                    );
+                                }
+
+                                // Also cache the response itself so the cache lookup
+                                // has something to return for NODATA hits.
                                 AddToCache(
-                                    domainNameGroup.Key,
+                                    DNSServiceName,
                                     firstResponse
                                 );
+
                             }
 
                             break;
@@ -461,11 +500,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
                            Authorities:            [],
-                           AdditionalRecords:      [],
-                           IsValid:                true,
-                           IsTimeout:              false,
-                           Timeout:                QueryTimeout
-                       );
+                            AdditionalRecords:      [],
+                            IsValid:                true,
+                            IsTimeout:              false,
+                            Timeout:                effectiveTimeout
+                        );
 
         }
 

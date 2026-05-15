@@ -36,6 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Data
 
         private readonly ConcurrentDictionary<DNSServiceName, DNSCacheEntry>  dnsCache       = [];
+        private readonly ConcurrentDictionary<String, DateTimeOffset>        noDataCache    = [];
         private readonly Timer                                                cleanUpTimer;
         private readonly Object                                               cleanUpLock    = new();
 
@@ -415,6 +416,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region AddNoData    (DomainName, RecordType, TTL)
+
+        /// <summary>
+        /// Cache a NODATA response (NoError with no matching answers) for
+        /// a specific record type. The cache is keyed per (domain, type)
+        /// so that a NODATA for AAAA does not suppress valid A records.
+        /// </summary>
+        /// <param name="DomainName">The queried domain name.</param>
+        /// <param name="RecordType">The record type that returned no data.</param>
+        /// <param name="TTL">The time to cache this NODATA entry.</param>
+        public void AddNoData(DNSServiceName           DomainName,
+                              DNSResourceRecordTypes   RecordType,
+                              TimeSpan                 TTL)
+        {
+
+            var key = $"{DomainName}|{(UInt16) RecordType}";
+
+            noDataCache[key] = Timestamp.Now + TTL;
+
+        }
+
+        #endregion
+
+        #region IsNoData     (DomainName, RecordType)
+
+        /// <summary>
+        /// Check whether a NODATA response is cached for the given domain and record type.
+        /// Returns true if the NODATA entry exists and has not expired.
+        /// </summary>
+        /// <param name="DomainName">The queried domain name.</param>
+        /// <param name="RecordType">The record type to check.</param>
+        public Boolean IsNoData(DNSServiceName           DomainName,
+                                DNSResourceRecordTypes   RecordType)
+        {
+
+            var key = $"{DomainName}|{(UInt16) RecordType}";
+
+            if (noDataCache.TryGetValue(key, out var endOfLife))
+            {
+                if (endOfLife > Timestamp.Now)
+                    return true;
+
+                noDataCache.TryRemove(key, out _);
+            }
+
+            return false;
+
+        }
+
+        #endregion
+
+        #region RemoveNoData (DomainName, RecordType)
+
+        /// <summary>
+        /// Remove a cached NODATA entry.
+        /// </summary>
+        public Boolean RemoveNoData(DNSServiceName           DomainName,
+                                    DNSResourceRecordTypes   RecordType)
+
+            => noDataCache.TryRemove(
+                   $"{DomainName}|{(UInt16) RecordType}",
+                   out _
+               );
+
+        #endregion
+
 
         #region (private, Timer) RemoveExpiredCacheEntries(State)
 
@@ -438,6 +505,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     {
                         DebugX.LogT($"Removed '{expiredEntry.Key}' from DNS cache!");
                         dnsCache.TryRemove(expiredEntry.Key, out _);
+                    }
+
+                    // Clean up expired NODATA entries
+                    var expiredNoDataEntries = noDataCache.
+                                                   Where(entry => entry.Value < now).
+                                                   ToArray();
+
+                    foreach (var expiredNoDataEntry in expiredNoDataEntries)
+                    {
+                        noDataCache.TryRemove(expiredNoDataEntry.Key, out _);
                     }
 
                 }
