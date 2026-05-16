@@ -215,50 +215,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var endOfLife = Timestamp.Now + DNSInformation.Answers.Min(dnsResourceRecord => dnsResourceRecord.TimeToLive);
 
-            if (!dnsCache.TryAdd(
-                    DomainName,
-                    new DNSCacheEntry(
-                        endOfLife,
-                        DNSInformation
-                    )
-               ))
-            {
+            var newEntry  = new DNSCacheEntry(
+                                endOfLife,
+                                DNSInformation
+                            );
 
-                #region Merge answers into existing cache entry
+            // Use AddOrUpdate for atomic cache insertion with merge.
+            // This avoids a race condition where two concurrent queries for
+            // different record types of the same domain could overwrite each
+            // other's results during the read-merge-write window.
+            dnsCache.AddOrUpdate(
 
-                var existingEntry     = dnsCache[DomainName];
+                DomainName,
 
-                var newAnswerTypes    = DNSInformation.Answers.
-                                            Select(dnsResourceRecord => dnsResourceRecord.Type).
-                                            ToHashSet();
+                // Add factory: no existing entry — insert as-is
+                newEntry,
 
-                var mergedAnswers     = existingEntry.DNSInfo.Answers.
-                                            Where (dnsResourceRecord => !newAnswerTypes.Contains(dnsResourceRecord.Type)).
-                                            Concat(DNSInformation.Answers).
-                                            ToArray();
+                // Update factory: merge new answers into existing entry
+                (key, existingEntry) => {
 
-                dnsCache[DomainName]  = new DNSCacheEntry(
-                                            endOfLife,
-                                            new DNSInfo(
-                                                DNSInformation.Origin,
-                                                DNSInformation.QueryId,
-                                                DNSInformation.AuthoritativeAnswer,
-                                                DNSInformation.IsTruncated,
-                                                DNSInformation.RecursionRequested,
-                                                DNSInformation.RecursionAvailable,
-                                                DNSInformation.ResponseCode,
-                                                mergedAnswers,
-                                                DNSInformation.Authorities,
-                                                DNSInformation.AdditionalRecords,
-                                                DNSInformation.IsValid,
-                                                DNSInformation.IsTimeout,
-                                                DNSInformation.Timeout
-                                            )
-                                        );
+                    var newAnswerTypes = DNSInformation.Answers.
+                                             Select(rr => rr.Type).
+                                             ToHashSet();
 
-                #endregion
+                    var mergedAnswers  = existingEntry.DNSInfo.Answers.
+                                             Where (rr => !newAnswerTypes.Contains(rr.Type)).
+                                             Concat(DNSInformation.Answers).
+                                             ToArray();
 
-            }
+                    return new DNSCacheEntry(
+                               endOfLife,
+                               new DNSInfo(
+                                   DNSInformation.Origin,
+                                   DNSInformation.QueryId,
+                                   DNSInformation.AuthoritativeAnswer,
+                                   DNSInformation.IsTruncated,
+                                   DNSInformation.RecursionRequested,
+                                   DNSInformation.RecursionAvailable,
+                                   DNSInformation.ResponseCode,
+                                   mergedAnswers,
+                                   DNSInformation.Authorities,
+                                   DNSInformation.AdditionalRecords,
+                                   DNSInformation.IsValid,
+                                   DNSInformation.IsTimeout,
+                                   DNSInformation.Timeout
+                               )
+                           );
+
+                }
+
+            );
 
             return this;
 
@@ -378,13 +384,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// Get the cached DNS information from the DNS cache.
+        /// Expired individual resource records are filtered out.
+        /// Returns null if no valid records remain.
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
         public DNSInfo? GetDNSInfo(DNSServiceName DomainName)
         {
 
             if (dnsCache.TryGetValue(DomainName, out var dnsCacheEntry))
-                return dnsCacheEntry.DNSInfo;
+                return FilterExpiredRecords(dnsCacheEntry.DNSInfo);
 
             return null;
 
@@ -396,6 +404,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// Get the cached DNS information from the DNS cache.
+        /// Expired individual resource records are filtered out.
+        /// Returns false if no valid records remain (for positive responses).
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
         public Boolean TryGetDNSInfo(DNSServiceName                    DomainName,
@@ -404,12 +414,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (dnsCache.TryGetValue(DomainName, out var dnsCacheEntry))
             {
-                DNSInfo = dnsCacheEntry.DNSInfo;
-                return true;
+
+                var filtered = FilterExpiredRecords(dnsCacheEntry.DNSInfo);
+
+                if (filtered is not null)
+                {
+                    DNSInfo = filtered;
+                    return true;
+                }
+
             }
 
             DNSInfo = null;
             return false;
+
+        }
+
+        #endregion
+
+        #region (private) FilterExpiredRecords(DNSInfo)
+
+        /// <summary>
+        /// Filter out individual resource records whose EndOfLife has passed.
+        /// For negative responses (NXDOMAIN, Refused) the entry is returned as-is
+        /// since those have no per-record TTL. Returns null if all positive records
+        /// have expired.
+        /// </summary>
+        private static DNSInfo? FilterExpiredRecords(DNSInfo Original)
+        {
+
+            // Negative cache entries have no per-record TTLs to check
+            if (Original.ResponseCode is DNSResponseCodes.NameError or
+                                          DNSResponseCodes.Refused)
+                return Original;
+
+            var now             = Timestamp.Now;
+
+            var liveAnswers     = Original.Answers.
+                                      Where(rr => rr.EndOfLife > now).
+                                      ToArray();
+
+            var liveAuthorities = Original.Authorities.
+                                      Where(rr => rr.EndOfLife > now).
+                                      ToArray();
+
+            // If all answer records have expired, treat the entry as stale
+            if (liveAnswers.Length == 0 && Original.Answers.Any())
+                return null;
+
+            // Return a filtered copy if any records were removed
+            if (liveAnswers.Length    != Original.Answers.    Count() ||
+                liveAuthorities.Length != Original.Authorities.Count())
+            {
+                return new DNSInfo(
+                           Original.Origin,
+                           Original.QueryId,
+                           Original.AuthoritativeAnswer,
+                           Original.IsTruncated,
+                           Original.RecursionRequested,
+                           Original.RecursionAvailable,
+                           Original.ResponseCode,
+                           liveAnswers,
+                           liveAuthorities,
+                           Original.AdditionalRecords,
+                           Original.IsValid,
+                           Original.IsTimeout,
+                           Original.Timeout
+                       );
+            }
+
+            return Original;
 
         }
 
@@ -496,14 +570,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var now             = Timestamp.Now;
 
-                    // Info: Will remove all resource records even when only a single one is expired!
+                    // Remove entire entries only when ALL resource records have expired.
+                    // Per-record filtering on read (FilterExpiredRecords) handles the
+                    // case where some records are still valid within a mixed-TTL entry.
                     var expiredEntries  = dnsCache.
-                                              Where(entry => entry.Value.EndOfLife < now).
+                                              Where(entry => entry.Value.EndOfLife < now &&
+                                                             entry.Value.DNSInfo.Answers.All(rr => rr.EndOfLife <= now)).
                                               ToArray();
 
                     foreach (var expiredEntry in expiredEntries)
                     {
-                        DebugX.LogT($"Removed '{expiredEntry.Key}' from DNS cache!");
+                        DebugX.LogT($"Removed '{expiredEntry.Key}' from DNS cache (all records expired)!");
                         dnsCache.TryRemove(expiredEntry.Key, out _);
                     }
 

@@ -90,6 +90,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         AAAA    = 28,
 
         /// <summary>
+        /// DNAME record, which provides redirection for an entire subtree
+        /// of the domain name tree (RFC 6672).
+        /// </summary>
+        DNAME   = 39,
+
+        /// <summary>
         /// DNS Service record, which specifies the hostname and port of highly available services.
         /// </summary>
         SRV     = 33,

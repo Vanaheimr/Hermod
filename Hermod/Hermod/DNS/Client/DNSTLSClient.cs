@@ -19,6 +19,7 @@
 
 using System.Diagnostics;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -66,6 +67,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Optional EDNS0 options to include in every DNS query.
         /// </summary>
         public List<EDNSOption>  EDNSOptions  { get; } = [];
+
+        /// <summary>
+        /// The server-advertised idle timeout from the last EDNS TCP Keepalive
+        /// response option (RFC 7828). Null if no keepalive option was received.
+        /// The connection should be closed after this duration of inactivity.
+        /// </summary>
+        public TimeSpan?  ServerKeepaliveTimeout    { get; private set; }
 
         #endregion
 
@@ -349,12 +357,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
+            catch (SocketException se)
+            {
+
+                await Log($"DNS TLS query to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS_TLS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
+            }
             catch (Exception ex)
             {
 
-                await Log($"Error in SendBinary: {ex.Message}");
+                await Log($"DNS TLS query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}");
 
-                return DNSInfo.TimedOut(
+                return DNSInfo.Failed(
                            new DNSServerConfig(
                                RemoteIPAddress!,
                                RemotePort ?? IPPort.DNS_TLS
@@ -394,6 +417,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var responseLength = await TLSStream.ReadUInt16BEAsync(CancellationToken).
                                                   ConfigureAwait(false);
 
+            // DNS header requires at least 12 bytes
+            if (responseLength < 12)
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS_TLS,
+                               DNSTransport.TLS,
+                               EffectiveTimeout
+                           ),
+                           DNSQuery.TransactionId,
+                           EffectiveTimeout
+                       );
+
             var buffer    = new Byte[responseLength];
             var totalRead = 0;
 
@@ -412,16 +448,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            return DNSInfo.ReadResponse(
-                       new DNSServerConfig(
-                           RemoteIPAddress!,
-                           RemotePort ?? IPPort.DNS_TLS,
-                           DNSTransport.TLS,
-                           EffectiveTimeout
-                       ),
-                       DNSQuery.TransactionId,
-                       new MemoryStream(buffer, 0, totalRead)
-                   );
+            var response = DNSInfo.ReadResponse(
+                               new DNSServerConfig(
+                                   RemoteIPAddress!,
+                                   RemotePort ?? IPPort.DNS_TLS,
+                                   DNSTransport.TLS,
+                                   EffectiveTimeout
+                               ),
+                               DNSQuery.TransactionId,
+                               new MemoryStream(buffer, 0, totalRead)
+                           );
+
+            // RFC 7828: Extract server-advertised idle timeout from the response OPT record.
+            var keepalive = response.EDNSOptions
+                                    .OfType<EDNSKeepaliveOption>()
+                                    .FirstOrDefault();
+
+            if (keepalive?.IdleTimeout is not null)
+                ServerKeepaliveTimeout = keepalive.IdleTimeout;
+
+            return response;
 
         }
 

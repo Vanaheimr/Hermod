@@ -402,6 +402,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var responseLength = await networkStream.ReadUInt16BEAsync(timeoutCTS.Token).
                                                          ConfigureAwait(false);
 
+                // A valid DNS header is at least 12 bytes.
+                if (responseLength < 12)
+                    return DNSInfo.Failed(
+                               new DNSServerConfig(
+                                   RemoteIPAddress,
+                                   RemotePort ?? IPPort.DNS,
+                                   DNSTransport.TCP,
+                                   Timeout
+                               ),
+                               DNSQuery.TransactionId,
+                               Timeout
+                           );
+
                 var buffer    = new Byte[responseLength];
                 var totalRead = 0;
 
@@ -499,10 +512,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSUDPClient Google_Random(Boolean?   RecursionDesired   = null,
                                                  TimeSpan?  QueryTimeout       = null)
-
-            => Google_All(RecursionDesired, QueryTimeout).
-                     Skip(Random.Shared.Next(0, 4)).
-                    First();
+        {
+            var all = Google_All(RecursionDesired, QueryTimeout).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Google IPv4 DNS servers.
@@ -511,10 +524,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSUDPClient Google_Random_IPv4(Boolean?   RecursionDesired   = null,
                                                       TimeSpan?  QueryTimeout       = null)
-
-            => Google_All_IPv4(RecursionDesired, QueryTimeout).
-                          Skip(Random.Shared.Next(0, 2)).
-                         First();
+        {
+            var all = Google_All_IPv4(RecursionDesired, QueryTimeout).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Google IPv6 DNS servers.
@@ -526,10 +539,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSUDPClient Google_Random_IPv6(Boolean?   RecursionDesired   = null,
                                                       TimeSpan?  QueryTimeout       = null)
-
-            => Google_All_IPv6(RecursionDesired, QueryTimeout).
-                          Skip(Random.Shared.Next(0, 2)).
-                         First();
+        {
+            var all = Google_All_IPv6(RecursionDesired, QueryTimeout).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
 
         /// <summary>
@@ -655,10 +668,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSUDPClient Cloudflare_Random(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
-
-            => Cloudflare_All(RecursionDesired, QueryTimeout).
-                         Skip(Random.Shared.Next(0, 8)).
-                        First();
+        {
+            var all = Cloudflare_All(RecursionDesired, QueryTimeout).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Cloudflare IPv4 DNS servers.
@@ -667,10 +680,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSUDPClient Cloudflare_Random_IPv4(Boolean?   RecursionDesired   = null,
                                                           TimeSpan?  QueryTimeout       = null)
-
-            => Cloudflare_All_IPv4(RecursionDesired, QueryTimeout).
-                              Skip(Random.Shared.Next(0, 4)).
-                             First();
+        {
+            var all = Cloudflare_All_IPv4(RecursionDesired, QueryTimeout).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Cloudflare IPv6 DNS servers.
@@ -682,10 +695,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSUDPClient Cloudflare_Random_IPv6(Boolean?   RecursionDesired   = null,
                                                           TimeSpan?  QueryTimeout       = null)
-
-            => Cloudflare_All_IPv6(RecursionDesired, QueryTimeout).
-                              Skip(Random.Shared.Next(0, 4)).
-                             First();
+        {
+            var all = Cloudflare_All_IPv6(RecursionDesired, QueryTimeout).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
 
         /// <summary>

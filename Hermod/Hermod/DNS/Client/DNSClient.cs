@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -49,6 +50,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public const Byte                DefaultMaxCNAMEFollows = 8;
 
+        /// <summary>
+        /// Per-server EDNS COOKIE store (RFC 7873).
+        /// After each response the server cookie is extracted and stored,
+        /// then sent back in subsequent queries to that server.
+        /// </summary>
+        private readonly ConcurrentDictionary<String, EDNSCookieOption>  cookieStore = new(StringComparer.OrdinalIgnoreCase);
 
         private Boolean disposedValue;
 
@@ -399,6 +406,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #endregion
 
 
+            // Build the EDNS options list.
+            // Per-server cookies are injected in QueryDNSServerAsync()
+            // because they differ per server endpoint.
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
                                UDPPayloadSize,
@@ -438,6 +448,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         firstResponse = await firstResponseTask.
                                                 ConfigureAwait(false);
+
+                        if (CancellationToken.IsCancellationRequested)
+                            throw new OperationCanceledException(CancellationToken);
 
                         if (firstResponse?.ResponseCode == DNSResponseCodes.NoError)
                         {
@@ -519,13 +532,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            #region Follow CNAME chains
+            #region Follow CNAME / DNAME chains
 
             // Many authoritative DNS servers return only a CNAME record when
             // the queried name is an alias, without including the final A/AAAA
             // records in the answer section.  When FollowCNAMEs is enabled,
             // we iteratively resolve the CNAME target until we either receive
             // the originally requested record types or hit the depth limit.
+            //
+            // RFC 6672 (DNAME): A DNAME record provides redirection for an
+            // entire subtree.  When the answer contains a DNAME but no CNAME,
+            // we synthesize the rewritten name and continue the chase.
 
             if (FollowCNAMEs && firstResponse is not null &&
                 firstResponse.ResponseCode == DNSResponseCodes.NoError &&
@@ -533,7 +550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 // Only chase if:
-                //  1) The answer section contains CNAME(s)
+                //  1) The answer section contains CNAME(s) or DNAME(s)
                 //  2) But does NOT contain any record of the originally requested type(s)
                 //     (i.e. the resolver didn't already inline the final answer)
                 var requestedTypesSet  = new HashSet<DNSResourceRecordTypes>(resourceRecordTypes);
@@ -550,21 +567,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         var allAnswers        = new List<IDNSResourceRecord>(firstResponse.Answers);
                         var currentResponse   = firstResponse;
+                        var currentName       = DNSServiceName.ToString();
                         var visited           = new HashSet<String>(StringComparer.OrdinalIgnoreCase) {
-                                                    DNSServiceName.ToString()
+                                                    currentName
                                                 };
 
                         for (var hop = 0; hop < MaxCNAMEFollows; hop++)
                         {
 
-                            // Find the last CNAME target in the current response
+                            // First check for CNAME
                             var cnameTarget = currentResponse.Answers.
                                                   OfType<CNAME>().
                                                   Select(cname => cname.CName.FullName).
                                                   LastOrDefault();
 
+                            // RFC 6672: If no CNAME, check for DNAME and synthesize the rewritten name
+                            if (cnameTarget is null)
+                            {
+                                var dname = currentResponse.Answers.
+                                                OfType<DNAME>().
+                                                LastOrDefault();
+
+                                if (dname is not null)
+                                {
+                                    // Synthesize: replace the DNAME owner suffix in the queried name
+                                    // with the DNAME target.  E.g. if querying "x.old.example." and
+                                    // DNAME owner is "old.example." with target "new.example.",
+                                    // the rewritten name becomes "x.new.example."
+                                    var ownerSuffix = dname.DomainName.ToString();
+                                    if (currentName.EndsWith(ownerSuffix, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        var prefix = currentName[..^ownerSuffix.Length];
+                                        cnameTarget = prefix + dname.Target.FullName;
+                                    }
+                                }
+                            }
+
                             if (cnameTarget is null || !visited.Add(cnameTarget))
-                                break;   // No CNAME or loop detected
+                                break;   // No CNAME/DNAME or loop detected
+
+                            currentName = cnameTarget;
 
                             var followUpResponse = await Query(
                                                              DNSServiceName.Parse(cnameTarget),
@@ -578,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             if (followUpResponse.ResponseCode != DNSResponseCodes.NoError ||
                                 !followUpResponse.Answers.Any())
                             {
-                                // NXDOMAIN / error on the CNAME target — stop chasing
+                                // NXDOMAIN / error on the target — stop chasing
                                 currentResponse = followUpResponse;
                                 break;
                             }
@@ -592,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         }
 
-                        // Build a merged response with the full CNAME chain + final records
+                        // Build a merged response with the full CNAME/DNAME chain + final records
                         firstResponse = new DNSInfo(
                                             Origin:                 currentResponse.Origin,
                                             QueryId:                currentResponse.QueryId,
@@ -655,251 +697,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                         CancellationToken  CancellationToken)
         {
 
-            Socket? socket = null;
+            // RFC 7873: Inject stored per-server COOKIE into the query.
+            var serverKey       = DNSServer.IPAddress.ToString();
+            var effectiveQuery  = DNSQuery;
 
-            try
+            if (cookieStore.TryGetValue(serverKey, out var storedCookie))
             {
+                var optionsWithCookie = EDNSOptions
+                                            .Where (o => o.Code != (UInt16) EDNSOptionCode.Cookie)
+                                            .Append(storedCookie)
+                                            .ToList();
 
-                var serverAddress  = System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString());
-                var endPoint       = new IPEndPoint(serverAddress, DNSServer.Port.ToInt32());
-
-                socket             = DNSServer.IPAddress.IsIPv4
-                                         ? new Socket(AddressFamily.InterNetwork,   SocketType.Dgram, ProtocolType.Udp)
-                                         : new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
-
-                using var timeoutCTS  = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-                timeoutCTS.CancelAfter(Timeout);
-
-                await socket.ConnectAsync(endPoint, timeoutCTS.Token).
-                             ConfigureAwait(false);
-
-                using var ms = new MemoryStream();
-                DNSQuery.Serialize(ms, false, []);
-
-                await socket.SendToAsync(ms.ToArray(), SocketFlags.None, endPoint, timeoutCTS.Token).
-                             ConfigureAwait(false);
-
-                var data      = new Byte[Math.Max(4096, (Int32) UDPPayloadSize)];
-                var received  = await socket.ReceiveAsync(data, SocketFlags.None, timeoutCTS.Token).
-                                             ConfigureAwait(false);
-
-                var response = DNSInfo.ReadResponse(
-                                  DNSServer,
-                                  DNSQuery.TransactionId,
-                                  new MemoryStream(data, 0, received)
-                              );
-
-                // RFC 5966: If the UDP response is truncated, retry via TCP
-                if (response.IsTruncated)
-                    return await QueryDNSServerViaTCPAsync(DNSServer, DNSQuery, Timeout, CancellationToken).
-                                     ConfigureAwait(false);
-
-                return response;
-
+                effectiveQuery = DNSPacket.Query(
+                                     DNSQuery.Questions.First().DomainName,
+                                     UDPPayloadSize,
+                                     DNSQuery.RecursionDesired,
+                                     optionsWithCookie,
+                                     DNSQuery.Questions.Select(q => q.QueryType).ToArray()
+                                 );
             }
-            catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
+
+            // Delegate to DNSUDPClient for the actual UDP transport.
+            using var udpClient = new DNSUDPClient(
+                                      DNSServer.IPAddress,
+                                      DNSServer.Port,
+                                      QueryTimeout: Timeout
+                                  );
+
+            // Transfer EDNS options to the transport client
+            if (effectiveQuery != DNSQuery)
             {
-
-                return new DNSInfo(
-                           Origin:                 new DNSServerConfig(
-                                                       DNSServer.IPAddress,
-                                                       DNSServer.Port
-                                                   ),
-                           QueryId:                DNSQuery.TransactionId,
-                           IsAuthoritativeAnswer:  false,
-                           IsTruncated:            false,
-                           RecursionDesired:       false,
-                           RecursionAvailable:     false,
-                           ResponseCode:           DNSResponseCodes.ServerFailure,
-                           Answers:                [],
-                           Authorities:            [],
-                           AdditionalRecords:      [],
-                           IsValid:                true,
-                           IsTimeout:              false,
-                           Timeout:                Timeout
-                       );
-
+                // Cookie was injected — the effectiveQuery already contains the right OPT record.
+                // DNSUDPClient.Query will build its own packet, so we need to set its options.
+                udpClient.EDNSOptions.AddRange(
+                    EDNSOptions
+                        .Where(o => o.Code != (UInt16) EDNSOptionCode.Cookie)
+                );
+                if (storedCookie is not null)
+                    udpClient.EDNSOptions.Add(storedCookie);
             }
-            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            else
             {
-
-                DebugX.LogT($"DNS UDP query to {DNSServer} timed out!");
-
-                return DNSInfo.TimedOut(
-                           new DNSServerConfig(
-                               DNSServer.IPAddress,
-                               DNSServer.Port
-                           ),
-                           DNSQuery.TransactionId,
-                           Timeout
-                       );
-
+                udpClient.EDNSOptions.AddRange(EDNSOptions);
             }
-            catch (SocketException se)
-            {
 
-                DebugX.LogT($"DNS UDP query to {DNSServer} socket error: {se.SocketErrorCode} — {se.Message}");
+            var response = await udpClient.Query(
+                                     DNSQuery.Questions.First().DomainName,
+                                     DNSQuery.Questions.Select(q => q.QueryType),
+                                     Timeout,
+                                     DNSQuery.RecursionDesired,
+                                     false,
+                                     CancellationToken
+                                 ).ConfigureAwait(false);
 
-                return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               DNSServer.IPAddress,
-                               DNSServer.Port
-                           ),
-                           DNSQuery.TransactionId,
-                           Timeout
-                       );
+            // RFC 7873: Extract and store server cookie from response OPT record
+            ExtractAndStoreCookie(serverKey, response);
 
-            }
-            catch (Exception e)
-            {
-
-                DebugX.LogT($"DNS UDP query to {DNSServer} failed: [{e.GetType().Name}] {e.Message}");
-
-                return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               DNSServer.IPAddress,
-                               DNSServer.Port
-                           ),
-                           DNSQuery.TransactionId,
-                           Timeout
-                       );
-
-            }
-            finally
-            {
-                socket?.Dispose();
-            }
+            return response;
 
         }
 
         #endregion
 
-        #region (private) QueryDNSServerViaTCPAsync(DNSServer, DNSQuery, Timeout, CancellationToken)
+        #region (private) ExtractAndStoreCookie(ServerKey, Response)
 
         /// <summary>
-        /// TCP fallback for truncated UDP responses (RFC 5966).
+        /// RFC 7873: Extract the server cookie from the response OPT record
+        /// and store it so that subsequent queries to the same server include it.
         /// </summary>
-        private async Task<DNSInfo> QueryDNSServerViaTCPAsync(DNSServerConfig    DNSServer,
-                                                               DNSPacket          DNSQuery,
-                                                               TimeSpan           Timeout,
-                                                               CancellationToken  CancellationToken)
+        private void ExtractAndStoreCookie(String   ServerKey,
+                                           DNSInfo  Response)
         {
 
-            Socket? socket = null;
+            var responseCookie = Response.EDNSOptions
+                                         .OfType<EDNSCookieOption>()
+                                         .FirstOrDefault();
 
-            try
-            {
-
-                var serverAddress  = System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString());
-                var endPoint       = new IPEndPoint(serverAddress, DNSServer.Port.ToInt32());
-
-                socket             = DNSServer.IPAddress.IsIPv4
-                                         ? new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp)
-                                         : new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
-
-                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-                timeoutCTS.CancelAfter(Timeout);
-
-                await socket.ConnectAsync(endPoint, timeoutCTS.Token).
-                             ConfigureAwait(false);
-
-                using var networkStream = new NetworkStream(socket, ownsSocket: false);
-
-                // TCP DNS: 2-byte length prefix (RFC 1035 Section 4.2.2)
-                using var ms = new MemoryStream();
-                ms.WriteByte(0);
-                ms.WriteByte(0);
-                DNSQuery.Serialize(ms, false, []);
-                var data       = ms.ToArray();
-                var dataLength = data.Length - 2;
-                data[0] = (Byte) (dataLength >> 8);
-                data[1] = (Byte) (dataLength & 0xFF);
-
-                await networkStream.WriteAsync(data, timeoutCTS.Token).ConfigureAwait(false);
-                await networkStream.FlushAsync(timeoutCTS.Token).      ConfigureAwait(false);
-
-                var responseLength = await networkStream.ReadUInt16BEAsync(timeoutCTS.Token).
-                                                         ConfigureAwait(false);
-
-                var buffer    = new Byte[responseLength];
-                var totalRead = 0;
-
-                while (totalRead < responseLength)
-                {
-
-                    var bytesRead = await networkStream.ReadAsync(
-                                              buffer.AsMemory(totalRead, responseLength - totalRead),
-                                              timeoutCTS.Token
-                                          ).ConfigureAwait(false);
-
-                    if (bytesRead == 0)
-                        break;
-
-                    totalRead += bytesRead;
-
-                }
-
-                return DNSInfo.ReadResponse(
-                           new DNSServerConfig(
-                               DNSServer.IPAddress,
-                               DNSServer.Port,
-                               DNSTransport.TCP,
-                               Timeout
-                           ),
-                           DNSQuery.TransactionId,
-                           new MemoryStream(buffer, 0, totalRead)
-                       );
-
-            }
-            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
-            {
-
-                DebugX.LogT($"DNS TCP fallback to {DNSServer} timed out!");
-
-                return DNSInfo.TimedOut(
-                           new DNSServerConfig(
-                               DNSServer.IPAddress,
-                               DNSServer.Port
-                           ),
-                           DNSQuery.TransactionId,
-                           Timeout
-                       );
-
-            }
-            catch (SocketException se)
-            {
-
-                DebugX.LogT($"DNS TCP fallback to {DNSServer} socket error: {se.SocketErrorCode} — {se.Message}");
-
-                return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               DNSServer.IPAddress,
-                               DNSServer.Port
-                           ),
-                           DNSQuery.TransactionId,
-                           Timeout
-                       );
-
-            }
-            catch (Exception e)
-            {
-
-                DebugX.LogT($"DNS TCP fallback to {DNSServer} failed: [{e.GetType().Name}] {e.Message}");
-
-                return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               DNSServer.IPAddress,
-                               DNSServer.Port
-                           ),
-                           DNSQuery.TransactionId,
-                           Timeout
-                       );
-
-            }
-            finally
-            {
-                socket?.Dispose();
-            }
+            if (responseCookie?.HasServerCookie == true)
+                cookieStore[ServerKey] = responseCookie;
 
         }
 

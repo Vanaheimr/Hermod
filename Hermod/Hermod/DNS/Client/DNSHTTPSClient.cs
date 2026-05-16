@@ -741,15 +741,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                        effectiveTimeout
                                    );
 
+                // Check HTTP status code before attempting to parse the response body.
+                // Non-2xx responses (429 Rate Limit, 403 Forbidden, 503 Unavailable, etc.)
+                // must not be fed to the DNS wire-format parser.
+                if (httpResponse.HTTPStatusCode.Code < 200 ||
+                    httpResponse.HTTPStatusCode.Code >= 300)
+                {
+
+                    DebugX.LogT($"DNS HTTPS query to {RemoteIPAddress}:{RemotePort} returned HTTP {httpResponse.HTTPStatusCode.Code}!");
+
+                    return DNSInfo.Failed(
+                               serverConfig,
+                               dnsQuery.TransactionId,
+                               effectiveTimeout
+                           );
+
+                }
+
                 // JSON mode: parse the JSON response
                 if (Mode == DNSHTTPSMode.JSON)
                     return ParseJSONResponse(serverConfig, httpResponse);
 
                 // Binary mode: parse the wire-format response
+                var body = httpResponse.HTTPBody ?? [];
+
+                if (body.Length < 12)
+                {
+
+                    DebugX.LogT($"DNS HTTPS response from {RemoteIPAddress}:{RemotePort} too short ({body.Length} bytes, minimum 12)!");
+
+                    return DNSInfo.Failed(
+                               serverConfig,
+                               dnsQuery.TransactionId,
+                               effectiveTimeout
+                           );
+
+                }
+
                 return DNSInfo.ReadResponse(
                            serverConfig,
                            dnsQuery.TransactionId,
-                           new MemoryStream(httpResponse.HTTPBody ?? [])
+                           new MemoryStream(body)
                        );
 
             }
@@ -769,9 +801,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (Exception ex)
             {
 
-                await Log($"Error in {nameof(QueryHTTP)}: {ex.Message}");
+                await Log($"DNS HTTPS query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}");
 
-                return DNSInfo.TimedOut(
+                return DNSInfo.Failed(
                            new DNSServerConfig(
                                RemoteIPAddress!,
                                RemotePort ?? IPPort.HTTPS
@@ -1029,6 +1061,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            DNSServiceName.Parse(data.EndsWith('.') ? data : data + ".")
                        ),
 
+                DNSResourceRecordTypes.DNAME
+                    => new DNAME(
+                           DomainName.Parse(name),
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           DomainName.Parse(data.EndsWith('.') ? data : data + ".")
+                       ),
+
+                DNSResourceRecordTypes.NAPTR
+                    => ParseNAPTRFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.SSHFP
+                    => ParseSSHFPFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.SPF
+                    => new SPF(
+                           DomainName.Parse(name),
+                           DNSQueryClasses.IN,
+                           timeToLive,
+                           data.Trim('"')
+                       ),
+
+                DNSResourceRecordTypes.HTTPS
+                    => ParseHTTPSFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.SVCB
+                    => ParseSVCBFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.URI
+                    => ParseURIFromJSON(serviceName, timeToLive, data),
+
                 _ => null
 
             };
@@ -1120,6 +1183,291 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        IPPort.Parse(parts[2]),
                        DNS.DomainName.Parse(parts[3].EndsWith('.') ? parts[3] : parts[3] + ".")
                    );
+
+        }
+
+        #endregion
+
+        #region (private static) TryParseSVCParamKey(Name, out Key)
+
+        /// <summary>
+        /// Try to map a well-known SVC parameter name to its numeric key
+        /// (RFC 9460 §14.3.2).
+        /// </summary>
+        private static Boolean TryParseSVCParamKey(String Name, out UInt16 Key)
+        {
+            Key = Name.ToLowerInvariant() switch {
+                "mandatory"       => 0,
+                "alpn"            => 1,
+                "no-default-alpn" => 2,
+                "port"            => 3,
+                "ipv4hint"        => 4,
+                "ech"             => 5,
+                "ipv6hint"        => 6,
+                _                 => UInt16.MaxValue
+            };
+            return Key != UInt16.MaxValue;
+        }
+
+        #endregion
+
+        #region (private static) ParseNAPTRFromJSON(...)
+
+        /// <summary>
+        /// Parse a NAPTR record from the JSON "data" field
+        /// (e.g. "100 10 \"u\" \"E2U+sip\" \"!^.*$!sip:info@example.com!\" .").
+        /// </summary>
+        private static NAPTR? ParseNAPTRFromJSON(DomainName  DomainName,
+                                                 TimeSpan    TimeToLive,
+                                                 String      Data)
+        {
+
+            try
+            {
+
+                // NAPTR data format: Order Preference Flags Services Regexp Replacement
+                var parts = Data.Split(' ', 6);
+                if (parts.Length < 6)
+                    return null;
+
+                var order       = UInt16.Parse(parts[0]);
+                var preference  = UInt16.Parse(parts[1]);
+                var flags       = parts[2].Trim('"');
+                var services    = parts[3].Trim('"');
+                var regExpr     = parts[4].Trim('"');
+                var replacement = parts[5].TrimEnd('.');
+
+                if (!replacement.EndsWith('.'))
+                    replacement += ".";
+
+                return new NAPTR(
+                           DomainName,
+                           DNSQueryClasses.IN,
+                           TimeToLive,
+                           order,
+                           preference,
+                           flags,
+                           services,
+                           regExpr,
+                           DNS.DomainName.Parse(replacement)
+                       );
+
+            }
+            catch
+            {
+                return null;
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) ParseSSHFPFromJSON(...)
+
+        /// <summary>
+        /// Parse an SSHFP record from the JSON "data" field
+        /// (e.g. "1 1 AABBCCDD...").
+        /// </summary>
+        private static SSHFP? ParseSSHFPFromJSON(DomainName  DomainName,
+                                                  TimeSpan    TimeToLive,
+                                                  String      Data)
+        {
+
+            try
+            {
+
+                var parts = Data.Split(' ', 3);
+                if (parts.Length < 3)
+                    return null;
+
+                var algorithm   = (SSHFP_Algorithm)       Byte.Parse(parts[0]);
+                var fpType      = (SSHFP_FingerprintType) Byte.Parse(parts[1]);
+                var fingerprint = Convert.FromHexString(parts[2].Replace(" ", ""));
+
+                return new SSHFP(
+                           DomainName,
+                           DNSQueryClasses.IN,
+                           TimeToLive,
+                           algorithm,
+                           fpType,
+                           fingerprint
+                       );
+
+            }
+            catch
+            {
+                return null;
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) ParseHTTPSFromJSON(...)
+
+        /// <summary>
+        /// Parse an HTTPS record from the JSON "data" field
+        /// (e.g. "1 . alpn=h2,h3").
+        /// Since SVC parameters have complex wire-format encoding, we store
+        /// the raw presentation-format string for now.
+        /// </summary>
+        private static HTTPS? ParseHTTPSFromJSON(DomainName  DomainName,
+                                                  TimeSpan    TimeToLive,
+                                                  String      Data)
+        {
+
+            try
+            {
+
+                var parts      = Data.Split(' ', 3);
+                if (parts.Length < 2)
+                    return null;
+
+                var priority   = UInt16.Parse(parts[0]);
+                var targetName = parts[1].TrimEnd('.');
+
+                if (targetName == ".")
+                    targetName = DomainName.ToString().TrimEnd('.');
+
+                if (!targetName.EndsWith('.'))
+                    targetName += ".";
+
+                // Parse SVC parameters from the remaining data (if present)
+                var svcParams = new List<SVCParameter>();
+                if (parts.Length >= 3 && !String.IsNullOrWhiteSpace(parts[2]))
+                {
+                    foreach (var param in parts[2].Split(' '))
+                    {
+                        var kv = param.Split('=', 2);
+                        if (kv.Length == 2)
+                        {
+                            if (UInt16.TryParse(kv[0], out var key) ||
+                                TryParseSVCParamKey(kv[0], out key))
+                            {
+                                svcParams.Add(new SVCParameter(key, System.Text.Encoding.UTF8.GetBytes(kv[1])));
+                            }
+                        }
+                    }
+                }
+
+                return new HTTPS(
+                           DomainName,
+                           DNSQueryClasses.IN,
+                           TimeToLive,
+                           priority,
+                           DNS.DomainName.Parse(targetName),
+                           svcParams
+                       );
+
+            }
+            catch
+            {
+                return null;
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) ParseSVCBFromJSON(...)
+
+        /// <summary>
+        /// Parse a SVCB record from the JSON "data" field
+        /// (e.g. "1 target.example.com. alpn=h2").
+        /// </summary>
+        private static SVCB? ParseSVCBFromJSON(DomainName  DomainName,
+                                                TimeSpan    TimeToLive,
+                                                String      Data)
+        {
+
+            try
+            {
+
+                var parts      = Data.Split(' ', 3);
+                if (parts.Length < 2)
+                    return null;
+
+                var priority   = UInt16.Parse(parts[0]);
+                var targetName = parts[1].TrimEnd('.');
+
+                if (targetName == ".")
+                    targetName = DomainName.ToString().TrimEnd('.');
+
+                if (!targetName.EndsWith('.'))
+                    targetName += ".";
+
+                var svcParams = new List<SVCParameter>();
+                if (parts.Length >= 3 && !String.IsNullOrWhiteSpace(parts[2]))
+                {
+                    foreach (var param in parts[2].Split(' '))
+                    {
+                        var kv = param.Split('=', 2);
+                        if (kv.Length == 2)
+                        {
+                            if (UInt16.TryParse(kv[0], out var key) ||
+                                TryParseSVCParamKey(kv[0], out key))
+                            {
+                                svcParams.Add(new SVCParameter(key, System.Text.Encoding.UTF8.GetBytes(kv[1])));
+                            }
+                        }
+                    }
+                }
+
+                return new SVCB(
+                           DomainName,
+                           DNSQueryClasses.IN,
+                           TimeToLive,
+                           priority,
+                           DNS.DomainName.Parse(targetName),
+                           svcParams
+                       );
+
+            }
+            catch
+            {
+                return null;
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) ParseURIFromJSON(...)
+
+        /// <summary>
+        /// Parse a URI record from the JSON "data" field
+        /// (e.g. "10 1 \"https://example.com/path\"").
+        /// </summary>
+        private static URI? ParseURIFromJSON(DNSServiceName  ServiceName,
+                                              TimeSpan        TimeToLive,
+                                              String          Data)
+        {
+
+            try
+            {
+
+                var parts = Data.Split(' ', 3);
+                if (parts.Length < 3)
+                    return null;
+
+                var priority = UInt16.Parse(parts[0]);
+                var weight   = UInt16.Parse(parts[1]);
+                var target   = parts[2].Trim('"');
+
+                return new URI(
+                           ServiceName,
+                           DNSQueryClasses.IN,
+                           TimeToLive,
+                           priority,
+                           weight,
+                           HTTP.URL.Parse(target)
+                       );
+
+            }
+            catch
+            {
+                return null;
+            }
 
         }
 

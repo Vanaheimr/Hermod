@@ -334,7 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 );
 
             return new DNSPacket(
-                       TransactionId:         (UInt16) Random.Shared.Next(UInt16.MaxValue),
+                       TransactionId:         (UInt16) Random.Shared.Next(0, 65536),
                        QueryOrResponse:       DNSQueryResponse.Query,
                        Opcode:                0x00,
                        AuthoritativeAnswer:   false,

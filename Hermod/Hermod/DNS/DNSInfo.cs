@@ -307,6 +307,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     additionalRecords.Add(rr);
             }
 
+            // RFC 6891 §6.1.3: Full RCODE = (ExtendedRCODE << 4) | Header-RCODE
+            // The OPT record (if present) carries the upper 8 bits of the RCODE.
+            var optRecord     = additionalRecords.OfType<OPT>().FirstOrDefault();
+            var fullRCODE     = optRecord is not null
+                                    ? (DNSResponseCodes) ((optRecord.ExtendedRCODE << 4) | (Int32) ResponseCode)
+                                    : ResponseCode;
+
             return new DNSInfo(
                        Origin,
                        requestId,
@@ -314,7 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        TC,
                        RD,
                        RA,
-                       ResponseCode,
+                       fullRCODE,
 
                        answers,
                        authorities,
