@@ -285,6 +285,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       UInt16?                          UDPPayloadSize,
                                       Boolean                          RecursionDesired,
                                       params DNSResourceRecordTypes[]  ResourceRecordTypes)
+
+            => Query(DomainName,
+                     UDPPayloadSize,
+                     RecursionDesired,
+                     null,
+                     ResourceRecordTypes);
+
+        #endregion
+
+        #region Query(DomainName, UDPPayloadSize, RecursionDesired, EDNSOptions, ResourceRecordTypes)
+
+        /// <summary>
+        /// Create a new DNS request with EDNS0 support (RFC 6891) and optional EDNS options.
+        /// </summary>
+        /// <param name="DomainName">The domain name to query.</param>
+        /// <param name="UDPPayloadSize">The EDNS0 UDP payload size to advertise. Set to 0 to disable EDNS0.</param>
+        /// <param name="RecursionDesired">Whether recursion is desired or not.</param>
+        /// <param name="EDNSOptions">Optional EDNS0 options to include in the OPT record (e.g. Cookie, Client Subnet, Padding, Keepalive).</param>
+        /// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
+        public static DNSPacket Query(DNSServiceName                   DomainName,
+                                      UInt16?                          UDPPayloadSize,
+                                      Boolean                          RecursionDesired,
+                                      IEnumerable<EDNSOption>?         EDNSOptions,
+                                      params DNSResourceRecordTypes[]  ResourceRecordTypes)
         {
 
             var questions = new List<DNSQuestion>();
@@ -304,7 +328,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         UDPPayloadSize:  UDPPayloadSize ?? DefaultUDPPayloadSize,
                         ExtendedRCODE:   0,
                         Version:         0,
-                        Flags:           0
+                        Flags:           0,
+                        Options:         EDNSOptions
                     )
                 );
 

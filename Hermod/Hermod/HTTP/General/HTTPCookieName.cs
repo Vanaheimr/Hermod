@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryParse(Text, out var httpCookieName))
                 return httpCookieName;
 
-            throw new ArgumentException($"Invalid text representation of a HTTP cookie name: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of a HTTP cookie name: '{Text}'!",
                                         nameof(Text));
 
         }

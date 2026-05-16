@@ -131,6 +131,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => additionalRecords.AsReadOnly();
 
 
+        /// <summary>
+        /// The OPT pseudo-record from the additional section (if present).
+        /// </summary>
+        public OPT?                             OPTRecord
+            => additionalRecords.OfType<OPT>().FirstOrDefault();
+
+        /// <summary>
+        /// All EDNS options from the response OPT record (empty if no OPT record).
+        /// </summary>
+        public IEnumerable<EDNSOption>          EDNSOptions
+            => OPTRecord?.Options ?? [];
+
+
         public Boolean                          IsValid               { get; }
 
         public Boolean                          IsTimeout             { get; }
@@ -269,9 +282,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
-            var answers            = new List<ADNSResourceRecord>();
-            var authorities        = new List<ADNSResourceRecord>();
-            var additionalRecords  = new List<ADNSResourceRecord>();
+            var answers            = new List<IDNSResourceRecord>();
+            var authorities        = new List<IDNSResourceRecord>();
+            var additionalRecords  = new List<IDNSResourceRecord>();
 
             for (var i = 0; i < AnswerCount; ++i)
             {
@@ -318,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private  static) ReadResourceRecord(DNSStream)
 
-        private static ADNSResourceRecord? ReadResourceRecord(Stream DNSStream)
+        private static IDNSResourceRecord? ReadResourceRecord(Stream DNSStream)
         {
 
             var resourceName  = DNSTools.ExtractName(DNSStream);
@@ -326,6 +339,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (resourceName == "")
                 resourceName = ".";
+
+            // OPT is a pseudo-RR that does NOT extend ADNSResourceRecord,
+            // so it must be handled explicitly before the reflection lookup.
+            if (typeId == DNSResourceRecordTypes.OPT)
+                return new OPT(
+                           DNSServiceName.Parse(resourceName),
+                           DNSStream
+                       );
 
             if (rrLookup_DNSServiceName. TryGetValue(typeId, out var constructor_DNSServiceName))
                 return (ADNSResourceRecord) constructor_DNSServiceName.Invoke([
@@ -391,6 +412,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     false,
                     false,
                     TimeSpan.Zero);
+
+
+        /// <summary>
+        /// Create a DNSInfo representing a query that failed due to a
+        /// network error, malformed response or other non-timeout exception.
+        /// Unlike TimedOut, this sets IsTimeout = false.
+        /// </summary>
+        public static DNSInfo Failed(DNSServerConfig  Origin,
+                                     Int32            QueryId,
+                                     TimeSpan         Timeout)
+
+            => new (Origin,
+                    QueryId,
+                    false,
+                    false,
+                    false,
+                    false,
+                    DNSResponseCodes.ServerFailure,
+                    [],
+                    [],
+                    [],
+                    false,
+                    false,
+                    Timeout);
 
 
         //internal void AddAnswer(ADNSResourceRecord ResourceRecord)

@@ -269,9 +269,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary> 
     /// A common interface for all kinds of Internet protocol addresses.
     /// </summary>
-    public interface IIPAddress : IComparable,
+    public interface IIPAddress : IEquatable<IIPAddress>,
                                   IComparable<IIPAddress>,
-                                  IEquatable<IIPAddress>
+                                  IComparable
     {
 
         /// <summary>

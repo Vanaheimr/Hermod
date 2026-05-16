@@ -247,8 +247,8 @@ public class IPv4Header_old : AProtocolHeader
         ipv4Header.ipProtocol = ipv4Packet[9];
         ipv4Header.ipChecksum = BitConverter.ToUInt16(ipv4Packet, 10);
 
-        ipv4Header.ipSourceAddress      = new IPv4Address(BitConverter.ToUInt32(ipv4Packet, 12));
-        ipv4Header.ipDestinationAddress = new IPv4Address(BitConverter.ToUInt32(ipv4Packet, 16));
+        ipv4Header.ipSourceAddress      = IPv4Address.From(BitConverter.ToUInt32(ipv4Packet, 12));
+        ipv4Header.ipDestinationAddress = IPv4Address.From(BitConverter.ToUInt32(ipv4Packet, 16));
 
         bytesCopied = ipv4Header.Length;
 

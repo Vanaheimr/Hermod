@@ -103,27 +103,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// Create a new OPT resource record from the given name and stream.
+        /// The stream position must be right after the TYPE field has been read.
+        /// Reads: CLASS (2), TTL (4), RDLENGTH (2), then RDATA (EDNS options).
         /// </summary>
         /// <param name="DomainName">The domain name of this OPT resource record.</param>
         /// <param name="Stream">A stream containing the OPT resource record data.</param>
-        public OPT(DNSServiceName   DomainName,
-                   //DNSQueryClasses  Class,
-                   //UInt32           TTL,
-                   Stream           Stream)
-
-            //: base(DomainName,
-            //       TypeId,
-            //       Stream)
-
+        public OPT(DNSServiceName  DomainName,
+                   Stream          Stream)
         {
 
-            this.Class       = (DNSQueryClasses) Stream.ReadUInt16BE();
-            var timeToLife   = Stream.ReadUInt32BE();
-            this.TimeToLive  = TimeSpan.FromSeconds(timeToLife);
-            //this.TimeToLive  = TimeSpan.FromSeconds((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
-            this.EndOfLife   = Timestamp.Now + TimeToLive;
+            // CLASS = UDP payload size
+            this.UDPPayloadSize  = Stream.ReadUInt16BE();
+            this.Class           = (DNSQueryClasses) UDPPayloadSize;
 
-            //this.IPv6Address = new IPv6Address(Stream);
+            // TTL = Extended RCODE (8), Version (8), Flags (16)
+            var ttlBytes         = Stream.ReadUInt32BE();
+            this.ExtendedRCODE   = (Byte)   (ttlBytes >> 24);
+            this.Version         = (Byte)   ((ttlBytes >> 16) & 0xFF);
+            this.Flags           = (UInt16) (ttlBytes & 0xFFFF);
+            this.TimeToLive      = TimeSpan.Zero;
+            this.EndOfLife       = DateTimeOffset.MaxValue;
+
+            // RDLENGTH
+            var rdLength         = Stream.ReadUInt16BE();
+
+            // Parse EDNS options from RDATA
+            var options          = new List<EDNSOption>();
+            var bytesRead        = 0;
+
+            while (bytesRead < rdLength)
+            {
+
+                if (rdLength - bytesRead < 4)
+                {
+                    // Remaining bytes too short for another option header — skip
+                    Stream.Seek(rdLength - bytesRead, SeekOrigin.Current);
+                    break;
+                }
+
+                var optionCode    = Stream.ReadUInt16BE();
+                var optionLength  = Stream.ReadUInt16BE();
+                bytesRead        += 4;
+
+                if (optionLength > rdLength - bytesRead)
+                {
+                    // Malformed: option claims more data than available — skip rest
+                    Stream.Seek(rdLength - bytesRead, SeekOrigin.Current);
+                    break;
+                }
+
+                var optionData    = new Byte[optionLength];
+                if (optionLength > 0)
+                    Stream.ReadExactly(optionData, 0, optionLength);
+                bytesRead        += optionLength;
+
+                options.Add(
+                    EDNSOption.Parse(optionCode, optionData)
+                );
+
+            }
+
+            this.Options = options;
 
         }
 

@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
                 ICMPRedirect = Create(
                                    Code,
-                                   new IPv4Address(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(Packet, 0))),
+                                   IPv4Address.From(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(Packet, 0))),
                                    data
                                );
 

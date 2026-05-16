@@ -59,6 +59,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public TimeSpan  QueryTimeout        { get; set; }
 
+        /// <summary>
+        /// Optional EDNS0 options to include in every DNS query.
+        /// </summary>
+        public List<EDNSOption>  EDNSOptions  { get; } = [];
+
         #endregion
 
         #region Constructor(s)
@@ -147,6 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                DNSServiceName,
                                0,
                                this.RecursionDesired ?? RecursionDesired ?? true,
+                               EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );
 

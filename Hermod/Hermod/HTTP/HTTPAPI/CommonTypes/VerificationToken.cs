@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryParse(Text, out VerificationToken verificationToken))
                 return verificationToken;
 
-            throw new ArgumentException($"Invalid text representation of a verification token: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of a verification token: '{Text}'!",
                                         nameof(Text));
 
         }

@@ -20,6 +20,7 @@
 using System.Net;
 using System.Net.Sockets;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -75,6 +76,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public TimeSpan    QueryTimeout        { get; set; }
 
+        /// <summary>
+        /// Optional EDNS0 options to include in every DNS query.
+        /// </summary>
+        public List<EDNSOption>  EDNSOptions   { get; } = [];
 
 
 
@@ -224,6 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                DNSServiceName,
                                UDPPayloadSize,
                                this.RecursionDesired ?? RecursionDesired ?? true,
+                               EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );
 
@@ -300,6 +306,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
 
+                DebugX.LogT($"DNS UDP query to {RemoteIPAddress}:{RemotePort} timed out!");
+
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(
                                RemoteIPAddress,
@@ -310,10 +318,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
-            catch
+            catch (SocketException se)
             {
 
-                return DNSInfo.TimedOut(
+                DebugX.LogT($"DNS UDP query to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
+            }
+            catch (Exception e)
+            {
+
+                DebugX.LogT($"DNS UDP query to {RemoteIPAddress}:{RemotePort} failed: [{e.GetType().Name}] {e.Message}");
+
+                return DNSInfo.Failed(
                            new DNSServerConfig(
                                RemoteIPAddress,
                                RemotePort ?? IPPort.DNS
@@ -410,6 +435,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
 
+                DebugX.LogT($"DNS TCP fallback to {RemoteIPAddress}:{RemotePort} timed out!");
+
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(
                                RemoteIPAddress,
@@ -420,10 +447,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
-            catch
+            catch (SocketException se)
             {
 
-                return DNSInfo.TimedOut(
+                DebugX.LogT($"DNS TCP fallback to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            catch (Exception e)
+            {
+
+                DebugX.LogT($"DNS TCP fallback to {RemoteIPAddress}:{RemotePort} failed: [{e.GetType().Name}] {e.Message}");
+
+                return DNSInfo.Failed(
                            new DNSServerConfig(
                                RemoteIPAddress,
                                RemotePort ?? IPPort.DNS

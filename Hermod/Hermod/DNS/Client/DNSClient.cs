@@ -39,7 +39,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The default DNS query timeout.
         /// </summary>
-        public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(10);
+        public static readonly TimeSpan  DefaultQueryTimeout    = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The default maximum number of CNAME redirects to follow
+        /// before giving up and returning the last response.
+        /// RFC 1034 does not mandate a limit, but common practice
+        /// is 8-16 to prevent infinite loops.
+        /// </summary>
+        public const Byte                DefaultMaxCNAMEFollows = 8;
 
 
         private Boolean disposedValue;
@@ -77,6 +85,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The default EDNS0 UDP payload size to advertise in DNS queries.
         /// </summary>
         public UInt16                         UDPPayloadSize      { get; } = DNSPacket.DefaultUDPPayloadSize;
+
+        /// <summary>
+        /// Optional EDNS0 options to include in every DNS query
+        /// (e.g. Cookie, Client Subnet, Padding, Keepalive, Extended DNS Error).
+        /// </summary>
+        public List<EDNSOption>               EDNSOptions         { get; } = [];
+
+        /// <summary>
+        /// Whether to automatically follow CNAME redirects.
+        /// When enabled, the DNSClient will chase CNAME chains until
+        /// it receives a response containing the originally requested
+        /// record type(s), or until MaxCNAMEFollows is reached.
+        /// Default: true.
+        /// </summary>
+        public Boolean                        FollowCNAMEs        { get; set; } = true;
+
+        /// <summary>
+        /// The maximum number of CNAME redirects to follow before
+        /// giving up and returning the last response as-is.
+        /// Default: 8.
+        /// </summary>
+        public Byte                           MaxCNAMEFollows     { get; set; } = DefaultMaxCNAMEFollows;
 
         #endregion
 
@@ -373,6 +403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                DNSServiceName,
                                UDPPayloadSize,
                                this.RecursionDesired ?? RecursionDesired ?? true,
+                               EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );
 
@@ -475,8 +506,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     {
                         throw;
                     }
-                    catch
-                    { }
+                    catch (Exception e)
+                    {
+                        DebugX.LogT($"DNS query for '{DNSServiceName}' failed: {e.Message}");
+                    }
 
                 }
                 while (allDNSServerRequests.Count > 0);
@@ -485,6 +518,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 await raceCTS.CancelAsync();
 
             }
+
+            #region Follow CNAME chains
+
+            // Many authoritative DNS servers return only a CNAME record when
+            // the queried name is an alias, without including the final A/AAAA
+            // records in the answer section.  When FollowCNAMEs is enabled,
+            // we iteratively resolve the CNAME target until we either receive
+            // the originally requested record types or hit the depth limit.
+
+            if (FollowCNAMEs && firstResponse is not null &&
+                firstResponse.ResponseCode == DNSResponseCodes.NoError &&
+                firstResponse.Answers.Any())
+            {
+
+                // Only chase if:
+                //  1) The answer section contains CNAME(s)
+                //  2) But does NOT contain any record of the originally requested type(s)
+                //     (i.e. the resolver didn't already inline the final answer)
+                var requestedTypesSet  = new HashSet<DNSResourceRecordTypes>(resourceRecordTypes);
+
+                // "Any" matches everything — no chase needed
+                if (!requestedTypesSet.Contains(DNSResourceRecordTypes.Any) &&
+                    !requestedTypesSet.Contains(DNSResourceRecordTypes.CNAME))
+                {
+
+                    var hasRequestedType  = firstResponse.Answers.Any(rr => requestedTypesSet.Contains(rr.Type));
+
+                    if (!hasRequestedType)
+                    {
+
+                        var allAnswers        = new List<IDNSResourceRecord>(firstResponse.Answers);
+                        var currentResponse   = firstResponse;
+                        var visited           = new HashSet<String>(StringComparer.OrdinalIgnoreCase) {
+                                                    DNSServiceName.ToString()
+                                                };
+
+                        for (var hop = 0; hop < MaxCNAMEFollows; hop++)
+                        {
+
+                            // Find the last CNAME target in the current response
+                            var cnameTarget = currentResponse.Answers.
+                                                  OfType<CNAME>().
+                                                  Select(cname => cname.CName.FullName).
+                                                  LastOrDefault();
+
+                            if (cnameTarget is null || !visited.Add(cnameTarget))
+                                break;   // No CNAME or loop detected
+
+                            var followUpResponse = await Query(
+                                                             DNSServiceName.Parse(cnameTarget),
+                                                             resourceRecordTypes,
+                                                             Timeout,
+                                                             RecursionDesired,
+                                                             BypassCache,
+                                                             CancellationToken
+                                                         ).ConfigureAwait(false);
+
+                            if (followUpResponse.ResponseCode != DNSResponseCodes.NoError ||
+                                !followUpResponse.Answers.Any())
+                            {
+                                // NXDOMAIN / error on the CNAME target — stop chasing
+                                currentResponse = followUpResponse;
+                                break;
+                            }
+
+                            allAnswers.AddRange(followUpResponse.Answers);
+                            currentResponse = followUpResponse;
+
+                            // Check whether we now have the requested record type(s)
+                            if (followUpResponse.Answers.Any(rr => requestedTypesSet.Contains(rr.Type)))
+                                break;
+
+                        }
+
+                        // Build a merged response with the full CNAME chain + final records
+                        firstResponse = new DNSInfo(
+                                            Origin:                 currentResponse.Origin,
+                                            QueryId:                currentResponse.QueryId,
+                                            IsAuthoritativeAnswer:  currentResponse.AuthoritativeAnswer,
+                                            IsTruncated:            currentResponse.IsTruncated,
+                                            RecursionDesired:       currentResponse.RecursionRequested,
+                                            RecursionAvailable:     currentResponse.RecursionAvailable,
+                                            ResponseCode:           currentResponse.ResponseCode,
+                                            Answers:                allAnswers,
+                                            Authorities:            currentResponse.Authorities,
+                                            AdditionalRecords:      currentResponse.AdditionalRecords,
+                                            IsValid:                currentResponse.IsValid,
+                                            IsTimeout:              currentResponse.IsTimeout,
+                                            Timeout:                currentResponse.Timeout
+                                        );
+
+                        // Cache the merged response under the original name
+                        AddToCache(DNSServiceName, firstResponse);
+
+                    }
+
+                }
+
+            }
+
+            #endregion
+
 
             return firstResponse ??
                        new DNSInfo(
@@ -588,6 +723,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
 
+                DebugX.LogT($"DNS UDP query to {DNSServer} timed out!");
+
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(
                                DNSServer.IPAddress,
@@ -598,10 +735,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
-            catch
+            catch (SocketException se)
             {
 
-                return DNSInfo.TimedOut(
+                DebugX.LogT($"DNS UDP query to {DNSServer} socket error: {se.SocketErrorCode} — {se.Message}");
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               DNSServer.IPAddress,
+                               DNSServer.Port
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            catch (Exception e)
+            {
+
+                DebugX.LogT($"DNS UDP query to {DNSServer} failed: [{e.GetType().Name}] {e.Message}");
+
+                return DNSInfo.Failed(
                            new DNSServerConfig(
                                DNSServer.IPAddress,
                                DNSServer.Port
@@ -700,6 +854,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
 
+                DebugX.LogT($"DNS TCP fallback to {DNSServer} timed out!");
+
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(
                                DNSServer.IPAddress,
@@ -710,10 +866,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
-            catch
+            catch (SocketException se)
             {
 
-                return DNSInfo.TimedOut(
+                DebugX.LogT($"DNS TCP fallback to {DNSServer} socket error: {se.SocketErrorCode} — {se.Message}");
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               DNSServer.IPAddress,
+                               DNSServer.Port
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            catch (Exception e)
+            {
+
+                DebugX.LogT($"DNS TCP fallback to {DNSServer} failed: [{e.GetType().Name}] {e.Message}");
+
+                return DNSInfo.Failed(
                            new DNSServerConfig(
                                DNSServer.IPAddress,
                                DNSServer.Port
