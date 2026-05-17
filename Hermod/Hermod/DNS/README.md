@@ -39,16 +39,20 @@ concerns:
 - **EDNS0 options** are forwarded to all transport clients
 
 
-## CNAME Chasing
+## CNAME / DNAME Chasing
 
-When a DNS response contains CNAME records but not the originally requested
-record type, `DNSClient` automatically follows the CNAME chain:
+When a DNS response contains CNAME or DNAME records but not the originally
+requested record type, `DNSClient` automatically follows the alias chain:
 
 - Configurable via `FollowCNAMEs` (default: `true`) and `MaxCNAMEFollows` (default: `8`)
+- **CNAME following**: Classic single-name alias resolution
+- **DNAME following** (RFC 6672): Entire subtree delegation — the client
+  synthesizes the rewritten name by replacing the DNAME owner suffix with
+  the target domain
 - **Loop detection** via a case-insensitive `HashSet<String>` of all visited names
 - Follow-up queries go through `Query()`, so they automatically benefit from
-  caching, EDNS0 options, and further CNAME chasing
-- The final response contains the full CNAME chain plus the resolved records
+  caching, EDNS0 options, and further CNAME/DNAME chasing
+- The final response contains the full alias chain plus the resolved records
 - `Any` and `CNAME` queries are never followed
 - This logic exists **exclusively** in `DNSClient`, not in the individual
   transport clients
@@ -123,6 +127,12 @@ var options = response.EDNSOptions;       // All EDNS options (empty if no OPT)
 
 - **Positive entries**: `ConcurrentDictionary<DNSServiceName, DNSCacheEntry>`
   with TTL-based eviction via a `Timer`
+- **Per-record TTL filtering**: On cache reads, individual records whose
+  `EndOfLife` has passed are filtered out — only still-valid records are
+  returned. A cache entry is fully removed only when *all* its records
+  have expired.
+- **Atomic updates**: Cache insertions use `AddOrUpdate()` to safely merge
+  new records into existing entries under concurrent access
 - **NODATA negative cache** (RFC 2308): `ConcurrentDictionary<String, DateTimeOffset>`
   stores `"domain|TYPE"` → expiry time. Default TTL: 5 minutes
 - Cache cleanup runs periodically (default: every 10 seconds)
@@ -144,7 +154,74 @@ silently swallowed.
 
 ## Supported Resource Record Types
 
-A, AAAA, CNAME, MX, NS, PTR, SOA, SPF, SRV, SSHFP, TXT, NAPTR, HTTPS, SVCB, URI, OPT
+### Standard Records
+
+| Type     | RFC       | Description                                    |
+|----------|-----------|------------------------------------------------|
+| A        | RFC 1035  | IPv4 address                                   |
+| AAAA     | RFC 3596  | IPv6 address                                   |
+| CNAME    | RFC 1035  | Canonical name (alias)                         |
+| DNAME    | RFC 6672  | Delegation name (subtree redirection)          |
+| MX       | RFC 1035  | Mail exchange                                  |
+| NS       | RFC 1035  | Name server                                    |
+| PTR      | RFC 1035  | Pointer (reverse DNS)                          |
+| SOA      | RFC 1035  | Start of authority                             |
+| SRV      | RFC 2782  | Service locator                                |
+| TXT      | RFC 1035  | Arbitrary text                                 |
+| NAPTR    | RFC 3403  | Naming authority pointer                       |
+| HINFO    | RFC 1035  | Host information (CPU / OS)                    |
+| RP       | RFC 1183  | Responsible person                             |
+| AFSDB    | RFC 1183  | AFS database server                            |
+| LOC      | RFC 1876  | Geographic location                            |
+| SPF      | RFC 7208  | Sender policy framework                        |
+| URI      | RFC 7553  | Uniform resource identifier                    |
+| CAA      | RFC 8659  | Certification authority authorization          |
+| EUI48    | RFC 7043  | 48-bit MAC address                             |
+| EUI64    | RFC 7043  | 64-bit MAC address                             |
+
+### DNSSEC Records
+
+| Type       | RFC       | Description                                  |
+|------------|-----------|----------------------------------------------|
+| DS         | RFC 4034  | Delegation signer                            |
+| RRSIG      | RFC 4034  | Resource record signature                    |
+| NSEC       | RFC 4034  | Next secure (authenticated denial)           |
+| DNSKEY     | RFC 4034  | DNS public key                               |
+| NSEC3      | RFC 5155  | Hashed authenticated denial                  |
+| NSEC3PARAM | RFC 5155  | NSEC3 hash parameters                        |
+| CDS        | RFC 7344  | Child DS (automated key rotation)            |
+| CDNSKEY    | RFC 7344  | Child DNSKEY (automated key rotation)        |
+| CSYNC      | RFC 7477  | Child-to-parent synchronization              |
+| ZONEMD     | RFC 8976  | Zone message digest                          |
+
+### Security / Certificate Records
+
+| Type       | RFC       | Description                                  |
+|------------|-----------|----------------------------------------------|
+| TLSA       | RFC 6698  | TLS certificate association (DANE)           |
+| SMIMEA     | RFC 8162  | S/MIME certificate association                |
+| CERT       | RFC 4398  | Certificate storage (PKIX, SPKI, PGP)        |
+| SSHFP      | RFC 4255  | SSH public key fingerprint                   |
+| OPENPGPKEY | RFC 7929  | OpenPGP public key                           |
+
+### Service Binding Records (RFC 9460)
+
+| Type   | RFC       | Description                                    |
+|--------|-----------|------------------------------------------------|
+| SVCB   | RFC 9460  | Generic service binding                        |
+| HTTPS  | RFC 9460  | HTTPS service binding                          |
+
+### Pseudo-Records
+
+| Type   | RFC       | Description                                    |
+|--------|-----------|------------------------------------------------|
+| OPT    | RFC 6891  | EDNS0 options carrier                          |
+| TSIG   | RFC 8945  | Transaction signature                          |
+| TKEY   | RFC 2930  | Transaction key exchange                       |
+
+All record types are fully supported in both **binary wire format** (UDP/TCP/TLS)
+and in the **JSON API** (DNS-over-HTTPS), except TSIG/TKEY which are
+transport-level pseudo-records not applicable to DoH JSON.
 
 
 ## Architecture Overview

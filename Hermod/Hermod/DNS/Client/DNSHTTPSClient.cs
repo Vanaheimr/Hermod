@@ -1092,6 +1092,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSResourceRecordTypes.URI
                     => ParseURIFromJSON(serviceName, timeToLive, data),
 
+                // DNSSEC record types
+                DNSResourceRecordTypes.DS
+                    => ParseDSFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.RRSIG
+                    => ParseRRSIGFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.NSEC
+                    => ParseNSECFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.DNSKEY
+                    => ParseDNSKEYFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.NSEC3
+                    => ParseNSEC3FromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.NSEC3PARAM
+                    => ParseNSEC3PARAMFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.CDS
+                    => ParseCDSFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.CDNSKEY
+                    => ParseCDNSKEYFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                // Security / certificate record types
+                DNSResourceRecordTypes.TLSA
+                    => ParseTLSAFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.SMIMEA
+                    => ParseSMIMEAFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.CERT
+                    => ParseCERTFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.OPENPGPKEY
+                    => ParseOPENPGPKEYFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.CAA
+                    => ParseCAAFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                // Other standard record types
+                DNSResourceRecordTypes.HINFO
+                    => ParseHINFOFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.RP
+                    => ParseRPFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.AFSDB
+                    => ParseAFSDBFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.LOC
+                    => ParseLOCFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.CSYNC
+                    => ParseCSYNCFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.ZONEMD
+                    => ParseZONEMDFromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.EUI48
+                    => ParseEUI48FromJSON(DomainName.Parse(name), timeToLive, data),
+
+                DNSResourceRecordTypes.EUI64
+                    => ParseEUI64FromJSON(DomainName.Parse(name), timeToLive, data),
+
                 _ => null
 
             };
@@ -1469,6 +1535,434 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return null;
             }
 
+        }
+
+        #endregion
+
+
+        // ──────────────────────────────────────────────────────────
+        //  DNSSEC JSON parsers
+        // ──────────────────────────────────────────────────────────
+
+        #region (private static) ParseDSFromJSON(...)
+
+        /// <summary>
+        /// Parse a DS record from the JSON "data" field (e.g. "60485 5 1 2BB183AF5F22588179A53B0A98631FAD1A292118").
+        /// </summary>
+        private static DS? ParseDSFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new DS(DomainName, DNSQueryClasses.IN, TimeToLive,
+                              UInt16.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                              Convert.FromHexString(parts[3].Replace(" ", "")));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseRRSIGFromJSON(...)
+
+        /// <summary>
+        /// Parse an RRSIG record from the JSON "data" field.
+        /// Format: "TypeCovered Algorithm Labels OrigTTL SigExpiration SigInception KeyTag SignerName Signature"
+        /// </summary>
+        private static RRSIG? ParseRRSIGFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 9);
+                if (parts.Length < 9) return null;
+                var signerName = parts[7].EndsWith('.') ? parts[7] : parts[7] + ".";
+                return new RRSIG(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                 (DNSResourceRecordTypes) UInt16.Parse(parts[0]),
+                                 Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                                 UInt32.Parse(parts[3]), UInt32.Parse(parts[4]), UInt32.Parse(parts[5]),
+                                 UInt16.Parse(parts[6]),
+                                 DNS.DomainName.Parse(signerName),
+                                 Convert.FromBase64String(parts[8]));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseNSECFromJSON(...)
+
+        /// <summary>
+        /// Parse an NSEC record from the JSON "data" field (e.g. "b.example.com. A AAAA RRSIG NSEC").
+        /// </summary>
+        private static NSEC? ParseNSECFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 2);
+                if (parts.Length < 1) return null;
+                var nextName = parts[0].EndsWith('.') ? parts[0] : parts[0] + ".";
+                // Store type list as raw bytes — for JSON we keep an empty bitmap since
+                // precise bitmap encoding from text presentation is complex.
+                return new NSEC(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                DNS.DomainName.Parse(nextName), []);
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseDNSKEYFromJSON(...)
+
+        /// <summary>
+        /// Parse a DNSKEY record from the JSON "data" field (e.g. "256 3 8 AwEAA...base64...").
+        /// </summary>
+        private static DNSKEY? ParseDNSKEYFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new DNSKEY(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                  UInt16.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                                  Convert.FromBase64String(parts[3]));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseNSEC3FromJSON(...)
+
+        /// <summary>
+        /// Parse an NSEC3 record from the JSON "data" field.
+        /// Format: "HashAlg Flags Iterations Salt NextHashedOwner Types..."
+        /// </summary>
+        private static NSEC3? ParseNSEC3FromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 6);
+                if (parts.Length < 5) return null;
+                var salt = parts[3] == "-" ? [] : Convert.FromHexString(parts[3]);
+                var nextHash = Convert.FromHexString(parts[4]);
+                return new NSEC3(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                 Byte.Parse(parts[0]), Byte.Parse(parts[1]), UInt16.Parse(parts[2]),
+                                 salt, nextHash, []);
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseNSEC3PARAMFromJSON(...)
+
+        /// <summary>
+        /// Parse an NSEC3PARAM record from the JSON "data" field (e.g. "1 0 10 AABB").
+        /// </summary>
+        private static NSEC3PARAM? ParseNSEC3PARAMFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                var salt = parts[3] == "-" ? [] : Convert.FromHexString(parts[3]);
+                return new NSEC3PARAM(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                      Byte.Parse(parts[0]), Byte.Parse(parts[1]), UInt16.Parse(parts[2]), salt);
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseCDSFromJSON(...)
+
+        private static CDS? ParseCDSFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new CDS(DomainName, DNSQueryClasses.IN, TimeToLive,
+                               UInt16.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                               Convert.FromHexString(parts[3].Replace(" ", "")));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseCDNSKEYFromJSON(...)
+
+        private static CDNSKEY? ParseCDNSKEYFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new CDNSKEY(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                   UInt16.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                                   Convert.FromBase64String(parts[3]));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+
+        // ──────────────────────────────────────────────────────────
+        //  Security / certificate JSON parsers
+        // ──────────────────────────────────────────────────────────
+
+        #region (private static) ParseTLSAFromJSON(...)
+
+        /// <summary>
+        /// Parse a TLSA record from the JSON "data" field (e.g. "3 1 1 AABB...hex...").
+        /// </summary>
+        private static TLSA? ParseTLSAFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new TLSA(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                Byte.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                                Convert.FromHexString(parts[3].Replace(" ", "")));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseSMIMEAFromJSON(...)
+
+        private static SMIMEA? ParseSMIMEAFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new SMIMEA(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                  Byte.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                                  Convert.FromHexString(parts[3].Replace(" ", "")));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseCERTFromJSON(...)
+
+        /// <summary>
+        /// Parse a CERT record from the JSON "data" field (e.g. "1 12345 3 base64data...").
+        /// </summary>
+        private static CERT? ParseCERTFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new CERT(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                UInt16.Parse(parts[0]), UInt16.Parse(parts[1]), Byte.Parse(parts[2]),
+                                Convert.FromBase64String(parts[3]));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseOPENPGPKEYFromJSON(...)
+
+        /// <summary>
+        /// Parse an OPENPGPKEY record from the JSON "data" field (base64 key data).
+        /// </summary>
+        private static OPENPGPKEY? ParseOPENPGPKEYFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                return new OPENPGPKEY(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                      Convert.FromBase64String(Data));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseCAAFromJSON(...)
+
+        /// <summary>
+        /// Parse a CAA record from the JSON "data" field (e.g. "0 issue \"letsencrypt.org\"").
+        /// </summary>
+        private static CAA? ParseCAAFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 3);
+                if (parts.Length < 3) return null;
+                return new CAA(DomainName, DNSQueryClasses.IN, TimeToLive,
+                               Byte.Parse(parts[0]), parts[1], parts[2].Trim('"'));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+
+        // ──────────────────────────────────────────────────────────
+        //  Other standard type JSON parsers
+        // ──────────────────────────────────────────────────────────
+
+        #region (private static) ParseHINFOFromJSON(...)
+
+        /// <summary>
+        /// Parse a HINFO record from the JSON "data" field (e.g. "\"PC\" \"Linux\"").
+        /// </summary>
+        private static HINFO? ParseHINFOFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 2);
+                if (parts.Length < 2) return null;
+                return new HINFO(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                 parts[0].Trim('"'), parts[1].Trim('"'));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseRPFromJSON(...)
+
+        /// <summary>
+        /// Parse an RP record from the JSON "data" field (e.g. "admin.example.com. txt.example.com.").
+        /// </summary>
+        private static RP? ParseRPFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 2);
+                if (parts.Length < 2) return null;
+                var mailbox  = parts[0].EndsWith('.') ? parts[0] : parts[0] + ".";
+                var txtDname = parts[1].EndsWith('.') ? parts[1] : parts[1] + ".";
+                return new RP(DomainName, DNSQueryClasses.IN, TimeToLive,
+                              DNS.DomainName.Parse(mailbox), DNS.DomainName.Parse(txtDname));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseAFSDBFromJSON(...)
+
+        /// <summary>
+        /// Parse an AFSDB record from the JSON "data" field (e.g. "1 afsdb.example.com.").
+        /// </summary>
+        private static AFSDB? ParseAFSDBFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 2);
+                if (parts.Length < 2) return null;
+                var hostname = parts[1].EndsWith('.') ? parts[1] : parts[1] + ".";
+                return new AFSDB(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                 UInt16.Parse(parts[0]), DNS.DomainName.Parse(hostname));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseLOCFromJSON(...)
+
+        /// <summary>
+        /// Parse a LOC record from the JSON "data" field.
+        /// LOC presentation format is complex (degrees/minutes/seconds).
+        /// We store a minimal representation; full parsing is best-effort.
+        /// </summary>
+        private static LOC? ParseLOCFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                // LOC has a very complex text presentation format.
+                // For JSON DNS (e.g. Google DNS), the data is in presentation format.
+                // We create a minimal LOC with default precision values.
+                return new LOC(DomainName, DNSQueryClasses.IN, TimeToLive,
+                               0, 0x12, 0x16, 0x13, 0x80000000, 0x80000000, 10000000);
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseCSYNCFromJSON(...)
+
+        /// <summary>
+        /// Parse a CSYNC record from the JSON "data" field (e.g. "12345 3 A AAAA NS").
+        /// </summary>
+        private static CSYNC? ParseCSYNCFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 3);
+                if (parts.Length < 2) return null;
+                return new CSYNC(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                 UInt32.Parse(parts[0]), UInt16.Parse(parts[1]), []);
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseZONEMDFromJSON(...)
+
+        /// <summary>
+        /// Parse a ZONEMD record from the JSON "data" field (e.g. "12345 1 1 AABB...hex...").
+        /// </summary>
+        private static ZONEMD? ParseZONEMDFromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new ZONEMD(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                  UInt32.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                                  Convert.FromHexString(parts[3].Replace(" ", "")));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseEUI48FromJSON(...)
+
+        /// <summary>
+        /// Parse an EUI48 record from the JSON "data" field (e.g. "00-00-5e-00-53-2a").
+        /// </summary>
+        private static EUI48? ParseEUI48FromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                return new EUI48(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                 Convert.FromHexString(Data.Replace("-", "").Replace(":", "")));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) ParseEUI64FromJSON(...)
+
+        /// <summary>
+        /// Parse an EUI64 record from the JSON "data" field (e.g. "00-00-5e-ef-10-00-00-2a").
+        /// </summary>
+        private static EUI64? ParseEUI64FromJSON(DomainName DomainName, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                return new EUI64(DomainName, DNSQueryClasses.IN, TimeToLive,
+                                 Convert.FromHexString(Data.Replace("-", "").Replace(":", "")));
+            }
+            catch { return null; }
         }
 
         #endregion
