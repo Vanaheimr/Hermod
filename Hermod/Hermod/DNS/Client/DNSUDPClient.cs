@@ -333,6 +333,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
+            catch (OperationCanceledException)
+            {
+
+                // External cancellation — typically the race-cancel from DNSClient
+                // when another DNS server responded first, or a caller-initiated
+                // cancel. Not a real failure; return silently without log noise.
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
+            }
             catch (Exception e)
             {
 
@@ -465,6 +481,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 DebugX.LogT($"DNS TCP fallback to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
 
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           DNSQuery.TransactionId,
+                           Timeout
+                       );
+
+            }
+            catch (OperationCanceledException)
+            {
+
+                // External cancellation (race-cancel or caller-initiated).
+                // Silent return — not a real failure.
                 return DNSInfo.Failed(
                            new DNSServerConfig(
                                RemoteIPAddress,

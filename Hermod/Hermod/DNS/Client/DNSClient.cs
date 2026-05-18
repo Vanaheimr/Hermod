@@ -584,6 +584,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     {
                         throw;
                     }
+                    catch (OperationCanceledException)
+                    {
+                        // Race-cancel from the linked raceCTS — expected when
+                        // another DNS server already returned a valid response.
+                        // Silently ignore; nobody is awaiting this task anymore.
+                    }
                     catch (Exception e)
                     {
                         DebugX.LogT($"DNS query for '{DNSServiceName}' failed: {e.Message}");
