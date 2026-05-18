@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 {
 
     /// <summary>
@@ -211,6 +211,133 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var b = IPv4Address.Parse("127.0.0.1");
 
             Assert.That(a.CompareTo(b) > 0, Is.True);
+
+        }
+
+        #endregion
+
+
+        #region TryParseIPv4String_RejectsMalformedInput()
+
+        /// <summary>
+        /// IPv4Address string parsing should reject malformed octets.
+        /// </summary>
+        [Test]
+        public void TryParseIPv4String_RejectsMalformedInput()
+        {
+
+            Assert.That(IPv4Address.TryParse("141.24.12",       out _), Is.False);
+            Assert.That(IPv4Address.TryParse("141.24.12.2.1",   out _), Is.False);
+            Assert.That(IPv4Address.TryParse("141.24.12.-1",    out _), Is.False);
+            Assert.That(IPv4Address.TryParse("141.24.12.+1",    out _), Is.False);
+            Assert.That(IPv4Address.TryParse("141.24.12.one",   out _), Is.False);
+            Assert.That(IPv4Address.TryParse("141.24.12.256",   out _), Is.False);
+            Assert.That(IPv4Address.TryParse("141.24.12. 2",    out _), Is.False);
+
+        }
+
+        #endregion
+
+        #region TryParseIPv4String_TrimsOuterWhitespace()
+
+        /// <summary>
+        /// IPv4Address string parsing should allow outer whitespace only.
+        /// </summary>
+        [Test]
+        public void TryParseIPv4String_TrimsOuterWhitespace()
+        {
+
+            Assert.That(IPv4Address.TryParse(" 141.24.12.2 ", out var ipv4Address), Is.True);
+            Assert.That(ipv4Address.ToString(), Is.EqualTo("141.24.12.2"));
+
+        }
+
+        #endregion
+
+        #region IPv4AddressProperties()
+
+        /// <summary>
+        /// Checks common IPv4 address properties.
+        /// </summary>
+        [Test]
+        public void IPv4AddressProperties()
+        {
+
+            Assert.That(IPv4Address.Any.      IsAny,       Is.True);
+            Assert.That(IPv4Address.Any.      ToString(),  Is.EqualTo("0.0.0.0"));
+            Assert.That(IPv4Address.Localhost.IsLocalhost, Is.True);
+            Assert.That(IPv4Address.Localhost.IsLoopback,  Is.True);
+            Assert.That(IPv4Address.Localhost.ToString(),  Is.EqualTo("127.0.0.1"));
+            Assert.That(IPv4Address.Broadcast.ToString(),  Is.EqualTo("255.255.255.255"));
+
+            Assert.That(IPv4Address.Parse("127.10.20.30").IsLoopback,  Is.True);
+            Assert.That(IPv4Address.Parse("224.0.0.1").   IsMulticast, Is.True);
+            Assert.That(IPv4Address.Parse("239.255.255.255").IsMulticast, Is.True);
+            Assert.That(IPv4Address.Parse("240.0.0.1").   IsMulticast, Is.False);
+
+        }
+
+        #endregion
+
+        #region IPv4AddressByteOperations()
+
+        /// <summary>
+        /// Checks IPv4Address byte conversion helpers.
+        /// </summary>
+        [Test]
+        public void IPv4AddressByteOperations()
+        {
+
+            var ipv4Address = IPv4Address.Parse("10.11.12.13");
+
+            Assert.That(ipv4Address.GetBytes(), Is.EqualTo(new Byte[] { 10, 11, 12, 13 }));
+
+            var destination = new Byte[4];
+            ipv4Address.CopyTo(destination);
+            Assert.That(destination, Is.EqualTo(new Byte[] { 10, 11, 12, 13 }));
+
+            var (byte0, byte1, byte2, byte3) = ipv4Address;
+            Assert.That(new [] { byte0, byte1, byte2, byte3 }, Is.EqualTo(new Byte[] { 10, 11, 12, 13 }));
+
+            Assert.Throws<ArgumentException>(() => ipv4Address.CopyTo(new Byte[3]));
+
+        }
+
+        #endregion
+
+        #region IPv4AddressFromIPAddress()
+
+        /// <summary>
+        /// Checks conversion to and from System.Net.IPAddress.
+        /// </summary>
+        [Test]
+        public void IPv4AddressFromIPAddress()
+        {
+
+            var systemIPAddress = System.Net.IPAddress.Parse("192.0.2.123");
+            var ipv4Address     = IPv4Address.From(systemIPAddress);
+
+            Assert.That(ipv4Address.ToString(), Is.EqualTo("192.0.2.123"));
+
+            System.Net.IPAddress roundtrip = ipv4Address;
+            Assert.That(roundtrip.ToString(), Is.EqualTo("192.0.2.123"));
+
+            Assert.Throws<FormatException>(() => IPv4Address.From(System.Net.IPAddress.IPv6Loopback));
+
+        }
+
+        #endregion
+
+        #region IPv4AddressFromIntegerUsesBitConverterOrder()
+
+        /// <summary>
+        /// Checks IPv4Address integer conversion used by BitConverter based packet parsing.
+        /// </summary>
+        [Test]
+        public void IPv4AddressFromIntegerUsesBitConverterOrder()
+        {
+
+            Assert.That(IPv4Address.From(0x04030201U).ToString(), Is.EqualTo("1.2.3.4"));
 
         }
 

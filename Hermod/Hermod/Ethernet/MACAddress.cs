@@ -20,6 +20,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 
 #endregion
@@ -53,6 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
     /// <summary>
     /// A 48-bit IEEE MAC address.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     public readonly struct MACAddress : IEquatable<MACAddress>,
                                         IComparable<MACAddress>,
                                         IComparable,
@@ -64,60 +66,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 
         #region Data
 
-        private readonly Byte byte0, byte1, byte2, byte3, byte4, byte5;
+        private const            Byte    length    = 6;
+        private readonly         Byte    byte0;
+        private readonly         Byte    byte1;
+        private readonly         Byte    byte2;
+        private readonly         Byte    byte3;
+        private readonly         Byte    byte4;
+        private readonly         Byte    byte5;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// Whether this MAC address is either zero (00:00:00:00:00:00) or broadcast (FF:FF:FF:FF:FF:FF).
-        /// </summary>
-        public Boolean IsZeroOrBroadcast
-            => IsZero || IsBroadcast;
-
-        /// <summary>
         /// The zero MAC address (00:00:00:00:00:00).
         /// </summary>
-        public static MACAddress Zero { get; }
+        public static MACAddress  Zero    { get; }
+
             = new ([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+
+
+        /// <summary>
+        /// The broadcast MAC address (FF:FF:FF:FF:FF:FF).
+        /// </summary>
+        public static MACAddress Broadcast { get; }
+
+            = new ([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+
+
+        /// <summary>
+        /// Whether this MAC address is either zero (00:00:00:00:00:00) or broadcast (FF:FF:FF:FF:FF:FF).
+        /// </summary>
+        public Boolean  IsZeroOrBroadcast
+
+            => IsZero || IsBroadcast;
+
 
         /// <summary>
         /// Whether this MAC address is zero (00:00:00:00:00:00).
         /// </summary>
-        public Boolean IsZero
-            => byte0 == 0 && byte1 == 0 && byte2 == 0 &&
-               byte3 == 0 && byte4 == 0 && byte5 == 0;
+        public Boolean  IsZero
+
+            => byte0 == 0 &&
+               byte1 == 0 &&
+               byte2 == 0 &&
+               byte3 == 0 &&
+               byte4 == 0 &&
+               byte5 == 0;
 
 
         /// <summary>
         /// Whether this MAC address is a unicast address
         /// (least significant bit of first byte is 0).
         /// </summary>
-        public Boolean IsUnicast
+        public Boolean  IsUnicast
+
             => !IsMulticast;
+
 
         /// <summary>
         /// Whether this MAC address is a multicast address
         /// (least significant bit of first byte is 1).
         /// </summary>
-        public Boolean IsMulticast
+        public Boolean  IsMulticast
+
             => (byte0 & 0x01) == 1;
+
 
         /// <summary>
         /// Whether this MAC address is an IPv4 multicast MAC mapping
         /// (01:00:5E:00:00:00 through 01:00:5E:7F:FF:FF).
         /// </summary>
-        public Boolean IsIPv4Multicast
+        public Boolean  IsIPv4Multicast
+
             => byte0 == 0x01 &&
                byte1 == 0x00 &&
                byte2 == 0x5E &&
               (byte3 & 0x80) == 0x00;
 
+
         /// <summary>
         /// Whether this MAC address is an IPv6 multicast address (33:33:XX:XX:XX:XX).
         /// </summary>
-        public Boolean IsIPv6Multicast
+        public Boolean  IsIPv6Multicast
+
             => byte0 == 0x33 &&
                byte1 == 0x33;
 
@@ -125,17 +157,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         /// <summary>
         /// Whether this MAC address is the VRRP (Virtual Router Redundancy Protocol) address (00:00:5E:00:01:XX or 00:00:5E:00:02:XX).
         /// </summary>
-        public Boolean IsVRRP
+        public Boolean  IsVRRP
+
             => byte0 == 0x00 &&
                byte1 == 0x00 &&
                byte2 == 0x5E &&
                byte3 == 0x00 &&
               (byte4 == 0x01 || byte4 == 0x02);
 
+
         /// <summary>
         /// Whether this MAC address is the STP bridge group address (01:80:C2:00:00:00).
         /// </summary>
-        public Boolean IsSTP
+        public Boolean  IsSTP
+
             => byte0 == 0x01 &&
                byte1 == 0x80 &&
                byte2 == 0xC2 &&
@@ -143,10 +178,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
                byte4 == 0x00 &&
                byte5 == 0x00;
 
+
         /// <summary>
         /// Whether this MAC address is the LLDP nearest bridge group address (01:80:C2:00:00:0E).
         /// </summary>
-        public Boolean IsLLDP
+        public Boolean  IsLLDP
+
             => byte0 == 0x01 &&
                byte1 == 0x80 &&
                byte2 == 0xC2 &&
@@ -158,7 +195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         /// <summary>
         /// Whether this MAC address is the Ethernet MAC Control pause address (01:80:C2:00:00:01).
         /// </summary>
-        public Boolean IsPauseFrameAddress
+        public Boolean  IsPauseFrameAddress
+
             => byte0 == 0x01 &&
                byte1 == 0x80 &&
                byte2 == 0xC2 &&
@@ -166,11 +204,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
                byte4 == 0x00 &&
                byte5 == 0x01;
 
+
         /// <summary>
         /// Whether this MAC address is the slow protocols multicast address
         /// commonly used for LACP (01:80:C2:00:00:02).
         /// </summary>
-        public Boolean IsLACP
+        public Boolean  IsLACP
+
             => byte0 == 0x01 &&
                byte1 == 0x80 &&
                byte2 == 0xC2 &&
@@ -178,10 +218,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
                byte4 == 0x00 &&
                byte5 == 0x02;
 
+
         /// <summary>
         /// Whether this MAC address is the IEEE 802.1X PAE (Port Access Entity) address (01:80:C2:00:00:03).
         /// </summary>
-        public Boolean IsIEEE8021X
+        public Boolean  IsIEEE8021X
+
             => byte0 == 0x01 &&
                byte1 == 0x80 &&
                byte2 == 0xC2 &&
@@ -191,75 +233,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 
 
         /// <summary>
-        /// The broadcast MAC address (FF:FF:FF:FF:FF:FF).
-        /// </summary>
-        public static MACAddress Broadcast { get; }
-            = new ([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-
-        /// <summary>
         /// Whether this MAC address is a broadcast address (FF:FF:FF:FF:FF:FF).
         /// </summary>
-        public Boolean IsBroadcast
-            => byte0 == 0xFF && byte1 == 0xFF && byte2 == 0xFF &&
-               byte3 == 0xFF && byte4 == 0xFF && byte5 == 0xFF;
+        public Boolean  IsBroadcast
 
-
-
-
-
-
+            => byte0 == 0xFF &&
+               byte1 == 0xFF &&
+               byte2 == 0xFF &&
+               byte3 == 0xFF &&
+               byte4 == 0xFF &&
+               byte5 == 0xFF;
 
 
         /// <summary>
         /// Whether this MAC address is globally administered.
         /// Usually assigned from an IEEE OUI/MA block.
         /// </summary>
-        public Boolean IsGloballyAdministered
+        public Boolean  IsGloballyAdministered
+
             => (byte0 & 0x02) == 0;
+
 
         /// <summary>
         /// Whether this MAC address is locally administered.
         /// </summary>
-        public Boolean IsLocallyAdministered
+        public Boolean  IsLocallyAdministered
+
             => (byte0 & 0x02) != 0;
+
 
         /// <summary>
         /// Return the OUI (Organizationally Unique Identifier) part of this MAC address.
         /// </summary>
-        public String OUI
-            => $"{byte0:X2}:{byte1:X2}:{byte2:X2}";
+        public String  OUI
 
+            => $"{byte0:X2}:{byte1:X2}:{byte2:X2}";
 
 
         /// <summary>
         /// Return a .NET PhysicalAddress representation of this MAC address.
         /// </summary>
         public PhysicalAddress ToPhysicalAddress()
+
             => new ([byte0, byte1, byte2, byte3, byte4, byte5]);
+
 
         /// <summary>
         /// Convert the given .NET PhysicalAddress to a MACAddress.
         /// </summary>
-        /// <param name="PhysicalAddressa">A .NET PhysicalAddress.</param>
+        /// <param name="PhysicalAddress">A .NET PhysicalAddress.</param>
         public static MACAddress FromPhysicalAddress(PhysicalAddress PhysicalAddress)
-            => MACAddress.From(PhysicalAddress.GetAddressBytes());
+
+            => MACAddress.From(
+                   PhysicalAddress.GetAddressBytes()
+               );
 
 
         /// <summary>
         /// The EUI-64 representation (IPv6) of this MAC address.
         /// </summary>
-        public Byte[] AsEUI64()
+        public Byte[]  AsEUI64()
+
             => [ byte0, byte1, byte2, 0xFF, 0xFE, byte3, byte4, byte5 ];
+
 
         /// <summary>
         /// The modified EUI-64 representation (IPv6) of this MAC address, with the universal/local bit inverted.
         /// </summary>
         public Byte[] AsIPv6ModifiedEUI64()
+
             => [ (Byte) (byte0 ^ 0x02), byte1, byte2, 0xFF, 0xFE, byte3, byte4, byte5 ];
 
         #endregion
 
         #region Constructor(s)
+
+        #region MACAddress(Bytes)
 
         /// <summary>
         /// Create a new MAC address from the given bytes.
@@ -267,6 +316,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         /// <param name="Bytes">A 6-byte span containing the MAC address.</param>
         private MACAddress(ReadOnlySpan<Byte> Bytes)
         {
+
+            if (Bytes.Length != length)
+                throw new FormatException($"The given span of bytes must have a length of {length}!");
 
             this.byte0 = Bytes[0];
             this.byte1 = Bytes[1];
@@ -276,6 +328,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
             this.byte5 = Bytes[5];
 
         }
+
+        #endregion
+
+        #region MACAddress(Stream)
+
+        /// <summary>
+        /// Create a new MAC address from the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to read the MAC address from.</param>
+        private MACAddress(Stream Stream)
+        {
+
+            if (!Stream.CanRead)
+                throw new FormatException($"The given stream must be readable!");
+
+            Span<Byte> buffer = stackalloc Byte[length];
+            Stream.ReadExactly(buffer);
+
+            this.byte0  = buffer[0];
+            this.byte1  = buffer[1];
+            this.byte2  = buffer[2];
+            this.byte3  = buffer[3];
+            this.byte4  = buffer[4];
+            this.byte5  = buffer[5];
+
+        }
+
+        #endregion
 
         #endregion
 
@@ -447,9 +527,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
             if (Text.Length != 12)
                 return false;
 
-            Span<Byte> bytes = stackalloc Byte[6];
+            Span<Byte> bytes = stackalloc Byte[length];
 
-            for (var i = 0; i < 6; i++)
+            for (var i = 0; i < length; i++)
             {
                 if (!TryParseByte(Text, i * 2, out bytes[i]))
                     return false;
@@ -512,9 +592,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
                 return false;
             }
 
-            Span<Byte> bytes = stackalloc Byte[6];
+            Span<Byte> bytes = stackalloc Byte[length];
 
-            for (var i = 0; i < 6; i++)
+            for (var i = 0; i < length; i++)
             {
                 if (!TryParseByte(Text, i * 3, out bytes[i]))
                     return false;
@@ -571,7 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
                 return false;
             }
 
-            Span<Byte> bytes = stackalloc Byte[6];
+            Span<Byte> bytes = stackalloc Byte[length];
 
             if (TryParseByte(Text,  0, out bytes[0]) &&
                 TryParseByte(Text,  2, out bytes[1]) &&
@@ -643,7 +723,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         #endregion
 
 
-        #region TryRead           (Text, out MACAddress, out CharsConsumed)
+        #region TryRead           (Text,              out MACAddress, out CharsConsumed)
 
         /// <summary>
         /// Try to read a MAC address from the beginning of the given text,
@@ -666,27 +746,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 
             var skipped = originalLength - Text.Length;
 
-            if (Text.Length >= 17)
+            if (Text.Length >= 2*length+5)
             {
-                if (TryParseSeparated(Text[..17], ':', out MACAddress) ||
-                    TryParseSeparated(Text[..17], '-', out MACAddress))
+                if (TryParseSeparated(Text[..(2*length+5)], ':', out MACAddress) ||
+                    TryParseSeparated(Text[..(2*length+5)], '-', out MACAddress))
                 {
-                    CharsConsumed = skipped + 17;
+                    CharsConsumed = skipped + 2*length+5;
                     return true;
                 }
             }
 
-            if (Text.Length >= 14 &&
-                TryParseCisco(Text[..14], out MACAddress))
+            if (Text.Length >= (2*length+2) &&
+                TryParseCisco(Text[..(2*length+2)], out MACAddress))
             {
-                CharsConsumed = skipped + 14;
+                CharsConsumed = skipped + (2*length+2);
                 return true;
             }
 
-            if (Text.Length >= 12 &&
-                TryParsePlain(Text[..12], out MACAddress))
+            if (Text.Length >= 2*length &&
+                TryParsePlain(Text[..(2*length)], out MACAddress))
             {
-                CharsConsumed = skipped + 12;
+                CharsConsumed = skipped + 2*length;
                 return true;
             }
 
@@ -695,7 +775,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         }
 
         #endregion
-
 
 
         #region From              (Bytes)
@@ -708,8 +787,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         public static MACAddress From(ReadOnlySpan<Byte> Bytes)
         {
 
-            if (Bytes.Length != 6)
-                throw new ArgumentException("A MAC address must be exactly 6 bytes long!", nameof(Bytes));
+            if (Bytes.Length != length)
+                throw new ArgumentException($"A MAC address must be exactly {length} bytes long!", nameof(Bytes));
 
             return new MACAddress(Bytes);
 
@@ -726,7 +805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         public static MACAddress? TryFrom(ReadOnlySpan<Byte> Bytes)
         {
 
-            if (Bytes.Length != 6)
+            if (Bytes.Length != length)
                 return null;
 
             return new MACAddress(Bytes);
@@ -746,8 +825,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 
             var ipv4Address = IPv4Address.GetBytes();
 
-            if (ipv4Address.Length != 4)
-                throw new ArgumentException("An IPv4 address must be exactly 4 bytes long!", nameof(IPv4Address));
+            if (ipv4Address.Length != IPv4Address.Length)
+                throw new ArgumentException($"An IPv4 address must be exactly {IPv4Address.Length} bytes long!", nameof(IPv4Address));
 
             if (!IPv4Address.IsMulticast)
                 throw new ArgumentException("The IPv4 address must be a multicast address!", nameof(IPv4Address));
@@ -778,8 +857,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 
             var ipv6Address = IPv6Address.GetBytes();
 
-            if (ipv6Address.Length != 16)
-                throw new ArgumentException("An IPv6 address must be exactly 16 bytes long!", nameof(IPv6Address));
+            if (ipv6Address.Length != IPv6Address.Length)
+                throw new ArgumentException($"An IPv6 address must be exactly {IPv6Address.Length} bytes long!", nameof(IPv6Address));
 
             if (!IPv6Address.IsMulticast)
                 throw new ArgumentException("The IPv6 address must be a multicast address!", nameof(IPv6Address));
@@ -809,7 +888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
                                         Boolean  SetMulticastBit           = false)
         {
 
-            var bytes = new Byte[6];
+            var bytes = new Byte[length];
 
             RandomNumberGenerator.Fill(bytes);
 
@@ -851,41 +930,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         #endregion
 
 
-        #region CopyTo(Destination)
-
-        /// <summary>
-        /// Copy the bytes of this MAC address into the given destination span.
-        /// </summary>
-        /// <param name="Destination">A span to copy the bytes of this MAC address into.</param>
-        public void CopyTo(Span<Byte> Destination)
-        {
-
-            if (Destination.Length < 6)
-                throw new ArgumentException("Destination span too small.", nameof(Destination));
-
-            Destination[0] = byte0;
-            Destination[1] = byte1;
-            Destination[2] = byte2;
-            Destination[3] = byte3;
-            Destination[4] = byte4;
-            Destination[5] = byte5;
-
-        }
-
-        #endregion
-
-        #region ToArray()
+        #region GetBytes()
 
         /// <summary>
         /// Return the byte array representation of this MAC address.
         /// </summary>
-        public Byte[] ToArray()
+        public Byte[] GetBytes()
 
-            => [byte0, byte1, byte2, byte3, byte4, byte5];
+            => [ byte0,
+                 byte1,
+                 byte2,
+                 byte3,
+                 byte4,
+                 byte5 ];
 
         #endregion
 
-        #region Deconstruct(out Byte Byte0, out Byte Byte1, out Byte Byte2, out Byte Byte3, out Byte Byte4, out Byte Byte5)
+        #region Deconstruct(out Byte0, out Byte1, out Byte2, out Byte3, out Byte4, out Byte5)
 
         /// <summary>
         /// Deconstruct this MAC address into its individual bytes.
@@ -896,12 +957,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
         /// <param name="Byte3">The fourth byte of the MAC address.</param>
         /// <param name="Byte4">The fifth byte of the MAC address.</param>
         /// <param name="Byte5">The sixth byte of the MAC address.</param>
-        public void Deconstruct(out Byte Byte0,
-                                out Byte Byte1,
-                                out Byte Byte2,
-                                out Byte Byte3,
-                                out Byte Byte4,
-                                out Byte Byte5)
+        public void Deconstruct(out Byte  Byte0,
+                                out Byte  Byte1,
+                                out Byte  Byte2,
+                                out Byte  Byte3,
+                                out Byte  Byte4,
+                                out Byte  Byte5)
 
             => (Byte0,
                 Byte1,
@@ -917,8 +978,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 
         #endregion
 
+        #region CopyTo(Destination)
 
-        #region TryFormat
+        /// <summary>
+        /// Copy the bytes of this MAC address into the given destination span.
+        /// </summary>
+        /// <param name="Destination">A span to copy the bytes of this MAC address into.</param>
+        public void CopyTo(Span<Byte> Destination)
+        {
+
+            if (Destination.Length < length)
+                throw new ArgumentException("Destination span too small.", nameof(Destination));
+
+            Destination[0] = byte0;
+            Destination[1] = byte1;
+            Destination[2] = byte2;
+            Destination[3] = byte3;
+            Destination[4] = byte4;
+            Destination[5] = byte5;
+
+        }
+
+        #endregion
+
+
+        #region TryFormat(Destination, out CharsWritten, Format, Provider)
 
         /// <summary>
         /// Try to format this MAC address into the given destination span,

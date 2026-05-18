@@ -138,13 +138,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// </summary>
         public override String ToString()
 
-            => String.Concat(Error,
-                                Error == ICMPErrors.Mixed
-                                    ? String.Concat(" (", Paketloss, "% ", NumberOfReplies, "/", Results, "): ")
-                                    : ": ",
-                                "Min: ", Math.Round(Min.TotalMilliseconds, 0), ", ",
-                                "Avg: ", Math.Round(Mean.TotalMilliseconds, 0), " (StdDev: ", Math.Round(StdDev, 2), "), ",
-                                "Max: ", Math.Round(Max.TotalMilliseconds, 0));
+            => String.Concat(
+                   Error,
+                   Error == ICMPErrors.Mixed
+                       ? String.Concat(" (", Paketloss, "% ", NumberOfReplies, "/", Results, "): ")
+                       : ": ",
+                   "Min: ", Math.Round(Min. TotalMilliseconds, 0), ", ",
+                   "Avg: ", Math.Round(Mean.TotalMilliseconds, 0), " (StdDev: ", Math.Round(StdDev, 2), "), ",
+                   "Max: ", Math.Round(Max. TotalMilliseconds, 0)
+               );
 
         #endregion
 

@@ -257,22 +257,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            if (DomainName is not null)
-            {
+            ResourceRecord = Type switch {
 
-                ResourceRecord = Type switch {
+                DNSResourceRecordTypes.SRV         => SRV.TryParseFromJSON(DNSServiceName, TimeToLive, RData),
+                DNSResourceRecordTypes.URI         => URI.TryParseFromJSON(DNSServiceName, TimeToLive, RData),
 
-                    DNSResourceRecordTypes.SRV         => SRV.TryParseFromJSON(DNSServiceName, TimeToLive, RData),
-                    DNSResourceRecordTypes.URI         => URI.TryParseFromJSON(DNSServiceName, TimeToLive, RData),
+                _                                  => null
 
-                    _                                  => null
+            };
 
-                };
-
-                if (ResourceRecord is not null)
-                    return true;
-
-            }
+            if (ResourceRecord is not null)
+                return true;
 
             ResourceRecord = null;
             return false;
@@ -621,8 +616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!DNSServiceName.TryParse(ownerNameText, out var dnsServiceName, out ErrorResponse))
                 return false;
 
-            if (!DNS.DomainName.TryParse(ownerNameText, out var domainName,     out ErrorResponse))
-                return false;
+            DNS.DomainName.TryParse(ownerNameText, out var domainName, out _);
 
             var resourceRecordClass  = DNSQueryClasses.IN;
             var timeToLive           = DefaultTimeToLive ?? TimeSpan.Zero;

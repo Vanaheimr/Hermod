@@ -42,7 +42,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Data
 
         private const            Byte    length    = 16;
-
         private static readonly  Char[]  splitter  = [':'];
 
         private readonly         Byte    byte0;
@@ -146,38 +145,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region IPv6Address (Span,   InterfaceId = null)
+        #region IPv6Address (Bytes,  InterfaceId = null)
 
         /// <summary>
         /// Create a new IPv6 address from a span of bytes.
         /// </summary>
-        /// <param name="Span">The IPv6 address as a span of 16 bytes.</param>
+        /// <param name="Bytes">The IPv6 address as a span of 16 bytes.</param>
         /// <param name="InterfaceId">An optional interface identification for the scope of the IPv6 address.</param>
-        public IPv6Address(ReadOnlySpan<Byte>  Span,
+        public IPv6Address(ReadOnlySpan<Byte>  Bytes,
                            String?             InterfaceId   = null)
         {
 
-            this.InterfaceId = InterfaceId ?? "";
+            this.InterfaceId  = InterfaceId ?? "";
 
-            if (Span.Length != length)
+            if (Bytes.Length != length)
                 throw new FormatException($"The given span of bytes must have a length of {length}!");
 
-            this.byte0   = Span[0];
-            this.byte1   = Span[1];
-            this.byte2   = Span[2];
-            this.byte3   = Span[3];
-            this.byte4   = Span[4];
-            this.byte5   = Span[5];
-            this.byte6   = Span[6];
-            this.byte7   = Span[7];
-            this.byte8   = Span[8];
-            this.byte9   = Span[9];
-            this.byte10  = Span[10];
-            this.byte11  = Span[11];
-            this.byte12  = Span[12];
-            this.byte13  = Span[13];
-            this.byte14  = Span[14];
-            this.byte15  = Span[15];
+            this.byte0        = Bytes[0];
+            this.byte1        = Bytes[1];
+            this.byte2        = Bytes[2];
+            this.byte3        = Bytes[3];
+            this.byte4        = Bytes[4];
+            this.byte5        = Bytes[5];
+            this.byte6        = Bytes[6];
+            this.byte7        = Bytes[7];
+            this.byte8        = Bytes[8];
+            this.byte9        = Bytes[9];
+            this.byte10       = Bytes[10];
+            this.byte11       = Bytes[11];
+            this.byte12       = Bytes[12];
+            this.byte13       = Bytes[13];
+            this.byte14       = Bytes[14];
+            this.byte15       = Bytes[15];
 
         }
 
@@ -249,8 +248,414 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region GetBytes ()
+        #region Parse             (Text)
 
+        /// <summary>
+        /// Parse the given string as an IPv6 address.
+        /// </summary>
+        /// <param name="Text">A text representation of an IPv6 address.</param>
+        public static IPv6Address Parse(String Text)
+        {
+
+            if (TryParse(Text, out var ipv6Address))
+                return ipv6Address;
+
+            throw new ArgumentException($"Invalid text representation of an IPv6 address: '{Text}'!",
+                                        nameof(Text));
+
+        }
+
+        #endregion
+
+        #region Parse             (Hostname)
+
+        /// <summary>
+        /// Parsed the given HTTP hostname as an IPv6 address.
+        /// </summary>
+        /// <param name="Hostname">An HTTP hostname.</param>
+        public static IPv6Address Parse(HTTPHostname Hostname)
+        {
+
+            if (TryParse(Hostname, out var ipv6Address))
+                return ipv6Address;
+
+            throw new ArgumentException($"Invalid text representation of an IPv6 address: '{Hostname}'!",
+                                        nameof(Hostname));
+
+        }
+
+        #endregion
+
+        #region Parse             (DomainName)
+
+        /// <summary>
+        /// Parsed the given domain name as an IPv6 address.
+        /// </summary>
+        /// <param name="DomainName">A domain name.</param>
+        public static IPv6Address Parse(DomainName DomainName)
+        {
+
+            if (TryParse(DomainName, out var ipv6Address))
+                return ipv6Address;
+
+            throw new ArgumentException($"Invalid text representation of an IPv6 address: '{DomainName}'!",
+                                        nameof(DomainName));
+
+        }
+
+        #endregion
+
+
+        #region TryParse          (Text)
+
+        /// <summary>
+        /// Try to parse the given text as an IPv6 address.
+        /// </summary>
+        /// <param name="Text">A text representation of an IPv6 address.</param>
+        public static IPv6Address? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var ipv6Address))
+                return ipv6Address;
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryParse          (Hostname)
+
+        /// <summary>
+        /// Try to parse the given text as an IPv6 address.
+        /// </summary>
+        /// <param name="Hostname">A text representation of an IPv6 address.</param>
+        public static IPv6Address? TryParse(HTTPHostname Hostname)
+        {
+
+            if (TryParse(Hostname, out var ipv6Address))
+                return ipv6Address;
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryParse          (DomainName)
+
+        /// <summary>
+        /// Try to parse the given domain name as an IPv6 address.
+        /// </summary>
+        /// <param name="DomainName">A domain name.</param>
+        public static IPv6Address? TryParse(DomainName DomainName)
+        {
+
+            if (TryParse(DomainName, out var ipv6Address))
+                return ipv6Address;
+
+            return default;
+
+        }
+
+        #endregion
+
+
+        #region TryParse          (Text, out IPv6Address)
+
+        /// <summary>
+        /// Try to parse the given text as an IPv6 address.
+        /// </summary>
+        /// <param name="Text">A text representation of an IPv6 address.</param>
+        /// <param name="IPv6Address">The parsed IPv6 address.</param>
+        public static Boolean TryParse(String Text, out IPv6Address IPv6Address)
+        {
+
+            IPv6Address = default;
+
+            if (String.IsNullOrWhiteSpace(Text))
+                return false;
+
+            Text = Text.Trim();
+
+            if (Text.StartsWith('[') || Text.EndsWith(']'))
+            {
+                if (Text.Length < 2 ||
+                    Text[0] != '[' ||
+                    Text[^1] != ']')
+                {
+                    return false;
+                }
+
+                Text = Text[1..^1].Trim();
+            }
+
+            var positionOfInterfaceId = Text.IndexOf('%');
+            var interfaceId = "";
+
+            if (positionOfInterfaceId > -1)
+            {
+                interfaceId = Text[(positionOfInterfaceId + 1)..];
+                Text         = Text[..positionOfInterfaceId];
+
+                if (interfaceId.Length == 0)
+                    return false;
+            }
+
+            if (Text.IndexOf(':') < 0)
+                return false;
+
+            if (!TryParseIPv6Bytes(Text, out var ipv6AddressArray))
+                return false;
+
+            IPv6Address = new IPv6Address(
+                              ipv6AddressArray,
+                              interfaceId
+                          );
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region TryParseIPv6Bytes (Text, out Bytes)
+
+        private static Boolean TryParseIPv6Bytes(String Text, out Byte[] Bytes)
+        {
+
+            Bytes = new Byte[length];
+
+            if (Text.IndexOf(':') < 0)
+                return false;
+
+            var doubleColonIndex = Text.IndexOf("::", StringComparison.Ordinal);
+            var hasCompression   = doubleColonIndex >= 0;
+
+            if (hasCompression &&
+                doubleColonIndex != Text.LastIndexOf("::", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var groups = new List<UInt16>(8);
+
+            if (hasCompression)
+            {
+
+                var leftText  = Text[..doubleColonIndex];
+                var rightText = Text[(doubleColonIndex + 2)..];
+
+                if (!ParseIPv6Groups(leftText,  groups) ||
+                    !ParseIPv6Groups(rightText, groups, allowIPv4Tail: true, out var rightGroups))
+                {
+                    return false;
+                }
+
+                var leftGroups    = groups.Count - rightGroups.Count;
+                var zeroGroups    = 8 - groups.Count;
+
+                if (zeroGroups < 1)
+                    return false;
+
+                groups.InsertRange(leftGroups, Enumerable.Repeat<UInt16>(0, zeroGroups));
+
+            }
+            else
+            {
+
+                if (!ParseIPv6Groups(Text, groups, allowIPv4Tail: true, out _))
+                    return false;
+
+                if (groups.Count != 8)
+                    return false;
+
+            }
+
+            if (groups.Count != 8)
+                return false;
+
+            for (var i = 0; i < groups.Count; i++)
+            {
+                Bytes[i * 2]     = (Byte) (groups[i] >> 8);
+                Bytes[i * 2 + 1] = (Byte)  groups[i];
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseIPv6Groups   (Text, Groups, AllowIPv4Tail = false)
+
+        private static Boolean ParseIPv6Groups(String        Text,
+                                               List<UInt16>  Groups,
+                                               Boolean       allowIPv4Tail = false)
+        {
+
+            return ParseIPv6Groups(
+                       Text,
+                       Groups,
+                       allowIPv4Tail,
+                       out _
+                   );
+
+        }
+
+        #endregion
+
+        #region ParseIPv6Groups   (Text, Groups, AllowIPv4Tail, out AddedGroups)
+
+        private static Boolean ParseIPv6Groups(String            Text,
+                                               List<UInt16>      Groups,
+                                               Boolean           allowIPv4Tail,
+                                               out List<UInt16>  AddedGroups)
+        {
+
+            AddedGroups = [];
+
+            if (Text.Length == 0)
+                return true;
+
+            var elements = Text.Split(splitter, StringSplitOptions.None);
+
+            foreach (var element in elements)
+            {
+
+                if (element.Length == 0)
+                    return false;
+
+                if (element.Contains('.'))
+                {
+
+                    if (!allowIPv4Tail ||
+                        element != elements[^1] ||
+                        !IPv4Address.TryParse(element, out var ipv4Address))
+                    {
+                        return false;
+                    }
+
+                    var ipv4Bytes  = ipv4Address.GetBytes();
+                    var highGroup  = (UInt16) ((ipv4Bytes[0] << 8) | ipv4Bytes[1]);
+                    var lowGroup   = (UInt16) ((ipv4Bytes[2] << 8) | ipv4Bytes[3]);
+
+                    Groups.     Add(highGroup);
+                    Groups.     Add(lowGroup);
+                    AddedGroups.Add(highGroup);
+                    AddedGroups.Add(lowGroup);
+
+                    continue;
+
+                }
+
+                if (element.Length > 4 ||
+                    !UInt16.TryParse(element, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var group))
+                {
+                    return false;
+                }
+
+                Groups.     Add(group);
+                AddedGroups.Add(group);
+
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+
+        #region TryParse          (Hostname,   out IPv6Address)
+
+        /// <summary>
+        /// Try to parse the given HTTP hostname as an IPv6 address.
+        /// </summary>
+        /// <param name="Hostname">An HTTP hostname.</param>
+        /// <param name="IPv6Address">The parsed IPv6 address.</param>
+        public static Boolean TryParse(HTTPHostname     Hostname,
+                                       out IPv6Address  IPv6Address)
+
+            => TryParse(
+                   Hostname.Name,
+                   out IPv6Address
+               );
+
+        #endregion
+
+        #region TryParse          (DomainName, out IPv6Address)
+
+        /// <summary>
+        /// Try to parse the given domain name as an IPv6 address.
+        /// </summary>
+        /// <param name="DomainName">A domain name.</param>
+        /// <param name="IPv6Address">The parsed IPv6 address.</param>
+        public static Boolean TryParse(DomainName       DomainName,
+                                       out IPv6Address  IPv6Address)
+
+            => TryParse(
+                   DomainName.FullName,
+                   out IPv6Address
+               );
+
+        #endregion
+
+
+        #region From              (IPAddress)
+
+        /// <summary>
+        /// Create a new IPv6 address from the given System.Net.IPAddress.
+        /// </summary>
+        public static IPv6Address From(System.Net.IPAddress IPAddress)
+
+            => new (IPAddress.GetAddressBytes());
+
+        #endregion
+
+        #region FromIPv4          (IPv4Address)
+
+        /// <summary>
+        /// Create a new IPv6 address by mapping the given IPv4 address to an IPv6 address.
+        /// </summary>
+        public static IPv6Address FromIPv4(IPv4Address IPv4Address)
+        {
+
+            Span<Byte> bytes  = stackalloc Byte[length];
+            var         ipv4  = IPv4Address.GetBytes();
+
+            bytes[10] = 0xFF;
+            bytes[11] = 0xFF;
+            bytes[12] = ipv4[0];
+            bytes[13] = ipv4[1];
+            bytes[14] = ipv4[2];
+            bytes[15] = ipv4[3];
+
+            return new IPv6Address(bytes);
+
+        }
+
+        #endregion
+
+
+        #region (implicit) operator IPAddress(IPv6Address)
+
+        /// <summary>
+        /// Convert this IPv6 address into a System.Net.IPAddress.
+        /// </summary>
+        /// <param name="IPv6Address">The IPv6 address.</param>
+        public static implicit operator System.Net.IPAddress(IPv6Address IPv6Address)
+
+            => new (IPv6Address.GetBytes());
+
+        #endregion
+
+
+        #region GetBytes()
+
+        /// <summary>
+        /// Returns the bytes of this IPv6 address as an array of 16 bytes.
+        /// </summary>
         public Byte[] GetBytes()
 
             => [ byte0,
@@ -272,271 +677,106 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-
-        #region Parse    (Text)
+        #region Deconstruct (out Byte0, out Byte1, out Byte2, out Byte3, out Byte4, out Byte5, out Byte6, out Byte7, out Byte8, out Byte9, out Byte10, out Byte11, out Byte12, out Byte13, out Byte14, out Byte15)
 
         /// <summary>
-        /// Parse the given string as an IPv6 address.
+        /// Deconstruct this IPv4 address into its individual bytes.
         /// </summary>
-        /// <param name="Text">A text representation of an IPv6 address.</param>
-        public static IPv6Address Parse(String Text)
+        /// <param name="Byte0">The first byte of the IPv4 address.</param>
+        /// <param name="Byte1">The second byte of the IPv4 address.</param>
+        /// <param name="Byte2">The third byte of the IPv4 address.</param>
+        /// <param name="Byte3">The fourth byte of the IPv4 address.</param>
+        /// <param name="Byte4">The fifth byte of the IPv4 address.</param>
+        /// <param name="Byte5">The sixth byte of the IPv4 address.</param>
+        /// <param name="Byte6">The seventh byte of the IPv4 address.</param>
+        /// <param name="Byte7">The eighth byte of the IPv4 address.</param>
+        /// <param name="Byte8">The ninth byte of the IPv4 address.</param>
+        /// <param name="Byte9">The tenth byte of the IPv4 address.</param>
+        /// <param name="Byte10">The eleventh byte of the IPv4 address.</param>
+        /// <param name="Byte11">The twelfth byte of the IPv4 address.</param>
+        /// <param name="Byte12">The thirteenth byte of the IPv4 address.</param>
+        /// <param name="Byte13">The fourteenth byte of the IPv4 address.</param>
+        /// <param name="Byte14">The fifteenth byte of the IPv4 address.</param>
+        /// <param name="Byte15">The sixteenth byte of the IPv4 address.</param>
+        public void Deconstruct(out Byte  Byte0,
+                                out Byte  Byte1,
+                                out Byte  Byte2,
+                                out Byte  Byte3,
+                                out Byte  Byte4,
+                                out Byte  Byte5,
+                                out Byte  Byte6,
+                                out Byte  Byte7,
+                                out Byte  Byte8,
+                                out Byte  Byte9,
+                                out Byte  Byte10,
+                                out Byte  Byte11,
+                                out Byte  Byte12,
+                                out Byte  Byte13,
+                                out Byte  Byte14,
+                                out Byte  Byte15)
+
+            => (Byte0,
+                Byte1,
+                Byte2,
+                Byte3,
+                Byte4,
+                Byte5,
+                Byte6,
+                Byte7,
+                Byte8,
+                Byte9,
+                Byte10,
+                Byte11,
+                Byte12,
+                Byte13,
+                Byte14,
+                Byte15) = (byte0,
+                          byte1,
+                          byte2,
+                          byte3,
+                          byte4,
+                          byte5,
+                          byte6,
+                          byte7,
+                          byte8,
+                          byte9,
+                          byte10,
+                          byte11,
+                          byte12,
+                          byte13,
+                          byte14,
+                          byte15);
+
+        #endregion
+
+        #region CopyTo(Destination)
+
+        /// <summary>
+        /// Copy the bytes of this IPv6 address into the given destination span.
+        /// </summary>
+        /// <param name="Destination">A span to copy the bytes of this IPv6 address into.</param>
+        public void CopyTo(Span<Byte> Destination)
         {
 
-            if (TryParse(Text, out var ipv6Address))
-                return ipv6Address;
-
-            throw new ArgumentException($"Invalid text representation of an IPv6 address: '{Text}'!",
-                                        nameof(Text));
-
-        }
-
-        #endregion
-
-        #region Parse    (Hostname)
-
-        /// <summary>
-        /// Parsed the given HTTP hostname as an IPv6 address.
-        /// </summary>
-        /// <param name="Hostname">An HTTP hostname.</param>
-        public static IPv6Address Parse(HTTPHostname Hostname)
-        {
-
-            if (TryParse(Hostname, out var ipv6Address))
-                return ipv6Address;
-
-            throw new ArgumentException($"Invalid text representation of an IPv6 address: '{Hostname}'!",
-                                        nameof(Hostname));
-
-        }
-
-        #endregion
-
-        #region Parse    (DomainName)
-
-        /// <summary>
-        /// Parsed the given domain name as an IPv6 address.
-        /// </summary>
-        /// <param name="DomainName">A domain name.</param>
-        public static IPv6Address Parse(DomainName DomainName)
-        {
-
-            if (TryParse(DomainName, out var ipv6Address))
-                return ipv6Address;
-
-            throw new ArgumentException($"Invalid text representation of an IPv6 address: '{DomainName}'!",
-                                        nameof(DomainName));
-
-        }
-
-        #endregion
-
-
-        #region TryParse (Text)
-
-        /// <summary>
-        /// Try to parse the given text as an IPv6 address.
-        /// </summary>
-        /// <param name="Text">A text representation of an IPv6 address.</param>
-        public static IPv6Address? TryParse(String Text)
-        {
-
-            if (TryParse(Text, out var ipv6Address))
-                return ipv6Address;
-
-            return default;
-
-        }
-
-        #endregion
-
-        #region TryParse (Hostname)
-
-        /// <summary>
-        /// Try to parse the given text as an IPv6 address.
-        /// </summary>
-        /// <param name="Hostname">A text representation of an IPv6 address.</param>
-        public static IPv6Address? TryParse(HTTPHostname Hostname)
-        {
-
-            if (TryParse(Hostname, out var ipv6Address))
-                return ipv6Address;
-
-            return default;
-
-        }
-
-        #endregion
-
-        #region TryParse (DomainName)
-
-        /// <summary>
-        /// Try to parse the given domain name as an IPv6 address.
-        /// </summary>
-        /// <param name="DomainName">A domain name.</param>
-        public static IPv6Address? TryParse(DomainName DomainName)
-        {
-
-            if (TryParse(DomainName, out var ipv6Address))
-                return ipv6Address;
-
-            return default;
-
-        }
-
-        #endregion
-
-
-        #region TryParse (Text,       out IPv4Address)
-
-        /// <summary>
-        /// Try to parse the given text as an IPv6 address.
-        /// </summary>
-        /// <param name="Text">A text representation of an IPv6 address.</param>
-        /// <param name="IPv6Address">The parsed IPv6 address.</param>
-        public static Boolean TryParse(String Text, out IPv6Address IPv6Address)
-        {
-            IPv6Address = default;
-
-            if (String.IsNullOrWhiteSpace(Text))
-                return false;
-
-            Text = Text.Trim().TrimStart('[').TrimEnd(']').Trim();
-
-            var positionOfInterfaceId = Text.IndexOf('%');
-            var interfaceId = "";
-
-            if (positionOfInterfaceId > -1)
-            {
-                interfaceId = Text[(positionOfInterfaceId + 1)..];
-                Text         = Text[..positionOfInterfaceId];
-            }
-
-            if (Text.IndexOf(':') < 0)
-                return false;
-
-            // ::-Kompression auflösen
-            int colonCount   = Text.Count(static c => c == ':');
-            int zeroGroups   = 8 - colonCount;
-
-            if (zeroGroups < 0)
-                return false;
-
-            if (Text.Contains("::"))
-            {
-                if (zeroGroups == 0)
-                    return false;
-
-                var replacement = string.Concat(Enumerable.Repeat(":0000", zeroGroups)) + ":";
-                Text = Text.Replace("::", replacement);
-            }
-
-            var elements = Text.Split(splitter, 8, StringSplitOptions.None);
-            if (elements.Length != 8)
-                return false;
-
-            Span<Byte> ipv6AddressArray = stackalloc Byte[length];
-
-            for (var i = 0; i < 8; i++)
-            {
-                var group = elements[i].PadLeft(4, '0');   // immer 4 Hex-Ziffern
-
-                if (group.Length > 4 ||
-                    !UInt16.TryParse(group, NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out var value))
-                    return false;
-
-                ipv6AddressArray[i * 2]     = (Byte)(value >> 8);
-                ipv6AddressArray[i * 2 + 1] = (Byte)value;
-            }
-
-            IPv6Address = new IPv6Address(
-                              ipv6AddressArray,
-                              interfaceId
-                          );
-
-            return true;
-
-        }
-
-        #endregion
-
-        #region TryParse (Hostname,   out IPv6Address)
-
-        /// <summary>
-        /// Try to parse the given HTTP hostname as an IPv6 address.
-        /// </summary>
-        /// <param name="Hostname">An HTTP hostname.</param>
-        /// <param name="IPv6Address">The parsed IPv6 address.</param>
-        public static Boolean TryParse(HTTPHostname     Hostname,
-                                       out IPv6Address  IPv6Address)
-
-            => TryParse(
-                   Hostname.Name,
-                   out IPv6Address
-               );
-
-        #endregion
-
-        #region TryParse (DomainName, out IPv6Address)
-
-        /// <summary>
-        /// Try to parse the given domain name as an IPv6 address.
-        /// </summary>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="IPv6Address">The parsed IPv6 address.</param>
-        public static Boolean TryParse(DomainName       DomainName,
-                                       out IPv6Address  IPv6Address)
-
-            => TryParse(
-                   DomainName.FullName,
-                   out IPv6Address
-               );
-
-        #endregion
-
-
-        #region (implicit) operator IPAddress(IPv6Address)
-
-        /// <summary>
-        /// Convert this IPv6 address into a System.Net.IPAddress.
-        /// </summary>
-        /// <param name="IPv6Address">The IPv6 address.</param>
-        public static implicit operator System.Net.IPAddress(IPv6Address IPv6Address)
-
-            => new (IPv6Address.GetBytes());
-
-        #endregion
-
-
-        #region From     (IPAddress)
-
-        /// <summary>
-        /// Create a new IPv6 address from the given System.Net.IPAddress.
-        /// </summary>
-        public static IPv6Address From(System.Net.IPAddress IPAddress)
-
-            => new (IPAddress.GetAddressBytes());
-
-        #endregion
-
-        #region FromIPv4 (IPv4Address)
-
-        /// <summary>
-        /// Create a new IPv6 address by mapping the given IPv4 address to an IPv6 address.
-        /// </summary>
-        public static IPv6Address FromIPv4(IPv4Address IPv4Address)
-        {
-
-            Span<Byte> bytes  = stackalloc Byte[length];
-            var         ipv4  = IPv4Address.GetBytes();
-
-            bytes[10] = 0xFF;
-            bytes[11] = 0xFF;
-            bytes[12] = ipv4[0];
-            bytes[13] = ipv4[1];
-            bytes[14] = ipv4[2];
-            bytes[15] = ipv4[3];
-
-            return new IPv6Address(bytes);
+            if (Destination.Length < length)
+                throw new ArgumentException("Destination span too small.", nameof(Destination));
+
+            Destination[0]  = byte0;
+            Destination[1]  = byte1;
+            Destination[2]  = byte2;
+            Destination[3]  = byte3;
+            Destination[4]  = byte4;
+            Destination[5]  = byte5;
+            Destination[6]  = byte6;
+            Destination[7]  = byte7;
+            Destination[8]  = byte8;
+            Destination[9]  = byte9;
+            Destination[10] = byte10;
+            Destination[11] = byte11;
+            Destination[12] = byte12;
+            Destination[13] = byte13;
+            Destination[14] = byte14;
+            Destination[15] = byte15;
 
         }
 

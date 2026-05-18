@@ -19,6 +19,7 @@
 
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Globalization;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -107,22 +108,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region IPv4Address (Span)
+        #region IPv4Address (Bytes)
 
         /// <summary>
         /// Create a new IPv4 address based on the given span of bytes representation.
         /// </summary>
-        /// <param name="Span">A span of bytes containing the IPv4 address.</param>
-        public IPv4Address(ReadOnlySpan<Byte> Span)
+        /// <param name="Bytes">A span of bytes containing the IPv4 address.</param>
+        public IPv4Address(ReadOnlySpan<Byte> Bytes)
         {
 
-            if (Span.Length != length)
+            if (Bytes.Length != length)
                 throw new FormatException($"The given span of bytes must have a length of {length}!");
 
-            this.byte0 = Span[0];
-            this.byte1 = Span[1];
-            this.byte2 = Span[2];
-            this.byte3 = Span[3];
+            this.byte0 = Bytes[0];
+            this.byte1 = Bytes[1];
+            this.byte2 = Bytes[2];
+            this.byte3 = Bytes[3];
 
         }
 
@@ -209,15 +210,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address Broadcast
 
             => new ([ 255, 255, 255, 255 ]);
-
-        #endregion
-
-
-        #region GetBytes ()
-
-        public Byte[] GetBytes()
-
-            => [byte0, byte1, byte2, byte3];
 
         #endregion
 
@@ -325,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address? TryParse(DomainName DomainName)
         {
 
-            if (TryParse(DomainName.FullName, out var ipv4Address))
+            if (TryParse(DomainName.FullName.TrimEnd('.'), out var ipv4Address))
                 return ipv4Address;
 
             return default;
@@ -351,17 +343,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (String.IsNullOrWhiteSpace(Text))
                 return false;
 
-            var elements = Text.Split(splitter, length, StringSplitOptions.None);
+            var elements = Text.Trim().Split(splitter, StringSplitOptions.None);
 
             if (elements.Length != length)
                 return false;
 
             Span<Byte> bytes = stackalloc Byte[4];
 
-            if (!Byte.TryParse(elements[0], out bytes[0]) ||
-                !Byte.TryParse(elements[1], out bytes[1]) ||
-                !Byte.TryParse(elements[2], out bytes[2]) ||
-                !Byte.TryParse(elements[3], out bytes[3]))
+            if (!Byte.TryParse(elements[0], NumberStyles.None, CultureInfo.InvariantCulture, out bytes[0]) ||
+                !Byte.TryParse(elements[1], NumberStyles.None, CultureInfo.InvariantCulture, out bytes[1]) ||
+                !Byte.TryParse(elements[2], NumberStyles.None, CultureInfo.InvariantCulture, out bytes[2]) ||
+                !Byte.TryParse(elements[3], NumberStyles.None, CultureInfo.InvariantCulture, out bytes[3]))
             {
                 return false;
             }
@@ -402,22 +394,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        out IPv4Address  IPv4Address)
 
             => TryParse(
-                   DomainName.FullName,
+                   DomainName.FullName.TrimEnd('.'),
                    out IPv4Address
                );
-
-        #endregion
-
-
-        #region (implicit) operator IPAddress(IPv4Address)
-
-        /// <summary>
-        /// Convert this IPv4 address into a System.Net.IPAddress.
-        /// </summary>
-        /// <param name="IPv4Address">The IPv4 address.</param>
-        public static implicit operator System.Net.IPAddress(IPv4Address IPv4Address)
-
-            => new (IPv4Address.GetBytes());
 
         #endregion
 
@@ -462,6 +441,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address From(System.Net.IPAddress IPAddress)
 
             => new (IPAddress.GetAddressBytes());
+
+        #endregion
+
+
+        #region (implicit) operator IPAddress(IPv4Address)
+
+        /// <summary>
+        /// Convert this IPv4 address into a System.Net.IPAddress.
+        /// </summary>
+        /// <param name="IPv4Address">The IPv4 address.</param>
+        public static implicit operator System.Net.IPAddress(IPv4Address IPv4Address)
+
+            => new (IPv4Address.GetBytes());
+
+        #endregion
+
+
+        #region GetBytes ()
+
+        /// <summary>
+        /// Returns the bytes of this IPv4 address as an array of 4 bytes.
+        /// </summary>
+        public Byte[] GetBytes()
+
+            => [ byte0,
+                 byte1,
+                 byte2,
+                 byte3 ];
+
+        #endregion
+
+        #region Deconstruct(out Byte0, out Byte1, out Byte2, out Byte3)
+
+        /// <summary>
+        /// Deconstruct this IPv4 address into its individual bytes.
+        /// </summary>
+        /// <param name="Byte0">The first byte of the IPv4 address.</param>
+        /// <param name="Byte1">The second byte of the IPv4 address.</param>
+        /// <param name="Byte2">The third byte of the IPv4 address.</param>
+        /// <param name="Byte3">The fourth byte of the IPv4 address.</param>
+        public void Deconstruct(out Byte  Byte0,
+                                out Byte  Byte1,
+                                out Byte  Byte2,
+                                out Byte  Byte3)
+
+            => (Byte0,
+                Byte1,
+                Byte2,
+                Byte3) = (byte0,
+                          byte1,
+                          byte2,
+                          byte3);
+
+        #endregion
+
+        #region CopyTo(Destination)
+
+        /// <summary>
+        /// Copy the bytes of this IPv4 address into the given destination span.
+        /// </summary>
+        /// <param name="Destination">A span to copy the bytes of this IPv4 address into.</param>
+        public void CopyTo(Span<Byte> Destination)
+        {
+
+            if (Destination.Length < length)
+                throw new ArgumentException("Destination span too small.", nameof(Destination));
+
+            Destination[0] = byte0;
+            Destination[1] = byte1;
+            Destination[2] = byte2;
+            Destination[3] = byte3;
+
+        }
 
         #endregion
 

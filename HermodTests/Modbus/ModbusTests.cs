@@ -20,7 +20,6 @@
 using System.Net.Sockets;
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Hermod.Modbus;
 
@@ -74,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         public async Task RAWTest1()
         {
 
-            ClassicAssert.IsNotNull(ModbusTCPServer);
+            Assert.That(ModbusTCPServer, Is.Not.Null);
 
             if (ModbusTCPServer is null)
                 return;
@@ -171,9 +170,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
             var buffer    = new Byte[5000];
             var read      = tcpStream.Read(buffer, 0, buffer.Length);
 
-            ClassicAssert.IsNotNull(readHoldingRegistersRequest1);
-            ClassicAssert.IsNotNull(readHoldingRegistersRequest2);
-            ClassicAssert.IsTrue   (read > 0);
+            Assert.That(readHoldingRegistersRequest1, Is.Not.Null);
+            Assert.That(readHoldingRegistersRequest2, Is.Not.Null);
+            Assert.That(read, Is.GreaterThan(0));
 
             Array.Resize(ref buffer, read);
 
@@ -190,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         public async Task ReadHoldingRegisters_Test1()
         {
 
-            ClassicAssert.IsNotNull(ModbusTCPServer);
+            Assert.That(ModbusTCPServer, Is.Not.Null);
 
             if (ModbusTCPServer is null)
                 return;
@@ -216,12 +215,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 
             var response = await client.ReadHoldingRegisters(9, 4);
 
-            ClassicAssert.IsNotNull(readHoldingRegistersRequest1);
+            Assert.That(readHoldingRegistersRequest1, Is.Not.Null);
 
             if (readHoldingRegistersRequest1 is not null)
             {
-                ClassicAssert.AreEqual(9, readHoldingRegistersRequest1.StartingAddress);
-                ClassicAssert.AreEqual(4, readHoldingRegistersRequest1.NumberOfRegisters);
+                Assert.That(readHoldingRegistersRequest1.StartingAddress,   Is.EqualTo(9));
+                Assert.That(readHoldingRegistersRequest1.NumberOfRegisters, Is.EqualTo(4));
             }
 
         }

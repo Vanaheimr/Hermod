@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 {
 
     /// <summary>
@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var ipv4Address = IPAddressHelper.Parse("141.24.12.2");
 
-            Assert.That(ipv4Address is IIPAddress, Is.True);
+            Assert.That(ipv4Address is IIPAddress,  Is.True);
             Assert.That(ipv4Address is IPv4Address, Is.True);
             Assert.That(ipv4Address is IPv6Address, Is.False);
 
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [Test]
         public void ParseTooShortByteArray()
         {
-            Assert.Throws<FormatException>(() => IPAddressHelper.Build(new Byte[] { 10, 0, 0 }));
+            Assert.Throws<FormatException>(() => IPAddressHelper.Build([10, 0, 0]));
         }
 
         #endregion
@@ -73,9 +73,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public void ParseIPv4ByteArray()
         {
 
-            var ipv4Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0 });
+            var ipv4Address = IPAddressHelper.Build([10, 0, 0, 0]);
 
-            Assert.That(ipv4Address is IIPAddress, Is.True);
+            Assert.That(ipv4Address is IIPAddress,  Is.True);
             Assert.That(ipv4Address is IPv4Address, Is.True);
             Assert.That(ipv4Address is IPv6Address, Is.False);
 
@@ -92,9 +92,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public void ParseIPv6ByteArray()
         {
 
-            var ipv6Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 });
+            var ipv6Address = IPAddressHelper.Build([10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0]);
 
-            Assert.That(ipv6Address is IIPAddress, Is.True);
+            Assert.That(ipv6Address is IIPAddress,  Is.True);
             Assert.That(ipv6Address is IPv4Address, Is.False);
             Assert.That(ipv6Address is IPv6Address, Is.True);
 

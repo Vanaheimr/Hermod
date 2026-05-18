@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <param name="pingResult2">Another ping result.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (PingResult pingResult1,
-                                            PingResult pingResult2)
+                                           PingResult pingResult2)
 
             => pingResult1.Equals(pingResult2);
 
@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <param name="pingResult2">Another ping result.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (PingResult pingResult1,
-                                            PingResult pingResult2)
+                                           PingResult pingResult2)
 
             => !pingResult1.Equals(pingResult2);
 
@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <param name="pingResult2">Another ping result.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (PingResult pingResult1,
-                                            PingResult pingResult2)
+                                          PingResult pingResult2)
 
             => pingResult1.CompareTo(pingResult2) < 0;
 
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <param name="pingResult2">Another ping result.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (PingResult pingResult1,
-                                            PingResult pingResult2)
+                                           PingResult pingResult2)
 
             => pingResult1.CompareTo(pingResult2) <= 0;
 
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <param name="pingResult2">Another ping result.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (PingResult pingResult1,
-                                            PingResult pingResult2)
+                                          PingResult pingResult2)
 
             => pingResult1.CompareTo(pingResult2) > 0;
 
@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <param name="pingResult2">Another ping result.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (PingResult pingResult1,
-                                            PingResult pingResult2)
+                                           PingResult pingResult2)
 
             => pingResult1.CompareTo(pingResult2) >= 0;
 
@@ -174,12 +174,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
 
             => Object is PingResult pingResult
                     ? CompareTo(pingResult)
                     : throw new ArgumentException("The given object is not a ping result!",
-                                                    nameof(Object));
+                                                  nameof(Object));
 
         #endregion
 
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         public Int32 CompareTo(PingResult pingResult)
         {
 
-            var c = Error.CompareTo(pingResult.Error);
+            var c = Error.  CompareTo(pingResult.Error);
 
             if (c == 0)
                 c = Runtime.CompareTo(pingResult.Runtime);
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
 
             => Object is PingResult pingResult &&
                     Equals(pingResult);
@@ -226,12 +226,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <summary>
         /// Compares two ping results for equality.
         /// </summary>
-        /// <param name="pingResult">A ping result to compare with.</param>
+        /// <param name="PingResult">A ping result to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(PingResult pingResult)
+        public Boolean Equals(PingResult PingResult)
 
-            => Runtime.Equals(pingResult.Runtime) &&
-                Error.  Equals(pingResult.Error);
+            => Runtime.Equals(PingResult.Runtime) &&
+               Error.  Equals(PingResult.Error);
 
         #endregion
 
@@ -244,8 +244,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// </summary>
         public override Int32 GetHashCode()
 
-            => Runtime.GetHashCode() ^
-                Error.  GetHashCode();
+            => Runtime.GetHashCode() * 3 ^
+               Error.  GetHashCode();
 
         #endregion
 
