@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
             //Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            //Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
+            //Assert.That(httpResponse.Connection, Is.EqualTo(ConnectionType.Upgrade));
             //Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion

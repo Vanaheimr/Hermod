@@ -188,15 +188,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Key:       +LYHhVOGskWz/0bFFcK8dQ==
             // Sec-WebSocket-Version:   13
 
-            Assert.That(httpRequest.Connection.ToString(), Is.EqualTo("Upgrade"));
-            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest.Connection,                            Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpRequest.Upgrade,                               Is.EqualTo("websocket"));
 
-            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
-            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
-            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
-            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
-            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
-            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"),                Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"),          Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"),           Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"),           Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"),       Is.True, request);
 
             #endregion
 
@@ -216,9 +216,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse.Connection.ToString(), Is.EqualTo("Upgrade"));
-            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpResponse.Server,       Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection,   Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpResponse.Upgrade,      Is.EqualTo("websocket"));
 
             #endregion
 
@@ -470,15 +470,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp1.6
 
-            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
-            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest.Connection,                            Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpRequest.Upgrade,                               Is.EqualTo("websocket"));
 
-            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
-            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
-            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
-            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
-            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
-            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"),                Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"),          Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"),           Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"),           Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"),       Is.True, request);
 
             #endregion
 
@@ -499,7 +499,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
             Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse.Connection, Is.EqualTo(ConnectionType.Upgrade));
             Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
@@ -711,8 +711,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp1.6
 
-            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
-            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest.Connection,   Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpRequest.Upgrade,      Is.EqualTo("websocket"));
 
             Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
@@ -740,9 +740,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
-            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpResponse.Server,       Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection,   Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpResponse.Upgrade,      Is.EqualTo("websocket"));
 
             #endregion
 
@@ -955,15 +955,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp2.0
 
-            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
-            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest.Connection,                            Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpRequest.Upgrade,                               Is.EqualTo("websocket"));
 
-            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
-            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"), Is.True, request);
-            Assert.That(request.Contains($"Connection: Upgrade"), Is.True, request);
-            Assert.That(request.Contains($"Upgrade: websocket"), Is.True, request);
-            Assert.That(request.Contains($"Sec-WebSocket-Key:"), Is.True, request);
-            Assert.That(request.Contains($"Sec-WebSocket-Version:"), Is.True, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"),                Is.True, request);
+            Assert.That(request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   Is.True, request);
+            Assert.That(request.Contains($"Connection: Upgrade"),          Is.True, request);
+            Assert.That(request.Contains($"Upgrade: websocket"),           Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Key:"),           Is.True, request);
+            Assert.That(request.Contains($"Sec-WebSocket-Version:"),       Is.True, request);
 
             #endregion
 
@@ -984,9 +984,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
-            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpResponse.Server,       Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection,   Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpResponse.Upgrade,      Is.EqualTo("websocket"));
 
             #endregion
 
@@ -1200,8 +1200,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:    13
             // Sec-WebSocket-Protocol:   ocpp2.0
 
-            Assert.That(httpRequest.Connection, Is.EqualTo("Upgrade"));
-            Assert.That(httpRequest.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpRequest.Connection,   Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpRequest.Upgrade,      Is.EqualTo("websocket"));
             Assert.That(httpRequest.Authorization is HTTPBasicAuthentication, Is.True, "Is not HTTP Basic Authentication!");
             Assert.That((httpRequest.Authorization as HTTPBasicAuthentication)?.Username, Is.EqualTo("username"));
             Assert.That((httpRequest.Authorization as HTTPBasicAuthentication)?.Password, Is.EqualTo("password"));
@@ -1232,9 +1232,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             Assert.That(response.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response);
 
-            Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse.Connection, Is.EqualTo("Upgrade"));
-            Assert.That(httpResponse.Upgrade, Is.EqualTo("websocket"));
+            Assert.That(httpResponse.Server,       Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
+            Assert.That(httpResponse.Connection,   Is.EqualTo(ConnectionType.Upgrade));
+            Assert.That(httpResponse.Upgrade,      Is.EqualTo("websocket"));
 
             #endregion
 
@@ -1477,7 +1477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Protocol:   ocpp2.0
             // Authorization:            Basic dXNlcm5hbWU6cGFzc3dvcmQ=
 
-            Assert.That(httpRequest2.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest2.Connection, Is.EqualTo(ConnectionType.Upgrade));
             Assert.That(httpRequest2.Upgrade, Is.EqualTo("websocket"));
             Assert.That(httpRequest2.Authorization is HTTPBasicAuthentication, Is.True, "Is not HTTP Basic Authentication!");
             Assert.That((httpRequest2.Authorization as HTTPBasicAuthentication)?.Username, Is.EqualTo("username"));
@@ -1521,7 +1521,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(response2.Contains("HTTP/1.1 101 Switching Protocols"), Is.True, response2);
 
             Assert.That(httpResponse2.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse2.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpResponse2.Connection, Is.EqualTo(ConnectionType.Upgrade));
             Assert.That(httpResponse2.Upgrade, Is.EqualTo("websocket"));
 
             #endregion
@@ -1764,7 +1764,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // Sec-WebSocket-Version:   13
             // Authorization:           Basic bmFtZU9mVXNlcjpwYXNzcGhyYXNl
 
-            Assert.That(httpRequest2.Connection, Is.EqualTo("Upgrade"));
+            Assert.That(httpRequest2.Connection, Is.EqualTo(ConnectionType.Upgrade));
             Assert.That(httpRequest2.Upgrade, Is.EqualTo("websocket"));
             Assert.That(httpRequest2.Authorization is HTTPBasicAuthentication, Is.True, "Is not HTTP Basic Authentication!");
             Assert.That((httpRequest2.Authorization as HTTPBasicAuthentication)?.Username, Is.EqualTo("nameOfUser"));
