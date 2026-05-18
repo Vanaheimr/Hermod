@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -45,22 +45,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private static readonly  Char[]  splitter  = [':'];
 
-        private readonly Byte byte0;
-        private readonly Byte byte1;
-        private readonly Byte byte2;
-        private readonly Byte byte3;
-        private readonly Byte byte4;
-        private readonly Byte byte5;
-        private readonly Byte byte6;
-        private readonly Byte byte7;
-        private readonly Byte byte8;
-        private readonly Byte byte9;
-        private readonly Byte byte10;
-        private readonly Byte byte11;
-        private readonly Byte byte12;
-        private readonly Byte byte13;
-        private readonly Byte byte14;
-        private readonly Byte byte15;
+        private readonly         Byte    byte0;
+        private readonly         Byte    byte1;
+        private readonly         Byte    byte2;
+        private readonly         Byte    byte3;
+        private readonly         Byte    byte4;
+        private readonly         Byte    byte5;
+        private readonly         Byte    byte6;
+        private readonly         Byte    byte7;
+        private readonly         Byte    byte8;
+        private readonly         Byte    byte9;
+        private readonly         Byte    byte10;
+        private readonly         Byte    byte11;
+        private readonly         Byte    byte12;
+        private readonly         Byte    byte13;
+        private readonly         Byte    byte14;
+        private readonly         Byte    byte15;
 
         #endregion
 
@@ -162,22 +162,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Span.Length != length)
                 throw new FormatException($"The given span of bytes must have a length of {length}!");
 
-            this.byte0  = Span[0];
-            this.byte1  = Span[1];
-            this.byte2  = Span[2];
-            this.byte3  = Span[3];
-            this.byte4  = Span[4];
-            this.byte5  = Span[5];
-            this.byte6  = Span[6];
-            this.byte7  = Span[7];
-            this.byte8  = Span[8];
-            this.byte9  = Span[9];
-            this.byte10 = Span[10];
-            this.byte11 = Span[11];
-            this.byte12 = Span[12];
-            this.byte13 = Span[13];
-            this.byte14 = Span[14];
-            this.byte15 = Span[15];
+            this.byte0   = Span[0];
+            this.byte1   = Span[1];
+            this.byte2   = Span[2];
+            this.byte3   = Span[3];
+            this.byte4   = Span[4];
+            this.byte5   = Span[5];
+            this.byte6   = Span[6];
+            this.byte7   = Span[7];
+            this.byte8   = Span[8];
+            this.byte9   = Span[9];
+            this.byte10  = Span[10];
+            this.byte11  = Span[11];
+            this.byte12  = Span[12];
+            this.byte13  = Span[13];
+            this.byte14  = Span[14];
+            this.byte15  = Span[15];
 
         }
 
@@ -190,8 +190,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Stream">The stream to read the IPv6 address from.</param>
         /// <param name="InterfaceId">An optional interface identification for the scope of the IPv6 address.</param>
-        public IPv6Address(Stream              Stream,
-                           String?             InterfaceId   = null)
+        public IPv6Address(Stream   Stream,
+                           String?  InterfaceId   = null)
         {
 
             this.InterfaceId = InterfaceId ?? "";
@@ -202,22 +202,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             Span<Byte> buffer = stackalloc Byte[length];
             Stream.ReadExactly(buffer);
 
-            this.byte0  = buffer[0];
-            this.byte1  = buffer[1];
-            this.byte2  = buffer[2];
-            this.byte3  = buffer[3];
-            this.byte4  = buffer[4];
-            this.byte5  = buffer[5];
-            this.byte6  = buffer[6];
-            this.byte7  = buffer[7];
-            this.byte8  = buffer[8];
-            this.byte9  = buffer[9];
-            this.byte10 = buffer[10];
-            this.byte11 = buffer[11];
-            this.byte12 = buffer[12];
-            this.byte13 = buffer[13];
-            this.byte14 = buffer[14];
-            this.byte15 = buffer[15];
+            this.byte0   = buffer[0];
+            this.byte1   = buffer[1];
+            this.byte2   = buffer[2];
+            this.byte3   = buffer[3];
+            this.byte4   = buffer[4];
+            this.byte5   = buffer[5];
+            this.byte6   = buffer[6];
+            this.byte7   = buffer[7];
+            this.byte8   = buffer[8];
+            this.byte9   = buffer[9];
+            this.byte10  = buffer[10];
+            this.byte11  = buffer[11];
+            this.byte12  = buffer[12];
+            this.byte13  = buffer[13];
+            this.byte14  = buffer[14];
+            this.byte15  = buffer[15];
 
         }
 
@@ -253,7 +253,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Byte[] GetBytes()
 
-            => [byte0, byte1, byte2, byte3, byte4, byte5, byte6, byte7, byte8, byte9, byte10, byte11, byte12, byte13, byte14, byte15];
+            => [ byte0,
+                 byte1,
+                 byte2,
+                 byte3,
+                 byte4,
+                 byte5,
+                 byte6,
+                 byte7,
+                 byte8,
+                 byte9,
+                 byte10,
+                 byte11,
+                 byte12,
+                 byte13,
+                 byte14,
+                 byte15 ];
 
         #endregion
 
@@ -762,11 +777,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             return String.Format(
                        "{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
-                       byte0.ToString("x2")  + byte1.ToString("x2"),
-                       byte2.ToString("x2")  + byte3.ToString("x2"),
-                       byte4.ToString("x2")  + byte5.ToString("x2"),
-                       byte6.ToString("x2")  + byte7.ToString("x2"),
-                       byte8.ToString("x2")  + byte9.ToString("x2"),
+                       byte0. ToString("x2") + byte1. ToString("x2"),
+                       byte2. ToString("x2") + byte3. ToString("x2"),
+                       byte4. ToString("x2") + byte5. ToString("x2"),
+                       byte6. ToString("x2") + byte7. ToString("x2"),
+                       byte8. ToString("x2") + byte9. ToString("x2"),
                        byte10.ToString("x2") + byte11.ToString("x2"),
                        byte12.ToString("x2") + byte13.ToString("x2"),
                        byte14.ToString("x2") + byte15.ToString("x2"),

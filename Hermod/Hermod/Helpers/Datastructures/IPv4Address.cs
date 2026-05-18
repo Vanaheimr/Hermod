@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -42,10 +42,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private const            Byte    length    = 4;
         private static readonly  Char[]  splitter  = ['.'];
 
-        private readonly Byte byte0;
-        private readonly Byte byte1;
-        private readonly Byte byte2;
-        private readonly Byte byte3;
+        private readonly         Byte    byte0;
+        private readonly         Byte    byte1;
+        private readonly         Byte    byte2;
+        private readonly         Byte    byte3;
 
         #endregion
 

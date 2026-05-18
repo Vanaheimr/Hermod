@@ -305,13 +305,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
 
-            var bytes = new Byte[BinaryFrame.Payload.Length];
-            Array.Copy(BinaryFrame.Payload, bytes, BinaryFrame.Payload.Length);
-            bytes.Reverse();
-
             var result = await SendBinaryMessage(
                                    Connection,
-                                   bytes,
+                                   BinaryFrame.Payload.Reverse(),
                                    EventTrackingId,
                                    CancellationToken
                                );

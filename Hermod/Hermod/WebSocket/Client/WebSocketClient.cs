@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public           readonly TimeSpan                    DefaultMaintenanceEvery     = TimeSpan.FromSeconds(1);
         private          readonly Timer                       MaintenanceTimer;
 
-        protected static readonly SemaphoreSlim               MaintenanceSemaphore        = new(1, 1);
+        protected readonly        SemaphoreSlim               MaintenanceSemaphore        = new(1, 1);
 
         public           readonly TimeSpan                    DefaultWebSocketPingEvery   = TimeSpan.FromSeconds(30);
 
@@ -486,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.SlowNetworkSimulationDelay         = SlowNetworkSimulationDelay;
 
             this.networkingCancellationTokenSource  = new CancellationTokenSource();
-            this.networkingCancellationToken        = new CancellationTokenSource().Token;
+            this.networkingCancellationToken        = networkingCancellationTokenSource.Token;
 
             //this.Logger                             = new ChargePointwebsocketClient.CPClientLogger(this,
             //                                                                                   LoggingPath,
@@ -817,7 +817,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (sw.Elapsed >= (HTTPRequest.Timeout ?? TimeSpan.FromSeconds(5)))
                     throw new HTTPTimeoutException(sw.Elapsed);
 
-                Thread.Sleep(1);
+                await Task.Delay(1, CancellationToken);
 
             } while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
 
@@ -846,7 +846,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of retransmissions of this request.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<Tuple<WebSocketClientConnection, HTTPResponse>>
+        public async Task<Tuple<WebSocketClientConnection, HTTPResponse>>
 
             Connect(EventTracking_Id?             EventTrackingId      = null,
                     TimeSpan?                     RequestTimeout       = null,
@@ -861,11 +861,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             HTTPResponse? waitingForHTTPResponse = null;
 
             if (networkingTask is not null)
-                return Task.FromResult(
-                           new Tuple<WebSocketClientConnection, HTTPResponse>(
-                               webSocketClientConnection,
-                               waitingForHTTPResponse
-                           )
+                return new Tuple<WebSocketClientConnection, HTTPResponse>(
+                           webSocketClientConnection,
+                           waitingForHTTPResponse
                        );
 
             networkingTask = Task.Run(async () => {
@@ -932,7 +930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 var blockSize   = hash switch {
                                                       "sha512" => 64,
                                                       "sha384" => 48,
-                                                      "sha256" => 48,
+                                                      "sha256" => 32,
                                                       _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
                                                   };
 
@@ -1008,6 +1006,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             SlowNetworkSimulationDelay:  null
                                                         );
 
+                            WebSocketFrame.Opcodes? fragmentOpcode  = null;
+                            var                     fragmentPayload = new MemoryStream();
+
                             do
                             {
 
@@ -1037,7 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             //if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
                                             //    throw new HTTPTimeoutException(sw.Elapsed);
 
-                                            Thread.Sleep(1);
+                                            await Task.Delay(1);
 
                                         } while (webSocketClientConnection.DataAvailable);
 
@@ -1056,18 +1057,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Text:
 
-                                                    await LogEvent(
-                                                                OnTextMessageReceived,
-                                                                loggingDelegate => loggingDelegate.Invoke(
-                                                                    Timestamp.Now,
-                                                                    this,
-                                                                    webSocketClientConnection,
-                                                                    frame,
-                                                                    EventTracking_Id.New,
-                                                                    frame.Payload.ToUTF8String(),
-                                                                    CancellationToken
-                                                                )
-                                                            );
+                                                    if (frame.IsFinal && fragmentOpcode is null)
+                                                    {
+
+                                                        await LogEvent(
+                                                                    OnTextMessageReceived,
+                                                                    loggingDelegate => loggingDelegate.Invoke(
+                                                                        Timestamp.Now,
+                                                                        this,
+                                                                        webSocketClientConnection,
+                                                                        frame,
+                                                                        EventTracking_Id.New,
+                                                                        frame.Payload.ToUTF8String(),
+                                                                        CancellationToken
+                                                                    )
+                                                                );
+
+                                                    }
+                                                    else
+                                                    {
+                                                        fragmentOpcode = WebSocketFrame.Opcodes.Text;
+                                                        fragmentPayload.SetLength(0);
+                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+                                                    }
 
                                                 break;
 
@@ -1077,18 +1089,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Binary:
 
-                                                    await LogEvent(
-                                                                OnBinaryMessageReceived,
-                                                                loggingDelegate => loggingDelegate.Invoke(
-                                                                    Timestamp.Now,
-                                                                    this,
-                                                                    webSocketClientConnection,
-                                                                    frame,
-                                                                    EventTracking_Id.New,
-                                                                    frame.Payload,
-                                                                    CancellationToken
-                                                                )
-                                                            );
+                                                    if (frame.IsFinal && fragmentOpcode is null)
+                                                    {
+
+                                                        await LogEvent(
+                                                                    OnBinaryMessageReceived,
+                                                                    loggingDelegate => loggingDelegate.Invoke(
+                                                                        Timestamp.Now,
+                                                                        this,
+                                                                        webSocketClientConnection,
+                                                                        frame,
+                                                                        EventTracking_Id.New,
+                                                                        frame.Payload,
+                                                                        CancellationToken
+                                                                    )
+                                                                );
+
+                                                    }
+                                                    else
+                                                    {
+                                                        fragmentOpcode = WebSocketFrame.Opcodes.Binary;
+                                                        fragmentPayload.SetLength(0);
+                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+                                                    }
+
+                                                break;
+
+                                                #endregion
+
+                                                #region Continuation
+
+                                                case WebSocketFrame.Opcodes.Continuation:
+
+                                                    if (fragmentOpcode is not null)
+                                                    {
+
+                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                        if (frame.IsFinal)
+                                                        {
+
+                                                            var completePayload = fragmentPayload.ToArray();
+
+                                                            if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
+                                                            {
+
+                                                                await LogEvent(
+                                                                            OnTextMessageReceived,
+                                                                            loggingDelegate => loggingDelegate.Invoke(
+                                                                                Timestamp.Now,
+                                                                                this,
+                                                                                webSocketClientConnection,
+                                                                                frame,
+                                                                                EventTracking_Id.New,
+                                                                                completePayload.ToUTF8String(),
+                                                                                CancellationToken
+                                                                            )
+                                                                        );
+
+                                                            }
+                                                            else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
+                                                            {
+
+                                                                await LogEvent(
+                                                                            OnBinaryMessageReceived,
+                                                                            loggingDelegate => loggingDelegate.Invoke(
+                                                                                Timestamp.Now,
+                                                                                this,
+                                                                                webSocketClientConnection,
+                                                                                frame,
+                                                                                EventTracking_Id.New,
+                                                                                completePayload,
+                                                                                CancellationToken
+                                                                            )
+                                                                        );
+
+                                                            }
+
+                                                            fragmentOpcode = null;
+                                                            fragmentPayload.SetLength(0);
+
+                                                        }
+
+                                                    }
+                                                    else
+                                                    {
+                                                        DebugX.Log(nameof(WebSocketClient), " Received Continuation frame without preceding Text/Binary frame!");
+                                                        if (CloseConnectionOnUnexpectedFrames)
+                                                            await webSocketClientConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
+                                                    }
 
                                                 break;
 
@@ -1232,7 +1321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 }
                                 else
-                                    Thread.Sleep(10);
+                                    await Task.Delay(10);
 
                             }
                             while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
@@ -1369,7 +1458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var ts = Timestamp.Now;
 
             while (waitingForHTTPResponse is null && ts + RequestTimeout > Timestamp.Now) {
-                Thread.Sleep(10);
+                await Task.Delay(10);
             }
 
             waitingForHTTPResponse ??= new HTTPResponse.Builder(
@@ -1388,11 +1477,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                        ).AsImmutable;
 
-            return Task.FromResult(
-                       new Tuple<WebSocketClientConnection, HTTPResponse>(
-                           webSocketClientConnection,
-                           waitingForHTTPResponse
-                       )
+            return new Tuple<WebSocketClientConnection, HTTPResponse>(
+                       webSocketClientConnection,
+                       waitingForHTTPResponse
                    );
 
         }
@@ -1413,10 +1500,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private UInt64 pingCounter;
 
-        private void DoWebSocketPingSync(Object? State)
+        private async void DoWebSocketPingSync(Object? State)
         {
             if (!DisableWebSocketPings)
-                DoWebSocketPing(State).Wait();
+                await DoWebSocketPing(State);
         }
 
         private async Task DoWebSocketPing(Object? State)
@@ -1476,10 +1563,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (Timer) DoMaintenance(State)
 
-        private void DoMaintenanceSync(Object? State)
+        private async void DoMaintenanceSync(Object? State)
         {
             if (!DisableMaintenanceTasks)
-                DoMaintenanceAsync(State).Wait();
+                await DoMaintenanceAsync(State);
         }
 
         private async Task DoMaintenanceAsync(Object? State)

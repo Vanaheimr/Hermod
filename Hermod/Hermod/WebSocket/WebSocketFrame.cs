@@ -149,6 +149,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     public class WebSocketFrame
     {
 
+        /// <summary>
+        /// The maximum allowed payload size for a single WebSocket frame (64 MB).
+        /// </summary>
+        public const UInt64  DefaultMaxPayloadSize   = 64 * 1024 * 1024;
+
         #region (enum) Opcodes
 
         /// <summary>
@@ -617,7 +622,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                            Rsv                Rsv3         = Rsv.Off)
         {
 
-            var payload     = new Byte[2 + (Reason?.Length ?? 0)];
+            var reasonBytes = Reason?.ToUTF8Bytes();
+            var payload     = new Byte[2 + (reasonBytes?.Length ?? 0)];
 
             var statusCode  = BitConverter.GetBytes((UInt16) StatusCode);
 
@@ -626,8 +632,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             Array.Copy(statusCode, 0, payload, 0, 2);
 
-            if (Reason is not null)
-                Array.Copy(Reason.ToUTF8Bytes(), 0, payload, 2, Reason.Length);
+            if (reasonBytes is not null)
+                Array.Copy(reasonBytes, 0, payload, 2, reasonBytes.Length);
 
             return new (Opcodes.Close,
                         payload,
@@ -734,7 +740,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                        [NotNullWhen(true)]  out WebSocketFrame?  Frame,
                                        [NotNullWhen(true)]  out UInt64           Length,
                                        [NotNullWhen(false)] out String?          ErrorResponse,
-                                       EventTracking_Id?                         EventTrackingId = null)
+                                       EventTracking_Id?                         EventTrackingId    = null,
+                                       UInt64?                                   MaxPayloadSize     = null)
         {
 
             try
@@ -819,6 +826,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
+                var maxSize = MaxPayloadSize ?? DefaultMaxPayloadSize;
+                if (payloadLength > maxSize)
+                {
+                    ErrorResponse = $"Payload length {payloadLength} exceeds maximum allowed size of {maxSize} bytes!";
+                    return false;
+                }
+
                 var payload     = new Byte[payloadLength];
                 var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
 
@@ -897,7 +911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 offset         = 2;
             }
 
-            else if (payloadLength >= 126 && payloadLength <= 65536)
+            else if (payloadLength >= 126 && payloadLength <= 65535)
             {
                 frameBytes = new Byte[payloadLength + 4 + (IsMasked ? 4U : 0U)];
                 frameBytes[1] = (Byte) 126;
