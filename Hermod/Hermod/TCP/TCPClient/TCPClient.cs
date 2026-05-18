@@ -20,6 +20,8 @@
 using System.Text;
 using System.Diagnostics;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -41,21 +43,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (protected) ATCPClient(IPAddress,  TCPPort,           ...)
 
         public TCPClient(IIPAddress                       IPAddress,
-                             IPPort                           TCPPort,
-                             I18NString?                      Description              = null,
+                         IPPort                           TCPPort,
+                         I18NString?                      Description              = null,
 
-                             IPVersionPreference?             PreferIPv4               = null,
-                             TimeSpan?                        ConnectTimeout           = null,
-                             TimeSpan?                        ReceiveTimeout           = null,
-                             TimeSpan?                        SendTimeout              = null,
-                             TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                             UInt16?                          MaxNumberOfRetries       = null,
-                             UInt32?                          BufferSize               = null,
-                             Boolean?                         DisableLogging           = null
-                             // String?                         LoggingPath              = null,
-                             // String?                         LoggingContext           = Logger.DefaultContext,
-                             // LogfileCreatorDelegate?         LogfileCreator           = null
-                             )
+                         IPVersionPreference?             PreferIPv4               = null,
+                         TimeSpan?                        ConnectTimeout           = null,
+                         TimeSpan?                        ReceiveTimeout           = null,
+                         TimeSpan?                        SendTimeout              = null,
+                         TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                         UInt16?                          MaxNumberOfRetries       = null,
+                         UInt32?                          BufferSize               = null,
+                         Boolean?                         DisableLogging           = null,
+                         // String?                         LoggingPath              = null,
+                         // String?                         LoggingContext           = Logger.DefaultContext,
+                         // LogfileCreatorDelegate?         LogfileCreator           = null
+                         ILogger<TCPClient>?              Logger                   = null,
+                         ILoggerFactory?                  LoggerFactory            = null)
 
             : base(IPAddress,
                    TCPPort,
@@ -68,7 +71,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    BufferSize,
-                   DisableLogging)
+                   DisableLogging,
+                   Logger,
+                   LoggerFactory)
 
         { }
 
@@ -77,20 +82,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (protected) ATCPClient(URL, ...)
 
         public TCPClient(URL                              URL,
-                             I18NString?                      Description              = null,
+                         I18NString?                      Description              = null,
 
-                             IPVersionPreference?             PreferIPv4               = null,
-                             TimeSpan?                        ConnectTimeout           = null,
-                             TimeSpan?                        ReceiveTimeout           = null,
-                             TimeSpan?                        SendTimeout              = null,
-                             TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                             UInt16?                          MaxNumberOfRetries       = null,
-                             UInt32?                          BufferSize               = null,
-                             Boolean?                         DisableLogging           = null,
-                             // String?                         LoggingPath              = null,
-                             // String?                         LoggingContext           = Logger.DefaultContext,
-                             // LogfileCreatorDelegate?         LogfileCreator           = null,
-                             IDNSClient?                      DNSClient                = null)
+                         IPVersionPreference?             PreferIPv4               = null,
+                         TimeSpan?                        ConnectTimeout           = null,
+                         TimeSpan?                        ReceiveTimeout           = null,
+                         TimeSpan?                        SendTimeout              = null,
+                         TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                         UInt16?                          MaxNumberOfRetries       = null,
+                         UInt32?                          BufferSize               = null,
+                         Boolean?                         DisableLogging           = null,
+                         // String?                         LoggingPath              = null,
+                         // String?                         LoggingContext           = Logger.DefaultContext,
+                         // LogfileCreatorDelegate?         LogfileCreator           = null,
+                         IDNSClient?                      DNSClient                = null,
+                         ILogger<TCPClient>?              Logger                   = null,
+                         ILoggerFactory?                  LoggerFactory            = null)
 
             : base(URL,
                    Description,
@@ -102,7 +109,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    MaxNumberOfRetries,
                    BufferSize,
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         { }
 
@@ -111,21 +120,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (protected) ATCPClient(DomainName, DNSService,        ...)
 
         public TCPClient(DomainName                       DomainName,
-                             SRV_Spec                         DNSService,
-                             I18NString?                      Description              = null,
+                         SRV_Spec                         DNSService,
+                         I18NString?                      Description              = null,
 
-                             IPVersionPreference?             PreferIPv4               = null,
-                             TimeSpan?                        ConnectTimeout           = null,
-                             TimeSpan?                        ReceiveTimeout           = null,
-                             TimeSpan?                        SendTimeout              = null,
-                             TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
-                             UInt16?                          MaxNumberOfRetries       = null,
-                             UInt32?                          BufferSize               = null,
-                             Boolean?                         DisableLogging           = null,
-                             // String?                         LoggingPath              = null,
-                             // String?                         LoggingContext           = Logger.DefaultContext,
-                             // LogfileCreatorDelegate?         LogfileCreator           = null,
-                             IDNSClient?                      DNSClient                = null)
+                         IPVersionPreference?             PreferIPv4               = null,
+                         TimeSpan?                        ConnectTimeout           = null,
+                         TimeSpan?                        ReceiveTimeout           = null,
+                         TimeSpan?                        SendTimeout              = null,
+                         TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                         UInt16?                          MaxNumberOfRetries       = null,
+                         UInt32?                          BufferSize               = null,
+                         Boolean?                         DisableLogging           = null,
+                         // String?                         LoggingPath              = null,
+                         // String?                         LoggingContext           = Logger.DefaultContext,
+                         // LogfileCreatorDelegate?         LogfileCreator           = null,
+                         IDNSClient?                      DNSClient                = null,
+                         ILogger<TCPClient>?              Logger                   = null,
+                         ILoggerFactory?                  LoggerFactory            = null)
 
             : base(DomainName,
                    DNSService,
@@ -138,7 +149,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    MaxNumberOfRetries,
                    BufferSize,
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         { }
 

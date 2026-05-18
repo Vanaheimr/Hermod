@@ -20,6 +20,8 @@
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
@@ -98,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                UInt32?                                                         MaxClientConnections         = null,
 
                                DNSClient?                                                      DNSClient                    = null,
+                               ILogger?                                                        Logger                       = null,
                                Boolean                                                         AutoStart                    = false)
 
             : base(IPAddress,
@@ -127,6 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    MaxClientConnections,
 
                    DNSClient,
+                   Logger,
                    AutoStart)
 
         { }
@@ -170,6 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                UInt32?                                                         MaxClientConnections         = null,
 
                                DNSClient?                                                      DNSClient                    = null,
+                               ILogger?                                                        Logger                       = null,
                                Boolean                                                         AutoStart                    = false)
 
             : base(IPSocket,
@@ -198,6 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    MaxClientConnections,
 
                    DNSClient,
+                   Logger,
                    AutoStart)
 
         { }
@@ -207,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region ProcessTextMessage  (RequestTimestamp, Connection, TextMessage,   EventTrackingId, CancellationToken)
+        #region ProcessTextMessage   (RequestTimestamp, Connection, TextMessage,   EventTrackingId, CancellationToken)
 
         /// <summary>
         /// The default HTTP WebSocket text message processor.
@@ -249,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessageReceived)}");
+                    Logger.LogError(e, "Exception while processing {EventName}.", nameof(OnTextMessageReceived));
                 }
             }
 
@@ -272,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region ProcessBinaryMessage(RequestTimestamp, Connection, BinaryMessage, EventTrackingId, CancellationToken)
+        #region ProcessBinaryMessage (RequestTimestamp, Connection, BinaryMessage, EventTrackingId, CancellationToken)
 
         /// <summary>
         /// The default HTTP WebSocket binary message processor.
@@ -314,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnBinaryMessageReceived)}");
+                    Logger.LogError(e, "Exception while processing {EventName}.", nameof(OnBinaryMessageReceived));
                 }
             }
 

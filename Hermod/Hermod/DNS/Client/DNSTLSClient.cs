@@ -426,6 +426,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                            CancellationToken   CancellationToken)
         {
 
+            var stopwatch = Stopwatch.StartNew();
+
             await TLSStream.WriteAsync(Data, CancellationToken).ConfigureAwait(false);
             await TLSStream.FlushAsync(CancellationToken).      ConfigureAwait(false);
 
@@ -471,7 +473,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                    EffectiveTimeout
                                ),
                                DNSQuery.TransactionId,
-                               new MemoryStream(buffer, 0, totalRead)
+                               new MemoryStream(buffer, 0, totalRead),
+                               EffectiveTimeout,
+                               stopwatch.Elapsed
                            );
 
             // RFC 7828: Extract server-advertised idle timeout from the response OPT record.

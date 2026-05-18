@@ -41,7 +41,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                             Boolean                          IsValid,
                             Boolean                          IsTimeout,
-                            TimeSpan                         Timeout)
+                            TimeSpan                         Timeout,
+
+                            TimeSpan                         Runtime)
 
         : DNSInfo(Origin,
                   QueryId,
@@ -55,7 +57,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                   AdditionalRecords,
                   IsValid,
                   IsTimeout,
-                  Timeout)
+                  Timeout,
+                  Runtime)
 
         where T : ADNSResourceRecord
 
@@ -79,7 +82,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Legacy.AdditionalRecords,
                    Legacy.IsValid,
                    Legacy.IsTimeout,
-                   Legacy.Timeout)
+                   Legacy.Timeout,
+                   Legacy.Runtime)
 
         { }
 
@@ -150,6 +154,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public TimeSpan                         Timeout               { get; }
 
+        /// <summary>
+        /// The runtime of the DNS query.
+        /// </summary>
+        public TimeSpan                         Runtime               { get; }
+
 
         /// <summary>
         /// The DNSSEC validation status of this DNS response.
@@ -213,7 +222,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                        Boolean                          IsValid,
                        Boolean                          IsTimeout,
-                       TimeSpan                         Timeout)
+                       TimeSpan                         Timeout,
+
+                       TimeSpan                         Runtime)
         {
 
             this.Origin               = Origin;
@@ -232,10 +243,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.IsTimeout            = IsTimeout;
             this.Timeout              = Timeout;
 
+            this.Runtime              = Runtime;
+
         }
 
         #endregion
-
 
 
 
@@ -243,12 +255,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         internal static DNSInfo ReadResponse(DNSServerConfig  Origin,
                                              Int32            ExpectedTransactionId,
-                                             Stream           DNSResponseStream)
+                                             Stream           DNSResponseStream,
+                                             TimeSpan         Timeout,
+                                             TimeSpan         Runtime)
         {
 
             #region DNS Header
 
-            var requestId       = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) + (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var requestId        = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) + (DNSResponseStream.ReadByte() & Byte.MaxValue);
 
             if (ExpectedTransactionId != requestId)
                 //throw new Exception("Security Alert: Mallory might send us faked DNS replies! [" + ExpectedTransactionId + " != " + requestId + "]");
@@ -257,22 +271,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            requestId
                        );
 
-            var Byte2           = DNSResponseStream.ReadByte();
-            var IS              = (Byte2 & 128) == 128;
-            var OpCode          = (Byte2 >> 3 & 15);
-            var AA              = (Byte2 & 4) == 4;
-            var TC              = (Byte2 & 2) == 2;
-            var RD              = (Byte2 & 1) == 1;
+            var Byte2            = DNSResponseStream.ReadByte();
+            var IS               = (Byte2 & 128) == 128;
+            var OpCode           = (Byte2 >> 3 & 15);
+            var AA               = (Byte2 & 4) == 4;
+            var TC               = (Byte2 & 2) == 2;
+            var RD               = (Byte2 & 1) == 1;
 
-            var Byte3           = DNSResponseStream.ReadByte();
-            var RA              = (Byte3 & 128) == 128;
-            var Z               = (Byte3 & 1);    //reserved, not used
-            var ResponseCode    = (DNSResponseCodes) (Byte3 & 15);
+            var Byte3            = DNSResponseStream.ReadByte();
+            var RA               = (Byte3 & 128) == 128;
+            var Z                = (Byte3 & 1);    //reserved, not used
+            var ResponseCode     = (DNSResponseCodes) (Byte3 & 15);
 
-            var QuestionCount   = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
-            var AnswerCount     = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
-            var AuthorityCount  = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
-            var AdditionalCount = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var QuestionCount    = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var AnswerCount      = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var AuthorityCount   = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var AdditionalCount  = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
 
             #endregion
 
@@ -322,6 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     : ResponseCode;
 
             return new DNSInfo(
+
                        Origin,
                        requestId,
                        AA,
@@ -336,7 +351,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                        true,
                        false,
-                       TimeSpan.Zero
+                       Timeout,
+
+                       Runtime
+
                    );
 
         }
@@ -407,6 +425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     [],
                     false,
                     true,
+                    Timeout,
                     Timeout);
 
 
@@ -425,6 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     [],
                     false,
                     false,
+                    TimeSpan.Zero,
                     TimeSpan.Zero);
 
 
@@ -449,6 +469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     [],
                     false,
                     false,
+                    Timeout,
                     Timeout);
 
 

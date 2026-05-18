@@ -45,21 +45,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var timeout = TimeSpan.FromMilliseconds(75);
 
-            using var silentServer = CreateSilentUDPServer(out var port);
-            using var client       = new DNSClient(
-                                   IPv4Address.Localhost,
-                                   Port:          port,
-                                   QueryTimeout:  TimeSpan.FromSeconds(5),
-                                   UseQueryCache: false
-                               );
+            using var silentServer  = CreateSilentUDPServer(out var port);
+            using var client        = new DNSClient(
+                                          IPv4Address.Localhost,
+                                          Port:          port,
+                                          QueryTimeout:  TimeSpan.FromSeconds(5),
+                                          UseQueryCache: false
+                                      );
 
-            var stopwatch = Stopwatch.StartNew();
+            var stopwatch           = Stopwatch.StartNew();
 
-            var response = await client.Query<A>(
-                               DomainName.Parse("timeout.example"),
-                               Timeout:      timeout,
-                               BypassCache:  true
-                           );
+            var response            = await client.Query<A>(
+                                                DomainName.Parse("timeout.example"),
+                                                Timeout:      timeout,
+                                                BypassCache:  true
+                                            );
 
             stopwatch.Stop();
 
@@ -77,23 +77,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public void Query_Honors_CancellationToken()
         {
 
-            using var silentServer = CreateSilentUDPServer(out var port);
-            using var client       = new DNSClient(
-                                   IPv4Address.Localhost,
-                                   Port:          port,
-                                   QueryTimeout:  TimeSpan.FromSeconds(5),
-                                   UseQueryCache: false
-                               );
+            using var silentServer  = CreateSilentUDPServer(out var port);
+            using var client        = new DNSClient(
+                                          IPv4Address.Localhost,
+                                          Port:          port,
+                                          QueryTimeout:  TimeSpan.FromSeconds(5),
+                                          UseQueryCache: false
+                                      );
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
             Assert.That(
                 async () => await client.Query<A>(
-                                DomainName.Parse("canceled.example"),
-                                Timeout:            TimeSpan.FromSeconds(5),
-                                BypassCache:        true,
-                                CancellationToken:  cts.Token
-                            ),
+                                      DomainName.Parse("canceled.example"),
+                                      Timeout:            TimeSpan.FromSeconds(5),
+                                      BypassCache:        true,
+                                      CancellationToken:  cts.Token
+                                  ),
                 Throws.InstanceOf<OperationCanceledException>()
             );
 
@@ -106,12 +106,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         private static UdpClient CreateSilentUDPServer(out IPPort Port)
         {
 
-            var udpClient = new UdpClient(
-                                new IPEndPoint(
-                                    System.Net.IPAddress.Loopback,
-                                    0
-                                )
-                            );
+            var udpClient  = new UdpClient(
+                                 new IPEndPoint(
+                                     System.Net.IPAddress.Loopback,
+                                     0
+                                 )
+                             );
 
             Port = IPPort.Parse(
                        ((IPEndPoint) udpClient.Client.LocalEndPoint!).Port

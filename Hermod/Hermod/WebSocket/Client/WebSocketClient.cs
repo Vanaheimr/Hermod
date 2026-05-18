@@ -26,6 +26,9 @@ using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using Newtonsoft.Json.Linq;
 
 using Org.BouncyCastle.Security;
@@ -314,6 +317,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         RemoteTLSServerCertificateValidationHandler<IHTTPClient>? IHTTPClient.RemoteCertificateValidator => throw new NotImplementedException();
 
+        /// <summary>
+        /// The attached debug logger.
+        /// </summary>
+        public ILogger                              Logger                               { get; }
+
         #endregion
 
         #region Events
@@ -441,7 +449,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                String                                                          LoggingContext               = "logcontext", //CPClientLogger.DefaultContext,
                                LogfileCreatorDelegate?                                         LogfileCreator               = null,
                                HTTPClientLogger?                                               HTTPLogger                   = null,
-                               DNSClient?                                                      DNSClient                    = null)
+                               DNSClient?                                                      DNSClient                    = null,
+                               ILogger?                                                        Logger                       = null)
 
         {
 
@@ -462,6 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
             this.HTTPLogger                         = HTTPLogger;
             this.DNSClient                          = DNSClient;
+            this.Logger                             = Logger                  ?? NullLogger.Instance;
 
             this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
 
@@ -487,11 +497,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.networkingCancellationTokenSource  = new CancellationTokenSource();
             this.networkingCancellationToken        = networkingCancellationTokenSource.Token;
-
-            //this.Logger                             = new ChargePointwebsocketClient.CPClientLogger(this,
-            //                                                                                   LoggingPath,
-            //                                                                                   LoggingContext,
-            //                                                                                   LogfileCreator);
 
         }
 
@@ -1055,7 +1060,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         if (WebSocketFrame.TryParse(buffer.AsSpan(0, (Int32) pos),
                                                                     out var frame,
                                                                     out var frameLength,
-                                                                    out var errorResponse))
+                                                                    out var errorResponse,
+                                                                    Logger: Logger))
                                         {
 
                                             switch (frame.Opcode)
@@ -1182,7 +1188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     }
                                                     else
                                                     {
-                                                        DebugX.Log(nameof(WebSocketClient), " Received Continuation frame without preceding Text/Binary frame!");
+                                                        Logger.LogWarning("Received Continuation frame without preceding Text/Binary frame.");
                                                         if (CloseConnectionOnUnexpectedFrames)
                                                             await webSocketClientConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
                                                     }
@@ -1195,7 +1201,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Ping:
 
-                                                    DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping received:   '{frame.Payload.ToUTF8String()}'");
+                                                    Logger.LogTrace(
+                                                        "HTTP WebSocket client {Client} received Ping frame: {Payload}",
+                                                        Description?.FirstText() ?? RemoteURL.ToString(),
+                                                        frame.Payload.ToUTF8String()
+                                                    );
 
                                                     #region OnPingMessageReceived
 
@@ -1236,7 +1246,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 );
                                                     }
                                                     else
-                                                        DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' sending a CLOSE frame failed!");
+                                                        Logger.LogWarning(
+                                                            "HTTP WebSocket client {Client} sending Pong frame failed with {SentStatus}.",
+                                                            Description?.FirstText() ?? RemoteURL.ToString(),
+                                                            sentStatus
+                                                        );
 
                                                     #endregion
 
@@ -1248,7 +1262,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Pong:
 
-                                                    DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong received:   '{frame.Payload.ToUTF8String()}'");
+                                                    Logger.LogTrace(
+                                                        "HTTP WebSocket client {Client} received Pong frame: {Payload}",
+                                                        Description?.FirstText() ?? RemoteURL.ToString(),
+                                                        frame.Payload.ToUTF8String()
+                                                    );
 
                                                     #region OnPongMessageReceived
 
@@ -1302,7 +1320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 default:
 
-                                                    DebugX.Log(nameof(WebSocketClient), $" Received unknown {frame.Opcode} frame!");
+                                                    Logger.LogWarning("Received unknown WebSocket frame opcode {Opcode}.", frame.Opcode);
 
                                                     if (CloseConnectionOnUnexpectedFrames)
                                                         await webSocketClientConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
@@ -1455,7 +1473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e2)
                     {
-                        DebugX.LogException(e2, nameof(WebSocketClient) + "." + nameof(ResponseLogDelegate));
+                        Logger.LogError(e2, "Exception while invoking {EventName}.", nameof(ResponseLogDelegate));
                     }
 
                     #endregion
@@ -1556,7 +1574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     while (e.InnerException is not null)
                         e = e.InnerException;
 
-                    DebugX.LogException(e);
+                    Logger.LogError(e, "Exception within the HTTP WebSocket ping task.");
 
                 }
                 finally
@@ -1565,7 +1583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
             }
             else
-                DebugX.LogT("Could not aquire the HTTP WebSocket ping task lock!");
+                Logger.LogWarning("Could not acquire the HTTP WebSocket ping task lock.");
 
         }
 
@@ -1603,7 +1621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     while (e.InnerException is not null)
                         e = e.InnerException;
 
-                    DebugX.LogException(e);
+                    Logger.LogError(e, "Exception within the HTTP WebSocket maintenance task.");
 
                 }
                 finally
@@ -1612,7 +1630,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
             }
             else
-                DebugX.LogT($"{nameof(WebSocketClient)} '{(Description.IsNotNullOrEmpty() ? Description.FirstText() : RemoteURL)}': Could not aquire the maintenance tasks lock!");
+                Logger.LogWarning(
+                    "HTTP WebSocket client {Client} could not acquire the maintenance tasks lock.",
+                    Description.IsNotNullOrEmpty() ? Description.FirstText() : RemoteURL
+                );
 
         }
 
@@ -1648,8 +1669,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
             {
 
-                //DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Text sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
-
                 await LogEvent(
                           OnTextMessageSent,
                           loggingDelegate => loggingDelegate.Invoke(
@@ -1672,8 +1691,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
             {
-
-                //DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Binary sent:     '{WebSocketFrame.Payload.ToHexString()}' => {sentStatus}");
 
                 await LogEvent(
                           OnBinaryMessageSent,
@@ -1698,7 +1715,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Ping)
             {
 
-                DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
+                Logger.LogTrace(
+                    "HTTP WebSocket client {Client} sent Ping frame: {Payload} => {SentStatus}",
+                    Description?.FirstText() ?? RemoteURL.ToString(),
+                    WebSocketFrame.Payload.ToUTF8String(),
+                    sentStatus
+                );
 
                 await LogEvent(
                           OnPingMessageSent,
@@ -1723,7 +1745,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Pong)
             {
 
-                DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
+                Logger.LogTrace(
+                    "HTTP WebSocket client {Client} sent Pong frame: {Payload} => {SentStatus}",
+                    Description?.FirstText() ?? RemoteURL.ToString(),
+                    WebSocketFrame.Payload.ToUTF8String(),
+                    sentStatus
+                );
 
                 await LogEvent(
                           OnPongMessageSent,
@@ -1748,7 +1775,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Close)
             {
 
-                DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Close sent: '{WebSocketFrame.GetClosingStatusCode()}', '{WebSocketFrame.GetClosingReason() ?? ""}' => {sentStatus}");
+                Logger.LogDebug(
+                    "HTTP WebSocket client {Client} sent Close frame: {StatusCode}, {Reason} => {SentStatus}",
+                    Description?.FirstText() ?? RemoteURL.ToString(),
+                    WebSocketFrame.GetClosingStatusCode(),
+                    WebSocketFrame.GetClosingReason() ?? "",
+                    sentStatus
+                );
 
                 await LogEvent(
                           OnCloseMessageSent,
@@ -1999,7 +2032,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     String  ErrorResponse)
         {
 
-            DebugX.Log($"{Module}.{Caller}: {ErrorResponse}");
+            Logger.LogError("{Module}.{Caller}: {ErrorResponse}", Module, Caller, ErrorResponse);
 
             return Task.CompletedTask;
 
@@ -2014,7 +2047,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     Exception  ExceptionOccurred)
         {
 
-            DebugX.LogException(ExceptionOccurred, $"{Module}.{Caller}");
+            Logger.LogError(ExceptionOccurred, "{Module}.{Caller}", Module, Caller);
 
             return Task.CompletedTask;
 

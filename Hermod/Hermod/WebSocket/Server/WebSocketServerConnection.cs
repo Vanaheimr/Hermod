@@ -22,6 +22,8 @@ using System.Net.Security;
 using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -356,8 +358,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         return SentStatus.FatalError;
                 }
 
-                //DebugX.LogException(e, "Sending data within web socket connection " + RemoteSocket);
-
             }
             finally
             {
@@ -507,7 +507,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.Log($"{nameof(WebSocketServerConnection)}.{nameof(Close)}(...): Exception occurred: {e.Message}");
+                WebSocketServer.Logger.LogError(
+                    e,
+                    "Exception while closing WebSocket server connection {RemoteSocket}.",
+                    RemoteSocket
+                );
             }
             finally
             {

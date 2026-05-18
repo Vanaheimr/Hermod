@@ -623,6 +623,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Initial checks
 
+            var stopwatch = Stopwatch.StartNew();
+
             var resourceRecordTypes = ResourceRecordTypes.ToList();
 
             if (resourceRecordTypes.Count == 0)
@@ -667,7 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (!IsConnected || tcpClient is null)
                     await ReconnectAsync(CancellationToken).ConfigureAwait(false);
 
-                var stopwatch = Stopwatch.StartNew();
+                stopwatch.Restart();
                 clientCancellationTokenSource ??= new CancellationTokenSource();
 
                 using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
@@ -760,7 +762,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // JSON mode: parse the JSON response
                 if (Mode == DNSHTTPSMode.JSON &&
-                    TryParseJSONResponse(serverConfig, httpResponse, out var dnsInfo))
+                    TryParseJSONResponse(
+                        serverConfig,
+                        httpResponse,
+                        out var dnsInfo,
+                        effectiveTimeout,
+                        stopwatch.Elapsed
+                    ))
                 {
                     return dnsInfo;
                 }
@@ -784,7 +792,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.ReadResponse(
                            serverConfig,
                            dnsQuery.TransactionId,
-                           new MemoryStream(body)
+                           new MemoryStream(body),
+                           effectiveTimeout,
+                           stopwatch.Elapsed
                        );
 
             }
@@ -914,7 +924,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        AdditionalRecords:      [],
                        IsValid:                lastResponse.IsValid,
                        IsTimeout:              lastResponse.IsTimeout,
-                       Timeout:                lastResponse.Timeout
+                       Timeout:                lastResponse.Timeout,
+                       Runtime:                lastResponse.Runtime
                    );
 
         }
@@ -930,27 +941,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private static Boolean TryParseJSONResponse(DNSServerConfig                   ServerConfig,
                                                     HTTPResponse                      HTTPResponse,
-                                                    [NotNullWhen(true)] out DNSInfo?  DNSInfo)
+                                                    [NotNullWhen(true)] out DNSInfo?  DNSInfo,
+                                                    TimeSpan                          Timeout,
+                                                    TimeSpan                          Runtime)
         {
 
             var body = HTTPResponse.HTTPBodyAsUTF8String?.Trim();
 
             if (String.IsNullOrEmpty(body))
+            {
+
                 DNSInfo = new DNSInfo(
-                           Origin:                 ServerConfig,
-                           QueryId:                0,
-                           IsAuthoritativeAnswer:  false,
-                           IsTruncated:            false,
-                           RecursionDesired:       true,
-                           RecursionAvailable:     false,
-                           ResponseCode:           DNSResponseCodes.ServerFailure,
-                           Answers:                [],
-                           Authorities:            [],
-                           AdditionalRecords:      [],
-                           IsValid:                false,
-                           IsTimeout:              false,
-                           Timeout:                ServerConfig.QueryTimeout ?? TimeSpan.Zero
-                       );
+                              Origin:                 ServerConfig,
+                              QueryId:                0,
+                              IsAuthoritativeAnswer:  false,
+                              IsTruncated:            false,
+                              RecursionDesired:       true,
+                              RecursionAvailable:     false,
+                              ResponseCode:           DNSResponseCodes.ServerFailure,
+                              Answers:                [],
+                              Authorities:            [],
+                              AdditionalRecords:      [],
+                              IsValid:                false,
+                              IsTimeout:              false,
+                              Timeout:                Timeout,
+                              Runtime:                TimeSpan.Zero
+                          );
+
+                return false;
+
+            }
 
             var json = JObject.Parse(body);
 
@@ -977,20 +997,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
 
             DNSInfo = new DNSInfo(
-                       Origin:                 ServerConfig,
-                       QueryId:                0,
-                       IsAuthoritativeAnswer:  false,
-                       IsTruncated:            tc,
-                       RecursionDesired:       rd,
-                       RecursionAvailable:     ra,
-                       ResponseCode:           (DNSResponseCodes) status,
-                       Answers:                answers,
-                       Authorities:            authorities,
-                       AdditionalRecords:      [],
-                       IsValid:                true,
-                       IsTimeout:              false,
-                       Timeout:                ServerConfig.QueryTimeout ?? TimeSpan.Zero
-                   );
+                          Origin:                 ServerConfig,
+                          QueryId:                0,
+                          IsAuthoritativeAnswer:  false,
+                          IsTruncated:            tc,
+                          RecursionDesired:       rd,
+                          RecursionAvailable:     ra,
+                          ResponseCode:           (DNSResponseCodes) status,
+                          Answers:                answers,
+                          Authorities:            authorities,
+                          AdditionalRecords:      [],
+                          IsValid:                true,
+                          IsTimeout:              false,
+                          Timeout:                Timeout,
+                          Runtime:                Runtime
+                      );
 
             return true;
 

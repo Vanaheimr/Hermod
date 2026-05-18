@@ -21,6 +21,8 @@ using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -108,6 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               UInt32?                                                         MaxClientConnections         = null,
 
                               DNSClient?                                                      DNSClient                    = null,
+                              ILogger?                                                        Logger                       = null,
                               Boolean                                                         AutoStart                    = false)
 
             : base(IPAddress,
@@ -137,6 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    MaxClientConnections,
 
                    DNSClient,
+                   Logger,
                    AutoStart)
 
         {
@@ -146,7 +150,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.webSocketClient    = new WebSocketClient(
                                           UpstreamServerURL,
-                                          DNSClient: DNSClient
+                                          DNSClient:  DNSClient,
+                                          Logger:     Logger
                                       );
 
             if (AutoConnect)

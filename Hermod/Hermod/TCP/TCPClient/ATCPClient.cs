@@ -19,8 +19,10 @@
 
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Runtime.CompilerServices;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -68,6 +70,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected                 TcpClient?               tcpClient;
         protected                 CancellationTokenSource  clientCancellationTokenSource;
         private                   Int32                    bypassDNSCacheOnNextConnect;
+
+        private readonly          ILogger<ATCPClient>      logger;
+        private readonly          ILoggerFactory           loggerFactory;
 
         #endregion
 
@@ -215,7 +220,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              // String?                       LoggingPath              = null,
                              // String?                       LoggingContext           = Logger.DefaultContext,
                              // LogfileCreatorDelegate?       LogfileCreator           = null,
-                           IDNSClient?                      DNSClient                = null)
+                           IDNSClient?                      DNSClient                = null,
+                           ILogger<ATCPClient>?             Logger                   = null,
+                           ILoggerFactory?                  LoggerFactory            = null)
         {
 
             if (ConnectTimeout.HasValue && ConnectTimeout.Value.TotalMilliseconds > Int32.MaxValue)
@@ -241,7 +248,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.MaxNumberOfRetries             = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
 
             this.DisableLogging                 = DisableLogging         ?? false;
-            this.DNSClient                      = DNSClient              ?? new DNSClient();
+            this.logger                         = Logger                 ?? NullLogger<ATCPClient>.Instance;
+            this.loggerFactory                  = LoggerFactory          ?? NullLoggerFactory.Instance;
+            this.DNSClient                      = DNSClient              ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
 
             this.clientCancellationTokenSource  = new CancellationTokenSource();
 
@@ -265,7 +274,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              // String?                         LoggingPath              = null,
                              // String?                         LoggingContext           = Logger.DefaultContext,
                              // LogfileCreatorDelegate?         LogfileCreator           = null,
-                             Boolean?                         DisableLogging           = null)
+                             Boolean?                         DisableLogging           = null,
+                             ILogger<ATCPClient>?             Logger                   = null,
+                             ILoggerFactory?                  LoggerFactory            = null)
 
             : this(Description,
                    IPVersionPreference,
@@ -276,7 +287,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    MaxNumberOfRetries,
                    BufferSize,
 
-                   DisableLogging)
+                   DisableLogging,
+                   null,
+                   Logger,
+                   LoggerFactory)
 
         {
 
@@ -308,7 +322,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              // String?                         LoggingPath              = null,
                              // String?                         LoggingContext           = Logger.DefaultContext,
                              // LogfileCreatorDelegate?         LogfileCreator           = null,
-                             IDNSClient?                      DNSClient                = null)
+                             IDNSClient?                      DNSClient                = null,
+                             ILogger<ATCPClient>?             Logger                   = null,
+                             ILoggerFactory?                  LoggerFactory            = null)
 
             : this(Description,
                    IPVersionPreference,
@@ -320,7 +336,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         {
 
@@ -347,7 +365,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              // String?                         LoggingPath              = null,
                              // String?                         LoggingContext           = Logger.DefaultContext,
                              // LogfileCreatorDelegate?         LogfileCreator           = null,
-                             IDNSClient?                      DNSClient                = null)
+                             IDNSClient?                      DNSClient                = null,
+                             ILogger<ATCPClient>?             Logger                   = null,
+                             ILoggerFactory?                  LoggerFactory            = null)
 
             : this(Description,
                    IPVersionPreference,
@@ -359,7 +379,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         {
 

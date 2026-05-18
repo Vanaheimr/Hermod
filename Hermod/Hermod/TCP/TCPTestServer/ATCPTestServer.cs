@@ -19,10 +19,12 @@
 
 using System.Net;
 using System.Net.Sockets;
-using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Illias;
@@ -83,6 +85,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected static readonly  TimeSpan                                   SemaphoreSlimTimeout          = TimeSpan.FromSeconds(5);
 
         public           volatile  Boolean                                    ReloadFinished                = false;
+
+        private readonly           ILogger<ATCPTestServer>                    logger;
+        private readonly           ILoggerFactory                             loggerFactory;
 
         #endregion
 
@@ -206,8 +211,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Warden.Warden                     Warden                                 { get; }
 
-
-
         #endregion
 
         #region Events
@@ -298,6 +301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               TimeSpan?                                                 WardenCheckEvery             = null,
 
                               String?                                                   Description                  = null,
+                              ILogger<ATCPTestServer>?                                  Logger                       = null,
+                              ILoggerFactory?                                           LoggerFactory                = null,
                               Boolean?                                                  AutoStart                    = false)
 
         {
@@ -367,7 +372,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.AllowedTLSProtocols         = AllowedTLSProtocols;
             this.ClientCertificateRequired   = ClientCertificateRequired   ?? false;
             this.CheckCertificateRevocation  = CheckCertificateRevocation  ?? false;
-            this.DNSClient                   = DNSClient                   ?? new DNSClient();
+            this.logger                      = Logger                      ?? NullLogger<ATCPTestServer>.Instance;
+            this.loggerFactory               = LoggerFactory               ?? NullLoggerFactory.Instance;
+            this.DNSClient                   = DNSClient                   ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
+
 
             // Setup Maintenance Task
             this.DisableMaintenanceTasks     = DisableMaintenanceTasks     ?? false;

@@ -22,6 +22,8 @@ using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -99,7 +101,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              UInt16?                                                   MaxNumberOfRetries               = null,
                              UInt32?                                                   BufferSize                       = null,
 
-                             Boolean?                                                  DisableLogging                   = null)
+                             Boolean?                                                  DisableLogging                   = null,
+                             ILogger<ATLSClient>?                                      Logger                           = null,
+                             ILoggerFactory?                                           LoggerFactory                    = null)
 
             : base(IPAddress,
                    TCPPort,
@@ -112,7 +116,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    MaxNumberOfRetries,
                    BufferSize,
 
-                   DisableLogging)
+                   DisableLogging,
+                   Logger,
+                   LoggerFactory)
 
         {
 
@@ -162,7 +168,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              UInt32?                                                   BufferSize                       = null,
 
                              Boolean?                                                  DisableLogging                   = null,
-                             IDNSClient?                                               DNSClient                        = null)
+                             IDNSClient?                                               DNSClient                        = null,
+                             ILogger<ATLSClient>?                                      Logger                           = null,
+                             ILoggerFactory?                                           LoggerFactory                    = null)
 
             : base(URL,
                    Description,
@@ -176,7 +184,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         {
 
@@ -227,7 +237,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              UInt32?                                                   BufferSize                       = null,
 
                              Boolean?                                                  DisableLogging                   = null,
-                             IDNSClient?                                               DNSClient                        = null)
+                             IDNSClient?                                               DNSClient                        = null,
+                             ILogger<ATLSClient>?                                      Logger                           = null,
+                             ILoggerFactory?                                           LoggerFactory                    = null)
 
             : base(DomainName,
                    DNSService,
@@ -242,7 +254,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         {
 

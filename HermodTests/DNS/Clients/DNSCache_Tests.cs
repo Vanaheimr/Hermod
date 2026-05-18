@@ -33,42 +33,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         #region Helpers
 
         private static DNSServerConfig TestOrigin
-            => new(IPv4Address.Localhost, IPPort.DNS);
 
-        private static DNSInfo CreateResponse(DNSResponseCodes             ResponseCode,
+            => new (
+                   IPv4Address.Localhost,
+                   IPPort.DNS
+               );
+
+        private static DNSInfo CreateResponse(DNSResponseCodes                  ResponseCode,
                                               IEnumerable<IDNSResourceRecord>?  Answers       = null,
                                               IEnumerable<IDNSResourceRecord>?  Authorities   = null)
 
-            => new(
-                   Origin:                TestOrigin,
-                   QueryId:              1,
-                   IsAuthoritativeAnswer: true,
-                   IsTruncated:          false,
-                   RecursionDesired:     false,
-                   RecursionAvailable:   false,
-                   ResponseCode:         ResponseCode,
-                   Answers:              Answers          ?? [],
-                   Authorities:          Authorities      ?? [],
-                   AdditionalRecords:    [],
-                   IsValid:              true,
-                   IsTimeout:            false,
-                   Timeout:              TimeSpan.Zero
+            => new (
+                   Origin:                 TestOrigin,
+                   QueryId:                1,
+                   IsAuthoritativeAnswer:  true,
+                   IsTruncated:            false,
+                   RecursionDesired:       false,
+                   RecursionAvailable:     false,
+                   ResponseCode:           ResponseCode,
+                   Answers:                Answers     ?? [],
+                   Authorities:            Authorities ?? [],
+                   AdditionalRecords:      [],
+                   IsValid:                true,
+                   IsTimeout:              false,
+                   Timeout:                TimeSpan.Zero,
+                   Runtime:                TimeSpan.Zero
                );
 
-        private static A CreateARecord(String DomainNameText, String IPv4, TimeSpan TTL)
-            => new(
-                   DomainName.Parse(DomainNameText),
+        private static A CreateARecord(DomainName   DomainName,
+                                       IPv4Address  IPv4Address,
+                                       TimeSpan     TTL)
+
+            => new (
+                   DomainName,
                    DNSQueryClasses.IN,
                    TTL,
-                   IPv4Address.Parse(IPv4)
+                   IPv4Address
                );
 
-        private static AAAA CreateAAAARecord(String DomainNameText, String IPv6, TimeSpan TTL)
-            => new(
-                   DomainName.Parse(DomainNameText),
+        private static AAAA CreateAAAARecord(DomainName   DomainName,
+                                             IPv6Address  IPv6Address,
+                                             TimeSpan     TTL)
+
+            => new (
+                   DomainName,
                    DNSQueryClasses.IN,
                    TTL,
-                   IPv6Address.Parse(IPv6)
+                   IPv6Address
                );
 
         #endregion
@@ -85,7 +96,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var response          = CreateResponse(
                                         DNSResponseCodes.NoError,
-                                        [CreateARecord("example.com", "1.2.3.4", TimeSpan.FromMinutes(5))]
+                                        [
+                                            CreateARecord(
+                                                DomainName. Parse("example.com"),
+                                                IPv4Address.Parse("1.2.3.4"),
+                                                TimeSpan.FromMinutes(5)
+                                            )
+                                        ]
                                     );
 
             cache.Add(domainName, response);
@@ -207,12 +224,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var aResponse     = CreateResponse(
                                     DNSResponseCodes.NoError,
-                                    [CreateARecord("merge.example.com", "1.2.3.4", TimeSpan.FromMinutes(5))]
+                                    [
+                                        CreateARecord(
+                                            DomainName. Parse("merge.example.com"),
+                                            IPv4Address.Parse("1.2.3.4"),
+                                            TimeSpan.FromMinutes(5)
+                                        )
+                                    ]
                                 );
 
             var aaaaResponse  = CreateResponse(
                                     DNSResponseCodes.NoError,
-                                    [CreateAAAARecord("merge.example.com", "::1", TimeSpan.FromMinutes(5))]
+                                    [
+                                        CreateAAAARecord(
+                                            DomainName. Parse("merge.example.com"),
+                                            IPv6Address.Parse("::1"),
+                                            TimeSpan.FromMinutes(5)
+                                        )
+                                    ]
                                 );
 
             cache.Add(domainName, aResponse);
@@ -240,12 +269,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var oldResponse  = CreateResponse(
                                    DNSResponseCodes.NoError,
-                                   [CreateARecord("update.example.com", "1.1.1.1", TimeSpan.FromMinutes(5))]
+                                   [
+                                       CreateARecord(
+                                           DomainName. Parse("update.example.com"),
+                                           IPv4Address.Parse("1.1.1.1"),
+                                           TimeSpan.FromMinutes(5)
+                                       )
+                                   ]
                                );
 
             var newResponse  = CreateResponse(
                                    DNSResponseCodes.NoError,
-                                   [CreateARecord("update.example.com", "2.2.2.2", TimeSpan.FromMinutes(5))]
+                                   [
+                                       CreateARecord(
+                                           DomainName. Parse("update.example.com"),
+                                           IPv4Address.Parse("2.2.2.2"),
+                                           TimeSpan.FromMinutes(5)
+                                       )
+                                   ]
                                );
 
             cache.Add(domainName, oldResponse);
@@ -272,12 +313,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var aResponse         = CreateResponse(
                                         DNSResponseCodes.NoError,
-                                        [CreateARecord("preserve.example.com", "10.0.0.1", TimeSpan.FromMinutes(5))]
+                                        [
+                                            CreateARecord(
+                                                DomainName. Parse("preserve.example.com"),
+                                                IPv4Address.Parse("10.0.0.1"),
+                                                TimeSpan.FromMinutes(5)
+                                            )
+                                        ]
                                     );
 
             var aaaaResponse      = CreateResponse(
                                         DNSResponseCodes.NoError,
-                                        [CreateAAAARecord("preserve.example.com", "fe80::1", TimeSpan.FromMinutes(5))]
+                                        [
+                                            CreateAAAARecord(
+                                                DomainName. Parse("preserve.example.com"),
+                                                IPv6Address.Parse("fe80::1"),
+                                                TimeSpan.FromMinutes(5)
+                                            )
+                                        ]
                                     );
 
             cache.Add(domainName, aResponse);
@@ -306,8 +359,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                    DNSResponseCodes.NoError,
                                    [
                                        CreateARecord(
-                                           "remove-me.example.com",
-                                           "1.2.3.4",
+                                           DomainName. Parse("remove-me.example.com"),
+                                           IPv4Address.Parse("1.2.3.4"),
                                            TimeSpan.FromMinutes(5)
                                        )
                                    ]
@@ -351,7 +404,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var oldResponse  = CreateResponse(
                                    DNSResponseCodes.NoError,
-                                   [CreateARecord("stale-aws.example.com", "10.0.0.1", TimeSpan.FromMinutes(60))]
+                                   [
+                                       CreateARecord(
+                                           DomainName. Parse("stale-aws.example.com"),
+                                           IPv4Address.Parse("10.0.0.1"),
+                                           TimeSpan.FromMinutes(60)
+                                       )
+                                   ]
                                );
 
             cache.Add(domainName, oldResponse);
@@ -360,7 +419,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var newResponse  = CreateResponse(
                                    DNSResponseCodes.NoError,
-                                   [CreateARecord("stale-aws.example.com", "10.0.0.2", TimeSpan.FromMinutes(60))]
+                                   [
+                                       CreateARecord(
+                                           DomainName. Parse("stale-aws.example.com"),
+                                           IPv4Address.Parse("10.0.0.2"),
+                                           TimeSpan.FromMinutes(60)
+                                       )
+                                   ]
                                );
 
             cache.Add(domainName, newResponse);
@@ -410,7 +475,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var response     = CreateResponse(
                                    DNSResponseCodes.NoError,
-                                   [CreateARecord("expire.example.com", "1.2.3.4", TimeSpan.FromSeconds(1))]
+                                   [
+                                       CreateARecord(
+                                           DomainName. Parse("expire.example.com"),
+                                           IPv4Address.Parse("1.2.3.4"),
+                                           TimeSpan.FromSeconds(1)
+                                       )
+                                   ]
                                );
 
             cache.Add(domainName, response);
@@ -437,7 +508,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var response     = CreateResponse(
                                    DNSResponseCodes.NoError,
-                                   [CreateARecord("alive.example.com", "5.6.7.8", TimeSpan.FromMinutes(60))]
+                                   [
+                                       CreateARecord(
+                                           DomainName. Parse("alive.example.com"),
+                                           IPv4Address.Parse("5.6.7.8"),
+                                           TimeSpan.FromMinutes(60)
+                                       )
+                                   ]
                                );
 
             cache.Add(domainName, response);

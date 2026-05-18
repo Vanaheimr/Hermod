@@ -17,10 +17,13 @@
 
 #region Usings
 
-using System.Collections.Concurrent;
-using System.Net;
-using System.Net.NetworkInformation;
+using System.Diagnostics;
 using System.Net.Sockets;
+using System.Net.NetworkInformation;
+using System.Collections.Concurrent;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -32,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS client.
     /// </summary>
-    public class DNSClient : IDNSClient
+    public partial class DNSClient : IDNSClient
     {
 
         #region Data
@@ -40,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The default DNS query timeout.
         /// </summary>
-        public static readonly TimeSpan  DefaultQueryTimeout    = TimeSpan.FromSeconds(10);
+        public static readonly  TimeSpan  DefaultQueryTimeout    = TimeSpan.FromSeconds(10);
 
         /// <summary>
         /// The default maximum number of CNAME redirects to follow
@@ -48,22 +51,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// RFC 1034 does not mandate a limit, but common practice
         /// is 8-16 to prevent infinite loops.
         /// </summary>
-        public const Byte                DefaultMaxCNAMEFollows = 8;
+        public const            Byte                DefaultMaxCNAMEFollows = 8;
 
         /// <summary>
         /// Per-server EDNS COOKIE store (RFC 7873).
         /// After each response the server cookie is extracted and stored,
         /// then sent back in subsequent queries to that server.
         /// </summary>
-        private readonly ConcurrentDictionary<String, EDNSCookieOption>  cookieStore = new(StringComparer.OrdinalIgnoreCase);
+        private readonly        ConcurrentDictionary<String, EDNSCookieOption>  cookieStore = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Pooled transport clients for connection-oriented transports (TCP, TLS, HTTPS).
         /// UDP clients are stateless and created per-query, so they are not pooled here.
         /// </summary>
-        private readonly ConcurrentDictionary<DNSServerConfig, IDNSClientWithTransport>  transportClients = new();
+        private readonly        ConcurrentDictionary<DNSServerConfig, IDNSClientWithTransport>  transportClients = new();
 
-        private Boolean disposedValue;
+        private                 Boolean disposedValue;
+
+
+        private readonly        ILogger<IDNSClient>  logger;
+        private readonly        ILoggerFactory       loggerFactory;
 
         #endregion
 
@@ -111,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// in every DNS query to enable geo-aware / CDN-optimized responses.
         /// Set to null to disable (default).
         /// </summary>
-        public EDNSClientSubnetOption?  ClientSubnet    { get; set; }
+        public EDNSClientSubnetOption?        ClientSubnet        { get; set; }
 
         /// <summary>
         /// Whether to automatically follow CNAME redirects.
@@ -139,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
-        #region DNSClient(DNSServer,  Port = null, QueryTimeout = null, UseQueryCache = true)
+        #region DNSClient(DNSServer,  Port = null, QueryTimeout = null, UseQueryCache = true, ...)
 
         /// <summary>
         /// Create a new DNS resolver client.
@@ -148,10 +155,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The optional IP port of the DNS server.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
-        public DNSClient(IIPAddress  DNSServer,
-                         IPPort?     Port            = null,
-                         TimeSpan?   QueryTimeout    = null,
-                         Boolean?    UseQueryCache   = true)
+        public DNSClient(IIPAddress            DNSServer,
+                         IPPort?               Port            = null,
+                         TimeSpan?             QueryTimeout    = null,
+                         Boolean?              UseQueryCache   = true,
+                         ILogger<IDNSClient>?  Logger          = null,
+                         ILoggerFactory?       LoggerFactory   = null)
 
             : this (
                   [
@@ -161,14 +170,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                       )
                   ],
                   QueryTimeout:   QueryTimeout,
-                  UseQueryCache:  UseQueryCache
+                  UseQueryCache:  UseQueryCache,
+                  Logger:         Logger,
+                  LoggerFactory:  LoggerFactory
               )
 
         { }
 
         #endregion
 
-        #region DNSClient(DNSServers, Port = null, QueryTimeout = null, UseQueryCache = true)
+        #region DNSClient(DNSServers, Port = null, QueryTimeout = null, UseQueryCache = true, ...)
 
         /// <summary>
         /// Create a new DNS resolver client.
@@ -180,7 +191,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSClient(IEnumerable<IIPAddress>  DNSServers,
                          IPPort?                  Port            = null,
                          TimeSpan?                QueryTimeout    = null,
-                         Boolean?                 UseQueryCache   = true)
+                         Boolean?                 UseQueryCache   = true,
+                         ILogger<IDNSClient>?     Logger          = null,
+                         ILoggerFactory?          LoggerFactory   = null)
 
             : this(
                   DNSServers.Select(ipAddress => new DNSServerConfig(
@@ -188,7 +201,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                      Port
                                                  )),
                   QueryTimeout:   QueryTimeout,
-                  UseQueryCache:  UseQueryCache
+                  UseQueryCache:  UseQueryCache,
+                  Logger:         Logger,
+                  LoggerFactory:  LoggerFactory
               )
 
         { }
@@ -196,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region DNSClient(                  QueryTimeout = null, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true)
+        #region DNSClient(                  QueryTimeout = null, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true, ...)
 
         /// <summary>
         /// Create a new DNS resolver client.
@@ -205,22 +220,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="SearchForIPv4DNSServers">Whether the DNS client will query a list of DNS servers from the IPv4 network configuration.</param>
         /// <param name="SearchForIPv6DNSServers">Whether the DNS client will query a list of DNS servers from the IPv6 network configuration.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
-        public DNSClient(TimeSpan?  QueryTimeout              = null,
-                         Boolean?   SearchForIPv4DNSServers   = true,
-                         Boolean?   SearchForIPv6DNSServers   = true,
-                         Boolean?   UseQueryCache             = true)
+        public DNSClient(TimeSpan?             QueryTimeout              = null,
+                         Boolean?              SearchForIPv4DNSServers   = true,
+                         Boolean?              SearchForIPv6DNSServers   = true,
+                         Boolean?              UseQueryCache             = true,
+                         ILogger<IDNSClient>?  Logger                    = null,
+                         ILoggerFactory?       LoggerFactory             = null)
 
             : this([],
                    QueryTimeout,
                    SearchForIPv4DNSServers,
                    SearchForIPv6DNSServers,
-                   UseQueryCache)
+                   UseQueryCache,
+                   Logger,
+                   LoggerFactory)
 
         { }
 
         #endregion
 
-        #region DNSClient(ManualDNSServers, QueryTimeout = null, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true)
+        #region DNSClient(ManualDNSServers, QueryTimeout = null, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true, UseQueryCache = true, ...)
 
         /// <summary>
         /// Create a new DNS resolver client.
@@ -234,7 +253,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                          TimeSpan?                     QueryTimeout              = null,
                          Boolean?                      SearchForIPv4DNSServers   = false,
                          Boolean?                      SearchForIPv6DNSServers   = false,
-                         Boolean?                      UseQueryCache             = true)
+                         Boolean?                      UseQueryCache             = true,
+                         ILogger<IDNSClient>?          Logger                    = null,
+                         ILoggerFactory?               LoggerFactory             = null)
 
         {
 
@@ -242,6 +263,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.UseCache          = UseQueryCache ?? true;
             this.DNSCache          = new DNSCache();
             this.RecursionDesired  = true;
+
+            this.loggerFactory     = LoggerFactory ?? NullLoggerFactory.Instance;
+            this.logger            = Logger        ?? loggerFactory.CreateLogger<IDNSClient>();
 
             var dnsServers         = new HashSet<DNSServerConfig>(ManualDNSServers);
 
@@ -328,8 +352,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+
+        [LoggerMessage(Level   = LogLevel.Debug,
+                       Message = "Querying DNS for '{DNSServiceName}' with record types '{RecordTypes}' and a timeout of {Timeout}ms")]
+        public partial void LogDNSResolution(String DNSServiceName, String RecordTypes, Double Timeout);
+
+        [LoggerMessage(Level   = LogLevel.Debug,
+                       Message = "Querying DNS for '{DNSServiceName}' with record types '{RecordTypes}' => '{Answers}', runtime: {Runtime}ms")]
+        public partial void LogDNSResponse(String DNSServiceName, String RecordTypes, String Answers, Double Runtime);
+
+
         #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
+        /// <summary>
+        /// Query the configured DNS server(s) for the specified domain name and resource record types.
+        /// </summary>
+        /// <param name="DomainName">The domain name to query.</param>
+        /// <param name="ResourceRecordTypes">An enumeration of DNS resource record types to query for (e.g. A, AAAA, CNAME). Use 'Any' to query for all types.</param>
+        /// <param name="Timeout">An optional timeout for this query. If not specified, the client's default QueryTimeout will be used.</param>
+        /// <param name="RecursionDesired">Whether to set the Recursion Desired flag in the DNS query. If not specified, the client's default RecursionDesired setting will be used (default: true).</param>
+        /// <param name="BypassCache">Whether to bypass the DNS cache for this query and force a network request. Default: false.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel the query.</param>
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
@@ -350,6 +393,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
 
+        /// <summary>
+        /// Query the configured DNS server(s) for the specified DNS service name and resource record types.
+        /// </summary>
+        /// <param name="DNSServiceName">The DNS service name to query.</param>
+        /// <param name="ResourceRecordTypes">An enumeration of DNS resource record types to query for (e.g. SRV, SVCB, HTTPS). Use 'Any' to query for all types.</param>
+        /// <param name="Timeout">An optional timeout for this query. If not specified, the client's default QueryTimeout will be used.</param>
+        /// <param name="RecursionDesired">Whether to set the Recursion Desired flag in the DNS query. If not specified, the client's default RecursionDesired setting will be used (default: true).</param>
+        /// <param name="BypassCache">Whether to bypass the DNS cache for this query and force a network request. Default: false.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel the query.</param>
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                          TimeSpan?                            Timeout             = null,
@@ -362,8 +414,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Initial checks
 
+            var stopWatch = Stopwatch.StartNew();
+
             if (DNSServiceName.IsNullOrEmpty() || !DNSServers.Any())
                 return new DNSInfo(
+
                            Origin:                 new DNSServerConfig(
                                                        IPv4Address.Localhost,
                                                        IPPort.DNS
@@ -376,11 +431,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
                            Authorities:            [],
-                            AdditionalRecords:      [],
-                            IsValid:                true,
-                            IsTimeout:              false,
-                            Timeout:                effectiveTimeout
-                        );
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                effectiveTimeout,
+
+                           Runtime:                TimeSpan.Zero
+
+                       );
 
             var resourceRecordTypes = ResourceRecordTypes.ToList();
 
@@ -388,6 +446,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 resourceRecordTypes = [ DNSResourceRecordTypes.Any ];
 
             #endregion
+
+            logger.LogDebug(
+                "Querying DNS for '{DNSServiceName}' with record types '{RecordTypes}' and a timeout of {Timeout}ms",
+                DNSServiceName,
+                resourceRecordTypes.AggregateWith(", "),
+                effectiveTimeout.TotalMilliseconds
+            );
+
+            //LogDNSResolution(
+            //    DNSServiceName.     ToString(),
+            //    resourceRecordTypes.AggregateWith(", "),
+            //    Math.Round(effectiveTimeout.TotalMilliseconds, 2)
+            //);
 
             #region Try to get answers from the DNS cache
 
@@ -435,6 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (DNSCache.IsNameNegativelyCachedByNSEC(DNSServiceName.ToString(), zoneName))
                 return new DNSInfo(
+
                            Origin:                 DNSServers.First(),
                            QueryId:                0,
                            IsAuthoritativeAnswer:  false,
@@ -447,7 +519,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            AdditionalRecords:      [],
                            IsValid:                true,
                            IsTimeout:              false,
-                           Timeout:                effectiveTimeout
+                           Timeout:                effectiveTimeout,
+
+                           Runtime:                stopWatch.Elapsed
+
                        );
 
 
@@ -707,6 +782,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         // Build a merged response with the full CNAME/DNAME chain + final records
                         firstResponse = new DNSInfo(
+
                                             Origin:                 currentResponse.Origin,
                                             QueryId:                currentResponse.QueryId,
                                             IsAuthoritativeAnswer:  currentResponse.AuthoritativeAnswer,
@@ -719,11 +795,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             AdditionalRecords:      currentResponse.AdditionalRecords,
                                             IsValid:                currentResponse.IsValid,
                                             IsTimeout:              currentResponse.IsTimeout,
-                                            Timeout:                currentResponse.Timeout
+                                            Timeout:                currentResponse.Timeout,
+
+                                            Runtime:                stopWatch.Elapsed
+
                                         );
 
                         // Cache the merged response under the original name
-                        AddToCache(DNSServiceName, firstResponse);
+                        AddToCache(
+                            DNSServiceName,
+                            firstResponse
+                        );
 
                     }
 
@@ -734,25 +816,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #endregion
 
 
-            return firstResponse ??
-                       new DNSInfo(
-                           Origin:                 new DNSServerConfig(
-                                                        IPv4Address.Localhost,
-                                                        IPPort.DNS
-                                                   ),
-                           QueryId:                0,
-                           IsAuthoritativeAnswer:  false,
-                           IsTruncated:            false,
-                           RecursionDesired:       true,
-                           RecursionAvailable:     false,
-                           ResponseCode:           DNSResponseCodes.NameError,
-                           Answers:                [],
-                           Authorities:            [],
-                            AdditionalRecords:      [],
-                            IsValid:                true,
-                            IsTimeout:              false,
-                            Timeout:                effectiveTimeout
-                        );
+            var response = firstResponse ?? new DNSInfo(
+
+                                                Origin:                 new DNSServerConfig(
+                                                                             IPv4Address.Localhost,
+                                                                             IPPort.DNS
+                                                                        ),
+                                                QueryId:                0,
+                                                IsAuthoritativeAnswer:  false,
+                                                IsTruncated:            false,
+                                                RecursionDesired:       true,
+                                                RecursionAvailable:     false,
+                                                ResponseCode:           DNSResponseCodes.NameError,
+                                                Answers:                [],
+                                                Authorities:            [],
+                                                AdditionalRecords:      [],
+                                                IsValid:                true,
+                                                IsTimeout:              false,
+                                                Timeout:                effectiveTimeout,
+
+                                                Runtime:                stopWatch.Elapsed
+
+                                            );
+
+            //LogDNSResponse(
+            //    DNSServiceName.     ToString(),
+            //    resourceRecordTypes.AggregateWith(", "),
+            //    response.Answers.   AggregateWith(", "),
+            //    Math.Round(effectiveTimeout.TotalMilliseconds, 2)
+            //);
+
+            logger.LogDebug(
+                "Querying DNS for '{DNSServiceName}' with record types '{RecordTypes}' => '{Answers}', runtime: {Runtime}ms",
+                DNSServiceName,
+                resourceRecordTypes.AggregateWith(", "),
+                response.Answers.   AggregateWith(", "),
+                effectiveTimeout.TotalMilliseconds
+            );
+
+            return response;
 
         }
 

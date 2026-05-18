@@ -21,6 +21,8 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
 
+using Microsoft.Extensions.Logging;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -819,6 +821,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region TryParse(ByteArray, out Frame, out Length, out ErrorResponse, ...)
+
+        /// <summary>
+        /// Try to parse the given byte array into a WebSocket frame.
+        /// </summary>
+        /// <param name="ByteArray">The byte array to parse.</param>
+        /// <param name="Frame">The parsed WebSocket frame.</param>
+        /// <param name="Length">The total length of the frame in bytes, including the header and payload.</param>
+        /// <param name="ErrorResponse">The error response if the parsing fails.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        /// <param name="MaxPayloadSize">The maximum allowed payload size.</param>
+        /// <param name="Logger">An optional logger for unexpected parser exceptions.</param>
+        public static Boolean TryParse(Byte[]?                                   ByteArray,
+                                       [NotNullWhen(true)]  out WebSocketFrame?  Frame,
+                                       [NotNullWhen(true)]  out UInt64           Length,
+                                       [NotNullWhen(false)] out String?          ErrorResponse,
+                                       EventTracking_Id?                         EventTrackingId   = null,
+                                       UInt64?                                   MaxPayloadSize    = null,
+                                       ILogger?                                  Logger            = null)
+        {
+
+            if (ByteArray is null)
+            {
+                Frame          = null;
+                Length         = 0;
+                ErrorResponse  = "Invalid byte array!";
+                return false;
+            }
+
+            return TryParse(
+                       ByteArray.AsSpan(),
+                       out Frame,
+                       out Length,
+                       out ErrorResponse,
+                       EventTrackingId,
+                       MaxPayloadSize,
+                       Logger
+                   );
+
+        }
+
+        #endregion
+
         #region TryParse(Bytes, out Frame, out Length, out ErrorResponse, ...)
 
         /// <summary>
@@ -830,12 +875,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="ErrorResponse">The error response if the parsing fails.</param>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="MaxPayloadSize">The maximum allowed payload size.</param>
+        /// <param name="Logger">An optional logger for unexpected parser exceptions.</param>
         public static Boolean TryParse(ReadOnlySpan<Byte>                        Bytes,
                                        [NotNullWhen(true)]  out WebSocketFrame?  Frame,
                                        [NotNullWhen(true)]  out UInt64           Length,
                                        [NotNullWhen(false)] out String?          ErrorResponse,
                                        EventTracking_Id?                         EventTrackingId   = null,
-                                       UInt64?                                   MaxPayloadSize    = null)
+                                       UInt64?                                   MaxPayloadSize    = null,
+                                       ILogger?                                  Logger            = null)
         {
 
             try
@@ -973,8 +1020,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
-                // DebugX.Log(String.Concat("Received a '", opcode, "' web socket frame with ", payloadLength, " bytes payload: '", payload.ToUTF8String(), "'!"));
-
                 Frame = new WebSocketFrame(
                             opcode,
                             payload,
@@ -994,7 +1039,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.Log(nameof(WebSocketFrame) + " Exception occurred: " + e.Message);
+                Logger?.LogError(e, "Could not parse WebSocket frame.");
                 Frame          = null;
                 Length         = 0;
                 ErrorResponse  = "An exception occurred: " + e.Message;

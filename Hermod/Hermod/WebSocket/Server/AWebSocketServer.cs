@@ -26,6 +26,9 @@ using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -310,6 +313,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public DNSClient?                                                      DNSClient                     { get; }
 
+        /// <summary>
+        /// The attached debug logger.
+        /// </summary>
+        public ILogger                                                         Logger                        { get; }
+
         #endregion
 
         #region Events
@@ -502,6 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 UInt32?                                                         MaxClientConnections         = null,
 
                                 DNSClient?                                                      DNSClient                    = null,
+                                ILogger?                                                        Logger                       = null,
                                 Boolean                                                         AutoStart                    = false)
 
             : this(new IPSocket(
@@ -533,6 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    MaxClientConnections,
 
                    DNSClient,
+                   Logger,
                    AutoStart)
 
         { }
@@ -595,6 +605,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 UInt32?                                                         MaxClientConnections         = null,
 
                                 DNSClient?                                                      DNSClient                    = null,
+                                ILogger?                                                        Logger                       = null,
                                 Boolean                                                         AutoStart                    = false)
         {
 
@@ -624,6 +635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.MaxClientConnections        = MaxClientConnections       ?? DefaultMaxClientConnections;
 
             this.DNSClient                   = DNSClient;
+            this.Logger                      = Logger                     ?? NullLogger.Instance;
 
             this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
             this.cancellationTokenSource     = new CancellationTokenSource();
@@ -744,7 +756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnTextMessageSent));
+                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnTextMessageSent));
                     }
                 }
             }
@@ -777,7 +789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnBinaryMessageSent));
+                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnBinaryMessageSent));
                     }
                 }
             }
@@ -810,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnPingMessageSent));
+                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnPingMessageSent));
                     }
                 }
             }
@@ -843,7 +855,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnPongMessageSent));
+                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnPongMessageSent));
                     }
                 }
             }
@@ -877,7 +889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnCloseMessageSent));
+                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnCloseMessageSent));
                     }
                 }
             }
@@ -899,7 +911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Boolean RemoveConnection(WebSocketServerConnection Connection)
         {
 
-            DebugX.Log(nameof(AWebSocketServer), " Removing HTTP WebSocket connection with " + Connection.RemoteSocket);
+            Logger.LogDebug("Removing HTTP WebSocket connection with {RemoteSocket}.", Connection.RemoteSocket);
 
             return webSocketConnections.Remove(Connection.RemoteSocket, out _);
 
@@ -978,7 +990,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     Thread.CurrentThread.Priority      = ServerThreadPrioritySetter(IPSocket);
                     Thread.CurrentThread.IsBackground  = ServerThreadIsBackground;
 
-                    DebugX.Log($"{Description.FirstText()}: {IPSocket}");
+                    Logger.LogInformation(
+                        "Starting HTTP WebSocket server {Description} on {IPSocket}.",
+                        Description.FirstText(),
+                        IPSocket
+                    );
 
                     var tcpListener  = new TcpListener(IPSocket.ToIPEndPoint());
                     tcpListener.Start();
@@ -1032,7 +1048,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             if ((UInt32) webSocketConnections.Count >= MaxClientConnections)
                             {
-                                DebugX.Log(nameof(AWebSocketServer), $" Maximum number of client connections ({MaxClientConnections}) reached, rejecting connection from {newTCPConnection.Client.RemoteEndPoint}!");
+                                Logger.LogWarning(
+                                    "Maximum number of client connections ({MaxClientConnections}) reached, rejecting connection from {RemoteEndPoint}.",
+                                    MaxClientConnections,
+                                    newTCPConnection.Client.RemoteEndPoint
+                                );
                                 newTCPConnection.Close();
                                 continue;
                             }
@@ -1065,7 +1085,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 }
                                 catch (Exception e)
                                 {
-                                    DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                    Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnValidateTCPConnection));
                                 }
                             }
 
@@ -1089,8 +1109,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     if (serverCertificate is not null)
                                     {
-
-                                        //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
 
                                         sslStream      = new SslStream(
                                                              innerStream:                         newTCPConnection.GetStream(),
@@ -1208,7 +1226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     }
                                                     catch (Exception e)
                                                     {
-                                                        DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnNewTCPConnection));
                                                     }
                                                 }
 
@@ -1241,7 +1259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         }
                                                         catch (Exception e)
                                                         {
-                                                            DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                                            Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnNewTLSConnection));
                                                         }
                                                     }
 
@@ -1291,7 +1309,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 else
                                                                 {
                                                                     sendErrors++;
-                                                                    DebugX.Log($"Web socket connection to {webSocketConnection.RemoteSocket}: Ping failed ({sendErrors})!");
+                                                                    Logger.LogWarning(
+                                                                        "WebSocket connection to {RemoteSocket}: Ping failed ({SendErrors}).",
+                                                                        webSocketConnection.RemoteSocket,
+                                                                        sendErrors
+                                                                    );
                                                                 }
 
                                                                 lastWebSocketPingTimestamp = Timestamp.Now;
@@ -1529,13 +1551,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         if (WebSocketFrame.TryParse(bytes.AsSpan(),
                                                                                     out var frame,
                                                                                     out var frameLength,
-                                                                                    out var errorResponse))
+                                                                                    out var errorResponse,
+                                                                                    Logger: Logger))
                                                         {
 
                                                             // RFC 6455 Section 5.1: Client-to-server frames MUST be masked
                                                             if (!frame.IsMasked)
                                                             {
-                                                                DebugX.Log(nameof(AWebSocketServer), $" Received unmasked frame from {webSocketConnection.RemoteSocket}, closing connection (RFC 6455 violation)!");
+                                                                Logger.LogWarning(
+                                                                    "Received unmasked frame from {RemoteSocket}, closing connection (RFC 6455 violation).",
+                                                                    webSocketConnection.RemoteSocket
+                                                                );
                                                                 await webSocketConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
                                                                 break;
                                                             }
@@ -1589,7 +1615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         }
                                                                         catch (Exception e)
                                                                         {
-                                                                            DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessTextMessage)}");
+                                                                            Logger.LogError(e, "Exception while processing text WebSocket message.");
                                                                         }
 
                                                                     }
@@ -1627,7 +1653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         }
                                                                         catch (Exception e)
                                                                         {
-                                                                            DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessBinaryMessage)}");
+                                                                            Logger.LogError(e, "Exception while processing binary WebSocket message.");
                                                                         }
 
                                                                     }
@@ -1687,7 +1713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                             }
                                                                             catch (Exception e)
                                                                             {
-                                                                                DebugX.LogException(e, $"{nameof(AWebSocketServer)}.Continuation");
+                                                                                Logger.LogError(e, "Exception while processing continuation WebSocket frame.");
                                                                             }
 
                                                                             fragmentOpcode = null;
@@ -1698,7 +1724,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                     }
                                                                     else
                                                                     {
-                                                                        DebugX.Log(nameof(AWebSocketServer), $" Received Continuation frame from {webSocketConnection.RemoteSocket} without preceding Text/Binary frame!");
+                                                                        Logger.LogWarning(
+                                                                            "Received Continuation frame from {RemoteSocket} without preceding Text/Binary frame.",
+                                                                            webSocketConnection.RemoteSocket
+                                                                        );
                                                                         await webSocketConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
                                                                     }
 
@@ -1744,7 +1773,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                     else
                                                                     {
                                                                         sendErrors++;
-                                                                        DebugX.Log($"HTTP WebSocket connection '{webSocketConnection.RemoteSocket}' sending a CLOSE frame failed ({sendErrors})!");
+                                                                        Logger.LogWarning(
+                                                                            "HTTP WebSocket connection {RemoteSocket} sending a Pong frame failed ({SendErrors}).",
+                                                                            webSocketConnection.RemoteSocket,
+                                                                            sendErrors
+                                                                        );
                                                                     }
 
                                                                     #endregion
@@ -1827,7 +1860,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         }
                                                         else
                                                         {
-                                                            //DebugX.Log($"Could not parse the given web socket frame of {bytesLeftOver.Length} byte(s): {errorResponse}");
                                                             bytesLeftOver = bytes;
                                                             bytes = [];
                                                         }
@@ -1852,7 +1884,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     else
                                                     {
 
-                                                        DebugX.Log($"{nameof(AWebSocketServer)}: Closing invalid TCP connection from: {webSocketConnection.RemoteSocket}!");
+                                                        Logger.LogWarning(
+                                                            "Closing invalid TCP connection from {RemoteSocket}.",
+                                                            webSocketConnection.RemoteSocket
+                                                        );
 
                                                         await webSocketConnection.Close(
                                                                   WebSocketFrame.ClosingStatusCode.ProtocolError
@@ -1888,12 +1923,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             }
                                             else
-                                                DebugX.Log(nameof(AWebSocketServer), " The given web socket connection is invalid!");
+                                                Logger.LogWarning("The given WebSocket connection is invalid.");
 
                                         }
                                         catch (Exception e)
                                         {
-                                            DebugX.Log(nameof(AWebSocketServer), " Exception in web socket server: " + e.Message + Environment.NewLine + e.StackTrace);
+                                            Logger.LogError(e, "Exception in HTTP WebSocket server connection loop.");
                                         }
 
                                     },
@@ -1927,7 +1962,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 }
                                 catch (Exception e)
                                 {
-                                    DebugX.Log(" [AWebSocketServer] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : String.Empty);
+                                    Logger.LogError(e, "TLS exception while accepting HTTP WebSocket connection.");
                                     newTCPConnection.Close();
                                 }
 
@@ -1938,18 +1973,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (OperationCanceledException)
                     {
-                        DebugX.Log($" Accepting new TCP connections on HTTP WebSocket server '{Description.FirstText()}' on {IPSocket} was canceled!");
+                        Logger.LogInformation(
+                            "Accepting new TCP connections on HTTP WebSocket server {Description} on {IPSocket} was canceled.",
+                            Description.FirstText(),
+                            IPSocket
+                        );
                     }
                     catch (ObjectDisposedException)
                     {
-                        DebugX.Log($" Accepting new TCP connections on HTTP WebSocket server '{Description.FirstText()}' on {IPSocket} was disposed!");
+                        Logger.LogInformation(
+                            "Accepting new TCP connections on HTTP WebSocket server {Description} on {IPSocket} was disposed.",
+                            Description.FirstText(),
+                            IPSocket
+                        );
                     }
                     finally
                     {
 
                         #region Stop TCP listener
 
-                        DebugX.Log($" Stopping HTTP WebSocket server '{Description.FirstText()}' on {IPSocket}");
+                        Logger.LogInformation(
+                            "Stopping HTTP WebSocket server {Description} on {IPSocket}.",
+                            Description.FirstText(),
+                            IPSocket
+                        );
 
                         tcpListener.Stop();
 
@@ -1979,7 +2026,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(Start)}()");
+                    Logger.LogError(e, "Exception while starting HTTP WebSocket server.");
                 }
 
             });
@@ -2122,7 +2169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnWebSocketFrameSent));
+                Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnWebSocketFrameSent));
             }
 
         }
@@ -2167,7 +2214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                   Exception  ExceptionOccurred)
         {
 
-            DebugX.LogException(ExceptionOccurred, Caller);
+            Logger.LogError(ExceptionOccurred, "{Caller}", Caller);
 
             return Task.CompletedTask;
 

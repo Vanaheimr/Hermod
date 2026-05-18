@@ -21,6 +21,8 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -77,7 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
                           Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
 
-                          Boolean?                                                   DisableLogging                        = null)
+                          Boolean?                                                   DisableLogging                        = null,
+                          ILogger<AHTTPClient>?                                      Logger                                = null,
+                          ILoggerFactory?                                            LoggerFactory                         = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
@@ -129,7 +133,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ConsumeRequestChunkedTEImmediately,
                    ConsumeResponseChunkedTEImmediately,
 
-                   DisableLogging)
+                   DisableLogging,
+                   Logger,
+                   LoggerFactory)
 
         { }
 
@@ -173,7 +179,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
 
                           Boolean?                                                   DisableLogging                        = null,
-                          IDNSClient?                                                DNSClient                             = null)
+                          IDNSClient?                                                DNSClient                             = null,
+                          ILogger<AHTTPClient>?                                      Logger                                = null,
+                          ILoggerFactory?                                            LoggerFactory                         = null)
 
             : base(URL,
                    Description,
@@ -224,7 +232,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ConsumeResponseChunkedTEImmediately,
 
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         { }
 
@@ -270,7 +280,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
 
                           Boolean?                                                   DisableLogging                        = null,
-                          IDNSClient?                                                DNSClient                             = null)
+                          IDNSClient?                                                DNSClient                             = null,
+                          ILogger<AHTTPClient>?                                      Logger                                = null,
+                          ILoggerFactory?                                            LoggerFactory                         = null)
 
             : base(DomainName,
                    DNSService,
@@ -323,7 +335,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ConsumeResponseChunkedTEImmediately,
 
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   Logger,
+                   LoggerFactory)
 
         { }
 

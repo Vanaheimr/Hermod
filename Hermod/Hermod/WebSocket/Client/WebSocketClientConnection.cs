@@ -20,6 +20,8 @@
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 
+using Microsoft.Extensions.Logging;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -326,8 +328,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         return SentStatus.FatalError;
                 }
 
-                //DebugX.LogException(e, "Sending data within web socket connection " + RemoteSocket);
-
             }
             finally
             {
@@ -490,7 +490,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.Log($"{nameof(WebSocketClientConnection)}.{nameof(Close)}(...): Exception occurred: {e.Message}");
+                WebSocketClient.Logger.LogError(
+                    e,
+                    "Exception while closing WebSocket client connection {RemoteSocket}.",
+                    RemoteSocket
+                );
             }
             finally
             {

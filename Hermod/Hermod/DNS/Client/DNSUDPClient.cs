@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Diagnostics;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -193,7 +194,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          CancellationToken                    CancellationToken   = default)
         {
 
-            var effectiveTimeout = Timeout ?? QueryTimeout;
+            var effectiveTimeout  = Timeout ?? QueryTimeout;
+            var stopwatch         = Stopwatch.StartNew();
 
             #region Initial checks
 
@@ -211,11 +213,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
                            Authorities:            [],
-                            AdditionalRecords:      [],
-                            IsValid:                true,
-                            IsTimeout:              false,
-                            Timeout:                effectiveTimeout
-                        );
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                effectiveTimeout,
+                           Runtime:                stopwatch.Elapsed
+                       );
 
             var resourceRecordTypes = ResourceRecordTypes.ToList();
 
@@ -269,7 +272,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       effectiveTimeout
                                   ),
                                   dnsQuery.TransactionId,
-                                  new MemoryStream(data, 0, received)
+                                  new MemoryStream(data, 0, received),
+                                  effectiveTimeout,
+                                  stopwatch.Elapsed
                               );
 
                 // RFC 5966: If the UDP response is truncated, retry via TCP
@@ -299,7 +304,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            AdditionalRecords:      [],
                            IsValid:                true,
                            IsTimeout:              false,
-                           Timeout:                effectiveTimeout
+                           Timeout:                effectiveTimeout,
+                           Runtime:                stopwatch.Elapsed
                        );
 
             }
@@ -379,11 +385,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// TCP fallback for truncated UDP responses (RFC 5966).
         /// </summary>
         private async Task<DNSInfo> QueryViaTCPFallbackAsync(DNSPacket          DNSQuery,
-                                                              TimeSpan           Timeout,
-                                                              CancellationToken  CancellationToken)
+                                                             TimeSpan           Timeout,
+                                                             CancellationToken  CancellationToken)
         {
 
             Socket? socket = null;
+
+            var stopwatch = Stopwatch.StartNew();
 
             try
             {
@@ -457,7 +465,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                Timeout
                            ),
                            DNSQuery.TransactionId,
-                           new MemoryStream(buffer, 0, totalRead)
+                           new MemoryStream(buffer, 0, totalRead),
+                           Timeout,
+                           stopwatch.Elapsed
                        );
 
             }

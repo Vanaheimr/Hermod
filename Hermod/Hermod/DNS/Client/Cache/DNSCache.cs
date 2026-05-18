@@ -109,6 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
 
                     DNSInfo:      new DNSInfo(
+
                                       Origin:                 new DNSServerConfig(
                                                                   IPv4Address.Localhost,
                                                                   IPPort.Parse(53)
@@ -127,7 +128,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       AdditionalRecords:      [],
                                       IsValid:                true,
                                       IsTimeout:              false,
-                                      Timeout:                TimeSpan.Zero
+                                      Timeout:                TimeSpan.Zero,
+
+                                      Runtime:                TimeSpan.Zero
+
                                   )
 
                 )
@@ -148,6 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
 
                     DNSInfo:      new DNSInfo(
+
                                       Origin:                 new DNSServerConfig(
                                                                   IPv4Address.Localhost,
                                                                   IPPort.Parse(53)
@@ -166,7 +171,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       AdditionalRecords:      [],
                                       IsValid:                true,
                                       IsTimeout:              false,
-                                      Timeout:                TimeSpan.Zero
+                                      Timeout:                TimeSpan.Zero,
+
+                                      Runtime:                TimeSpan.Zero
+
                                  )
 
                 )
@@ -264,7 +272,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                    DNSInformation.AdditionalRecords,
                                    DNSInformation.IsValid,
                                    DNSInformation.IsTimeout,
-                                   DNSInformation.Timeout
+                                   DNSInformation.Timeout,
+                                   DNSInformation.Runtime
                                )
                            );
 
@@ -329,7 +338,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            AdditionalRecords:      [],
                            IsValid:                true,
                            IsTimeout:              false,
-                           Timeout:                TimeSpan.Zero
+                           Timeout:                TimeSpan.Zero,
+                           Runtime:                TimeSpan.Zero
                        )
                    )
                ))
@@ -485,7 +495,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            Original.AdditionalRecords,
                            Original.IsValid,
                            Original.IsTimeout,
-                           Original.Timeout
+                           Original.Timeout,
+                           Original.Runtime
                        );
             }
 

@@ -21,6 +21,8 @@ using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
@@ -94,6 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                    TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
 
                                    DNSClient?                                                      DNSClient                    = null,
+                                   ILogger?                                                        Logger                       = null,
                                    Boolean                                                         AutoStart                    = false)
 
             : base(IPAddress,
@@ -123,6 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    MaxClientConnections,
 
                    DNSClient,
+                   Logger,
                    AutoStart)
 
         {
@@ -192,7 +196,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             //    }
             //    catch (Exception e)
             //    {
-            //        DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessageReceived)}");
             //    }
             //}
 
@@ -270,7 +273,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             //    }
             //    catch (Exception e)
             //    {
-            //        DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
             //    }
             //}
 
