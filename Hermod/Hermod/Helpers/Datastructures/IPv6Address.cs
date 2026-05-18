@@ -380,26 +380,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (Text.StartsWith('[') || Text.EndsWith(']'))
             {
+
                 if (Text.Length < 2 ||
-                    Text[0] != '[' ||
+                    Text[ 0] != '[' ||
                     Text[^1] != ']')
                 {
                     return false;
                 }
 
                 Text = Text[1..^1].Trim();
+
             }
 
-            var positionOfInterfaceId = Text.IndexOf('%');
-            var interfaceId = "";
+            var positionOfInterfaceId  = Text.IndexOf('%');
+            var interfaceId            = "";
 
             if (positionOfInterfaceId > -1)
             {
-                interfaceId = Text[(positionOfInterfaceId + 1)..];
+
+                interfaceId  = Text[ (positionOfInterfaceId + 1)..];
                 Text         = Text[..positionOfInterfaceId];
 
                 if (interfaceId.Length == 0)
                     return false;
+
             }
 
             if (Text.IndexOf(':') < 0)
@@ -429,8 +433,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Text.IndexOf(':') < 0)
                 return false;
 
-            var doubleColonIndex = Text.IndexOf("::", StringComparison.Ordinal);
-            var hasCompression   = doubleColonIndex >= 0;
+            var doubleColonIndex  = Text.IndexOf("::", StringComparison.Ordinal);
+            var hasCompression    = doubleColonIndex >= 0;
 
             if (hasCompression &&
                 doubleColonIndex != Text.LastIndexOf("::", StringComparison.Ordinal))
@@ -443,8 +447,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (hasCompression)
             {
 
-                var leftText  = Text[..doubleColonIndex];
-                var rightText = Text[(doubleColonIndex + 2)..];
+                var leftText    = Text[..doubleColonIndex];
+                var rightText   = Text[ (doubleColonIndex + 2)..];
 
                 if (!ParseIPv6Groups(leftText,  groups) ||
                     !ParseIPv6Groups(rightText, groups, allowIPv4Tail: true, out var rightGroups))
@@ -452,13 +456,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     return false;
                 }
 
-                var leftGroups    = groups.Count - rightGroups.Count;
-                var zeroGroups    = 8 - groups.Count;
+                var leftGroups  = groups.Count - rightGroups.Count;
+                var zeroGroups  =            8 - groups.     Count;
 
                 if (zeroGroups < 1)
                     return false;
 
-                groups.InsertRange(leftGroups, Enumerable.Repeat<UInt16>(0, zeroGroups));
+                groups.InsertRange(
+                    leftGroups,
+                    Enumerable.Repeat<UInt16>(
+                        0,
+                        zeroGroups
+                    )
+                );
 
             }
             else
