@@ -85,13 +85,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #region Shutdown_WebSocketProxyAndServer()
 
         [TearDown]
-        public void Shutdown_WebSocketProxyAndServer()
+        public async Task Shutdown_WebSocketProxyAndServer()
         {
 
-            webSocketServer?.Shutdown(Wait: true);
+            if (webSocketServer is not null)
+                await webSocketServer.Shutdown(Wait: true);
+
             webSocketServer = null;
 
-            webSocketProxy?. Shutdown(Wait: true);
+            if (webSocketProxy is not null)
+                await webSocketProxy.Shutdown(Wait: true);
+
             webSocketProxy  = null;
 
         }

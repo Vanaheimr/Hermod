@@ -406,56 +406,140 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Properties
 
+        /// <summary>
+        /// The FIN bit indicates whether this frame is the final fragment in a message.
+        /// </summary>
         public Fin         FIN           { get; }
+
+        /// <summary>
+        /// The MASK bit indicates whether the payload data is masked.
+        /// If set to 1, a masking key is present in the frame and is used to unmask the payload data.
+        /// If set to 0, no masking key is present and the payload data is not masked.
+        /// </summary>
         public MaskStatus  Mask          { get; }
+
+        /// <summary>
+        /// The masking key is a 4-byte value used to mask the
+        /// payload data of a WebSocket frame.
+        /// </summary>
         public Byte[]      MaskingKey    { get; }
+
+        /// <summary>
+        /// The opcode defines the interpretation of the payload data
+        /// and indicates the type of frame being sent.
+        /// </summary>
         public Opcodes     Opcode        { get; }
+
+        /// <summary>
+        /// The payload is the actual data being sent in the WebSocket frame.
+        /// </summary>
         public Byte[]      Payload       { get; }
+
+        /// <summary>
+        /// The RSV1 is reserved for future use and are typically set to 0.
+        /// </summary>
         public Rsv         Rsv1          { get; }
+
+        /// <summary>
+        /// The RSV2 is reserved for future use and are typically set to 0.
+        /// </summary>
         public Rsv         Rsv2          { get; }
+
+        /// <summary>
+        /// The RSV3 is reserved for future use and are typically set to 0.
+        /// </summary>
         public Rsv         Rsv3          { get; }
 
 
+        /// <summary>
+        /// The frame is a Binary frame, which means that the payload data
+        /// is binary data, not text.
+        /// </summary>
         public Boolean IsBinary
             => Opcode == Opcodes.Binary;
 
+        /// <summary>
+        /// The frame is a Close frame, which is used to indicate that the sender
+        /// is closing the connection and may include an optional status code
+        /// and reason for closing.
+        /// </summary>
         public Boolean IsClose
             => Opcode == Opcodes.Close;
 
+        /// <summary>
+        /// The frame is compressed, which means that the payload data
+        /// is compressed using a compression algorithm.
+        /// </summary>
         public Boolean IsCompressed
             => Rsv1   == Rsv.On;
 
+        /// <summary>
+        /// The frame is a continuation frame, which means that it is a fragment
+        /// of a larger message and that more frames will follow to complete
+        /// the message.
+        /// </summary>
         public Boolean IsContinuation
             => Opcode == Opcodes.Continuation;
 
+        /// <summary>
+        /// The frame is a control frame, which means that it
+        /// contains control information
+        /// </summary>
         public Boolean IsControl
             => Opcode.IsControl();
 
+        /// <summary>
+        /// The frame is a data frame, which means that it contains
+        /// application data and is not a control frame.
+        /// </summary>
         public Boolean IsData
             => Opcode.IsData();
 
+        /// <summary>
+        /// The frame is the final frame of a message.
+        /// </summary>
         public Boolean IsFinal
             => FIN    == Fin.Final;
 
+        /// <summary>
+        /// The frame is a fragment of a larger message, which means that it is
+        /// not the final frame of the message and that more frames will follow
+        /// to complete the message.
+        /// </summary>
         public Boolean IsFragment
             => FIN    == Fin.More || Opcode == Opcodes.Continuation;
 
+        /// <summary>
+        /// The frame is masked, which means that the payload data is masked using a masking key.
+        /// </summary>
         public Boolean IsMasked
             => Mask   == MaskStatus.On;
 
+        /// <summary>
+        /// The frame is a Ping frame, which is used to check the liveness
+        /// of the connection and may contain an optional payload.
+        /// </summary>
         public Boolean IsPing
             => Opcode == Opcodes.Ping;
 
+        /// <summary>
+        /// The frame is a Pong frame, which is used to respond to a
+        /// Ping frame and may contain an optional payload.
+        /// </summary>
         public Boolean IsPong
             => Opcode == Opcodes.Pong;
 
+        /// <summary>
+        /// The frame is a Text frame.
+        /// </summary>
         public Boolean IsText
             => Opcode == Opcodes.Text;
+
 
         /// <summary>
         /// The event tracking identification for correlating this HTTP WebSocket frame with other events.</param>
         /// </summary>
-        public EventTracking_Id  EventTrackingId { get; }
+        public EventTracking_Id  EventTrackingId    { get; }
 
         #endregion
 
@@ -506,7 +590,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region (static) Continuation(Payload = null, ...)
+        #region (static) Continuation (Payload = null, ...)
 
         /// <summary>
         /// Create a new 'Continuation' frame.
@@ -537,7 +621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (static) Text        (Text    = null, ...)
+        #region (static) Text         (Text    = null, ...)
 
         /// <summary>
         /// Create a new 'Text' frame.
@@ -568,7 +652,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (static) Binary      (Payload = null, ...)
+        #region (static) Binary       (Payload = null, ...)
 
         /// <summary>
         /// Create a new 'Binary' frame.
@@ -599,7 +683,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (static) Close       (StatusCode = 1000, Reason = null, ...)
+        #region (static) Close        (StatusCode = 1000, Reason = null, ...)
 
         /// <summary>
         /// Create a new 'Close' frame.
@@ -648,7 +732,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (static) Ping        (Payload = null, ...)
+        #region (static) Ping         (Payload = null, ...)
 
         /// <summary>
         /// Create a new 'Ping' frame.
@@ -679,7 +763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (static) Pong        (Payload = null, ...)
+        #region (static) Pong         (Payload = null, ...)
 
         /// <summary>
         /// Create a new 'Pong' frame.
@@ -751,7 +835,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 Length         = 0;
                 ErrorResponse  = null;
 
-                if (ByteArray is null || ByteArray.Length < 5) {
+                if (ByteArray is null || ByteArray.Length < 2) {
                     ErrorResponse = "Invalid byte array!";
                     return false;
                 }
@@ -805,6 +889,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 if (payloadLength == 126) {
 
+                    if (ByteArray.Length < 4) {
+                        ErrorResponse = "Incomplete extended payload length!";
+                        return false;
+                    }
+
                     payloadLength  = (UInt64) ((ByteArray[2] << 8) | ByteArray[3]);
 
                     offset         = 4U;
@@ -812,6 +901,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
 
                 else if (payloadLength == 127) {
+
+                    if (ByteArray.Length < 10) {
+                        ErrorResponse = "Incomplete extended payload length!";
+                        return false;
+                    }
 
                     payloadLength  = ((UInt64) ByteArray[2] << 56) |
                                      ((UInt64) ByteArray[3] << 48) |
@@ -826,6 +920,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
+                if (opcode.IsControl() && fin == Fin.More)
+                {
+                    ErrorResponse = "Control frames must not be fragmented!";
+                    return false;
+                }
+
+                if (opcode.IsControl() && payloadLength > 125)
+                {
+                    ErrorResponse = "Control frame payload length must not exceed 125 bytes!";
+                    return false;
+                }
+
                 var maxSize = MaxPayloadSize ?? DefaultMaxPayloadSize;
                 if (payloadLength > maxSize)
                 {
@@ -835,8 +941,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 var payload     = new Byte[payloadLength];
                 var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
+                var headerSize  = offset + (mask == MaskStatus.On ? 4U : 0U);
 
-                if ((UInt64) ByteArray.Length < offset + payloadLength)
+                if ((UInt64) ByteArray.Length < headerSize + payloadLength)
                 {
                     ErrorResponse = "Web socket frame is shorter than advertised!";
                     return false;

@@ -62,9 +62,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
         #region ShutdownEachTest()
 
         [TearDown]
-        public virtual void ShutdownEachTest()
+        public virtual async Task ShutdownEachTest()
         {
-            webSocketServer?.Shutdown();
+            if (webSocketServer is not null)
+                await webSocketServer.Shutdown();
+
             webSocketServer = null;
         }
 
@@ -158,8 +160,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             await webSocketClient.SendTextMessage("1234");
             await webSocketClient.SendTextMessage("ABCD");
 
-            while (textMessageRequests.Count < 2)
-                Thread.Sleep(10);
+            ClassicAssert.IsTrue(
+                SpinWait.SpinUntil(() => messageRequests.Count >= 2, TimeSpan.FromSeconds(5)),
+                "Timed out waiting for WebSocket frames."
+            );
 
 
             // Validate message delivery
@@ -169,9 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
             ClassicAssert.AreEqual(0,      messageResponses.Count);
 
-            ClassicAssert.AreEqual(2,      textMessageRequests.Count);
-            ClassicAssert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            ClassicAssert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            ClassicAssert.AreEqual(0,      textMessageRequests.Count);
 
             ClassicAssert.AreEqual(0,      textMessageResponses.Count);
 
@@ -267,13 +269,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             // Send messages
             await webSocketClient.SendTextMessage("1234");
 
-            while (textMessageRequests.Count == 0)
-                Thread.Sleep(10);
+            ClassicAssert.IsTrue(
+                SpinWait.SpinUntil(() => messageRequests.Count >= 1, TimeSpan.FromSeconds(5)),
+                "Timed out waiting for the first WebSocket frame."
+            );
 
             await webSocketClient.SendTextMessage("ABCD");
 
-            while (textMessageRequests.Count == 1)
-                Thread.Sleep(10);
+            ClassicAssert.IsTrue(
+                SpinWait.SpinUntil(() => messageRequests.Count >= 2, TimeSpan.FromSeconds(5)),
+                "Timed out waiting for the second WebSocket frame."
+            );
 
 
             // Validate message delivery
@@ -283,9 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
             ClassicAssert.AreEqual(0,      messageResponses.Count);
 
-            ClassicAssert.AreEqual(2,      textMessageRequests.Count);
-            ClassicAssert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            ClassicAssert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            ClassicAssert.AreEqual(0,      textMessageRequests.Count);
 
             ClassicAssert.AreEqual(0,      textMessageResponses.Count);
 

@@ -60,9 +60,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #region Shutdown_WebSocketServer()
 
         [TearDown]
-        public void Shutdown_WebSocketServer()
+        public async Task Shutdown_WebSocketServer()
         {
-            webSocketServer?.Shutdown(Wait: true);
+            if (webSocketServer is not null)
+                await webSocketServer.Shutdown(Wait: true);
+
             webSocketServer = null;
         }
 

@@ -1445,11 +1445,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(validatedTCP.          Count, Is.EqualTo(2), validatedTCP.          AggregateCSV());
             Assert.That(newTCPConnection.      Count, Is.EqualTo(2), newTCPConnection.      AggregateCSV());
             Assert.That(validatedWebSocket.    Count, Is.EqualTo(1), validatedWebSocket.    AggregateCSV());
-            Assert.That(newWebSocketConnection.Count, Is.EqualTo(2), newWebSocketConnection.AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(1), newWebSocketConnection.AggregateCSV());
 
             Assert.That(httpRequests.          Count, Is.EqualTo(2));
             Assert.That(httpResponses.         Count, Is.EqualTo(2));
-            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(2));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             var httpRequest1          = httpRequests.First();
@@ -1726,19 +1726,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Check HTTP request
 
-            // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection.Count == 0)
-                Thread.Sleep(10);
+            Assert.That(
+                SpinWait.SpinUntil(() => httpResponses.Count == 2, TimeSpan.FromSeconds(5)),
+                Is.True,
+                "Timed out waiting for the HTTP 401 responses."
+            );
 
             // 2 because of the way .NET handles HTTP authentication!
             Assert.That(validatedTCP.          Count, Is.EqualTo(2), validatedTCP.          AggregateCSV());
             Assert.That(newTCPConnection.      Count, Is.EqualTo(2), newTCPConnection.      AggregateCSV());
             Assert.That(validatedWebSocket.    Count, Is.EqualTo(0), validatedWebSocket.    AggregateCSV());
-            Assert.That(newWebSocketConnection.Count, Is.EqualTo(2), newWebSocketConnection.AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(0), newWebSocketConnection.AggregateCSV());
 
             Assert.That(httpRequests.          Count, Is.EqualTo(2));
             Assert.That(httpResponses.         Count, Is.EqualTo(2));
-            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(2));
+            Assert.That(
+                SpinWait.SpinUntil(() => !webSocketServer.WebSocketConnections.Any(), TimeSpan.FromSeconds(5)),
+                Is.True,
+                "Timed out waiting for rejected WebSocket connections to close."
+            );
 
 
             var httpRequest1          = httpRequests.First();
@@ -1788,7 +1794,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 401 Unauthorized
             // Date:               Thu, 03 Aug 2023 22:38:42 GMT
-            // WWW-Authenticate:   Basic realm="Access to the web sockets server", charset ="UTF-8"
+            // WWW-Authenticate:   Basic realm="Access to the WebSocket server", charset="UTF-8"
             // Connection:         Close
 
 
@@ -1799,14 +1805,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 401 Unauthorized
             // Date:               Thu, 03 Aug 2023 22:38:43 GMT
-            // WWW-Authenticate:   Basic realm="Access to the web sockets server", charset ="UTF-8"
+            // WWW-Authenticate:   Basic realm="Access to the WebSocket server", charset="UTF-8"
             // Connection:         Close
 
             Assert.That(response2.Contains("HTTP/1.1 401 Unauthorized"), Is.True, response2);
 
             Assert.That(httpResponse2.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse2.WWWAuthenticate, Is.EqualTo("Basic realm=\"Access to the web sockets server\", charset =\"UTF-8\""));
-            Assert.That(httpResponse2.Connection, Is.EqualTo("Close"));
+            Assert.That(httpResponse2.WWWAuthenticate?.ToString(), Is.EqualTo("Basic realm=\"Access to the WebSocket server\", charset=\"UTF-8\""));
+            Assert.That(httpResponse2.Connection, Is.EqualTo(ConnectionType.Close));
 
             #endregion
 

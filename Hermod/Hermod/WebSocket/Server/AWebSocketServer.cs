@@ -2004,7 +2004,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             cancellationTokenSource.Cancel();
 
             foreach (var webSocketConnection in WebSocketConnections)
-                await webSocketConnection.Close(CancellationToken: cancellationTokenSource.Token);
+                await webSocketConnection.Close();
 
             if (Wait)
             {

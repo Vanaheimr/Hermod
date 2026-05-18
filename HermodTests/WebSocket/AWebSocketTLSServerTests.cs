@@ -145,9 +145,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
         #region Shutdown_WebSocketTLSServer()
 
         [TearDown]
-        public void Shutdown_WebSocketTLSServer()
+        public async Task Shutdown_WebSocketTLSServer()
         {
-            webSocketServer?.Shutdown(Wait: true);
+            if (webSocketServer is not null)
+                await webSocketServer.Shutdown(Wait: true);
+
             webSocketServer = null;
         }
 

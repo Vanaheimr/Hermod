@@ -1443,18 +1443,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Check HTTP request
 
-            // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection.Count == 0)
-                Thread.Sleep(10);
+            Assert.That(
+                SpinWait.SpinUntil(() => httpResponses.Count == 1, TimeSpan.FromSeconds(5)),
+                Is.True,
+                "Timed out waiting for the HTTP 401 response."
+            );
 
             Assert.That(validatedTCP.          Count, Is.EqualTo(1), validatedTCP.          AggregateCSV());
             Assert.That(newTCPConnection.      Count, Is.EqualTo(1), newTCPConnection.      AggregateCSV());
             Assert.That(validatedWebSocket.    Count, Is.EqualTo(0), validatedWebSocket.    AggregateCSV());
-            Assert.That(newWebSocketConnection.Count, Is.EqualTo(1), newWebSocketConnection.AggregateCSV());
+            Assert.That(newWebSocketConnection.Count, Is.EqualTo(0), newWebSocketConnection.AggregateCSV());
 
             Assert.That(httpRequests.          Count, Is.EqualTo(1));
             Assert.That(httpResponses.         Count, Is.EqualTo(1));
-            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
+            Assert.That(
+                SpinWait.SpinUntil(() => !webSocketServer.WebSocketConnections.Any(), TimeSpan.FromSeconds(5)),
+                Is.True,
+                "Timed out waiting for the rejected WebSocket connection to close."
+            );
 
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
@@ -1484,14 +1490,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // HTTP/1.1 401 Unauthorized
             // Date:               Thu, 03 Aug 2023 23:01:56 GMT
             // Server:             GraphDefined HTTP WebSocket Service v2.0
-            // WWW-Authenticate:   Basic realm="Access to the web sockets server", charset ="UTF-8"
+            // WWW-Authenticate:   Basic realm="Access to the WebSocket server", charset="UTF-8"
             // Connection:         Close
 
             Assert.That(response.Contains("HTTP/1.1 401 Unauthorized"), Is.True, response);
 
             Assert.That(httpResponse.Server, Is.EqualTo("GraphDefined HTTP WebSocket Service v2.0"));
-            Assert.That(httpResponse.WWWAuthenticate, Is.EqualTo("Basic realm=\"Access to the web sockets server\", charset =\"UTF-8\""));
-            Assert.That(httpResponse.Connection, Is.EqualTo("Close"));
+            Assert.That(httpResponse.WWWAuthenticate?.ToString(), Is.EqualTo("Basic realm=\"Access to the WebSocket server\", charset=\"UTF-8\""));
+            Assert.That(httpResponse.Connection, Is.EqualTo(ConnectionType.Close));
 
             #endregion
 

@@ -490,12 +490,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 String?            Reason              = null,
                                 CancellationToken  CancellationToken   = default)
         {
+            if (IsClosed)
+                return;
+
             try
             {
-
-                if (IsClosed)
-                    return;
-
                 if (StatusCode.HasValue || Reason is not null)
                     await SendWebSocketFrame(
                               WebSocketFrame.Close(
@@ -505,15 +504,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               CancellationToken
                           );
 
-                tlsStream?.Close();
-                tcpClient. Close();
-
-                IsClosed = true;
-
             }
             catch (Exception e)
             {
                 DebugX.Log($"{nameof(WebSocketServerConnection)}.{nameof(Close)}(...): Exception occurred: {e.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    tlsStream?.Close();
+                }
+                catch
+                { }
+
+                try
+                {
+                    tcpClient.Close();
+                }
+                catch
+                { }
+
+                try
+                {
+                    CancellationTokenSource.Cancel();
+                }
+                catch
+                { }
+
+                IsClosed = true;
             }
         }
 

@@ -1828,6 +1828,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             try
             {
+                networkingCancellationTokenSource.Cancel();
+            }
+            catch
+            { }
+
+            try
+            {
                 WebSocketPingTimer.Dispose();
                 MaintenanceTimer.  Dispose();
             }
