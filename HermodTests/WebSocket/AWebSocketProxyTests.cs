@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public void Init_WebSocketProxyAndServer()
         {
 
-            webSocketServer  = new WebSocketServer(
+            webSocketServer  = new WebSocketMirrorServer(
                                    HTTPPort:                HTTPPortServer,
                                    SecWebSocketProtocols:   SecWebSocketProtocols,
                                    AutoStart:               true

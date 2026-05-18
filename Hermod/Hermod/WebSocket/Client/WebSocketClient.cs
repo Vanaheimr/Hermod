@@ -970,17 +970,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         //var swkaSha1        = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swka));
                         //var swkaSha1Base64  = Convert.ToBase64String(swkaSha1);
 
+                        var webSocketUpgradeAccepted = true;
+
                         if (101 != httpResponse.HTTPStatusCode.Code) {
                             ClientCloseMessage  = $"Invalid HTTP StatusCode response: 101 != {httpResponse.HTTPStatusCode.Code}!";
                             networkingCancellationTokenSource.Cancel();
+                            webSocketUpgradeAccepted = false;
                         }
 
                         else if (expectedWSAccept != httpResponse.SecWebSocketAccept) {
                             ClientCloseMessage  = $"Invalid HTTP Sec-WebSocket-Accept response: {expectedWSAccept} != {httpResponse.SecWebSocketAccept}!";
                             networkingCancellationTokenSource.Cancel();
+                            webSocketUpgradeAccepted = false;
                         }
 
-                        waitingForHTTPResponse = httpResponse;
+                        if (!webSocketUpgradeAccepted)
+                            waitingForHTTPResponse = httpResponse;
 
                         #endregion
 
@@ -990,7 +995,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         var buffer  = new Byte[16 * 1024];
                         var pos     = 0U;
 
-                        if (TCPSocket        is not null &&
+                        if (webSocketUpgradeAccepted &&
+                            TCPSocket        is not null &&
                             TCPNetworkStream is not null &&
                             HTTPStream       is not null)
                         {
@@ -1005,6 +1011,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             CustomData:                  null,
                                                             SlowNetworkSimulationDelay:  null
                                                         );
+
+                            waitingForHTTPResponse = httpResponse;
 
                             WebSocketFrame.Opcodes? fragmentOpcode  = null;
                             var                     fragmentPayload = new MemoryStream();
@@ -1327,6 +1335,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
 
                         }
+                        else
+                            waitingForHTTPResponse ??= httpResponse;
 
                         #endregion
 

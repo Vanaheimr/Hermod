@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
         public void Init_WebSocketTLSServer()
         {
 
-            webSocketServer = new WebSocketServer(
+            webSocketServer = new WebSocketMirrorServer(
 
                                   HTTPPort:                    HTTPPort,
 

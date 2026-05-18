@@ -23,7 +23,6 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
@@ -37,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly ConcurrentDictionary<String, WebSocketServerConnection> connections = new();
+        private readonly ConcurrentDictionary<String, WebSocketServerConnection> connections = [];
 
         private readonly WebSocketClient webSocketClient;
 
@@ -48,17 +47,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The URL of the upstream HTTP WebSocket server.
         /// </summary>
-        public URL? UpstreamServerURL { get; }
+        public URL?           UpstreamServerURL       { get; }
 
         /// <summary>
         /// Whether to connect to the HTTP WebSocket server automatically.
         /// </summary>
-        public Boolean AutoConnect { get; }
+        public Boolean        AutoConnect             { get; }
 
         /// <summary>
         /// The HTTP response of the upstream HTTP WebSocket server.
         /// </summary>
-        public HTTPResponse? UpstreamHTTPResponse { get; private set; }
+        public HTTPResponse?  UpstreamHTTPResponse    { get; private set; }
 
         #endregion
 
@@ -170,20 +169,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 foreach (var connection in connections.Values)
                 {
 
-                    await connection.SendWebSocketFrame(webSocketFrame,
-                                                        cancellationToken);
-
-                    await SendOnWebSocketFrameSent(timestamp,
-                                                   connection,
-                                                   eventTrackingId,
-                                                   webSocketFrame,
-                                                   cancellationToken);
-
-                    //await SendOnTextMessageSent(timestamp,
-                    //                            connection,
-                    //                            eventTrackingId,
-                    //                            textMessage,
-                    //                            cancellationToken);
+                    await SendWebSocketFrame(
+                              connection,
+                              webSocketFrame,
+                              eventTrackingId,
+                              cancellationToken
+                          );
 
                 }
 
@@ -205,20 +196,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 foreach (var connection in connections.Values)
                 {
 
-                    await connection.SendWebSocketFrame(webSocketFrame,
-                                                        cancellationToken);
-
-                    await SendOnWebSocketFrameSent(timestamp,
-                                                   connection,
-                                                   eventTrackingId,
-                                                   webSocketFrame,
-                                                   cancellationToken);
-
-                    //await SendOnBinaryMessageSent(timestamp,
-                    //                              connection,
-                    //                              eventTrackingId,
-                    //                              binaryMessage,
-                    //                              cancellationToken);
+                    await SendWebSocketFrame(
+                              connection,
+                              webSocketFrame,
+                              eventTrackingId,
+                              cancellationToken
+                          );
 
                 }
 
@@ -238,8 +221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                cancellationToken) =>
             {
 
-                connections.TryAdd(webSocketServerConnection.RemoteSocket.ToString(),
-                                   webSocketServerConnection);
+                connections.TryAdd(
+                    webSocketServerConnection.RemoteSocket.ToString(),
+                    webSocketServerConnection
+                );
 
                 //ToDo: Logging etc.pp...
 
@@ -260,9 +245,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (webSocketFrame.IsText || webSocketFrame.IsBinary)
                 {
 
-                    await webSocketClient.SendWebSocketFrame(webSocketFrame,
-                                                             eventTrackingId,
-                                                             cancellationToken);
+                    await webSocketClient.SendWebSocketFrame(
+                              webSocketFrame,
+                              eventTrackingId,
+                              cancellationToken
+                          );
 
                 }
 
@@ -302,8 +289,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 String?                           Reason       = null)
         {
 
-            await webSocketClient.Close(StatusCode,
-                                        Reason);
+            await webSocketClient.Close(
+                      StatusCode,
+                      Reason
+                  );
 
         }
 
