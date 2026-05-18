@@ -372,6 +372,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
+            catch (OperationCanceledException)
+            {
+
+                // External cancellation (race-cancel or caller-initiated).
+                // Silent return — not a real failure.
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS_TLS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
+            }
             catch (Exception ex)
             {
 

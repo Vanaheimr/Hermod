@@ -545,15 +545,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
             var caaRecords = response.Answers.OfType<CAA>().ToList();
             if (caaRecords.Count == 0) { Assert.Inconclusive("No CAA records returned"); return; }
 
-            var caa = caaRecords.First();
-            var zoneStr = caa.ToZoneFileString();
+            // DNS record order is not guaranteed, so check all CAA records
+            foreach (var caa in caaRecords)
+            {
+                var zoneStr = caa.ToZoneFileString();
 
-            Assert.That(zoneStr, Is.Not.Null.And.Not.Empty);
-            Assert.That(zoneStr, Does.Contain("cloudflare.com."));
-            Assert.That(zoneStr, Does.Contain("IN"));
-            Assert.That(zoneStr, Does.Contain("CAA"));
-            // Should contain either "issue" or "issuewild"
-            Assert.That(zoneStr, Does.Contain("issue").IgnoreCase);
+                Assert.That(zoneStr, Is.Not.Null.And.Not.Empty);
+                Assert.That(zoneStr, Does.Contain("cloudflare.com."));
+                Assert.That(zoneStr, Does.Contain("IN"));
+                Assert.That(zoneStr, Does.Contain("CAA"));
+            }
+
+            // At least one CAA record should contain "issue" or "issuewild"
+            Assert.That(caaRecords.Any(c => c.ToZoneFileString().Contains("issue", StringComparison.OrdinalIgnoreCase)), Is.True);
 
         }
 

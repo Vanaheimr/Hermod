@@ -801,6 +801,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
+            catch (OperationCanceledException)
+            {
+
+                // External cancellation (race-cancel or caller-initiated).
+                // Silent return — not a real failure.
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.HTTPS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout
+                       );
+
+            }
             catch (Exception ex)
             {
 
@@ -1065,7 +1080,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 };
 
-            if (dnsServiceName is not null)
+            if (ResourceRecord is null && dnsServiceName is not null)
                 ResourceRecord  = (DNSResourceRecordTypes) type switch {
 
                     // Standard record types

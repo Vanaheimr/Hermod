@@ -29,23 +29,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     /// <summary>
     /// Hermod HTTP WebSocket server tests endpoints.
     /// </summary>
-    public abstract class AWebSocketServerTests
+    public abstract class AWebSocketServerTests(IPPort                HTTPPort,
+                                                IEnumerable<String>?  SecWebSocketProtocols   = null)
     {
 
         #region Data
 
         protected WebSocketMirrorServer?  webSocketServer;
-        protected IPPort                  HTTPPort;
-        protected IEnumerable<String>?    SecWebSocketProtocols;
-
-        public AWebSocketServerTests(IPPort                HTTPPort,
-                                     IEnumerable<String>?  SecWebSocketProtocols   = null)
-        {
-
-            this.HTTPPort               = HTTPPort;
-            this.SecWebSocketProtocols  = SecWebSocketProtocols;
-
-        }
+        protected IPPort                  HTTPPort               = HTTPPort;
+        protected IEnumerable<String>?    SecWebSocketProtocols  = SecWebSocketProtocols;
 
         #endregion
 

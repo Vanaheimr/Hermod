@@ -777,11 +777,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             return String.Format(
                        "{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
-                       byte0. ToString("x2")  + byte1. ToString("x2"),
-                       byte2. ToString("x2")  + byte3. ToString("x2"),
-                       byte4. ToString("x2")  + byte5. ToString("x2"),
-                       byte6. ToString("x2")  + byte7. ToString("x2"),
-                       byte8. ToString("x2")  + byte9. ToString("x2"),
+                       byte0. ToString("x2") + byte1. ToString("x2"),
+                       byte2. ToString("x2") + byte3. ToString("x2"),
+                       byte4. ToString("x2") + byte5. ToString("x2"),
+                       byte6. ToString("x2") + byte7. ToString("x2"),
+                       byte8. ToString("x2") + byte9. ToString("x2"),
                        byte10.ToString("x2") + byte11.ToString("x2"),
                        byte12.ToString("x2") + byte13.ToString("x2"),
                        byte14.ToString("x2") + byte15.ToString("x2"),
