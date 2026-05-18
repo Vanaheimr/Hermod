@@ -97,6 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                    DNSClient?                                                      DNSClient                    = null,
                                    ILogger?                                                        Logger                       = null,
+                                   ILoggerFactory?                                                 LoggerFactory                = null,
                                    Boolean                                                         AutoStart                    = false)
 
             : base(IPAddress,
@@ -127,6 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    DNSClient,
                    Logger,
+                   LoggerFactory,
                    AutoStart)
 
         {

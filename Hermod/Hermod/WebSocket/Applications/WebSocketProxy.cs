@@ -33,6 +33,12 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+    /// <summary>
+    /// A WebSocket proxy server which forwards all WebSocket frames to an
+    /// upstream HTTP WebSocket server and forwards all WebSocket frames
+    /// received from the upstream HTTP WebSocket server to all connected
+    /// clients.
+    /// </summary>
     public class WebSocketProxy : AWebSocketServer
     {
 
@@ -68,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketProxy(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP WebSocket server.
+        /// Create a new HTTP WebSocket proxy.
         /// </summary>
         /// <param name="UpstreamServerURL">An URL of the upstream HTTP WebSocket server.</param>
         /// <param name="AutoConnect">Whether to connect to the HTTP WebSocket server automatically.</param>
@@ -111,6 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                               DNSClient?                                                      DNSClient                    = null,
                               ILogger?                                                        Logger                       = null,
+                              ILoggerFactory?                                                 LoggerFactory                = null,
                               Boolean                                                         AutoStart                    = false)
 
             : base(IPAddress,
@@ -141,6 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    DNSClient,
                    Logger,
+                   LoggerFactory,
                    AutoStart)
 
         {
@@ -150,8 +158,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.webSocketClient    = new WebSocketClient(
                                           UpstreamServerURL,
-                                          DNSClient:  DNSClient,
-                                          Logger:     Logger
+                                          DNSClient:      DNSClient,
+                                          Logger:         LoggerFactory is null ? Logger : null,
+                                          LoggerFactory:  LoggerFactory
                                       );
 
             if (AutoConnect)

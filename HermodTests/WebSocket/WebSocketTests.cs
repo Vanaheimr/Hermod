@@ -18,7 +18,6 @@
 #region Usings
 
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -79,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
         public async Task SendTwoTextFrames_Fast_Test()
         {
 
-            ClassicAssert.NotNull(webSocketServer);
+            Assert.That(webSocketServer, Is.Not.Null);
 
             if (webSocketServer is null)
                 return;
@@ -146,36 +145,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
-            ClassicAssert.IsTrue  (validatedTCP);
-            ClassicAssert.IsTrue  (newTCPConnection);
-            ClassicAssert.IsTrue  (validatedWebSocket);
-            ClassicAssert.IsTrue  (newWebSocketConnection);
+            Assert.That(validatedTCP,           Is.True);
+            Assert.That(newTCPConnection,       Is.True);
+            Assert.That(validatedWebSocket,     Is.True);
+            Assert.That(newWebSocketConnection, Is.True);
 
-            ClassicAssert.AreEqual(1, httpRequests. Count);
-            ClassicAssert.AreEqual(1, httpResponses.Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests. Count, Is.EqualTo(1));
+            Assert.That(httpResponses.Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             // Send messages
             await webSocketClient.SendTextMessage("1234");
             await webSocketClient.SendTextMessage("ABCD");
 
-            ClassicAssert.IsTrue(
+            Assert.That(
                 SpinWait.SpinUntil(() => messageRequests.Count >= 2, TimeSpan.FromSeconds(5)),
+                Is.True,
                 "Timed out waiting for WebSocket frames."
             );
 
 
             // Validate message delivery
-            ClassicAssert.AreEqual(2,      messageRequests. Count);
-            ClassicAssert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageRequests. Count, Is.EqualTo(2));
+            Assert.That(messageRequests.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(messageRequests.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(0,      messageResponses.Count);
+            Assert.That(messageResponses.Count, Is.EqualTo(0));
 
-            ClassicAssert.AreEqual(0,      textMessageRequests.Count);
+            Assert.That(textMessageRequests.Count, Is.EqualTo(0));
 
-            ClassicAssert.AreEqual(0,      textMessageResponses.Count);
+            Assert.That(textMessageResponses.Count, Is.EqualTo(0));
 
             await webSocketClient.Close();
 
@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
         public async Task SendTwoTextFrames_Slow_Test()
         {
 
-            ClassicAssert.NotNull(webSocketServer);
+            Assert.That(webSocketServer, Is.Not.Null);
 
             if (webSocketServer is null)
                 return;
@@ -256,42 +256,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
-            ClassicAssert.IsTrue  (validatedTCP);
-            ClassicAssert.IsTrue  (newTCPConnection);
-            ClassicAssert.IsTrue  (validatedWebSocket);
-            ClassicAssert.IsTrue  (newWebSocketConnection);
+            Assert.That(validatedTCP,           Is.True);
+            Assert.That(newTCPConnection,       Is.True);
+            Assert.That(validatedWebSocket,     Is.True);
+            Assert.That(newWebSocketConnection, Is.True);
 
-            ClassicAssert.AreEqual(1, httpRequests. Count);
-            ClassicAssert.AreEqual(1, httpResponses.Count);
-            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            Assert.That(httpRequests. Count, Is.EqualTo(1));
+            Assert.That(httpResponses.Count, Is.EqualTo(1));
+            Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
 
             // Send messages
             await webSocketClient.SendTextMessage("1234");
 
-            ClassicAssert.IsTrue(
+            Assert.That(
                 SpinWait.SpinUntil(() => messageRequests.Count >= 1, TimeSpan.FromSeconds(5)),
+                Is.True,
                 "Timed out waiting for the first WebSocket frame."
             );
 
             await webSocketClient.SendTextMessage("ABCD");
 
-            ClassicAssert.IsTrue(
+            Assert.That(
                 SpinWait.SpinUntil(() => messageRequests.Count >= 2, TimeSpan.FromSeconds(5)),
+                Is.True,
                 "Timed out waiting for the second WebSocket frame."
             );
 
 
             // Validate message delivery
-            ClassicAssert.AreEqual(2,      messageRequests. Count);
-            ClassicAssert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            ClassicAssert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            Assert.That(messageRequests. Count, Is.EqualTo(2));
+            Assert.That(messageRequests.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
+            Assert.That(messageRequests.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-            ClassicAssert.AreEqual(0,      messageResponses.Count);
+            Assert.That(messageResponses.Count, Is.EqualTo(0));
 
-            ClassicAssert.AreEqual(0,      textMessageRequests.Count);
+            Assert.That(textMessageRequests.Count, Is.EqualTo(0));
 
-            ClassicAssert.AreEqual(0,      textMessageResponses.Count);
+            Assert.That(textMessageResponses.Count, Is.EqualTo(0));
 
             await webSocketClient.Close();
 

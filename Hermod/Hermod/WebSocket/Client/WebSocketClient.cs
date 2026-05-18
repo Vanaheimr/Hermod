@@ -322,6 +322,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public ILogger                              Logger                               { get; }
 
+        /// <summary>
+        /// The attached logger factory.
+        /// </summary>
+        public ILoggerFactory                       LoggerFactory                        { get; }
+
         #endregion
 
         #region Events
@@ -450,7 +455,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                LogfileCreatorDelegate?                                         LogfileCreator               = null,
                                HTTPClientLogger?                                               HTTPLogger                   = null,
                                DNSClient?                                                      DNSClient                    = null,
-                               ILogger?                                                        Logger                       = null)
+                               ILogger?                                                        Logger                       = null,
+                               ILoggerFactory?                                                 LoggerFactory                = null)
 
         {
 
@@ -471,7 +477,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
             this.HTTPLogger                         = HTTPLogger;
             this.DNSClient                          = DNSClient;
-            this.Logger                             = Logger                  ?? NullLogger.Instance;
+            this.LoggerFactory                      = LoggerFactory           ?? NullLoggerFactory.Instance;
+            this.Logger                             = Logger                  ?? this.LoggerFactory.CreateLogger<WebSocketClient>();
 
             this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
 

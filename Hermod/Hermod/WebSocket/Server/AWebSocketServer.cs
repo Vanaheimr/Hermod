@@ -318,6 +318,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public ILogger                                                         Logger                        { get; }
 
+        /// <summary>
+        /// The attached logger factory.
+        /// </summary>
+        public ILoggerFactory                                                  LoggerFactory                 { get; }
+
         #endregion
 
         #region Events
@@ -511,6 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 DNSClient?                                                      DNSClient                    = null,
                                 ILogger?                                                        Logger                       = null,
+                                ILoggerFactory?                                                 LoggerFactory                = null,
                                 Boolean                                                         AutoStart                    = false)
 
             : this(new IPSocket(
@@ -543,6 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    DNSClient,
                    Logger,
+                   LoggerFactory,
                    AutoStart)
 
         { }
@@ -606,6 +613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 DNSClient?                                                      DNSClient                    = null,
                                 ILogger?                                                        Logger                       = null,
+                                ILoggerFactory?                                                 LoggerFactory                = null,
                                 Boolean                                                         AutoStart                    = false)
         {
 
@@ -635,7 +643,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.MaxClientConnections        = MaxClientConnections       ?? DefaultMaxClientConnections;
 
             this.DNSClient                   = DNSClient;
-            this.Logger                      = Logger                     ?? NullLogger.Instance;
+            this.LoggerFactory               = LoggerFactory              ?? NullLoggerFactory.Instance;
+            this.Logger                      = Logger                     ?? this.LoggerFactory.CreateLogger(GetType().FullName ?? nameof(AWebSocketServer));
 
             this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
             this.cancellationTokenSource     = new CancellationTokenSource();

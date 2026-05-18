@@ -152,11 +152,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     public class WebSocketFrame
     {
 
-        /// <summary>
-        /// The maximum allowed payload size for a single WebSocket frame (64 MB).
-        /// </summary>
-        public const UInt64  DefaultMaxPayloadSize   = 64 * 1024 * 1024;
-
         #region (enum) Opcodes
 
         /// <summary>
@@ -406,6 +401,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+
+        #region Data
+
+        /// <summary>
+        /// The maximum allowed payload size for a single WebSocket frame (64 MB).
+        /// </summary>
+        public const UInt64  DefaultMaxPayloadSize   = 64 * 1024 * 1024;
+
+        #endregion
 
         #region Properties
 
@@ -821,49 +825,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region TryParse(ByteArray, out Frame, out Length, out ErrorResponse, ...)
-
-        /// <summary>
-        /// Try to parse the given byte array into a WebSocket frame.
-        /// </summary>
-        /// <param name="ByteArray">The byte array to parse.</param>
-        /// <param name="Frame">The parsed WebSocket frame.</param>
-        /// <param name="Length">The total length of the frame in bytes, including the header and payload.</param>
-        /// <param name="ErrorResponse">The error response if the parsing fails.</param>
-        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        /// <param name="MaxPayloadSize">The maximum allowed payload size.</param>
-        /// <param name="Logger">An optional logger for unexpected parser exceptions.</param>
-        public static Boolean TryParse(Byte[]?                                   ByteArray,
-                                       [NotNullWhen(true)]  out WebSocketFrame?  Frame,
-                                       [NotNullWhen(true)]  out UInt64           Length,
-                                       [NotNullWhen(false)] out String?          ErrorResponse,
-                                       EventTracking_Id?                         EventTrackingId   = null,
-                                       UInt64?                                   MaxPayloadSize    = null,
-                                       ILogger?                                  Logger            = null)
-        {
-
-            if (ByteArray is null)
-            {
-                Frame          = null;
-                Length         = 0;
-                ErrorResponse  = "Invalid byte array!";
-                return false;
-            }
-
-            return TryParse(
-                       ByteArray.AsSpan(),
-                       out Frame,
-                       out Length,
-                       out ErrorResponse,
-                       EventTrackingId,
-                       MaxPayloadSize,
-                       Logger
-                   );
-
-        }
-
-        #endregion
-
         #region TryParse(Bytes, out Frame, out Length, out ErrorResponse, ...)
 
         /// <summary>
@@ -1138,6 +1099,267 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+
+        #region TryParse(JSON, out Frame, out ErrorResponse, ...)
+
+        /// <summary>
+        /// Try to parse the given JSON object into a WebSocket frame.
+        /// </summary>
+        /// <param name="JSON">The JSON object to parse.</param>
+        /// <param name="Frame">The parsed WebSocket frame.</param>
+        /// <param name="ErrorResponse">The error response if the parsing fails.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        /// <param name="MaxPayloadSize">The maximum allowed payload size.</param>
+        /// <param name="Logger">An optional logger for unexpected parser exceptions.</param>
+        public static Boolean TryParse(JObject?                                  JSON,
+                                       [NotNullWhen(true)]  out WebSocketFrame?  Frame,
+                                       [NotNullWhen(false)] out String?          ErrorResponse,
+                                       EventTracking_Id?                         EventTrackingId   = null,
+                                       UInt64?                                   MaxPayloadSize    = null,
+                                       ILogger?                                  Logger            = null)
+        {
+
+            static JToken? GetToken(JObject json, String propertyName)
+            {
+
+                foreach (var property in json.Properties())
+                {
+                    if (String.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                        return property.Value;
+                }
+
+                return null;
+
+            }
+
+            static Boolean TryParseEnum<TEnum>(JObject json, String propertyName, out TEnum value, out String? errorResponse)
+                where TEnum : struct
+            {
+
+                var token = GetToken(json, propertyName);
+                if (token is null || token.Type == JTokenType.Null)
+                {
+                    value          = default;
+                    errorResponse  = $"Missing '{propertyName}'!";
+                    return false;
+                }
+
+                if (!Enum.TryParse(token.Value<String>(), true, out value))
+                {
+                    errorResponse  = $"Invalid '{propertyName}' value '{token}'!";
+                    return false;
+                }
+
+                errorResponse = null;
+                return true;
+
+            }
+
+            static Boolean TryParseOptionalEnum<TEnum>(JObject json, String propertyName, TEnum defaultValue, out TEnum value, out String? errorResponse)
+                where TEnum : struct
+            {
+
+                var token = GetToken(json, propertyName);
+                if (token is null || token.Type == JTokenType.Null)
+                {
+                    value          = defaultValue;
+                    errorResponse  = null;
+                    return true;
+                }
+
+                if (!Enum.TryParse(token.Value<String>(), true, out value))
+                {
+                    errorResponse  = $"Invalid '{propertyName}' value '{token}'!";
+                    return false;
+                }
+
+                errorResponse = null;
+                return true;
+
+            }
+
+            static Boolean TryGetUInt64(JObject json, String propertyName, out UInt64 value, out String? errorResponse)
+            {
+
+                var token = GetToken(json, propertyName);
+                if (token is null || token.Type == JTokenType.Null)
+                {
+                    value          = 0;
+                    errorResponse  = null;
+                    return true;
+                }
+
+                if (!UInt64.TryParse(token.ToString(), out value))
+                {
+                    errorResponse  = $"Invalid '{propertyName}' value '{token}'!";
+                    return false;
+                }
+
+                errorResponse = null;
+                return true;
+
+            }
+
+            try
+            {
+
+                Frame          = null;
+                ErrorResponse  = null;
+
+                if (JSON is null)
+                {
+                    ErrorResponse = "Invalid JSON object!";
+                    return false;
+                }
+
+                if (!TryParseEnum(JSON, "opcode", out Opcodes opcode, out ErrorResponse))
+                    return false;
+
+                if (!TryParseOptionalEnum(JSON, "FIN",  Fin.Final, out Fin fin,  out ErrorResponse) ||
+                    !TryParseOptionalEnum(JSON, "Rsv1", Rsv.Off,   out Rsv rsv1, out ErrorResponse) ||
+                    !TryParseOptionalEnum(JSON, "Rsv2", Rsv.Off,   out Rsv rsv2, out ErrorResponse) ||
+                    !TryParseOptionalEnum(JSON, "Rsv3", Rsv.Off,   out Rsv rsv3, out ErrorResponse))
+                {
+                    return false;
+                }
+
+                if (!opcode.IsData() && rsv1 == Rsv.On)
+                {
+                    ErrorResponse = "A non data frame is compressed!";
+                    return false;
+                }
+
+                Byte[] payload;
+
+                if (opcode == Opcodes.Close)
+                {
+
+                    if (!TryParseOptionalEnum(JSON, "closingStatusCode", ClosingStatusCode.NormalClosure, out ClosingStatusCode statusCode, out ErrorResponse))
+                        return false;
+
+                    var reasonToken = GetToken(JSON, "closingReason");
+                    var reason      = reasonToken is not null && reasonToken.Type != JTokenType.Null
+                                          ? reasonToken.Value<String>()
+                                          : null;
+
+                    if (statusCode == ClosingStatusCode.NoStatusReceived && reason is null)
+                    {
+                        payload = [];
+                    }
+                    else
+                    {
+
+                        if (statusCode == ClosingStatusCode.NoStatusReceived)
+                        {
+                            ErrorResponse = "A close frame reason requires a close status code!";
+                            return false;
+                        }
+
+                        var reasonBytes = reason?.ToUTF8Bytes();
+                        payload         = new Byte[2 + (reasonBytes?.Length ?? 0)];
+                        var statusBytes = BitConverter.GetBytes((UInt16) statusCode);
+
+                        if (BitConverter.IsLittleEndian)
+                            Array.Reverse(statusBytes);
+
+                        Array.Copy(statusBytes, 0, payload, 0, 2);
+
+                        if (reasonBytes is not null)
+                            Array.Copy(reasonBytes, 0, payload, 2, reasonBytes.Length);
+
+                    }
+
+                }
+                else
+                {
+
+                    var payloadToken = GetToken(JSON, "payload");
+                    var payloadText  = payloadToken is not null && payloadToken.Type != JTokenType.Null
+                                           ? payloadToken.Value<String>() ?? String.Empty
+                                           : String.Empty;
+
+                    if (opcode == Opcodes.Continuation ||
+                        opcode == Opcodes.Binary)
+                    {
+                        try
+                        {
+                            payload = Convert.FromHexString(
+                                          payloadText.
+                                              Replace(" ", "").
+                                              Replace("-", "").
+                                              Replace(":", "")
+                                      );
+                        }
+                        catch (Exception e)
+                        {
+                            ErrorResponse = $"Invalid hexadecimal WebSocket frame payload: {e.Message}";
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        payload = payloadText.ToUTF8Bytes();
+                    }
+
+                }
+
+                var payloadLength = (UInt64) payload.Length;
+
+                if (!TryGetUInt64(JSON, "length", out var expectedPayloadLength, out ErrorResponse))
+                    return false;
+
+                if (GetToken(JSON, "length") is not null &&
+                    expectedPayloadLength != payloadLength)
+                {
+                    ErrorResponse = $"Payload length {payloadLength} does not match JSON length {expectedPayloadLength}!";
+                    return false;
+                }
+
+                if (opcode.IsControl() && fin == Fin.More)
+                {
+                    ErrorResponse = "Control frames must not be fragmented!";
+                    return false;
+                }
+
+                if (opcode.IsControl() && payloadLength > 125)
+                {
+                    ErrorResponse = "Control frame payload length must not exceed 125 bytes!";
+                    return false;
+                }
+
+                var maxSize = MaxPayloadSize ?? DefaultMaxPayloadSize;
+                if (payloadLength > maxSize)
+                {
+                    ErrorResponse = $"Payload length {payloadLength} exceeds maximum allowed size of {maxSize} bytes!";
+                    return false;
+                }
+
+                Frame = new WebSocketFrame(
+                            opcode,
+                            payload,
+                            fin,
+                            MaskStatus.Off,
+                            null,
+                            rsv1,
+                            rsv2,
+                            rsv3,
+                            EventTrackingId
+                        );
+
+                return true;
+
+            }
+            catch (Exception e)
+            {
+                Logger?.LogError(e, "Could not parse WebSocket frame JSON.");
+                Frame          = null;
+                ErrorResponse  = "An exception occurred: " + e.Message;
+                return false;
+            }
+
+        }
+
+        #endregion
 
         #region ToJSON(CustomWebSocketFrameSerializer = null, ...)
 
