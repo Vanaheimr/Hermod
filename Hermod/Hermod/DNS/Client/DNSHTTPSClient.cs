@@ -1065,7 +1065,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 };
 
-            if (dnsServiceName is not null)
+            if (ResourceRecord is null && dnsServiceName is not null)
                 ResourceRecord  = (DNSResourceRecordTypes) type switch {
 
                     // Standard record types
