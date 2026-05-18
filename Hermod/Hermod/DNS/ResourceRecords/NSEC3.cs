@@ -254,13 +254,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             try
             {
-                var parts = Data.Split(' ', 6);
+                var parts = Data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 5) return null;
                 var salt = parts[3] == "-" ? Array.Empty<Byte>() : Convert.FromHexString(parts[3]);
                 var nextHash = Convert.FromHexString(parts[4]);
                 return new NSEC3(Name, DNSQueryClasses.IN, TimeToLive,
                                  Byte.Parse(parts[0]), Byte.Parse(parts[1]), UInt16.Parse(parts[2]),
-                                 salt, nextHash, []);
+                                 salt, nextHash, EncodeTypeBitMaps(parts.Skip(5)));
             }
             catch { return null; }
         }

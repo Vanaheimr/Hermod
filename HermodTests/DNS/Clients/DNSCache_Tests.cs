@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
     public class DNSCache_Tests
     {
 
-        #region Helpers
+        #region (private) TestOrigin
 
         private static DNSServerConfig TestOrigin
 
@@ -38,6 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                    IPv4Address.Localhost,
                    IPPort.DNS
                );
+
+        #endregion
+
+        #region (private) CreateResponse   (ResponseCode, Answers, Authorities)
 
         private static DNSInfo CreateResponse(DNSResponseCodes                  ResponseCode,
                                               IEnumerable<IDNSResourceRecord>?  Answers       = null,
@@ -60,6 +64,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                    Runtime:                TimeSpan.Zero
                );
 
+        #endregion
+
+        #region (private) CreateARecord    (DomainName, IPv4Address, TTL)
+
         private static A CreateARecord(DomainName   DomainName,
                                        IPv4Address  IPv4Address,
                                        TimeSpan     TTL)
@@ -70,6 +78,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                    TTL,
                    IPv4Address
                );
+
+        #endregion
+
+        #region (private) CreateAAAARecord (DomainName, IPv6Address, TTL)
 
         private static AAAA CreateAAAARecord(DomainName   DomainName,
                                              IPv6Address  IPv6Address,
@@ -91,21 +103,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public void Add_And_Retrieve()
         {
 
-            using var cache       = new DNSCache();
-            var domainName        = DNSServiceName.Parse("example.com");
+            using var cache  = new DNSCache();
+            var domainName   = DNSServiceName.Parse("example.com");
 
-            var response          = CreateResponse(
-                                        DNSResponseCodes.NoError,
-                                        [
-                                            CreateARecord(
-                                                DomainName. Parse("example.com"),
-                                                IPv4Address.Parse("1.2.3.4"),
-                                                TimeSpan.FromMinutes(5)
-                                            )
-                                        ]
-                                    );
+            var response     = CreateResponse(
+                                   DNSResponseCodes.NoError,
+                                   [
+                                       CreateARecord(
+                                           DomainName. Parse("example.com"),
+                                           IPv4Address.Parse("1.2.3.4"),
+                                           TimeSpan.FromMinutes(5)
+                                       )
+                                   ]
+                               );
 
-            cache.Add(domainName, response);
+            cache.Add(
+                domainName,
+                response
+            );
 
             var cached = cache.GetDNSInfo(domainName);
 
@@ -127,8 +142,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             using var cache  = new DNSCache();
             var result       = cache.TryGetDNSInfo(DNSServiceName.Parse("unknown.example.com"), out var info);
 
-            Assert.That(result,  Is.False);
-            Assert.That(info,    Is.Null);
+            Assert.That(result,   Is.False);
+            Assert.That(info,     Is.Null);
 
         }
 
@@ -143,9 +158,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             using var cache  = new DNSCache();
             var result       = cache.TryGetDNSInfo(DNSServiceName.Parse("localhost"), out var info);
 
-            Assert.That(result,                 Is.True);
-            Assert.That(info,                   Is.Not.Null);
-            Assert.That(info!.Answers.Count(),  Is.EqualTo(2));
+            Assert.That(result,                  Is.True);
+            Assert.That(info,                    Is.Not.Null);
+            Assert.That(info!.Answers.Count(),   Is.EqualTo(2));
 
         }
 
@@ -163,11 +178,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var nxResponse   = CreateResponse(DNSResponseCodes.NameError);
 
-            cache.Add(domainName, nxResponse);
+            cache.Add(
+                domainName,
+                nxResponse
+            );
 
-            Assert.That(cache.TryGetDNSInfo(domainName, out var cached),  Is.True);
-            Assert.That(cached!.ResponseCode,                             Is.EqualTo(DNSResponseCodes.NameError));
-            Assert.That(cached.Answers.Count(),                           Is.EqualTo(0));
+            Assert.That(cache.TryGetDNSInfo(domainName, out var cached),   Is.True);
+            Assert.That(cached!.ResponseCode,                              Is.EqualTo(DNSResponseCodes.NameError));
+            Assert.That(cached.Answers.Count(),                            Is.EqualTo(0));
 
         }
 
@@ -179,15 +197,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public void Negative_Cache_Refused()
         {
 
-            using var cache  = new DNSCache();
-            var domainName   = DNSServiceName.Parse("refused.example.com");
+            using var cache      = new DNSCache();
+            var domainName       = DNSServiceName.Parse("refused.example.com");
 
-            var refusedResponse = CreateResponse(DNSResponseCodes.Refused);
+            var refusedResponse  = CreateResponse(DNSResponseCodes.Refused);
 
-            cache.Add(domainName, refusedResponse);
+            cache.Add(
+                domainName,
+                refusedResponse
+            );
 
-            Assert.That(cache.TryGetDNSInfo(domainName, out var cached),  Is.True);
-            Assert.That(cached!.ResponseCode,                             Is.EqualTo(DNSResponseCodes.Refused));
+            Assert.That(cache.TryGetDNSInfo(domainName, out var cached),   Is.True);
+            Assert.That(cached!.ResponseCode,                              Is.EqualTo(DNSResponseCodes.Refused));
 
         }
 
@@ -204,9 +225,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var servFailResponse  = CreateResponse(DNSResponseCodes.ServerFailure);
 
-            cache.Add(domainName, servFailResponse);
+            cache.Add(
+                domainName,
+                servFailResponse
+            );
 
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.False);
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),   Is.False);
 
         }
 
@@ -249,10 +273,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var cached = cache.GetDNSInfo(domainName);
 
-            Assert.That(cached,                     Is.Not.Null);
-            Assert.That(cached!.Answers.Count(),    Is.EqualTo(2));
-            Assert.That(cached.Answers.OfType<A>().   Count(),  Is.EqualTo(1));
-            Assert.That(cached.Answers.OfType<AAAA>().Count(),  Is.EqualTo(1));
+            Assert.That(cached,                                  Is.Not.Null);
+            Assert.That(cached!.Answers.Count(),                 Is.EqualTo(2));
+            Assert.That(cached.Answers.OfType<A>().   Count(),   Is.EqualTo(1));
+            Assert.That(cached.Answers.OfType<AAAA>().Count(),   Is.EqualTo(1));
 
         }
 
@@ -308,30 +332,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public void Merge_Preserves_Existing_When_Adding_Different_Type()
         {
 
-            using var cache       = new DNSCache();
-            var domainName        = DNSServiceName.Parse("preserve.example.com");
+            using var cache   = new DNSCache();
+            var domainName    = DNSServiceName.Parse("preserve.example.com");
 
-            var aResponse         = CreateResponse(
-                                        DNSResponseCodes.NoError,
-                                        [
-                                            CreateARecord(
-                                                DomainName. Parse("preserve.example.com"),
-                                                IPv4Address.Parse("10.0.0.1"),
-                                                TimeSpan.FromMinutes(5)
-                                            )
-                                        ]
-                                    );
+            var aResponse     = CreateResponse(
+                                    DNSResponseCodes.NoError,
+                                    [
+                                        CreateARecord(
+                                            DomainName. Parse("preserve.example.com"),
+                                            IPv4Address.Parse("10.0.0.1"),
+                                            TimeSpan.FromMinutes(5)
+                                        )
+                                    ]
+                                );
 
-            var aaaaResponse      = CreateResponse(
-                                        DNSResponseCodes.NoError,
-                                        [
-                                            CreateAAAARecord(
-                                                DomainName. Parse("preserve.example.com"),
-                                                IPv6Address.Parse("fe80::1"),
-                                                TimeSpan.FromMinutes(5)
-                                            )
-                                        ]
-                                    );
+            var aaaaResponse  = CreateResponse(
+                                    DNSResponseCodes.NoError,
+                                    [
+                                        CreateAAAARecord(
+                                            DomainName. Parse("preserve.example.com"),
+                                            IPv6Address.Parse("fe80::1"),
+                                            TimeSpan.FromMinutes(5)
+                                        )
+                                    ]
+                                );
 
             cache.Add(domainName, aResponse);
             cache.Add(domainName, aaaaResponse);
@@ -339,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var cached = cache.GetDNSInfo(domainName);
             var aRecord = cached!.Answers.OfType<A>().First();
 
-            Assert.That(aRecord.IPv4Address,  Is.EqualTo(IPv4Address.Parse("10.0.0.1")));
+            Assert.That(aRecord.IPv4Address,   Is.EqualTo(IPv4Address.Parse("10.0.0.1")));
 
         }
 
@@ -366,13 +390,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                    ]
                                );
 
-            cache.Add(domainName, response);
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.True);
+            cache.Add(
+                domainName,
+                response
+            );
+
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),   Is.True);
 
             var removed = cache.Remove(domainName);
 
-            Assert.That(removed,                                 Is.True);
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.False);
+            Assert.That(removed,                                  Is.True);
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),   Is.False);
 
         }
 
@@ -384,10 +412,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public void Remove_Returns_False_For_Unknown_Domain()
         {
 
-            using var cache = new DNSCache();
-            var removed     = cache.Remove(DNSServiceName.Parse("never-added.example.com"));
+            using var cache  = new DNSCache();
+            var removed      = cache.Remove(DNSServiceName.Parse("never-added.example.com"));
 
-            Assert.That(removed,  Is.False);
+            Assert.That(removed,   Is.False);
 
         }
 
@@ -413,9 +441,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                    ]
                                );
 
-            cache.Add(domainName, oldResponse);
+            cache.Add(
+                domainName,
+                oldResponse
+            );
 
-            cache.Remove(domainName);
+            cache.Remove(
+                domainName
+            );
 
             var newResponse  = CreateResponse(
                                    DNSResponseCodes.NoError,
@@ -428,12 +461,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                    ]
                                );
 
-            cache.Add(domainName, newResponse);
+            cache.Add(
+                domainName,
+                newResponse
+            );
 
             var cached = cache.GetDNSInfo(domainName);
 
-            Assert.That(cached,                                     Is.Not.Null);
-            Assert.That(((A) cached!.Answers.First()).IPv4Address,  Is.EqualTo(IPv4Address.Parse("10.0.0.2")));
+            Assert.That(cached,                                      Is.Not.Null);
+            Assert.That(((A) cached!.Answers.First()).IPv4Address,   Is.EqualTo(IPv4Address.Parse("10.0.0.2")));
 
         }
 
@@ -450,13 +486,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var nxResponse   = CreateResponse(DNSResponseCodes.NameError);
 
-            cache.Add(domainName, nxResponse);
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.True);
+            cache.Add(
+                domainName,
+                nxResponse
+            );
+
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),   Is.True);
 
             var removed = cache.Remove(domainName);
 
-            Assert.That(removed,                                 Is.True);
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.False);
+            Assert.That(removed,                                  Is.True);
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),   Is.False);
 
         }
 
@@ -484,14 +524,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                    ]
                                );
 
-            cache.Add(domainName, response);
+            cache.Add(
+                domainName,
+                response
+            );
 
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.True,  "Entry should exist right after adding");
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),   Is.True,  "Entry should exist right after adding");
 
             // Wait for TTL to expire and cleanup timer to run
             await Task.Delay(TimeSpan.FromSeconds(3));
 
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.False, "Entry should have been evicted after TTL expired");
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),   Is.False, "Entry should have been evicted after TTL expired");
 
         }
 
@@ -517,13 +560,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                    ]
                                );
 
-            cache.Add(domainName, response);
+            cache.Add(
+                domainName,
+                response
+            );
 
             // Wait for a cleanup cycle
             await Task.Delay(TimeSpan.FromSeconds(2));
 
-            Assert.That(cache.TryGetDNSInfo(domainName, out var cached),  Is.True,  "Entry with long TTL should still exist");
-            Assert.That(((A) cached!.Answers.First()).IPv4Address,        Is.EqualTo(IPv4Address.Parse("5.6.7.8")));
+            Assert.That(cache.TryGetDNSInfo(domainName, out var cached),   Is.True, "Entry with long TTL should still exist");
+            Assert.That(((A) cached!.Answers.First()).IPv4Address,         Is.EqualTo(IPv4Address.Parse("5.6.7.8")));
 
         }
 
@@ -540,15 +586,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             var nxResponse   = CreateResponse(DNSResponseCodes.NameError);
 
-            cache.Add(domainName, nxResponse);
+            cache.Add(
+                domainName,
+                nxResponse
+            );
 
-            Assert.That(cache.TryGetDNSInfo(domainName, out _),  Is.True,  "Negative entry should exist right after adding");
+            Assert.That(cache.TryGetDNSInfo(domainName, out _),       Is.True,  "Negative entry should exist right after adding");
 
             // DefaultNegativeCacheTTL is 5 minutes, but the cleanup timer checks EndOfLife.
             // We can't easily wait 5 min in a test, so we verify the entry IS present
             // and trust the eviction logic (tested above for positive entries) works the same.
-            var cached = cache.GetDNSInfo(domainName);
-            Assert.That(cached!.ResponseCode,  Is.EqualTo(DNSResponseCodes.NameError));
+            Assert.That(cache.GetDNSInfo(domainName)?.ResponseCode,   Is.EqualTo(DNSResponseCodes.NameError));
 
         }
 
@@ -560,13 +608,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public async Task Eviction_Preserves_Localhost()
         {
 
-            using var cache  = new DNSCache(CleanUpEvery: TimeSpan.FromSeconds(1));
+            using var cache  = new DNSCache(
+                                   CleanUpEvery:  TimeSpan.FromSeconds(1)
+                               );
 
             // Wait for multiple cleanup cycles
             await Task.Delay(TimeSpan.FromSeconds(3));
 
-            Assert.That(cache.TryGetDNSInfo(DNSServiceName.Parse("localhost"), out _),  Is.True,  "localhost should never be evicted");
-            Assert.That(cache.TryGetDNSInfo(DNSServiceName.Parse("loopback"), out _),   Is.True,  "loopback should never be evicted");
+            Assert.That(cache.TryGetDNSInfo(DNSServiceName.Parse("localhost"), out _),   Is.True, "localhost should never be evicted!");
+            Assert.That(cache.TryGetDNSInfo(DNSServiceName.Parse("loopback"), out _),    Is.True, "loopback should never be evicted!");
 
         }
 

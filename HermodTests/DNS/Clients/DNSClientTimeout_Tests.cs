@@ -17,9 +17,9 @@
 
 #region Usings
 
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Diagnostics;
 
 using NUnit.Framework;
 
@@ -37,6 +37,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
     public class DNSClientTimeout_Tests
     {
 
+        #region (private static) CreateSilentUDPServer(out UDPPort)
+
+        private static UdpClient CreateSilentUDPServer(out IPPort UDPPort)
+        {
+
+            var udpClient  = new UdpClient(
+                                 new IPEndPoint(
+                                     System.Net.IPAddress.Loopback,
+                                     0
+                                 )
+                             );
+
+            UDPPort        = IPPort.Parse(
+                                 ((IPEndPoint) udpClient.Client.LocalEndPoint!).Port
+                             );
+
+            return udpClient;
+
+        }
+
+        #endregion
+
+
         #region Query_Uses_PerCall_Timeout()
 
         [Test]
@@ -48,9 +71,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             using var silentServer  = CreateSilentUDPServer(out var port);
             using var client        = new DNSClient(
                                           IPv4Address.Localhost,
-                                          Port:          port,
-                                          QueryTimeout:  TimeSpan.FromSeconds(5),
-                                          UseQueryCache: false
+                                          Port:           port,
+                                          QueryTimeout:   TimeSpan.FromSeconds(5),
+                                          UseQueryCache:  false
                                       );
 
             var stopwatch           = Stopwatch.StartNew();
@@ -63,9 +86,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             stopwatch.Stop();
 
-            Assert.That(response.IsTimeout,  Is.True);
-            Assert.That(response.Timeout,    Is.EqualTo(timeout));
-            Assert.That(stopwatch.Elapsed,   Is.LessThan(TimeSpan.FromSeconds(1)));
+            Assert.That(response.IsTimeout,   Is.True);
+            Assert.That(response.Timeout,     Is.EqualTo(timeout));
+            Assert.That(stopwatch.Elapsed,    Is.LessThan(TimeSpan.FromSeconds(1)));
 
         }
 
@@ -80,9 +103,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             using var silentServer  = CreateSilentUDPServer(out var port);
             using var client        = new DNSClient(
                                           IPv4Address.Localhost,
-                                          Port:          port,
-                                          QueryTimeout:  TimeSpan.FromSeconds(5),
-                                          UseQueryCache: false
+                                          Port:           port,
+                                          QueryTimeout:   TimeSpan.FromSeconds(5),
+                                          UseQueryCache:  false
                                       );
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
@@ -101,27 +124,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
-        #region (private static) CreateSilentUDPServer(out Port)
-
-        private static UdpClient CreateSilentUDPServer(out IPPort Port)
-        {
-
-            var udpClient  = new UdpClient(
-                                 new IPEndPoint(
-                                     System.Net.IPAddress.Loopback,
-                                     0
-                                 )
-                             );
-
-            Port = IPPort.Parse(
-                       ((IPEndPoint) udpClient.Client.LocalEndPoint!).Port
-                   );
-
-            return udpClient;
-
-        }
-
-        #endregion
 
     }
 

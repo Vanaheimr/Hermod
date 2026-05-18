@@ -201,12 +201,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             try
             {
-                var parts = Data.Split(' ', 3);
+                var parts = Data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 2) return null;
                 return new CSYNC(Name, DNSQueryClasses.IN, TimeToLive,
                                  UInt32.Parse(parts[0]),
                                  UInt16.Parse(parts[1]),
-                                 []);
+                                 EncodeTypeBitMaps(parts.Skip(2)));
             }
             catch { return null; }
         }

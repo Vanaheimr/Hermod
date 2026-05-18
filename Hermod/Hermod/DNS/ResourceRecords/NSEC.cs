@@ -198,10 +198,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             try
             {
-                var parts = Data.Split(' ', 2);
+                var parts = Data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 1) return null;
                 var nextName = parts[0].EndsWith('.') ? parts[0] : parts[0] + ".";
-                return new NSEC(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.Parse(nextName), []);
+                return new NSEC(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.Parse(nextName), EncodeTypeBitMaps(parts.Skip(1)));
             }
             catch { return null; }
         }

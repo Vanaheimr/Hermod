@@ -229,16 +229,154 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                 foreach (var sshfp in sshfpRecords)
                 {
                     Assert.That(sshfp.Type, Is.EqualTo(DNSResourceRecordTypes.SSHFP));
-                    Assert.That(sshfp.FingerprintAlgorithm, Is.Not.EqualTo(default(SSHFP_Algorithm)));
-                    Assert.That(sshfp.FingerprintType,      Is.Not.EqualTo(default(SSHFP_FingerprintType)));
-                    Assert.That(sshfp.Fingerprint,          Is.Not.Null);
-                    Assert.That(sshfp.Fingerprint.Length,    Is.GreaterThan(0));
+                    Assert.That(sshfp.FingerprintAlgorithm,   Is.Not.EqualTo(default(SSHFP_Algorithm)));
+                    Assert.That(sshfp.FingerprintType,        Is.Not.EqualTo(default(SSHFP_FingerprintType)));
+                    Assert.That(sshfp.Fingerprint,            Is.Not.Null);
+                    Assert.That(sshfp.Fingerprint.Length,     Is.GreaterThan(0));
                 }
             }
 
         }
 
         #endregion
+
+        #region Test_janus1_graphdefined_com__SSHFP()
+
+        [Test]
+        public void Test_janus1_graphdefined_com__SSHFP()
+        {
+
+            var sshfpRecords  = new List<String> {
+
+                                    "janus1.graphdefined.com IN SSHFP 1 1 bd35fbb31c3aaadeb9a5dc887f4e8f4510332a5f",
+                                    "janus1.graphdefined.com IN SSHFP 1 2 2a39072bb1af2a255e9e8e2456f2a31c097a8b6edaa709a610c2993a7f463c07",
+                                    "janus1.graphdefined.com IN SSHFP 3 1 f7e3d0ddeb5b765df327d7589d04f6cfc54d093a",
+                                    "janus1.graphdefined.com IN SSHFP 3 2 38c80a5b37d2c5db664dfabbb3e14d60d2ed9ce854d334c4ce349c14c89f0544",
+                                    "janus1.graphdefined.com IN SSHFP 4 1 1213a08d727469ac8e8d1ce3e3708831d7f4c4a7",
+                                    "janus1.graphdefined.com IN SSHFP 4 2 ef330ab694d823bbda98fdb738919d85b1f8321f6abe1e84dc3cb7800ceb92ca",
+
+                                    "janus2.graphdefined.com IN SSHFP 1 1 3dc114f332324dea702c03b4480b0767ad4d8f8c",
+                                    "janus2.graphdefined.com IN SSHFP 1 2 99fbf0f159a0e808f78a882c5fe16aae54b1a694798f756a4693d75129ac3790",
+                                    "janus2.graphdefined.com IN SSHFP 3 1 0e3d59626f5276b6524f1ea81adbe83fdd783e6c",
+                                    "janus2.graphdefined.com IN SSHFP 3 2 a07f5c117167eff1def2106115c621e870705489a746c8749057e48a81f4af02",
+                                    "janus2.graphdefined.com IN SSHFP 4 1 2afc5ba8a8a73b734607c77ee106445b6cfadc4f",
+                                    "janus2.graphdefined.com IN SSHFP 4 2 6b267fd4bdb10fe3c976ce5cbda424d8467f419dc3dac1c0e32f0179a2a5f543",
+
+                                    "janus3.graphdefined.com IN SSHFP 1 1 7747434d4324ddfdb0e5a91a137d1b5454ecd52d",
+                                    "janus3.graphdefined.com IN SSHFP 1 2 b487f1b7d8c98e6a548b2e75d1a228bf6d7fa9c4e6765198ac2d3b9ce2a18568",
+                                    "janus3.graphdefined.com IN SSHFP 3 1 bdfc5143dd6d9ed2f3cda5961eec4946830d1c52",
+                                    "janus3.graphdefined.com IN SSHFP 3 2 f7b0a7686e77e5f0d15c89ce0bb985fb1acb7d577eb94b23e6afa9693be34907",
+                                    "janus3.graphdefined.com IN SSHFP 4 1 2304031462f93552d3e54616082457751196d7e8",
+                                    "janus3.graphdefined.com IN SSHFP 4 2 c70035df927fc3c76a0da74cb994b5a18f77d268c02f91b6058321e3f23a7551"
+
+                                };
+
+            foreach (var sshfpRecord in sshfpRecords)
+            {
+
+                Assert.That(
+                    ADNSResourceRecord.TryParseZoneFileString(
+                        sshfpRecord,
+                        out var resourceRecord,
+                        out var errorResponse
+                    ),
+                    Is.True,
+                    errorResponse
+                );
+
+                if (resourceRecord is null)
+                {
+                    Assert.Fail($"Failed to parse the SSHFP record: {sshfpRecord}!");
+                    continue;
+                }
+
+                Assert.That(resourceRecord,                         Is.TypeOf<SSHFP>());
+                //Assert.That(resourceRecord.DomainName.ToString(),   Is.EqualTo("janus1.graphdefined.com."));
+                Assert.That(resourceRecord.Class,                   Is.EqualTo(DNSQueryClasses.IN));
+                Assert.That(resourceRecord.TimeToLive,              Is.EqualTo(TimeSpan.Zero));
+
+                var sshfp = (SSHFP) resourceRecord;
+                Assert.That(sshfp.FingerprintAlgorithm,             Is.Not.EqualTo(default(SSHFP_Algorithm)));
+                Assert.That(sshfp.FingerprintType,                  Is.Not.EqualTo(default(SSHFP_FingerprintType)));
+                Assert.That(sshfp.Fingerprint,                      Is.Not.Null.And.Not.Empty);
+
+            }
+
+        }
+
+        #endregion
+
+        #region Test_TryParseZoneFileString__representative_records()
+
+        [Test]
+        public void Test_TryParseZoneFileString__representative_records()
+        {
+
+            var zoneFileRecords = new (String Text, DNSResourceRecordTypes Type)[] {
+                                      ("example.com. 3600 IN A 192.0.2.1",                                                            DNSResourceRecordTypes.A),
+                                      ("example.com. 3600 IN AAAA 2001:db8::1",                                                       DNSResourceRecordTypes.AAAA),
+                                      ("example.com. IN NS ns1.example.com.",                                                         DNSResourceRecordTypes.NS),
+                                      ("www.example.com. IN CNAME example.com.",                                                      DNSResourceRecordTypes.CNAME),
+                                      ("example.com. IN SOA ns.example.com. hostmaster.example.com. 2026051801 3600 600 86400 3600",  DNSResourceRecordTypes.SOA),
+                                      ("1.2.0.192.in-addr.arpa. IN PTR example.com.",                                                 DNSResourceRecordTypes.PTR),
+                                      ("example.com. IN HINFO \"INTEL\" \"Linux\"",                                                   DNSResourceRecordTypes.HINFO),
+                                      ("example.com. IN MX 10 mail.example.com.",                                                     DNSResourceRecordTypes.MX),
+                                      ("example.com. IN TXT \"hello world\"",                                                         DNSResourceRecordTypes.TXT),
+                                      ("example.com. IN RP admin.example.com. txt.example.com.",                                      DNSResourceRecordTypes.RP),
+                                      ("example.com. IN AFSDB 1 afsdb.example.com.",                                                  DNSResourceRecordTypes.AFSDB),
+                                      ("example.com. IN LOC 52 22 23.000 N 4 53 32.000 E -2.00m 0.00m 10000.00m 10.00m",              DNSResourceRecordTypes.LOC),
+                                      ("example.com. IN NAPTR 100 10 \"u\" \"E2U+sip\" \"!^.*$!sip:info@example.com!\" .",            DNSResourceRecordTypes.NAPTR),
+                                      ("example.com. IN CERT 1 0 5 AQID",                                                             DNSResourceRecordTypes.CERT),
+                                      ("alias.example.com. IN DNAME example.com.",                                                    DNSResourceRecordTypes.DNAME),
+                                      ("example.com. IN DS 12345 13 2 00112233445566778899aabbccddeeff",                              DNSResourceRecordTypes.DS),
+                                      ("example.com. IN SSHFP 1 1 1469679466a193364f3928b7f3b6a15180244ec1",                          DNSResourceRecordTypes.SSHFP),
+                                      ("example.com. IN RRSIG A 13 2 3600 20260518000000 20260418000000 12345 example.com. AQID",     DNSResourceRecordTypes.RRSIG),
+                                      ("example.com. IN NSEC next.example.com. A NS SOA MX TXT AAAA RRSIG NSEC DNSKEY",               DNSResourceRecordTypes.NSEC),
+                                      ("example.com. IN DNSKEY 257 3 13 AQID",                                                        DNSResourceRecordTypes.DNSKEY),
+                                      ("example.com. IN NSEC3 1 0 12 aabb ccdd A NS SOA MX TXT AAAA RRSIG DNSKEY NSEC3PARAM",         DNSResourceRecordTypes.NSEC3),
+                                      ("example.com. IN NSEC3PARAM 1 0 12 aabb",                                                      DNSResourceRecordTypes.NSEC3PARAM),
+                                      ("example.com. IN TLSA 3 1 1 00112233445566778899aabbccddeeff",                                 DNSResourceRecordTypes.TLSA),
+                                      ("example.com. IN SMIMEA 3 1 1 00112233445566778899aabbccddeeff",                               DNSResourceRecordTypes.SMIMEA),
+                                      ("example.com. IN CDS 12345 13 2 00112233445566778899aabbccddeeff",                             DNSResourceRecordTypes.CDS),
+                                      ("example.com. IN CDNSKEY 257 3 13 AQID",                                                       DNSResourceRecordTypes.CDNSKEY),
+                                      ("example.com. IN OPENPGPKEY AQID",                                                             DNSResourceRecordTypes.OPENPGPKEY),
+                                      ("example.com. IN CSYNC 2026051801 3 A NS SOA MX",                                              DNSResourceRecordTypes.CSYNC),
+                                      ("example.com. IN ZONEMD 2026051801 1 1 00112233445566778899aabbccddeeff",                      DNSResourceRecordTypes.ZONEMD),
+                                      ("example.com. IN SVCB 1 svc.example.com. alpn=\"h2,h3\" port=\"443\"",                         DNSResourceRecordTypes.SVCB),
+                                      ("example.com. IN HTTPS 1 . alpn=\"h2,h3\"",                                                    DNSResourceRecordTypes.HTTPS),
+                                      ("example.com. IN SPF \"v=spf1 -all\"",                                                         DNSResourceRecordTypes.SPF),
+                                      ("example.com. IN EUI48 00-11-22-33-44-55",                                                     DNSResourceRecordTypes.EUI48),
+                                      ("example.com. IN EUI64 00-11-22-33-44-55-66-77",                                               DNSResourceRecordTypes.EUI64),
+                                      ("example.com. IN CAA 0 issue \"letsencrypt.org\"",                                             DNSResourceRecordTypes.CAA),
+                                      ("_sip._tcp.example.com. IN SRV 10 5 5060 sip.example.com.",                                    DNSResourceRecordTypes.SRV),
+                                      ("_service._tcp.example.com. IN URI 10 1 \"https://example.com/\"",                             DNSResourceRecordTypes.URI),
+                                      ("key.example.com. IN TKEY hmac-sha256.example.com. 20260518120000 20260518130000 3 0 AQID",    DNSResourceRecordTypes.TKEY),
+                                      ("key.example.com. 0 ANY TSIG hmac-sha256.example.com. 20260518120000 300 AQID 12345 0",        DNSResourceRecordTypes.TSIG)
+                                  };
+
+            foreach (var zoneFileRecord in zoneFileRecords)
+            {
+
+                Assert.That(
+                    ADNSResourceRecord.TryParseZoneFileString(
+                        zoneFileRecord.Text,
+                        out var resourceRecord,
+                        out var errorResponse
+                    ),
+                    Is.True,
+                    $"{zoneFileRecord.Text}: {errorResponse}"
+                );
+
+                Assert.That(resourceRecord,         Is.Not.Null);
+                Assert.That(resourceRecord!.Type,   Is.EqualTo(zoneFileRecord.Type));
+
+            }
+
+        }
+
+        #endregion
+
+
 
 
         // ───────────────── HINFO (RFC 1035) ─────────────────

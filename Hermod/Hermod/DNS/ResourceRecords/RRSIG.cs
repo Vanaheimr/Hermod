@@ -293,16 +293,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 var parts = Data.Split(' ', 9);
                 if (parts.Length < 9) return null;
+
+                if (!TryParseTypeCovered(parts[0], out var typeCovered))
+                    return null;
+
+                if (!TryParseTime(parts[4], out var signatureExpiration) ||
+                    !TryParseTime(parts[5], out var signatureInception))
+                {
+                    return null;
+                }
+
                 var signerName = parts[7].EndsWith('.') ? parts[7] : parts[7] + ".";
                 return new RRSIG(Name, DNSQueryClasses.IN, TimeToLive,
-                                 (DNSResourceRecordTypes) UInt16.Parse(parts[0]),
+                                 typeCovered,
                                  Byte.Parse(parts[1]), Byte.Parse(parts[2]),
-                                 UInt32.Parse(parts[3]), UInt32.Parse(parts[4]), UInt32.Parse(parts[5]),
+                                 UInt32.Parse(parts[3]), signatureExpiration, signatureInception,
                                  UInt16.Parse(parts[6]),
                                  DNS.DomainName.Parse(signerName),
                                  Convert.FromBase64String(parts[8]));
             }
             catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) TryParseTypeCovered(Text, out TypeCovered)
+
+        private static Boolean TryParseTypeCovered(String                       Text,
+                                                   out DNSResourceRecordTypes  TypeCovered)
+        {
+
+            if (Enum.TryParse(Text, true, out TypeCovered) &&
+                Enum.IsDefined(TypeCovered))
+            {
+                return true;
+            }
+
+            if (Text.StartsWith("TYPE", StringComparison.OrdinalIgnoreCase) &&
+                UInt16.TryParse(Text[4..], out var typeId))
+            {
+                TypeCovered = (DNSResourceRecordTypes) typeId;
+                return true;
+            }
+
+            if (UInt16.TryParse(Text, out typeId))
+            {
+                TypeCovered = (DNSResourceRecordTypes) typeId;
+                return true;
+            }
+
+            return false;
+
+        }
+
+        #endregion
+
+        #region (private static) TryParseTime(Text, out UnixTime)
+
+        private static Boolean TryParseTime(String      Text,
+                                            out UInt32  UnixTime)
+        {
+
+            if (UInt32.TryParse(Text, out UnixTime))
+                return true;
+
+            UnixTime = 0;
+
+            if (!DateTimeOffset.TryParseExact(
+                    Text,
+                    "yyyyMMddHHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                    out var timestamp
+                ))
+            {
+                return false;
+            }
+
+            var unixTime = timestamp.ToUnixTimeSeconds();
+            if (unixTime < 0 || unixTime > UInt32.MaxValue)
+                return false;
+
+            UnixTime = (UInt32) unixTime;
+            return true;
+
         }
 
         #endregion

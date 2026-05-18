@@ -294,19 +294,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Name">The owner name of this resource record.</param>
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
-        /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static SSHFP? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static SSHFP? TryParseFromJSON(DomainName  Name,
+                                              TimeSpan    TimeToLive,
+                                              String      Data)
         {
             try
             {
+
                 var parts = Data.Split(' ', 3);
-                if (parts.Length < 3) return null;
-                return new SSHFP(Name, DNSQueryClasses.IN, TimeToLive,
-                                 (SSHFP_Algorithm) Byte.Parse(parts[0]),
-                                 (SSHFP_FingerprintType) Byte.Parse(parts[1]),
-                                 Convert.FromHexString(parts[2].Replace(" ", "")));
+
+                if (parts.Length < 3)
+                    return null;
+
+                return new SSHFP(
+                           Name,
+                           DNSQueryClasses.IN,
+                           TimeToLive,
+                           (SSHFP_Algorithm)       Byte.Parse(parts[0]),
+                           (SSHFP_FingerprintType) Byte.Parse(parts[1]),
+                           Convert.FromHexString(parts[2].Replace(" ", ""))
+                       );
+
             }
-            catch { return null; }
+            catch {
+                return null;
+            }
         }
 
         #endregion

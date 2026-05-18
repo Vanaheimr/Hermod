@@ -32,7 +32,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
     public abstract class ADNSTests
     {
 
+        #region Data
+
         protected IDNSClientWithTransport? client;
+
+        #endregion
 
 
         #region Teardown
@@ -40,9 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         [OneTimeTearDown]
         public void ShutdownTests()
         {
-
             client?.Dispose();
-
         }
 
         #endregion
