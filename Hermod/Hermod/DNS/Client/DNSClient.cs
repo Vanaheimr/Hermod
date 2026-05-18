@@ -57,6 +57,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private readonly ConcurrentDictionary<String, EDNSCookieOption>  cookieStore = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Pooled transport clients for connection-oriented transports (TCP, TLS, HTTPS).
+        /// UDP clients are stateless and created per-query, so they are not pooled here.
+        /// </summary>
+        private readonly ConcurrentDictionary<DNSServerConfig, IDNSClientWithTransport>  transportClients = new();
+
         private Boolean disposedValue;
 
         #endregion
@@ -100,6 +106,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public List<EDNSOption>               EDNSOptions         { get; } = [];
 
         /// <summary>
+        /// Optional EDNS Client Subnet option (RFC 7871).
+        /// When set, the truncated client IP address is automatically included
+        /// in every DNS query to enable geo-aware / CDN-optimized responses.
+        /// Set to null to disable (default).
+        /// </summary>
+        public EDNSClientSubnetOption?  ClientSubnet    { get; set; }
+
+        /// <summary>
         /// Whether to automatically follow CNAME redirects.
         /// When enabled, the DNSClient will chase CNAME chains until
         /// it receives a response containing the originally requested
@@ -114,6 +128,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Default: 8.
         /// </summary>
         public Byte                           MaxCNAMEFollows     { get; set; } = DefaultMaxCNAMEFollows;
+
+        /// <summary>
+        /// The maximum number of retries when a DNS server responds with SERVFAIL.
+        /// Default: 1 (1 initial attempt + 1 retry = 2 total attempts per server).
+        /// </summary>
+        public Byte                           MaxRetries          { get; set; } = 1;
 
         #endregion
 
@@ -405,6 +425,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
+            // RFC 8198: Aggressive NSEC caching — check if the queried name
+            // falls within a known NSEC range, proving non-existence.
+            var zoneName = DNSServiceName.ToString();
+            // Extract zone from name (use last 2+ labels as approximation)
+            var labels = zoneName.Split('.');
+            if (labels.Length > 2)
+                zoneName = String.Join(".", labels[^3..]);
+
+            if (DNSCache.IsNameNegativelyCachedByNSEC(DNSServiceName.ToString(), zoneName))
+                return new DNSInfo(
+                           Origin:                 DNSServers.First(),
+                           QueryId:                0,
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       true,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.NameError,
+                           Answers:                [],
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                effectiveTimeout
+                       );
+
 
             // Build the EDNS options list.
             // Per-server cookies are injected in QueryDNSServerAsync()
@@ -512,6 +557,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                             break;
 
+                        }
+
+                        // RFC 8198: Cache NSEC records from the authority section for aggressive negative caching
+                        if (firstResponse is not null)
+                        {
+                            var nsecRecords = firstResponse.Authorities.OfType<NSEC>().ToList();
+                            if (nsecRecords.Count > 0)
+                            {
+                                var respZone = DNSServiceName.ToString();
+                                var respLabels = respZone.Split('.');
+                                if (respLabels.Length > 2)
+                                    respZone = String.Join(".", respLabels[^3..]);
+
+                                var nsecTTL = firstResponse.Authorities.OfType<SOA>()
+                                                   .Select(soa => soa.TimeToLive)
+                                                   .FirstOrDefault(DNSCache.DefaultNegativeCacheTTL);
+
+                                foreach (var nsec in nsecRecords)
+                                    DNSCache.AddNSECRange(respZone, nsec, nsecTTL);
+                            }
                         }
 
                     }
@@ -689,6 +754,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
+        #region (private) GetOrCreateTransportClient(DNSServer, Timeout)
+
+        /// <summary>
+        /// Get or create the appropriate transport client for the given DNS server configuration.
+        /// UDP clients are stateless and created per-query (caller is responsible for disposal).
+        /// TCP, TLS, and HTTPS clients are connection-oriented and pooled for reuse.
+        /// </summary>
+        private IDNSClientWithTransport GetOrCreateTransportClient(DNSServerConfig  DNSServer,
+                                                                   TimeSpan         Timeout)
+        {
+
+            return DNSServer.Transport switch
+            {
+
+                DNSTransport.UDP =>
+                    new DNSUDPClient(
+                        DNSServer.IPAddress,
+                        DNSServer.Port,
+                        QueryTimeout: Timeout
+                    ),
+
+                DNSTransport.TCP =>
+                    transportClients.GetOrAdd(DNSServer, _ =>
+                        new DNSTCPClient(
+                            DNSServer.IPAddress,
+                            DNSServer.Port,
+                            QueryTimeout: Timeout
+                        )
+                    ),
+
+                DNSTransport.TLS =>
+                    transportClients.GetOrAdd(DNSServer, _ =>
+                        new DNSTLSClient(
+                            DNSServer.IPAddress,
+                            DNSServer.Port,
+                            QueryTimeout: Timeout
+                        )
+                    ),
+
+                DNSTransport.HTTPS or DNSTransport.HTTPS_Binary =>
+                    transportClients.GetOrAdd(DNSServer, _ =>
+                        new DNSHTTPSClient(
+                            DNSServer.IPAddress,
+                            DNSServer.Port,
+                            Mode:         DNSHTTPSMode.POST,
+                            QueryTimeout: Timeout
+                        )
+                    ),
+
+                DNSTransport.HTTPS_JSON =>
+                    transportClients.GetOrAdd(DNSServer, _ =>
+                        new DNSHTTPSClient(
+                            DNSServer.IPAddress,
+                            DNSServer.Port,
+                            Mode:         DNSHTTPSMode.JSON,
+                            QueryTimeout: Timeout
+                        )
+                    ),
+
+                DNSTransport.HTTPS_GET =>
+                    transportClients.GetOrAdd(DNSServer, _ =>
+                        new DNSHTTPSClient(
+                            DNSServer.IPAddress,
+                            DNSServer.Port,
+                            Mode:         DNSHTTPSMode.GET,
+                            QueryTimeout: Timeout
+                        )
+                    ),
+
+                // HTTP variants (unencrypted) — treat like HTTPS for now
+                DNSTransport.HTTP or DNSTransport.HTTP_Binary =>
+                    transportClients.GetOrAdd(DNSServer, _ =>
+                        new DNSHTTPSClient(
+                            DNSServer.IPAddress,
+                            DNSServer.Port,
+                            Mode:         DNSHTTPSMode.POST,
+                            QueryTimeout: Timeout
+                        )
+                    ),
+
+                DNSTransport.HTTP_JSON =>
+                    transportClients.GetOrAdd(DNSServer, _ =>
+                        new DNSHTTPSClient(
+                            DNSServer.IPAddress,
+                            DNSServer.Port,
+                            Mode:         DNSHTTPSMode.JSON,
+                            QueryTimeout: Timeout
+                        )
+                    ),
+
+                _ => new DNSUDPClient(
+                         DNSServer.IPAddress,
+                         DNSServer.Port,
+                         QueryTimeout: Timeout
+                     )
+
+            };
+
+        }
+
+        #endregion
+
         #region (private) QueryDNSServerAsync(DNSServer, DNSQuery, Timeout, CancellationToken)
 
         private async Task<DNSInfo> QueryDNSServerAsync(DNSServerConfig    DNSServer,
@@ -701,59 +868,97 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var serverKey       = DNSServer.IPAddress.ToString();
             var effectiveQuery  = DNSQuery;
 
-            if (cookieStore.TryGetValue(serverKey, out var storedCookie))
-            {
-                var optionsWithCookie = EDNSOptions
-                                            .Where (o => o.Code != (UInt16) EDNSOptionCode.Cookie)
-                                            .Append(storedCookie)
-                                            .ToList();
+            // RFC 7873: Always send a COOKIE option.
+            // If we already have a server cookie, include it; otherwise send a fresh client cookie.
+            if (!cookieStore.TryGetValue(serverKey, out var storedCookie))
+                storedCookie = EDNSCookieOption.CreateInitial();
 
-                effectiveQuery = DNSPacket.Query(
-                                     DNSQuery.Questions.First().DomainName,
-                                     UDPPayloadSize,
-                                     DNSQuery.RecursionDesired,
-                                     optionsWithCookie,
-                                     DNSQuery.Questions.Select(q => q.QueryType).ToArray()
-                                 );
+            var optionsWithCookie = EDNSOptions
+                                        .Where (o => o.Code != (UInt16) EDNSOptionCode.Cookie)
+                                        .Append(storedCookie)
+                                        .ToList();
+
+            // RFC 7871: Include Client Subnet if configured
+            if (ClientSubnet is not null)
+            {
+                optionsWithCookie.RemoveAll(o => o.Code == (UInt16) EDNSOptionCode.ClientSubnet);
+                optionsWithCookie.Add(ClientSubnet);
             }
 
-            // Delegate to DNSUDPClient for the actual UDP transport.
-            using var udpClient = new DNSUDPClient(
-                                      DNSServer.IPAddress,
-                                      DNSServer.Port,
-                                      QueryTimeout: Timeout
-                                  );
+            effectiveQuery = DNSPacket.Query(
+                                 DNSQuery.Questions.First().DomainName,
+                                 UDPPayloadSize,
+                                 DNSQuery.RecursionDesired,
+                                 optionsWithCookie,
+                                 DNSQuery.Questions.Select(q => q.QueryType).ToArray()
+                             );
 
-            // Transfer EDNS options to the transport client
-            if (effectiveQuery != DNSQuery)
+            // Get or create the appropriate transport client based on the server's Transport setting.
+            var transportClient = GetOrCreateTransportClient(DNSServer, Timeout);
+            var isUDP           = DNSServer.Transport == DNSTransport.UDP;
+
+            try
             {
-                // Cookie was injected — the effectiveQuery already contains the right OPT record.
-                // DNSUDPClient.Query will build its own packet, so we need to set its options.
-                udpClient.EDNSOptions.AddRange(
-                    EDNSOptions
-                        .Where(o => o.Code != (UInt16) EDNSOptionCode.Cookie)
-                );
-                if (storedCookie is not null)
-                    udpClient.EDNSOptions.Add(storedCookie);
+
+                // Transfer EDNS options (including cookie) to the transport client.
+                var optionsToSet = optionsWithCookie;
+
+                if (isUDP)
+                {
+                    transportClient.EDNSOptions.AddRange(optionsToSet);
+                }
+                else
+                {
+                    foreach (var option in optionsToSet)
+                    {
+                        var idx = transportClient.EDNSOptions.FindIndex(o => o.Code == option.Code);
+                        if (idx >= 0)
+                            transportClient.EDNSOptions[idx] = option;
+                        else
+                            transportClient.EDNSOptions.Add(option);
+                    }
+                }
+
+                DNSInfo response;
+
+                // Retry logic for SERVFAIL responses
+                var attempts = 0;
+                do
+                {
+
+                    response = await transportClient.Query(
+                                         DNSQuery.Questions.First().DomainName,
+                                         DNSQuery.Questions.Select(q => q.QueryType),
+                                         Timeout,
+                                         DNSQuery.RecursionDesired,
+                                         false,
+                                         CancellationToken
+                                     ).ConfigureAwait(false);
+
+                    // RFC 7873: Extract and store server cookie from response OPT record
+                    ExtractAndStoreCookie(serverKey, response);
+
+                    if (response.ResponseCode != DNSResponseCodes.ServerFailure)
+                        break;
+
+                    attempts++;
+
+                    if (attempts <= MaxRetries)
+                        await Task.Delay(TimeSpan.FromMilliseconds(200), CancellationToken).ConfigureAwait(false);
+
+                }
+                while (attempts <= MaxRetries);
+
+                return response;
+
             }
-            else
+            finally
             {
-                udpClient.EDNSOptions.AddRange(EDNSOptions);
+                // Only dispose UDP clients (they are created per-query and stateless).
+                // Pooled connection-oriented clients (TCP/TLS/HTTPS) are reused.
+                if (isUDP && transportClient is IDisposable disposableClient)
+                    disposableClient.Dispose();
             }
-
-            var response = await udpClient.Query(
-                                     DNSQuery.Questions.First().DomainName,
-                                     DNSQuery.Questions.Select(q => q.QueryType),
-                                     Timeout,
-                                     DNSQuery.RecursionDesired,
-                                     false,
-                                     CancellationToken
-                                 ).ConfigureAwait(false);
-
-            // RFC 7873: Extract and store server cookie from response OPT record
-            ExtractAndStoreCookie(serverKey, response);
-
-            return response;
 
         }
 
@@ -871,7 +1076,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!disposedValue)
             {
                 if (Disposing)
+                {
+
                     DNSCache.Dispose();
+
+                    // Dispose all pooled transport clients (TCP, TLS, HTTPS)
+                    foreach (var kvp in transportClients)
+                    {
+                        if (kvp.Value is IDisposable disposableClient)
+                            disposableClient.Dispose();
+                    }
+
+                    transportClients.Clear();
+
+                }
 
                 disposedValue = true;
             }

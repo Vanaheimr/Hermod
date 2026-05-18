@@ -240,6 +240,136 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (static) TryParseFromJSON(Name, TimeToLive, Data)
+
+        /// <summary>
+        /// Try to parse this resource record from a DNS JSON API "data" field
+        /// (e.g. Google dns.google/resolve or Cloudflare cloudflare-dns.com/dns-query).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="Data">The "data" field value from the JSON response.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static LOC? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+
+                // LOC presentation format:  "52 22 23.000 N 4 53 32.000 E -2.00m 0.00m 10000.00m 10.00m"
+                // Parsing the full presentation format is complex; create a minimal record
+                // preserving the version=0 and default precision values.
+                var parts = Data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 4) return null;
+
+                // Try parsing latitude (d m s.fff N/S)
+                UInt32 latitude  = 1u << 31;  // equator default
+                UInt32 longitude = 1u << 31;  // prime meridian default
+                UInt32 altitude  = 10_000_000; // sea level default (100km base offset in cm)
+
+                var idx = 0;
+
+                // Latitude
+                if (idx < parts.Length && Int32.TryParse(parts[idx], out var latDeg))
+                {
+                    idx++;
+                    var latMin = 0; var latSec = 0.0;
+                    if (idx < parts.Length && Int32.TryParse(parts[idx], out latMin)) idx++;
+                    if (idx < parts.Length && Double.TryParse(parts[idx], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out latSec)) idx++;
+                    var latMs = (Int64) latDeg * 3_600_000 + (Int64) latMin * 60_000 + (Int64) (latSec * 1000);
+                    if (idx < parts.Length)
+                    {
+                        if (parts[idx] == "S" || parts[idx] == "s") latMs = -latMs;
+                        if (parts[idx] == "N" || parts[idx] == "n" || parts[idx] == "S" || parts[idx] == "s") idx++;
+                    }
+                    latitude = (UInt32) (latMs + (1L << 31));
+                }
+
+                // Longitude
+                if (idx < parts.Length && Int32.TryParse(parts[idx], out var lonDeg))
+                {
+                    idx++;
+                    var lonMin = 0; var lonSec = 0.0;
+                    if (idx < parts.Length && Int32.TryParse(parts[idx], out lonMin)) idx++;
+                    if (idx < parts.Length && Double.TryParse(parts[idx], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lonSec)) idx++;
+                    var lonMs = (Int64) lonDeg * 3_600_000 + (Int64) lonMin * 60_000 + (Int64) (lonSec * 1000);
+                    if (idx < parts.Length)
+                    {
+                        if (parts[idx] == "W" || parts[idx] == "w") lonMs = -lonMs;
+                        if (parts[idx] == "E" || parts[idx] == "e" || parts[idx] == "W" || parts[idx] == "w") idx++;
+                    }
+                    longitude = (UInt32) (lonMs + (1L << 31));
+                }
+
+                // Altitude (e.g. "10.00m")
+                if (idx < parts.Length)
+                {
+                    var altStr = parts[idx].TrimEnd('m', 'M');
+                    if (Double.TryParse(altStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var altM))
+                        altitude = (UInt32) ((Int64)(altM * 100) + 10_000_000);
+                }
+
+                return new LOC(Name, DNSQueryClasses.IN, TimeToLive,
+                               0,     // Version
+                               0x12,  // Size (1e2 cm = 1m)
+                               0x16,  // HorizPrecision (1e6 cm = 10km)
+                               0x13,  // VertPrecision (1e3 cm = 10m)
+                               latitude,
+                               longitude,
+                               altitude);
+
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (protected override) ZoneFileRData()
+
+        /// <inheritdoc/>
+        protected override String ZoneFileRData()
+        {
+
+            // Latitude:  stored as unsigned 32-bit, 2^31 = equator
+            var latMilliseconds  = (Int64) Latitude  - (1L << 31);
+            var latNorth         = latMilliseconds >= 0;
+            if (!latNorth)   latMilliseconds = -latMilliseconds;
+            var latDeg           = (Int32) (latMilliseconds / 3_600_000);
+            var latMin           = (Int32) ((latMilliseconds % 3_600_000) / 60_000);
+            var latSecWhole      = (Int32) ((latMilliseconds % 60_000) / 1000);
+            var latSecFrac       = (Int32) (latMilliseconds % 1000);
+
+            // Longitude: stored as unsigned 32-bit, 2^31 = prime meridian
+            var lonMilliseconds  = (Int64) Longitude - (1L << 31);
+            var lonEast          = lonMilliseconds >= 0;
+            if (!lonEast)    lonMilliseconds = -lonMilliseconds;
+            var lonDeg           = (Int32) (lonMilliseconds / 3_600_000);
+            var lonMin           = (Int32) ((lonMilliseconds % 3_600_000) / 60_000);
+            var lonSecWhole      = (Int32) ((lonMilliseconds % 60_000) / 1000);
+            var lonSecFrac       = (Int32) (lonMilliseconds % 1000);
+
+            // Altitude: stored as unsigned 32-bit centimeters from -100000.00m reference
+            var altCm            = (Int64) Altitude - 10_000_000;
+            var altM             = altCm / 100.0;
+
+            // Size, horizontal precision, vertical precision: encoded as Mantissa*10^Exponent (centimeters)
+            static String DecodePrecision(Byte encoded)
+            {
+                var mantissa = (encoded >> 4) & 0x0F;
+                var exponent = encoded & 0x0F;
+                var cm       = mantissa * Math.Pow(10, exponent);
+                return (cm / 100.0).ToString("0.##") + "m";
+            }
+
+            var latStr  = $"{latDeg} {latMin} {latSecWhole}.{latSecFrac:D3} {(latNorth ? "N" : "S")}";
+            var lonStr  = $"{lonDeg} {lonMin} {lonSecWhole}.{lonSecFrac:D3} {(lonEast  ? "E" : "W")}";
+            var altStr  = $"{altM:0.##}m";
+
+            return $"{latStr} {lonStr} {altStr} {DecodePrecision(Size)} {DecodePrecision(HorizPrecision)} {DecodePrecision(VertPrecision)}";
+
+        }
+
+        #endregion
+
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
 
         /// <summary>

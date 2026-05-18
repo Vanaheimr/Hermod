@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Parse   (Text)
+        #region Parse    (Text)
 
         /// <summary>
         /// Parse the given text as DNS service.
@@ -129,7 +129,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region TryParse(Text, out DNSService, out ErrorResponse)
+        #region TryParse (Text)
+
+        /// <summary>
+        /// Try to parse the given text as DNS service.
+        /// </summary>
+        /// <param name="Text">The text representation of a DNS service.</param>
+        public static DNSServiceName? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var dnsServiceName, out _))
+                return dnsServiceName;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryParse (Text, out DNSService, out ErrorResponse)
 
         /// <summary>
         /// Parse the given string as a DNS service (RFC 1035).

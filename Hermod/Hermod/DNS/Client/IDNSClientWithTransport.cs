@@ -75,6 +75,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         TimeSpan     SendTimeout               { get; }
         UInt32       BufferSize                { get; }
 
+
+        /// <summary>
+        /// Optional EDNS0 options to include in every DNS query
+        /// (e.g. Cookie, Client Subnet, Padding, Keepalive, Extended DNS Error).
+        /// </summary>
+        List<EDNSOption>  EDNSOptions           { get; }
+
     }
 
 }

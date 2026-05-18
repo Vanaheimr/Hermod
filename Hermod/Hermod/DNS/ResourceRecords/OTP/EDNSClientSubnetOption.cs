@@ -37,6 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     ///   +4 (variable) ADDRESS       — ceiling(SOURCE PREFIX-LENGTH / 8) bytes,
     ///                                  right-padded with zeroes to the byte boundary
     /// </summary>
+    /// <remarks>See RFC 7871 for the EDNS Client Subnet specification.</remarks>
     public class EDNSClientSubnetOption : EDNSOption
     {
 

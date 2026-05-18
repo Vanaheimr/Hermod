@@ -187,6 +187,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (static) TryParseFromJSON(Name, TimeToLive, Data)
+
+        /// <summary>
+        /// Try to parse this resource record from a DNS JSON API "data" field
+        /// (e.g. Google dns.google/resolve or Cloudflare cloudflare-dns.com/dns-query).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="Data">The "data" field value from the JSON response.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static CSYNC? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 3);
+                if (parts.Length < 2) return null;
+                return new CSYNC(Name, DNSQueryClasses.IN, TimeToLive,
+                                 UInt32.Parse(parts[0]),
+                                 UInt16.Parse(parts[1]),
+                                 []);
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (protected override) ZoneFileRData()
+
+        /// <inheritdoc/>
+        protected override String ZoneFileRData()
+            => $"{SOASerial} {Flags} {DecodeTypeBitMaps(TypeBitMaps)}";
+
+        #endregion
+
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
 
         /// <summary>

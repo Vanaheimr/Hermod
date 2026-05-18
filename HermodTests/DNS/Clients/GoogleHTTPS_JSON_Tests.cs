@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -23,22 +23,28 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
     /// <summary>
-    /// Some Google DNS UDP tests.
+    /// Some Google DNS HTTPS JSON tests.
     /// </summary>
     [TestFixture]
-    public class GoogleUDP_Tests : ADNSTests
+    public class GoogleHTTPS_JSON_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            // IPv6 seems to be broken sometimes!
-            client = DNSUDPClient.Google_Random_IPv4();
+            client  = DNSHTTPSClient.Google(
+                          Mode:                         DNSHTTPSMode.JSON,
+                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                          DNSClient:                    new DNSClient(
+                                                            SearchForIPv4DNSServers: true,
+                                                            SearchForIPv6DNSServers: false
+                                                        )
+                      );
 
         }
 

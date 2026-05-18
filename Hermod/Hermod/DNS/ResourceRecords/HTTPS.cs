@@ -346,6 +346,119 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (static) TryParseFromJSON(Name, TimeToLive, Data)
+
+        /// <summary>
+        /// Try to parse this resource record from a DNS JSON API "data" field
+        /// (e.g. Google dns.google/resolve or Cloudflare cloudflare-dns.com/dns-query).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="Data">The "data" field value from the JSON response.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static HTTPS? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+
+                // Presentation format: "1 . alpn="h2,h3" ipv4hint=1.2.3.4"
+                var parts = Data.Split(' ', 3);
+                if (parts.Length < 2) return null;
+
+                var priority   = UInt16.Parse(parts[0]);
+                var targetStr  = parts[1].TrimEnd('.');
+                if (targetStr.Length == 0 || targetStr == ".") targetStr = ".";
+                else if (!targetStr.EndsWith('.')) targetStr += ".";
+
+                var targetName = DNS.DomainName.Parse(targetStr);
+                var svcParams  = new List<SVCParameter>();
+
+                if (parts.Length > 2)
+                {
+                    var remaining = parts[2];
+                    foreach (var token in SplitSVCParams(remaining))
+                    {
+                        var eqIdx   = token.IndexOf('=');
+                        var keyName = eqIdx >= 0 ? token[..eqIdx] : token;
+                        var value   = eqIdx >= 0 ? token[(eqIdx + 1)..].Trim('"') : "";
+
+                        var key = TryParseSVCParamKey(keyName);
+                        if (key is not null)
+                            svcParams.Add(new SVCParameter(key.Value, Encoding.ASCII.GetBytes(value)));
+                    }
+                }
+
+                return new HTTPS(Name, DNSQueryClasses.IN, TimeToLive,
+                                 priority, targetName, svcParams);
+
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (private static) TryParseSVCParamKey(KeyName)
+
+        private static UInt16? TryParseSVCParamKey(String KeyName)
+
+            => KeyName.ToLowerInvariant() switch {
+                   "mandatory"        => 0,
+                   "alpn"             => 1,
+                   "no-default-alpn"  => 2,
+                   "port"             => 3,
+                   "ipv4hint"         => 4,
+                   "ech"              => 5,
+                   "ipv6hint"         => 6,
+                   _ when KeyName.StartsWith("key", StringComparison.OrdinalIgnoreCase) &&
+                          UInt16.TryParse(KeyName[3..], out var keyNum)
+                       => keyNum,
+                   _   => null
+               };
+
+        #endregion
+
+        #region (private static) SplitSVCParams(Input)
+
+        /// <summary>
+        /// Split SVC parameter tokens respecting quoted values.
+        /// </summary>
+        private static IEnumerable<String> SplitSVCParams(String Input)
+        {
+
+            var start   = 0;
+            var inQuote = false;
+
+            for (var i = 0; i < Input.Length; i++)
+            {
+
+                if (Input[i] == '"' && (i == 0 || Input[i - 1] != '\\'))
+                    inQuote = !inQuote;
+
+                else if (Input[i] == ' ' && !inQuote)
+                {
+                    if (i > start)
+                        yield return Input[start..i];
+                    start = i + 1;
+                }
+
+            }
+
+            if (start < Input.Length)
+                yield return Input[start..];
+
+        }
+
+        #endregion
+
+
+        #region (protected override) ZoneFileRData()
+
+        /// <inheritdoc/>
+        protected override String ZoneFileRData()
+            => BuildPresentation(Priority, TargetName, SVCParameters);
+
+        #endregion
+
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
 
         /// <summary>

@@ -67,7 +67,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// DNS-over-HTTPS (DoH) with JSON payloads.
         /// </summary>
-        HTTPS_JSON
+        HTTPS_JSON,
+
+        /// <summary>
+        /// DNS-over-HTTPS (DoH) using HTTP GET with base64url-encoded query (RFC 8484 Section 4.1).
+        /// </summary>
+        HTTPS_GET
 
     }
 

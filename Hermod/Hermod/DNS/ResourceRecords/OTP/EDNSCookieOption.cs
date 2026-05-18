@@ -33,6 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     ///   Client Cookie:  8 bytes  (always present)
     ///   Server Cookie:  8-32 bytes (present in responses, absent in first query)
     /// </summary>
+    /// <remarks>See RFC 7873 for the DNS Cookies specification.</remarks>
     public class EDNSCookieOption : EDNSOption
     {
 
@@ -92,6 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new EDNS COOKIE option with a randomly generated client cookie
         /// and no server cookie (initial query).
         /// </summary>
+        /// <remarks>The client cookie is generated using a cryptographically secure random number generator (RFC 7873 Section 4).</remarks>
         public static EDNSCookieOption CreateInitial()
         {
 

@@ -27,7 +27,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
     /// <summary>
@@ -87,13 +87,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
-            Assert.ThrowsAsync<OperationCanceledException>(
+            Assert.That(
                 async () => await client.Query<A>(
                                 DomainName.Parse("canceled.example"),
                                 Timeout:            TimeSpan.FromSeconds(5),
                                 BypassCache:        true,
                                 CancellationToken:  cts.Token
-                            )
+                            ),
+                Throws.InstanceOf<OperationCanceledException>()
             );
 
         }

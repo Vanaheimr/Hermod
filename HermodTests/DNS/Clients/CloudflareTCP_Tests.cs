@@ -23,7 +23,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
     // https://datatracker.ietf.org/doc/html/rfc1035#section-4.2.2

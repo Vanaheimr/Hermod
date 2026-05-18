@@ -246,6 +246,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (static) TryParseFromJSON(Name, TimeToLive, Data)
+
+        /// <summary>
+        /// Try to parse this resource record from a DNS JSON API "data" field
+        /// (e.g. Google dns.google/resolve or Cloudflare cloudflare-dns.com/dns-query).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="Data">The "data" field value from the JSON response.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static SOA? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ');
+                return new SOA(Name, DNSQueryClasses.IN, TimeToLive,
+                               DNS.DomainName.Parse(parts[0].EndsWith('.') ? parts[0] : parts[0] + "."),
+                               SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(parts[1].TrimEnd('.'))),
+                               UInt32.Parse(parts[2]),
+                               TimeSpan.FromSeconds(UInt32.Parse(parts[3])),
+                               TimeSpan.FromSeconds(UInt32.Parse(parts[4])),
+                               TimeSpan.FromSeconds(UInt32.Parse(parts[5])),
+                               TimeSpan.FromSeconds(UInt32.Parse(parts[6])));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (protected override) ZoneFileRData()
+
+        /// <inheritdoc/>
+        protected override String ZoneFileRData()
+            => $"{Server} {EMail.ToString().Replace("@", ".")}. {Serial} {(Int32) Refresh.TotalSeconds} {(Int32) Retry.TotalSeconds} {(Int32) Expire.TotalSeconds} {(Int32) Minimum.TotalSeconds}";
+
+        #endregion
+
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
 
         /// <summary>

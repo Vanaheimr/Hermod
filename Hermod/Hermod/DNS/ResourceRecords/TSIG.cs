@@ -263,6 +263,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (protected override) ZoneFileRData()
+
+        /// <inheritdoc/>
+        protected override String ZoneFileRData()
+        {
+            var timeSignedStr = DateTimeOffset.FromUnixTimeSeconds((Int64) TimeSigned).UtcDateTime.ToString("yyyyMMddHHmmss");
+            return $"{AlgorithmName} {timeSignedStr} {Fudge} {Convert.ToBase64String(MAC)} {OriginalID} {Error}";
+        }
+
+        #endregion
+
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
 
         /// <summary>

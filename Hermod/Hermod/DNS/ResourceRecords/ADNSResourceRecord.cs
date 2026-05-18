@@ -190,6 +190,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
+        #region ToZoneFileString()
+
+        /// <summary>
+        /// Return the standard BIND zone-file representation of this resource record.
+        /// Format: &lt;name&gt; &lt;TTL&gt; &lt;class&gt; &lt;type&gt; &lt;rdata&gt;
+        /// </summary>
+        public virtual String ToZoneFileString()
+            => $"{DomainName,-24} {(Int32) TimeToLive.TotalSeconds,-7} {Class,-4} {Type,-10} {ZoneFileRData()}";
+
+        /// <summary>
+        /// Return the RDATA portion of this resource record in zone-file presentation format.
+        /// </summary>
+        protected abstract String ZoneFileRData();
+
+        /// <summary>
+        /// Decode a DNS type bit map (RFC 4034 Section 4.1.2) into a space-separated string of type names.
+        /// Used by NSEC, NSEC3, and CSYNC zone-file representations.
+        /// </summary>
+        /// <param name="TypeBitMaps">The raw type bit map bytes.</param>
+        protected static String DecodeTypeBitMaps(Byte[] TypeBitMaps)
+        {
+
+            var types  = new List<String>();
+            var offset = 0;
+
+            while (offset < TypeBitMaps.Length)
+            {
+
+                if (offset + 2 > TypeBitMaps.Length)
+                    break;
+
+                var windowBlock  = TypeBitMaps[offset];
+                var bitmapLength = TypeBitMaps[offset + 1];
+                offset += 2;
+
+                if (offset + bitmapLength > TypeBitMaps.Length)
+                    break;
+
+                for (var i = 0; i < bitmapLength; i++)
+                {
+                    var octet = TypeBitMaps[offset + i];
+                    for (var bit = 0; bit < 8; bit++)
+                    {
+                        if ((octet & (0x80 >> bit)) != 0)
+                        {
+                            var typeNumber = windowBlock * 256 + i * 8 + bit;
+                            var rrType     = (DNSResourceRecordTypes) typeNumber;
+                            types.Add(Enum.IsDefined(rrType) ? rrType.ToString() : $"TYPE{typeNumber}");
+                        }
+                    }
+                }
+
+                offset += bitmapLength;
+
+            }
+
+            return String.Join(" ", types);
+
+        }
+
+        #endregion
+
         #region (protected abstract) serializeRRData(Stream)
 
         /// <summary>

@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Parse   (Text)
+        #region Parse    (Text)
 
         /// <summary>
         /// Parse the given text as domain name.
@@ -222,7 +222,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region TryParse(Text, out DomainName, out ErrorResponse)
+        #region TryParse (Text)
+
+        /// <summary>
+        /// Try to parse the given text as domain name.
+        /// </summary>
+        /// <param name="Text">The text representation of a domain name.</param>
+        public static DomainName? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var domainName, out var errorResponse))
+                return domainName;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryParse (Text, out DomainName, out ErrorResponse)
 
         /// <summary>
         /// Parse the given string as a domain name (RFC 1035).

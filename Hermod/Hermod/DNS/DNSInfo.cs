@@ -150,6 +150,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public TimeSpan                         Timeout               { get; }
 
+
+        /// <summary>
+        /// The DNSSEC validation status of this DNS response.
+        /// Set after calling DNSSECValidator.ValidateAsync().
+        /// </summary>
+        public DNSSECValidationResult?          DNSSECStatus          { get; set; }
+
         #endregion
 
         #region Constructor(s)

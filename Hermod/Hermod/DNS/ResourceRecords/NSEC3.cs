@@ -240,6 +240,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (static) TryParseFromJSON(Name, TimeToLive, Data)
+
+        /// <summary>
+        /// Try to parse this resource record from a DNS JSON API "data" field
+        /// (e.g. Google dns.google/resolve or Cloudflare cloudflare-dns.com/dns-query).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="Data">The "data" field value from the JSON response.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static NSEC3? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 6);
+                if (parts.Length < 5) return null;
+                var salt = parts[3] == "-" ? Array.Empty<Byte>() : Convert.FromHexString(parts[3]);
+                var nextHash = Convert.FromHexString(parts[4]);
+                return new NSEC3(Name, DNSQueryClasses.IN, TimeToLive,
+                                 Byte.Parse(parts[0]), Byte.Parse(parts[1]), UInt16.Parse(parts[2]),
+                                 salt, nextHash, []);
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (protected override) ZoneFileRData()
+
+        /// <inheritdoc/>
+        protected override String ZoneFileRData()
+        {
+            var saltHex     = Salt.Length > 0 ? Convert.ToHexString(Salt).ToLowerInvariant() : "-";
+            var nextHashB32 = Convert.ToHexString(NextHashedOwnerName).ToLowerInvariant();
+            return $"{HashAlgorithm} {Flags} {Iterations} {saltHex} {nextHashB32} {DecodeTypeBitMaps(TypeBitMaps)}";
+        }
+
+        #endregion
+
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
 
         /// <summary>

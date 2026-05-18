@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,36 +19,39 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
-    // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/
+    // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-tls/
+    // one.one.one.one
 
-    // => https://dns.cloudflare.com/dns-query
+    // https://dnscrypt.info
+
+    // https://developers.cloudflare.com/1.1.1.1/infrastructure/extended-dns-error-codes/
 
     /// <summary>
-    /// Some Cloudflare DNS HTTPS JSON tests.
+    /// Some Cloudflare DNS TLS tests.
     /// </summary>
     [TestFixture]
-    public class CloudflareHTTPS_JSON_Tests : ADNSTests
+    public class CloudflareTLS_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client  = DNSHTTPSClient.Cloudflare_DNSName(
-                          Mode:                         DNSHTTPSMode.JSON,
-                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
-                          DNSClient:                    new DNSClient(
-                                                            SearchForIPv4DNSServers: true,
-                                                            SearchForIPv6DNSServers: false
-                                                        )
-                      );
+            client = DNSTLSClient.Cloudflare_DNSName(
+                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                         DNSClient:                    new DNSClient(
+                                                           SearchForIPv4DNSServers: true,
+                                                           SearchForIPv6DNSServers: false
+                                                       )
+                     );
 
         }
 

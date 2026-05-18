@@ -17,11 +17,11 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
 using System.Buffers;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Threading;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -512,7 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                RecursionDesired:      false,
                                RecursionAvailable:    true,
                                ResponseCode:          DNSResponseCodes.NoError,
-                               AnswerRRs:             new IDNSResourceRecord[] {
+                               AnswerRRs:             [
                                                           new A(
                                                               DomainName.Parse("api1.example.org."),
                                                               DNSQueryClasses.IN,
@@ -549,9 +549,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                               "Hello world!"
                                                           )
 
-                                                      },
-                               AuthorityRRs:          new IDNSResourceRecord[] { },
-                               AdditionalRRs:         new IDNSResourceRecord[] { }
+                                                      ],
+                               AuthorityRRs:          [],
+                               AdditionalRRs:         []
                            );
 
             return response;

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,32 +19,32 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
     /// <summary>
-    /// Some Google DNS HTTPS JSON tests.
+    /// Some Google DNS TLS tests.
     /// </summary>
     [TestFixture]
-    public class GoogleHTTPS_JSON_Tests : ADNSTests
+    public class GoogleTLS_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client  = DNSHTTPSClient.Google(
-                          Mode:                         DNSHTTPSMode.JSON,
-                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
-                          DNSClient:                    new DNSClient(
-                                                            SearchForIPv4DNSServers: true,
-                                                            SearchForIPv6DNSServers: false
-                                                        )
-                      );
+            client = DNSTLSClient.Google_Random(
+                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS
+                         //DNSClient:                    new DNSClient(
+                         //                                  SearchForIPv4DNSServers: true,
+                         //                                  SearchForIPv6DNSServers: false
+                         //                              )
+                     );
 
         }
 

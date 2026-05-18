@@ -247,6 +247,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (static) TryParseFromJSON(Name, TimeToLive, Data)
+
+        /// <summary>
+        /// Try to parse this resource record from a DNS JSON API "data" field
+        /// (e.g. Google dns.google/resolve or Cloudflare cloudflare-dns.com/dns-query).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="Data">The "data" field value from the JSON response.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static TLSA? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        {
+            try
+            {
+                var parts = Data.Split(' ', 4);
+                if (parts.Length < 4) return null;
+                return new TLSA(Name, DNSQueryClasses.IN, TimeToLive,
+                                Byte.Parse(parts[0]), Byte.Parse(parts[1]), Byte.Parse(parts[2]),
+                                Convert.FromHexString(parts[3].Replace(" ", "")));
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (protected override) ZoneFileRData()
+
+        /// <inheritdoc/>
+        protected override String ZoneFileRData()
+            => $"{CertificateUsage} {Selector} {MatchingType} {Convert.ToHexString(CertificateAssociationData).ToLowerInvariant()}";
+
+        #endregion
+
         #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
 
         /// <summary>

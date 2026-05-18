@@ -23,22 +23,26 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
+    // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/
+
+    // => https://dns.cloudflare.com/dns-query
+
     /// <summary>
-    /// Some Google DNS HTTPS POST tests.
+    /// Some Cloudflare DNS HTTPS GET tests.
     /// </summary>
     [TestFixture]
-    public class GoogleHTTPS_POST_Tests : ADNSTests
+    public class CloudflareHTTPS_GET_Tests2 : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client  = DNSHTTPSClient.Google(
-                          Mode:                         DNSHTTPSMode.POST,
+            client  = DNSHTTPSClient.Cloudflare_DNSName(
+                          Mode:                         DNSHTTPSMode.GET,
                           RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
                           DNSClient:                    new DNSClient(
                                                             SearchForIPv4DNSServers: true,

@@ -41,6 +41,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly Object                                               cleanUpLock    = new();
 
         /// <summary>
+        /// Cached NSEC records for aggressive negative caching (RFC 8198).
+        /// Key: zone name (e.g. "example.com."), Value: list of NSEC records with expiry.
+        /// </summary>
+        private readonly ConcurrentDictionary<String, List<(NSEC Record, DateTimeOffset Expiry)>> nsecRangeCache = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// The default interval for removing outdated entries from the DNS cache.
         /// </summary>
         public static readonly TimeSpan  DefaultCleanUpEvery       = TimeSpan.FromSeconds(10);
@@ -557,6 +563,97 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region AddNSECRange(ZoneName, NSECRecord, TTL)
+
+        /// <summary>
+        /// Cache an NSEC record's range for aggressive negative caching (RFC 8198).
+        /// This allows synthesizing NXDOMAIN responses for names that fall
+        /// within a proven non-existence range without querying the wire.
+        /// </summary>
+        /// <param name="ZoneName">The zone this NSEC record belongs to.</param>
+        /// <param name="NSECRecord">The NSEC record defining the range.</param>
+        /// <param name="TTL">The TTL for this cached range.</param>
+        public void AddNSECRange(String    ZoneName,
+                                 NSEC      NSECRecord,
+                                 TimeSpan  TTL)
+        {
+
+            var entry  = (NSECRecord, Expiry: Timestamp.Now + TTL);
+
+            nsecRangeCache.AddOrUpdate(
+                ZoneName,
+                _ => [entry],
+                (_, existing) =>
+                {
+                    // Remove expired entries and duplicates, then add the new one
+                    var now = Timestamp.Now;
+                    existing.RemoveAll(e => e.Expiry <= now ||
+                                            e.Record.DomainName.FullName.Equals(NSECRecord.DomainName.FullName, StringComparison.OrdinalIgnoreCase));
+                    existing.Add(entry);
+                    return existing;
+                }
+            );
+
+        }
+
+        #endregion
+
+        #region IsNameNegativelyCachedByNSEC(DomainName, ZoneName)
+
+        /// <summary>
+        /// Check if a domain name falls within a cached NSEC range,
+        /// proving its non-existence without a network query (RFC 8198).
+        /// Uses canonical DNS name ordering (RFC 4034 Section 6.1).
+        /// </summary>
+        /// <param name="DomainName">The domain name to check.</param>
+        /// <param name="ZoneName">The zone to check NSEC ranges for.</param>
+        /// <returns>True if the name is proven non-existent by a cached NSEC range.</returns>
+        public Boolean IsNameNegativelyCachedByNSEC(String  DomainName,
+                                                    String  ZoneName)
+        {
+
+            if (!nsecRangeCache.TryGetValue(ZoneName, out var ranges))
+                return false;
+
+            var now       = Timestamp.Now;
+            var queryName = DomainName.ToLowerInvariant();
+
+            foreach (var (record, expiry) in ranges)
+            {
+
+                if (expiry <= now)
+                    continue;
+
+                var ownerName = record.DomainName.FullName.ToLowerInvariant();
+                var nextName  = record.NextDomainName.FullName.ToLowerInvariant();
+
+                // RFC 4034 Section 6.1: Canonical DNS Name Order
+                // A name is proven non-existent if: owner < name < next
+                // Special case: if next <= owner, the range wraps around (last NSEC in zone)
+                if (String.Compare(nextName, ownerName, StringComparison.Ordinal) > 0)
+                {
+                    // Normal range: owner < name < next
+                    if (String.Compare(queryName, ownerName, StringComparison.Ordinal) > 0 &&
+                        String.Compare(queryName, nextName,  StringComparison.Ordinal) < 0)
+                        return true;
+                }
+                else
+                {
+                    // Wrap-around range (last NSEC): name > owner OR name < next
+                    if (String.Compare(queryName, ownerName, StringComparison.Ordinal) > 0 ||
+                        String.Compare(queryName, nextName,  StringComparison.Ordinal) < 0)
+                        return true;
+                }
+
+            }
+
+            return false;
+
+        }
+
+        #endregion
+
+
         #region (private, Timer) RemoveExpiredCacheEntries(State)
 
         private void RemoveExpiredCacheEntries(Object? State)
@@ -592,6 +689,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     foreach (var expiredNoDataEntry in expiredNoDataEntries)
                     {
                         noDataCache.TryRemove(expiredNoDataEntry.Key, out _);
+                    }
+
+                    // Clean up expired NSEC range entries
+                    foreach (var kvp in nsecRangeCache)
+                    {
+                        kvp.Value.RemoveAll(e => e.Expiry < now);
+                        if (kvp.Value.Count == 0)
+                            nsecRangeCache.TryRemove(kvp.Key, out _);
                     }
 
                 }

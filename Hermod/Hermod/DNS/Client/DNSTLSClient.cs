@@ -488,10 +488,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSTLSClient Google_Random(Boolean?                                                    RecursionDesired             = null,
                                                  TimeSpan?                                                   QueryTimeout                 = null,
                                                  RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator   = null)
-
-            => Google_All(RecursionDesired, QueryTimeout, RemoteCertificateValidator).
-                     Skip(Random.Shared.Next(0, 4)).
-                    First();
+        {
+            var all = Google_All(RecursionDesired, QueryTimeout, RemoteCertificateValidator).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Google IPv4 DNS servers.
@@ -502,10 +502,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSTLSClient Google_Random_IPv4(Boolean?                                                    RecursionDesired             = null,
                                                       TimeSpan?                                                   QueryTimeout                 = null,
                                                       RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator   = null)
-
-            => Google_All_IPv4(RecursionDesired, QueryTimeout, RemoteCertificateValidator).
-                          Skip(Random.Shared.Next(0, 2)).
-                         First();
+        {
+            var all = Google_All_IPv4(RecursionDesired, QueryTimeout, RemoteCertificateValidator).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Google IPv6 DNS servers.
@@ -519,10 +519,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSTLSClient Google_Random_IPv6(Boolean?                                                    RecursionDesired             = null,
                                                       TimeSpan?                                                   QueryTimeout                 = null,
                                                       RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator   = null)
-
-            => Google_All_IPv6(RecursionDesired, QueryTimeout, RemoteCertificateValidator).
-                          Skip(Random.Shared.Next(0, 2)).
-                         First();
+        {
+            var all = Google_All_IPv6(RecursionDesired, QueryTimeout, RemoteCertificateValidator).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
 
         /// <summary>
@@ -669,10 +669,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSTLSClient Cloudflare_Random(Boolean?                                                    RecursionDesired             = null,
                                                      TimeSpan?                                                   QueryTimeout                 = null,
                                                      RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator   = null)
-
-            => Cloudflare_All(RecursionDesired, QueryTimeout, RemoteCertificateValidator).
-                         Skip(Random.Shared.Next(0, 8)).
-                        First();
+        {
+            var all = Cloudflare_All(RecursionDesired, QueryTimeout, RemoteCertificateValidator).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Cloudflare IPv4 DNS servers.
@@ -683,10 +683,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSTLSClient Cloudflare_Random_IPv4(Boolean?                                                    RecursionDesired             = null,
                                                           TimeSpan?                                                   QueryTimeout                 = null,
                                                           RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator   = null)
-
-            => Cloudflare_All_IPv4(RecursionDesired, QueryTimeout, RemoteCertificateValidator).
-                              Skip(Random.Shared.Next(0, 4)).
-                             First();
+        {
+            var all = Cloudflare_All_IPv4(RecursionDesired, QueryTimeout, RemoteCertificateValidator).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
         /// <summary>
         /// Randomly select one of the Cloudflare IPv6 DNS servers.
@@ -700,10 +700,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSTLSClient Cloudflare_Random_IPv6(Boolean?                                                    RecursionDesired             = null,
                                                           TimeSpan?                                                   QueryTimeout                 = null,
                                                           RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator   = null)
-
-            => Cloudflare_All_IPv6(RecursionDesired, QueryTimeout, RemoteCertificateValidator).
-                              Skip(Random.Shared.Next(0, 4)).
-                             First();
+        {
+            var all = Cloudflare_All_IPv6(RecursionDesired, QueryTimeout, RemoteCertificateValidator).ToList();
+            return all[Random.Shared.Next(all.Count)];
+        }
 
 
         /// <summary>

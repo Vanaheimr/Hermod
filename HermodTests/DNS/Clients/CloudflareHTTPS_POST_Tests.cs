@@ -23,7 +23,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
     // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/
@@ -31,10 +31,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
     // => https://dns.cloudflare.com/dns-query
 
     /// <summary>
-    /// Some Cloudflare DNS HTTPS GET tests.
+    /// Some Cloudflare DNS HTTPS POST tests.
     /// </summary>
     [TestFixture]
-    public class CloudflareHTTPS_GET_Tests2 : ADNSTests
+    public class CloudflareHTTPS_POST_Tests2 : ADNSTests
     {
 
         [OneTimeSetUp]
@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         {
 
             client  = DNSHTTPSClient.Cloudflare_DNSName(
-                          Mode:                         DNSHTTPSMode.GET,
+                          Mode:                         DNSHTTPSMode.POST,
                           RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
                           DNSClient:                    new DNSClient(
                                                             SearchForIPv4DNSServers: true,
