@@ -23,23 +23,23 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
 {
 
+    // https://datatracker.ietf.org/doc/html/rfc1035#section-4.2.2
+    // 1.1.1.1:853
+
     /// <summary>
-    /// Some Google DNS UDP tests.
+    /// Some Cloudflare DNS TCP tests.
     /// </summary>
     [TestFixture]
-    public class GoogleUDP_Tests : ADNSTests
+    public class CloudflareTCP_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
-
-            // IPv6 seems to be broken sometimes!
-            client = DNSUDPClient.Google_Random_IPv4();
-
+            client = DNSTCPClient.Cloudflare_Random();
         }
 
     }

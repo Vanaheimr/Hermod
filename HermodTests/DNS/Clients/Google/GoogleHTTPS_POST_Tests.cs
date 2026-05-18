@@ -23,22 +23,29 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
 {
 
-    // ARSoft.Tools.Net
-
     /// <summary>
-    /// Some Google DNS TCP tests.
+    /// Some Google DNS HTTPS POST tests.
     /// </summary>
     [TestFixture]
-    public class GoogleTCP_Tests : ADNSTests
+    public class GoogleHTTPS_POST_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
-            client = DNSTCPClient.Google_Random();
+
+            client  = DNSHTTPSClient.Google(
+                          Mode:                         DNSHTTPSMode.POST,
+                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                          DNSClient:                    new DNSClient(
+                                                            SearchForIPv4DNSServers: true,
+                                                            SearchForIPv6DNSServers: false
+                                                        )
+                      );
+
         }
 
     }

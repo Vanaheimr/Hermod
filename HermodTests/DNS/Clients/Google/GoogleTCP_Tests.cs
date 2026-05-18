@@ -19,33 +19,26 @@
 
 using NUnit.Framework;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
 {
 
+    // ARSoft.Tools.Net
+
     /// <summary>
-    /// Some Google DNS TLS tests.
+    /// Some Google DNS TCP tests.
     /// </summary>
     [TestFixture]
-    public class GoogleTLS_Tests : ADNSTests
+    public class GoogleTCP_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
-
-            client = DNSTLSClient.Google_Random(
-                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS
-                         //DNSClient:                    new DNSClient(
-                         //                                  SearchForIPv4DNSServers: true,
-                         //                                  SearchForIPv6DNSServers: false
-                         //                              )
-                     );
-
+            client = DNSTCPClient.Google_Random();
         }
 
     }

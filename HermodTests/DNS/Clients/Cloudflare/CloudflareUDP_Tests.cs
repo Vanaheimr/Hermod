@@ -23,7 +23,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
 {
 
     /// <summary>

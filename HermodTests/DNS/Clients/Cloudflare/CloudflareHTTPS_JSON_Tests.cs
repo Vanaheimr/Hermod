@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -23,22 +23,26 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
 {
 
+    // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/
+
+    // => https://dns.cloudflare.com/dns-query
+
     /// <summary>
-    /// Some Google DNS HTTPS POST tests.
+    /// Some Cloudflare DNS HTTPS JSON tests.
     /// </summary>
     [TestFixture]
-    public class GoogleHTTPS_POST_Tests : ADNSTests
+    public class CloudflareHTTPS_JSON_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client  = DNSHTTPSClient.Google(
-                          Mode:                         DNSHTTPSMode.POST,
+            client  = DNSHTTPSClient.Cloudflare_DNSName(
+                          Mode:                         DNSHTTPSMode.JSON,
                           RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
                           DNSClient:                    new DNSClient(
                                                             SearchForIPv4DNSServers: true,

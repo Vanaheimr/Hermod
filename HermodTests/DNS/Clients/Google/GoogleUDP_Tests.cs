@@ -23,28 +23,22 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
 {
 
     /// <summary>
-    /// Some Google DNS HTTPS GET tests.
+    /// Some Google DNS UDP tests.
     /// </summary>
     [TestFixture]
-    public class GoogleHTTPS_GET_Tests : ADNSTests
+    public class GoogleUDP_Tests : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client  = DNSHTTPSClient.Google(
-                          Mode:                         DNSHTTPSMode.GET,
-                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
-                          DNSClient:                    new DNSClient(
-                                                            SearchForIPv4DNSServers: true,
-                                                            SearchForIPv6DNSServers: false
-                                                        )
-                      );
+            // IPv6 seems to be broken sometimes!
+            client = DNSUDPClient.Google_Random_IPv4();
 
         }
 

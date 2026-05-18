@@ -23,23 +23,33 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
 {
 
-    // https://datatracker.ietf.org/doc/html/rfc1035#section-4.2.2
-    // 1.1.1.1:853
+    // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/
+
+    // => https://dns.cloudflare.com/dns-query
 
     /// <summary>
-    /// Some Cloudflare DNS TCP tests.
+    /// Some Cloudflare DNS HTTPS GET tests.
     /// </summary>
     [TestFixture]
-    public class CloudflareTCP_Tests : ADNSTests
+    public class CloudflareHTTPS_GET_Tests2 : ADNSTests
     {
 
         [OneTimeSetUp]
         public void InitTests()
         {
-            client = DNSTCPClient.Cloudflare_Random();
+
+            client  = DNSHTTPSClient.Cloudflare_DNSName(
+                          Mode:                         DNSHTTPSMode.GET,
+                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                          DNSClient:                    new DNSClient(
+                                                            SearchForIPv4DNSServers: true,
+                                                            SearchForIPv6DNSServers: false
+                                                        )
+                      );
+
         }
 
     }
