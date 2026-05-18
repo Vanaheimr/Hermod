@@ -291,12 +291,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     foreach (var singleByte in Data)
                     {
 
-                        await tcpStream.WriteAsync(new[] {
-                                                       singleByte
-                                                   },
-                                                   CancellationToken);
+                        await httpStream.WriteAsync(new[] {
+                                                        singleByte
+                                                    },
+                                                    CancellationToken);
 
-                        await tcpStream.FlushAsync(CancellationToken);
+                        await httpStream.FlushAsync(CancellationToken);
 
                         await Task.Delay(SlowNetworkSimulationDelay.Value,
                                          CancellationToken);
@@ -307,10 +307,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 else
                 {
 
-                    await tcpStream.WriteAsync(Data,
-                                               CancellationToken);
+                    await httpStream.WriteAsync(Data,
+                                                CancellationToken);
 
-                    await tcpStream.FlushAsync(CancellationToken);
+                    await httpStream.FlushAsync(CancellationToken);
 
                 }
 

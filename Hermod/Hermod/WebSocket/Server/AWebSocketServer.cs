@@ -1018,13 +1018,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             // Wait for a new/pending client connection
                             //while (!token.IsCancellationRequested && !tcpListener.Pending())
-                                Thread.Sleep(5);
+                                await Task.Delay(5);
 
                             if (token.IsCancellationRequested)
                                 break;
 
                             var newTCPConnection = await tcpListener.AcceptTcpClientAsync(token);
                             SslStream? sslStream = null;
+
+                            #endregion
+
+                            #region MaxClientConnections check
+
+                            if ((UInt32) webSocketConnections.Count >= MaxClientConnections)
+                            {
+                                DebugX.Log(nameof(AWebSocketServer), $" Maximum number of client connections ({MaxClientConnections}) reached, rejecting connection from {newTCPConnection.Client.RemoteEndPoint}!");
+                                newTCPConnection.Close();
+                                continue;
+                            }
 
                             #endregion
 
@@ -1150,6 +1161,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 var token2                      = cts2.Token;
                                                 var lastWebSocketPingTimestamp  = Timestamp.Now;
                                                 var sendErrors                  = 0;
+
+                                                WebSocketFrame.Opcodes? fragmentOpcode  = null;
+                                                var                     fragmentPayload = new MemoryStream();
 
                                                 #endregion
 
@@ -1518,6 +1532,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                     out var errorResponse))
                                                         {
 
+                                                            // RFC 6455 Section 5.1: Client-to-server frames MUST be masked
+                                                            if (!frame.IsMasked)
+                                                            {
+                                                                DebugX.Log(nameof(AWebSocketServer), $" Received unmasked frame from {webSocketConnection.RemoteSocket}, closing connection (RFC 6455 violation)!");
+                                                                await webSocketConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
+                                                                break;
+                                                            }
+
                                                             var now = Timestamp.Now;
                                                             webSocketConnection.LastReceivedTimestamp = now;
                                                             webSocketConnection.IncFramesReceivedCounter();
@@ -1548,36 +1570,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 case WebSocketFrame.Opcodes.Text:
 
-                                                                    //await LogEvent(
-                                                                    //    OnTextMessageReceived,
-                                                                    //    loggingDelegate => loggingDelegate.Invoke(
-                                                                    //        now,
-                                                                    //        this,
-                                                                    //        webSocketConnection,
-                                                                    //        frame,
-                                                                    //        frame.EventTrackingId,
-                                                                    //        frame.Payload.ToUTF8String(),
-                                                                    //        token2
-                                                                    //    )
-                                                                    //);
-
-                                                                    try
+                                                                    if (frame.IsFinal && fragmentOpcode is null)
                                                                     {
 
-                                                                        await ProcessTextMessage(
-                                                                                  now,
-                                                                                  this,
-                                                                                  webSocketConnection,
-                                                                                  frame.EventTrackingId,
-                                                                                  frame,
-                                                                                  frame.Payload.ToUTF8String(),
-                                                                                  token2
-                                                                              );
+                                                                        try
+                                                                        {
+
+                                                                            await ProcessTextMessage(
+                                                                                      now,
+                                                                                      this,
+                                                                                      webSocketConnection,
+                                                                                      frame.EventTrackingId,
+                                                                                      frame,
+                                                                                      frame.Payload.ToUTF8String(),
+                                                                                      token2
+                                                                                  );
+
+                                                                        }
+                                                                        catch (Exception e)
+                                                                        {
+                                                                            DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessTextMessage)}");
+                                                                        }
 
                                                                     }
-                                                                    catch (Exception e)
+                                                                    else
                                                                     {
-                                                                        DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessTextMessage)}");
+                                                                        fragmentOpcode = WebSocketFrame.Opcodes.Text;
+                                                                        fragmentPayload.SetLength(0);
+                                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
                                                                     }
 
                                                                     break;
@@ -1588,36 +1608,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 case WebSocketFrame.Opcodes.Binary:
 
-                                                                    //await LogEvent(
-                                                                    //    OnBinaryMessageReceived,
-                                                                    //    loggingDelegate => loggingDelegate.Invoke(
-                                                                    //        now,
-                                                                    //        this,
-                                                                    //        webSocketConnection,
-                                                                    //        frame,
-                                                                    //        frame.EventTrackingId,
-                                                                    //        frame.Payload,
-                                                                    //        token2
-                                                                    //    )
-                                                                    //);
-
-                                                                    try
+                                                                    if (frame.IsFinal && fragmentOpcode is null)
                                                                     {
 
-                                                                        await ProcessBinaryMessage(
-                                                                                  now,
-                                                                                  this,
-                                                                                  webSocketConnection,
-                                                                                  frame.EventTrackingId,
-                                                                                  frame,
-                                                                                  frame.Payload,
-                                                                                  token2
-                                                                              );
+                                                                        try
+                                                                        {
+
+                                                                            await ProcessBinaryMessage(
+                                                                                      now,
+                                                                                      this,
+                                                                                      webSocketConnection,
+                                                                                      frame.EventTrackingId,
+                                                                                      frame,
+                                                                                      frame.Payload,
+                                                                                      token2
+                                                                                  );
+
+                                                                        }
+                                                                        catch (Exception e)
+                                                                        {
+                                                                            DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessBinaryMessage)}");
+                                                                        }
 
                                                                     }
-                                                                    catch (Exception e)
+                                                                    else
                                                                     {
-                                                                        DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(ProcessTextMessage)}");
+                                                                        fragmentOpcode = WebSocketFrame.Opcodes.Binary;
+                                                                        fragmentPayload.SetLength(0);
+                                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+                                                                    }
+
+                                                                    break;
+
+                                                                #endregion
+
+                                                                #region Continuation message received
+
+                                                                case WebSocketFrame.Opcodes.Continuation:
+
+                                                                    if (fragmentOpcode is not null)
+                                                                    {
+
+                                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                                        if (frame.IsFinal)
+                                                                        {
+
+                                                                            var completePayload = fragmentPayload.ToArray();
+
+                                                                            try
+                                                                            {
+
+                                                                                if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
+                                                                                {
+                                                                                    await ProcessTextMessage(
+                                                                                              now,
+                                                                                              this,
+                                                                                              webSocketConnection,
+                                                                                              frame.EventTrackingId,
+                                                                                              frame,
+                                                                                              completePayload.ToUTF8String(),
+                                                                                              token2
+                                                                                          );
+                                                                                }
+                                                                                else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
+                                                                                {
+                                                                                    await ProcessBinaryMessage(
+                                                                                              now,
+                                                                                              this,
+                                                                                              webSocketConnection,
+                                                                                              frame.EventTrackingId,
+                                                                                              frame,
+                                                                                              completePayload,
+                                                                                              token2
+                                                                                          );
+                                                                                }
+
+                                                                            }
+                                                                            catch (Exception e)
+                                                                            {
+                                                                                DebugX.LogException(e, $"{nameof(AWebSocketServer)}.Continuation");
+                                                                            }
+
+                                                                            fragmentOpcode = null;
+                                                                            fragmentPayload.SetLength(0);
+
+                                                                        }
+
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        DebugX.Log(nameof(AWebSocketServer), $" Received Continuation frame from {webSocketConnection.RemoteSocket} without preceding Text/Binary frame!");
+                                                                        await webSocketConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
                                                                     }
 
                                                                     break;
@@ -1676,7 +1758,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 case WebSocketFrame.Opcodes.Pong:
 
                                                                     await LogEvent(
-                                                                        OnPingMessageReceived,
+                                                                        OnPongMessageReceived,
                                                                         loggingDelegate => loggingDelegate.Invoke(
                                                                             now,
                                                                             this,
