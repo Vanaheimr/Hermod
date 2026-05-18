@@ -1,7 +1,8 @@
 # Vanaheimr Hermod — DNS Subsystem
 
 A fully asynchronous DNS client framework for .NET 10 supporting all common
-transport protocols, EDNS0 extensions, caching, and automatic CNAME resolution.
+transport protocols, EDNS0 extensions, caching, DNSSEC validation, and
+automatic CNAME resolution.
 
 
 ## Transport Protocols
@@ -16,13 +17,17 @@ transport protocols, EDNS0 extensions, caching, and automatic CNAME resolution.
 
 ### DNSHTTPSClient — Modes
 
-- **GET** — Base64url-encoded DNS query in the URL parameter
+- **GET**  — Base64url-encoded DNS query in the URL parameter (RFC 8484 §4.1)
 - **POST** — Binary DNS message in the request body (`application/dns-message`)
 - **JSON** — Google/Cloudflare JSON API (`application/dns-json`)
 
 For JSON queries requesting multiple record types, the client automatically
 fans out into individual per-type queries, since the JSON APIs only support
 a single type per request.
+
+The `DNSTransport` enum exposes these as `UDP`, `TCP`, `TLS`, `HTTPS`,
+`HTTPS_Binary`, `HTTPS_JSON`, `HTTPS_GET` (plus unencrypted `HTTP`/`HTTP_Binary`/
+`HTTP_JSON` variants for testing).
 
 
 ## DNSClient — The Orchestrator
@@ -32,11 +37,30 @@ concerns:
 
 - **Multi-server queries** with configurable timeout and race semantics
   (fastest valid response wins)
+- **SERVFAIL retry logic** via `MaxRetries` (default: 1) — if a DNS server
+  returns SERVFAIL, the query is automatically retried up to N times before
+  failing over to the next server
+- **Transport client pooling** via `ConcurrentDictionary<DNSServerConfig,
+  IDNSClientWithTransport>` — TCP / TLS / HTTPS clients are kept alive and
+  reused across queries; only UDP clients are stateless per query
 - **DNS cache** with timer-based TTL eviction
 - **NODATA negative cache** (RFC 2308) — Empty responses are cached per
-  `(DomainName, RecordType)` to avoid redundant queries for missing record types
-- **Automatic CNAME following** (see below)
+  `(DomainName, RecordType)` to avoid redundant queries for missing record
+  types
+- **Aggressive NSEC Caching** (RFC 8198) — NSEC records from authority
+  sections are stored as ranges and used to synthesize NXDOMAIN / NODATA
+  responses *before* sending a wire query
+- **DNSSEC validation** (RFC 4033 / 4034 / 4035) with the validation result
+  exposed via `DNSInfo.DNSSECStatus`
+- **Trust Anchor Rollover** (RFC 5011) — automated tracking of root
+  KSK rotation
+- **Automatic CNAME / DNAME following** (see below)
 - **EDNS0 options** are forwarded to all transport clients
+- **DNS Cookies** (RFC 7873) — automatically included in every query for
+  spoofing protection
+- **EDNS Client Subnet auto-injection** — set `DNSClient.ClientSubnet` once,
+  and the truncated client subnet is added to every outgoing query
+  (RFC 7871)
 
 
 ## CNAME / DNAME Chasing
@@ -89,14 +113,15 @@ generic `EDNSOption` instances.
 ```csharp
 var client = new DNSClient("8.8.8.8");
 
-// Cookie for spoofing protection
+// Cookies are sent automatically by DNSClient on every query.
+// To customize the client secret, add an EDNSCookieOption manually:
 client.EDNSOptions.Add(EDNSCookieOption.CreateInitial());
 
-// Client Subnet for geo-aware routing
-client.EDNSOptions.Add(new EDNSClientSubnetOption(
+// Client Subnet for geo-aware routing — set once, auto-injected per query
+client.ClientSubnet = new EDNSClientSubnetOption(
     IPAddress.Parse("203.0.113.0"),
     SourcePrefixLength: 24
-));
+);
 
 // Padding for DNS-over-TLS privacy
 client.EDNSOptions.Add(EDNSPaddingOption.Create(currentMessageLength));
@@ -120,6 +145,7 @@ DNSInfo response = ...;
 
 OPT? opt = response.OPTRecord;           // The OPT pseudo-record (or null)
 var options = response.EDNSOptions;       // All EDNS options (empty if no OPT)
+DNSSECValidationResult? sec = response.DNSSECStatus;  // DNSSEC chain result
 ```
 
 
@@ -135,7 +161,51 @@ var options = response.EDNSOptions;       // All EDNS options (empty if no OPT)
   new records into existing entries under concurrent access
 - **NODATA negative cache** (RFC 2308): `ConcurrentDictionary<String, DateTimeOffset>`
   stores `"domain|TYPE"` → expiry time. Default TTL: 5 minutes
+- **NSEC range cache** (RFC 8198 — Aggressive NSEC Caching):
+  `nsecRangeCache` stores NSEC records harvested from authority sections.
+  Before any wire query, `IsNameNegativelyCachedByNSEC()` checks whether
+  the queried name falls into a known NSEC gap and synthesizes an
+  authoritative negative response without network round-trip
 - Cache cleanup runs periodically (default: every 10 seconds)
+
+
+## Resource Records — Common Patterns
+
+All concrete resource record classes inherit from `ADNSResourceRecord` and
+share three serialization patterns:
+
+### Wire Format (binary)
+
+```csharp
+record.SerializeRRData(stream, useCompression: true, compressionOffsets);
+```
+
+Each record overrides `SerializeRRData()` to encode its RDATA according to
+its RFC. Name compression (RFC 1035 §4.1.4) is handled via the optional
+`CompressionOffsets` dictionary.
+
+### Zone File Presentation Format (RFC 1035 §5)
+
+```csharp
+String zoneLine = record.ToZoneFileString();
+// e.g.: "charging.cloud.          3600    IN   A          23.88.66.160"
+```
+
+`ADNSResourceRecord.ToZoneFileString()` formats the owner name, TTL, class
+and type uniformly, then delegates to an abstract `ZoneFileRData()` for the
+record-specific RDATA portion. This means every record type can be rendered
+as a standard zone file line.
+
+### JSON Parsing (Google / Cloudflare DoH JSON)
+
+```csharp
+A? record = A.TryParseFromJSON(name, ttl, data);
+```
+
+Every record class exposes a static `TryParseFromJSON(DomainName, TimeSpan,
+String)` factory. Parsing logic is *co-located* with the record type — the
+`DNSHTTPSClient` simply dispatches based on the record type code, keeping
+the JSON layer thin and the per-type logic discoverable.
 
 
 ## Exception Handling
@@ -219,26 +289,33 @@ silently swallowed.
 | TSIG   | RFC 8945  | Transaction signature                          |
 | TKEY   | RFC 2930  | Transaction key exchange                       |
 
-All record types are fully supported in both **binary wire format** (UDP/TCP/TLS)
-and in the **JSON API** (DNS-over-HTTPS), except TSIG/TKEY which are
-transport-level pseudo-records not applicable to DoH JSON.
+All record types are fully supported in:
+- **Binary wire format** (UDP / TCP / TLS / DoH binary)
+- **JSON API** (DNS-over-HTTPS, Google + Cloudflare) — except TSIG / TKEY,
+  which are transport-level pseudo-records not applicable to DoH JSON
+- **Zone file presentation format** via `ToZoneFileString()`
 
 
 ## Architecture Overview
 
 ```
 DNSClient (Orchestrator)
-├── Cache (DNSCache + NODATA)
-├── CNAME Chasing (loop detection, max depth)
-├── EDNS0 Options (forwarded to all transports)
-└── Transport Clients
-    ├── DNSUDPClient   (UDP, port 53)
-    ├── DNSTCPClient   (TCP, port 53)
-    ├── DNSTLSClient   (TLS, port 853)
-    └── DNSHTTPSClient (HTTPS, port 443)
-         ├── GET mode
-         ├── POST mode
-         └── JSON mode (with multi-type fan-out)
+├── Cache
+│   ├── Positive (DNSCache, TTL-based eviction)
+│   ├── NODATA negative cache (RFC 2308)
+│   └── NSEC range cache (RFC 8198, aggressive)
+├── DNSSEC validation (RFC 4033/4034/4035 + RFC 5011 trust anchor rollover)
+├── CNAME / DNAME chasing (loop detection, max depth)
+├── EDNS0 options (forwarded; Cookies + Client Subnet auto-injected)
+├── SERVFAIL retry (MaxRetries) + multi-server race semantics
+└── Transport client pool (ConcurrentDictionary)
+    ├── DNSUDPClient   (UDP, port 53)         — stateless per query
+    ├── DNSTCPClient   (TCP, port 53)         — pooled
+    ├── DNSTLSClient   (TLS, port 853)        — pooled
+    └── DNSHTTPSClient (HTTPS, port 443)      — pooled
+         ├── GET mode  (RFC 8484 §4.1)
+         ├── POST mode (RFC 8484 §4.1)
+         └── JSON mode (per-record TryParseFromJSON, multi-type fan-out)
 ```
 
 
@@ -249,6 +326,8 @@ DNSClient (Orchestrator)
 - `DNSCache` is built on `ConcurrentDictionary` for thread-safe access
 - `DNSClient.Query()` uses `Task.WhenAny()` with race semantics across
   multiple DNS servers
+- Pooled transport clients are stored in a `ConcurrentDictionary` and
+  disposed by `DNSClient.Dispose()`
 
 
 ## License
