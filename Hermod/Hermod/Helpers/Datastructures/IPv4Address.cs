@@ -17,8 +17,8 @@
 
 #region Usings
 
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -42,10 +42,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private const            Byte    length    = 4;
         private static readonly  Char[]  splitter  = ['.'];
 
-        private readonly Byte b0;
-        private readonly Byte b1;
-        private readonly Byte b2;
-        private readonly Byte b3;
+        private readonly         Byte    byte0;
+        private readonly         Byte    byte1;
+        private readonly         Byte    byte2;
+        private readonly         Byte    byte3;
 
         #endregion
 
@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Returns the IPv4 address as ReadOnlySpan&lt;byte&gt;.
         /// </summary>
         public ReadOnlySpan<Byte>  AsSpan
-            => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in b0), length);
+            => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in byte0), length);
 
         /// <summary>
         /// The length of an IPv4 address.
@@ -69,8 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public Boolean  IsMulticast
 
-            => b0 >= 224 &&
-               b0 <= 239;
+            => byte0 >= 224 &&
+               byte0 <= 239;
 
         public Boolean  IsIPv4
             => true;
@@ -83,21 +83,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Boolean  IsLocalhost
 
-            => b0 == 127 &&
-               b1 ==   0 &&
-               b2 ==   0 &&
-               b3 ==   1;
+            => byte0 == 127 &&
+               byte1 ==   0 &&
+               byte2 ==   0 &&
+               byte3 ==   1;
 
         public Boolean  IsAny
 
-            => b0 == 0 &&
-               b1 == 0 &&
-               b2 == 0 &&
-               b3 == 0;
+            => byte0 == 0 &&
+               byte1 == 0 &&
+               byte2 == 0 &&
+               byte3 == 0;
 
         public Boolean  IsLoopback
 
-            => b0 == 127;
+            => byte0 == 127;
 
 
         IPv4Address? IIPAddress.AsIPv4
@@ -119,10 +119,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Span.Length != length)
                 throw new FormatException($"The given span of bytes must have a length of {length}!");
 
-            b0 = Span[0];
-            b1 = Span[1];
-            b2 = Span[2];
-            b3 = Span[3];
+            this.byte0 = Span[0];
+            this.byte1 = Span[1];
+            this.byte2 = Span[2];
+            this.byte3 = Span[3];
 
         }
 
@@ -143,10 +143,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             Span<Byte> buffer = stackalloc Byte[length];
             Stream.ReadExactly(buffer);
 
-            b0 = buffer[0];
-            b1 = buffer[1];
-            b2 = buffer[2];
-            b3 = buffer[3];
+            this.byte0 = buffer[0];
+            this.byte1 = buffer[1];
+            this.byte2 = buffer[2];
+            this.byte3 = buffer[3];
 
         }
 
@@ -167,10 +167,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                            Byte Byte4)
         {
 
-            b0 = Byte1;
-            b1 = Byte2;
-            b2 = Byte3;
-            b3 = Byte4;
+            this.byte0 = Byte1;
+            this.byte1 = Byte2;
+            this.byte2 = Byte3;
+            this.byte3 = Byte4;
 
         }
 
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Byte[] GetBytes()
 
-            => [b0, b1, b2, b3];
+            => [byte0, byte1, byte2, byte3];
 
         #endregion
 
@@ -638,10 +638,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address">An IPv4 address to compare with.</param>
         public Boolean Equals(IPv4Address IPv4Address)
 
-            => b0 == IPv4Address.b0 &&
-               b1 == IPv4Address.b1 &&
-               b2 == IPv4Address.b2 &&
-               b3 == IPv4Address.b3;
+            => byte0 == IPv4Address.byte0 &&
+               byte1 == IPv4Address.byte1 &&
+               byte2 == IPv4Address.byte2 &&
+               byte3 == IPv4Address.byte3;
 
         #endregion
 
@@ -679,10 +679,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override Int32 GetHashCode()
 
-            => (b0 << 24) |
-               (b1 << 16) |
-               (b2 <<  8) |
-                b3;
+            => (byte0 << 24) |
+               (byte1 << 16) |
+               (byte2 <<  8) |
+                byte3;
 
         #endregion
 
@@ -693,7 +693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{b0}.{b1}.{b2}.{b3}";
+            => $"{byte0}.{byte1}.{byte2}.{byte3}";
 
         #endregion
 

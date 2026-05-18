@@ -45,22 +45,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private static readonly  Char[]  splitter  = [':'];
 
-        private readonly Byte b0;
-        private readonly Byte b1;
-        private readonly Byte b2;
-        private readonly Byte b3;
-        private readonly Byte b4;
-        private readonly Byte b5;
-        private readonly Byte b6;
-        private readonly Byte b7;
-        private readonly Byte b8;
-        private readonly Byte b9;
-        private readonly Byte b10;
-        private readonly Byte b11;
-        private readonly Byte b12;
-        private readonly Byte b13;
-        private readonly Byte b14;
-        private readonly Byte b15;
+        private readonly         Byte    byte0;
+        private readonly         Byte    byte1;
+        private readonly         Byte    byte2;
+        private readonly         Byte    byte3;
+        private readonly         Byte    byte4;
+        private readonly         Byte    byte5;
+        private readonly         Byte    byte6;
+        private readonly         Byte    byte7;
+        private readonly         Byte    byte8;
+        private readonly         Byte    byte9;
+        private readonly         Byte    byte10;
+        private readonly         Byte    byte11;
+        private readonly         Byte    byte12;
+        private readonly         Byte    byte13;
+        private readonly         Byte    byte14;
+        private readonly         Byte    byte15;
 
         #endregion
 
@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Returns the IPv6 address as ReadOnlySpan&lt;byte&gt;.
         /// </summary>
         public ReadOnlySpan<Byte>  AsSpan
-            => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in b0), length);
+            => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in byte0), length);
 
         /// <summary>
         /// The length of an IPv6 address.
@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Whether the IP address is an IPv6 multicast address.
         /// </summary>
         public Boolean  IsMulticast
-            => b0 == 0xFF;
+            => byte0 == 0xFF;
 
         public Boolean  IsIPv4
             => false;
@@ -92,17 +92,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Boolean  IsLocalhost
 
-            => b0  == 0 && b1  == 0 && b2  == 0 && b3  == 0 &&
-               b4  == 0 && b5  == 0 && b6  == 0 && b7  == 0 &&
-               b8  == 0 && b9  == 0 && b10 == 0 && b11 == 0 &&
-               b12 == 0 && b13 == 0 && b14 == 0 && b15 == 1;
+            => byte0  == 0 && byte1  == 0 && byte2  == 0 && byte3  == 0 &&
+               byte4  == 0 && byte5  == 0 && byte6  == 0 && byte7  == 0 &&
+               byte8  == 0 && byte9  == 0 && byte10 == 0 && byte11 == 0 &&
+               byte12 == 0 && byte13 == 0 && byte14 == 0 && byte15 == 1;
 
         public Boolean  IsAny
 
-            => b0  == 0 && b1  == 0 && b2  == 0 && b3  == 0 &&
-               b4  == 0 && b5  == 0 && b6  == 0 && b7  == 0 &&
-               b8  == 0 && b9  == 0 && b10 == 0 && b11 == 0 &&
-               b12 == 0 && b13 == 0 && b14 == 0 && b15 == 0;
+            => byte0  == 0 && byte1  == 0 && byte2  == 0 && byte3  == 0 &&
+               byte4  == 0 && byte5  == 0 && byte6  == 0 && byte7  == 0 &&
+               byte8  == 0 && byte9  == 0 && byte10 == 0 && byte11 == 0 &&
+               byte12 == 0 && byte13 == 0 && byte14 == 0 && byte15 == 0;
 
         /// <summary>
         /// If this is an IPv4-mapped IPv6 (::ffff:w.x.y.z) address, returns "w.x.y.z".
@@ -113,16 +113,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
 
                 // ...:ffff:...
-                if (b10 != 0xFF || b11 != 0xFF)
+                if (byte10 != 0xFF || byte11 != 0xFF)
                     return null;
 
                 // 0000:0000:0000:0000:0000:...
-                if (b0 != 0 || b1 != 0 || b2 != 0 || b3 != 0 ||
-                    b4 != 0 || b5 != 0 || b6 != 0 || b7 != 0 ||
-                    b8 != 0 || b9 != 0)
+                if (byte0 != 0 || byte1 != 0 || byte2 != 0 || byte3 != 0 ||
+                    byte4 != 0 || byte5 != 0 || byte6 != 0 || byte7 != 0 ||
+                    byte8 != 0 || byte9 != 0)
                     return null;
 
-                return new IPv4Address(b12, b13, b14, b15);
+                return new IPv4Address(byte12, byte13, byte14, byte15);
 
             }
         }
@@ -162,10 +162,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Span.Length != length)
                 throw new FormatException($"The given span of bytes must have a length of {length}!");
 
-            b0  = Span[0];   b1  = Span[1];   b2  = Span[2];   b3  = Span[3];
-            b4  = Span[4];   b5  = Span[5];   b6  = Span[6];   b7  = Span[7];
-            b8  = Span[8];   b9  = Span[9];   b10 = Span[10];  b11 = Span[11];
-            b12 = Span[12];  b13 = Span[13];  b14 = Span[14];  b15 = Span[15];
+            this.byte0   = Span[0];
+            this.byte1   = Span[1];
+            this.byte2   = Span[2];
+            this.byte3   = Span[3];
+            this.byte4   = Span[4];
+            this.byte5   = Span[5];
+            this.byte6   = Span[6];
+            this.byte7   = Span[7];
+            this.byte8   = Span[8];
+            this.byte9   = Span[9];
+            this.byte10  = Span[10];
+            this.byte11  = Span[11];
+            this.byte12  = Span[12];
+            this.byte13  = Span[13];
+            this.byte14  = Span[14];
+            this.byte15  = Span[15];
 
         }
 
@@ -178,8 +190,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Stream">The stream to read the IPv6 address from.</param>
         /// <param name="InterfaceId">An optional interface identification for the scope of the IPv6 address.</param>
-        public IPv6Address(Stream              Stream,
-                           String?             InterfaceId   = null)
+        public IPv6Address(Stream   Stream,
+                           String?  InterfaceId   = null)
         {
 
             this.InterfaceId = InterfaceId ?? "";
@@ -190,10 +202,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             Span<Byte> buffer = stackalloc Byte[length];
             Stream.ReadExactly(buffer);
 
-            b0  = buffer[0];   b1  = buffer[1];   b2  = buffer[2];   b3  = buffer[3];
-            b4  = buffer[4];   b5  = buffer[5];   b6  = buffer[6];   b7  = buffer[7];
-            b8  = buffer[8];   b9  = buffer[9];   b10 = buffer[10];  b11 = buffer[11];
-            b12 = buffer[12];  b13 = buffer[13];  b14 = buffer[14];  b15 = buffer[15];
+            this.byte0   = buffer[0];
+            this.byte1   = buffer[1];
+            this.byte2   = buffer[2];
+            this.byte3   = buffer[3];
+            this.byte4   = buffer[4];
+            this.byte5   = buffer[5];
+            this.byte6   = buffer[6];
+            this.byte7   = buffer[7];
+            this.byte8   = buffer[8];
+            this.byte9   = buffer[9];
+            this.byte10  = buffer[10];
+            this.byte11  = buffer[11];
+            this.byte12  = buffer[12];
+            this.byte13  = buffer[13];
+            this.byte14  = buffer[14];
+            this.byte15  = buffer[15];
 
         }
 
@@ -229,7 +253,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Byte[] GetBytes()
 
-            => [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15];
+            => [ byte0,
+                 byte1,
+                 byte2,
+                 byte3,
+                 byte4,
+                 byte5,
+                 byte6,
+                 byte7,
+                 byte8,
+                 byte9,
+                 byte10,
+                 byte11,
+                 byte12,
+                 byte13,
+                 byte14,
+                 byte15 ];
 
         #endregion
 
@@ -487,8 +526,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv6Address FromIPv4(IPv4Address IPv4Address)
         {
 
-            Span<Byte> bytes    = stackalloc Byte[length];
-            var         ipv4    = IPv4Address.GetBytes();
+            Span<Byte> bytes  = stackalloc Byte[length];
+            var         ipv4  = IPv4Address.GetBytes();
 
             bytes[10] = 0xFF;
             bytes[11] = 0xFF;
@@ -738,14 +777,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             return String.Format(
                        "{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
-                       b0.ToString("x2")  + b1.ToString("x2"),
-                       b2.ToString("x2")  + b3.ToString("x2"),
-                       b4.ToString("x2")  + b5.ToString("x2"),
-                       b6.ToString("x2")  + b7.ToString("x2"),
-                       b8.ToString("x2")  + b9.ToString("x2"),
-                       b10.ToString("x2") + b11.ToString("x2"),
-                       b12.ToString("x2") + b13.ToString("x2"),
-                       b14.ToString("x2") + b15.ToString("x2"),
+                       byte0. ToString("x2")  + byte1. ToString("x2"),
+                       byte2. ToString("x2")  + byte3. ToString("x2"),
+                       byte4. ToString("x2")  + byte5. ToString("x2"),
+                       byte6. ToString("x2")  + byte7. ToString("x2"),
+                       byte8. ToString("x2")  + byte9. ToString("x2"),
+                       byte10.ToString("x2") + byte11.ToString("x2"),
+                       byte12.ToString("x2") + byte13.ToString("x2"),
+                       byte14.ToString("x2") + byte15.ToString("x2"),
                        InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : ""
                    );
 
