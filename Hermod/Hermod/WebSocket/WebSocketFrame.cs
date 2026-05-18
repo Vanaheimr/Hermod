@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Buffers.Binary;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
 
@@ -818,14 +819,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region TryParse(ByteArray, out Frame, out Length, EventTrackingId = null)
+        #region TryParse(Bytes, out Frame, out Length, out ErrorResponse, ...)
 
-        public static Boolean TryParse(Byte[]                                    ByteArray,
+        /// <summary>
+        /// Try to parse the given byte span into a WebSocket frame.
+        /// </summary>
+        /// <param name="Bytes">The byte span to parse.</param>
+        /// <param name="Frame">The parsed WebSocket frame.</param>
+        /// <param name="Length">The total length of the frame in bytes, including the header and payload.</param>
+        /// <param name="ErrorResponse">The error response if the parsing fails.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        /// <param name="MaxPayloadSize">The maximum allowed payload size.</param>
+        public static Boolean TryParse(ReadOnlySpan<Byte>                        Bytes,
                                        [NotNullWhen(true)]  out WebSocketFrame?  Frame,
                                        [NotNullWhen(true)]  out UInt64           Length,
                                        [NotNullWhen(false)] out String?          ErrorResponse,
-                                       EventTracking_Id?                         EventTrackingId    = null,
-                                       UInt64?                                   MaxPayloadSize     = null)
+                                       EventTracking_Id?                         EventTrackingId   = null,
+                                       UInt64?                                   MaxPayloadSize    = null)
         {
 
             try
@@ -835,16 +845,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 Length         = 0;
                 ErrorResponse  = null;
 
-                if (ByteArray is null || ByteArray.Length < 2) {
-                    ErrorResponse = "Invalid byte array!";
+                if (Bytes.Length < 2) {
+                    ErrorResponse = "Invalid byte span!";
                     return false;
                 }
 
-                var fin            = (ByteArray[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
-                var rsv1           = (ByteArray[0] & 0x40) == 0x40 ? Rsv.On    : Rsv.Off;
-                var rsv2           = (ByteArray[0] & 0x20) == 0x20 ? Rsv.On    : Rsv.Off;
-                var rsv3           = (ByteArray[0] & 0x10) == 0x10 ? Rsv.On    : Rsv.Off;
-                var opcode         = (Opcodes) (Byte) (ByteArray[0] & 0x0f);
+                var fin            = (Bytes[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
+                var rsv1           = (Bytes[0] & 0x40) == 0x40 ? Rsv.On    : Rsv.Off;
+                var rsv2           = (Bytes[0] & 0x20) == 0x20 ? Rsv.On    : Rsv.Off;
+                var rsv3           = (Bytes[0] & 0x10) == 0x10 ? Rsv.On    : Rsv.Off;
+                var opcode         = (Opcodes) (Byte) (Bytes[0] & 0x0f);
 
                 //if (!opcode.IsSupported ()) {
                 //    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
@@ -857,7 +867,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     return false;
                 }
 
-                var mask           = (ByteArray[1] & 0x80) == 0x80
+                var mask           = (Bytes[1] & 0x80) == 0x80
                                           ? MaskStatus.On
                                           : MaskStatus.Off;
 
@@ -884,17 +894,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // along with other information such as the opcode, masking key (if any), and
                 // payload data.
 
-                var payloadLength  = (UInt64) (ByteArray[1] & 0x7f);
+                var payloadLength  = (UInt64) (Bytes[1] & 0x7f);
                 var offset         = 2U;
 
                 if (payloadLength == 126) {
 
-                    if (ByteArray.Length < 4) {
+                    if (Bytes.Length < 4) {
                         ErrorResponse = "Incomplete extended payload length!";
                         return false;
                     }
 
-                    payloadLength  = (UInt64) ((ByteArray[2] << 8) | ByteArray[3]);
+                    payloadLength  = BinaryPrimitives.ReadUInt16BigEndian(Bytes.Slice(2, 2));
 
                     offset         = 4U;
 
@@ -902,19 +912,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 else if (payloadLength == 127) {
 
-                    if (ByteArray.Length < 10) {
+                    if (Bytes.Length < 10) {
                         ErrorResponse = "Incomplete extended payload length!";
                         return false;
                     }
 
-                    payloadLength  = ((UInt64) ByteArray[2] << 56) |
-                                     ((UInt64) ByteArray[3] << 48) |
-                                     ((UInt64) ByteArray[4] << 40) |
-                                     ((UInt64) ByteArray[5] << 32) |
-                                     ((UInt64) ByteArray[6] << 24) |
-                                     ((UInt64) ByteArray[7] << 16) |
-                                     ((UInt64) ByteArray[8] <<  8) |
-                                               ByteArray[9];
+                    payloadLength  = BinaryPrimitives.ReadUInt64BigEndian(Bytes.Slice(2, 8));
 
                     offset         = 10U;
 
@@ -932,6 +935,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     return false;
                 }
 
+                if (payloadLength > (UInt64) Int32.MaxValue)
+                {
+                    ErrorResponse = $"Payload length {payloadLength} exceeds maximum supported .NET array size!";
+                    return false;
+                }
+
                 var maxSize = MaxPayloadSize ?? DefaultMaxPayloadSize;
                 if (payloadLength > maxSize)
                 {
@@ -939,33 +948,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     return false;
                 }
 
-                var payload     = new Byte[payloadLength];
+                var payload     = new Byte[(Int32) payloadLength];
                 var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
                 var headerSize  = offset + (mask == MaskStatus.On ? 4U : 0U);
 
-                if ((UInt64) ByteArray.Length < headerSize + payloadLength)
+                if ((UInt64) Bytes.Length < headerSize + payloadLength)
                 {
                     ErrorResponse = "Web socket frame is shorter than advertised!";
                     return false;
                 }
 
                 if (mask == MaskStatus.Off)
-                    Array.Copy(ByteArray, (Int32) offset, payload, 0, (Int32) payloadLength);
+                    Bytes.Slice((Int32) offset, (Int32) payloadLength).CopyTo(payload);
 
                 else
                 {
 
-                    maskingKey = [
-                                     ByteArray[offset],
-                                     ByteArray[offset + 1],
-                                     ByteArray[offset + 2],
-                                     ByteArray[offset + 3]
-                                 ];
+                    maskingKey = Bytes.Slice((Int32) offset, 4).ToArray();
 
                     offset += 4;
 
                     for (var i = 0UL; i < payloadLength; ++i)
-                        payload[i] = (Byte) (ByteArray[offset + i] ^ maskingKey[i % 4]);
+                        payload[i] = (Byte) (Bytes[(Int32) (offset + i)] ^ maskingKey[i % 4]);
 
                 }
 
@@ -1003,6 +1007,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region ToByteArray()
 
+        /// <summary>
+        /// Return a byte array representation of this WebSocket frame, including the header and payload.
+        /// </summary>
         public Byte[] ToByteArray()
         {
 
@@ -1098,31 +1105,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var json = JSONObject.Create(
 
-                           new JProperty("opcode",    Opcode.ToString()),
+                                 new JProperty("opcode",              Opcode.ToString()),
 
-                           new JProperty("payload",   Opcode switch {
-                                                          Opcodes.Continuation  => Payload.ToHexString(),
-                                                          Opcodes.Text          => Payload.ToUTF8String(),
-                                                          Opcodes.Binary        => Payload.ToHexString(),
-                                                          Opcodes.Ping          => Payload.ToUTF8String(),
-                                                          Opcodes.Pong          => Payload.ToUTF8String(),
-                                                          _                     => null // also: Close
-                                                      }),
-                           new JProperty("length",    Payload.Length),
+                                 new JProperty("payload",             Opcode switch {
+                                                                          Opcodes.Continuation  => Payload.ToHexString(),
+                                                                          Opcodes.Text          => Payload.ToUTF8String(),
+                                                                          Opcodes.Binary        => Payload.ToHexString(),
+                                                                          Opcodes.Ping          => Payload.ToUTF8String(),
+                                                                          Opcodes.Pong          => Payload.ToUTF8String(),
+                                                                          _                     => null // also: Close
+                                                                      }),
+                                 new JProperty("length",              Payload.Length),
 
                            Opcode == Opcodes.Close
-                               ? new JProperty("closingStatusCode",  this.GetClosingStatusCode().ToString())
+                               ? new JProperty("closingStatusCode",   this.GetClosingStatusCode().ToString())
                                : null,
 
                            Opcode == Opcodes.Close
-                               ? new JProperty("closingReason",      this.GetClosingReason())
+                               ? new JProperty("closingReason",       this.GetClosingReason())
                                : null,
 
-                           new JProperty("FIN",       FIN.   ToString()),
+                                 new JProperty("FIN",                 FIN.   ToString()),
 
-                           new JProperty("Rsv1",      Rsv1.  ToString()),
-                           new JProperty("Rsv2",      Rsv2.  ToString()),
-                           new JProperty("Rsv3",      Rsv3.  ToString())
+                                 new JProperty("Rsv1",                Rsv1.  ToString()),
+                                 new JProperty("Rsv2",                Rsv2.  ToString()),
+                                 new JProperty("Rsv3",                Rsv3.  ToString())
 
                        );
 

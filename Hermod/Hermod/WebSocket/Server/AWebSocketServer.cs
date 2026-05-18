@@ -1526,7 +1526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                              bytes.Length > 0)
                                                     {
 
-                                                        if (WebSocketFrame.TryParse(bytes,
+                                                        if (WebSocketFrame.TryParse(bytes.AsSpan(),
                                                                                     out var frame,
                                                                                     out var frameLength,
                                                                                     out var errorResponse))

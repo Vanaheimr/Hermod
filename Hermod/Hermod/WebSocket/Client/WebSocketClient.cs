@@ -414,7 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketClient(URL                                                             RemoteURL,
                                HTTPHostname?                                                   VirtualHostname              = null,
                                I18NString?                                                     Description                  = null,
-                               IPVersionPreference?                                            IPVersionPreference                   = null,
+                               IPVersionPreference?                                            IPVersionPreference          = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                                IEnumerable<X509Certificate2>?                                  ClientCertificates           = null,
@@ -1052,7 +1052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         Array.Resize(ref buffer, (Int32) pos);
 
-                                        if (WebSocketFrame.TryParse(buffer,
+                                        if (WebSocketFrame.TryParse(buffer.AsSpan(0, (Int32) pos),
                                                                     out var frame,
                                                                     out var frameLength,
                                                                     out var errorResponse))
@@ -1468,7 +1468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var ts = Timestamp.Now;
 
             while (waitingForHTTPResponse is null && ts + RequestTimeout > Timestamp.Now) {
-                await Task.Delay(10);
+                await Task.Delay(10, CancellationToken);
             }
 
             waitingForHTTPResponse ??= new HTTPResponse.Builder(
