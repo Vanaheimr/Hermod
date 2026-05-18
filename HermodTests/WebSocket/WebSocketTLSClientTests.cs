@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 
             #region Client setup and connect
 
-            var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
+            var webSocketClient  = new WebSocketClient(URL.Parse($"wss://127.0.0.1:{HTTPPort}"));
 
             #region OnTextMessageReceived
 

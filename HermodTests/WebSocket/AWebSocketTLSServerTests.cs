@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
             serverRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
             serverCertificate           = PKIFactory.SignServerCertificate(
                                               "AWebSocketTLSServerTests Server Certificate",
-                                              null,
+                                              [],
                                               serverRSAKeyPair.Public,
                                               serverCA_RSAKeyPair.Private,
                                               serverCA_X509v3
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
             clientRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
             clientCertificate           = PKIFactory.SignServerCertificate(
                                               "AWebSocketTLSServerTests Client Certificate",
-                                              null,
+                                              [],
                                               clientRSAKeyPair.Public,
                                               clientCA_RSAKeyPair.Private,
                                               clientCA_X509v3
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 
                                   ServerCertificateSelector:  () => {
 
-                                      return serverCertificate;
+                                      return serverCertificate!;
 
                                   },
 
