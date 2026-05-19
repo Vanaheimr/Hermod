@@ -20,6 +20,8 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -91,7 +93,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             TimeSpan?                        SendTimeout              = null,
                             TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                             UInt16?                          MaxNumberOfRetries       = null,
-                            UInt32?                          BufferSize               = null)
+                            UInt32?                          BufferSize               = null,
+                            ILoggerFactory?                  LoggerFactory            = null)
 
             : base(IPAddress,
                    Port ?? IPPort.DNS,
@@ -103,7 +106,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize ?? 4096)
+                   BufferSize ?? 4096,
+                   LoggerFactory: LoggerFactory)
 
         {
 

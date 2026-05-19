@@ -259,13 +259,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.QueryTimeout      = QueryTimeout  ?? DefaultQueryTimeout;
-            this.UseCache          = UseQueryCache ?? true;
-            this.DNSCache          = new DNSCache();
-            this.RecursionDesired  = true;
-
             this.loggerFactory     = LoggerFactory ?? NullLoggerFactory.Instance;
             this.logger            = Logger        ?? loggerFactory.CreateLogger<IDNSClient>();
+            this.QueryTimeout      = QueryTimeout  ?? DefaultQueryTimeout;
+            this.UseCache          = UseQueryCache ?? true;
+            this.DNSCache          = new DNSCache(LoggerFactory: this.loggerFactory);
+            this.RecursionDesired  = true;
 
             var dnsServers         = new HashSet<DNSServerConfig>(ManualDNSServers);
 
@@ -468,13 +467,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // Return cached negative responses (NXDOMAIN, Refused)
                 if (cachedResults.ResponseCode is DNSResponseCodes.NameError or
-                                                   DNSResponseCodes.Refused)
+                                                    DNSResponseCodes.Refused)
+                {
+                    logger.LogDebug(
+                        "DNS cache hit for '{DNSServiceName}' with negative response {ResponseCode}",
+                        DNSServiceName,
+                        cachedResults.ResponseCode
+                    );
+
                     return cachedResults;
+                }
 
                 // Check per-type NODATA cache: if all requested types are cached as NODATA,
                 // return the cached result without hitting the network.
                 if (resourceRecordTypes.All(type => DNSCache.IsNoData(DNSServiceName, type)))
+                {
+                    logger.LogDebug(
+                        "DNS cache hit for '{DNSServiceName}' with NODATA for record types '{RecordTypes}'",
+                        DNSServiceName,
+                        resourceRecordTypes.AggregateWith(", ")
+                    );
+
                     return cachedResults;
+                }
 
                 var now              = Timestamp.Now;
 
@@ -490,7 +505,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                            ToArray();
 
                 if (resourceRecords.Length != 0)
+                {
+                    logger.LogDebug(
+                        "DNS cache hit for '{DNSServiceName}' with {AnswerCount} matching answer(s)",
+                        DNSServiceName,
+                        resourceRecords.Length
+                    );
+
                     return cachedResults;
+                }
+
+                logger.LogDebug(
+                    "DNS cache entry for '{DNSServiceName}' did not contain fresh answers for record types '{RecordTypes}'",
+                    DNSServiceName,
+                    resourceRecordTypes.AggregateWith(", ")
+                );
 
             }
 
@@ -505,6 +534,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 zoneName = String.Join(".", labels[^3..]);
 
             if (DNSCache.IsNameNegativelyCachedByNSEC(DNSServiceName.ToString(), zoneName))
+            {
+                logger.LogDebug(
+                    "DNS NSEC cache proves non-existence for '{DNSServiceName}' in zone '{ZoneName}'",
+                    DNSServiceName,
+                    zoneName
+                );
+
                 return new DNSInfo(
 
                            Origin:                 DNSServers.First(),
@@ -521,9 +557,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            IsTimeout:              false,
                            Timeout:                effectiveTimeout,
 
-                           Runtime:                stopWatch.Elapsed
+                            Runtime:                stopWatch.Elapsed
 
-                       );
+                        );
+            }
 
 
             // Build the EDNS options list.
@@ -540,6 +577,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #region Query all DNS server(s) in parallel...
 
             using var raceCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            logger.LogDebug(
+                "Dispatching DNS query for '{DNSServiceName}' to {ServerCount} server(s)",
+                DNSServiceName,
+                DNSServers.Count
+            );
 
             var allDNSServerRequests = DNSServers.Select(dnsServer =>
 
@@ -667,7 +710,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogT($"DNS query for '{DNSServiceName}' failed: {e.Message}");
+                        logger.LogWarning(
+                            e,
+                            "DNS query for '{DNSServiceName}' failed while awaiting a DNS server response",
+                            DNSServiceName
+                        );
                     }
 
                 }
@@ -851,7 +898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSServiceName,
                 resourceRecordTypes.AggregateWith(", "),
                 response.Answers.   AggregateWith(", "),
-                effectiveTimeout.TotalMilliseconds
+                stopWatch.Elapsed.TotalMilliseconds
             );
 
             return response;
@@ -880,7 +927,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     new DNSUDPClient(
                         DNSServer.IPAddress,
                         DNSServer.Port,
-                        QueryTimeout: Timeout
+                        QueryTimeout: Timeout,
+                        LoggerFactory: loggerFactory
                     ),
 
                 DNSTransport.TCP =>
@@ -888,7 +936,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSTCPClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            QueryTimeout: Timeout
+                            QueryTimeout: Timeout,
+                            LoggerFactory: loggerFactory
                         )
                     ),
 
@@ -897,7 +946,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSTLSClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            QueryTimeout: Timeout
+                            QueryTimeout: Timeout,
+                            LoggerFactory: loggerFactory
                         )
                     ),
 
@@ -907,7 +957,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             DNSServer.IPAddress,
                             DNSServer.Port,
                             Mode:         DNSHTTPSMode.POST,
-                            QueryTimeout: Timeout
+                            QueryTimeout: Timeout,
+                            LoggerFactory: loggerFactory
                         )
                     ),
 
@@ -917,7 +968,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             DNSServer.IPAddress,
                             DNSServer.Port,
                             Mode:         DNSHTTPSMode.JSON,
-                            QueryTimeout: Timeout
+                            QueryTimeout: Timeout,
+                            LoggerFactory: loggerFactory
                         )
                     ),
 
@@ -927,7 +979,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             DNSServer.IPAddress,
                             DNSServer.Port,
                             Mode:         DNSHTTPSMode.GET,
-                            QueryTimeout: Timeout
+                            QueryTimeout: Timeout,
+                            LoggerFactory: loggerFactory
                         )
                     ),
 
@@ -938,7 +991,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             DNSServer.IPAddress,
                             DNSServer.Port,
                             Mode:         DNSHTTPSMode.POST,
-                            QueryTimeout: Timeout
+                            QueryTimeout: Timeout,
+                            LoggerFactory: loggerFactory
                         )
                     ),
 
@@ -948,15 +1002,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             DNSServer.IPAddress,
                             DNSServer.Port,
                             Mode:         DNSHTTPSMode.JSON,
-                            QueryTimeout: Timeout
+                            QueryTimeout: Timeout,
+                            LoggerFactory: loggerFactory
                         )
                     ),
 
                 _ => new DNSUDPClient(
-                         DNSServer.IPAddress,
-                         DNSServer.Port,
-                         QueryTimeout: Timeout
-                     )
+                          DNSServer.IPAddress,
+                          DNSServer.Port,
+                          QueryTimeout: Timeout,
+                          LoggerFactory: loggerFactory
+                      )
 
             };
 
@@ -1034,6 +1090,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 do
                 {
 
+                    logger.LogDebug(
+                        "Querying DNS server {DNSServer} via {Transport} for '{DNSServiceName}' ({RecordTypes}), attempt {Attempt}",
+                        DNSServer,
+                        DNSServer.Transport,
+                        DNSQuery.Questions.First().DomainName,
+                        DNSQuery.Questions.Select(q => q.QueryType).AggregateWith(", "),
+                        attempts + 1
+                    );
+
                     response = await transportClient.Query(
                                          DNSQuery.Questions.First().DomainName,
                                          DNSQuery.Questions.Select(q => q.QueryType),
@@ -1046,13 +1111,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     // RFC 7873: Extract and store server cookie from response OPT record
                     ExtractAndStoreCookie(serverKey, response);
 
+                    logger.LogDebug(
+                        "DNS server {DNSServer} via {Transport} returned {ResponseCode} with {AnswerCount} answer(s) in {Runtime}ms",
+                        DNSServer,
+                        DNSServer.Transport,
+                        response.ResponseCode,
+                        response.Answers.Count(),
+                        response.Runtime.TotalMilliseconds
+                    );
+
                     if (response.ResponseCode != DNSResponseCodes.ServerFailure)
                         break;
 
                     attempts++;
 
                     if (attempts <= MaxRetries)
+                    {
+                        logger.LogWarning(
+                            "DNS server {DNSServer} via {Transport} returned SERVFAIL; retry {Attempt} of {MaxRetries}",
+                            DNSServer,
+                            DNSServer.Transport,
+                            attempts,
+                            MaxRetries
+                        );
+
                         await Task.Delay(TimeSpan.FromMilliseconds(200), CancellationToken).ConfigureAwait(false);
+                    }
 
                 }
                 while (attempts <= MaxRetries);

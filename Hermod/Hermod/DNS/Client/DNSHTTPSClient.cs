@@ -24,6 +24,9 @@ using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -62,6 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
 
         private readonly SemaphoreSlim httpStreamLock = new(1, 1);
+        private readonly ILogger<DNSHTTPSClient> logger;
 
         public new const  String DefaultHTTPUserAgent    = "Hermod DNS HTTP Test Client";
 
@@ -123,7 +127,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               UInt16?                                                    MaxNumberOfRetries                   = null,
                               UInt32?                                                    BufferSize                           = null,
 
-                              Boolean?                                                   DisableLogging                       = null)
+                              Boolean?                                                   DisableLogging                       = null,
+                              ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                              ILoggerFactory?                                            LoggerFactory                        = null)
 
             : base(IPvXAddress.Localhost,
                    TCPPort,
@@ -174,13 +180,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    true,
                    true,
 
-                   DisableLogging)
+                    DisableLogging,
+                    LoggerFactory: LoggerFactory)
 
         {
 
             this.Mode              = Mode             ?? DNSHTTPSMode.GET;
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
+            this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSHTTPSClient>();
 
         }
 
@@ -217,7 +225,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               UInt16?                                                    MaxNumberOfRetries                   = null,
                               UInt32?                                                    BufferSize                           = null,
 
-                              Boolean?                                                   DisableLogging                       = null)
+                              Boolean?                                                   DisableLogging                       = null,
+                              ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                              ILoggerFactory?                                            LoggerFactory                        = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
@@ -268,13 +278,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    true,
                    true,
 
-                   DisableLogging)
+                    DisableLogging,
+                    LoggerFactory: LoggerFactory)
 
         {
 
             this.Mode              = Mode             ?? DNSHTTPSMode.GET;
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
+            this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSHTTPSClient>();
 
         }
 
@@ -313,7 +325,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               UInt32?                                                    BufferSize                           = null,
 
                               Boolean?                                                   DisableLogging                       = null,
-                              DNSClient?                                                 DNSClient                            = null)
+                              DNSClient?                                                 DNSClient                            = null,
+                              ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                              ILoggerFactory?                                            LoggerFactory                        = null)
 
             : base(URL,
                    Description,
@@ -362,14 +376,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    true,  // ConsumeRequestChunkedTEImmediately
                    true,  // ConsumeResponseChunkedTEImmediately
 
-                   DisableLogging,
-                   DNSClient)
+                    DisableLogging,
+                    DNSClient,
+                    LoggerFactory: LoggerFactory)
 
         {
 
             this.Mode              = Mode             ?? DNSHTTPSMode.GET;
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
+            this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSHTTPSClient>();
 
             RemotePort ??= URL.Port ?? IPPort.HTTPS;
 
@@ -750,7 +766,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     httpResponse.HTTPStatusCode.Code >= 300)
                 {
 
-                    DebugX.LogT($"DNS HTTPS query to {RemoteIPAddress}:{RemotePort} returned HTTP {httpResponse.HTTPStatusCode.Code}!");
+                    logger.LogWarning(
+                        "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} returned HTTP {HTTPStatusCode}",
+                        RemoteIPAddress,
+                        RemotePort,
+                        httpResponse.HTTPStatusCode.Code
+                    );
 
                     return DNSInfo.Failed(
                                serverConfig,
@@ -779,7 +800,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (body.Length < 12)
                 {
 
-                    DebugX.LogT($"DNS HTTPS response from {RemoteIPAddress}:{RemotePort} too short ({body.Length} bytes, minimum 12)!");
+                    logger.LogWarning(
+                        "DNS HTTPS response from {RemoteIPAddress}:{RemotePort} too short: {Length} bytes, minimum 12",
+                        RemoteIPAddress,
+                        RemotePort,
+                        body.Length
+                    );
 
                     return DNSInfo.Failed(
                                serverConfig,
@@ -828,6 +854,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (Exception ex)
             {
+
+                logger.LogError(
+                    ex,
+                    "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} failed",
+                    RemoteIPAddress,
+                    RemotePort
+                );
 
                 await Log($"DNS HTTPS query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}");
 

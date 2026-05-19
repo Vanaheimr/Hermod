@@ -18,8 +18,13 @@
 #region Usings
 
 using System.Buffers;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Security.Authentication;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -48,6 +53,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                    IPSocket           LocalSocket,
                                                                    CancellationToken  CancellationToken);
 
+    public delegate Task OnDNSTLSUnicastListenerStartedDelegate   (DateTimeOffset     Timestamp,
+                                                                   DNSServer          Server,
+                                                                   IPSocket           LocalSocket,
+                                                                   CancellationToken  CancellationToken);
+
     public delegate Task OnDNSServerStoppedDelegate               (DateTimeOffset     Timestamp,
                                                                    DNSServer          Server,
                                                                    CancellationToken  CancellationToken);
@@ -71,14 +81,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        private readonly static  IPPort                    UDPUnicastPort          = IPPort.Parse(63);
-        private readonly static  IPPort                    TCPUnicastPort          = IPPort.Parse(63);
-        private readonly static  IPPort                    MulticastPort           = IPPort.Parse(6363);
-        private const            String                    MulticastGroupAddress   = "224.0.0.251";
+        private readonly         IDNSRequestHandler        requestHandler;
+        private readonly         List<Task>                listenerTasks           = [];
+        private readonly         ILogger<DNSServer>        logger;
+        private readonly         ILoggerFactory            loggerFactory;
 
         private                  UdpClient?                udpUnicastListener;
         private                  UdpClient?                udpMulticastListener;
-        private                  TcpClient?                tcpUnicastListener;
+        private                  TcpListener?              tcpUnicastListener;
+        private                  TcpListener?              tlsUnicastListener;
 
         private                  CancellationTokenSource?  cancellationTokenSource;
 
@@ -90,10 +101,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public event OnDNSUDPUnicastListenerStartedDelegate?    OnDNSUDPUnicastListenerStarted;
         public event OnDNSUDPMulticastListenerStartedDelegate?  OnDNSUDPMulticastListenerStarted;
         public event OnDNSTCPUnicastListenerStartedDelegate?    OnDNSTCPUnicastListenerStarted;
+        public event OnDNSTLSUnicastListenerStartedDelegate?    OnDNSTLSUnicastListenerStarted;
         public event OnDNSServerStoppedDelegate?                OnDNSServerStopped;
 
         public event OnDNSRequestReceivedDelegate?              OnDNSRequestReceived;
         public event OnDNSResponseSentDelegate?                 OnDNSResponseSent;
+
+        #endregion
+
+        #region Properties
+
+        public DNSServerOptions  Options                  { get; }
+
+        public ILogger<DNSServer>  Logger                 => logger;
+
+        public ILoggerFactory      LoggerFactory          => loggerFactory;
+
+        public IPSocket?         ActiveUDPUnicastSocket   { get; private set; }
+
+        public IPSocket?         ActiveUDPMulticastSocket { get; private set; }
+
+        public IPSocket?         ActiveTCPUnicastSocket   { get; private set; }
+
+        public IPSocket?         ActiveTLSUnicastSocket   { get; private set; }
+
+        public Boolean           IsRunning
+            => cancellationTokenSource is not null &&
+              !cancellationTokenSource.IsCancellationRequested;
+
+        #endregion
+
+        #region Constructor(s)
+
+        public DNSServer(IDNSRequestHandler?    RequestHandler   = null,
+                         DNSServerOptions?      Options          = null,
+                         ILogger<DNSServer>?    Logger           = null,
+                         ILoggerFactory?        LoggerFactory    = null)
+        {
+
+            this.Options        = Options        ?? new DNSServerOptions();
+            this.requestHandler = RequestHandler ?? new AuthoritativeDNSRequestHandler(
+                                                        InMemoryDNSZone.CreateDemoZone()
+                                                    );
+            this.loggerFactory  = LoggerFactory  ?? NullLoggerFactory.Instance;
+            this.logger         = Logger         ?? this.loggerFactory.CreateLogger<DNSServer>();
+
+        }
 
         #endregion
 
@@ -106,16 +159,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private async Task ListenUDPUnicastAsync(CancellationToken CancellationToken)
         {
 
-            var localSocket     = new IPSocket(IPvXAddress.Any, UDPUnicastPort);
-            //udpUnicastListener  = new UdpClient(localSocket.ToIPEndPoint());
-            udpUnicastListener  = new UdpClient(localSocket.Port.ToUInt16());
+            var localSocket     = Options.UDPUnicastSocket;
+            udpUnicastListener  = new UdpClient(localSocket.ToIPEndPoint());
+            ActiveUDPUnicastSocket = IPSocket.FromIPEndPoint(udpUnicastListener.Client.LocalEndPoint) ?? localSocket;
 
             await LogEvent(
                       OnDNSUDPUnicastListenerStarted,
                       async loggingDelegate => await loggingDelegate.Invoke(
                           Timestamp.Now,
                           this,
-                          localSocket,
+                          ActiveUDPUnicastSocket ?? localSocket,
                           CancellationToken
                       ),
                       nameof(OnDNSUDPUnicastListenerStarted)
@@ -130,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var dnsPacket   = await udpUnicastListener.ReceiveAsync(CancellationToken);
 
                     var dnsRequest  = DNSPacket.Parse(
-                                          localSocket,
+                                          ActiveUDPUnicastSocket ?? localSocket,
                                           IPSocket.FromIPEndPoint(dnsPacket.RemoteEndPoint),
                                           new MemoryStream(dnsPacket.Buffer)
                                       );
@@ -147,7 +200,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         nameof(OnDNSRequestReceived)
                     );
 
-                    var dnsResponse = ProcessDNSRequest(dnsRequest);
+                    var dnsResponse = await ProcessDNSRequest(dnsRequest, CancellationToken).
+                                            ConfigureAwait(false);
                     if (dnsResponse is not null)
                     {
 
@@ -155,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         dnsResponse.Serialize(
                             memoryStream,
-                            UseCompression:      false,
+                            UseCompression:      Options.UseCompression,
                             CompressionOffsets:  []
                         );
 
@@ -184,7 +238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 { }
                 catch (Exception ex)
                 {
-                    DebugX.Log($"Fehler im Unicast-Listener: {ex.Message}");
+                    logger.LogError(ex, "Error within UDP unicast listener");
                 }
             }
 
@@ -197,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private async Task ListenUDPMulticastAsync(CancellationToken CancellationToken)
         {
 
-            var localSocket       = new IPSocket(IPvXAddress.Any, MulticastPort);
+            var localSocket       = Options.UDPMulticastSocket;
 
             udpMulticastListener  = new UdpClient {
                                         ExclusiveAddressUse = false
@@ -205,7 +259,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             udpMulticastListener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             udpMulticastListener.Client.Bind           (localSocket.ToIPEndPoint());
 
-            var multicastAddress = System.Net.IPAddress.Parse(MulticastGroupAddress);
+            ActiveUDPMulticastSocket = IPSocket.FromIPEndPoint(udpMulticastListener.Client.LocalEndPoint) ?? localSocket;
+
+            var multicastAddress = System.Net.IPAddress.Parse(Options.MulticastGroupAddress);
             udpMulticastListener.JoinMulticastGroup(multicastAddress);
 
             await LogEvent(
@@ -213,8 +269,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                       async loggingDelegate => await loggingDelegate.Invoke(
                           Timestamp.Now,
                           this,
-                          localSocket,
-                          MulticastGroupAddress,
+                          ActiveUDPMulticastSocket ?? localSocket,
+                          Options.MulticastGroupAddress,
                           CancellationToken
                       ),
                       nameof(OnDNSUDPMulticastListenerStarted)
@@ -229,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var dnsPacket   = await udpMulticastListener.ReceiveAsync(CancellationToken);
 
                     var dnsRequest  = DNSPacket.Parse(
-                                          localSocket,
+                                          ActiveUDPMulticastSocket ?? localSocket,
                                           IPSocket.FromIPEndPoint(dnsPacket.RemoteEndPoint),
                                           new MemoryStream(dnsPacket.Buffer)
                                       );
@@ -246,7 +302,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         nameof(OnDNSRequestReceived)
                     );
 
-                    var dnsResponse = ProcessDNSRequest(dnsRequest);
+                    var dnsResponse = await ProcessDNSRequest(dnsRequest, CancellationToken).
+                                            ConfigureAwait(false);
                     if (dnsResponse is not null)
                     {
 
@@ -254,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         dnsResponse.Serialize(
                             memoryStream,
-                            UseCompression:      false,
+                            UseCompression:      Options.UseCompression,
                             CompressionOffsets:  []
                         );
 
@@ -284,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 { }
                 catch (Exception ex)
                 {
-                    DebugX.LogException(ex, "Fehler im Multicast-Listener");
+                    logger.LogError(ex, "Error within UDP multicast listener");
                 }
             }
 
@@ -292,9 +349,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 udpMulticastListener.DropMulticastGroup(multicastAddress);
             }
+            catch (ObjectDisposedException)
+            { }
             catch (Exception e)
             {
-                DebugX.LogException(e, "Error dropping multicast group");
+                logger.LogError(e, "Error dropping multicast group");
             }
 
         }
@@ -309,20 +368,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             try
             {
 
-                var localSocket  = new IPSocket(IPvXAddress.Any, TCPUnicastPort);
+                var localSocket  = Options.TCPUnicastSocket;
                 var tcpListener  = new TcpListener(localSocket.ToIPEndPoint());
+                tcpUnicastListener = tcpListener;
 
                 try
                 {
 
-                    tcpListener.Start();
+                    tcpListener.Start(Options.TCPBacklog);
+                    ActiveTCPUnicastSocket = IPSocket.FromIPEndPoint(tcpListener.LocalEndpoint) ?? localSocket;
 
                     await LogEvent(
                           OnDNSTCPUnicastListenerStarted,
                           async loggingDelegate => await loggingDelegate.Invoke(
                               Timestamp.Now,
                               this,
-                              localSocket,
+                              ActiveTCPUnicastSocket ?? localSocket,
                               CancellationToken
                           ),
                           nameof(OnDNSTCPUnicastListenerStarted)
@@ -336,9 +397,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                             var tcpClient = await tcpListener.AcceptTcpClientAsync(CancellationToken);
 
-                            DebugX.Log($"New TCP connection from {tcpClient.Client.RemoteEndPoint} accepted on {localSocket}!");
+                            logger.LogDebug(
+                                "New TCP connection from {RemoteEndPoint} accepted on {LocalSocket}",
+                                tcpClient.Client.RemoteEndPoint,
+                                localSocket
+                            );
 
-                            _ = Task.Run(async () => await HandleTCPClientAsync(tcpClient, localSocket, CancellationToken), CancellationToken);
+                            _ = Task.Run(
+                                    async () => await HandleTCPClientAsync(
+                                                       tcpClient,
+                                                       ActiveTCPUnicastSocket ?? localSocket,
+                                                       CancellationToken
+                                                   ).ConfigureAwait(false),
+                                    CancellationToken
+                                );
 
                         }
                         catch (OperationCanceledException)
@@ -347,23 +419,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         }
                         catch (Exception ex)
                         {
-                            DebugX.LogException(ex, $"Fehler beim Akzeptieren des TCP-Clients");
+                            logger.LogError(ex, "Error accepting TCP client");
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, "Error within TCP listener");
+                    logger.LogError(e, "Error within TCP listener");
                 }
                 finally
                 {
                     tcpListener.Stop();
+                    if (ReferenceEquals(tcpUnicastListener, tcpListener))
+                        tcpUnicastListener = null;
                 }
 
             }
             catch (Exception e)
             {
-                DebugX.LogException(e, "Error starting TCP listener");
+                logger.LogError(e, "Error starting TCP listener");
             }
 
         }
@@ -379,105 +453,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 {
 
                     var stream        = TCPClient.GetStream();
-
-                    // Rent a shared buffer from ArrayPool
-                    var sharedBuffer  = ArrayPool<Byte>.Shared.Rent(UInt16.MaxValue);
+                    var remoteSocket  = IPSocket.FromIPEndPoint(TCPClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
 
                     try
                     {
 
-                        DebugX.Log($"New TCP connection from {TCPClient.Client.RemoteEndPoint}");
+                        logger.LogDebug(
+                            "New TCP connection from {RemoteEndPoint}",
+                            TCPClient.Client.RemoteEndPoint
+                        );
 
-                        while (!CancellationToken.IsCancellationRequested)
-                        {
+                        await HandleFramedDNSStreamAsync(
+                                  stream,
+                                  LocalSocket,
+                                  remoteSocket,
+                                  "TCP Unicast",
+                                  CancellationToken
+                              ).ConfigureAwait(false);
 
-                            if (stream.DataAvailable)
-                            {
-
-                                // Read the 2-byte length prefix (DNS over TCP)
-                                var length     = stream.ReadUInt16BE();
-                                DebugX.Log($"Received TCP DNS request with length: {length}");
-
-                                var bytesRead  = await stream.ReadAsync(sharedBuffer.AsMemory(0, length), CancellationToken);
-                                if (bytesRead != length)
-                                    break;
-
-                                var dnsRequest = DNSPacket.Parse(
-                                                     LocalSocket,
-                                                     IPSocket.FromIPEndPoint(TCPClient.Client.RemoteEndPoint) ?? IPSocket.Zero,
-                                                     new MemoryStream(sharedBuffer, 0, bytesRead)
-                                                 );
-
-                                await LogEvent(
-                                    OnDNSRequestReceived,
-                                    async loggingDelegate => await loggingDelegate.Invoke(
-                                        Timestamp.Now,
-                                        this,
-                                        "TCP Unicast",
-                                        dnsRequest,
-                                        CancellationToken
-                                    ),
-                                    nameof(OnDNSRequestReceived)
-                                );
-
-                                var dnsResponse = ProcessDNSRequest(dnsRequest);
-                                if (dnsResponse is not null)
-                                {
-
-                                    var memoryStream = new MemoryStream();
-
-                                    dnsResponse.Serialize(
-                                        memoryStream,
-                                        UseCompression:      false,
-                                        CompressionOffsets:  []
-                                    );
-
-                                    var responseBytes  = memoryStream.ToArray();
-
-                                          // Write length prefix
-                                          stream.WriteUInt16BE((UInt16) responseBytes.Length);
-
-                                    await stream.WriteAsync(responseBytes, 0, responseBytes.Length, CancellationToken);
-                                    await stream.FlushAsync(CancellationToken);
-
-                                    await LogEvent(
-                                        OnDNSResponseSent,
-                                        async loggingDelegate => await loggingDelegate.Invoke(
-                                            Timestamp.Now,
-                                            this,
-                                            "TCP Unicast",
-                                            dnsResponse,
-                                            CancellationToken
-                                        ),
-                                        nameof(OnDNSResponseSent)
-                                    );
-
-                                }
-
-                            }
-                            else
-                            {
-
-                                await Task.Delay(10, CancellationToken);
-
-                                var sock         = TCPClient.Client;
-                                var clientClose  = sock.Poll(0, SelectMode.SelectRead) && sock.Available == 0;
-
-                                if (clientClose)
-                                {
-                                    DebugX.Log($"TCP client {TCPClient.Client.RemoteEndPoint} closed the connection");
-                                    break;
-                                }
-
-                            }
-
-                        }
                     }
                     catch (OperationCanceledException)
                     { }
                     catch (Exception ex)
                     {
-                        DebugX.LogException(ex, $"Fehler beim Verarbeiten der TCP-Verbindung");
+                        logger.LogError(ex, "Error handling TCP connection");
                     }
                     finally
                     {
@@ -489,72 +488,316 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (Exception e)
             {
-                DebugX.LogException(e, "Error handling TCP client");
+                logger.LogError(e, "Error handling TCP client");
             }
 
         }
 
         #endregion
 
+        #region (private) ListenTLSUnicastAsync   (CancellationToken token)
 
-        private DNSResponse ProcessDNSRequest(DNSPacket Request)
+        private async Task ListenTLSUnicastAsync(CancellationToken CancellationToken)
+        {
+
+            try
+            {
+
+                if (Options.TLSServerCertificate is null)
+                    throw new InvalidOperationException("A TLS server certificate is required for the DNS TLS listener.");
+
+                var localSocket  = Options.TLSUnicastSocket;
+                var tlsListener  = new TcpListener(localSocket.ToIPEndPoint());
+                tlsUnicastListener = tlsListener;
+
+                try
+                {
+
+                    tlsListener.Start(Options.TCPBacklog);
+                    ActiveTLSUnicastSocket = IPSocket.FromIPEndPoint(tlsListener.LocalEndpoint) ?? localSocket;
+
+                    await LogEvent(
+                          OnDNSTLSUnicastListenerStarted,
+                          async loggingDelegate => await loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              ActiveTLSUnicastSocket ?? localSocket,
+                              CancellationToken
+                          ),
+                          nameof(OnDNSTLSUnicastListenerStarted)
+                      );
+
+                    while (!CancellationToken.IsCancellationRequested)
+                    {
+                        try
+                        {
+
+                            var tcpClient = await tlsListener.AcceptTcpClientAsync(CancellationToken);
+
+                            logger.LogDebug(
+                                "New TLS connection from {RemoteEndPoint} accepted on {LocalSocket}",
+                                tcpClient.Client.RemoteEndPoint,
+                                localSocket
+                            );
+
+                            _ = Task.Run(
+                                    async () => await HandleTLSClientAsync(
+                                                       tcpClient,
+                                                       ActiveTLSUnicastSocket ?? localSocket,
+                                                       CancellationToken
+                                                   ).ConfigureAwait(false),
+                                    CancellationToken
+                                );
+
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error accepting TLS client");
+                        }
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Error within TLS listener");
+                }
+                finally
+                {
+                    tlsListener.Stop();
+                    if (ReferenceEquals(tlsUnicastListener, tlsListener))
+                        tlsUnicastListener = null;
+                }
+
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error starting TLS listener");
+            }
+
+        }
+
+        private async Task HandleTLSClientAsync(TcpClient          TCPClient,
+                                                IPSocket           LocalSocket,
+                                                CancellationToken  CancellationToken = default)
+        {
+            try
+            {
+
+                using (TCPClient)
+                {
+
+                    var remoteSocket = IPSocket.FromIPEndPoint(TCPClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
+
+                    await using var sslStream = new SslStream(
+                                                    TCPClient.GetStream(),
+                                                    leaveInnerStreamOpen: false,
+                                                    Options.TLSClientCertificateValidator
+                                                );
+
+                    var authenticationOptions = new SslServerAuthenticationOptions {
+                        ServerCertificate              = Options.TLSServerCertificate,
+                        ClientCertificateRequired       = Options.TLSClientCertificateRequired,
+                        EnabledSslProtocols             = Options.TLSProtocols,
+                        CertificateRevocationCheckMode  = Options.TLSCertificateRevocationCheckMode,
+                        EncryptionPolicy                = EncryptionPolicy.RequireEncryption
+                    };
+
+                    await sslStream.AuthenticateAsServerAsync(
+                                        authenticationOptions,
+                                        CancellationToken
+                                    ).ConfigureAwait(false);
+
+                    await HandleFramedDNSStreamAsync(
+                              sslStream,
+                              LocalSocket,
+                              remoteSocket,
+                              "TLS Unicast",
+                              CancellationToken
+                          ).ConfigureAwait(false);
+
+                }
+
+            }
+            catch (OperationCanceledException)
+            { }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error handling TLS client");
+            }
+
+        }
+
+        #endregion
+
+        #region (private) HandleFramedDNSStreamAsync(Stream, LocalSocket, RemoteSocket, ServerType, CancellationToken)
+
+        private async Task HandleFramedDNSStreamAsync(Stream             Stream,
+                                                      IPSocket          LocalSocket,
+                                                      IPSocket          RemoteSocket,
+                                                      String            ServerType,
+                                                      CancellationToken CancellationToken)
+        {
+
+            var sharedBuffer = ArrayPool<Byte>.Shared.Rent(UInt16.MaxValue);
+
+            try
+            {
+
+                while (!CancellationToken.IsCancellationRequested)
+                {
+
+                    var lengthBuffer  = new Byte[2];
+                    var lengthBytes   = await ReadTCPBytesAsync(Stream, lengthBuffer, CancellationToken).
+                                            ConfigureAwait(false);
+
+                    if (lengthBytes == 0)
+                        break;
+
+                    if (lengthBytes != 2)
+                        throw new EndOfStreamException("Incomplete DNS stream length prefix.");
+
+                    var length        = (UInt16) ((lengthBuffer[0] << 8) | lengthBuffer[1]);
+                    logger.LogDebug(
+                        "Received {ServerType} DNS request with length {Length}",
+                        ServerType,
+                        length
+                    );
+
+                    if (length == 0)
+                        continue;
+
+                    if (length > sharedBuffer.Length)
+                        throw new InvalidDataException($"DNS request length {length} exceeds the maximum message size.");
+
+                    var bytesRead     = await ReadTCPBytesAsync(Stream, sharedBuffer.AsMemory(0, length), CancellationToken).
+                                            ConfigureAwait(false);
+
+                    if (bytesRead != length)
+                        throw new EndOfStreamException("Incomplete DNS stream request payload.");
+
+                    var dnsRequest = DNSPacket.Parse(
+                                         LocalSocket,
+                                         RemoteSocket,
+                                         new MemoryStream(sharedBuffer, 0, bytesRead)
+                                     );
+
+                    await LogEvent(
+                        OnDNSRequestReceived,
+                        async loggingDelegate => await loggingDelegate.Invoke(
+                            Timestamp.Now,
+                            this,
+                            ServerType,
+                            dnsRequest,
+                            CancellationToken
+                        ),
+                        nameof(OnDNSRequestReceived)
+                    );
+
+                    var dnsResponse = await ProcessDNSRequest(dnsRequest, CancellationToken).
+                                            ConfigureAwait(false);
+
+                    if (dnsResponse is not null)
+                    {
+
+                        var memoryStream = new MemoryStream();
+
+                        dnsResponse.Serialize(
+                            memoryStream,
+                            UseCompression:      Options.UseCompression,
+                            CompressionOffsets:  []
+                        );
+
+                        var responseBytes  = memoryStream.ToArray();
+
+                        Stream.WriteUInt16BE((UInt16) responseBytes.Length);
+
+                        await Stream.WriteAsync(responseBytes, 0, responseBytes.Length, CancellationToken);
+                        await Stream.FlushAsync(CancellationToken);
+
+                        await LogEvent(
+                            OnDNSResponseSent,
+                            async loggingDelegate => await loggingDelegate.Invoke(
+                                Timestamp.Now,
+                                this,
+                                ServerType,
+                                dnsResponse,
+                                CancellationToken
+                            ),
+                            nameof(OnDNSResponseSent)
+                        );
+
+                    }
+
+                }
+
+            }
+            finally
+            {
+                ArrayPool<Byte>.Shared.Return(sharedBuffer);
+            }
+
+        }
+
+        #endregion
+
+        #region (private) ReadTCPBytesAsync(Stream, Buffer, CancellationToken)
+
+        private async Task<Int32> ReadTCPBytesAsync(Stream             Stream,
+                                                    Memory<Byte>       Buffer,
+                                                    CancellationToken  CancellationToken)
+        {
+
+            using var timeoutCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            if (Options.TCPReadTimeout > TimeSpan.Zero)
+                timeoutCancellationTokenSource.CancelAfter(Options.TCPReadTimeout);
+
+            var bytesRead = 0;
+
+            while (bytesRead < Buffer.Length)
+            {
+
+                var read = await Stream.ReadAsync(
+                               Buffer[bytesRead..],
+                               timeoutCancellationTokenSource.Token
+                           ).ConfigureAwait(false);
+
+                if (read == 0)
+                    break;
+
+                bytesRead += read;
+
+            }
+
+            return bytesRead;
+
+        }
+
+        #endregion
+
+
+        private Task<DNSResponse?> ProcessDNSRequest(DNSPacket          Request,
+                                                     CancellationToken  CancellationToken = default)
         {
 
             Request.Questions.ForEachCounted((question, i) => {
-                DebugX.Log($"Question {i}: Name={question.DomainName}, Type={question.QueryType}, Class={question.QueryClass}");
+                logger.LogDebug(
+                    "Question {QuestionIndex}: Name={DomainName}, Type={QueryType}, Class={QueryClass}",
+                    i,
+                    question.DomainName,
+                    question.QueryType,
+                    question.QueryClass
+                );
             });
 
-
-            var response = Request.CreateResponse(
-                               Opcode:                0,
-                               AuthoritativeAnswer:   false,
-                               Truncation:            false,
-                               RecursionDesired:      false,
-                               RecursionAvailable:    true,
-                               ResponseCode:          DNSResponseCodes.NoError,
-                               AnswerRRs:             [
-                                                          new A(
-                                                              DomainName.Parse("api1.example.org."),
-                                                              DNSQueryClasses.IN,
-                                                              TimeSpan.FromDays(30),
-                                                              IPv4Address.Parse("141.24.12.2")
-                                                          ),
-                                                          new AAAA(
-                                                              DomainName.Parse("api2.example.org."),
-                                                              DNSQueryClasses.IN,
-                                                              TimeSpan.FromDays(30),
-                                                              IPv6Address.Parse("::2")
-                                                          ),
-                                                          new SRV(
-                                                              DNSServiceName.Parse("_ocpp._tls.api2.example.org."),
-                                                              DNSQueryClasses.IN,
-                                                              TimeSpan.FromDays(30),
-                                                              10,
-                                                              20,
-                                                              IPPort.Parse(443),
-                                                              DomainName.Parse("api2.example.org.")
-                                                          ),
-                                                          new SSHFP(
-                                                              DomainName.Parse("api2.example.org."),
-                                                              DNSQueryClasses.IN,
-                                                              TimeSpan.FromDays(30),
-                                                              SSHFP_Algorithm.ECDSA,
-                                                              SSHFP_FingerprintType.SHA256,
-                                                              "0095d7637f456888505741e952a1e7ff635e018f9a95c9b3b38af4bb9fdb0c36".FromHEX()
-                                                          ),
-                                                          new TXT(
-                                                              DomainName.Parse("api2.example.org."),
-                                                              DNSQueryClasses.IN,
-                                                              TimeSpan.FromDays(30),
-                                                              "Hello world!"
-                                                          )
-
-                                                      ],
-                               AuthorityRRs:          [],
-                               AdditionalRRs:         []
-                           );
-
-            return response;
+            return requestHandler.ProcessDNSRequest(
+                       Request,
+                       CancellationToken
+                   );
 
         }
 
@@ -565,13 +808,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public async Task Start()
         {
 
-            cancellationTokenSource = new CancellationTokenSource();
+            if (IsRunning)
+                return;
 
-            _ = Task.WhenAll(
-                    ListenUDPUnicastAsync  (cancellationTokenSource.Token),
-                    ListenUDPMulticastAsync(cancellationTokenSource.Token),
-                    ListenTCPUnicastAsync  (cancellationTokenSource.Token)
-                );
+            if (Options.EnableTLSUnicast && Options.TLSServerCertificate is null)
+                throw new InvalidOperationException("A TLS server certificate is required for the DNS TLS listener.");
+
+            cancellationTokenSource = new CancellationTokenSource();
+            listenerTasks.Clear();
+
+            if (Options.EnableUDPUnicast)
+                listenerTasks.Add(ListenUDPUnicastAsync(cancellationTokenSource.Token));
+
+            if (Options.EnableUDPMulticast)
+                listenerTasks.Add(ListenUDPMulticastAsync(cancellationTokenSource.Token));
+
+            if (Options.EnableTCPUnicast)
+                listenerTasks.Add(ListenTCPUnicastAsync(cancellationTokenSource.Token));
+
+            if (Options.EnableTLSUnicast)
+                listenerTasks.Add(ListenTLSUnicastAsync(cancellationTokenSource.Token));
 
             await LogEvent(
                       OnDNSServerStarted,
@@ -592,12 +848,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public async Task Stop()
         {
 
+            var cancellationTokenSource = this.cancellationTokenSource;
+            if (cancellationTokenSource is null)
+                return;
+
             await LogEvent(
                       OnDNSServerStopped,
                       async loggingDelegate => await loggingDelegate.Invoke(
                           Timestamp.Now,
                           this,
-                          cancellationTokenSource?.Token ?? CancellationToken.None
+                          cancellationTokenSource.Token
                       ),
                       nameof(OnDNSServerStopped)
                   );
@@ -606,7 +866,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             udpUnicastListener?.  Dispose();
             udpMulticastListener?.Dispose();
-            tcpUnicastListener?.  Dispose();
+            tcpUnicastListener?.  Stop();
+            tlsUnicastListener?.  Stop();
+
+            try
+            {
+                await Task.WhenAll(listenerTasks).
+                           ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            { }
+            catch (ObjectDisposedException)
+            { }
+            finally
+            {
+                udpUnicastListener        = null;
+                udpMulticastListener      = null;
+                tcpUnicastListener        = null;
+                tlsUnicastListener        = null;
+                ActiveUDPUnicastSocket    = null;
+                ActiveUDPMulticastSocket  = null;
+                ActiveTCPUnicastSocket    = null;
+                ActiveTLSUnicastSocket    = null;
+                listenerTasks.Clear();
+
+                cancellationTokenSource.Dispose();
+                this.cancellationTokenSource = null;
+            }
 
         }
 
@@ -653,7 +939,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          String  ErrorResponse)
         {
 
-            DebugX.Log($"{Module}.{Caller}: {ErrorResponse}");
+            logger.LogError(
+                "{Module}.{Caller}: {ErrorResponse}",
+                Module,
+                Caller,
+                ErrorResponse
+            );
 
             return Task.CompletedTask;
 
@@ -668,7 +959,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          Exception  ExceptionOccurred)
         {
 
-            DebugX.LogException(ExceptionOccurred, $"{Module}.{Caller}");
+            logger.LogError(
+                ExceptionOccurred,
+                "{Module}.{Caller}",
+                Module,
+                Caller
+            );
 
             return Task.CompletedTask;
 
@@ -704,7 +1000,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(DNSServer)}: UDP/UC:{UDPUnicastPort}, UDP/MC:{MulticastPort}, TCP:{TCPUnicastPort}";
+            => $"{nameof(DNSServer)}: UDP/UC:{Options.UDPUnicastSocket}, UDP/MC:{Options.UDPMulticastSocket}, TCP:{Options.TCPUnicastSocket}, TLS:{Options.TLSUnicastSocket}";
 
         #endregion
 

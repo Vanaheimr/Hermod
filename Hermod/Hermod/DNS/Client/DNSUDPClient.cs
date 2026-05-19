@@ -21,6 +21,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -47,6 +50,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         // unified timeout, and the receive buffer is determined by UDPPayloadSize (EDNS0).
 
         private Boolean disposedValue;
+
+        private readonly ILogger<DNSUDPClient>  logger;
 
         #endregion
 
@@ -146,10 +151,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The UDP port of the DNS server to query.</param>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">An optional DNS query timeout. Default is 23.5 seconds.</param>
-        public DNSUDPClient(IIPAddress   IPAddress,
-                            IPPort?      Port               = null,
-                            Boolean?     RecursionDesired   = null,
-                            TimeSpan?    QueryTimeout       = null)
+        public DNSUDPClient(IIPAddress              IPAddress,
+                            IPPort?                 Port               = null,
+                            Boolean?                RecursionDesired   = null,
+                            TimeSpan?               QueryTimeout       = null,
+                            ILogger<DNSUDPClient>?  Logger             = null,
+                            ILoggerFactory?         LoggerFactory      = null)
 
         {
 
@@ -158,6 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RemoteURL         = URL.Parse($"dns://{IPAddress}:{this.RemotePort}");
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? DefaultQueryTimeout;
+            this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSUDPClient>();
 
         }
 
@@ -279,8 +287,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // RFC 5966: If the UDP response is truncated, retry via TCP
                 if (response.IsTruncated)
+                {
+                    logger.LogDebug(
+                        "DNS UDP response from {RemoteIPAddress}:{RemotePort} was truncated; retrying via TCP",
+                        RemoteIPAddress,
+                        RemotePort
+                    );
+
                     return await QueryViaTCPFallbackAsync(dnsQuery, effectiveTimeout, timeoutCTS.Token).
                                      ConfigureAwait(false);
+                }
 
                 return response;
 
@@ -312,7 +328,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
 
-                DebugX.LogT($"DNS UDP query to {RemoteIPAddress}:{RemotePort} timed out!");
+                logger.LogWarning(
+                    "DNS UDP query to {RemoteIPAddress}:{RemotePort} timed out",
+                    RemoteIPAddress,
+                    RemotePort
+                );
 
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(
@@ -327,7 +347,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (SocketException se)
             {
 
-                DebugX.LogT($"DNS UDP query to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
+                logger.LogWarning(
+                    se,
+                    "DNS UDP query to {RemoteIPAddress}:{RemotePort} socket error: {SocketErrorCode}",
+                    RemoteIPAddress,
+                    RemotePort,
+                    se.SocketErrorCode
+                );
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(
@@ -358,7 +384,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (Exception e)
             {
 
-                DebugX.LogT($"DNS UDP query to {RemoteIPAddress}:{RemotePort} failed: [{e.GetType().Name}] {e.Message}");
+                logger.LogError(
+                    e,
+                    "DNS UDP query to {RemoteIPAddress}:{RemotePort} failed",
+                    RemoteIPAddress,
+                    RemotePort
+                );
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(
@@ -474,7 +505,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
 
-                DebugX.LogT($"DNS TCP fallback to {RemoteIPAddress}:{RemotePort} timed out!");
+                logger.LogWarning(
+                    "DNS TCP fallback to {RemoteIPAddress}:{RemotePort} timed out",
+                    RemoteIPAddress,
+                    RemotePort
+                );
 
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(
@@ -489,7 +524,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (SocketException se)
             {
 
-                DebugX.LogT($"DNS TCP fallback to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
+                logger.LogWarning(
+                    se,
+                    "DNS TCP fallback to {RemoteIPAddress}:{RemotePort} socket error: {SocketErrorCode}",
+                    RemoteIPAddress,
+                    RemotePort,
+                    se.SocketErrorCode
+                );
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(
@@ -519,7 +560,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (Exception e)
             {
 
-                DebugX.LogT($"DNS TCP fallback to {RemoteIPAddress}:{RemotePort} failed: [{e.GetType().Name}] {e.Message}");
+                logger.LogError(
+                    e,
+                    "DNS TCP fallback to {RemoteIPAddress}:{RemotePort} failed",
+                    RemoteIPAddress,
+                    RemotePort
+                );
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(

@@ -20,6 +20,9 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -39,6 +42,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly ConcurrentDictionary<String, DateTimeOffset>        noDataCache    = [];
         private readonly Timer                                                cleanUpTimer;
         private readonly Object                                               cleanUpLock    = new();
+
+        private readonly ILogger<DNSCache>  logger;
 
         /// <summary>
         /// Cached NSEC records for aggressive negative caching (RFC 8198).
@@ -81,12 +86,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="CleanUpEvery">How often to remove outdated entries from DNS cache.</param>
         /// <param name="NegativeCacheTTL">The TTL for negative cache entries (NXDOMAIN, etc.).</param>
-        public DNSCache(TimeSpan?  CleanUpEvery       = null,
-                        TimeSpan?  NegativeCacheTTL   = null)
+        public DNSCache(TimeSpan?            CleanUpEvery       = null,
+                        TimeSpan?            NegativeCacheTTL   = null,
+                        ILogger<DNSCache>?   Logger             = null,
+                        ILoggerFactory?      LoggerFactory      = null)
         {
 
             this.CleanUpEvery      = CleanUpEvery     ?? DefaultCleanUpEvery;
             this.NegativeCacheTTL  = NegativeCacheTTL ?? DefaultNegativeCacheTTL;
+            this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSCache>();
 
             this.cleanUpTimer      = new Timer(
                                          RemoveExpiredCacheEntries,
@@ -688,7 +696,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     foreach (var expiredEntry in expiredEntries)
                     {
-                        DebugX.LogT($"Removed '{expiredEntry.Key}' from DNS cache (all records expired)!");
+                        logger.LogDebug(
+                            "Removed '{DNSServiceName}' from DNS cache because all records expired",
+                            expiredEntry.Key
+                        );
                         dnsCache.TryRemove(expiredEntry.Key, out _);
                     }
 
@@ -714,7 +725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, "During DNS cache clean up!");
+                    logger.LogError(e, "Error during DNS cache clean up");
                 }
 
                 finally

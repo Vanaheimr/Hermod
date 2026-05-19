@@ -23,6 +23,8 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -108,7 +110,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             UInt16?                                                     MaxNumberOfRetries               = null,
                             UInt32?                                                     BufferSize                       = null,
 
-                            Boolean?                                                    DisableLogging                   = null)
+                            Boolean?                                                    DisableLogging                   = null,
+                            ILoggerFactory?                                             LoggerFactory                    = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.DNS_TLS,
@@ -148,7 +151,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    MaxNumberOfRetries,
                    BufferSize ?? 4096,
 
-                   DisableLogging)
+                   DisableLogging,
+                   LoggerFactory: LoggerFactory)
 
         {
 
@@ -189,7 +193,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             TCPEchoLoggingDelegate?                                     LoggingHandler                   = null,
 
                             Boolean?                                                    DisableLogging                   = null,
-                            IDNSClient?                                                 DNSClient                        = null)
+                            IDNSClient?                                                 DNSClient                        = null,
+                            ILoggerFactory?                                             LoggerFactory                    = null)
 
             : base(URL,
                    Description,
@@ -229,7 +234,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    BufferSize ?? 4096,
 
                    DisableLogging,
-                   DNSClient)
+                   DNSClient,
+                   LoggerFactory: LoggerFactory)
 
         {
 
