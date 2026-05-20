@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Collections.Immutable;
 
 #endregion
@@ -38,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                      ThenByDescending(e => e.Weight).
                                      ToImmutableList();
 
-            this.LastRefresh  = DateTimeOffset.UtcNow;
+            this.LastRefresh  = Timestamp.Now;
 
             this.MinTTL       = TimeSpan.FromSeconds(this.Endpoints.Min(e => (Int32) e.TTL.TotalSeconds));
 
@@ -46,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         public Boolean IsExpired
-            => DateTimeOffset.UtcNow > LastRefresh.Add(MinTTL);
+            => Timestamp.Now > LastRefresh.Add(MinTTL);
 
 
         public void Update(IEnumerable<DNSSRVEndpoint> NewEndpoints)
@@ -56,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        .ThenByDescending(e => e.Weight)
                                        .ToImmutableList();
 
-            this.LastRefresh  = DateTimeOffset.UtcNow;
+            this.LastRefresh  = Timestamp.Now;
 
             this.MinTTL       = TimeSpan.FromSeconds(Endpoints.Min(e => (Int32) e.TTL.TotalSeconds));
 

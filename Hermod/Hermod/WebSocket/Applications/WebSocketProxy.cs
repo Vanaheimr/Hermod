@@ -19,12 +19,11 @@
 
 using System.Collections.Concurrent;
 using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
@@ -79,51 +78,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="UpstreamServerURL">An URL of the upstream HTTP WebSocket server.</param>
         /// <param name="AutoConnect">Whether to connect to the HTTP WebSocket server automatically.</param>
         /// 
-        /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
+        /// <param name="IPAddress">An optional IP address to listen on. Default: ATCPServer default.</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
-        public WebSocketProxy(URL                                                             UpstreamServerURL,
-                              Boolean                                                         AutoConnect                  = true,
+        public WebSocketProxy(URL                                                       UpstreamServerURL,
+                              Boolean                                                   AutoConnect                  = true,
 
-                              IIPAddress?                                                     IPAddress                    = null,
-                              IPPort?                                                         HTTPPort                     = null,
-                              String?                                                         HTTPServiceName              = null,
-                              I18NString?                                                     Description                  = null,
+                              IIPAddress?                                               IPAddress                    = null,
+                              IPPort?                                                   HTTPPort                     = null,
+                              String?                                                   HTTPServerName               = null,
 
-                              Boolean?                                                        RequireAuthentication        = true,
-                              IEnumerable<String>?                                            SecWebSocketProtocols        = null,
-                              SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
-                              Boolean                                                         DisableWebSocketPings        = false,
-                              TimeSpan?                                                       WebSocketPingEvery           = null,
-                              TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
+                              Boolean?                                                  RequireAuthentication        = true,
+                              IEnumerable<String>?                                      SecWebSocketProtocols        = null,
+                              SubprotocolSelectorDelegate?                              SubprotocolSelector          = null,
+                              Boolean                                                   DisableWebSocketPings        = false,
+                              TimeSpan?                                                 WebSocketPingEvery           = null,
+                              TimeSpan?                                                 SlowNetworkSimulationDelay   = null,
 
-                              Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
-                              RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
-                              SslProtocols?                                                   AllowedTLSProtocols          = null,
-                              Boolean?                                                        ClientCertificateRequired    = null,
-                              Boolean?                                                        CheckCertificateRevocation   = null,
+                              UInt32?                                                   BufferSize                   = null,
+                              TimeSpan?                                                 ReceiveTimeout               = null,
+                              TimeSpan?                                                 SendTimeout                  = null,
+                              TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
 
-                              ServerThreadNameCreatorDelegate?                                ServerThreadNameCreator      = null,
-                              ServerThreadPriorityDelegate?                                   ServerThreadPrioritySetter   = null,
-                              Boolean?                                                        ServerThreadIsBackground     = null,
-                              ConnectionIdBuilder?                                            ConnectionIdBuilder          = null,
-                              TimeSpan?                                                       ConnectionTimeout            = null,
-                              UInt32?                                                         MaxClientConnections         = null,
+                              ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                              RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                              SslProtocols?                                             AllowedTLSProtocols          = null,
+                              Boolean?                                                  ClientCertificateRequired    = null,
+                              Boolean?                                                  CheckCertificateRevocation   = null,
 
-                              DNSClient?                                                      DNSClient                    = null,
-                              ILogger?                                                        Logger                       = null,
-                              ILoggerFactory?                                                 LoggerFactory                = null,
-                              Boolean                                                         AutoStart                    = false)
+                              ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                              UInt32?                                                   MaxClientConnections         = null,
+                              IDNSClient?                                               DNSClient                    = null,
+
+                              Boolean?                                                  DisableMaintenanceTasks      = false,
+                              TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                              TimeSpan?                                                 MaintenanceEvery             = null,
+
+                              Boolean?                                                  DisableWardenTasks           = false,
+                              TimeSpan?                                                 WardenInitialDelay           = null,
+                              TimeSpan?                                                 WardenCheckEvery             = null,
+
+                              String?                                                   Description                  = null,
+                              ILoggerFactory?                                           LoggerFactory                = null,
+                              Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    HTTPPort,
-                   HTTPServiceName,
-                   Description,
+                   HTTPServerName,
 
                    RequireAuthentication,
                    SecWebSocketProtocols,
@@ -132,6 +138,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
 
+                   BufferSize,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   LoggingHandler,
+
                    ServerCertificateSelector,
                    ClientCertificateValidator,
                    LocalCertificateSelector,
@@ -139,17 +150,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
 
-                   ServerThreadNameCreator,
-                   ServerThreadPrioritySetter,
-                   ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionTimeout,
                    MaxClientConnections,
-
                    DNSClient,
-                   Logger,
+
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery,
+
+                   Description,
                    LoggerFactory,
-                   AutoStart)
+                   AutoStart: false)
 
         {
 
@@ -270,6 +285,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             };
 
             #endregion
+
+
+            if (AutoStart ?? false)
+                Start().GetAwaiter().GetResult();
 
         }
 

@@ -19,6 +19,8 @@
 
 using System.Collections;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -39,6 +41,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// A mapping from HTTPContentTypes to HTTPContentTypeNodeXs.
         /// </summary>
         private readonly ConcurrentDictionary<HTTPContentType, ContentTypeNodeX> contentTypeNodes = [];
+
+        public static ILogger Logger { get; set; } = NullLogger.Instance;
 
         #endregion
 
@@ -186,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     else if (contentTypeNode.AllowReplacement == URLReplacement.Ignore)
                     {
-                        DebugX.Log("HTTP API definition replaced!");
+                        Logger.LogDebug("HTTP API definition replacement ignored.");
                     }
 
                     else

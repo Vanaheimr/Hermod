@@ -21,6 +21,7 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -36,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
     /// comma-separated values with 0x00, 0x0a (\n) or
     /// 0x0d 0x0a (\r\n) end-of-line characters.
     /// </summary>
-    public class TCPCSVServer : TCPServer,
+    public class TCPCSVServer : ATCPServer,
                                 IBoomerangSender<String, DateTimeOffset, String[], TCPResult<String>>
     {
 
@@ -45,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <summary>
         /// The default service banner.
         /// </summary>
-        public new const String                  __DefaultServiceBanner  = "Vanaheimr Hermod TCP/CSV Service v0.10";
+        public const String                      __DefaultServiceBanner  = "Vanaheimr Hermod TCP/CSV Service v0.10";
 
         /// <summary>
         /// The default array of delimiters to split the incoming CSV line into individual elements.
@@ -63,6 +64,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// The characters to split the incoming CSV text lines.
         /// </summary>
         public Char[]  SplitCharacters    { get; }
+
+        public String  ServiceBanner      { get; }
 
         public new RemoteTLSClientCertificateValidationHandler<TCPCSVServer>?  ClientCertificateValidator    { get; set; }
 
@@ -85,6 +88,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
 
         public event BoomerangSenderHandler<String, DateTimeOffset, String[], TCPResult<String>> OnNotification;
+
+        public event StartedEventHandler?             OnStarted;
+        public event CompletedEventHandler?           OnCompleted;
+        public event ExceptionOccurredEventHandler?   OnExceptionOccurred;
 
         #endregion
 
@@ -205,34 +212,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
             : base(IIPAddress,
                    Port,
-                   ServiceName,
-                   ServiceBanner,
-
-                   ServerCertificateSelector,
-                   null,
-                   //(sender,
-                   // certificate,
-                   // certificateChain,
-                   // tlsServer,
-                   // policyErrors) => DoClientCertificateValidator(sender,
-                   //                                               certificate,
-                   //                                               certificateChain,
-                   //                                               policyErrors),
-                   LocalCertificateSelector,
-                   AllowedTLSProtocols,
-                   ClientCertificateRequired,
-                   CheckCertificateRevocation,
-
-                   ServerThreadNameCreator,
-                   ServerThreadPrioritySetter,
-                   ServerThreadIsBackground,
-                   ConnectionIdBuilder,
-                   ConnectionTimeout,
-                   MaxClientConnections,
-
-                   DNSClient,
-                   Description,
-                   false)
+                   ReceiveTimeout:              ConnectionTimeout,
+                   SendTimeout:                 ConnectionTimeout,
+                   ServerCertificateSelector:   ServerCertificateSelector,
+                   ClientCertificateValidator:  null,
+                   LocalCertificateSelector:    LocalCertificateSelector,
+                   AllowedTLSProtocols:         AllowedTLSProtocols,
+                   ClientCertificateRequired:   ClientCertificateRequired,
+                   CheckCertificateRevocation:  CheckCertificateRevocation,
+                   ConnectionIdBuilder:         ConnectionIdBuilder,
+                   MaxClientConnections:        MaxClientConnections,
+                   DNSClient:                   DNSClient,
+                   Description:                 Description,
+                   AutoStart:                   false)
 
         {
 
@@ -252,14 +244,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                                                  );
 
             this._TCPCSVProcessor            = new TCPCSVProcessor(this.SplitCharacters);
-            this.SendTo(_TCPCSVProcessor);
-
             this._TCPCSVCommandProcessor     = new TCPCSVCommandProcessor();
             this._TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
             this._TCPCSVCommandProcessor.OnNotification += ProcessBoomerang;
 
             if (AutoStart)
-                Start();
+                Start().GetAwaiter().GetResult();
 
         }
 
@@ -374,6 +364,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         }
 
         #endregion
+
+
+        protected override Task HandleConnection(TCPConnection      Connection,
+                                                 CancellationToken  Token)
+        {
+
+            _TCPCSVProcessor.ProcessArrow(
+                EventTracking_Id.New,
+                Connection
+            );
+
+            return Task.CompletedTask;
+
+        }
 
 
         //#region (override) ToString()

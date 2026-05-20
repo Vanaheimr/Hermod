@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="SMTPProcessor">The sending SMTP processor.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="EMail">The incoming e-mail.</param>
-    internal delegate void InternalRequestLogHandler(SMTPConnection SMTPProcessor, DateTimeOffset ServerTimestamp, EMail EMail);
+    internal delegate void InternalRequestLogHandler(SMTPServer SMTPServer, DateTimeOffset ServerTimestamp, EMail EMail);
 
     /// <summary>
     /// The delegate for the SMTP request log.
@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="EMail">The incoming e-mail.</param>
     /// <param name="Response">The outgoing response.</param>
-    internal delegate void InternalAccessLogHandler(SMTPConnection SMTPProcessor, DateTimeOffset ServerTimestamp, EMail EMail, SMTPExtendedResponse Response);
+    internal delegate void InternalAccessLogHandler(SMTPServer SMTPServer, DateTimeOffset ServerTimestamp, EMail EMail, SMTPExtendedResponse Response);
 
 
 
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occurred error.</param>
     /// <param name="LastException">The last occurred exception.</param>
-    internal delegate void InternalErrorLogHandler (SMTPConnection SMTPProcessor, DateTimeOffset ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
+    internal delegate void InternalErrorLogHandler (SMTPServer SMTPServer, DateTimeOffset ServerTimestamp, String SMTPCommand, EMail? EMail, SMTPExtendedResponse? Response, String? Error = null, Exception? LastException = null);
 
     /// <summary>
     /// The delegate for the SMTP error log.
@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occurred error.</param>
     /// <param name="LastException">The last occurred exception.</param>
-    public delegate void SMTPErrorLogHandler(SMTPServer SMTPServer, DateTimeOffset ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
+    public delegate void SMTPErrorLogHandler(SMTPServer SMTPServer, DateTimeOffset ServerTimestamp, String SMTPCommand, EMail? EMail, SMTPExtendedResponse? Response, String? Error = null, Exception? LastException = null);
 
 
     /// <summary>

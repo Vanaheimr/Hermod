@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
@@ -32,57 +26,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Properties
 
-        #region StatusCode
-
-        private readonly SMTPStatusCode _StatusCode;
-
         /// <summary>
         /// The SMTP status code.
         /// </summary>
-        public SMTPStatusCode StatusCode
-        {
-            get
-            {
-                return _StatusCode;
-            }
-        }
-
-        #endregion
-
-        #region Response
-
-        private readonly String _Response;
+        public SMTPStatusCodes  StatusCode    { get; }
 
         /// <summary>
         /// The SMTP response text.
         /// </summary>
-        public String Response
-        {
-            get
-            {
-                return _Response;
-            }
-        }
+        public String          Response      { get; }
 
         #endregion
 
-        #endregion
-
-        #region SMTPResponse(StatusCode, Response = "")
+        #region Constructor(s)
 
         /// <summary>
         /// Create a new SMTP response.
         /// </summary>
         /// <param name="StatusCode">The SMTP status code.</param>
         /// <param name="Response">The SMTP response text.</param>
-        public SMTPResponse(SMTPStatusCode  StatusCode,
+        public SMTPResponse(SMTPStatusCodes  StatusCode,
                             String          Response  = "")
         {
-            this._StatusCode  = StatusCode;
-            this._Response    = Response;
+
+            this.StatusCode  = StatusCode;
+            this.Response    = Response;
+
         }
 
         #endregion
+
 
         #region (override) ToString()
 
@@ -90,9 +63,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return StatusCode.ToString() + " --> " + Response;
-        }
+
+            => $"{StatusCode} --> {Response}";
 
         #endregion
 

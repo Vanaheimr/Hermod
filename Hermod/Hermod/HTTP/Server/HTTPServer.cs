@@ -22,11 +22,12 @@ using System.Text.RegularExpressions;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
+using Microsoft.Extensions.Logging;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
@@ -34,11 +35,11 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Task OnHTTPRequestLogDelegate  (HTTPServer    HTTPServer,
+    public delegate Task OnHTTPRequestLogDelegate  (HTTPServer         HTTPServer,
                                                     HTTPRequest        Request,
                                                     CancellationToken  CancellationToken);
 
-    public delegate Task OnHTTPResponseLogDelegate (HTTPServer    HTTPServer,
+    public delegate Task OnHTTPResponseLogDelegate (HTTPServer         HTTPServer,
                                                     HTTPRequest        Request,
                                                     HTTPResponse       Response,
                                                     CancellationToken  CancellationToken);
@@ -149,35 +150,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="DefaultAPI"></param>
-        public HTTPServer(IIPAddress?                                                    IPAddress                    = null,
-                               IPPort?                                                        TCPPort                      = null,
-                               String?                                                        HTTPServerName               = null,
-                               UInt32?                                                        BufferSize                   = null,
-                               TimeSpan?                                                      ReceiveTimeout               = null,
-                               TimeSpan?                                                      SendTimeout                  = null,
-                               TCPEchoLoggingDelegate?                                        LoggingHandler               = null,
+        public HTTPServer(IIPAddress?                                               IPAddress                    = null,
+                          IPPort?                                                   TCPPort                      = null,
+                          String?                                                   HTTPServerName               = null,
+                          UInt32?                                                   BufferSize                   = null,
+                          TimeSpan?                                                 ReceiveTimeout               = null,
+                          TimeSpan?                                                 SendTimeout                  = null,
+                          TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
 
-                               ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
-                               RemoteTLSClientCertificateValidationHandler<HTTPServer>?  ClientCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
-                               SslProtocols?                                                  AllowedTLSProtocols          = null,
-                               Boolean?                                                       ClientCertificateRequired    = null,
-                               Boolean?                                                       CheckCertificateRevocation   = null,
+                          ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                          RemoteTLSClientCertificateValidationHandler<HTTPServer>?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                          SslProtocols?                                             AllowedTLSProtocols          = null,
+                          Boolean?                                                  ClientCertificateRequired    = null,
+                          Boolean?                                                  CheckCertificateRevocation   = null,
 
-                               ConnectionIdBuilder?                                           ConnectionIdBuilder          = null,
-                               UInt32?                                                        MaxClientConnections         = null,
-                               IDNSClient?                                                    DNSClient                    = null,
+                          ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                          UInt32?                                                   MaxClientConnections         = null,
+                          IDNSClient?                                               DNSClient                    = null,
 
-                               Boolean?                                                       DisableMaintenanceTasks      = false,
-                               TimeSpan?                                                      MaintenanceInitialDelay      = null,
-                               TimeSpan?                                                      MaintenanceEvery             = null,
+                          Boolean?                                                  DisableMaintenanceTasks      = false,
+                          TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                          TimeSpan?                                                 MaintenanceEvery             = null,
 
-                               Boolean?                                                       DisableWardenTasks           = false,
-                               TimeSpan?                                                      WardenInitialDelay           = null,
-                               TimeSpan?                                                      WardenCheckEvery             = null,
+                          Boolean?                                                  DisableWardenTasks           = false,
+                          TimeSpan?                                                 WardenInitialDelay           = null,
+                          TimeSpan?                                                 WardenCheckEvery             = null,
 
-                               HTTPAPI?                                                      DefaultAPI                   = null,
-                               Boolean?                                                       AutoStart                    = false)
+                          String?                                                   Description                  = null,
+                          HTTPAPI?                                                  DefaultAPI                   = null,
+                          ILoggerFactory?                                           LoggerFactory                = null,
+                          Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    TCPPort,
@@ -218,6 +221,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    WardenInitialDelay,
                    WardenCheckEvery,
 
+                   Description,
+                   LoggerFactory,
                    AutoStart: false)
 
         {
@@ -262,34 +267,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static async Task<HTTPServer>
 
-            StartNew(IIPAddress?                                                    IPAddress                    = null,
-                     IPPort?                                                        TCPPort                      = null,
-                     String?                                                        HTTPServerName               = null,
-                     UInt32?                                                        BufferSize                   = null,
-                     TimeSpan?                                                      ReceiveTimeout               = null,
-                     TimeSpan?                                                      SendTimeout                  = null,
-                     TCPEchoLoggingDelegate?                                        LoggingHandler               = null,
+            StartNew(IIPAddress?                                               IPAddress                    = null,
+                     IPPort?                                                   TCPPort                      = null,
+                     String?                                                   HTTPServerName               = null,
+                     UInt32?                                                   BufferSize                   = null,
+                     TimeSpan?                                                 ReceiveTimeout               = null,
+                     TimeSpan?                                                 SendTimeout                  = null,
+                     TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
 
-                     ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
+                     ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
                      RemoteTLSClientCertificateValidationHandler<HTTPServer>?  ClientCertificateValidator   = null,
-                     LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
-                     SslProtocols?                                                  AllowedTLSProtocols          = null,
-                     Boolean?                                                       ClientCertificateRequired    = null,
-                     Boolean?                                                       CheckCertificateRevocation   = null,
+                     LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                     SslProtocols?                                             AllowedTLSProtocols          = null,
+                     Boolean?                                                  ClientCertificateRequired    = null,
+                     Boolean?                                                  CheckCertificateRevocation   = null,
 
-                     ConnectionIdBuilder?                                           ConnectionIdBuilder          = null,
-                     UInt32?                                                        MaxClientConnections         = null,
-                     IDNSClient?                                                    DNSClient                    = null,
+                     ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                     UInt32?                                                   MaxClientConnections         = null,
+                     IDNSClient?                                               DNSClient                    = null,
 
-                     Boolean?                                                       DisableMaintenanceTasks      = false,
-                     TimeSpan?                                                      MaintenanceInitialDelay      = null,
-                     TimeSpan?                                                      MaintenanceEvery             = null,
+                     Boolean?                                                  DisableMaintenanceTasks      = false,
+                     TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                     TimeSpan?                                                 MaintenanceEvery             = null,
 
-                     Boolean?                                                       DisableWardenTasks           = false,
-                     TimeSpan?                                                      WardenInitialDelay           = null,
-                     TimeSpan?                                                      WardenCheckEvery             = null,
+                     Boolean?                                                  DisableWardenTasks           = false,
+                     TimeSpan?                                                 WardenInitialDelay           = null,
+                     TimeSpan?                                                 WardenCheckEvery             = null,
 
-                     HTTPAPI?                                                      DefaultAPI                   = null)
+                     String?                                                   Description                  = null,
+                     HTTPAPI?                                                  DefaultAPI                   = null,
+                     ILoggerFactory?                                           LoggerFactory                = null)
 
         {
 
@@ -322,7 +329,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              WardenInitialDelay,
                              WardenCheckEvery,
 
+                             Description,
                              DefaultAPI,
+                             LoggerFactory,
 
                              AutoStart: false
 
@@ -349,10 +358,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHTTPAPI(Path = null, Hostname = null, HTTPAPICreator = null, HTTPAPIConfigurator = null)
 
-        public HTTPAPI AddHTTPAPI(HTTPPath?                                  Path                  = null,
-                                  HTTPHostname?                              Hostname              = null,
+        public HTTPAPI AddHTTPAPI(HTTPPath?                             Path                  = null,
+                                  HTTPHostname?                         Hostname              = null,
                                   Func<HTTPServer, HTTPPath, HTTPAPI>?  HTTPAPICreator        = null,
-                                  Action<HTTPAPI>?                           HTTPAPIConfigurator   = null)
+                                  Action<HTTPAPI>?                      HTTPAPIConfigurator   = null)
         {
 
             var path        = Path                               ?? HTTPPath.Root;

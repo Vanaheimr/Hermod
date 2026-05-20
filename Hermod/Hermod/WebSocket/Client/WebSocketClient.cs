@@ -454,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                String                                                          LoggingContext               = "logcontext", //CPClientLogger.DefaultContext,
                                LogfileCreatorDelegate?                                         LogfileCreator               = null,
                                HTTPClientLogger?                                               HTTPLogger                   = null,
-                               DNSClient?                                                      DNSClient                    = null,
+                               IDNSClient?                                                     DNSClient                    = null,
                                ILogger?                                                        Logger                       = null,
                                ILoggerFactory?                                                 LoggerFactory                = null)
 

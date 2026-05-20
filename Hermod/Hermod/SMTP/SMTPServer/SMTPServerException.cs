@@ -17,33 +17,21 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using System;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public static class Ext3
-    {
+    //public class SMTPServerException : SMTPException
+    //{
 
-        public static void WriteLineSMTP(this TCPConnection TCPConn, SMTPStatusCode StatusCode, params String[] Response)
-        {
+    //    public SMTPServerException(String Message, Exception InnerException = null)
+    //        : base(Message, InnerException)
+    //    { }
 
-            var n = (UInt64) Response.Where(line => line.IsNotNullOrEmpty()).Count();
-
-            Response.
-                Where(line => line.IsNotNullOrEmpty()).
-                ForEachCounted((response, i) => {
-                    TCPConn.WriteLineToResponseStream(((Int32) StatusCode) + (i < n ? "-" : " ") + response);
-                    DebugX.LogT(">> " +           ((Int32) StatusCode) + (i < n ? "-" : " ") + response);
-                });
-
-            TCPConn.Flush();
-
-        }
-
-    }
+    //}
 
 }

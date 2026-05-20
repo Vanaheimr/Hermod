@@ -19,6 +19,8 @@
 
 using System.Security.Authentication;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -49,13 +51,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                                                                                 ReadHoldingRegistersResponse   ReadHoldingRegistersResponse);
 
 
-    public class ModbusTCPServer
+    public class ModbusTCPServer : ATCPServer
     {
 
         #region Data
-
-        private readonly         TCPServer                                      TCPServer;
-
 
         /// <summary>
         /// The default Modbus/TCP service name.
@@ -83,6 +82,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public  static readonly  TimeSpan                                       __DefaultConnectionTimeout      = TimeSpan.FromSeconds(10);
 
         private const UInt32 ReadTimeout = 5000U;
+
+        #endregion
+
+        #region Properties
+
+        public new RemoteTLSClientCertificateValidationHandler<ModbusTCPServer>?  ClientCertificateValidator    { get; set; }
 
         #endregion
 
@@ -140,246 +145,236 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                IDNSClient?                                                    DNSClient                    = null,
                                String?                                                        Description                  = null,
                                Boolean                                                        AutoStart                    = false)
+
+            : base(TCPPort:                    TCPPort,
+                   ReceiveTimeout:             ConnectionTimeout ?? __DefaultConnectionTimeout,
+                   SendTimeout:                ConnectionTimeout ?? __DefaultConnectionTimeout,
+                   ServerCertificateSelector:  ServerCertificateSelector,
+                   ClientCertificateValidator: null,
+                   LocalCertificateSelector:   LocalCertificateSelector,
+                   AllowedTLSProtocols:        AllowedTLSProtocols,
+                   ClientCertificateRequired:  ClientCertificateRequired,
+                   CheckCertificateRevocation: CheckCertificateRevocation,
+                   ConnectionIdBuilder:        ConnectionIdBuilder,
+                   MaxClientConnections:       MaxClientConnections ?? __DefaultMaxClientConnections,
+                   DNSClient:                  DNSClient,
+                   Description:                Description,
+                   AutoStart:                  false)
         {
 
-            this.TCPServer = new TCPServer(
-
-                                 TCPPort,
-                                 null,
-                                 null,
-
-                                 ServerCertificateSelector,
-                                 null,
-                                 LocalCertificateSelector,
-                                 AllowedTLSProtocols,
-                                 ClientCertificateRequired,
-                                 CheckCertificateRevocation,
-
-                                 ServerThreadNameCreator,
-                                 ServerThreadPrioritySetter,
-                                 ServerThreadIsBackground,
-                                 ConnectionIdBuilder,
-                                 ConnectionTimeout,
-                                 MaxClientConnections,
-
-                                 DNSClient,
-                                 Description,
-                                 AutoStart
-
-                             );
-
-
-            this.TCPServer.OnNotification += async (eventTrackingId, NewTCPConnection) => {
-
-                //var buffer = new ThreadLocal<Byte[]>(() => new Byte[5000]);
-
-                //if (buffer.Value is not null)
-                //    NewTCPConnection.Read(buffer.Value);
-
-                Byte Byte;
-                var bytesRead     = 0;
-                var packet        = new Byte[5000];
-                var clientClose   = false;
-                var serverClose   = false;
-
-                UInt16 transactionId  = 0;
-                UInt16 protocolId     = 0;
-                UInt16 packetLength   = 0;
-                Byte   unitId         = 0;
-                Byte   functionCode   = 0;
-
-
-                try
-                {
-
-                    do
-                    {
-
-                        switch (NewTCPConnection.TryRead(out Byte, MaxInitialWaitingTimeMS: ReadTimeout))
-                        {
-
-                            #region DataAvailable
-
-                            case TCPClientResponse.DataAvailable:
-
-                                packet[bytesRead++] = Byte;
-
-                                if (bytesRead == 2)
-                                    transactionId  = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 0));
-
-                                if (bytesRead == 4)
-                                    protocolId     = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 4));
-
-                                if (bytesRead == 6)
-                                    packetLength   = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 4));
-
-                                if (bytesRead == 7)
-                                    unitId         = Byte;
-
-                                if (bytesRead == 8)
-                                    functionCode   = Byte;
-
-                                if (bytesRead == 6 + packetLength)
-                                {
-
-                                    switch (functionCode)
-                                    {
-
-                                        case 0x03:
-
-                                            var startingAddress    = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet,  8));
-                                            var numberOfregisters  = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 10));
-
-                                            var rhrr = new ReadHoldingRegistersRequest(null,
-                                                                                       transactionId,
-                                                                                       startingAddress,
-                                                                                       numberOfregisters,
-                                                                                       unitId,
-                                                                                       protocolId);
-
-                                            OnReadHoldingRegistersRequest?.Invoke(Timestamp.Now,
-                                                                                  this,
-                                                                                  NewTCPConnection.RemoteSocket,
-                                                                                  "",
-                                                                                  rhrr);
-
-                                            ReadHoldingRegistersResponse? resp = null;
-
-                                            if (OnReadHoldingRegisters is not null)
-                                                resp = await OnReadHoldingRegisters.Invoke(Timestamp.Now,
-                                                                                           this,
-                                                                                           NewTCPConnection.RemoteSocket,
-                                                                                           "",
-                                                                                           rhrr);
-
-                                            resp ??= new ReadHoldingRegistersResponse(rhrr,
-                                                                                      new Byte[9] {
-
-                                                                                          // Transaction identification
-                                                                                          packet[0], packet[1],
-
-                                                                                          // Protocol identification (always zero)
-                                                                                          packet[2], packet[3],
-
-                                                                                          // Length of frame
-                                                                                          0x00, 0x03,
-
-                                                                                          // Unit address
-                                                                                          packet[6],
-
-                                                                                          // Function code
-                                                                                          packet[7],
-
-                                                                                          0x00
-
-                                                                                      });
-
-                                            NewTCPConnection.WriteToResponseStream(resp.EntirePDU);
-                                            NewTCPConnection.Flush();
-
-                                            OnReadHoldingRegistersResponse?.Invoke(Timestamp.Now,
-                                                                                   this,
-                                                                                   NewTCPConnection.RemoteSocket,
-                                                                                   "",
-                                                                                   rhrr,
-                                                                                   resp);
-
-                                            break;
-
-                                    }
-
-                                }
-
-                                break;
-
-                            #endregion
-
-                            #region CanNotRead
-
-                            case TCPClientResponse.CanNotRead:
-                                DebugX.LogT("Server close!");
-                                serverClose = true;
-                                break;
-
-                            #endregion
-
-                            #region ClientClose
-
-                            case TCPClientResponse.ClientClose:
-                                clientClose = true;
-                                break;
-
-                            #endregion
-
-                            #region Timeout
-
-                            case TCPClientResponse.Timeout:
-                                serverClose = true;
-                                break;
-
-                            #endregion
-
-                        }
-
-                    } while (!clientClose && !serverClose);
-
-                }
-
-                #region Process exceptions
-
-                catch (IOException ioe)
-                {
-
-                    if      (ioe.Message.StartsWith("Unable to read data from the transport connection")) { }
-                    else if (ioe.Message.StartsWith("Unable to write data to the transport connection")) { }
-
-                    else
-                    {
-
-                        DebugX.Log("Modbus/TCP Server IO exception: " + Environment.NewLine + ioe);
-
-                        //if (OnError is not null)
-                        //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
-
-                    }
-
-                }
-
-                catch (Exception e)
-                {
-
-                    DebugX.Log("Modbus/TCP Server exception: " + Environment.NewLine + e);
-
-                    //if (OnError is not null)
-                    //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
-
-                }
-
-                #endregion
-
-                #region Close the TCP connection
-
-                try
-                {
-
-                    NewTCPConnection?.Close(clientClose
-                                                ? ConnectionClosedBy.Client
-                                                : ConnectionClosedBy.Server);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.Log("Modbus/TCP Server exception when closing the TCP connection: " + e);
-                }
-
-                #endregion
-
-
-            };
+            this.ClientCertificateValidator = ClientCertificateValidator;
+            base.ClientCertificateValidator = (sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsServer,
+                                               policyErrors) => this.ClientCertificateValidator?.Invoke(
+                                                                     sender,
+                                                                     certificate,
+                                                                     certificateChain,
+                                                                     this,
+                                                                     policyErrors
+                                                                 ) ?? TLSValidationResult.GeneralError();
+
+            if (AutoStart)
+                Start().GetAwaiter().GetResult();
 
         }
 
         #endregion
+
+
+        protected override async Task HandleConnection(TCPConnection      Connection,
+                                                       CancellationToken  Token)
+        {
+
+            Byte Byte;
+            var bytesRead     = 0;
+            var packet        = new Byte[5000];
+            var clientClose   = false;
+            var serverClose   = false;
+
+            UInt16 transactionId  = 0;
+            UInt16 protocolId     = 0;
+            UInt16 packetLength   = 0;
+            Byte   unitId         = 0;
+            Byte   functionCode   = 0;
+
+            try
+            {
+
+                do
+                {
+
+                    switch (Connection.TryRead(out Byte, MaxInitialWaitingTimeMS: ReadTimeout))
+                    {
+
+                        #region DataAvailable
+
+                        case TCPClientResponse.DataAvailable:
+
+                            packet[bytesRead++] = Byte;
+
+                            if (bytesRead == 2)
+                                transactionId  = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 0));
+
+                            if (bytesRead == 4)
+                                protocolId     = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 2));
+
+                            if (bytesRead == 6)
+                                packetLength   = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 4));
+
+                            if (bytesRead == 7)
+                                unitId         = Byte;
+
+                            if (bytesRead == 8)
+                                functionCode   = Byte;
+
+                            if (bytesRead == 6 + packetLength)
+                            {
+
+                                switch (functionCode)
+                                {
+
+                                    case 0x03:
+
+                                        var startingAddress    = (UInt16) (System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 8)) + 1);
+                                        var numberOfregisters  = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(packet, 10));
+
+                                        var rhrr = new ReadHoldingRegistersRequest(null,
+                                                                                   transactionId,
+                                                                                   startingAddress,
+                                                                                   numberOfregisters,
+                                                                                   unitId,
+                                                                                   protocolId);
+
+                                        if (OnReadHoldingRegistersRequest is not null)
+                                            await OnReadHoldingRegistersRequest.Invoke(Timestamp.Now,
+                                                                                       this,
+                                                                                       Connection.RemoteSocket,
+                                                                                       Connection.ConnectionId,
+                                                                                       rhrr);
+
+                                        ReadHoldingRegistersResponse? resp = null;
+
+                                        if (OnReadHoldingRegisters is not null)
+                                            resp = await OnReadHoldingRegisters.Invoke(Timestamp.Now,
+                                                                                       this,
+                                                                                       Connection.RemoteSocket,
+                                                                                       Connection.ConnectionId,
+                                                                                       rhrr);
+
+                                        resp ??= new ReadHoldingRegistersResponse(rhrr,
+                                                                                  new Byte[9] {
+
+                                                                                      // Transaction identification
+                                                                                      packet[0], packet[1],
+
+                                                                                      // Protocol identification (always zero)
+                                                                                      packet[2], packet[3],
+
+                                                                                      // Length of frame
+                                                                                      0x00, 0x03,
+
+                                                                                      // Unit address
+                                                                                      packet[6],
+
+                                                                                      // Function code
+                                                                                      packet[7],
+
+                                                                                      0x00
+
+                                                                                  });
+
+                                        Connection.WriteToResponseStream(resp.EntirePDU);
+                                        Connection.Flush();
+
+                                        if (OnReadHoldingRegistersResponse is not null)
+                                            await OnReadHoldingRegistersResponse.Invoke(Timestamp.Now,
+                                                                                        this,
+                                                                                        Connection.RemoteSocket,
+                                                                                        Connection.ConnectionId,
+                                                                                        rhrr,
+                                                                                        resp);
+
+                                        break;
+
+                                }
+
+                            }
+
+                            break;
+
+                        #endregion
+
+                        #region CanNotRead
+
+                        case TCPClientResponse.CanNotRead:
+                            logger.LogDebug("Modbus/TCP server closes connection {ConnectionId}.", Connection.ConnectionId);
+                            serverClose = true;
+                            break;
+
+                        #endregion
+
+                        #region ClientClose
+
+                        case TCPClientResponse.ClientClose:
+                            clientClose = true;
+                            break;
+
+                        #endregion
+
+                        #region Timeout
+
+                        case TCPClientResponse.Timeout:
+                            serverClose = true;
+                            break;
+
+                        #endregion
+
+                    }
+
+                } while (!clientClose && !serverClose);
+
+            }
+
+            #region Process exceptions
+
+            catch (IOException ioe)
+            {
+
+                if      (ioe.Message.StartsWith("Unable to read data from the transport connection")) { }
+                else if (ioe.Message.StartsWith("Unable to write data to the transport connection")) { }
+
+                else
+                    logger.LogWarning(ioe, "Modbus/TCP server IO exception.");
+
+            }
+
+            catch (Exception e)
+            {
+                logger.LogError(e, "Modbus/TCP server exception.");
+            }
+
+            #endregion
+
+            #region Close the TCP connection
+
+            try
+            {
+
+                Connection?.Close(clientClose
+                                      ? ConnectionClosedBy.Client
+                                      : ConnectionClosedBy.Server);
+
+            }
+            catch (Exception e)
+            {
+                logger.LogDebug(e, "Modbus/TCP server exception when closing the TCP connection.");
+            }
+
+            #endregion
+
+        }
 
 
         #region Shutdown(EventTrackingId = null, Message = null, Wait = true)
@@ -390,15 +385,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
         /// <param name="Message">An optional shutdown message.</param>
-        public Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
-                                      String?            Message           = null,
-                                      Boolean            Wait              = true)
-
-            => TCPServer.Shutdown(
-                   EventTrackingId,
-                   Message,
-                   Wait
-               );
+        public async Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                            String?            Message           = null,
+                                            Boolean            Wait              = true)
+        {
+            await Stop(EventTrackingId);
+            return true;
+        }
 
         #endregion
 

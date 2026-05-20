@@ -26,6 +26,9 @@ using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -82,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
         // For method 'ReadLine(...)'...
         private            Boolean    SkipNextN   = false;
+        private readonly   ILogger<TCPConnection> logger;
 
         protected readonly Stopwatch  stopwatch   = Stopwatch.StartNew();
 
@@ -321,7 +325,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                              LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
                              SslStream?                                                SSLStream                    = null,
                              TimeSpan?                                                 ReadTimeout                  = null,
-                             TimeSpan?                                                 WriteTimeout                 = null)
+                             TimeSpan?                                                 WriteTimeout                 = null,
+                             ILogger<TCPConnection>?                                   Logger                       = null)
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
@@ -348,6 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             this.ServerCertificateSelector   = ServerCertificateSelector;
             this.ClientCertificateValidator  = ClientCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
+            this.logger                      = Logger ?? NullLogger<TCPConnection>.Instance;
 
             if (ReadTimeout. HasValue)
                 this.ReadTimeout             = ReadTimeout. Value;
@@ -418,7 +424,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"TLS Stream [Server: {LocalPort}{(TCPServer.Description.IsNotNullOrEmpty() ? $"/'{TCPServer.Description}'" : "")}, Client: {RemotePort}]");
+                    logger.LogError(e,
+                                    "TLS stream setup failed for server port {LocalPort} {Description} and client port {RemotePort}.",
+                                    LocalPort,
+                                    TCPServer.Description.IsNotNullOrEmpty() ? TCPServer.Description : String.Empty,
+                                    RemotePort);
                     throw;
                 }
 
@@ -905,7 +915,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(TCPConnection)} {RemoteIPAddress}:{RemotePort}");
+                    logger.LogError(e, "Error reading TCP connection {RemoteIPAddress}:{RemotePort}.", RemoteIPAddress, RemotePort);
                 }
 
                 if (Position > 0)
@@ -998,15 +1008,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                     NetworkStream.Write(ByteArray, 0, ByteArray.Length);
 
                 else
-                    DebugX.LogT(nameof(TCPConnection) + " SSLStream and NetworkStream are both null!");
+                    logger.LogWarning("{ConnectionType} SSLStream and NetworkStream are both null.", nameof(TCPConnection));
 
             }
 
             else if (!IsConnected)
-                DebugX.LogT(nameof(TCPConnection) + " could not write to response stream: Not connected!");
+                logger.LogWarning("{ConnectionType} could not write to response stream: not connected.", nameof(TCPConnection));
 
             else
-                DebugX.LogT(nameof(TCPConnection) + " could not write to response stream: Byte array is null!");
+                logger.LogWarning("{ConnectionType} could not write to response stream: byte array is null.", nameof(TCPConnection));
 
         }
 
@@ -1117,7 +1127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                             }
                             catch (Exception e)
                             {
-                                DebugX.Log($"Error reading before closing {ConnectionId}: {e.Message}");
+                                logger.LogDebug(e, "Error reading before closing TCP connection {ConnectionId}.", ConnectionId);
                             }
                         } while (NetworkStream.DataAvailable);
 
@@ -1152,7 +1162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 }
                 catch (Exception ex)
                 {
-                    DebugX.Log($"Error closing TCPConnection {ConnectionId}: {ex.Message}");
+                    logger.LogDebug(ex, "Error closing TCP connection {ConnectionId}.", ConnectionId);
                 }
             }
         }
@@ -1202,7 +1212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 }
                 catch (Exception ex)
                 {
-                    DebugX.Log($"Error disposing TCPConnection {ConnectionId}: {ex.Message}");
+                    logger.LogDebug(ex, "Error disposing TCP connection {ConnectionId}.", ConnectionId);
                 }
             }
             GC.SuppressFinalize(this);

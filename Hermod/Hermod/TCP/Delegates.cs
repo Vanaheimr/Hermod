@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="TCPSocket">The new TCP socket.</param>
     /// <param name="Message">An optional message.</param>
-    public delegate void TCPSocketAttachedHandler(ATCPServers       TCPServer,
+    public delegate void TCPSocketAttachedHandler(Object            TCPServer,
                                                   DateTimeOffset    Timestamp,
                                                   EventTracking_Id  EventTrackingId,
                                                   IPSocket          TCPSocket,
@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
     /// <param name="Timestamp">The timestamp of the TCP socket detached event.</param>
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="TCPSocket">The TCP socket.</param>
-    public delegate void TCPSocketDetachedHandler(ATCPServers       TCPServer,
+    public delegate void TCPSocketDetachedHandler(Object            TCPServer,
                                                   DateTimeOffset    Timestamp,
                                                   EventTracking_Id  EventTrackingId,
                                                   IPSocket          TCPSocket,

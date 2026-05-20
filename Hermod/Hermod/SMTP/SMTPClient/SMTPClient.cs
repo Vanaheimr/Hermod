@@ -282,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     var description      = line.Skip(statusCodeChars.Length + 1).ToArray();
 
                     if (UInt16.TryParse(new String(statusCodeChars), out var statusCode))
-                        responses.Add(new SMTPExtendedResponse((SMTPStatusCode) statusCode,
+                        responses.Add(new SMTPExtendedResponse((SMTPStatusCodes) statusCode,
                                                                new String(description),
                                                                more));
 
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 return new SMTPExtendedResponse[] {
                            new SMTPExtendedResponse(
-                               SMTPStatusCode.TransactionFailed,
+                               SMTPStatusCodes.TransactionFailed,
                                e.Message
                            )
                        };
@@ -408,7 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             switch (LoginResponse.First().StatusCode)
                             {
 
-                                case SMTPStatusCode.ServiceReady:
+                                case SMTPStatusCodes.ServiceReady:
 
                                     #region Send EHLO
 
@@ -426,13 +426,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // 250-8BITMIME
                                     // 250 DSN
 
-                                    if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCode.Ok))
+                                    if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCodes.Ok))
                                     {
 
-                                        var Error = EHLOResponses.Where(v => v.StatusCode != SMTPStatusCode.Ok).
+                                        var Error = EHLOResponses.Where(v => v.StatusCode != SMTPStatusCodes.Ok).
                                                                     FirstOrDefault();
 
-                                        if (Error.StatusCode != SMTPStatusCode.Ok)
+                                        if (Error.StatusCode != SMTPStatusCodes.Ok)
                                             throw new SMTPClientException("SMTP EHLO command error: " + Error.ToString());
 
                                     }
@@ -449,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             var StartTLSResponse = SendCommandAndWaitForResponse("STARTTLS");
 
-                                            if (StartTLSResponse.StatusCode == SMTPStatusCode.ServiceReady)
+                                            if (StartTLSResponse.StatusCode == SMTPStatusCodes.ServiceReady)
                                                 EnableTLS();
 
                                         }
@@ -631,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         var AuthCRAMMD5Response = SendCommandAndWaitForResponse("AUTH CRAM-MD5");
 
-                                        if (AuthCRAMMD5Response.StatusCode == SMTPStatusCode.AuthenticationChallenge)
+                                        if (AuthCRAMMD5Response.StatusCode == SMTPStatusCodes.AuthenticationChallenge)
                                         {
 
                                             var response = SendCommandAndWaitForResponse(
@@ -662,7 +662,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             mailFromCommand += " BODY=BINARYMIME";
 
                                         var mailFromResponse = SendCommandAndWaitForResponse(mailFromCommand);
-                                        if (mailFromResponse.StatusCode != SMTPStatusCode.Ok)
+                                        if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
                                             throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
 
                                     }
@@ -680,17 +680,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         switch (rcptToResponse.StatusCode)
                                         {
 
-                                            case SMTPStatusCode.UserNotLocalWillForward:
-                                            case SMTPStatusCode.Ok:
+                                            case SMTPStatusCodes.UserNotLocalWillForward:
+                                            case SMTPStatusCodes.Ok:
                                                 break;
 
-                                            case SMTPStatusCode.UserNotLocalTryAlternatePath:
-                                            case SMTPStatusCode.MailboxNameNotAllowed:
-                                            case SMTPStatusCode.MailboxUnavailable:
-                                            case SMTPStatusCode.MailboxBusy:
+                                            case SMTPStatusCodes.UserNotLocalTryAlternatePath:
+                                            case SMTPStatusCodes.MailboxNameNotAllowed:
+                                            case SMTPStatusCodes.MailboxUnavailable:
+                                            case SMTPStatusCodes.MailboxBusy:
                                                 throw new SMTPClientException        (rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
 
-                                            case SMTPStatusCode.AuthenticationRequired:
+                                            case SMTPStatusCodes.AuthenticationRequired:
                                                 throw new UnauthorizedAccessException(rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
 
                                             default:
@@ -710,7 +710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // 354 End data with <CR><LF>.<CR><LF>
                                     var dataResponse = SendCommandAndWaitForResponse("DATA");
-                                    if (dataResponse.StatusCode != SMTPStatusCode.StartMailInput)
+                                    if (dataResponse.StatusCode != SMTPStatusCodes.StartMailInput)
                                         throw new SMTPClientException("SMTP DATA command error: " + dataResponse.ToString());
 
                                     // Send e-mail headers...
@@ -750,7 +750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // .
                                     // 250 2.0.0 Ok: queued as 83398728027
                                     var _FinishedResponse = SendCommandAndWaitForResponse(".");
-                                    if (_FinishedResponse.StatusCode != SMTPStatusCode.Ok)
+                                    if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
                                         throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
 
                                     #endregion
@@ -760,7 +760,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // QUIT
                                     // 221 2.0.0 Bye
                                     var _QuitResponse = SendCommandAndWaitForResponse("QUIT");
-                                    if (_QuitResponse.StatusCode != SMTPStatusCode.ServiceClosingTransmissionChannel)
+                                    if (_QuitResponse.StatusCode != SMTPStatusCodes.ServiceClosingTransmissionChannel)
                                         throw new SMTPClientException("SMTP QUIT command error: " + _QuitResponse.ToString());
 
                                     #endregion

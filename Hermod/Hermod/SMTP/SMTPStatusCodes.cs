@@ -18,7 +18,7 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public enum SMTPStatusCode
+    public enum SMTPStatusCodes
     {
 
         SystemStatus                                    = 211,

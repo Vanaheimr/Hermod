@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
         /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
-        /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
+        /// <param name="TOTPTimestamp">The optional timestamp to calculate the TOTP for.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                          TimeSpan?        ValidityTime          = null,
                          UInt32?          TOTPLength            = 12,
                          String?          Alphabet              = null,
-                         DateTimeOffset?  Timestamp             = null,
+                         DateTimeOffset?  TOTPTimestamp         = null,
                          Byte[]?          TLSExporterMaterial   = null)
 
         {
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        Encoding.UTF8.GetBytes(SharedSecret)
                                    );
 
-            var timeReference    = Timestamp ?? DateTimeOffset.UtcNow;
+            var timeReference    = TOTPTimestamp ?? Timestamp.Now;
             var currentUnixTime  = timeReference.ToUnixTimeSeconds();
             var currentSlot      = (UInt64) (currentUnixTime / ValidityTime.Value.TotalSeconds);
             var remainingTime    = TimeSpan.FromSeconds(
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ValidityTime">The optional validity time of the TOTP.</param>
         /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
-        /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
+        /// <param name="TOTPTimestamp">The optional timestamp to calculate the TOTP for.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
         public static (String          Previous,
                        String          Current,
@@ -211,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                           TimeSpan?        ValidityTime          = null,
                           UInt32?          TOTPLength            = 12,
                           String?          Alphabet              = null,
-                          DateTimeOffset?  Timestamp             = null,
+                          DateTimeOffset?  TOTPTimestamp         = null,
                           Byte[]?          TLSExporterMaterial   = null)
 
         {
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        Encoding.UTF8.GetBytes(SharedSecret)
                                    );
 
-            var timeReference    = Timestamp ?? DateTimeOffset.UtcNow;
+            var timeReference    = TOTPTimestamp ?? Timestamp.Now;
             var currentUnixTime  = timeReference.ToUnixTimeSeconds();
             var currentSlot      = (UInt64) (currentUnixTime / ValidityTime.Value.TotalSeconds);
             var remainingTime    = TimeSpan.FromSeconds(

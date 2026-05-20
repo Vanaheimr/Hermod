@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
@@ -32,22 +26,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Properties
 
-        #region MoreDataAvailable
-
-        private readonly Boolean _MoreDataAvailable;
-
         /// <summary>
         /// True, if more result lines are available.
         /// </summary>
-        public Boolean MoreDataAvailable
-        {
-            get
-            {
-                return _MoreDataAvailable;
-            }
-        }
-
-        #endregion
+        public Boolean  MoreDataAvailable    { get; }
 
         #endregion
 
@@ -59,17 +41,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="StatusCode">The SMTP status code.</param>
         /// <param name="Response">The SMTP response text.</param>
         /// <param name="MoreDataAvailable">True, if more result lines are available.</param>
-        public SMTPExtendedResponse(SMTPStatusCode  StatusCode,
+        public SMTPExtendedResponse(SMTPStatusCodes  StatusCode,
                                     String          Response           = "",
                                     Boolean         MoreDataAvailable  = false)
 
-            : base(StatusCode, Response)
+            : base(StatusCode,
+                   Response)
 
         {
-            this._MoreDataAvailable  = MoreDataAvailable;
+            this.MoreDataAvailable  = MoreDataAvailable;
         }
 
         #endregion
+
 
         #region (override) ToString()
 
@@ -77,9 +61,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return StatusCode.ToString() + " -" + (MoreDataAvailable ? "more" : String.Empty) + "-> " + Response;
-        }
+
+            => $"{StatusCode} - {(MoreDataAvailable ? "more" : String.Empty)} -> {Response}";
 
         #endregion
 

@@ -17,12 +17,15 @@
 
 #region Usings
 
+using System.Text;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using System.Text;
 
-using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
+using Org.BouncyCastle.Crypto.Parameters;
+
+using org.GraphDefined.Vanaheimr.Illias;
+
 
 #endregion
 
@@ -253,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             if (pendingAnchors.TryGetValue(keyId, out var pending))
                             {
                                 // Already pending — check if hold-down time has elapsed
-                                if (DateTimeOffset.UtcNow - pending.FirstSeen >= AddHoldDownTime)
+                                if (Timestamp.Now - pending.FirstSeen >= AddHoldDownTime)
                                 {
                                     trustAnchors.Add(ds);
                                     pendingAnchors.Remove(keyId);
@@ -264,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             else
                             {
                                 // First time seeing this key — start the hold-down timer
-                                pendingAnchors[keyId] = (ds, DateTimeOffset.UtcNow);
+                                pendingAnchors[keyId] = (ds, Timestamp.Now);
                             }
 
                         }
@@ -369,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         continue;
 
                     // Check signature timestamps
-                    var now = (UInt32) DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    var now = (UInt32) Timestamp.Now.ToUnixTimeSeconds();
                     if (now < rrsig.SignatureInception || now > rrsig.SignatureExpiration)
                         return DNSSECValidationResult.Bogus;
 

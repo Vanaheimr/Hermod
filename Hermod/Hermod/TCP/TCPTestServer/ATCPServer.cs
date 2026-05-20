@@ -62,6 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private          readonly  TCPEchoLoggingDelegate?                    loggingHandler;
         private          readonly  CancellationTokenSource                    cts;
         private                    Task?                                      serverTask;
+        private          readonly  SemaphoreSlim                              connectionSlots;
 
         protected        readonly  ConcurrentDictionary<TCPConnection, Task>  activeClients                 = [];
 
@@ -86,8 +87,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public           volatile  Boolean                                    ReloadFinished                = false;
 
-        private readonly           ILogger<ATCPServer>                    logger;
-        private readonly           ILoggerFactory                             loggerFactory;
+        protected readonly         ILogger<ATCPServer>                        logger;
+        protected readonly         ILoggerFactory                             loggerFactory;
 
         #endregion
 
@@ -276,34 +277,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="AutoStart">Whether to automatically start the TCP server.</param>
 
         public ATCPServer(IIPAddress?                                               IPAddress                    = null,
-                              IPPort?                                                   TCPPort                      = null,
-                              TimeSpan?                                                 ReceiveTimeout               = null,
-                              TimeSpan?                                                 SendTimeout                  = null,
-                              TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+                          IPPort?                                                   TCPPort                      = null,
+                          TimeSpan?                                                 ReceiveTimeout               = null,
+                          TimeSpan?                                                 SendTimeout                  = null,
+                          TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
 
-                              ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
-                              RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
-                              SslProtocols?                                             AllowedTLSProtocols          = null,
-                              Boolean?                                                  ClientCertificateRequired    = null,
-                              Boolean?                                                  CheckCertificateRevocation   = null,
+                          ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                          RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                          SslProtocols?                                             AllowedTLSProtocols          = null,
+                          Boolean?                                                  ClientCertificateRequired    = null,
+                          Boolean?                                                  CheckCertificateRevocation   = null,
 
-                              ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
-                              UInt32?                                                   MaxClientConnections         = null,
-                              IDNSClient?                                               DNSClient                    = null,
+                          ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                          UInt32?                                                   MaxClientConnections         = null,
+                          IDNSClient?                                               DNSClient                    = null,
 
-                              Boolean?                                                  DisableMaintenanceTasks      = false,
-                              TimeSpan?                                                 MaintenanceInitialDelay      = null,
-                              TimeSpan?                                                 MaintenanceEvery             = null,
+                          Boolean?                                                  DisableMaintenanceTasks      = false,
+                          TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                          TimeSpan?                                                 MaintenanceEvery             = null,
 
-                              Boolean?                                                  DisableWardenTasks           = false,
-                              TimeSpan?                                                 WardenInitialDelay           = null,
-                              TimeSpan?                                                 WardenCheckEvery             = null,
+                          Boolean?                                                  DisableWardenTasks           = false,
+                          TimeSpan?                                                 WardenInitialDelay           = null,
+                          TimeSpan?                                                 WardenCheckEvery             = null,
 
-                              String?                                                   Description                  = null,
-                              ILogger<ATCPServer>?                                  Logger                       = null,
-                              ILoggerFactory?                                           LoggerFactory                = null,
-                              Boolean?                                                  AutoStart                    = false)
+                          String?                                                   Description                  = null,
+                          //ILogger<ATCPServer>?                                      Logger                       = null,
+                          ILoggerFactory?                                           LoggerFactory                = null,
+                          Boolean?                                                  AutoStart                    = false)
 
         {
 
@@ -317,7 +318,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.TCPPort                     = TCPPort   ?? IPPort.Zero;           // Random TCP port selection
             this.MaxClientConnections        = MaxClientConnections ?? DefaultMaxClientConnections;
 
-            if (this.IPAddress.IsIPv6)
+            if (this.MaxClientConnections == 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxClientConnections), "The maximum number of client connections must be greater than zero.");
+
+            if (this.MaxClientConnections > Int32.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(MaxClientConnections), "The maximum number of client connections must not exceed Int32.MaxValue.");
+
+            this.connectionSlots             = new SemaphoreSlim((Int32) this.MaxClientConnections, (Int32) this.MaxClientConnections);
+
+            var needsIPv6Listener = this.IPAddress.IsIPv6;
+
+            // IPvXAddress.Any is handled by a dual-mode IPv6 listener.
+            // IPv4 localhost and IPv4-only bindings, like 0.0.0.0 or 192.168.1.10, need a dedicated IPv4 listener.
+            var needsDedicatedIPv4Listener = this.IPAddress.IsIPv4 &&
+                                             (this.IPAddress.IsLocalhost || !this.IPAddress.IsIPv6);
+
+            if (needsIPv6Listener)
             {
 
                 this.tcpListenerIPv6         = new TcpListener(this.IPAddress.ToDotNet(), this.TCPPort.ToUInt16());
@@ -335,12 +351,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
-            // Listening on ::1 and 127.0.0.1 at the same time will need two sockets!
             // When port == 0, then IPv6 will choose a random port, and IPv4 will try to bind to the same port!
-            if (this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost)
+            if (needsDedicatedIPv4Listener)
             {
 
-                this.tcpListenerIPv4         = new TcpListener(IPv4Address.Localhost, this.TCPPort.ToUInt16());
+                this.tcpListenerIPv4         = new TcpListener(this.IPAddress.ToDotNet(), this.TCPPort.ToUInt16());
 
                 // When the TCP port is still == 0, then IPv4 will choose a random port!
                 if (this.TCPPort.IsZero)
@@ -372,8 +387,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.AllowedTLSProtocols         = AllowedTLSProtocols;
             this.ClientCertificateRequired   = ClientCertificateRequired   ?? false;
             this.CheckCertificateRevocation  = CheckCertificateRevocation  ?? false;
-            this.logger                      = Logger                      ?? NullLogger<ATCPServer>.Instance;
             this.loggerFactory               = LoggerFactory               ?? NullLoggerFactory.Instance;
+            this.logger                      = loggerFactory.CreateLogger<ATCPServer>();  //NullLogger<ATCPServer>.Instance;
             this.DNSClient                   = DNSClient                   ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
 
 
@@ -407,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 activeClients,
                 async (timestamp, tcpClients, ct) => {
 
-                    DebugX.LogT($"TCP Server {IPSocket} Warden: Checking active TCP clients ({activeClients.Count})...");
+                    logger.LogTrace("TCP Server {IPSocket} Warden: Checking active TCP clients ({ActiveClientCount})...", IPSocket, activeClients.Count);
                     await Log($"TCP Server {IPSocket} Warden: Checking active TCP clients ({activeClients.Count})...");
 
                     foreach (var tcpConnection in tcpClients.Keys.ToList())
@@ -422,12 +437,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                     {
                                         tcpConnection.TCPClient.Close();
                                         await task;
-                                        DebugX.LogT($"Cleaned up stale client '{tcpConnection.RemoteSocket}'!");
+                                        logger.LogDebug("Cleaned up stale client {RemoteSocket}.", tcpConnection.RemoteSocket);
                                         await Log($"Cleaned up stale client '{tcpConnection.RemoteSocket}'!");
                                     }
                                     catch (Exception e)
                                     {
-                                        DebugX.LogT($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
+                                        logger.LogWarning(e, "Error cleaning up stale client {RemoteSocket}.", tcpConnection.RemoteSocket);
                                         await Log($"Error cleaning up stale client '{tcpConnection.RemoteSocket}': {e.Message}");
                                     }
                                 }
@@ -435,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         }
                         catch (Exception e)
                         {
-                            DebugX.LogT($"Error checking ConnectionClosed for client '{tcpConnection.RemoteSocket}': {e.Message}");
+                            logger.LogWarning(e, "Error checking connection state for client {RemoteSocket}.", tcpConnection.RemoteSocket);
                             await Log($"Error checking ConnectionClosed for client '{tcpConnection.RemoteSocket}': {e.Message}");
                         }
                     }
@@ -468,7 +483,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogT($"Error in logging handler: {e.Message}");
+                    logger.LogWarning(e, "Error in TCP logging handler.");
                 }
             }
 
@@ -500,10 +515,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     tcpListenerIPv6.Start((Int32) MaxClientConnections);
                 }
 
-                if (IPAddress.IsIPv4 && !IPAddress.IsAny)
+                if (IPAddress.IsIPv4 && tcpListenerIPv4 is not null)
                 {
-                    if (tcpListenerIPv4 is null)
-                        throw new InvalidOperationException("Cannot start TCP Server on IPv4, because the IPv4 listener is null!");
                     tcpListenerIPv4.Start((Int32) MaxClientConnections);
                 }
 
@@ -526,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         OnTCPServerStarted,
                         loggingDelegate => loggingDelegate.Invoke(
                             this,
-                            DateTimeOffset.UtcNow,
+                            Timestamp.Now,
                             eventTrackingId,
                             $"TCP Server started on {ipAddress}:{TCPPort} with ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout}!"
                         )
@@ -537,6 +550,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         while (!cts.IsCancellationRequested)
                         {
+                            var connectionSlotAcquired = false;
+
                             try
                             {
 
@@ -544,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 #region Check MaxClientConnections
 
-                                if (activeClients.Count >= MaxClientConnections)
+                                if (!await connectionSlots.WaitAsync(0, cts.Token).ConfigureAwait(false))
                                 {
 
                                     var remoteIPEndPoint  = (client.Client.RemoteEndPoint as IPEndPoint)!;
@@ -555,16 +570,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                     client.Close();
 
-                                    DebugX.LogT($"Rejected new client connection due to maximum of {MaxClientConnections} concurrent connections reached!");
+                                    logger.LogWarning("Rejected TCP client {RemoteSocket}: maximum of {MaxClientConnections} concurrent connections reached.",
+                                                      remoteSocket,
+                                                      MaxClientConnections);
 
                                     await LogEvent(
                                               OnNewTCPConnectionRejected,
                                               loggingDelegate => loggingDelegate.Invoke(
                                                   this,
-                                                  DateTimeOffset.UtcNow,
+                                                  Timestamp.Now,
                                                   eventTrackingId,
                                                   remoteSocket,
-                                                  ConnectionIdBuilder(this, DateTimeOffset.UtcNow, IPSocket, remoteSocket),
+                                                  ConnectionIdBuilder(this, Timestamp.Now, IPSocket, remoteSocket),
                                                   I18NString.Create($"Rejected new client connection due to maximum of {MaxClientConnections} concurrent connections reached!")
                                               )
                                           );
@@ -572,6 +589,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                     continue;
 
                                 }
+
+                                connectionSlotAcquired = true;
 
                                 #endregion
 
@@ -583,8 +602,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                          LocalCertificateSelector:     LocalCertificateSelector,
                                                          SSLStream:                    null,
                                                          ReadTimeout:                  ReceiveTimeout,
-                                                         WriteTimeout:                 SendTimeout
-                                                     );
+                                                         WriteTimeout:                 SendTimeout,
+                                                         Logger:                       loggerFactory.CreateLogger<TCPConnection>()
+                                                      );
 
                                 activeClients.TryAdd(
                                     tcpConnection,
@@ -599,6 +619,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                     Task.CompletedTask
                                 );
 
+                                connectionSlotAcquired = false;
+
                             }
                             catch (OperationCanceledException) {
                                 // Graceful exit on cancel
@@ -612,6 +634,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                             catch (Exception e)
                             {
                                 await Log($"Error accepting client: {e.Message}");
+                            }
+                            finally
+                            {
+                                if (connectionSlotAcquired)
+                                    connectionSlots.Release();
                             }
                         }
 
@@ -692,7 +719,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               OnNewTCPConnectionRejected,
                               loggingDelegate => loggingDelegate.Invoke(
                                   this,
-                                  DateTimeOffset.UtcNow,
+                                  Timestamp.Now,
                                   eventTrackingId2,
                                   remoteSocket,
                                   Connection.ConnectionId,
@@ -711,7 +738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               OnNewTCPConnection,
                               loggingDelegate => loggingDelegate.Invoke(
                                   this,
-                                  DateTimeOffset.UtcNow,
+                                  Timestamp.Now,
                                   eventTrackingId2,
                                   remoteSocket,
                                   Connection.ConnectionId,
@@ -773,7 +800,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               OnTCPConnectionClosed,
                               loggingDelegate => loggingDelegate.Invoke(
                                   this,
-                                  DateTimeOffset.UtcNow,
+                                  Timestamp.Now,
                                   eventTrackingId2,
                                   remoteSocket,
                                   Connection.ConnectionId,
@@ -782,6 +809,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                           );
 
                 }
+
+                connectionSlots.Release();
 
             }
         }
@@ -815,13 +844,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
 
-        #region Stop (EventTrackingId = null)
+        #region Stop (EventTrackingId = null, Message = null)
 
         /// <summary>
         /// Stop the ATCPTestServer and close all active client connections.
         /// </summary>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        public async Task Stop(EventTracking_Id? EventTrackingId = null)
+        /// <param name="Message">An optional message to include in the TCP server stopped event.</param>
+        public async Task Stop(EventTracking_Id?  EventTrackingId   = null,
+                               String?            Message           = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -857,9 +888,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                       OnTCPServerStopped,
                       loggingDelegate => loggingDelegate.Invoke(
                           this,
-                          DateTimeOffset.UtcNow,
+                          Timestamp.Now,
                           eventTrackingId,
-                          $"Server on {IPAddress}:{TCPPort} stopped!"
+                          Message ?? $"Server on {IPAddress}:{TCPPort} stopped!"
                       )
                   );
 
@@ -889,7 +920,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                       OnTCPConnectionClosed,
                       loggingDelegate => loggingDelegate.Invoke(
                           this,
-                          DateTimeOffset.UtcNow,
+                          Timestamp.Now,
                           EventTrackingId,
                           RemoteSocket,
                           ConnectionId,
@@ -933,7 +964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     while (e.InnerException is not null)
                         e = e.InnerException;
 
-                    DebugX.LogException(e);
+                    logger.LogError(e, "Maintenance task failed.");
 
                 }
                 finally
@@ -942,7 +973,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
             }
             else
-                DebugX.LogT("Could not aquire the maintenance tasks lock!");
+                logger.LogWarning("Could not acquire the maintenance tasks lock.");
 
         }
 
@@ -988,7 +1019,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                          String  ErrorResponse)
         {
 
-            DebugX.Log($"{Module}.{Caller}: {ErrorResponse}");
+            logger.LogError("{Module}.{Caller}: {ErrorResponse}", Module, Caller, ErrorResponse);
 
             return Task.CompletedTask;
 
@@ -1003,7 +1034,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                          Exception  ExceptionOccurred)
         {
 
-            DebugX.LogException(ExceptionOccurred, $"{Module}.{Caller}");
+            logger.LogError(ExceptionOccurred, "{Module}.{Caller} failed.", Module, Caller);
 
             return Task.CompletedTask;
 

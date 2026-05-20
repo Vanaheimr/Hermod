@@ -126,11 +126,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
                                   HTTPPort:                    HTTPPort,
 
-                                  ServerCertificateSelector:  () => {
+                                  //ServerCertificateSelector:  () => {
 
-                                      return serverCertificate!;
+                                      //return serverCertificate!;
 
-                                  },
+                                  //},
 
                                   SecWebSocketProtocols:       SecWebSocketProtocols,
 

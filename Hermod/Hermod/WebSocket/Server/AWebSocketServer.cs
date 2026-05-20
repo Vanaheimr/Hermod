@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -32,8 +32,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
@@ -160,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <summary>
     /// An HTTP WebSocket server.
     /// </summary>
-    public abstract class AWebSocketServer
+    public abstract class AWebSocketServer : ATCPServer
     {
 
         #region Data
@@ -168,12 +170,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private readonly  HashSet<String>                                                           secWebSocketProtocols         = [];
 
         private readonly  ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>  webSocketConnections          = [];
-
-        private           Thread?                                                                   listenerThread;
-
-        private readonly  CancellationTokenSource                                                   cancellationTokenSource;
-
-        private volatile  Boolean                                                                   isRunning                     = false;
 
         public readonly   TimeSpan                                                                  DefaultWebSocketPingEvery     = TimeSpan.FromSeconds(30);
 
@@ -215,30 +211,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public String                                                          HTTPServiceName                 { get; }
 
-        /// <summary>
-        /// The optional description of this HTTP WebSocket server.
-        /// </summary>
-        public I18NString                                                      Description                     { get; set; }
-
-        public Func<X509Certificate2>?                                         ServerCertificateSelector       { get; }
-        public RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator      { get; }
-        public LocalCertificateSelectionHandler?                               LocalCertificateSelector        { get; }
-        public SslProtocols?                                                   AllowedTLSProtocols             { get; }
-        public Boolean?                                                        ClientCertificateRequired       { get; }
-        public Boolean?                                                        CheckCertificateRevocation      { get; }
-
         public List<X509Certificate2>                                          TrustedClientCertificates       { get; } = [];
         public List<X509Certificate2>                                          TrustedCertificatAuthorities    { get; } = [];
-
-        public ServerThreadNameCreatorDelegate                                 ServerThreadNameCreator         { get; }
-        public ServerThreadPriorityDelegate                                    ServerThreadPrioritySetter      { get; }
-        public Boolean                                                         ServerThreadIsBackground        { get; }
 
         /// <summary>
         /// The IP address to listen on.
         /// </summary>
-        public IIPAddress                                                      IPAddress
-            => IPSocket.IPAddress;
+        public new IIPAddress                                                  IPAddress
+            => base.IPAddress;
 
         /// <summary>
         /// The TCP port to listen on.
@@ -249,13 +229,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The IP socket to listen on.
         /// </summary>
-        public IPSocket                                                        IPSocket                      { get; private set; }
+        public new IPSocket                                                    IPSocket
+            => base.IPSocket;
 
         /// <summary>
         /// Whether the web socket TCP listener is currently running.
         /// </summary>
-        public Boolean                                                         IsRunning
-            => isRunning;
+        public new Boolean                                                     IsRunning
+            => base.IsRunning;
 
         /// <summary>
         /// The supported secondary web socket protocols.
@@ -306,12 +287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Boolean                                                         RequireAuthentication         { get; set; }
 
 
-        public UInt32                                                          MaxClientConnections          { get; set; } = DefaultMaxClientConnections;
-
-        /// <summary>
-        /// An optional DNS client to use.
-        /// </summary>
-        public DNSClient?                                                      DNSClient                     { get; }
+        public new UInt32                                                      MaxClientConnections
+            => base.MaxClientConnections;
 
         /// <summary>
         /// The attached debug logger.
@@ -457,12 +434,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Constructor(s)
 
-        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
-
         /// <summary>
         /// Create a new HTTP WebSocket server.
         /// </summary>
-        /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
+        /// <param name="IPAddress">An optional IP address to listen on. Default: ATCPServer default.</param>
         /// <param name="TCPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
@@ -479,59 +454,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="ClientCertificateRequired"></param>
         /// <param name="CheckCertificateRevocation"></param>
         /// 
-        /// <param name="ServerThreadNameCreator"></param>
-        /// <param name="ServerThreadPrioritySetter"></param>
-        /// <param name="ServerThreadIsBackground"></param>
         /// <param name="ConnectionIdBuilder"></param>
         /// <param name="ConnectionTimeout"></param>
         /// <param name="MaxClientConnections"></param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
-        public AWebSocketServer(IIPAddress?                                                     IPAddress                    = null,
-                                IPPort?                                                         TCPPort                      = null,
-                                String?                                                         HTTPServiceName              = null,
-                                I18NString?                                                     Description                  = null,
+        public AWebSocketServer(IIPAddress?                                               IPAddress                    = null,
+                                IPPort?                                                   TCPPort                      = null,
+                                String?                                                   HTTPServerName               = null,
 
-                                Boolean?                                                        RequireAuthentication        = true,
-                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
-                                SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
-                                Boolean                                                         DisableWebSocketPings        = false,
-                                TimeSpan?                                                       WebSocketPingEvery           = null,
-                                TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
+                                Boolean?                                                  RequireAuthentication        = true,
+                                IEnumerable<String>?                                      SecWebSocketProtocols        = null,
+                                SubprotocolSelectorDelegate?                              SubprotocolSelector          = null,
+                                Boolean                                                   DisableWebSocketPings        = false,
+                                TimeSpan?                                                 WebSocketPingEvery           = null,
+                                TimeSpan?                                                 SlowNetworkSimulationDelay   = null,
 
-                                Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
-                                RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator   = null,
-                                LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
-                                SslProtocols?                                                   AllowedTLSProtocols          = null,
-                                Boolean?                                                        ClientCertificateRequired    = null,
-                                Boolean?                                                        CheckCertificateRevocation   = null,
+                                UInt32?                                                   BufferSize                   = null,
+                                TimeSpan?                                                 ReceiveTimeout               = null,
+                                TimeSpan?                                                 SendTimeout                  = null,
+                                TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
 
-                                ServerThreadNameCreatorDelegate?                                ServerThreadNameCreator      = null,
-                                ServerThreadPriorityDelegate?                                   ServerThreadPrioritySetter   = null,
-                                Boolean?                                                        ServerThreadIsBackground     = null,
-                                ConnectionIdBuilder?                                            ConnectionIdBuilder          = null,
-                                TimeSpan?                                                       ConnectionTimeout            = null,
-                                UInt32?                                                         MaxClientConnections         = null,
+                                ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                                RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                                LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                                SslProtocols?                                             AllowedTLSProtocols          = null,
+                                Boolean?                                                  ClientCertificateRequired    = null,
+                                Boolean?                                                  CheckCertificateRevocation   = null,
 
-                                DNSClient?                                                      DNSClient                    = null,
-                                ILogger?                                                        Logger                       = null,
-                                ILoggerFactory?                                                 LoggerFactory                = null,
-                                Boolean                                                         AutoStart                    = false)
+                                ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                                UInt32?                                                   MaxClientConnections         = null,
+                                IDNSClient?                                               DNSClient                    = null,
 
-            : this(new IPSocket(
-                       IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
-                       TCPPort   ?? IPPort.HTTP
-                   ),
-                   HTTPServiceName,
-                   Description,
+                                Boolean?                                                  DisableMaintenanceTasks      = false,
+                                TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                                TimeSpan?                                                 MaintenanceEvery             = null,
 
-                   RequireAuthentication,
-                   SecWebSocketProtocols,
-                   SubprotocolSelector,
-                   DisableWebSocketPings,
-                   WebSocketPingEvery,
-                   SlowNetworkSimulationDelay,
+                                Boolean?                                                  DisableWardenTasks           = false,
+                                TimeSpan?                                                 WardenInitialDelay           = null,
+                                TimeSpan?                                                 WardenCheckEvery             = null,
+
+                                String?                                                   Description                  = null,
+                                ILoggerFactory?                                           LoggerFactory                = null,
+                                Boolean?                                                  AutoStart                    = false)
+
+            : base(IPAddress,
+                   TCPPort,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   LoggingHandler,
 
                    ServerCertificateSelector,
                    ClientCertificateValidator,
@@ -540,93 +512,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
 
-                   ServerThreadNameCreator,
-                   ServerThreadPrioritySetter,
-                   ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionTimeout,
                    MaxClientConnections,
-
                    DNSClient,
-                   Logger,
+
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery,
+
+                   Description,
                    LoggerFactory,
-                   AutoStart)
+                   AutoStart: false)
 
-        { }
-
-        #endregion
-
-        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., AutoStart = false)
-
-        /// <summary>
-        /// Create a new HTTP WebSocket server.
-        /// </summary>
-        /// <param name="TCPSocket">The TCP socket to listen on.</param>
-        /// <param name="HTTPServiceName">An optional HTTP service name.</param>
-        /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
-        /// 
-        /// <param name="SecWebSocketProtocols"></param>
-        /// <param name="DisableWebSocketPings"></param>
-        /// <param name="WebSocketPingEvery"></param>
-        /// <param name="SlowNetworkSimulationDelay"></param>
-        /// 
-        /// <param name="ServerCertificateSelector"></param>
-        /// <param name="ClientCertificateValidator"></param>
-        /// <param name="LocalCertificateSelector"></param>
-        /// <param name="AllowedTLSProtocols"></param>
-        /// <param name="ClientCertificateRequired"></param>
-        /// <param name="CheckCertificateRevocation"></param>
-        /// 
-        /// <param name="ServerThreadNameCreator"></param>
-        /// <param name="ServerThreadPrioritySetter"></param>
-        /// <param name="ServerThreadIsBackground"></param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionTimeout"></param>
-        /// <param name="MaxClientConnections"></param>
-        /// 
-        /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
-        public AWebSocketServer(IPSocket                                                        TCPSocket,
-                                String?                                                         HTTPServiceName              = null,
-                                I18NString?                                                     Description                  = null,
-
-                                Boolean?                                                        RequireAuthentication        = true,
-                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
-                                SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
-                                Boolean                                                         DisableWebSocketPings        = false,
-                                TimeSpan?                                                       WebSocketPingEvery           = null,
-                                TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
-
-                                Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
-                                RemoteTLSClientCertificateValidationHandler<AWebSocketServer>?  ClientCertificateValidator   = null,
-                                LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
-                                SslProtocols?                                                   AllowedTLSProtocols          = null,
-                                Boolean?                                                        ClientCertificateRequired    = null,
-                                Boolean?                                                        CheckCertificateRevocation   = null,
-
-                                ServerThreadNameCreatorDelegate?                                ServerThreadNameCreator      = null,
-                                ServerThreadPriorityDelegate?                                   ServerThreadPrioritySetter   = null,
-                                Boolean?                                                        ServerThreadIsBackground     = null,
-                                ConnectionIdBuilder?                                            ConnectionIdBuilder          = null,
-                                TimeSpan?                                                       ConnectionTimeout            = null,
-                                UInt32?                                                         MaxClientConnections         = null,
-
-                                DNSClient?                                                      DNSClient                    = null,
-                                ILogger?                                                        Logger                       = null,
-                                ILoggerFactory?                                                 LoggerFactory                = null,
-                                Boolean                                                         AutoStart                    = false)
         {
 
-            this.IPSocket                    = TCPSocket;
             this.HTTPServiceName             = HTTPServiceName            ?? "GraphDefined HTTP WebSocket Service v2.0";
-            this.Description                 = Description                ?? I18NString.Empty;
-            this.ServerThreadNameCreator     = ServerThreadNameCreator    ?? (socket => $"AWebSocketServer {socket}");
-            this.ServerThreadPrioritySetter  = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
-            this.ServerThreadIsBackground    = ServerThreadIsBackground   ?? false;
 
             this.RequireAuthentication       = RequireAuthentication      ?? true;
             this.secWebSocketProtocols       = SecWebSocketProtocols is not null
-                                                   ? new HashSet<String>(SecWebSocketProtocols)
+                                                   ? [.. SecWebSocketProtocols]
                                                    : [];
             this.SubprotocolSelector         = SubprotocolSelector;
 
@@ -634,27 +542,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.WebSocketPingEvery          = WebSocketPingEvery ?? DefaultWebSocketPingEvery;
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
 
-            this.ServerCertificateSelector   = ServerCertificateSelector;
-            this.ClientCertificateValidator  = ClientCertificateValidator;
-            this.LocalCertificateSelector    = LocalCertificateSelector;
-            this.AllowedTLSProtocols         = AllowedTLSProtocols;
-            this.ClientCertificateRequired   = ClientCertificateRequired;
-            this.CheckCertificateRevocation  = CheckCertificateRevocation;
-            this.MaxClientConnections        = MaxClientConnections       ?? DefaultMaxClientConnections;
-
-            this.DNSClient                   = DNSClient;
             this.LoggerFactory               = LoggerFactory              ?? NullLoggerFactory.Instance;
             this.Logger                      = Logger                     ?? this.LoggerFactory.CreateLogger(GetType().FullName ?? nameof(AWebSocketServer));
 
-            this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
-            this.cancellationTokenSource     = new CancellationTokenSource();
+            base.OnTCPServerStarted += async (sender, timestamp, eventTrackingId, message) => {
+                await LogEvent(
+                          OnServerStarted,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              timestamp,
+                              this,
+                              eventTrackingId,
+                              CancellationToken.None
+                          )
+                      );
+            };
 
-            if (AutoStart)
-                Start();
+            base.OnTCPServerStopped += async (sender, timestamp, eventTrackingId, message) => {
+                await LogEvent(
+                          OnServerStopped,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              timestamp,
+                              this,
+                              eventTrackingId,
+                              message,
+                              CancellationToken.None
+                          )
+                      );
+            };
+
+            if (AutoStart ?? false)
+                Start().GetAwaiter().GetResult();
 
         }
-
-        #endregion
 
         #endregion
 
@@ -980,195 +899,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
 
-        #region Start()
+        #region HandleConnection(Connection, Token)
 
         /// <summary>
-        /// Start the HTTP WebSocket listener thread.
+        /// Handle a new TCP/TLS connection accepted by the shared ATCPServer infrastructure.
         /// </summary>
-        public void Start()
+        protected override async Task HandleConnection(TCPConnection      Connection,
+                                                       CancellationToken  token)
         {
 
-            listenerThread = new Thread(async () => {
-
-                try
-                {
-
-                    #region Server setup
-
-                    Thread.CurrentThread.Name          = ServerThreadNameCreator(IPSocket);
-                    Thread.CurrentThread.Priority      = ServerThreadPrioritySetter(IPSocket);
-                    Thread.CurrentThread.IsBackground  = ServerThreadIsBackground;
-
-                    Logger.LogInformation(
-                        "Starting HTTP WebSocket server {Description} on {IPSocket}.",
-                        Description.FirstText(),
-                        IPSocket
-                    );
-
-                    var tcpListener  = new TcpListener(IPSocket.ToIPEndPoint());
-                    tcpListener.Start();
-
-                    isRunning        = true;
-
-                    this.IPSocket    = new IPSocket(
-                                           IPAddress,
-                                           IPPort.Parse(((IPEndPoint) tcpListener.LocalEndpoint).Port)
-                                       );
-
-                    var token        = cancellationTokenSource.Token;
-
-                    #endregion
-
-                    #region Send OnServerStarted event
-
-                    await LogEvent(
-                              OnServerStarted,
-                              loggingDelegate => loggingDelegate.Invoke(
-                                  Timestamp.Now,
-                                  this,
-                                  EventTracking_Id.New,
-                                  token
-                              )
-                          );
-
-                    #endregion
-
-                    try
-                    {
-
-                        while (!token.IsCancellationRequested)
-                        {
-
-                            #region Accept a new TCP connection
-
-                            // Wait for a new/pending client connection
-                            //while (!token.IsCancellationRequested && !tcpListener.Pending())
-                                await Task.Delay(5);
-
-                            if (token.IsCancellationRequested)
-                                break;
-
-                            var newTCPConnection = await tcpListener.AcceptTcpClientAsync(token);
-                            SslStream? sslStream = null;
-
-                            #endregion
-
-                            #region MaxClientConnections check
-
-                            if ((UInt32) webSocketConnections.Count >= MaxClientConnections)
-                            {
-                                Logger.LogWarning(
-                                    "Maximum number of client connections ({MaxClientConnections}) reached, rejecting connection from {RemoteEndPoint}.",
-                                    MaxClientConnections,
-                                    newTCPConnection.Client.RemoteEndPoint
-                                );
-                                newTCPConnection.Close();
-                                continue;
-                            }
-
-                            #endregion
-
-                            #region OnValidateTCPConnection
-
-                            var validatedTCPConnections = Array.Empty<ConnectionFilterResponse>();
-
-                            var onValidateTCPConnection = OnValidateTCPConnection;
-                            if (onValidateTCPConnection is not null)
-                            {
-                                try
-                                {
-
-                                    validatedTCPConnections = await Task.WhenAll(
-                                                                        onValidateTCPConnection.GetInvocationList().
-                                                                            OfType <OnValidateTCPConnectionDelegate>().
-                                                                            Select (loggingDelegate => loggingDelegate.Invoke(
-                                                                                                           Timestamp.Now,
-                                                                                                           this,
-                                                                                                           newTCPConnection,
-                                                                                                           EventTracking_Id.New,
-                                                                                                           token
-                                                                                                       )).
-                                                                            ToArray()
-                                                                    );
-
-                                }
-                                catch (Exception e)
-                                {
-                                    Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnValidateTCPConnection));
-                                }
-                            }
-
-                            if (validatedTCPConnections.Length > 0 &&
-                                validatedTCPConnections.First() == ConnectionFilterResponse.Rejected())
-                            {
-                                newTCPConnection.Close();
-                            }
-
-                            #endregion
-
-                            else
-                            {
-
-                                try
-                                {
-
-                                    #region Try SSL/TLS
-
-                                    var serverCertificate = ServerCertificateSelector?.Invoke();
-
-                                    if (serverCertificate is not null)
-                                    {
-
-                                        sslStream      = new SslStream(
-                                                             innerStream:                         newTCPConnection.GetStream(),
-                                                             leaveInnerStreamOpen:                true,
-                                                             userCertificateValidationCallback:   ClientCertificateValidator is null
-                                                                                                      ? null
-                                                                                                      : (sender,
-                                                                                                         certificate,
-                                                                                                         chain,
-                                                                                                         policyErrors) => ClientCertificateValidator(
-                                                                                                                              sender,
-                                                                                                                              certificate is not null
-                                                                                                                                  ? new X509Certificate2(certificate)
-                                                                                                                                  : null,
-                                                                                                                              chain,
-                                                                                                                              this,
-                                                                                                                              policyErrors
-                                                                                                                          ).IsValid,
-                                                             userCertificateSelectionCallback:    LocalCertificateSelector is null
-                                                                                                      ? null
-                                                                                                      : (sender,
-                                                                                                         targetHost,
-                                                                                                         localCertificates,
-                                                                                                         remoteCertificate,
-                                                                                                         acceptableIssuers) => LocalCertificateSelector(
-                                                                                                                                   sender,
-                                                                                                                                   targetHost,
-                                                                                                                                   localCertificates.
-                                                                                                                                       Cast<X509Certificate>().
-                                                                                                                                       Select(certificate => new X509Certificate2(certificate)),
-                                                                                                                                   remoteCertificate is not null
-                                                                                                                                       ? new X509Certificate2(remoteCertificate)
-                                                                                                                                       : null,
-                                                                                                                                   acceptableIssuers
-                                                                                                                               ),
-                                                             encryptionPolicy:                    EncryptionPolicy.RequireEncryption
-                                                         );
-
-                                        sslStream.AuthenticateAsServer(
-                                            serverCertificate:            serverCertificate,
-                                            clientCertificateRequired:    ClientCertificateValidator is not null,
-                                            enabledSslProtocols:          AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
-                                            checkCertificateRevocation:   false
-                                        );
-
-                                    }
-
-                                    #endregion
-
-                                    var x = Task.Factory.StartNew(async context => {
-
+            var x = Task.Factory.StartNew(async context => {
                                         try
                                         {
 
@@ -1944,11 +1684,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     new WebSocketServerConnection(
 
                                         WebSocketServer:              this,
-                                        TcpClient:                    newTCPConnection,
-                                        TLSStream:                    sslStream,
-                                        ClientCertificate:            sslStream?.RemoteCertificate is not null
-                                                                          ? new X509Certificate2(sslStream.RemoteCertificate)
-                                                                          : null,
+                                        TcpClient:                    Connection.TCPClient,
+                                        TLSStream:                    Connection.SSLStream,
+                                        ClientCertificate:            Connection.ClientCertificate,
 
                                         HTTPRequest:                  null,
                                         HTTPResponse:                 null,
@@ -1968,79 +1706,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     ),
                                     token);
 
-                                }
-                                catch (Exception e)
-                                {
-                                    Logger.LogError(e, "TLS exception while accepting HTTP WebSocket connection.");
-                                    newTCPConnection.Close();
-                                }
+            await x.Unwrap().ConfigureAwait(false);
 
-                            }
+        }
 
-                        }
+        #endregion
 
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        Logger.LogInformation(
-                            "Accepting new TCP connections on HTTP WebSocket server {Description} on {IPSocket} was canceled.",
-                            Description.FirstText(),
-                            IPSocket
-                        );
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        Logger.LogInformation(
-                            "Accepting new TCP connections on HTTP WebSocket server {Description} on {IPSocket} was disposed.",
-                            Description.FirstText(),
-                            IPSocket
-                        );
-                    }
-                    finally
-                    {
+        #region ValidateConnection(Timestamp, Server, Connection, EventTrackingId, CancellationToken)
 
-                        #region Stop TCP listener
+        /// <summary>
+        /// Validate a new TCP connection via the WebSocket server's legacy validation event.
+        /// </summary>
+        public override async Task<ConnectionFilterResponse> ValidateConnection(DateTimeOffset     Timestamp,
+                                                                                ITCPServer         Server,
+                                                                                TCPConnection      Connection,
+                                                                                EventTracking_Id   EventTrackingId,
+                                                                                CancellationToken  CancellationToken)
+        {
 
-                        Logger.LogInformation(
-                            "Stopping HTTP WebSocket server {Description} on {IPSocket}.",
-                            Description.FirstText(),
-                            IPSocket
-                        );
+            var validatedTCPConnections = Array.Empty<ConnectionFilterResponse>();
 
-                        tcpListener.Stop();
+            var onValidateTCPConnection = OnValidateTCPConnection;
+            if (onValidateTCPConnection is not null)
+            {
+                try
+                {
 
-                        isRunning = false;
-
-                        #endregion
-
-                        //ToDo: Request all client connections to finish!
-
-                        #region Send OnServerStopped event
-
-                        await LogEvent(
-                                  OnServerStopped,
-                                  loggingDelegate => loggingDelegate.Invoke(
-                                      Timestamp.Now,
-                                      this,
-                                      EventTracking_Id.New,
-                                      "HTTP WebSocket Server stopped!",
-                                      token
-                                  )
-                              );
-
-                        #endregion
-
-                    }
+                    validatedTCPConnections = await Task.WhenAll(
+                                                        onValidateTCPConnection.GetInvocationList().
+                                                            OfType<OnValidateTCPConnectionDelegate>().
+                                                            Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                           Timestamp,
+                                                                                           this,
+                                                                                           Connection.TCPClient,
+                                                                                           EventTrackingId,
+                                                                                           CancellationToken
+                                                                                       )).
+                                                            ToArray()
+                                                    );
 
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, "Exception while starting HTTP WebSocket server.");
+                    Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnValidateTCPConnection));
                 }
+            }
 
-            });
-
-            listenerThread.Start();
+            return validatedTCPConnections.Length > 0 &&
+                   validatedTCPConnections.First() == ConnectionFilterResponse.Rejected()
+                       ? validatedTCPConnections.First()
+                       : ConnectionFilterResponse.Accepted();
 
         }
 
@@ -2049,7 +1764,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Shutdown(Message = null, Wait = true)
 
         /// <summary>
-        /// Shutdown the HTTP WebSocket listener thread.
+        /// Shutdown the HTTP WebSocket listener.
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
@@ -2057,18 +1772,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                    Boolean  Wait      = true)
         {
 
-            cancellationTokenSource.Cancel();
-
             foreach (var webSocketConnection in WebSocketConnections)
                 await webSocketConnection.Close();
 
-            if (Wait)
-            {
-                while (isRunning)
-                {
-                    await Task.Delay(10);
-                }
-            }
+            await Stop();
 
         }
 

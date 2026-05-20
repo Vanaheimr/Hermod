@@ -20,6 +20,8 @@
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -107,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
               WardenInitialDelay,
               WardenCheckEvery,
 
-              AutoStart
+              AutoStart: AutoStart
 
           )
 
@@ -201,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, nameof(HTTPTestServer) + "." + nameof(ProcessHTTPRequest));
+                    httpLogger.LogError(e, "{Server}.{Method} failed.", nameof(HTTPTestServer), nameof(ProcessHTTPRequest));
                 }
             }
 

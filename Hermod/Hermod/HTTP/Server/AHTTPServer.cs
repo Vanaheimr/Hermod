@@ -23,6 +23,9 @@ using System.Buffers;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -68,6 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         public const Int32 DefaultBufferSize = 32768;
+        protected readonly ILogger<AHTTPServer> httpLogger;
 
         private static readonly Byte[] endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
         const                   Byte   endOfHTTPHeaderDelimiterLength   = 4;
@@ -152,33 +156,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
         /// <param name="WardenCheckEvery">The warden interval.</param>
         public AHTTPServer(IIPAddress?                                               IPAddress                    = null,
-                               IPPort?                                                   TCPPort                      = null,
-                               String?                                                   HTTPServerName               = null,
-                               UInt32?                                                   BufferSize                   = null,
-                               TimeSpan?                                                 ReceiveTimeout               = null,
-                               TimeSpan?                                                 SendTimeout                  = null,
-                               TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+                           IPPort?                                                   TCPPort                      = null,
+                           String?                                                   HTTPServerName               = null,
+                           UInt32?                                                   BufferSize                   = null,
+                           TimeSpan?                                                 ReceiveTimeout               = null,
+                           TimeSpan?                                                 SendTimeout                  = null,
+                           TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
 
-                               ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
-                               RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
-                               SslProtocols?                                             AllowedTLSProtocols          = null,
-                               Boolean?                                                  ClientCertificateRequired    = null,
-                               Boolean?                                                  CheckCertificateRevocation   = null,
+                           ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                           RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                           LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                           SslProtocols?                                             AllowedTLSProtocols          = null,
+                           Boolean?                                                  ClientCertificateRequired    = null,
+                           Boolean?                                                  CheckCertificateRevocation   = null,
 
-                               ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
-                               UInt32?                                                   MaxClientConnections         = null,
-                               IDNSClient?                                               DNSClient                    = null,
+                           ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                           UInt32?                                                   MaxClientConnections         = null,
+                           IDNSClient?                                               DNSClient                    = null,
 
-                               Boolean?                                                  DisableMaintenanceTasks      = false,
-                               TimeSpan?                                                 MaintenanceInitialDelay      = null,
-                               TimeSpan?                                                 MaintenanceEvery             = null,
+                           Boolean?                                                  DisableMaintenanceTasks      = false,
+                           TimeSpan?                                                 MaintenanceInitialDelay      = null,
+                           TimeSpan?                                                 MaintenanceEvery             = null,
 
-                               Boolean?                                                  DisableWardenTasks           = false,
-                               TimeSpan?                                                 WardenInitialDelay           = null,
-                               TimeSpan?                                                 WardenCheckEvery             = null,
+                           Boolean?                                                  DisableWardenTasks           = false,
+                           TimeSpan?                                                 WardenInitialDelay           = null,
+                           TimeSpan?                                                 WardenCheckEvery             = null,
 
-                               Boolean?                                                  AutoStart                    = false)
+                           String?                                                   Description                  = null,
+                           ILoggerFactory?                                           LoggerFactory                = null,
+                           Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    TCPPort,
@@ -205,6 +211,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    WardenInitialDelay,
                    WardenCheckEvery,
 
+                   Description,
+                   LoggerFactory,
                    AutoStart: false)
 
         {
@@ -212,6 +220,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPServerName  = HTTPServerName.IsNullOrEmpty()
                                        ? DefaultHTTPServerName
                                        : HTTPServerName.Trim();
+
+            this.httpLogger      = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<AHTTPServer>();
 
             this.BufferSize      = BufferSize.HasValue
                                        ? BufferSize.Value > Int32.MaxValue
@@ -446,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
                             catch (Exception e)
                             {
-                                DebugX.LogT("HTTP server response worker exception: " + e.Message);
+                                httpLogger.LogError(e, "HTTP server response worker failed.");
                             }
                         }
 
@@ -469,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
                             catch (Exception e)
                             {
-                                DebugX.LogT("HTTP server response worker exception: " + e.Message);
+                                httpLogger.LogError(e, "HTTP server SSE response worker failed.");
                             }
 
                         }
@@ -506,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (OperationCanceledException)
             {
                 // The operation was cancelled, e.g. by a timeout.
-                DebugX.LogT("HTTPTestServer.HandleConnection(...) was cancelled!");
+                httpLogger.LogDebug("HTTP connection handling was cancelled.");
             }
             catch (ObjectDisposedException)
             {
@@ -524,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (e.Message == "HTTP version not supported!")
 
 
-                DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...)");
+                httpLogger.LogError(e, "Exception while handling HTTP connection.");
 
             }
             finally
@@ -540,7 +550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...).Dispose()");
+                    httpLogger.LogError(e, "Exception while disposing HTTP connection.");
                 }
             }
 
@@ -565,9 +575,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected) SendResponse(Stream, Response, CancellationToken = default)
 
-        protected static async Task SendResponse(Stream             Stream,
-                                                 HTTPResponse       Response,
-                                                 CancellationToken  CancellationToken   = default)
+        protected async Task SendResponse(Stream             Stream,
+                                          HTTPResponse       Response,
+                                          CancellationToken  CancellationToken   = default)
         {
 
             try
@@ -592,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
-                DebugX.LogException(e, "Exception in AHTTPTestServer.SendResponse(...)");
+                httpLogger.LogError(e, "Exception while sending HTTP response.");
             }
 
         }

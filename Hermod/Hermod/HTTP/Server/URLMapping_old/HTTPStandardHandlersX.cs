@@ -20,6 +20,8 @@
 
 using System.Reflection;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -34,6 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public static class HTTPStandardHandlersX
     {
+
+        public static ILogger Logger { get; set; } = NullLogger.Instance;
 
         #region RegisterRAWRequestHandler       (this HTTPServer, HTTPAPI, Hostname, URLTemplate, Method = null)
 
@@ -477,7 +481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    ErrorEventArgs      Error)
         {
 
-            DebugX.LogException(Error.GetException(), $"HTTP SSE Event Source: '{EventSourceId}'");
+            Logger.LogError(Error.GetException(), "HTTP SSE Event Source: {EventSourceId}", EventSourceId);
 
             var httpEventSource = HTTPAPI.GetEventSource<String>(EventSourceId);
 
