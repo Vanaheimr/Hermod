@@ -983,7 +983,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             where TDelegate : Delegate
 
             => LogEvent(
-                   nameof(ATCPTestServer),
+                   nameof(ATCPServer),
                    Logger,
                    LogHandler,
                    EventName,

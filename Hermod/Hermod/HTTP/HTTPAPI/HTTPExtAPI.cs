@@ -2217,7 +2217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LoggingPath">The path for all logfiles.</param>
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        public HTTPExtAPI(HTTPTestServerX                HTTPServer,
+        public HTTPExtAPI(HTTPServer                HTTPServer,
                           IEnumerable<HTTPHostname>?     Hostnames                        = null,
                           HTTPPath?                      RootPath                         = null,
                           IEnumerable<HTTPContentType>?  HTTPContentTypes                 = null,

@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The underlying HTTP server.
         /// </summary>
-        public HTTPTestServerX  HTTPServer         { get; }
+        public HTTPServer  HTTPServer         { get; }
 
         /// <summary>
         /// The SOAP XML HTTP content type.
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                           IDNSClient?                                               DNSClient                    = null,
                           Boolean                                                   AutoStart                    = false)
 
-            : this(new HTTPTestServerX(
+            : this(new HTTPServer(
                        IPAddress.Any,
                        TCPPort,
                        DefaultServerName,
@@ -150,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="HTTPServer">The underlying HTTP server.</param>
         /// <param name="SOAPContentType">The default HTTP content type used for all SOAP requests/responses.</param>
-        public SOAPServer(HTTPTestServerX   HTTPServer,
+        public SOAPServer(HTTPServer   HTTPServer,
                           HTTPContentType?  SOAPContentType   = null)
 
         {

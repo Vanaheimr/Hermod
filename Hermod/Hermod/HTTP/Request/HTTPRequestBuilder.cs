@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The related HTTP server.
             /// </summary>
-            public AHTTPTestServer?  HTTPServer            { get; set; }
+            public AHTTPServer?  HTTPServer            { get; set; }
 
             #region EntireRequestHeader
 

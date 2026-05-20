@@ -752,7 +752,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of this request.
         /// </summary>
-        public AHTTPTestServer?   HTTPServer                { get; }
+        public AHTTPServer?   HTTPServer                { get; }
 
         public X509Certificate2?  ServerCertificate         { get; }
 
@@ -1221,7 +1221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            QueryString?                           QueryString                                 = null,
                            Byte[]?                                HTTPBody                                    = null,
                            Stream?                                HTTPBodyStream                              = null,
-                           AHTTPTestServer?                       HTTPServer                                  = null,
+                           AHTTPServer?                       HTTPServer                                  = null,
                            X509Certificate2?                      ServerCertificate                           = null,
                            X509Certificate2?                      ClientCertificate                           = null,
 
@@ -1291,7 +1291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              String             HTTPHeader,
                              Byte[]?            HTTPBody                                    = null,
                              Stream?            HTTPBodyStream                              = null,
-                             AHTTPTestServer?   HTTPServer                                  = null,
+                             AHTTPServer?   HTTPServer                                  = null,
                              X509Certificate2?  ServerCertificate                           = null,
                              X509Certificate2?  ClientCertificate                           = null,
 
@@ -1695,7 +1695,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                        Byte[]?                                 HTTPBody                    = null,
                                        Stream?                                 HTTPBodyStream              = null,
-                                       AHTTPTestServer?                        HTTPServer                  = null,
+                                       AHTTPServer?                        HTTPServer                  = null,
                                        X509Certificate2?                       ServerCertificate           = null,
                                        X509Certificate2?                       ClientCertificate           = null,
 

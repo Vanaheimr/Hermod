@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task EmbeddedAssemblyFiles_01()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Paths_01()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PathsAndVariables_01()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PathsAndVariables_02()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PathsAndVariables_03()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PathsAndVariables_Override_Allowed_01()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -379,7 +379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PathsAndVariables_Override_NotAllowed_01()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -452,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PathsAndVariablesContentType_Override_Allowed_01()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -535,7 +535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PathsAndVariablesContentType_Override_NotAllowed_02()
         {
 
-            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpServer      = await HTTPServer.StartNew();
             var httpAPI         = httpServer.AddHTTPAPI();
             var requestLogger   = new List<HTTPRequest>();
             var responseLogger  = new List<HTTPResponse>();
@@ -611,7 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task SamePath_MultipleMethods_KeepAlives_01()
         {
 
-            var httpServer          = await HTTPTestServerX.StartNew();
+            var httpServer          = await HTTPServer.StartNew();
             var httpAPI             = httpServer.AddHTTPAPI();
             var getRequestLogger    = new List<HTTPRequest>();
             var getResponseLogger   = new List<HTTPResponse>();
@@ -707,7 +707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task SamePath_MultipleContentTypes_KeepAlives_01()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpServer  = await HTTPServer.StartNew();
             var api1        = httpServer.AddHTTPAPI();
 
             api1.AddHandler(
@@ -807,7 +807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task SamePath_MultipleContentTypes_KeepAlives_02()
         {
 
-            var httpServer          = await HTTPTestServerX.StartNew();
+            var httpServer          = await HTTPServer.StartNew();
             var httpAPI             = httpServer.AddHTTPAPI();
             var getRequestLogger    = new List<HTTPRequest>();
             var getResponseLogger   = new List<HTTPResponse>();
@@ -906,7 +906,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task MultipleRequests_ExplicitKeepAlives_01()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpServer  = await HTTPServer.StartNew();
 
             var api1        = httpServer.AddHTTPAPI();
 
@@ -1020,7 +1020,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task MultipleRequests_ExplicitConnectionClose_01()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpServer  = await HTTPServer.StartNew();
 
             var api1        = httpServer.AddHTTPAPI();
 
@@ -1140,7 +1140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task ClientServer_HTTPServerSentEvents_Test01()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpServer  = await HTTPServer.StartNew();
             var httpAPI     = httpServer.AddHTTPAPI();
 
             var sse1Id      = HTTPEventSource_Id.Parse("sse1");
@@ -1242,7 +1242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task ClientServer_HTTPServerSentEvents_Test02()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpServer  = await HTTPServer.StartNew();
             var httpAPI     = httpServer.AddHTTPAPI();
 
             var sse1Id      = HTTPEventSource_Id.Parse("sse1");
@@ -1372,7 +1372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task ClientServer_HTTPServerSentEvents_Test03()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpServer  = await HTTPServer.StartNew();
             var httpAPI     = httpServer.AddHTTPAPI();
 
             var sse1Id      = HTTPEventSource_Id.Parse("sse1");
@@ -1635,7 +1635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task ClientServer_ChunkedEncoding_Test01()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
+            var httpServer  = await HTTPServer.StartNew();
             var api1              = httpServer.AddHTTPAPI();
 
             api1.AddHandler(
@@ -1786,7 +1786,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task DNSSRV_Tests_01()
         {
 
-            var httpServer1  = await HTTPTestServerX.StartNew(IPv4Address.Localhost);
+            var httpServer1  = await HTTPServer.StartNew(IPv4Address.Localhost);
             var api1         = httpServer1.AddHTTPAPI();
 
             api1.AddHandler(
@@ -1813,7 +1813,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpServer2  = await HTTPTestServerX.StartNew(IPv4Address.Parse("127.0.0.1"));
+            var httpServer2  = await HTTPServer.StartNew(IPv4Address.Parse("127.0.0.1"));
             var api2         = httpServer2.AddHTTPAPI();
 
             api2.AddHandler(
@@ -1840,7 +1840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-            var httpServer3  = await HTTPTestServerX.StartNew(IPv4Address.Parse("127.0.0.1"));
+            var httpServer3  = await HTTPServer.StartNew(IPv4Address.Parse("127.0.0.1"));
             var api3         = httpServer3.AddHTTPAPI();
 
             api3.AddHandler(

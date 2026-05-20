@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPTestServerX(
+            var httpServer = new HTTPServer(
                                  TCPPort:                      IPPort.Parse(9001),
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
@@ -621,7 +621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPTestServerX(
+            var httpServer = new HTTPServer(
                                  TCPPort:                      IPPort.Parse(9002),
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
@@ -959,7 +959,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPTestServerX(
+            var httpServer = new HTTPServer(
                                  TCPPort:                      IPPort.Parse(9003),
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
@@ -1313,7 +1313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPTestServerX(
+            var httpServer = new HTTPServer(
                                  TCPPort:                      IPPort.Parse(9004),
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
@@ -1668,7 +1668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPTestServerX(
+            var httpServer = new HTTPServer(
                                  TCPPort:                      IPPort.Parse(9005),
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
@@ -2007,7 +2007,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPTestServerX(
+            var httpServer = new HTTPServer(
                                  TCPPort:                      IPPort.Parse(9006),
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;

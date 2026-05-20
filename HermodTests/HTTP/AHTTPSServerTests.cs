@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
         #region Data
 
-        protected readonly HTTPTestServerX                httpsServer;
+        protected readonly HTTPServer                httpsServer;
         protected readonly HTTPAPI                        httpsAPI;
 
         protected AsymmetricCipherKeyPair                 rootCA_RSAKeyPair;
@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
 
             // HTTPS server configuration
-            httpsServer                 = new HTTPTestServerX(
+            httpsServer                 = new HTTPServer(
 
                                               TCPPort:                    HTTPSPort,
 

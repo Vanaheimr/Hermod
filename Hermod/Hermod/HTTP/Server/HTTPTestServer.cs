@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 Boolean?                                                  AutoStart                    = false)
 
-        : AHTTPTestServer(
+        : AHTTPServer(
 
               IPAddress,
               TCPPort,

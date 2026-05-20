@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Add a method callback for the given URL template.
         /// </summary>
         /// <param name="HTTPAPI">An HTTP API.</param>
-        public static HTTPTestServerX
+        public static HTTPServer
 
             StartServer(this HTTPAPI                                                   HTTPAPI,
                         HTTPPath                                                       Path,
@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         TCPEchoLoggingDelegate?                                        LoggingHandler               = null,
 
                         ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
-                        RemoteTLSClientCertificateValidationHandler<HTTPTestServerX>?  ClientCertificateValidator   = null,
+                        RemoteTLSClientCertificateValidationHandler<HTTPServer>?  ClientCertificateValidator   = null,
                         LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
                         SslProtocols?                                                  AllowedTLSProtocols          = null,
                         Boolean?                                                       ClientCertificateRequired    = null,
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            var server = new HTTPTestServerX(
+            var server = new HTTPServer(
 
                              IPAddress,
                              TCPPort,
@@ -339,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        public HTTPTestServerX               HTTPServer                  { get; internal set; }
+        public HTTPServer               HTTPServer                  { get; internal set; }
 
         /// <summary>
         /// The HTTP hostname of this HTTP API.
@@ -372,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        public HTTPAPI(HTTPTestServerX                HTTPServer,
+        public HTTPAPI(HTTPServer                HTTPServer,
                        IEnumerable<HTTPHostname>?     Hostnames                 = null,
                        HTTPPath?                      RootPath                  = null,
                        IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,

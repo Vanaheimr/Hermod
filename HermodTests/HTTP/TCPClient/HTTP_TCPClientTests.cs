@@ -47,14 +47,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region Start/Stop HTTPServer
 
-        private HTTPTestServerX? httpServer;
+        private HTTPServer? httpServer;
         private HTTPAPI?         httpAPI;
 
         [OneTimeSetUp]
         public void Init_HTTPServer()
         {
 
-            httpServer = new HTTPTestServerX(
+            httpServer = new HTTPServer(
                              TCPPort: IPPort.Zero,
                              AutoStart: true
                           );

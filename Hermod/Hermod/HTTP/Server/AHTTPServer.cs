@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="Message">An optional message.</param>
     public delegate Task HTTPServerStartedDelegate(DateTimeOffset    Timestamp,
-                                                   AHTTPTestServer   HTTPServer,
+                                                   AHTTPServer       HTTPServer,
                                                    EventTracking_Id  EventTrackingId,
                                                    String?           Message   = null);
 
@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="Message">An optional message.</param>
     public delegate Task HTTPServerStoppedDelegate(DateTimeOffset    Timestamp,
-                                                   AHTTPTestServer   HTTPServer,
+                                                   AHTTPServer       HTTPServer,
                                                    EventTracking_Id  EventTrackingId,
                                                    String?           Message   = null);
 
@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
     /// </summary>
-    public abstract class AHTTPTestServer : ATCPTestServer//, IHTTPServer
+    public abstract class AHTTPServer : ATCPServer//, IHTTPServer
     {
 
         #region Data
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
         /// <param name="WardenCheckEvery">The warden interval.</param>
-        public AHTTPTestServer(IIPAddress?                                               IPAddress                    = null,
+        public AHTTPServer(IIPAddress?                                               IPAddress                    = null,
                                IPPort?                                                   TCPPort                      = null,
                                String?                                                   HTTPServerName               = null,
                                UInt32?                                                   BufferSize                   = null,

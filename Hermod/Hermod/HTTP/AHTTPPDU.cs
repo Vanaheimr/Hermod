@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public EventTracking_Id         EventTrackingId      { get; }
 
 
-        public HTTPTestServerX?         HTTPTestServerX      { get; internal set; }
+        public HTTPServer?         HTTPTestServerX      { get; internal set; }
 
         public AHTTPClient?         HTTPClient           { get; internal set; }
 

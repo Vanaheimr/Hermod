@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The SOAP server logger.
         /// </summary>
-        public HTTPServerLoggerX?   HTTPLogger    { get; set; }
+        public HTTPServerLogger?   HTTPLogger    { get; set; }
 
 
 

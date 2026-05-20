@@ -208,10 +208,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region Helpers
 
-        private static HTTPTestServerX CreateHTTPServer(IIPAddress? ListenAddress = null)
+        private static HTTPServer CreateHTTPServer(IIPAddress? ListenAddress = null)
         {
 
-            var server = new HTTPTestServerX(
+            var server = new HTTPServer(
                              IPAddress:  ListenAddress,
                              TCPPort:    IPPort.Zero,
                              AutoStart:  true
@@ -223,11 +223,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-        private static HTTPTestServerX CreateHTTPSServer(TimeSpan ReceiveTimeout)
+        private static HTTPServer CreateHTTPSServer(TimeSpan ReceiveTimeout)
         {
 
             var serverCertificate = CreateServerCertificate();
-            var server            = new HTTPTestServerX(
+            var server            = new HTTPServer(
                                         TCPPort:                    IPPort.Zero,
                                         ReceiveTimeout:             ReceiveTimeout,
                                         ServerCertificateSelector:  (tcpServer, tcpClient) => serverCertificate,

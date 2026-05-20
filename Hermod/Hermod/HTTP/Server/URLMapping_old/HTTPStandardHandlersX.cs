@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">An HTTP hostname.</param>
         /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="Method">An optional HTTP method, default is "GET".</param>
-        public static void RegisterRAWRequestHandler(this HTTPTestServerX  HTTPServer,
+        public static void RegisterRAWRequestHandler(this HTTPServer  HTTPServer,
                                                      HTTPAPI              HTTPAPI,
                                                      HTTPHostname          Hostname,
                                                      HTTPPath              URLTemplate,
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">An HTTP hostname.</param>
         /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="Location">The HTTP URL to redirect to.</param>
-        public static void RegisterMovedTemporarilyHandler(this HTTPTestServerX  HTTPServer,
+        public static void RegisterMovedTemporarilyHandler(this HTTPServer  HTTPServer,
                                                            HTTPAPI              HTTPAPI,
                                                            HTTPHostname          Hostname,
                                                            HTTPPath              URLTemplate,
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">An HTTP hostname.</param>
         /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="Location">The HTTP URL to redirect to.</param>
-        public static void RegisterMovedPermanentlyHandler(this HTTPTestServerX  HTTPServer,
+        public static void RegisterMovedPermanentlyHandler(this HTTPServer  HTTPServer,
                                                            HTTPAPI              HTTPAPI,
                                                            HTTPHostname          Hostname,
                                                            HTTPPath              URLTemplate,

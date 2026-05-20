@@ -46,9 +46,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An abstract TCP/TLS server.
     /// </summary>
-    public abstract class ATCPTestServer : ITCPServer,
-                                           IDisposable,
-                                           IAsyncDisposable
+    public abstract class ATCPServer : ITCPServer,
+                                       IDisposable,
+                                       IAsyncDisposable
     {
 
         #region Data
@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public           volatile  Boolean                                    ReloadFinished                = false;
 
-        private readonly           ILogger<ATCPTestServer>                    logger;
+        private readonly           ILogger<ATCPServer>                    logger;
         private readonly           ILoggerFactory                             loggerFactory;
 
         #endregion
@@ -275,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Description">An optional description of this TCP server.</param>
         /// <param name="AutoStart">Whether to automatically start the TCP server.</param>
 
-        public ATCPTestServer(IIPAddress?                                               IPAddress                    = null,
+        public ATCPServer(IIPAddress?                                               IPAddress                    = null,
                               IPPort?                                                   TCPPort                      = null,
                               TimeSpan?                                                 ReceiveTimeout               = null,
                               TimeSpan?                                                 SendTimeout                  = null,
@@ -301,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               TimeSpan?                                                 WardenCheckEvery             = null,
 
                               String?                                                   Description                  = null,
-                              ILogger<ATCPTestServer>?                                  Logger                       = null,
+                              ILogger<ATCPServer>?                                  Logger                       = null,
                               ILoggerFactory?                                           LoggerFactory                = null,
                               Boolean?                                                  AutoStart                    = false)
 
@@ -372,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.AllowedTLSProtocols         = AllowedTLSProtocols;
             this.ClientCertificateRequired   = ClientCertificateRequired   ?? false;
             this.CheckCertificateRevocation  = CheckCertificateRevocation  ?? false;
-            this.logger                      = Logger                      ?? NullLogger<ATCPTestServer>.Instance;
+            this.logger                      = Logger                      ?? NullLogger<ATCPServer>.Instance;
             this.loggerFactory               = LoggerFactory               ?? NullLoggerFactory.Instance;
             this.DNSClient                   = DNSClient                   ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
 
@@ -1022,7 +1022,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             where TDelegate : Delegate
 
             => LogEvent(
-                   nameof(ATCPTestServer),
+                   nameof(ATCPServer),
                    Logger,
                    LogHandler,
                    EventName,
@@ -1039,7 +1039,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(ATCPTestServer)}: {IPAddress}:{TCPPort} (ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
+            => $"{nameof(ATCPServer)}: {IPAddress}:{TCPPort} (ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
 
         #endregion
 

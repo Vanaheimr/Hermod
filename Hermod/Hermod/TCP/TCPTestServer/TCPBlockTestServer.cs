@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A simple echo test server that listens for incoming TCP echo connections.
     /// </summary>
-    public class TCPBlockTestServer : ATCPTestServer
+    public class TCPBlockTestServer : ATCPServer
     {
 
         #region Data

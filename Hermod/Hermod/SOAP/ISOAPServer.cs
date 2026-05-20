@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         HTTPPath             URLPrefix     { get; }
 
         IDNSClient           DNSClient     { get; }
-        HTTPServerLoggerX?   HTTPLogger    { get; set; }
+        HTTPServerLogger?   HTTPLogger    { get; set; }
 
     }
 

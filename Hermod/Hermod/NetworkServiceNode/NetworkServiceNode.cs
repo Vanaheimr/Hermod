@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
 
-        public HTTPTestServerX             HTTPServer        { get; }
+        public HTTPServer             HTTPServer        { get; }
 
         /// <summary>
         /// The optional default HTTP APIX.
@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IEnumerable<CryptoKeyInfo>?  Identities       = null,
                                   IEnumerable<CryptoKeyInfo>?  IdentityGroups   = null,
 
-                                  HTTPTestServerX?             HTTPTestServer   = null,
+                                  HTTPServer?             HTTPTestServer   = null,
                                   HTTPExtAPI?                  DefaultHTTPAPIX  = null,
 
                                   IDNSClient?                  DNSClient        = null)
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     AddCryptoKey(identityGroup);
 
 
-            this.HTTPServer       = HTTPTestServer  ?? new HTTPTestServerX(
+            this.HTTPServer       = HTTPTestServer  ?? new HTTPServer(
                                                            TCPPort:         IPPort.Parse(1234),
                                                            HTTPServerName:  this.Id.ToString(),
                                                            //Description:     this.Description,
