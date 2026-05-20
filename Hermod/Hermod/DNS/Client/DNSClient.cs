@@ -578,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             using var raceCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
 
-            logger.LogDebug(
+            logger.LogTrace(
                 "Dispatching DNS query for '{DNSServiceName}' to {ServerCount} server(s)",
                 DNSServiceName,
                 DNSServers.Count
@@ -1090,7 +1090,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 do
                 {
 
-                    logger.LogDebug(
+                    logger.LogTrace(
                         "Querying DNS server {DNSServer} via {Transport} for '{DNSServiceName}' ({RecordTypes}), attempt {Attempt}",
                         DNSServer,
                         DNSServer.Transport,
@@ -1111,7 +1111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     // RFC 7873: Extract and store server cookie from response OPT record
                     ExtractAndStoreCookie(serverKey, response);
 
-                    logger.LogDebug(
+                    logger.LogTrace(
                         "DNS server {DNSServer} via {Transport} returned {ResponseCode} with {AnswerCount} answer(s) in {Runtime}ms",
                         DNSServer,
                         DNSServer.Transport,

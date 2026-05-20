@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             Assert.That(
                 loggerFactory.Entries.Any(entry =>
-                    entry.LogLevel == LogLevel.Debug &&
+                    entry.LogLevel == LogLevel.Trace &&
                     entry.Message.Contains("Dispatching DNS query", StringComparison.Ordinal)
                 ),
                 Is.True
