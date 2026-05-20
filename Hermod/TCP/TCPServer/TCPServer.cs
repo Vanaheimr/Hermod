@@ -21,6 +21,7 @@ using System.Security.Authentication;
 
 using Microsoft.Extensions.Logging;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
@@ -76,6 +77,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public TCPServer(IIPAddress?                                               IPAddress                    = null,
                          IPPort?                                                   TCPPort                      = null,
+                         I18NString?                                               Description                  = null,
+
                          TimeSpan?                                                 ReceiveTimeout               = null,
                          TimeSpan?                                                 SendTimeout                  = null,
                          TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
@@ -99,13 +102,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                          TimeSpan?                                                 WardenInitialDelay           = null,
                          TimeSpan?                                                 WardenCheckEvery             = null,
 
-                         String?                                                   Description                  = null,
                          ILogger<TCPServer>?                                       Logger                       = null,
                          ILoggerFactory?                                           LoggerFactory                = null,
                          Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    TCPPort,
+                   Description,
+
                    ReceiveTimeout,
                    SendTimeout,
                    LoggingHandler,
@@ -129,7 +133,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    WardenInitialDelay,
                    WardenCheckEvery,
 
-                   Description,
                    LoggerFactory,
                    AutoStart: false)
 

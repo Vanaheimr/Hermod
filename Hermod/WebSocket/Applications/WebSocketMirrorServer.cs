@@ -63,6 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketMirrorServer(IIPAddress?                                               IPAddress                    = null,
                                      IPPort?                                                   HTTPPort                     = null,
                                      String?                                                   HTTPServerName               = null,
+                                     I18NString?                                               Description                  = null,
 
                                      Boolean?                                                  RequireAuthentication        = true,
                                      IEnumerable<String>?                                      SecWebSocketProtocols        = null,
@@ -95,13 +96,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                      TimeSpan?                                                 WardenInitialDelay           = null,
                                      TimeSpan?                                                 WardenCheckEvery             = null,
 
-                                     String?                                                   Description                  = null,
                                      ILoggerFactory?                                           LoggerFactory                = null,
                                      Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    HTTPPort,
                    HTTPServerName,
+                   Description,
 
                    RequireAuthentication,
                    SecWebSocketProtocols,
@@ -134,7 +135,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    WardenInitialDelay,
                    WardenCheckEvery,
 
-                   Description,
                    LoggerFactory,
                    AutoStart: false)
 

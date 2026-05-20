@@ -57,14 +57,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
         public TCPEchoTestServer2(IIPAddress?              IPAddress     = null,
-                                 IPPort?                  TCPPort        = null,
-                                 UInt32?                  BufferSize       = null,
-                                 TimeSpan?                ReceiveTimeout   = null,
-                                 TimeSpan?                SendTimeout      = null,
-                                 TCPEchoLoggingDelegate?  LoggingHandler   = null)
+                                  IPPort?                  TCPPort        = null,
+                                  UInt32?                  BufferSize       = null,
+                                  TimeSpan?                ReceiveTimeout   = null,
+                                  TimeSpan?                SendTimeout      = null,
+                                  TCPEchoLoggingDelegate?  LoggingHandler   = null)
 
             : base(IPAddress,
                    TCPPort,
+                   null,
                    ReceiveTimeout,
                    SendTimeout,
                    LoggingHandler)

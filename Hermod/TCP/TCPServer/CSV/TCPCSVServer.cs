@@ -116,6 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPPort                                                      TCPPort,
+                            I18NString?                                                 Description                  = null,
                             String?                                                     ServiceName                  = null,
                             String                                                      ServiceBanner                = __DefaultServiceBanner,
                             IEnumerable<Char>?                                          SplitCharacters              = null,
@@ -135,11 +136,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             UInt32?                                                     MaxClientConnections         = null,
 
                             IDNSClient?                                                 DNSClient                    = null,
-                            String?                                                     Description                  = null,
                             Boolean                                                     AutoStart                    = false)
 
             : this(IPv4Address.Any,
                    TCPPort,
+                   Description,
+
                    ServiceName,
                    ServiceBanner,
                    SplitCharacters,
@@ -159,7 +161,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    MaxClientConnections,
 
                    DNSClient,
-                   Description,
                    AutoStart)
 
         { }
@@ -187,6 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="AutoStart">Start the TCP/CSV server thread immediately (default: no).</param>
         public TCPCSVServer(IIPAddress                                                  IIPAddress,
                             IPPort                                                      Port,
+                            I18NString?                                                 Description                  = null,
 
                             String?                                                     ServiceName                  = null,
                             String                                                      ServiceBanner                = __DefaultServiceBanner,
@@ -207,7 +209,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             UInt32?                                                     MaxClientConnections         = null,
 
                             IDNSClient?                                                 DNSClient                    = null,
-                            String?                                                     Description                  = null,
                             Boolean                                                     AutoStart                    = false)
 
             : base(IIPAddress,
@@ -274,6 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPSocket                                                    IPSocket,
+                            I18NString?                                                 Description                  = null,
                             String?                                                     ServiceName                  = null,
                             String                                                      ServiceBanner                = __DefaultServiceBanner,
                             IEnumerable<Char>?                                          SplitCharacters              = null,
@@ -293,11 +295,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             UInt32?                                                     MaxClientConnections         = null,
 
                             IDNSClient?                                                 DNSClient                    = null,
-                            String?                                                     Description                  = null,
                             Boolean                                                     AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
+                   Description,
 
                    ServiceName,
                    ServiceBanner,
@@ -318,7 +320,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    MaxClientConnections,
 
                    DNSClient,
-                   Description,
                    AutoStart)
 
         { }

@@ -127,6 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #region Constructor(s)
 
         public ModbusTCPServer(IPPort                                                         TCPPort,
+                               I18NString?                                                    Description                  = null,
 
                                ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
                                RemoteTLSClientCertificateValidationHandler<ModbusTCPServer>?  ClientCertificateValidator   = null,
@@ -143,7 +144,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                UInt32?                                                        MaxClientConnections         = null,
 
                                IDNSClient?                                                    DNSClient                    = null,
-                               String?                                                        Description                  = null,
                                Boolean                                                        AutoStart                    = false)
 
             : base(TCPPort:                    TCPPort,

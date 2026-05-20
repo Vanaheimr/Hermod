@@ -170,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           TimeSpan?                                                  SendTimeout                           = null,
                           TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
                           UInt16?                                                    MaxNumberOfRetries                    = null,
-                          UInt32?                                                    BufferSize                            = null,
+                          UInt32?                                                    InternalBufferSize                    = null,
 
                           Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
                           Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize  ?? 8192,
+                   InternalBufferSize  ?? 8192,
 
                    ConsumeRequestChunkedTEImmediately,
                    ConsumeResponseChunkedTEImmediately,

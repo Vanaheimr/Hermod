@@ -50,6 +50,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         public IPSocket                          IPSocket                               { get; }
 
         /// <summary>
+        /// An optional multilingual description of this TCP server.
+        /// </summary>
+        public I18NString                        Description                            { get; }
+
+        /// <summary>
         /// The optional TLS certificate.
         /// </summary>
         //public X509Certificate2                  ServerCertificate                      { get; }
@@ -89,11 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// Return an enumeration of sockets of all currently connected clients.
         /// </summary>
         public IEnumerable<IPSocket>             ClientSockets                          { get; }
-
-        /// <summary>
-        /// An optional description of this TCP server.
-        /// </summary>
-        public String?                           Description                            { get; }
 
         /// <summary>
         /// True while the TCPServer is listening for new clients

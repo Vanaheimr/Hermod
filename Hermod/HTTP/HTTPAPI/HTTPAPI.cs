@@ -53,6 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             StartServer(this HTTPAPI                                              HTTPAPI,
                         HTTPPath                                                  Path,
                         HTTPHostname?                                             Hostname                     = null,
+                        I18NString?                                               Description                  = null,
 
                         IIPAddress?                                               IPAddress                    = null,
                         IPPort?                                                   TCPPort                      = null,
@@ -79,9 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         Boolean?                                                  DisableWardenTasks           = false,
                         TimeSpan?                                                 WardenInitialDelay           = null,
-                        TimeSpan?                                                 WardenCheckEvery             = null,
-
-                        String?                                                   Description                  = null)
+                        TimeSpan?                                                 WardenCheckEvery             = null)
 
         {
 
@@ -90,6 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              IPAddress,
                              TCPPort,
                              HTTPServerName,
+                             Description,
+
                              BufferSize,
                              ReceiveTimeout,
                              SendTimeout,
@@ -114,7 +115,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              WardenInitialDelay,
                              WardenCheckEvery,
 
-                             Description,
                              HTTPAPI
 
                          );

@@ -232,6 +232,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public SMTPServer(IIPAddress?                                               IPAddress                    = null,
                           IPPort?                                                   TCPPort                      = null,
                           String?                                                   DefaultServerName            = __DefaultServerName,
+                          I18NString?                                               Description                  = null,
+
                           UInt32?                                                   BufferSize                   = null,
                           TimeSpan?                                                 ReceiveTimeout               = null,
                           TimeSpan?                                                 SendTimeout                  = null,
@@ -258,12 +260,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                           TimeSpan?                                                 WardenInitialDelay           = null,
                           TimeSpan?                                                 WardenCheckEvery             = null,
 
-                          String?                                                   Description                  = null,
                           ILoggerFactory?                                           LoggerFactory                = null,
                           Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    TCPPort,
+                   Description,
+
                    ReceiveTimeout,
                    SendTimeout,
                    LoggingHandler,
@@ -287,7 +290,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    WardenInitialDelay,
                    WardenCheckEvery,
 
-                   Description,
                    LoggerFactory,
                    AutoStart: false)
 

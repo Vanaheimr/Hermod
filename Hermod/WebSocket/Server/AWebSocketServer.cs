@@ -463,6 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public AWebSocketServer(IIPAddress?                                               IPAddress                    = null,
                                 IPPort?                                                   TCPPort                      = null,
                                 String?                                                   HTTPServerName               = null,
+                                I18NString?                                               Description                  = null,
 
                                 Boolean?                                                  RequireAuthentication        = true,
                                 IEnumerable<String>?                                      SecWebSocketProtocols        = null,
@@ -495,12 +496,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 TimeSpan?                                                 WardenInitialDelay           = null,
                                 TimeSpan?                                                 WardenCheckEvery             = null,
 
-                                String?                                                   Description                  = null,
                                 ILoggerFactory?                                           LoggerFactory                = null,
                                 Boolean?                                                  AutoStart                    = false)
 
             : base(IPAddress,
                    TCPPort,
+                   Description,
                    ReceiveTimeout,
                    SendTimeout,
                    LoggingHandler,
@@ -524,7 +525,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    WardenInitialDelay,
                    WardenCheckEvery,
 
-                   Description,
                    LoggerFactory,
                    AutoStart: false)
 

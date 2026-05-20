@@ -54,6 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPTestServer(IIPAddress?                                               IPAddress                    = null,
                                 IPPort?                                                   TCPPort                      = null,
                                 String?                                                   HTTPServerName               = null,
+                                I18NString?                                               Description                  = null,
+
                                 UInt32?                                                   BufferSize                   = null,
                                 TimeSpan?                                                 ReceiveTimeout               = null,
                                 TimeSpan?                                                 SendTimeout                  = null,
@@ -85,6 +87,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
               IPAddress,
               TCPPort,
               HTTPServerName,
+              Description,
+
               BufferSize,
               ReceiveTimeout,
               SendTimeout,
@@ -142,6 +146,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             StartNew(IIPAddress?              IPAddress        = null,
                      IPPort?                  TCPPort          = null,
                      String?                  HTTPServerName   = null,
+                     I18NString?              Description      = null,
+
                      UInt32?                  BufferSize       = null,
                      TimeSpan?                ReceiveTimeout   = null,
                      TimeSpan?                SendTimeout      = null,
@@ -150,13 +156,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var server = new HTTPTestServer(
+
                              IPAddress,
                              TCPPort,
                              HTTPServerName,
+                             Description,
+
                              BufferSize,
                              ReceiveTimeout,
                              SendTimeout,
                              LoggingHandler
+
                          );
 
             await server.Start();

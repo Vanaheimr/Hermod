@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="HTTP\HTTPAPI\HTTPRoot\js\**" />
+    <EmbeddedResource Remove="HTTP\HTTPAPI\HTTPRoot\js\**" />
+    <None Remove="HTTP\HTTPAPI\HTTPRoot\js\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="SOAP\SOAPClient.cs" />
   </ItemGroup>
 
@@ -22,7 +28,6 @@
     <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-solid-900.woff2" />
     <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.ttf" />
     <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.woff2" />
-    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\js\date.format.js" />
     <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\ts\date.format.ts" />
   </ItemGroup>
 

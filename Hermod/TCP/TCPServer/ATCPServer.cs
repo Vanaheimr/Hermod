@@ -97,32 +97,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The IP address this TCP EchoTest server is listening on.
         /// </summary>
-        public IIPAddress  IPAddress         { get; }
+        public IIPAddress   IPAddress         { get; }
 
         /// <summary>
         /// The TCP port this TCP EchoTest server is listening on.
         /// </summary>
-        public IPPort      TCPPort           { get; }
+        public IPPort       TCPPort           { get; }
 
         /// <summary>
         /// The IP socket this TCP EchoTest server is listening on.
         /// </summary>
-        public IPSocket    IPSocket          { get; }
+        public IPSocket     IPSocket          { get; }
+
+        /// <summary>
+        /// The optional multilingual description of this TCP EchoTest server.
+        /// </summary>
+        public I18NString   Description       { get; }
 
         /// <summary>
         /// The receive timeout for the TCP stream.
         /// </summary>
-        public TimeSpan    ReceiveTimeout    { get; }
+        public TimeSpan     ReceiveTimeout    { get; }
 
         /// <summary>
         /// The send timeout for the TCP stream.
         /// </summary>
-        public TimeSpan    SendTimeout       { get; }
-
-        /// <summary>
-        /// The optional description of this TCP server.
-        /// </summary>
-        public String?     Description       { get; }
+        public TimeSpan     SendTimeout       { get; }
 
 
         public ServerCertificateSelectorDelegate?                        ServerCertificateSelector     { get; }
@@ -250,6 +250,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
         /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
+        /// <param name="Description">An optional multilingual description of this TCP server.</param>
+        /// 
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
@@ -273,11 +275,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
         /// <param name="WardenCheckEvery">The warden check interval.</param>
         /// 
-        /// <param name="Description">An optional description of this TCP server.</param>
         /// <param name="AutoStart">Whether to automatically start the TCP server.</param>
 
         public ATCPServer(IIPAddress?                                               IPAddress                    = null,
                           IPPort?                                                   TCPPort                      = null,
+                          I18NString?                                               Description                  = null,
                           TimeSpan?                                                 ReceiveTimeout               = null,
                           TimeSpan?                                                 SendTimeout                  = null,
                           TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
@@ -301,7 +303,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                           TimeSpan?                                                 WardenInitialDelay           = null,
                           TimeSpan?                                                 WardenCheckEvery             = null,
 
-                          String?                                                   Description                  = null,
                           //ILogger<ATCPServer>?                                      Logger                       = null,
                           ILoggerFactory?                                           LoggerFactory                = null,
                           Boolean?                                                  AutoStart                    = false)
@@ -411,6 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                    this.TCPPort
                                                );
 
+            this.Description                 = Description                 ?? I18NString.Empty;
             this.ReceiveTimeout              = ReceiveTimeout              ?? DefaultReceiveTimeout;
             this.SendTimeout                 = SendTimeout                 ?? DefaultSendTimeout;
             this.ConnectionIdBuilder         = ConnectionIdBuilder         ?? ((sender, timestamp, localSocket, remoteSocket) => $"{remoteSocket} -> {localSocket}");
@@ -496,7 +498,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #endregion
 
-            this.Description                 = Description;
 
             if (AutoStart ?? false)
                 Start().GetAwaiter().GetResult();

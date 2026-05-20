@@ -65,6 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             : base(IPAddress,
                    TCPPort,
+                   null,
                    ReceiveTimeout,
                    SendTimeout,
                    LoggingHandler)
