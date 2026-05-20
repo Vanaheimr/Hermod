@@ -26,6 +26,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 {
 
     /// <summary>
+    /// A delegate to generate a server thread name.
+    /// </summary>
+    /// <param name="Socket"></param>
+    /// <returns></returns>
+    public delegate String          ServerThreadNameCreatorDelegate(IPSocket Socket);
+
+    /// <summary>
+    /// A delegate to set the server thread priority.
+    /// </summary>
+    /// <param name="Socket"></param>
+    /// <returns></returns>
+    public delegate ThreadPriority  ServerThreadPriorityDelegate(IPSocket Socket);
+
+    /// <summary>
+    /// A delegate to generate a connection identification.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="LocalSocket">The local TCP/IP socket.</param>
+    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+    public delegate String          ConnectionIdBuilder(Object          Sender,
+                                                        DateTimeOffset  Timestamp,
+                                                        IPSocket        LocalSocket,
+                                                        IPSocket        RemoteSocket);
+
+    /// <summary>
+    /// A delegate to generate a thread name for a connection.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="LocalSocket">The local TCP/IP socket.</param>
+    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+    public delegate String          ConnectionThreadsNameBuilder(Object    Sender,
+                                                                 DateTime  Timestamp,
+                                                                 IPSocket  LocalSocket,
+                                                                 IPSocket  RemoteSocket);
+
+    /// <summary>
+    /// A delegate to generate a thread priority for a connection.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="LocalSocket">The local TCP/IP socket.</param>
+    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+    public delegate ThreadPriority  ConnectionThreadsPriorityDelegate(Object    Sender,
+                                                                      DateTime  Timestamp,
+                                                                      IPSocket  LocalSocket,
+                                                                      IPSocket  RemoteSocket);
+
+    /// <summary>
     /// TCP socket attached delegate.
     /// </summary>
     /// <param name="TCPServer">The sender of this event.</param>

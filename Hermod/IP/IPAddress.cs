@@ -263,57 +263,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
-    }
 
-
-    /// <summary> 
-    /// A common interface for all kinds of Internet protocol addresses.
-    /// </summary>
-    public interface IIPAddress : IEquatable<IIPAddress>,
-                                  IComparable<IIPAddress>,
-                                  IComparable
-    {
+        #region (static) Build(ByteArray)
 
         /// <summary>
-        /// The length of the IP Address.
+        /// Create a new IIPAddress based on the given byte array representation.
         /// </summary>
-        Byte     Length         { get; }
+        /// <param name="ByteArray">A byte representation of an IPAddress.</param>
+        public static IIPAddress Build(Byte[] ByteArray)
+        {
+
+            switch (ByteArray.Length)
+            {
+
+                case  4: return new IPv4Address(ByteArray);
+                
+                case 16: return new IPv6Address(ByteArray);
+
+                default: throw new FormatException("Not a valid IIPAdress!");
+
+            }
+
+        }
+
+        #endregion
+
+        #region (static) Build(IPAddress)
 
         /// <summary>
-        /// Whether the IP address is an IPv4 multicast address.
+        /// Create a new IIPAddress based on the given System.Net.IPAddress.
         /// </summary>
-        Boolean  IsMulticast    { get; }
+        /// <param name="IPAddress">A System.Net.IPAddress.</param>
+        public static IIPAddress Build(System.Net.IPAddress IPAddress)
+        {
+            return Build(IPAddress.GetAddressBytes());
+        }
 
-        Boolean  IsIPv4         { get; }
+        #endregion
 
-        Boolean  IsMappedIPv4   { get; }
-
-        Boolean  IsIPv6         { get; }
-
-        Boolean  IsLocalhost    { get; }
-
-        Boolean  IsAny          { get; }
-
-
-
-        IPv4Address?  AsIPv4         { get; }
-
-
-        /// <summary>
-        /// Return a byte array representation of this object.
-        /// </summary>
-        Byte[]   GetBytes();
-
-
-        /// <summary>
-        /// Return the HashCode of this object.
-        /// </summary>
-        Int32    GetHashCode();
-
-        /// <summary>
-        /// Return a text representation of this object.
-        /// </summary>
-        String   ToString();
 
     }
 

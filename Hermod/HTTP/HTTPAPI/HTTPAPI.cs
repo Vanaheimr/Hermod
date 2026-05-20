@@ -32,9 +32,7 @@ using Org.BouncyCastle.Security;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion 
 

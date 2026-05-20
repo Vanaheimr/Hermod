@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         public void ParseIPv4String_001()
         {
 
-            var ipv4Address = IPAddressHelper.Parse("141.24.12.2");
+            var ipv4Address = IPAddress.Parse("141.24.12.2");
 
             Assert.That(ipv4Address is IIPAddress,  Is.True);
             Assert.That(ipv4Address is IPv4Address, Is.True);
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         [Test]
         public void ParseTooShortByteArray()
         {
-            Assert.Throws<FormatException>(() => IPAddressHelper.Build([10, 0, 0]));
+            Assert.Throws<FormatException>(() => IPAddress.Parse([10, 0, 0]));
         }
 
         #endregion
@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         public void ParseIPv4ByteArray()
         {
 
-            var ipv4Address = IPAddressHelper.Build([10, 0, 0, 0]);
+            var ipv4Address = IPAddress.Parse([10, 0, 0, 0]);
 
             Assert.That(ipv4Address is IIPAddress,  Is.True);
             Assert.That(ipv4Address is IPv4Address, Is.True);
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         public void ParseIPv6ByteArray()
         {
 
-            var ipv6Address = IPAddressHelper.Build([10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0]);
+            var ipv6Address = IPAddress.Parse([10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0]);
 
             Assert.That(ipv6Address is IIPAddress,  Is.True);
             Assert.That(ipv6Address is IPv4Address, Is.False);

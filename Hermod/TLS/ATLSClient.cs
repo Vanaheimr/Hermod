@@ -69,6 +69,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean?                                                  AllowRenegotiation               { get; }
         public Boolean?                                                  AllowTLSResume                   { get; }
 
+        protected Stream? ActiveStream
+            => tlsStream is not null
+                   ? tlsStream
+                   : tcpClient?.GetStream();
+
+        public Boolean IsTLSActive
+            => tlsStream is not null;
+
         #endregion
 
         #region Constructor(s)
@@ -349,9 +357,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (tcpClient is null)
                 return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(tcpClient)} is null!");
 
-            if (RemoteCertificateValidator is null)
-                return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(RemoteCertificateValidator)} is null!");
-
             var remoteCertificateValidationErrors = new List<Error>();
 
             try
@@ -408,25 +413,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                 EnabledSslProtocols                   = TLSProtocols,
                                                 CipherSuitesPolicy                    = CipherSuitesPolicy,
                                                 CertificateChainPolicy                = CertificateChainPolicy,
-                                                RemoteCertificateValidationCallback   = (sender, certificate, chain, policyErrors) => {
+                                                RemoteCertificateValidationCallback   = RemoteCertificateValidator is not null
+                                                                                            ? (sender, certificate, chain, policyErrors) => {
 
-                                                                                            var result = RemoteCertificateValidator(
-                                                                                                             sender,
-                                                                                                             certificate is not null
-                                                                                                                 ? new X509Certificate2(certificate)
-                                                                                                                 : null,
-                                                                                                             chain,
-                                                                                                             this,
-                                                                                                             policyErrors
-                                                                                                         );
+                                                                                                  var result = RemoteCertificateValidator(
+                                                                                                                   sender,
+                                                                                                                   certificate is not null
+                                                                                                                       ? new X509Certificate2(certificate)
+                                                                                                                       : null,
+                                                                                                                   chain,
+                                                                                                                   this,
+                                                                                                                   policyErrors
+                                                                                                               );
 
-                                                                                            remoteCertificateValidationErrors = [.. result.Errors];
+                                                                                                  remoteCertificateValidationErrors = [.. result.Errors];
 
-                                                                                            DebugX.LogT(certificate?.Subject ?? "<nocert!>");
+                                                                                                  return result.IsValid;
 
-                                                                                            return result.IsValid;
-
-                                                                                        }
+                                                                                              }
+                                                                                            : null
 
                                             };
 

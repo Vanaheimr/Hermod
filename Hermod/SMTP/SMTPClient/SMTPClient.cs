@@ -18,14 +18,16 @@
 #region Usings
 
 using System.Text;
-using System.Net.Sockets;
 using System.Security.Cryptography;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.TLS;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -35,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <summary>
     /// A SMTP client for sending e-mails.
     /// </summary>
-    public class SMTPClient : TCPClient_old, ISMTPClient
+    public class SMTPClient : ATLSClient, ISMTPClient
     {
 
         #region Data
@@ -43,6 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private static readonly Byte[]         ByteZero            = new Byte[1] { 0x00 };
 
         private static readonly SemaphoreSlim  SendEMailSemaphore  = new (1, 1);
+
+        private readonly ILogger<SMTPClient>   smtpLogger;
 
         #endregion
 
@@ -78,6 +82,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
 
         public SmtpCapabilities     Capabilities;
+
+        public DomainName           RemoteHost              { get; }
+
+        public TLSUsage             UseTLS                  { get; }
 
         #endregion
 
@@ -123,31 +131,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                           TimeSpan?                                                 ConnectionTimeout            = null,
                           IDNSClient?                                               DNSClient                    = null,
                           Boolean                                                   AutoConnect                  = false,
-                          CancellationToken?                                        CancellationToken            = null)
+                          CancellationToken?                                        CancellationToken            = null,
+                          ILoggerFactory?                                           LoggerFactory                = null)
 
-            : base(RemoteHost,
-                   RemotePort,
-                   UseIPv4,
-                   UseIPv6,
-                   PreferIPv6,
-                   UseTLS,
-                   RemoteCertificateValidator is not null
-                       ? (sender,
-                          certificate,
-                          certificateChain,
-                          tlsClient,
-                          policyErrors) => RemoteCertificateValidator.Invoke(
-                                               sender,
-                                               certificate,
-                                               certificateChain,
-                                               tlsClient as SMTPClient,
-                                               policyErrors
-                                           )
-                       : null,
-                   ConnectionTimeout,
-                   DNSClient,
-                   AutoConnect,
-                   CancellationToken)
+            : base(BuildSMTPURL(RemoteHost, RemotePort, UseTLS),
+
+                   RemoteCertificateValidator: RemoteCertificateValidator is not null
+                                                   ? (sender,
+                                                      certificate,
+                                                      certificateChain,
+                                                      tlsClient,
+                                                      policyErrors) => RemoteCertificateValidator.Invoke(
+                                                                           sender,
+                                                                           certificate,
+                                                                           certificateChain,
+                                                                           (SMTPClient) tlsClient,
+                                                                           policyErrors
+                                                                       )
+                                                   : null,
+                   EnforceTLS:                 UseTLS == TLSUsage.TLSSocket,
+
+                   IPVersionPreference:        ToIPVersionPreference(UseIPv4, UseIPv6, PreferIPv6),
+                   ConnectTimeout:             ConnectionTimeout,
+                   DNSClient:                  DNSClient,
+                   LoggerFactory:              LoggerFactory)
 
         {
 
@@ -155,6 +162,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.Password            = Password;
             this.LocalDomain         = LocalDomain ?? System.Net.Dns.GetHostName();
             this.UnknownAuthMethods  = [];
+            this.RemoteHost          = RemoteHost;
+            this.UseTLS              = UseTLS;
+            this.smtpLogger          = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<SMTPClient>();
+
+            if (AutoConnect)
+                ReconnectAsync(CancellationToken ?? default).GetAwaiter().GetResult();
+
+        }
+
+        #endregion
+
+
+        #region BuildSMTPURL(RemoteHost, RemotePort, UseTLS)
+
+        private static URL BuildSMTPURL(DomainName  RemoteHost,
+                                        IPPort      RemotePort,
+                                        TLSUsage    UseTLS)
+            => URL.Parse(
+                   String.Concat(
+                       UseTLS == TLSUsage.TLSSocket
+                           ? "tls://"
+                           : "tcp://",
+                       RemoteHost,
+                       ":",
+                       RemotePort
+                   )
+               );
+
+        #endregion
+
+        #region ToIPVersionPreference(UseIPv4, UseIPv6, PreferIPv6)
+
+        private static IPVersionPreference ToIPVersionPreference(Boolean UseIPv4,
+                                                                 Boolean UseIPv6,
+                                                                 Boolean PreferIPv6)
+        {
+
+            if (UseIPv4 && !UseIPv6)
+                return IPVersionPreference.IPv4Only;
+
+            if (!UseIPv4 && UseIPv6)
+                return IPVersionPreference.IPv6Only;
+
+            return PreferIPv6
+                       ? IPVersionPreference.PreferIPv6
+                       : IPVersionPreference.PreferIPv4;
 
         }
 
@@ -194,11 +247,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             var CommandBytes = Encoding.UTF8.GetBytes(Command + "\r\n");
+            var stream       = ActiveStream ?? throw new InvalidOperationException("SMTP client is not connected.");
 
-            TCPSocket.Poll(SelectMode.SelectWrite, CancellationToken.Value);
-            Stream.Write(CommandBytes, 0, CommandBytes.Length);
+            stream.Write(CommandBytes, 0, CommandBytes.Length);
+            stream.Flush();
 
-            DebugX.Log(nameof(SMTPClient) + ": " + Command);
+            smtpLogger.LogTrace("SMTP command to {RemoteSocket}: {Command}",
+                                RemoteSocket,
+                                Command);
 
         }
 
@@ -246,9 +302,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     buffer     = new Byte[64 * 1024];
 
-                    TCPSocket.Poll(SelectMode.SelectRead, CancellationToken.Value);
-
-                    var nread = Stream.Read(buffer, 0, buffer.Length);
+                    var stream = ActiveStream ?? throw new InvalidOperationException("SMTP client is not connected.");
+                    var nread  = stream.Read(buffer, 0, buffer.Length);
 
                     Array.Resize(ref buffer, nread);
 
@@ -363,41 +418,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
             catch (Exception e)
             {
-                DebugX.LogException(e, nameof(SMTPClient) + "." + nameof(OnSendEMailRequest));
+                smtpLogger.LogError(e, "SMTP OnSendEMailRequest event failed.");
             }
 
             #endregion
 
 
             var result = MailSentStatus.failed;
+            using var requestTimeoutCancellationTokenSource = RequestTimeout.HasValue
+                                                                  ? new CancellationTokenSource(RequestTimeout.Value)
+                                                                  : null;
+            var cancellationToken = requestTimeoutCancellationTokenSource?.Token ?? default;
 
             if (await SendEMailSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60)))
             {
                 try
                 {
 
-                    switch (Connect())
+                    var connectionResult = await ReconnectAsync(cancellationToken).ConfigureAwait(false);
+
+                    if (connectionResult.IsFailure)
                     {
+                        smtpLogger.LogWarning("SMTP connection to {RemoteHost}:{RemotePort} failed: {Errors}",
+                                              RemoteHost,
+                                              RemotePort,
+                                              connectionResult.Errors.AggregateWith(", "));
 
-                        case TCPConnectResult.InvalidRemoteHost:
-                            result = MailSentStatus.InvalidRemoteHost;
-                            break;
+                        result = connectionResult.Errors.Any(error => error.ToString().Contains("No valid remote IP address", StringComparison.OrdinalIgnoreCase))
+                                     ? MailSentStatus.NoIPAddressFound
+                                     : MailSentStatus.UnknownError;
+                    }
 
-                        case TCPConnectResult.InvalidDomainName:
-                            result = MailSentStatus.InvalidDomainName;
-                            break;
-
-                        case TCPConnectResult.NoIPAddressFound:
-                            result = MailSentStatus.NoIPAddressFound;
-                            break;
-
-                        case TCPConnectResult.UnknownError:
-                            result = MailSentStatus.UnknownError;
-                            break;
-
-                        case TCPConnectResult.Ok:
-
-                            TCPStream.ReadTimeout = 3000;
+                    else
+                    {
 
                             var authMethods         = SMTPAuthMethods.None;
                             var unknownAuthMethods  = new HashSet<String>();
@@ -450,7 +503,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             var StartTLSResponse = SendCommandAndWaitForResponse("STARTTLS");
 
                                             if (StartTLSResponse.StatusCode == SMTPStatusCodes.ServiceReady)
-                                                EnableTLS();
+                                            {
+                                                var startTLSResult = await StartTLS(cancellationToken).ConfigureAwait(false);
+
+                                                if (startTLSResult.IsFailure)
+                                                    throw new SMTPClientException("SMTP STARTTLS failed: " + startTLSResult.Errors.AggregateWith(", "));
+                                            }
 
                                         }
 
@@ -603,7 +661,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                                                             Concat(Password.ToUTF8Bytes()).
                                                                                                             ToArray()));
 
-                                        DebugX.Log("SMTP Auth PLAIN response: " + response.ToString());
+                                        smtpLogger.LogTrace("SMTP AUTH PLAIN response from {RemoteSocket}: {Response}",
+                                                            RemoteSocket,
+                                                            response);
 
                                     }
 
@@ -618,7 +678,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         var response2 = SendCommandAndWaitForResponse(Convert.ToBase64String(Login.   ToUTF8Bytes()));
                                         var response3 = SendCommandAndWaitForResponse(Convert.ToBase64String(Password.ToUTF8Bytes()));
 
-                                        DebugX.Log(String.Concat("SMTP Auth LOGIN responses: ", response1.ToString(), ", ", response2.ToString(), ", ", response3.ToString()));
+                                        smtpLogger.LogTrace("SMTP AUTH LOGIN responses from {RemoteSocket}: {Response1}, {Response2}, {Response3}",
+                                                            RemoteSocket,
+                                                            response1,
+                                                            response2,
+                                                            response3);
 
                                     }
 
@@ -640,7 +704,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                                                   Login,
                                                                                                   Password)));
 
-                                            DebugX.Log("SMTP Auth CRAM-MD5 response: " + response.ToString());
+                                            smtpLogger.LogTrace("SMTP AUTH CRAM-MD5 response from {RemoteSocket}: {Response}",
+                                                                RemoteSocket,
+                                                                response);
 
                                         }
 
@@ -697,8 +763,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                 throw new SMTPClientException        (rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
 
                                         }
-
-                                        //DebugX.LogT(_RcptToResponse);
 
                                     });
 
@@ -775,14 +839,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                             }
 
-                            break;
-
                     }
 
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e);
+                    smtpLogger.LogError(e, "SMTP send failed.");
                     result = MailSentStatus.ExceptionOccurred;
                 }
                 finally
@@ -814,7 +876,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
             catch (Exception e)
             {
-                DebugX.LogException(e, nameof(SMTPClient) + "." + nameof(OnSendEMailResponse));
+                smtpLogger.LogError(e, "SMTP OnSendEMailResponse event failed.");
             }
 
             #endregion
@@ -828,9 +890,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Dispose()
 
-        public void Dispose()
+        public override void Dispose()
         {
-            
+            base.Dispose();
         }
 
         #endregion

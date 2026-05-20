@@ -275,8 +275,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPSocket FromIPEndPoint(IPEndPoint IPEndPoint)
 
             => new (
-                   IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes()),
-                   IPPort.         Parse(IPEndPoint.Port)
+                   Hermod.IPAddress.Build(IPEndPoint.Address.GetAddressBytes()),
+                   IPPort.          Parse(IPEndPoint.Port)
                );
 
 

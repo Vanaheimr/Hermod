@@ -9,33 +9,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DNS\**" />
-    <Compile Remove="SOAP\**" />
-    <Compile Remove="WebSocket\**" />
-    <EmbeddedResource Remove="DNS\**" />
-    <EmbeddedResource Remove="SOAP\**" />
-    <EmbeddedResource Remove="WebSocket\**" />
-    <None Remove="DNS\**" />
-    <None Remove="SOAP\**" />
-    <None Remove="WebSocket\**" />
+    <Compile Remove="SOAP\SOAPClient.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Hermod\SOAP\SOAPClient.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\css\all.min.css" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-brands-400.ttf" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-brands-400.woff2" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-regular-400.ttf" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-regular-400.woff2" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-solid-900.ttf" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-solid-900.woff2" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.ttf" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.woff2" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\js\date.format.js" />
-    <EmbeddedResource Include="Hermod\HTTP\HTTPAPI\HTTPRoot\ts\date.format.ts" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\css\all.min.css" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-brands-400.ttf" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-brands-400.woff2" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-regular-400.ttf" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-regular-400.woff2" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-solid-900.ttf" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-solid-900.woff2" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.ttf" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.woff2" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\js\date.format.js" />
+    <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\ts\date.format.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,10 +37,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Hermod\IP\IGMP\" />
   </ItemGroup>
 
 </Project>
