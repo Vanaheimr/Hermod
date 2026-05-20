@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod.IPv4;
 using System;
 
 #endregion
@@ -31,7 +32,7 @@ public class UdpHeader : AProtocolHeader
     private ushort udpChecksum;
 
     public Ipv6Header ipv6PacketHeader;
-    public IPv4Header_old ipv4PacketHeader;
+    public IPv4Packet ipv4PacketHeader;
 
     static public int UdpHeaderLength = 8;
 
@@ -204,7 +205,7 @@ public class UdpHeader : AProtocolHeader
 
             // 1 byte zero pad plus next header protocol value
             pseudoHeader[offset++] = 0;
-            pseudoHeader[offset++] = ipv4PacketHeader.Protocol;
+            pseudoHeader[offset++] = (byte) ipv4PacketHeader.Protocol;
 
             // Packet length
             byteValue = BitConverter.GetBytes(udpLength);

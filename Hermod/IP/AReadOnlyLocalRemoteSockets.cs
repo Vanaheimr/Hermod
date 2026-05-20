@@ -25,9 +25,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
     /// <param name="RemoteSocket">The remote socket.</param>
     public abstract class AReadOnlyLocalRemoteSockets(IPSocket  LocalSocket,
                                                       IPSocket  RemoteSocket)
+
+        : ILocalSocket,
+          IRemoteSocket
+
     {
 
-        #region Properties
+        #region LocalSocket
 
         /// <summary>
         /// The local IP address.
@@ -46,7 +50,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// </summary>
         public IPSocket     LocalSocket { get; } = LocalSocket;
 
+        #endregion
 
+        #region RemoteSocket
 
         /// <summary>
         /// The remote IP address.
@@ -67,15 +73,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 
         #endregion
 
+
+        #region IDisposable Members
+
+        /// <summary>
+        /// Dispose this packet.
+        /// </summary>
+        public virtual void Dispose()
+        {
+            // No resources to dispose
+        }
+
+        #endregion
+
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return LocalSocket.ToString() + " [local] <-> " + RemoteSocket.ToString() + " [remote]";
-        }
+
+            => $"{LocalSocket} [local] <-> {RemoteSocket} [remote]";
 
         #endregion
 

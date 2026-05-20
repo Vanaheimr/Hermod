@@ -57,77 +57,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region /etc/services
-
-        /// <summary>
-        /// Zero (0) means that this port will be chosen randomly by .NET during socket creation!
-        /// </summary>
-        public static readonly IPPort  Zero        = new (0);
-
-
-        /// <summary>
-        /// SSH (22)
-        /// </summary>
-        public static readonly IPPort  SSH         = new (22);
-
-        /// <summary>
-        /// TELNET (23)
-        /// </summary>
-        public static readonly IPPort  TELNET      = new (23);
-
-        /// <summary>
-        /// SMTP (25)
-        /// </summary>
-        public static readonly IPPort  SMTP        = new (25);
-
-        /// <summary>
-        /// DNS (53)
-        /// </summary>
-        public static readonly IPPort  DNS         = new (53);
-
-        /// <summary>
-        /// HTTP (80)
-        /// </summary>
-        public static readonly IPPort  HTTP        = new (80);
-
-        /// <summary>
-        /// NTP (123)
-        /// </summary>
-        public static readonly IPPort  NTP         = new (123);
-
-        /// <summary>
-        /// HTTPS (443)
-        /// </summary>
-        public static readonly IPPort  HTTPS       = new (443);
-
-        /// <summary>
-        /// Modbus/TCP (502)
-        /// </summary>
-        public static readonly IPPort  ModbusTCP   = new (502);
-
-        /// <summary>
-        /// Modbus/TLS (802)
-        /// </summary>
-        public static readonly IPPort  ModbusTLS   = new (802);
-
-        /// <summary>
-        /// DNS over TLS (853)
-        /// </summary>
-        public static readonly IPPort  DNS_TLS     = new (853);
-
-        /// <summary>
-        /// MQTT (1883)
-        /// </summary>
-        public static readonly IPPort  MQTT        = new (1883);
-
-        /// <summary>
-        /// NTS-KE (4460)
-        /// </summary>
-        public static readonly IPPort  NTSKE       = new (4460);
-
-        #endregion
-
-
         #region (static) NewRandom
 
         /// <summary>
@@ -328,6 +257,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public Int32 ToInt32()
             => InternalId;
+
+        #endregion
+
+
+        #region /etc/services
+
+        /// <summary>
+        /// Zero (0) means that this port will be chosen randomly by .NET during socket creation!
+        /// </summary>
+        public static readonly IPPort  Zero        = new (0);
+
+
+        /// <summary>
+        /// SSH (22)
+        /// </summary>
+        public static readonly IPPort  SSH         = new (22);
+
+        /// <summary>
+        /// TELNET (23)
+        /// </summary>
+        public static readonly IPPort  TELNET      = new (23);
+
+        /// <summary>
+        /// SMTP (25)
+        /// </summary>
+        public static readonly IPPort  SMTP        = new (25);
+
+        /// <summary>
+        /// DNS (53)
+        /// </summary>
+        public static readonly IPPort  DNS         = new (53);
+
+        /// <summary>
+        /// HTTP (80)
+        /// </summary>
+        public static readonly IPPort  HTTP        = new (80);
+
+        /// <summary>
+        /// NTP (123)
+        /// </summary>
+        public static readonly IPPort  NTP         = new (123);
+
+        /// <summary>
+        /// HTTPS (443)
+        /// </summary>
+        public static readonly IPPort  HTTPS       = new (443);
+
+        /// <summary>
+        /// Modbus/TCP (502)
+        /// </summary>
+        public static readonly IPPort  ModbusTCP   = new (502);
+
+        /// <summary>
+        /// Modbus/TLS (802)
+        /// </summary>
+        public static readonly IPPort  ModbusTLS   = new (802);
+
+        /// <summary>
+        /// DNS over TLS (853)
+        /// </summary>
+        public static readonly IPPort  DNS_TLS     = new (853);
+
+        /// <summary>
+        /// MQTT (1883)
+        /// </summary>
+        public static readonly IPPort  MQTT        = new (1883);
+
+        /// <summary>
+        /// NTS-KE (4460)
+        /// </summary>
+        public static readonly IPPort  NTSKE       = new (4460);
 
         #endregion
 

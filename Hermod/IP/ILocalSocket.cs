@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
@@ -34,17 +28,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local IP address.
         /// </summary>
-        IIPAddress LocalIPAddress   { get; }
+        IIPAddress  LocalIPAddress    { get; }
 
         /// <summary>
         /// The local port.
         /// </summary>
-        IPPort     LocalPort        { get; }
+        IPPort      LocalPort         { get; }
 
         /// <summary>
         /// The local socket.
         /// </summary>
-        IPSocket   LocalSocket      { get; }
+        IPSocket    LocalSocket       { get; }
 
     }
 

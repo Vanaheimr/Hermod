@@ -261,7 +261,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4
         /// <param name="IPv4Header">A byte array containing the IPv4 header.</param>
         /// <param name="Start">The starting index of the header in the byte array (usually 0).</param>
         /// <param name="Length">The length of the header in bytes (must be a multiple of 4, typically 20 for a header without options).</param>
-        /// <returns>The calculated 16-bit checksum (One's Complement).</returns>
         public static UInt16 GetChecksum(Byte[]  IPv4Header,
                                          Int32   Start,
                                          Int32   Length)

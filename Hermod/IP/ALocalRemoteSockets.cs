@@ -21,128 +21,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
     /// <summary>
     /// An abstract class for all TCP streams and UDP packets.
     /// </summary>
-    public abstract class ALocalRemoteSockets : IDisposable
+    public abstract class ALocalRemoteSockets(IPSocket  LocalSocket,
+                                              IPSocket  RemoteSocket)
+
+        : ILocalSocket,
+          IRemoteSocket
+
     {
 
-        #region Properties
-
-        #region LocalIPAddress
+        #region LocalSocket
 
         /// <summary>
         /// The local IP address.
         /// </summary>
-        public IIPAddress LocalIPAddress
+        public IIPAddress   LocalIPAddress
             => LocalSocket.IPAddress;
-
-        #endregion
-
-        #region LocalPort
 
         /// <summary>
         /// The local IP port.
         /// </summary>
-        public IPPort LocalPort
+        public IPPort       LocalPort
             => LocalSocket.Port;
-
-        #endregion
-
-        #region LocalSocket
-
-        private IPSocket localSocket;
 
         /// <summary>
         /// The local socket.
         /// </summary>
-        public IPSocket LocalSocket
-        {
-
-            get
-            {
-                return localSocket;
-            }
-
-            set
-            {
-                localSocket = value;
-            }
-
-        }
-
-        #endregion
-
-
-        #region RemoteIPAddress
-
-        /// <summary>
-        /// The remote IP address.
-        /// </summary>
-        public IIPAddress RemoteIPAddress
-            => remoteSocket.IPAddress;
-
-        #endregion
-
-        #region RemotePort
-
-        /// <summary>
-        /// The remote IP port.
-        /// </summary>
-        public IPPort RemotePort
-            => remoteSocket.Port;
+        public IPSocket     LocalSocket { get; set; } = LocalSocket;
 
         #endregion
 
         #region RemoteSocket
 
-        private IPSocket remoteSocket;
+        /// <summary>
+        /// The remote IP address.
+        /// </summary>
+        public IIPAddress   RemoteIPAddress
+            => RemoteSocket.IPAddress;
+
+        /// <summary>
+        /// The remote IP port.
+        /// </summary>
+        public IPPort       RemotePort
+            => RemoteSocket.Port;
 
         /// <summary>
         /// The remote socket.
         /// </summary>
-        public IPSocket RemoteSocket
-        {
-
-            get
-            {
-                return remoteSocket;
-            }
-
-            set
-            {
-                remoteSocket = value;
-            }
-
-        }
-
-        #endregion
-
-        #endregion
-
-        #region Constructor(s)
-
-        #region ALocalRemoteSockets()
-
-        /// <summary>
-        /// Create a new abstract ALocalRemoteSockets.
-        /// </summary>
-        public ALocalRemoteSockets()
-        { }
-
-        #endregion
-
-        #region ALocalRemoteSockets(LocalSocket, RemoteSocket)
-
-        /// <summary>
-        /// Create a new abstract ALocalRemoteSockets.
-        /// </summary>
-        /// <param name="LocalSocket">The local socket of this UDP packet.</param>
-        /// <param name="RemoteSocket">The remote socket of this UDP packet.</param>
-        public ALocalRemoteSockets(IPSocket LocalSocket, IPSocket RemoteSocket)
-        {
-            this.LocalSocket   = LocalSocket;
-            this.RemoteSocket  = RemoteSocket;
-        }
-
-        #endregion
+        public IPSocket     RemoteSocket { get; set; } = RemoteSocket;
 
         #endregion
 
@@ -153,7 +78,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// Dispose this packet.
         /// </summary>
         public virtual void Dispose()
-        { }
+        {
+            // No resources to dispose
+        }
 
         #endregion
 

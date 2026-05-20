@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 {
 
     /// <summary>
-    /// A generic ICMP packet.
+    /// A generic ICMPv4 packet.
     /// </summary>
     /// <typeparam name="TICMPMessage">The type of the ICMP message.</typeparam>
     /// <seealso cref="https://www.rfc-editor.org/rfc/rfc792.html"/>
@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
 
     /// <summary>
-    /// An ICMP packet.
+    /// An ICMPv4 packet.
     /// </summary>
     /// <seealso cref="https://www.rfc-editor.org/rfc/rfc792.html"/>
     public class ICMPPacket
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new generic ICMP packet.
+        /// Create a new generic ICMPv4 packet.
         /// </summary>
         /// <param name="Type">The ICMP message type.</param>
         /// <param name="Code">The ICMP code.</param>
