@@ -19,6 +19,8 @@
 
 using System.Collections.Concurrent;
 
+using Microsoft.Extensions.Logging;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -102,15 +104,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IEnumerable<CryptoKeyInfo>?  Identities       = null,
                                   IEnumerable<CryptoKeyInfo>?  IdentityGroups   = null,
 
-                                  HTTPServer?             HTTPTestServer   = null,
-                                  HTTPExtAPI?                  DefaultHTTPAPIX  = null,
+                                  HTTPServer?                  HTTPServer       = null,
+                                  HTTPExtAPI?                  DefaultHTTPAPI   = null,
 
-                                  IDNSClient?                  DNSClient        = null)
+                                  IDNSClient?                  DNSClient        = null,
+                                  ILoggerFactory?              LoggerFactory    = null)
         {
 
-            this.Id               = Id          ?? NetworkServiceNode_Id.NewRandom();
-            this.Name             = Name        ?? I18NString.Empty;
-            this.Description      = Description ?? I18NString.Empty;
+            this.Id              = Id             ?? NetworkServiceNode_Id.NewRandom();
+            this.Name            = Name           ?? I18NString.Empty;
+            this.Description     = Description    ?? I18NString.Empty;
 
             if (Identities is not null)
                 foreach (var identity in Identities.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.Identity)))
@@ -120,18 +123,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.IdentityGroup)))
                     AddCryptoKey(identityGroup);
 
+            var dnsClient        = DNSClient      ?? new DNSClient(
+                                                         LoggerFactory: LoggerFactory
+                                                     );
 
-            this.HTTPServer       = HTTPTestServer  ?? new HTTPServer(
-                                                           TCPPort:         IPPort.Parse(1234),
-                                                           HTTPServerName:  this.Id.ToString(),
-                                                           //Description:     this.Description,
-                                                           DNSClient:       DNSClient
-                                                       );
 
-            this.DefaultHTTPAPI  = DefaultHTTPAPIX ?? new HTTPExtAPI(
-                                                           this.HTTPServer,
-                                                           Description:     this.Description
-                                                       );
+            this.HTTPServer      = HTTPServer     ?? new HTTPServer(
+                                                         TCPPort:         IPPort.Parse(1234),
+                                                         HTTPServerName:  this.Id.ToString(),
+                                                         //Description:     this.Description,
+                                                         DNSClient:       dnsClient,
+                                                         LoggerFactory:   LoggerFactory
+                                                     );
+
+            this.DefaultHTTPAPI  = DefaultHTTPAPI ?? new HTTPExtAPI(
+                                                         this.HTTPServer,
+                                                         Description:     this.Description,
+                                                         LoggerFactory:   LoggerFactory
+                                                     );
 
             unchecked
             {

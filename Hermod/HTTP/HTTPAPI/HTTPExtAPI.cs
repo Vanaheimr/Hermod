@@ -26,6 +26,8 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
+using Microsoft.Extensions.Logging;
+
 using Newtonsoft.Json.Linq;
 
 using Org.BouncyCastle.Math;
@@ -2268,7 +2270,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                        LoggingPath                      = null, //DefaultHTTPExtAPIX_LoggingPath,
                           String?                        LoggingContext                   = null, //DefaultHTTPExtAPIX_LoggingContext,
                           String?                        LogfileName                      = DefaultHTTPExtAPIX_LogfileName,
-                          LogfileCreatorDelegate?        LogfileCreator                   = null)
+                          LogfileCreatorDelegate?        LogfileCreator                   = null,
+                          ILoggerFactory?                LoggerFactory                    = null)
 
 
             : base(HTTPServer,

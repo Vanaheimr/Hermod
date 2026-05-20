@@ -48,7 +48,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <summary>
     /// A HTTP WebSocket client.
     /// </summary>
-    public class WebSocketClient : IWebSocketClient
+    public class WebSocketClient : ATLSClient,
+                                   IWebSocketClient
     {
 
         #region Data
@@ -64,9 +65,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public static readonly IPPort  DefaultRemotePort     = IPPort.Parse(443);
 
 
-        private   Socket?           TCPSocket;
-        private   MyNetworkStream?  TCPNetworkStream;
-        private   SslStream?        TLSStream;
         protected Stream?           HTTPStream;
 
         /// <summary>
@@ -103,54 +101,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         /// <summary>
-        /// The remote URL of the HTTP endpoint to connect to.
-        /// </summary>
-        public URL                                                             RemoteURL                                 { get; }
-
-        /// <summary>
         /// The virtual HTTP hostname to connect to.
         /// </summary>
         public HTTPHostname?                                                   VirtualHostname                           { get; }
 
         /// <summary>
-        /// An optional description of this HTTP WebSocket client.
-        /// </summary>
-        public I18NString                                                      Description                               { get; set; }
-
-        /// <summary>
         /// The remote TLS certificate validator.
         /// </summary>
-        public RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator                { get; private set; }
-
-        /// <summary>
-        /// A delegate to select a TLS client certificate.
-        /// </summary>
-        public LocalCertificateSelectionHandler?                               LocalCertificateSelector                  { get; }
-
-        /// <summary>
-        /// Multiple optional TLS client certificates to use for HTTP authentication (not a chain of certificates!).
-        /// </summary>
-        public IEnumerable<X509Certificate2>                                   ClientCertificates                        { get; }
-
-        /// <summary>
-        /// The optionalTLS client certificate context to use for HTTP authentication.
-        /// </summary>
-        public SslStreamCertificateContext?                                    ClientCertificateContext                  { get; }
-
-        /// <summary>
-        /// The optional TLS client certificate chain to use for HTTP authentication.
-        /// </summary>
-        public IEnumerable<X509Certificate2>                                   ClientCertificateChain                    { get; }
-
-        /// <summary>
-        /// The TLS protocol to use.
-        /// </summary>
-        public SslProtocols                                                    TLSProtocols                              { get; }
-
-        /// <summary>
-        /// Prefer IPv4 instead of IPv6.
-        /// </summary>
-        public IPVersionPreference                                             IPVersionPreference                                { get; }
+        public new RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator            { get; }
 
         /// <summary>
         /// An optional HTTP content type.
@@ -188,16 +146,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public TimeSpan                                                        RequestTimeout                            { get; set; }
 
         /// <summary>
-        /// The delay between transmission retries.
-        /// </summary>
-        public TransmissionRetryDelayDelegate                                  TransmissionRetryDelay                    { get; }
-
-        /// <summary>
-        /// The maximum number of retries when communicating with the remote OICP service.
-        /// </summary>
-        public UInt16                                                          MaxNumberOfRetries                        { get; }
-
-        /// <summary>
         /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
         /// </summary>
         public Boolean                                                         UseHTTPPipelining
@@ -211,12 +159,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
 
-        /// <summary>
-        /// The DNS client defines which DNS servers to use.
-        /// </summary>
-        public IDNSClient?                                                     DNSClient                                 { get; }
-
-
         public UInt64                                                          KeepAliveMessageCount                     { get; private set; } = 0;
 
 
@@ -224,31 +166,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Our local IP port.
         /// </summary>
-        public IPPort                                                          LocalPort                                 { get; private set; }
-
-        /// <summary>
-        /// The IP Address to connect to.
-        /// </summary>
-        public IIPAddress?                                                     RemoteIPAddress                           { get; protected set; }
+        public IPPort                                                          LocalPort
+            => CurrentLocalPort.HasValue
+                   ? IPPort.Parse(CurrentLocalPort.Value)
+                   : IPPort.Zero;
 
 
         public Int32? Available
-                    => TCPSocket?.Available;
+            => tcpClient?.Available;
 
         public Boolean Connected
-            => TCPSocket?.Connected ?? false;
+            => IsConnected;
 
         [DisallowNull]
         public LingerOption? LingerState
         {
             get
             {
-                return TCPSocket?.LingerState;
+                return tcpClient?.Client?.LingerState;
             }
             set
             {
-                if (TCPSocket is not null)
-                    TCPSocket.LingerState = value;
+                if (tcpClient?.Client is not null)
+                    tcpClient.Client.LingerState = value;
             }
         }
 
@@ -257,12 +197,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             get
             {
-                return TCPSocket?.NoDelay;
+                return tcpClient?.NoDelay;
             }
             set
             {
-                if (TCPSocket is not null)
-                    TCPSocket.NoDelay = value.Value;
+                if (tcpClient is not null)
+                    tcpClient.NoDelay = value.Value;
             }
         }
 
@@ -271,12 +211,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             get
             {
-                return (Byte) (TCPSocket?.Ttl ?? 0);
+                return (Byte) (tcpClient?.Client?.Ttl ?? 0);
             }
             set
             {
-                if (TCPSocket is not null)
-                    TCPSocket.Ttl = value;
+                if (tcpClient?.Client is not null)
+                    tcpClient.Client.Ttl = value;
             }
         }
 
@@ -315,7 +255,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public ECPrivateKeyParameters?              AuthKey                              { get; }
 
-        RemoteTLSServerCertificateValidationHandler<IHTTPClient>? IHTTPClient.RemoteCertificateValidator => throw new NotImplementedException();
+        RemoteTLSServerCertificateValidationHandler<IHTTPClient>? IHTTPClient.RemoteCertificateValidator
+            => RemoteCertificateValidator is not null
+                   ? (sender,
+                      certificate,
+                      certificateChain,
+                      httpClient,
+                      policyErrors) => RemoteCertificateValidator.Invoke(
+                                           sender,
+                                           certificate,
+                                           certificateChain,
+                                           (IWebSocketClient) httpClient,
+                                           policyErrors
+                                       )
+                   : null;
 
         /// <summary>
         /// The attached debug logger.
@@ -458,25 +411,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                ILogger?                                                        Logger                       = null,
                                ILoggerFactory?                                                 LoggerFactory                = null)
 
+            : base(RemoteURL,
+                   Description,
+
+                   RemoteCertificateValidator:  RemoteCertificateValidator is not null
+                                                    ? (sender,
+                                                       certificate,
+                                                       certificateChain,
+                                                       tlsClient,
+                                                       policyErrors) => RemoteCertificateValidator.Invoke(
+                                                                            sender,
+                                                                            certificate,
+                                                                            certificateChain,
+                                                                            (IWebSocketClient) tlsClient,
+                                                                            policyErrors
+                                                                        )
+                                                    : null,
+                   LocalCertificateSelector:    LocalCertificateSelector,
+                   ClientCertificates:          ClientCertificates,
+                   ClientCertificateContext:    ClientCertificateContext,
+                   ClientCertificateChain:      ClientCertificateChain,
+                   TLSProtocols:                TLSProtocol,
+                   EnforceTLS:                  RemoteURL.Protocol.EnforcesTLS(),
+
+                   IPVersionPreference:         IPVersionPreference,
+                   ConnectTimeout:              RequestTimeout ?? TimeSpan.FromMinutes(10),
+                   ReceiveTimeout:              RequestTimeout ?? TimeSpan.FromMinutes(10),
+                   SendTimeout:                 RequestTimeout ?? TimeSpan.FromMinutes(10),
+                   TransmissionRetryDelay:      TransmissionRetryDelay ?? (retryCount => TimeSpan.FromSeconds(5)),
+                   MaxNumberOfRetries:          MaxNumberOfRetries,
+                   BufferSize:                  InternalBufferSize,
+
+                   DNSClient:                   DNSClient,
+                   LoggerFactory:               LoggerFactory)
+
         {
 
-            this.RemoteURL                          = RemoteURL;
             this.VirtualHostname                    = VirtualHostname;
-            this.Description                        = Description             ?? I18NString.Empty;
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
-            this.LocalCertificateSelector           = LocalCertificateSelector;
-            this.ClientCertificates                 = ClientCertificates      ?? [];
-            this.ClientCertificateContext           = ClientCertificateContext;
-            this.ClientCertificateChain             = ClientCertificateChain  ?? [];
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
-            this.TLSProtocols                       = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
-            this.IPVersionPreference                = IPVersionPreference     ?? Hermod.IPVersionPreference.PreferIPv6;
             this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
-            this.TransmissionRetryDelay             = TransmissionRetryDelay  ?? (retryCount => TimeSpan.FromSeconds(5));
-            this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
             this.HTTPLogger                         = HTTPLogger;
-            this.DNSClient                          = DNSClient;
             this.LoggerFactory                      = LoggerFactory           ?? NullLoggerFactory.Instance;
             this.Logger                             = Logger                  ?? this.LoggerFactory.CreateLogger<WebSocketClient>();
 
@@ -515,223 +491,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private async Task OpenTCPConnection(TimeSpan? RequestTimeout = null)
         {
 
-            Boolean restart2;
+            RequestTimeout ??= TimeSpan.FromSeconds(60);
 
-            if (!RequestTimeout.HasValue)
-                RequestTimeout = TimeSpan.FromSeconds(60);
+            var connectionResult = await ReconnectAsync(CancellationToken.None).ConfigureAwait(false);
 
-            do
-            {
+            if (connectionResult.IsFailure)
+                throw new Exception(connectionResult.Errors.Select(error => error.ToString()).AggregateWith(", "));
 
-                restart2 = false;
+            HTTPStream = ActiveStream;
 
-                #region Setup TCP socket
+            if (HTTPStream is null)
+                throw new Exception("The HTTP/WebSocket stream could not be created!");
 
-                if (TCPSocket is null)
-                {
-
-                    System.Net.IPEndPoint? remoteIPEndPoint = null;
-
-                    if (RemoteIPAddress is null)
-                    {
-
-                        if      (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
-                            RemoteIPAddress = IPv4Address.Localhost;
-
-                        else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
-                            RemoteIPAddress = IPv6Address.Localhost;
-
-                        else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-                            RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
-
-                        else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-                            RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
-
-                        #region DNS lookup...
-
-                        if (RemoteIPAddress is null &&
-                            DNSClient       is not null)
-                        {
-
-                            var IPv4AddressLookupTask  = DNSClient.
-                                                             Query<A>   (DNSServiceName.Parse(RemoteURL.Hostname.Name)).
-                                                             ContinueWith(query => query.Result.FilteredAnswers.Select(ARecord    => ARecord.IPv4Address));
-
-                            var IPv6AddressLookupTask  = DNSClient.
-                                                             Query<AAAA>(DNSServiceName.Parse(RemoteURL.Hostname.Name)).
-                                                             ContinueWith(query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address));
-
-                            await Task.WhenAll(IPv4AddressLookupTask,
-                                               IPv6AddressLookupTask).
-                                       ConfigureAwait(false);
-
-
-                            if (IPv4AddressLookupTask.Result.Any())
-                                RemoteIPAddress = IPv4AddressLookupTask.Result.First();
-
-                            else if (IPv6AddressLookupTask.Result.Any())
-                                RemoteIPAddress = IPv6AddressLookupTask.Result.First();
-
-
-                            if (RemoteIPAddress is null || RemoteIPAddress.GetBytes() is null)
-                                throw new Exception("DNS lookup failed!");
-
-                        }
-
-                        #endregion
-
-                        if (RemoteIPAddress is null || RemoteIPAddress.GetBytes() is null)
-                            throw new Exception("RemoteIPAddress failed!");
-
-                    }
-
-                    remoteIPEndPoint  = new System.Net.IPEndPoint(
-                                                new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                (RemoteURL.Port ?? (RemoteURL.Protocol == URLProtocols.https
-                                                                       ? IPPort.HTTPS
-                                                                       : IPPort.HTTP)).ToInt32()
-                                            );
-
-                    if (RemoteIPAddress.IsIPv4)
-                        TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                               SocketType.Stream,
-                                               ProtocolType.Tcp);
-
-                    else if (RemoteIPAddress.IsIPv6)
-                        TCPSocket = new Socket(AddressFamily.InterNetworkV6,
-                                               SocketType.Stream,
-                                               ProtocolType.Tcp);
-
-                    if (TCPSocket is not null) {
-                        TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                        TCPSocket.Connect(remoteIPEndPoint);
-                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                    }
-
-                }
-
-                TCPNetworkStream = TCPSocket is not null
-                                       ? new MyNetworkStream(TCPSocket, true) {
-                                             ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-                                         }
-                                       : null;
-
-                #endregion
-
-                #region Create (Crypto-)Stream
-
-                if (RemoteCertificateValidator is null &&
-                   (RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https))
-                {
-                    RemoteCertificateValidator = (sender, certificate, chain, server, sslPolicyErrors) => {
-                        return TLSValidationResult.Success();
-                    };
-                }
-
-                if ((RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https) &&
-                    TCPNetworkStream           is not null   &&
-                    RemoteCertificateValidator is not null)
-                {
-
-                    if (TLSStream is null)
-                    {
-
-                        var remoteCertificateValidatorErrors = new List<Error>();
-
-                        TLSStream = new SslStream(
-                                        innerStream:                         TCPNetworkStream,
-                                        leaveInnerStreamOpen:                false,
-                                        userCertificateValidationCallback:  (sender,
-                                                                             certificate,
-                                                                             chain,
-                                                                             policyErrors) => {
-
-                                                                                 var check = RemoteCertificateValidator(
-                                                                                                 sender,
-                                                                                                 certificate is not null
-                                                                                                     ? new X509Certificate2(certificate)
-                                                                                                     : null,
-                                                                                                 chain,
-                                                                                                 null,
-                                                                                                 policyErrors
-                                                                                             );
-
-                                                                                 if (check.Errors.Any())
-                                                                                     remoteCertificateValidatorErrors.AddRange(check.Errors);
-
-                                                                                 return check.IsValid;
-
-                                                                             },
-                                        userCertificateSelectionCallback:    LocalCertificateSelector is null
-                                                                                 ? null
-                                                                                 : (sender,
-                                                                                    targetHost,
-                                                                                    localCertificates,
-                                                                                    remoteCertificate,
-                                                                                    acceptableIssuers) => LocalCertificateSelector(
-                                                                                                              sender,
-                                                                                                              targetHost,
-                                                                                                              localCertificates.
-                                                                                                                  Cast<X509Certificate>().
-                                                                                                                  Select(certificate => new X509Certificate2(certificate)),
-                                                                                                              remoteCertificate is not null
-                                                                                                                  ? new X509Certificate2(remoteCertificate)
-                                                                                                                  : null,
-                                                                                                              acceptableIssuers
-                                                                                                          ),
-                                        encryptionPolicy:                    EncryptionPolicy.RequireEncryption
-                                    )
-                        {
-
-                            ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-
-                        };
-
-                        HTTPStream = TLSStream;
-
-                        try
-                        {
-
-                            await TLSStream.AuthenticateAsClientAsync(
-                                      RemoteURL.Hostname.Name ?? "",
-                                      [.. ClientCertificates],
-                                      TLSProtocols,
-                                      false
-                                  );
-
-                        }
-                        catch (Exception)
-                        {
-
-                            //timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
-
-                            //foreach (var error in remoteCertificateValidatorErrors)
-                            //    timings.AddError(error);
-
-                            TCPSocket  = null;
-                            restart2   = true;
-
-                        }
-
-                    }
-
-                }
-
-                else
-                {
-                    TLSStream   = null;
-                    HTTPStream  = TCPNetworkStream;
-                }
-
-                HTTPStream?.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-                #endregion
-
-            }
-            while (restart2);
-
-            this.LocalPort = (IPSocket.FromIPEndPoint(TCPNetworkStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
+            HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
         }
 
@@ -807,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                              CancellationToken  CancellationToken = default)
         {
 
-            if (HTTPStream is null || TCPNetworkStream is null)
+            if (HTTPStream is null || tcpClient is null)
                 return HTTPResponse.BadRequest(
                            HTTPRequest
                        );
@@ -831,7 +603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 await Task.Delay(1, CancellationToken);
 
-            } while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
+            } while (tcpClient.GetStream().DataAvailable && pos < buffer.Length - 2048);
 
             var responseData  = buffer.ToUTF8String(pos);
             var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
@@ -1008,15 +780,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         var pos     = 0U;
 
                         if (webSocketUpgradeAccepted &&
-                            TCPSocket        is not null &&
-                            TCPNetworkStream is not null &&
-                            HTTPStream       is not null)
+                            tcpClient?.Client is not null &&
+                            HTTPStream        is not null)
                         {
+
+                            var tcpStream = tcpClient.GetStream();
 
                             webSocketClientConnection = new WebSocketClientConnection(
                                                             this,
-                                                            TCPSocket,
-                                                            TCPNetworkStream,
+                                                            tcpClient.Client,
+                                                            tcpStream,
                                                             HTTPStream,
                                                             httpRequest,
                                                             httpResponse,
@@ -1041,7 +814,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     do
                                     {
 
-                                        var buffer2 = new Byte[buffer.Length + (TCPSocket?.Available ?? 0)];
+                                        var buffer2 = new Byte[buffer.Length + (tcpClient?.Available ?? 0)];
 
                                         do
                                         {
@@ -1373,19 +1146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             ClientCloseMessage is not null)
                         {
 
-                            if (TLSStream is not null)
-                            {
-                                TLSStream.Close();
-                                TLSStream = null;
-                            }
-
-                            if (TCPSocket is not null)
-                            {
-                                TCPSocket.Close();
-                                //TCPClient.Dispose();
-                                TCPSocket = null;
-                            }
-
+                            await base.Close().ConfigureAwait(false);
                             HTTPStream = null;
 
                         }
@@ -1413,18 +1174,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         #endregion
 
-                        if (TLSStream is not null)
-                        {
-                            TLSStream.Close();
-                            TLSStream = null;
-                        }
-
-                        if (TCPSocket is not null)
-                        {
-                            TCPSocket.Close();
-                            //TCPClient.Dispose();
-                            TCPSocket = null;
-                        }
+                        await base.Close().ConfigureAwait(false);
+                        HTTPStream = null;
 
                     }
                     catch (Exception e)
@@ -1446,18 +1197,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         #endregion
 
-                        if (TLSStream is not null)
-                        {
-                            TLSStream.Close();
-                            TLSStream = null;
-                        }
-
-                        if (TCPSocket is not null)
-                        {
-                            TCPSocket.Close();
-                            //TCPClient.Dispose();
-                            TCPSocket = null;
-                        }
+                        await base.Close().ConfigureAwait(false);
+                        HTTPStream = null;
 
                     }
 
@@ -1619,8 +1360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 catch (ObjectDisposedException)
                 {
                     MaintenanceTimer.Dispose();
-                    TCPNetworkStream   = null;
-                    HTTPStream         = null;
+                    HTTPStream = null;
                 }
                 catch (Exception e)
                 {
@@ -1908,9 +1648,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               CancellationToken
                           );
 
-                    HTTPStream.Close();
-                    HTTPStream.Dispose();
-
                 }
             }
             catch
@@ -1918,33 +1655,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             try
             {
-                if (TLSStream is not null)
-                {
-                    TLSStream.Close();
-                    TLSStream.Dispose();
-                }
-            }
-            catch
-            { }
-
-            try
-            {
-                if (TCPNetworkStream is not null)
-                {
-                    TCPNetworkStream.Close();
-                    TCPNetworkStream.Dispose();
-                }
-            }
-            catch
-            { }
-
-            try
-            {
-                if (TCPSocket is not null)
-                {
-                    TCPSocket.Close();
-                    //TCPClient.Dispose();
-                }
+                HTTPStream = null;
+                await base.Close().ConfigureAwait(false);
             }
             catch
             { }
@@ -2002,11 +1714,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (protected) LogEvent     (Caller, Logger, LogHandler, ...)
 
-        protected async Task LogEvent<TDelegate>(String                                             Caller,
-                                                 TDelegate?                                         Logger,
-                                                 Func<TDelegate, Task>                              LogHandler,
-                                                 [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
-                                                 [CallerMemberName()]                       String  Command     = "")
+        protected new async Task LogEvent<TDelegate>(String                                             Caller,
+                                                     TDelegate?                                         Logger,
+                                                     Func<TDelegate, Task>                              LogHandler,
+                                                     [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                                     [CallerMemberName()]                       String  Command     = "")
 
             where TDelegate : Delegate
 
@@ -2034,9 +1746,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (protected) HandleErrors (Module, Caller, ErrorResponse)
 
-        protected Task HandleErrors(String  Module,
-                                    String  Caller,
-                                    String  ErrorResponse)
+        public override Task HandleErrors(String  Module,
+                                          String  Caller,
+                                          String  ErrorResponse)
         {
 
             Logger.LogError("{Module}.{Caller}: {ErrorResponse}", Module, Caller, ErrorResponse);
@@ -2049,9 +1761,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (protected) HandleErrors (Module, Caller, ExceptionOccurred)
 
-        protected Task HandleErrors(String     Module,
-                                    String     Caller,
-                                    Exception  ExceptionOccurred)
+        public override Task HandleErrors(String     Module,
+                                          String     Caller,
+                                          Exception  ExceptionOccurred)
         {
 
             Logger.LogError(ExceptionOccurred, "{Module}.{Caller}", Module, Caller);
@@ -2068,7 +1780,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Dispose this object.
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
             Close().GetAwaiter().GetResult();
         }

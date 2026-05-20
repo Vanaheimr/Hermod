@@ -315,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
             this.IPAddress                   = IPAddress ?? IPvXAddress.Localhost; // IPv4/6 localhost
-            this.TCPPort                     = TCPPort   ?? IPPort.Zero;           // Random TCP port selection
+            this.TCPPort                     = TCPPort   ?? IPPort.Zero;           // Zero => Random TCP port selection!
             this.MaxClientConnections        = MaxClientConnections ?? DefaultMaxClientConnections;
 
             if (this.MaxClientConnections == 0)
@@ -324,19 +324,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (this.MaxClientConnections > Int32.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(MaxClientConnections), "The maximum number of client connections must not exceed Int32.MaxValue.");
 
-            this.connectionSlots             = new SemaphoreSlim((Int32) this.MaxClientConnections, (Int32) this.MaxClientConnections);
+            this.connectionSlots             = new SemaphoreSlim(
+                                                   (Int32) this.MaxClientConnections,
+                                                   (Int32) this.MaxClientConnections
+                                               );
 
-            var needsIPv6Listener = this.IPAddress.IsIPv6;
+            #region Listen on IPv6 or dual mode, ...
 
-            // IPvXAddress.Any is handled by a dual-mode IPv6 listener.
-            // IPv4 localhost and IPv4-only bindings, like 0.0.0.0 or 192.168.1.10, need a dedicated IPv4 listener.
-            var needsDedicatedIPv4Listener = this.IPAddress.IsIPv4 &&
-                                             (this.IPAddress.IsLocalhost || !this.IPAddress.IsIPv6);
-
-            if (needsIPv6Listener)
+            if (this.IPAddress.IsIPv6)
             {
 
-                this.tcpListenerIPv6         = new TcpListener(this.IPAddress.ToDotNet(), this.TCPPort.ToUInt16());
+                this.tcpListenerIPv6         = new TcpListener(
+                                                   this.IPAddress.ToDotNet(),
+                                                   this.TCPPort.ToUInt16()
+                                               );
 
                 // Dual mode on ANY address!
                 if (this.IPAddress.IsAny && this.IPAddress.IsIPv4)
@@ -351,18 +352,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
+            #endregion
+
+            #region ..., or listening on ::1 and 127.0.0.1 as this will require two sockets!
+
             // When port == 0, then IPv6 will choose a random port, and IPv4 will try to bind to the same port!
-            if (needsDedicatedIPv4Listener)
+            if (this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost)
             {
 
-                this.tcpListenerIPv4         = new TcpListener(this.IPAddress.ToDotNet(), this.TCPPort.ToUInt16());
+                this.tcpListenerIPv4         = new TcpListener(
+                                                   IPv4Address.Localhost,
+                                                   this.TCPPort.ToUInt16()
+                                               );
 
                 // When the TCP port is still == 0, then IPv4 will choose a random port!
                 if (this.TCPPort.IsZero)
                 {
 
-                    if (this.TCPPort.IsZero)
-                        tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
+                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
 
                     var localEndpoint        = tcpListenerIPv4?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
                     this.TCPPort             = IPPort.Parse(localEndpoint.Port);
@@ -371,10 +378,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
+            #endregion
+
+            #region Or just listen on IPv4 (not localhost! && not dual mode ANY!)
+
+            if (this.IPAddress.IsIPv4 && this.TCPPort.IsZero)
+            {
+
+                this.tcpListenerIPv4         = new TcpListener(
+                                                   this.IPAddress.ToDotNet(),
+                                                   this.TCPPort.ToUInt16()
+                                               );
+
+                // When the TCP port is still == 0, then IPv4 will choose a random port!
+                if (this.TCPPort.IsZero)
+                {
+
+                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
+
+                    var localEndpoint        = tcpListenerIPv4?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
+                    this.TCPPort             = IPPort.Parse(localEndpoint.Port);
+
+                }
+
+            }
+
+            #endregion
+
+
             this.IPSocket                    = new IPSocket(
                                                    this.IPAddress,
                                                    this.TCPPort
                                                );
+
             this.ReceiveTimeout              = ReceiveTimeout              ?? DefaultReceiveTimeout;
             this.SendTimeout                 = SendTimeout                 ?? DefaultSendTimeout;
             this.ConnectionIdBuilder         = ConnectionIdBuilder         ?? ((sender, timestamp, localSocket, remoteSocket) => $"{remoteSocket} -> {localSocket}");

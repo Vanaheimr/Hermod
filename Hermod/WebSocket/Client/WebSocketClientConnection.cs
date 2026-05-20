@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  Socket                                 tcpSocket;
 
-        private readonly  MyNetworkStream                        tcpStream;
+        private readonly  NetworkStream                          tcpStream;
 
         private readonly  Stream                                 httpStream;
 
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="CustomData">Optional custom data to be stored within this web socket connection.</param>
         public WebSocketClientConnection(WebSocketClient                              WebSocketClient,
                                          Socket                                       TCPSocket,
-                                         MyNetworkStream                              NetworkStream,
+                                         NetworkStream                                NetworkStream,
                                          Stream                                       HTTPStream,
                                          HTTPRequest?                                 HTTPRequest                  = null,
                                          HTTPResponse?                                HTTPResponse                 = null,
