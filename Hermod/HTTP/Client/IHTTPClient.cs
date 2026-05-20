@@ -1183,7 +1183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The HTTP client interface.
     /// </summary>
-    public interface IHTTPClient
+    public interface IHTTPClient_Base
     {
 
         /// <summary>
@@ -1205,11 +1205,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// An optional description of this HTTP client.
         /// </summary>
         I18NString                                                 Description                   { get; }
-
-        /// <summary>
-        /// The remote TLS certificate validator.
-        /// </summary>
-        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// Multiple optional TLS client certificates to use for HTTP authentication (not a chain of certificates!).
@@ -1234,7 +1229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        IPVersionPreference                                        IPVersionPreference                    { get; }
+        IPVersionPreference                                        IPVersionPreference           { get; }
 
         /// <summary>
         /// An optional HTTP content type.
@@ -1254,7 +1249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional Time-Based One-Time Password (TOTP) generator.
         /// </summary>
-        TOTPConfig?                                                TOTPConfig                    { get; set; }
+        TOTPConfig?                                                TOTPConfig                    { get; }
 
         /// <summary>
         /// The HTTP user agent identification.
@@ -1280,11 +1275,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The maximum number of transmission retries for HTTP request.
         /// </summary>
         UInt16                                                     MaxNumberOfRetries            { get; }
-
-        /// <summary>
-        /// Make use of HTTP pipelining.
-        /// </summary>
-        Boolean                                                    UseHTTPPipelining             { get; }
 
         /// <summary>
         /// The CPO client (HTTP client) logger.
@@ -1315,7 +1305,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         //void Close();
 
+    }
 
+
+    /// <summary>
+    /// The HTTP client interface.
+    /// </summary>
+    public interface IHTTPClient : IHTTPClient_Base
+    {
+
+        /// <summary>
+        /// The remote TLS certificate validator.
+        /// </summary>
+        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; }
+
+        /// <summary>
+        /// Make use of HTTP pipelining.
+        /// </summary>
+        Boolean                                                    UseHTTPPipelining             { get; }
 
 
         /// <summary>

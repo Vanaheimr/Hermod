@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AcceptTypes?                   Accept                                 { get; }
         public HTTPContentType?               ContentType                            { get; }
         public IHTTPAuthentication?           HTTPAuthentication                     { get; set; }
-        public TOTPConfig?                    TOTPConfig                             { get; set; }
+        public TOTPConfig?                    TOTPConfig                             { get; }
         public ConnectionType?                Connection                             { get;}
         public TimeSpan                       RequestTimeout                         { get; set; }         = TimeSpan.FromSeconds(120);
 
@@ -131,6 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               IPPort?                                                    TCPPort                               = null,
                               I18NString?                                                Description                           = null,
                               String?                                                    HTTPUserAgent                         = null,
+                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                               AcceptTypes?                                               Accept                                = null,
                               HTTPContentType?                                           ContentType                           = null,
                               ConnectionType?                                            Connection                            = null,
@@ -151,15 +152,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   AllowTLSResume                        = null,
                               TOTPConfig?                                                TOTPConfig                            = null,
 
-                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
-
                               IPVersionPreference?                                       IPVersionPreference                   = null,
                               TimeSpan?                                                  ConnectTimeout                        = null,
                               TimeSpan?                                                  ReceiveTimeout                        = null,
                               TimeSpan?                                                  SendTimeout                           = null,
                               TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
                               UInt16?                                                    MaxNumberOfRetries                    = null,
-                              UInt32?                                                    BufferSize                            = null,
+                              UInt32?                                                    InternalBufferSize                    = null,
 
                               Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
                               Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
@@ -204,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    Logger,
@@ -245,6 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected AHTTPClient(URL                                                        URL,
                               I18NString?                                                Description                           = null,
                               String?                                                    HTTPUserAgent                         = null,
+                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                               AcceptTypes?                                               Accept                                = null,
                               HTTPContentType?                                           ContentType                           = null,
                               ConnectionType?                                            Connection                            = null,
@@ -264,15 +264,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   AllowTLSResume                        = null,
                               TOTPConfig?                                                TOTPConfig                            = null,
 
-                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
-
                               IPVersionPreference?                                       IPVersionPreference                   = null,
                               TimeSpan?                                                  ConnectTimeout                        = null,
                               TimeSpan?                                                  ReceiveTimeout                        = null,
                               TimeSpan?                                                  SendTimeout                           = null,
                               TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
                               UInt16?                                                    MaxNumberOfRetries                    = null,
-                              UInt32?                                                    BufferSize                            = null,
+                              UInt32?                                                    InternalBufferSize                    = null,
 
                               Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
                               Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
@@ -317,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    DNSClient,
@@ -358,6 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               SRV_Spec                                                   DNSService,
                               I18NString?                                                Description                           = null,
                               String?                                                    HTTPUserAgent                         = null,
+                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                               AcceptTypes?                                               Accept                                = null,
                               HTTPContentType?                                           ContentType                           = null,
                               ConnectionType?                                            Connection                            = null,
@@ -378,15 +377,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   AllowTLSResume                        = null,
                               TOTPConfig?                                                TOTPConfig                            = null,
 
-                              IHTTPAuthentication?                                       HTTPAuthentication                    = null,
-
                               IPVersionPreference?                                       IPVersionPreference                   = null,
                               TimeSpan?                                                  ConnectTimeout                        = null,
                               TimeSpan?                                                  ReceiveTimeout                        = null,
                               TimeSpan?                                                  SendTimeout                           = null,
                               TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
                               UInt16?                                                    MaxNumberOfRetries                    = null,
-                              UInt32?                                                    BufferSize                            = null,
+                              UInt32?                                                    InternalBufferSize                    = null,
 
                               Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
                               Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
@@ -432,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    DNSClient,
@@ -847,7 +844,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             #endregion
 
 
-                            IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize * 2);
+                            IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) InternalBufferSize * 2);
                             var buffer = bufferOwner.Memory;
                             var dataLength = 0;
 
@@ -860,11 +857,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
                                 {
 
-                                    if (dataLength > buffer.Length - BufferSize)
+                                    if (dataLength > buffer.Length - InternalBufferSize)
                                         throw new Exception("Header too large.");
 
                                     var bytesRead = await httpStream.ReadAsync(
-                                                              buffer.Slice(dataLength, (Int32) BufferSize),
+                                                              buffer.Slice(dataLength, (Int32) InternalBufferSize),
                                                               linkedCancellationToken.Token
                                                           );
 

@@ -46,6 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           IPPort?                                                    TCPPort                               = null,
                           I18NString?                                                Description                           = null,
                           String?                                                    HTTPUserAgent                         = null,
+                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                           AcceptTypes?                                               Accept                                = null,
                           HTTPContentType?                                           ContentType                           = null,
                           ConnectionType?                                            Connection                            = null,
@@ -65,8 +66,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   AllowRenegotiation                    = null,
                           Boolean?                                                   AllowTLSResume                        = null,
                           TOTPConfig?                                                TOTPConfig                            = null,
-
-                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
                           IPVersionPreference?                                       IPVersionPreference                   = null,
                           TimeSpan?                                                  ConnectTimeout                        = null,
@@ -88,6 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Description,
 
                    HTTPUserAgent,
+                   HTTPAuthentication,
                    Accept,
                    ContentType,
                    Connection,
@@ -120,8 +120,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    AllowTLSResume,
                    TOTPConfig,
 
-                   HTTPAuthentication,
-
                    IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -146,6 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPClient(URL                                                        URL,
                           I18NString?                                                Description                           = null,
                           String?                                                    HTTPUserAgent                         = null,
+                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                           AcceptTypes?                                               Accept                                = null,
                           HTTPContentType?                                           ContentType                           = null,
                           ConnectionType?                                            Connection                            = null,
@@ -164,8 +163,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   AllowRenegotiation                    = null,
                           Boolean?                                                   AllowTLSResume                        = null,
                           TOTPConfig?                                                TOTPConfig                            = null,
-
-                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
                           IPVersionPreference?                                       IPVersionPreference                   = null,
                           TimeSpan?                                                  ConnectTimeout                        = null,
@@ -187,6 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Description,
 
                    HTTPUserAgent,
+                   HTTPAuthentication,
                    Accept,
                    ContentType,
                    Connection,
@@ -218,8 +216,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    AllowTLSResume,
                    TOTPConfig,
 
-                   HTTPAuthentication,
-
                    IPVersionPreference,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -246,6 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           SRV_Spec                                                   DNSService,
                           I18NString?                                                Description                           = null,
                           String?                                                    HTTPUserAgent                         = null,
+                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                           AcceptTypes?                                               Accept                                = null,
                           HTTPContentType?                                           ContentType                           = null,
                           ConnectionType?                                            Connection                            = null,
@@ -265,8 +262,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   AllowRenegotiation                    = null,
                           Boolean?                                                   AllowTLSResume                        = null,
                           TOTPConfig?                                                TOTPConfig                            = null,
-
-                          IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
                           IPVersionPreference?                                       IPVersionPreference                   = null,
                           TimeSpan?                                                  ConnectTimeout                        = null,
@@ -289,6 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Description,
 
                    HTTPUserAgent,
+                   HTTPAuthentication,
                    Accept,
                    ContentType,
                    Connection,
@@ -320,8 +316,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    AllowRenegotiation,
                    AllowTLSResume,
                    TOTPConfig,
-
-                   HTTPAuthentication,
 
                    IPVersionPreference,
                    ConnectTimeout,
@@ -361,6 +355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             ConnectNew(IPPort                                                     TCPPort,
                        I18NString?                                                Description                           = null,
                        String?                                                    HTTPUserAgent                         = null,
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                        AcceptTypes?                                               Accept                                = null,
                        HTTPContentType?                                           ContentType                           = null,
                        ConnectionType?                                            Connection                            = null,
@@ -381,8 +376,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Boolean?                                                   AllowTLSResume                        = null,
                        TOTPConfig?                                                TOTPConfig                            = null,
 
-                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
-
                        IPVersionPreference?                                       PreferIPv4                            = null,
                        TimeSpan?                                                  ConnectTimeout                        = null,
                        TimeSpan?                                                  ReceiveTimeout                        = null,
@@ -402,6 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              TCPPort,
                              Description,
                              HTTPUserAgent,
+                             HTTPAuthentication,
                              Accept,
                              ContentType,
                              Connection,
@@ -421,8 +415,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              AllowRenegotiation,
                              AllowTLSResume,
                              TOTPConfig,
-
-                             HTTPAuthentication,
 
                              PreferIPv4,
                              ConnectTimeout,
@@ -459,6 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        IPPort                                                     TCPPort,
                        I18NString?                                                Description                           = null,
                        String?                                                    HTTPUserAgent                         = null,
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                        AcceptTypes?                                               Accept                                = null,
                        HTTPContentType?                                           ContentType                           = null,
                        ConnectionType?                                            Connection                            = null,
@@ -478,8 +471,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Boolean?                                                   AllowRenegotiation                    = null,
                        Boolean?                                                   AllowTLSResume                        = null,
                        TOTPConfig?                                                TOTPConfig                            = null,
-
-                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
                        IPVersionPreference?                                       PreferIPv4                            = null,
                        TimeSpan?                                                  ConnectTimeout                        = null,
@@ -502,6 +493,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              TCPPort,
                              Description,
                              HTTPUserAgent,
+                             HTTPAuthentication,
                              Accept,
                              ContentType,
                              Connection,
@@ -521,8 +513,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              AllowRenegotiation,
                              AllowTLSResume,
                              TOTPConfig,
-
-                             HTTPAuthentication,
 
                              PreferIPv4,
                              ConnectTimeout,
@@ -563,6 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             ConnectNew(URL                                                        URL,
                        I18NString?                                                Description                           = null,
                        String?                                                    HTTPUserAgent                         = null,
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                        AcceptTypes?                                               Accept                                = null,
                        HTTPContentType?                                           ContentType                           = null,
                        ConnectionType?                                            Connection                            = null,
@@ -581,8 +572,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Boolean?                                                   AllowRenegotiation                    = null,
                        Boolean?                                                   AllowTLSResume                        = null,
                        TOTPConfig?                                                TOTPConfig                            = null,
-
-                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
                        IPVersionPreference?                                       PreferIPv4                            = null,
                        TimeSpan?                                                  ConnectTimeout                        = null,
@@ -605,6 +594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              URL,
                              Description,
                              HTTPUserAgent,
+                             HTTPAuthentication,
                              Accept,
                              ContentType,
                              Connection,
@@ -623,8 +613,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              AllowRenegotiation,
                              AllowTLSResume,
                              TOTPConfig,
-
-                             HTTPAuthentication,
 
                              PreferIPv4,
                              ConnectTimeout,
@@ -667,6 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        SRV_Spec                                                   DNSService,
                        I18NString?                                                Description                           = null,
                        String?                                                    HTTPUserAgent                         = null,
+                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
                        AcceptTypes?                                               Accept                                = null,
                        HTTPContentType?                                           ContentType                           = null,
                        ConnectionType?                                            Connection                            = null,
@@ -686,8 +675,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Boolean?                                                   AllowRenegotiation                    = null,
                        Boolean?                                                   AllowTLSResume                        = null,
                        TOTPConfig?                                                TOTPConfig                            = null,
-
-                       IHTTPAuthentication?                                       HTTPAuthentication                    = null,
 
                        IPVersionPreference?                                       PreferIPv4                            = null,
                        TimeSpan?                                                  ConnectTimeout                        = null,
@@ -711,6 +698,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              DNSService,
                              Description,
                              HTTPUserAgent,
+                             HTTPAuthentication,
                              Accept,
                              ContentType,
                              Connection,
@@ -730,8 +718,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              AllowRenegotiation,
                              AllowTLSResume,
                              TOTPConfig,
-
-                             HTTPAuthentication,
 
                              PreferIPv4,
                              ConnectTimeout,

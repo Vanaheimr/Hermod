@@ -110,6 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               TimeSpan?                                                  QueryTimeout                         = null,
 
                               String?                                                    HTTPUserAgent                        = null,
+                              IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
@@ -135,6 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TCPPort,
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    null,
                    null,
                    null,
@@ -167,8 +169,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowTLSResume,
                    null,
 
-                   null,
-
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -180,8 +180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    true,
                    true,
 
-                    DisableLogging,
-                    LoggerFactory: LoggerFactory)
+                   DisableLogging,
+                   LoggerFactory: LoggerFactory)
 
         {
 
@@ -208,6 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               TimeSpan?                                                  QueryTimeout                         = null,
 
                               String?                                                    HTTPUserAgent                        = null,
+                              IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
@@ -230,9 +231,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               ILoggerFactory?                                            LoggerFactory                        = null)
 
             : base(IPAddress,
-                   TCPPort ?? IPPort.HTTPS,
+                   TCPPort       ?? IPPort.HTTPS,
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    null,
                    null,
                    null,
@@ -265,8 +267,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowTLSResume,
                    null,
 
-                   null,
-
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -278,8 +278,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    true,
                    true,
 
-                    DisableLogging,
-                    LoggerFactory: LoggerFactory)
+                   DisableLogging,
+                   LoggerFactory: LoggerFactory)
 
         {
 
@@ -305,6 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               TimeSpan?                                                  QueryTimeout                         = null,
 
                               String?                                                    HTTPUserAgent                        = null,
+                              IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
@@ -313,8 +314,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
                               Boolean?                                                   AllowRenegotiation                   = null,
                               Boolean?                                                   AllowTLSResume                       = null,
-
-                              IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
                               IPVersionPreference?                                       PreferIPv4                           = null,
                               TimeSpan?                                                  ConnectTimeout                       = null,
@@ -332,6 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             : base(URL,
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    null,  // Accept
                    null,  // ContentType
                    null,  // Connection
@@ -363,8 +363,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AllowTLSResume,
                    null,  // TOTPConfig
 
-                   HTTPAuthentication,
-
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
@@ -376,9 +374,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    true,  // ConsumeRequestChunkedTEImmediately
                    true,  // ConsumeResponseChunkedTEImmediately
 
-                    DisableLogging,
-                    DNSClient,
-                    LoggerFactory: LoggerFactory)
+                   DisableLogging,
+                   DNSClient,
+                   LoggerFactory: LoggerFactory)
 
         {
 
@@ -418,6 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        TimeSpan?                                                  QueryTimeout                         = null,
 
                        String?                                                    HTTPUserAgent                        = null,
+                       IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                        SslProtocols?                                              TLSProtocols                         = null,
@@ -449,6 +448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              QueryTimeout,
 
                              HTTPUserAgent,
+                             HTTPAuthentication,
 
                              RemoteCertificateValidationHandler,
                              TLSProtocols,
@@ -500,6 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        TimeSpan?                                                  QueryTimeout                         = null,
 
                        String?                                                    HTTPUserAgent                        = null,
+                       IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                        SslProtocols?                                              TLSProtocols                         = null,
@@ -531,6 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              QueryTimeout,
 
                              HTTPUserAgent,
+                             HTTPAuthentication,
 
                              RemoteCertificateValidationHandler,
                              TLSProtocols,
@@ -539,8 +541,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              CertificateRevocationCheckMode,
                              AllowRenegotiation,
                              AllowTLSResume,
-
-                             null,
 
                              PreferIPv4,
                              ConnectTimeout,
@@ -1190,6 +1190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout,
 
                    HTTPUserAgent,
+                   null,
 
                    RemoteCertificateValidator,
                    TLSProtocols,
@@ -1198,8 +1199,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
-
-                   null,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -1250,6 +1249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout,
 
                    HTTPUserAgent,
+                   null,
 
                    RemoteCertificateValidator,
                    TLSProtocols,
@@ -1258,8 +1258,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
-
-                   null,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -1306,6 +1304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout,
 
                    HTTPUserAgent,
+                   null,
 
                    RemoteCertificateValidationHandler,
                    TLSProtocols,
@@ -1314,8 +1313,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
-
-                   null,
 
                    PreferIPv4,
                    ConnectTimeout,
@@ -1362,6 +1359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout,
 
                    HTTPUserAgent,
+                   null,
 
                    RemoteCertificateValidationHandler,
                    TLSProtocols,
@@ -1370,8 +1368,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
-
-                   null,
 
                    PreferIPv4,
                    ConnectTimeout,

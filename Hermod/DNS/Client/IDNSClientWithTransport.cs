@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         TimeSpan     ConnectTimeout            { get; }
         TimeSpan     ReceiveTimeout            { get; }
         TimeSpan     SendTimeout               { get; }
-        UInt32       BufferSize                { get; }
+        UInt32       InternalBufferSize        { get; }
 
 
         /// <summary>

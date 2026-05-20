@@ -45,6 +45,31 @@ using org.GraphDefined.Vanaheimr.Hermod.Logging;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+
+    /// <summary>
+    /// The delegate for logging the HTTP request send by a HTTP client.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the outgoing HTTP request.</param>
+    /// <param name="WebSocketClient">The HTTP WebSocket client sending the HTTP request.</param>
+    /// <param name="Request">The outgoing HTTP request.</param>
+    public delegate Task ClientRequestLogHandler(DateTimeOffset    Timestamp,
+                                                 IWebSocketClient  WebSocketClient,
+                                                 HTTPRequest       Request);
+
+
+    /// <summary>
+    /// The delegate for logging the HTTP response received by a HTTP client.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming HTTP response.</param>
+    /// <param name="WebSocketClient">The HTTP WebSocketclient receiving the HTTP request.</param>
+    /// <param name="Request">The outgoing HTTP request.</param>
+    /// <param name="Response">The incoming HTTP response.</param>
+    public delegate Task ClientResponseLogHandler(DateTimeOffset    Timestamp,
+                                                  IWebSocketClient  WebSocketClient,
+                                                  HTTPRequest       Request,
+                                                  HTTPResponse      Response);
+
+
     /// <summary>
     /// A HTTP WebSocket client.
     /// </summary>
@@ -128,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The optional Time-Based One-Time Password (TOTP) configuration.
         /// </summary>
-        public TOTPConfig?                                                     TOTPConfig                                { get; set; }
+        public TOTPConfig?                                                     TOTPConfig                                { get; }
 
         /// <summary>
         /// The HTTP user agent identification.
@@ -144,12 +169,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// The timeout for upstream requests.
         /// </summary>
         public TimeSpan                                                        RequestTimeout                            { get; set; }
-
-        /// <summary>
-        /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
-        /// </summary>
-        public Boolean                                                         UseHTTPPipelining
-            => false;
 
         /// <summary>
         /// The CPO client (HTTP client) logger.
@@ -255,21 +274,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public ECPrivateKeyParameters?              AuthKey                              { get; }
 
-        RemoteTLSServerCertificateValidationHandler<IHTTPClient>? IHTTPClient.RemoteCertificateValidator
-            => RemoteCertificateValidator is not null
-                   ? (sender,
-                      certificate,
-                      certificateChain,
-                      httpClient,
-                      policyErrors) => RemoteCertificateValidator.Invoke(
-                                           sender,
-                                           certificate,
-                                           certificateChain,
-                                           (IWebSocketClient) httpClient,
-                                           policyErrors
-                                       )
-                   : null;
-
         /// <summary>
         /// The attached debug logger.
         /// </summary>
@@ -357,6 +361,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Constructor(s)
 
+        #region WebSocketClient (IPAddress,  TCPPort, ...)
+
         /// <summary>
         /// Create a new charge point websocket client running on a charge point
         /// and connecting to a central system to invoke methods.
@@ -377,73 +383,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
         /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public WebSocketClient(URL                                                             RemoteURL,
-                               HTTPHostname?                                                   VirtualHostname              = null,
-                               I18NString?                                                     Description                  = null,
-                               IPVersionPreference?                                            IPVersionPreference          = null,
-                               RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
-                               IEnumerable<X509Certificate2>?                                  ClientCertificates           = null,
-                               SslStreamCertificateContext?                                    ClientCertificateContext     = null,
-                               IEnumerable<X509Certificate2>?                                  ClientCertificateChain       = null,
-                               SslProtocols?                                                   TLSProtocol                  = null,
-                               String?                                                         HTTPUserAgent                = DefaultHTTPUserAgent,
-                               IHTTPAuthentication?                                            HTTPAuthentication           = null,
-                               TimeSpan?                                                       RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?                                 TransmissionRetryDelay       = null,
-                               UInt16?                                                         MaxNumberOfRetries           = 3,
-                               UInt32?                                                         InternalBufferSize           = null,
+        public WebSocketClient(IIPAddress                                                      IPAddress,
+                               IPPort                                                          TCPPort,
+                               I18NString?                                                     Description                      = null,
 
-                               IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                               HTTPHostname?                                                   VirtualHostname                  = null,
+                               String?                                                         HTTPUserAgent                    = DefaultHTTPUserAgent,
+                               IHTTPAuthentication?                                            HTTPAuthentication               = null,
+                               IEnumerable<String>?                                            SecWebSocketProtocols            = null,
+                               TimeSpan?                                                       RequestTimeout                   = null,
 
-                               Boolean                                                         DisableWebSocketPings        = false,
-                               TimeSpan?                                                       WebSocketPingEvery           = null,
-                               TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
+                               Boolean                                                         DisableWebSocketPings            = false,
+                               TimeSpan?                                                       WebSocketPingEvery               = null,
+                               TimeSpan?                                                       SlowNetworkSimulationDelay       = null,
 
-                               Boolean                                                         DisableMaintenanceTasks      = false,
-                               TimeSpan?                                                       MaintenanceEvery             = null,
+                               Boolean                                                         DisableMaintenanceTasks          = false,
+                               TimeSpan?                                                       MaintenanceEvery                 = null,
 
-                               String?                                                         LoggingPath                  = null,
-                               String                                                          LoggingContext               = "logcontext", //CPClientLogger.DefaultContext,
-                               LogfileCreatorDelegate?                                         LogfileCreator               = null,
-                               HTTPClientLogger?                                               HTTPLogger                   = null,
-                               IDNSClient?                                                     DNSClient                    = null,
-                               ILogger?                                                        Logger                       = null,
-                               ILoggerFactory?                                                 LoggerFactory                = null)
+                               RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator       = null,
+                               LocalCertificateSelectionHandler?                               LocalCertificateSelector         = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificates               = null,
+                               SslStreamCertificateContext?                                    ClientCertificateContext         = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificateChain           = null,
+                               SslProtocols?                                                   TLSProtocols                     = null,
+                               CipherSuitesPolicy?                                             CipherSuitesPolicy               = null,
+                               X509ChainPolicy?                                                CertificateChainPolicy           = null,
+                               X509RevocationMode?                                             CertificateRevocationCheckMode   = null,
+                               Boolean?                                                        EnforceTLS                       = null,
+                               IEnumerable<SslApplicationProtocol>?                            ApplicationProtocols             = null,
+                               Boolean?                                                        AllowRenegotiation               = null,
+                               Boolean?                                                        AllowTLSResume                   = null,
+                               TOTPConfig?                                                     TOTPConfig                       = null,
 
-            : base(RemoteURL,
+                               IPVersionPreference?                                            IPVersionPreference              = null,
+                               TimeSpan?                                                       ConnectTimeout                   = null,
+                               TimeSpan?                                                       ReceiveTimeout                   = null,
+                               TimeSpan?                                                       SendTimeout                      = null,
+                               TransmissionRetryDelayDelegate?                                 TransmissionRetryDelay           = null,
+                               UInt16?                                                         MaxNumberOfRetries               = null,
+                               UInt32?                                                         InternalBufferSize               = null,
+
+                               Boolean?                                                        DisableLogging                   = null,
+                               String?                                                         LoggingPath                      = null,
+                               String                                                          LoggingContext                   = "logcontext", //CPClientLogger.DefaultContext,
+                               LogfileCreatorDelegate?                                         LogfileCreator                   = null,
+                               HTTPClientLogger?                                               HTTPLogger                       = null,
+
+                               ILogger<ATLSClient>?                                            Logger                           = null,
+                               ILoggerFactory?                                                 LoggerFactory                    = null)
+
+            : base(IPAddress,
+                   TCPPort,
                    Description,
 
-                   RemoteCertificateValidator:  RemoteCertificateValidator is not null
-                                                    ? (sender,
-                                                       certificate,
-                                                       certificateChain,
-                                                       tlsClient,
-                                                       policyErrors) => RemoteCertificateValidator.Invoke(
-                                                                            sender,
-                                                                            certificate,
-                                                                            certificateChain,
-                                                                            (IWebSocketClient) tlsClient,
-                                                                            policyErrors
-                                                                        )
-                                                    : null,
-                   LocalCertificateSelector:    LocalCertificateSelector,
-                   ClientCertificates:          ClientCertificates,
-                   ClientCertificateContext:    ClientCertificateContext,
-                   ClientCertificateChain:      ClientCertificateChain,
-                   TLSProtocols:                TLSProtocol,
-                   EnforceTLS:                  RemoteURL.Protocol.EnforcesTLS(),
+                   RemoteCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               (IWebSocketClient) tlsClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
 
-                   IPVersionPreference:         IPVersionPreference,
-                   ConnectTimeout:              RequestTimeout ?? TimeSpan.FromMinutes(10),
-                   ReceiveTimeout:              RequestTimeout ?? TimeSpan.FromMinutes(10),
-                   SendTimeout:                 RequestTimeout ?? TimeSpan.FromMinutes(10),
-                   TransmissionRetryDelay:      TransmissionRetryDelay ?? (retryCount => TimeSpan.FromSeconds(5)),
-                   MaxNumberOfRetries:          MaxNumberOfRetries,
-                   BufferSize:                  InternalBufferSize,
+                   IPVersionPreference,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   InternalBufferSize,
 
-                   DNSClient:                   DNSClient,
-                   LoggerFactory:               LoggerFactory)
+                   DisableLogging,
+                   null,
+                   LoggerFactory)
 
         {
 
@@ -457,6 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.Logger                             = Logger                  ?? this.LoggerFactory.CreateLogger<WebSocketClient>();
 
             this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
+            this.TOTPConfig                         = TOTPConfig;
 
             this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
             this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
@@ -482,6 +512,318 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.networkingCancellationToken        = networkingCancellationTokenSource.Token;
 
         }
+
+        #endregion
+
+        #region WebSocketClient (URL, ...)
+
+        /// <summary>
+        /// Create a new charge point websocket client running on a charge point
+        /// and connecting to a central system to invoke methods.
+        /// </summary>
+        /// <param name="URL">The remote URL of the HTTP endpoint to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this HTTP/websocket client.</param>
+        /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="RequestTimeout">An optional Request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="LoggingPath">The logging path.</param>
+        /// <param name="LoggingContext">An optional context for logging client methods.</param>
+        /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        public WebSocketClient(URL                                                             URL,
+                               I18NString?                                                     Description                      = null,
+
+                               HTTPHostname?                                                   VirtualHostname                  = null,
+                               String?                                                         HTTPUserAgent                    = DefaultHTTPUserAgent,
+                               IHTTPAuthentication?                                            HTTPAuthentication               = null,
+                               IEnumerable<String>?                                            SecWebSocketProtocols            = null,
+                               TimeSpan?                                                       RequestTimeout                   = null,
+
+                               Boolean                                                         DisableWebSocketPings            = false,
+                               TimeSpan?                                                       WebSocketPingEvery               = null,
+                               TimeSpan?                                                       SlowNetworkSimulationDelay       = null,
+
+                               Boolean                                                         DisableMaintenanceTasks          = false,
+                               TimeSpan?                                                       MaintenanceEvery                 = null,
+
+                               RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator       = null,
+                               LocalCertificateSelectionHandler?                               LocalCertificateSelector         = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificates               = null,
+                               SslStreamCertificateContext?                                    ClientCertificateContext         = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificateChain           = null,
+                               SslProtocols?                                                   TLSProtocols                     = null,
+                               CipherSuitesPolicy?                                             CipherSuitesPolicy               = null,
+                               X509ChainPolicy?                                                CertificateChainPolicy           = null,
+                               X509RevocationMode?                                             CertificateRevocationCheckMode   = null,
+                               Boolean?                                                        EnforceTLS                       = null,
+                               IEnumerable<SslApplicationProtocol>?                            ApplicationProtocols             = null,
+                               Boolean?                                                        AllowRenegotiation               = null,
+                               Boolean?                                                        AllowTLSResume                   = null,
+                               TOTPConfig?                                                     TOTPConfig                       = null,
+
+                               IPVersionPreference?                                            IPVersionPreference              = null,
+                               TimeSpan?                                                       ConnectTimeout                   = null,
+                               TimeSpan?                                                       ReceiveTimeout                   = null,
+                               TimeSpan?                                                       SendTimeout                      = null,
+                               TransmissionRetryDelayDelegate?                                 TransmissionRetryDelay           = null,
+                               UInt16?                                                         MaxNumberOfRetries               = null,
+                               UInt32?                                                         InternalBufferSize               = null,
+
+                               Boolean?                                                        DisableLogging                   = null,
+                               String?                                                         LoggingPath                      = null,
+                               String                                                          LoggingContext                   = "logcontext", //CPClientLogger.DefaultContext,
+                               LogfileCreatorDelegate?                                         LogfileCreator                   = null,
+                               HTTPClientLogger?                                               HTTPLogger                       = null,
+
+                               IDNSClient?                                                     DNSClient                        = null,
+                               ILogger<ATLSClient>?                                            Logger                           = null,
+                               ILoggerFactory?                                                 LoggerFactory                    = null)
+
+            : base(URL,
+                   Description,
+
+                   RemoteCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               (IWebSocketClient) tlsClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   IPVersionPreference,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   InternalBufferSize,
+
+                   DisableLogging,
+                   DNSClient,
+                   null,
+                   LoggerFactory)
+
+        {
+
+            this.VirtualHostname                    = VirtualHostname;
+            this.RemoteCertificateValidator         = RemoteCertificateValidator;
+            this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
+            this.HTTPAuthentication                 = HTTPAuthentication;
+            this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
+            this.HTTPLogger                         = HTTPLogger;
+            this.LoggerFactory                      = LoggerFactory           ?? NullLoggerFactory.Instance;
+            this.Logger                             = Logger                  ?? this.LoggerFactory.CreateLogger<WebSocketClient>();
+
+            this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
+            this.TOTPConfig                         = TOTPConfig;
+
+            this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
+            this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
+            this.MaintenanceTimer                   = new Timer(
+                                                          DoMaintenanceSync,
+                                                          null,
+                                                          this.MaintenanceEvery,
+                                                          this.MaintenanceEvery
+                                                      );
+
+            this.DisableWebSocketPings              = DisableWebSocketPings;
+            this.WebSocketPingEvery                 = WebSocketPingEvery      ?? DefaultWebSocketPingEvery;
+            this.WebSocketPingTimer                 = new Timer(
+                                                          DoWebSocketPingSync,
+                                                          null,
+                                                          this.WebSocketPingEvery,
+                                                          this.WebSocketPingEvery
+                                                      );
+
+            this.SlowNetworkSimulationDelay         = SlowNetworkSimulationDelay;
+
+            this.networkingCancellationTokenSource  = new CancellationTokenSource();
+            this.networkingCancellationToken        = networkingCancellationTokenSource.Token;
+
+        }
+
+        #endregion
+
+        #region WebSocketClient (DomainName, DNSService, ...)
+
+        /// <summary>
+        /// Create a new charge point websocket client running on a charge point
+        /// and connecting to a central system to invoke methods.
+        /// </summary>
+        /// <param name="URL">The remote URL of the HTTP endpoint to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this HTTP/websocket client.</param>
+        /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use for HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="RequestTimeout">An optional Request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="LoggingPath">The logging path.</param>
+        /// <param name="LoggingContext">An optional context for logging client methods.</param>
+        /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        public WebSocketClient(DomainName                                                      DomainName,
+                               SRV_Spec                                                        DNSService,
+                               I18NString?                                                     Description                      = null,
+
+                               HTTPHostname?                                                   VirtualHostname                  = null,
+                               String?                                                         HTTPUserAgent                    = DefaultHTTPUserAgent,
+                               IHTTPAuthentication?                                            HTTPAuthentication               = null,
+                               IEnumerable<String>?                                            SecWebSocketProtocols            = null,
+                               TimeSpan?                                                       RequestTimeout                   = null,
+
+                               Boolean                                                         DisableWebSocketPings            = false,
+                               TimeSpan?                                                       WebSocketPingEvery               = null,
+                               TimeSpan?                                                       SlowNetworkSimulationDelay       = null,
+
+                               Boolean                                                         DisableMaintenanceTasks          = false,
+                               TimeSpan?                                                       MaintenanceEvery                 = null,
+
+                               RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator       = null,
+                               LocalCertificateSelectionHandler?                               LocalCertificateSelector         = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificates               = null,
+                               SslStreamCertificateContext?                                    ClientCertificateContext         = null,
+                               IEnumerable<X509Certificate2>?                                  ClientCertificateChain           = null,
+                               SslProtocols?                                                   TLSProtocols                     = null,
+                               CipherSuitesPolicy?                                             CipherSuitesPolicy               = null,
+                               X509ChainPolicy?                                                CertificateChainPolicy           = null,
+                               X509RevocationMode?                                             CertificateRevocationCheckMode   = null,
+                               Boolean?                                                        EnforceTLS                       = null,
+                               IEnumerable<SslApplicationProtocol>?                            ApplicationProtocols             = null,
+                               Boolean?                                                        AllowRenegotiation               = null,
+                               Boolean?                                                        AllowTLSResume                   = null,
+                               TOTPConfig?                                                     TOTPConfig                       = null,
+
+                               IPVersionPreference?                                            IPVersionPreference              = null,
+                               TimeSpan?                                                       ConnectTimeout                   = null,
+                               TimeSpan?                                                       ReceiveTimeout                   = null,
+                               TimeSpan?                                                       SendTimeout                      = null,
+                               TransmissionRetryDelayDelegate?                                 TransmissionRetryDelay           = null,
+                               UInt16?                                                         MaxNumberOfRetries               = null,
+                               UInt32?                                                         InternalBufferSize               = null,
+
+                               Boolean?                                                        DisableLogging                   = null,
+                               String?                                                         LoggingPath                      = null,
+                               String                                                          LoggingContext                   = "logcontext", //CPClientLogger.DefaultContext,
+                               LogfileCreatorDelegate?                                         LogfileCreator                   = null,
+                               HTTPClientLogger?                                               HTTPLogger                       = null,
+
+                               IDNSClient?                                                     DNSClient                        = null,
+                               ILogger<ATLSClient>?                                            Logger                           = null,
+                               ILoggerFactory?                                                 LoggerFactory                    = null)
+
+            : base(DomainName,
+                   DNSService,
+                   Description,
+
+                   RemoteCertificateValidator is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidator.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               (IWebSocketClient) tlsClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificates,
+                   ClientCertificateContext,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   IPVersionPreference,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   InternalBufferSize,
+
+                   DisableLogging,
+                   DNSClient,
+                   null,
+                   LoggerFactory)
+
+        {
+
+            this.VirtualHostname                    = VirtualHostname;
+            this.RemoteCertificateValidator         = RemoteCertificateValidator;
+            this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
+            this.HTTPAuthentication                 = HTTPAuthentication;
+            this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
+            this.HTTPLogger                         = HTTPLogger;
+            this.LoggerFactory                      = LoggerFactory           ?? NullLoggerFactory.Instance;
+            this.Logger                             = Logger                  ?? this.LoggerFactory.CreateLogger<WebSocketClient>();
+
+            this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
+            this.TOTPConfig                         = TOTPConfig;
+
+            this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
+            this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
+            this.MaintenanceTimer                   = new Timer(
+                                                          DoMaintenanceSync,
+                                                          null,
+                                                          this.MaintenanceEvery,
+                                                          this.MaintenanceEvery
+                                                      );
+
+            this.DisableWebSocketPings              = DisableWebSocketPings;
+            this.WebSocketPingEvery                 = WebSocketPingEvery      ?? DefaultWebSocketPingEvery;
+            this.WebSocketPingTimer                 = new Timer(
+                                                          DoWebSocketPingSync,
+                                                          null,
+                                                          this.WebSocketPingEvery,
+                                                          this.WebSocketPingEvery
+                                                      );
+
+            this.SlowNetworkSimulationDelay         = SlowNetworkSimulationDelay;
+
+            this.networkingCancellationTokenSource  = new CancellationTokenSource();
+            this.networkingCancellationToken        = networkingCancellationTokenSource.Token;
+
+        }
+
+        #endregion
 
         #endregion
 
@@ -1213,9 +1555,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
                                                 Cast<ClientResponseLogHandler>().
                                                 Select(e => e(Timestamp.Now,
-                                                                this,
-                                                                httpRequest,
-                                                                httpResponse))).
+                                                              this,
+                                                              httpRequest,
+                                                              httpResponse))).
                                                 ConfigureAwait(false);
 
                     }
@@ -1786,17 +2128,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
-
-
-        public HTTPRequest.Builder CreateRequest(HTTPMethod HTTPMethod, HTTPPath HTTPPath, QueryString? QueryString = null, AcceptTypes? Accept = null, IHTTPAuthentication? Authentication = null, Byte[]? Content = null, HTTPContentType? ContentType = null, String? UserAgent = null, ConnectionType? Connection = null, Action<HTTPRequest.Builder>? RequestBuilder = null, Boolean? ConsumeRequestChunkedTEImmediately = null, EventTracking_Id? EventTrackingId = null, CancellationToken CancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<HTTPResponse> RunRequest(HTTPMethod HTTPMethod, HTTPPath HTTPPath, QueryString? QueryString = null, AcceptTypes? Accept = null, IHTTPAuthentication? Authentication = null, Byte[]? Content = null, HTTPContentType? ContentType = null, String? UserAgent = null, ConnectionType? Connection = null, UInt16? MaxNumberOfRetries = null, Action<HTTPRequest.Builder>? RequestBuilder = null, Boolean? ConsumeRequestChunkedTEImmediately = null, Boolean? ConsumeResponseChunkedTEImmediately = null, EventTracking_Id? EventTrackingId = null, TimeSpan? RequestTimeout = null, ClientRequestLogHandler? RequestLogDelegate = null, ClientResponseLogHandler? ResponseLogDelegate = null, CancellationToken CancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
 
     }
 

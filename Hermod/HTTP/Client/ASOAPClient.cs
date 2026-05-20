@@ -157,6 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             : base(RemoteURL,
                    Description,
                    HTTPUserAgent  ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    Accept         ?? AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.SOAPXML_UTF8),
                    ContentType    ?? HTTPContentType.Application.SOAPXML_UTF8,
                    Connection     ?? ConnectionType.Close,
@@ -175,8 +176,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    null, //AllowRenegotiation,
                    null, //AllowTLSResume,
                    TOTPConfig,
-
-                   HTTPAuthentication,
 
                    PreferIPv4,
                    null, //ConnectTimeout,

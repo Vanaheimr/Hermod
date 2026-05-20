@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static readonly    TimeSpan                  DefaultQueryTimeout              = TimeSpan.FromSeconds(23.5);
 
-        // Note: ConnectTimeout, ReceiveTimeout, SendTimeout and BufferSize are required by IDNSClient2
+        // Note: ConnectTimeout, ReceiveTimeout, SendTimeout and InternalBufferSize are required by IDNSClient2
         // but are meaningless for a connectionless UDP client. UDP uses QueryTimeout as a single
         // unified timeout, and the receive buffer is determined by UDPPayloadSize (EDNS0).
 
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public  TimeSpan                 ConnectTimeout     => QueryTimeout;
         public  TimeSpan                 ReceiveTimeout     => QueryTimeout;
         public  TimeSpan                 SendTimeout        => QueryTimeout;
-        public  UInt32                   BufferSize         => (UInt32) Math.Max(4096, (Int32) UDPPayloadSize);
+        public  UInt32                   InternalBufferSize => (UInt32) Math.Max(4096, (Int32) UDPPayloadSize);
 
         #endregion
 

@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static readonly    TimeSpan                 DefaultTransmissionRetryDelay    = TimeSpan.FromSeconds(2);
 
-        public const              UInt32                   DefaultBufferSize                = 4096;
+        public const              UInt32                   DefaultInternalBufferSize                = 4096;
 
         protected                 TcpClient?               tcpClient;
         protected                 CancellationTokenSource  clientCancellationTokenSource;
@@ -181,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  TimeSpan                        SendTimeout               { get; }
         public  TransmissionRetryDelayDelegate  TransmissionRetryDelay    { get; }
         public  UInt16                          MaxNumberOfRetries        { get; } = DefaultMaxNumberOfRetries;
-        public  UInt32                          BufferSize                { get; }
+        public  UInt32                          InternalBufferSize        { get; }
         public  Boolean                         BypassDNSCacheOnReconnect { get; set; } = true;
 
 
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                            TimeSpan?                        SendTimeout              = null,
                            TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                            UInt16?                          MaxNumberOfRetries       = null,
-                           UInt32?                          BufferSize               = null,
+                           UInt32?                          InternalBufferSize       = null,
 
                            Boolean?                         DisableLogging           = null,
                              // String?                       LoggingPath              = null,
@@ -236,11 +236,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.Description                    = Description            ?? I18NString.Empty;
             this.IPVersionPreference            = IPVersionPreference    ?? Hermod.IPVersionPreference.PreferIPv6;
-            this.BufferSize                     = BufferSize.HasValue
-                                                      ? BufferSize.Value > Int32.MaxValue
-                                                            ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                                            : BufferSize.Value
-                                                      : DefaultBufferSize;
+            this.InternalBufferSize             = InternalBufferSize.HasValue
+                                                      ? InternalBufferSize.Value > Int32.MaxValue
+                                                            ? throw new ArgumentOutOfRangeException(nameof(InternalBufferSize), "The buffer size must not exceed Int32.MaxValue!")
+                                                            : InternalBufferSize.Value
+                                                      : DefaultInternalBufferSize;
             this.ConnectTimeout                 = ConnectTimeout         ?? DefaultConnectTimeout;
             this.ReceiveTimeout                 = ReceiveTimeout         ?? DefaultReceiveTimeout;
             this.SendTimeout                    = SendTimeout            ?? DefaultSendTimeout;
@@ -269,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TimeSpan?                        SendTimeout              = null,
                              TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                              UInt16?                          MaxNumberOfRetries       = null,
-                             UInt32?                          BufferSize               = null,
+                             UInt32?                          InternalBufferSize       = null,
 
                              // String?                         LoggingPath              = null,
                              // String?                         LoggingContext           = Logger.DefaultContext,
@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    null,
@@ -316,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TimeSpan?                        SendTimeout              = null,
                              TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                              UInt16?                          MaxNumberOfRetries       = null,
-                             UInt32?                          BufferSize               = null,
+                             UInt32?                          InternalBufferSize       = null,
 
                              Boolean?                         DisableLogging           = null,
                              // String?                         LoggingPath              = null,
@@ -333,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    DNSClient,
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TimeSpan?                        SendTimeout              = null,
                              TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                              UInt16?                          MaxNumberOfRetries       = null,
-                             UInt32?                          BufferSize               = null,
+                             UInt32?                          InternalBufferSize       = null,
 
                              Boolean?                         DisableLogging           = null,
                              // String?                         LoggingPath              = null,
@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    DNSClient,

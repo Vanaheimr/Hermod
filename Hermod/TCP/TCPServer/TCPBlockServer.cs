@@ -27,16 +27,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// A simple echo test server that listens for incoming TCP echo connections.
+    /// A simple TCP server that listens for incoming TCP connections and processes
+    /// incoming data blocks separated by a specific delimiter (default: "\r\n\r\n").
     /// </summary>
-    public class TCPBlockTestServer : ATCPServer
+    public class TCPBlockServer : ATCPServer
     {
 
         #region Data
 
-        public const Int32 DefaultBufferSize = 32768;
+        /// <summary>
+        /// The delimiter used to separate data blocks.
+        /// The default is "\r\n\r\n" (CRLF CRLF), which is commonly used in
+        /// HTTP headers to indicate the end of the header section.
+        /// </summary>
+        public static readonly  Byte[]  Delimiter           = "\r\n\r\n"u8.ToArray();
 
-        private static readonly Byte[] Delimiter = "\r\n\r\n"u8.ToArray();
+        /// <summary>
+        /// The default buffer size for the TCP stream.
+        /// This is the size of the buffer used to read data from the stream.
+        /// </summary>
+        public const            Int32   DefaultBufferSize   = 32768;
 
         #endregion
 
@@ -45,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The buffer size for the TCP stream.
         /// </summary>
-        public UInt32  BufferSize    { get; }
+        public UInt32  InternalBufferSize    { get; }
 
         #endregion
 
@@ -64,16 +74,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Create a new BlockTestServer that listens on the loopback address and the given TCP port.
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
-        /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
+        /// <param name="InternalBufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public TCPBlockTestServer(IIPAddress?              IPAddress     = null,
-                                 IPPort?                  TCPPort        = null,
-                                 UInt32?                  BufferSize       = null,
-                                 TimeSpan?                ReceiveTimeout   = null,
-                                 TimeSpan?                SendTimeout      = null,
-                                 TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        public TCPBlockServer(IIPAddress?              IPAddress            = null,
+                              IPPort?                  TCPPort              = null,
+                              UInt32?                  InternalBufferSize   = null,
+                              TimeSpan?                ReceiveTimeout       = null,
+                              TimeSpan?                SendTimeout          = null,
+                              TCPEchoLoggingDelegate?  LoggingHandler       = null)
 
             : base(IPAddress,
                    TCPPort,
@@ -83,11 +93,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.BufferSize  = BufferSize.HasValue
-                                   ? BufferSize.Value > Int32.MaxValue
-                                         ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                         : (UInt32) BufferSize.Value
-                                   : DefaultBufferSize;
+            this.InternalBufferSize  = InternalBufferSize.HasValue
+                                           ? InternalBufferSize.Value > Int32.MaxValue
+                                                 ? throw new ArgumentOutOfRangeException(nameof(InternalBufferSize), "The buffer size must not exceed Int32.MaxValue!")
+                                                 : (UInt32) InternalBufferSize.Value
+                                           : DefaultBufferSize;
 
         }
 
@@ -105,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public static async Task<TCPBlockTestServer>
+        public static async Task<TCPBlockServer>
 
             StartNew(IIPAddress?              IPAddress        = null,
                      IPPort?                  TCPPort          = null,
@@ -116,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            var server = new TCPBlockTestServer(
+            var server = new TCPBlockServer(
                              IPAddress,
                              TCPPort,
                              BufferSize,
@@ -134,20 +144,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        protected override async Task HandleConnection(TCPConnection Connection, CancellationToken Token)
+        protected override async Task HandleConnection(TCPConnection      Connection,
+                                                       CancellationToken  CancellationToken)
         {
 
-            var bufferSize = (Int32)BufferSize;
-            await using var stream = Connection.TCPClient.GetStream();
-            using var bufferOwner = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);  // Larger buffer to handle carry-over data
-            var buffer = bufferOwner.Memory;
-            var dataLength = 0;  // Current length of accumulated data in buffer
-            var delimiterLength = Delimiter.Length;
+            var bufferSize               = (Int32) InternalBufferSize;
+            await using var stream       = Connection.TCPClient.GetStream();
+                  using var bufferOwner  = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);  // Larger buffer to handle carry-over data
+            var buffer                   = bufferOwner.Memory;
+            var dataLength               = 0;                                             // Current length of accumulated data in buffer
+            var delimiterLength          = Delimiter.Length;
 
             while (true)
             {
 
-                var bytesRead = await stream.ReadAsync(buffer[dataLength..(dataLength + bufferSize)], Token).ConfigureAwait(false);
+                var bytesRead = await stream.ReadAsync(buffer[dataLength..(dataLength + bufferSize)], CancellationToken).
+                                             ConfigureAwait(false);
 
                 if (bytesRead == 0)
                     break;
@@ -189,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(TCPBlockTestServer)}: {IPAddress}:{TCPPort} (BufferSize: {BufferSize}, ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
+            => $"{nameof(TCPBlockServer)}: {IPAddress}:{TCPPort} (BufferSize: {InternalBufferSize}, ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
 
         #endregion
 

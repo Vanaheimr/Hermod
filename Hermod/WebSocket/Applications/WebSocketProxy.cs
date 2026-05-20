@@ -25,7 +25,6 @@ using Microsoft.Extensions.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
@@ -174,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.webSocketClient    = new WebSocketClient(
                                           UpstreamServerURL,
                                           DNSClient:      DNSClient,
-                                          Logger:         LoggerFactory is null ? Logger : null,
+                                          //Logger:         LoggerFactory is null ? Logger : null,
                                           LoggerFactory:  LoggerFactory
                                       );
 

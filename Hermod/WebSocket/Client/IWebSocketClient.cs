@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <summary>
     /// The common interface of all HTTP WebSocket clients.
     /// </summary>
-    public interface IWebSocketClient : IHTTPClient
+    public interface IWebSocketClient : IHTTPClient_Base
     {
 
         #region Events

@@ -70,11 +70,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean?                                                  AllowTLSResume                   { get; }
 
         protected Stream? ActiveStream
+
             => tlsStream is not null
                    ? tlsStream
                    : tcpClient?.GetStream();
 
         public Boolean IsTLSActive
+
             => tlsStream is not null;
 
         #endregion
@@ -107,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TimeSpan?                                                 SendTimeout                      = null,
                              TransmissionRetryDelayDelegate?                           TransmissionRetryDelay           = null,
                              UInt16?                                                   MaxNumberOfRetries               = null,
-                             UInt32?                                                   BufferSize                       = null,
+                             UInt32?                                                   InternalBufferSize               = null,
 
                              Boolean?                                                  DisableLogging                   = null,
                              ILogger<ATLSClient>?                                      Logger                           = null,
@@ -122,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    Logger,
@@ -173,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TimeSpan?                                                 SendTimeout                      = null,
                              TransmissionRetryDelayDelegate?                           TransmissionRetryDelay           = null,
                              UInt16?                                                   MaxNumberOfRetries               = null,
-                             UInt32?                                                   BufferSize                       = null,
+                             UInt32?                                                   InternalBufferSize               = null,
 
                              Boolean?                                                  DisableLogging                   = null,
                              IDNSClient?                                               DNSClient                        = null,
@@ -189,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    DNSClient,
@@ -242,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TimeSpan?                                                 SendTimeout                      = null,
                              TransmissionRetryDelayDelegate?                           TransmissionRetryDelay           = null,
                              UInt16?                                                   MaxNumberOfRetries               = null,
-                             UInt32?                                                   BufferSize                       = null,
+                             UInt32?                                                   InternalBufferSize               = null,
 
                              Boolean?                                                  DisableLogging                   = null,
                              IDNSClient?                                               DNSClient                        = null,
@@ -259,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    SendTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
-                   BufferSize,
+                   InternalBufferSize,
 
                    DisableLogging,
                    DNSClient,

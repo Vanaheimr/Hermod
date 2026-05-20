@@ -40,9 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            //private readonly AHTTPClient?      httpClient;
-            //private readonly AHTTPTestClient?  httpClientX;
-            private readonly IHTTPClient? httpClientX;
+            private readonly IHTTPClient_Base? httpClient;
 
             #region Non-http header fields
 
@@ -775,14 +773,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new HTTP request.
             /// </summary>
             /// <param name="CancellationToken">An optional cancellation token.</param>
-            public Builder(IHTTPClient        Client,
+            public Builder(IHTTPClient_Base   Client,
                            CancellationToken  CancellationToken   = default)
 
                 : base(CancellationToken: CancellationToken)
 
             {
 
-                this.httpClientX      = Client;
+                this.httpClient       = Client;
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;

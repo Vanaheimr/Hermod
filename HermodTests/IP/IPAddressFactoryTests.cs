@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         [Test]
         public void ParseTooShortByteArray()
         {
-            Assert.Throws<FormatException>(() => IPAddress.Parse([10, 0, 0]));
+            Assert.Throws<ArgumentException>(() => IPAddress.Parse([10, 0, 0]));
         }
 
         #endregion
