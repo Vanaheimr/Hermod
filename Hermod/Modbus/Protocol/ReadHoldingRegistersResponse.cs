@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                    FunctionCode.ReadHoldingRegisters,
                    UnitIdentifier ?? 0,
                    (Byte)   (2 * HoldingRegisters.Count()),
-                   new Byte[2 * HoldingRegisters.Count()])
+                   new Byte[9 + 2 * HoldingRegisters.Count()])
 
         {
 

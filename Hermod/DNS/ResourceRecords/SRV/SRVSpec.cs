@@ -117,8 +117,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      String  Protocol)
         {
 
-            if (TryParse(Service, Protocol, out SRV_Spec apiKeyId))
-                return apiKeyId;
+            if (TryParse(Service, Protocol, out SRV_Spec srvSpec))
+                return srvSpec;
 
             throw new ArgumentException($"Invalid text representation of an DNS Service Specification identification: '{Service}'.'{Protocol}'!");
 
@@ -136,8 +136,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          String  Protocol)
         {
 
-            if (TryParse(Service, Protocol, out SRV_Spec apiKeyId))
-                return apiKeyId;
+            if (TryParse(Service, Protocol, out SRV_Spec srvSpec))
+                return srvSpec;
 
             return null;
 
@@ -203,8 +203,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static SRV_Spec UDP(String Service)
         {
 
-            if (TryParse(Service, "udp", out var apiKeyId))
-                return apiKeyId;
+            if (TryParse(Service, "udp", out var srvSpec))
+                return srvSpec;
 
             throw new ArgumentException($"Invalid text representation of an DNS Service Specification identification: '{Service}'!");
 
@@ -221,8 +221,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static SRV_Spec TCP(String Service)
         {
 
-            if (TryParse(Service, "tcp", out var apiKeyId))
-                return apiKeyId;
+            if (TryParse(Service, "tcp", out var srvSpec))
+                return srvSpec;
 
             throw new ArgumentException($"Invalid text representation of an DNS Service Specification identification: '{Service}'!");
 
@@ -239,8 +239,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static SRV_Spec TLS(String Service)
         {
 
-            if (TryParse(Service, "tls", out var apiKeyId))
-                return apiKeyId;
+            if (TryParse(Service, "tls", out var srvSpec))
+                return srvSpec;
 
             throw new ArgumentException($"Invalid text representation of an DNS Service Specification identification: '{Service}'!");
 
@@ -360,8 +360,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Object">An object to compare with.</param>
         public Int32 CompareTo(Object Object)
 
-            => Object is SRV_Spec apiKeyId
-                   ? CompareTo(apiKeyId)
+            => Object is SRV_Spec srvSpec
+                   ? CompareTo(srvSpec)
                    : throw new ArgumentException("The given object is not an DNS Service Specification identification!",
                                                  nameof(Object));
 
@@ -402,10 +402,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
 
-            => Object is SRV_Spec apiKeyId &&
-                   Equals(apiKeyId);
+            => Object is SRV_Spec srvSpec &&
+                   Equals(srvSpec);
 
         #endregion
 

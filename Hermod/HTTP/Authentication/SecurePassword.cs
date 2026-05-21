@@ -187,25 +187,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 RandomNumberGenerator.Fill(salt);
 
                 // Hash the password with the salt
-                using (var pbkdf2 = new Rfc2898DeriveBytes(
-                                        Password,
-                                        salt,
-                                        (Int32) Iterations,
-                                        HashAlgorithmName.SHA256
-                                    ))
-                {
+                var hash = Rfc2898DeriveBytes.Pbkdf2(
+                    Password,
+                    salt,
+                    (Int32) Iterations,
+                    HashAlgorithmName.SHA256,
+                    HashSize
+                );
 
-                    var hash = pbkdf2.GetBytes(HashSize);
+                // Combine salt and hash into a single string for storage
+                var hashBytes = new Byte[SaltSize + HashSize];
+                Array.Copy(salt, 0, hashBytes, 0,        SaltSize);
+                Array.Copy(hash, 0, hashBytes, SaltSize, HashSize);
 
-                    // Combine salt and hash into a single string for storage
-                    var hashBytes = new Byte[SaltSize + HashSize];
-                    Array.Copy(salt, 0, hashBytes, 0,        SaltSize);
-                    Array.Copy(hash, 0, hashBytes, SaltSize, HashSize);
-
-                    SecurePassword = new SecurePassword(hashBytes);
-                    return true;
-
-                }
+                SecurePassword = new SecurePassword(hashBytes);
+                return true;
 
             }
 
@@ -313,19 +309,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Array.Copy(Value, SaltSize, storedHashBytes, 0, HashSize);
 
             // Hash the input password with the same salt
-            using (var pbkdf2 = new Rfc2898DeriveBytes(
-                                    Password,
-                                    usedSalt,
-                                    (Int32) Iterations,
-                                    HashAlgorithmName.SHA256
-                                ))
-            {
+            var hash = Rfc2898DeriveBytes.Pbkdf2(
+                Password,
+                usedSalt,
+                (Int32) Iterations,
+                HashAlgorithmName.SHA256,
+                HashSize
+            );
 
-                var hash = pbkdf2.GetBytes(HashSize);
-
-                return hash.SequenceEqual(storedHashBytes);
-
-            }
+            return hash.SequenceEqual(storedHashBytes);
 
         }
 
@@ -351,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => Value.ToString();
+            => Convert.ToBase64String(Value);
 
         #endregion
 

@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             inputStream = PgpUtilities.GetDecoderStream(inputStream);
 
             var pgpFact = new PgpObjectFactory(inputStream);
-            PgpSignatureList p3 = null;
+            PgpSignatureList? p3 = null;
             var PGPObject = pgpFact.NextPgpObject();
 
             if (PGPObject is PgpCompressedData c1)
@@ -130,9 +130,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             SignatureInputStream = PgpUtilities.GetDecoderStream(SignatureInputStream);
 
-            var               pgpFact        = new PgpObjectFactory(SignatureInputStream);
-            PgpSignatureList  SignatureList  = null;
-            var               PGPObject      = pgpFact.NextPgpObject();
+            var                pgpFact        = new PgpObjectFactory(SignatureInputStream);
+            PgpSignatureList?  SignatureList  = null;
+            var                PGPObject      = pgpFact.NextPgpObject();
 
             if (PGPObject is PgpCompressedData)
             {

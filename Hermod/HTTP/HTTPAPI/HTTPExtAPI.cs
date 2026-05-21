@@ -3514,25 +3514,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //    return true;
                 //}
 
-                Organizations  = new HashSet<IOrganization>();
-                ErrorResponseBuilder       = new HTTPResponse.Builder(Request) {
-                                     HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                     Location        = Location.From(RootPath + "login"),
-                                     Date            = Timestamp.Now,
-                                     Server          = HTTPServer?.HTTPServerName,
-                                     CacheControl    = "private, max-age=0, no-cache",
-                                     Connection      = ConnectionType.KeepAlive
-                                 };
+                Organizations         = [];
+
+                ErrorResponseBuilder  = new HTTPResponse.Builder(Request) {
+                                            HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                            Location        = Location.From(RootPath + "login"),
+                                            Date            = Timestamp.Now,
+                                            Server          = HTTPServer?.HTTPServerName,
+                                            CacheControl    = "private, max-age=0, no-cache",
+                                            Connection      = ConnectionType.KeepAlive
+                                        };
 
                 return false;
 
             }
 
-            Organizations  = User is not null
-                                 ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
-                                 : new HashSet<IOrganization>();
+            Organizations         = User is not null
+                                        ? [.. User.Organizations(AccessLevel, Recursive)]
+                                        : [];
 
-            ErrorResponseBuilder       = null;
+            ErrorResponseBuilder  = null;
 
             return true;
 
@@ -5207,7 +5208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Validate JSON array
 
-                                  jsonArray ??= new JArray();
+                                  jsonArray ??= [];
 
                                   if (jsonObject is not null)
                                       jsonArray.Add(jsonObject);
@@ -5488,7 +5489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region No processable user data found!
 
-                                  if (!results.Any())
+                                  if (results.Count == 0)
                                   {
 
                                       responseBuilder.Content = JSONObject.Create(
@@ -5963,7 +5964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #endregion
 
 
-                                  var result = accessRights.Any()
+                                  var result = accessRights.Count > 0
 
                                                   ? await AddUser(newUser,
                                                                   accessRights,
@@ -6715,7 +6716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "IMPERSONATE" },
+                                                 AccessControlAllowMethods   = [ "IMPERSONATE" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -6732,7 +6733,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "IMPERSONATE" },
+                                                 AccessControlAllowMethods   = [ "IMPERSONATE" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -6946,7 +6947,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
+                                                 AccessControlAllowMethods   = [ "GET", "SET", "CHOWN" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -7249,7 +7250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
+                                                 AccessControlAllowMethods   = [ "GET", "SET", "CHOWN" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -7271,7 +7272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!jsonObjects.Any())
+                                      if (jsonObjects.Length == 0)
                                           goto fail;
 
                                       String? context = null;
@@ -7441,7 +7442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
+                                                 AccessControlAllowMethods   = [ "GET", "SET", "CHOWN" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -7463,7 +7464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!jsonObjects.Any())
+                                      if (jsonObjects.Length == 0)
                                           goto fail;
 
                                       String? context = null;
@@ -7706,7 +7707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                 AccessControlAllowMethods  = [ "ADD", "GET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -7725,7 +7726,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                             AccessControlAllowMethods  = [ "ADD", "GET" ],
                                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                              ETag                       = "1",
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
@@ -7800,7 +7801,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                     AccessControlAllowMethods  = [ "ADD", "GET" ],
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                      ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                      Content                    = JSONObject.Create(
@@ -7825,7 +7826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                 AccessControlAllowMethods  = [ "ADD", "GET" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -7852,7 +7853,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
-                                                       AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                       AccessControlAllowMethods  = [ "ADD", "GET" ],
                                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                        ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = apiKey.ToJSON().ToUTF8Bytes(),
@@ -7865,7 +7866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
-                                                       AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                       AccessControlAllowMethods  = [ "ADD", "GET" ],
                                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                        ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = JSONObject.Create(
@@ -7927,7 +7928,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "DELETE" },
+                                                 AccessControlAllowMethods  = [ "DELETE" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -7949,7 +7950,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "DELETE" },
+                                                 AccessControlAllowMethods  = [ "DELETE" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -7969,7 +7970,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "DELETE" },
+                                                 AccessControlAllowMethods  = [ "DELETE" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -7994,7 +7995,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "DELETE" },
+                                                 AccessControlAllowMethods  = [ "DELETE" ],
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
@@ -8020,7 +8021,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              Server                     = HTTPServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
-                                             AccessControlAllowMethods  = new[] { "DELETE" },
+                                             AccessControlAllowMethods  = [ "DELETE" ],
                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = apiKeyInfo.ToJSON().ToUTF8Bytes(),
@@ -8277,7 +8278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                         = HTTPServer?.HTTPServerName,
                                           Date                           = Timestamp.Now,
                                           AccessControlAllowOrigin       = "*",
-                                          AccessControlAllowMethods      = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                          AccessControlAllowMethods      = [ "OPTIONS", "GET", "COUNT", "ADD" ],
                                           AccessControlAllowHeaders      = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                           = "1",
                                           ContentType                    = HTTPContentType.Application.JSON_UTF8,
@@ -8333,7 +8334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Server                     = HTTPServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                          AccessControlAllowMethods  = [ "OPTIONS", "GET", "COUNT", "ADD" ],
                                           AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                           ETag                       = "1",
                                           ContentType                = HTTPContentType.Application.JSON_UTF8,
@@ -8388,7 +8389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadWrite,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return httpResponseBuilder!;
                                   }
@@ -8413,7 +8414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                 AccessControlAllowMethods   = [ "OPTIONS", "GET", "COUNT", "ADD" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = JSONObject.Create(
@@ -8440,7 +8441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                 AccessControlAllowMethods   = [ "OPTIONS", "GET", "COUNT", "ADD" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = JSONObject.Create(
@@ -8459,7 +8460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Server                     = HTTPServer?.HTTPServerName,
                                               Date                       = Timestamp.Now,
                                               AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                              AccessControlAllowMethods  = [ "OPTIONS", "GET", "COUNT", "ADD" ],
                                               AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                               ContentType                = HTTPContentType.Application.JSON_UTF8,
                                               Content                    = JSONObject.Create(
@@ -8488,10 +8489,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                   AccessControlAllowMethods   = [ "OPTIONS", "GET", "COUNT", "ADD" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                     = result.Organization.ToJSON(false).ToUTF8Bytes(),
+                                                   Content                     = result.Organization?.ToJSON(false).ToUTF8Bytes(),
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable
 
@@ -8500,7 +8501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                   AccessControlAllowMethods   = [ "OPTIONS", "GET", "COUNT", "ADD" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = result.ToJSON().ToUTF8Bytes(),
@@ -8533,7 +8534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadOnly,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -8574,7 +8575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
-                                                       AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
+                                                       AccessControlAllowMethods  = [ "GET", "EXISTS" ],
                                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                        Connection                 = ConnectionType.KeepAlive
                                                    }.AsImmutable
@@ -8584,7 +8585,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
-                                                       AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
+                                                       AccessControlAllowMethods  = [ "GET", "EXISTS" ],
                                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                        ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = (showMgt == true
@@ -8629,7 +8630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadOnly,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -8657,7 +8658,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
+                                                     AccessControlAllowMethods  = [ "GET", "EXISTS" ],
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                      Connection                 = ConnectionType.KeepAlive
                                                  }.AsImmutable);
@@ -8709,7 +8710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadWrite,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return httpResponseBuilder!;
                                   }
@@ -8955,7 +8956,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadWrite,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return httpResponseBuilder!;
                                   }
@@ -8985,7 +8986,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
+                                                 AccessControlAllowMethods   = [ "GET", "SET", "CHOWN" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -9088,7 +9089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadWrite,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return httpResponseBuilder!;
                                   }
@@ -9118,7 +9119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "GET", "SET", "DELETE" },
+                                                     AccessControlAllowMethods  = [ "GET", "SET", "DELETE" ],
                                                      AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                      ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                      Content                    = JSONObject.Create(
@@ -9248,7 +9249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
@@ -9259,7 +9260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
@@ -9349,7 +9350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
@@ -9360,7 +9361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
@@ -9450,7 +9451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
@@ -9461,7 +9462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
@@ -9550,7 +9551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
@@ -9561,7 +9562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
@@ -9651,7 +9652,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
@@ -9662,7 +9663,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
@@ -9752,7 +9753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
@@ -9763,7 +9764,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
@@ -9853,7 +9854,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive,
                                                    Vary                        = "Accept"
@@ -9864,7 +9865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
+                                                   AccessControlAllowMethods   = [ "ADD", "DELETE" ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
@@ -9895,7 +9896,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadOnly,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -9962,7 +9963,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadWrite,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return httpResponseBuilder!;
                                   }
@@ -9992,7 +9993,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
+                                                 AccessControlAllowMethods   = [ "GET", "SET", "CHOWN" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -10012,7 +10013,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!jsonObjects.Any())
+                                      if (jsonObjects.Length == 0)
                                           goto fail;
 
                                       String? context = null;
@@ -10153,7 +10154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadWrite,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return httpResponseBuidler!;
                                   }
@@ -10181,7 +10182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
+                                                 AccessControlAllowMethods   = [ "GET", "SET", "CHOWN" ],
                                                  AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
                                                  Connection                  = ConnectionType.KeepAlive
                                              }.AsImmutable;
@@ -10201,7 +10202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!jsonObjects.Any())
+                                      if (jsonObjects.Length == 0)
                                           goto fail;
 
                                       String? context = null;
@@ -10339,7 +10340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Access_Levels.ReadWrite,
                                                       Recursive: true) ||
                                       httpUser is null ||
-                                     !httpOrganizations.Any())
+                                      httpOrganizations.Count == 0)
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -10617,7 +10618,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = [ "GET", "OPTIONS" ],
-                                          AccessControlAllowHeaders  = new[] { "Authorization", "X-App-Version" },
+                                          AccessControlAllowHeaders  = [ "Authorization", "X-App-Version" ],
                                           Connection                 = ConnectionType.KeepAlive
                                       }.AsImmutable);
 
@@ -10686,7 +10687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              Date                          = Timestamp.Now,
                                              AccessControlAllowOrigin      = "*",
                                              AccessControlAllowMethods     = [ "GET", "OPTIONS" ],
-                                             AccessControlAllowHeaders     = new[] { "Authorization", "X-App-Version" },
+                                             AccessControlAllowHeaders     = [ "Authorization", "X-App-Version" ],
                                              ETag                          = ETag,
                                              ContentType                   = HTTPContentType.Application.JSON_UTF8,
                                              Content                       = withMetadata
@@ -10742,7 +10743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 lines.ForEachCounted(async (line, lineNumber) => {
 
                     if (line.IsNeitherNullNorEmpty() &&
-                       !line.StartsWith("#") &&
+                       !line.StartsWith('#') &&
                        !line.StartsWith("//"))
                     {
 
@@ -10812,7 +10813,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 lines.ForEachCounted((line, linenumber) => {
 
                     if (line.IsNeitherNullNorEmpty() &&
-                       !line.StartsWith("#")         &&
+                       !line.StartsWith('#')         &&
                        !line.StartsWith("//"))
                     {
 
@@ -11297,8 +11298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            if (MatchFilter is null)
-                MatchFilter = line => true;
+            MatchFilter ??= line => true;
 
             var     jsonList           = new List<JObject>();
             String  databaseFileName   = DatabaseFileName ?? this.DatabaseFileName;
@@ -11316,7 +11316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     if (line.IsNeitherNullNorEmpty() &&
-                       !line.StartsWith("#")         &&
+                       !line.StartsWith('#')         &&
                        !line.StartsWith("//"))
                     {
 
@@ -13111,7 +13111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean SignMessage(JObject JSONMessage, params AsymmetricCipherKeyPair[] KeyPairs)
         {
 
-            if (JSONMessage is null || KeyPairs is null || !KeyPairs.Any())
+            if (JSONMessage is null || KeyPairs is null || KeyPairs.Length == 0)
                 return false;
 
             foreach (var KeyPair in KeyPairs)
@@ -13145,7 +13145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONMessage["signatures"] is not JArray signaturesJSON)
                 {
-                    signaturesJSON = new JArray();
+                    signaturesJSON = [];
                     JSONMessage.Add("signatures", signaturesJSON);
                 }
 
@@ -13604,7 +13604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <remarks>Wrap this into a using statement.</remarks>
         /// <param name="User">A user.</param>
-        public UserContext SetUserContext(IUser User)
+        public static UserContext SetUserContext(IUser User)
 
             => new (User.Id);
 
@@ -13614,7 +13614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <remarks>Wrap this into a using statement.</remarks>
         /// <param name="UserId">A user identification.</param>
-        public UserContext SetUserContext(User_Id UserId)
+        public static UserContext SetUserContext(User_Id UserId)
 
             => new (UserId);
 
@@ -13967,7 +13967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => SendNotifications(User,
                                  ParentOrganizations,
-                                 new NotificationMessageType[] { MessageType },
+                                 [ MessageType ],
                                  EventTrackingId,
                                  CurrentUserId);
 
@@ -13987,7 +13987,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 User_Id?                              CurrentUserId     = null)
         {
 
-            ParentOrganizations ??= Array.Empty<Organization>();
+            ParentOrganizations ??= [];
 
             var messageTypesHash = new HashSet<NotificationMessageType>(MessageTypes.Where(messageType => !messageType.IsNullOrEmpty));
 
@@ -14154,8 +14154,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected internal) GetUserSerializator(Request, User)
 
-        protected internal CustomUserSerializerDelegate GetUserSerializator(HTTPRequest  Request,
-                                                                            IUser        User)
+        protected static internal CustomUserSerializerDelegate GetUserSerializator(HTTPRequest  Request,
+                                                                                   IUser        User)
         {
 
             switch (User?.Id.ToString())
@@ -16866,7 +16866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     return ResetPasswordResult.Error(
-                               new[] { User },
+                               [ User ],
                                e,
                                eventTrackingId,
                                SystemId,
@@ -16887,7 +16887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             return ResetPasswordResult.LockTimeout(
-                       new[] { User },
+                       [ User ],
                        SemaphoreSlimTimeout,
                        eventTrackingId,
                        SystemId,
@@ -17481,7 +17481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(MessageType), "The given message type must not be null or empty!");
 
             await SendNotifications(APIKey,
-                                    new[] { MessageType },
+                                    [ MessageType ],
                                     OldAPIKey,
                                     EventTrackingId,
                                     CurrentUserId);
@@ -19008,9 +19008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="User">A user.</param>
         protected internal IEnumerable<APIKey> _GetAPIKeysForUser(IUser User)
 
-            => apiKeys.Values.
-                       Where(apiKey => apiKey.UserId == User.Id).
-                       ToArray();
+            => [.. apiKeys.Values.Where(apiKey => apiKey.UserId == User.Id)];
 
 
         /// <summary>
@@ -19041,7 +19039,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<APIKey>();
+            return [];
 
         }
 
@@ -19055,10 +19053,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="User">A user.</param>
         protected internal IEnumerable<APIKey> _GetValidAPIKeysForUser(IUser User)
 
-            => apiKeys.Values.
+            => [.. apiKeys.Values.
                        Where(apiKey => apiKey.UserId == User.Id &&
-                                       APIKeyIsValid(apiKey)).
-                       ToArray();
+                                       APIKeyIsValid(apiKey))];
 
 
         /// <summary>
@@ -19089,7 +19086,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<APIKey>();
+            return [];
 
         }
 
@@ -19173,7 +19170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   User_Id?                 CurrentUserId     = null)
 
             => SendNotifications(UserGroup,
-                                 new[] { MessageType },
+                                 [ MessageType ],
                                  OldUserGroup,
                                  EventTrackingId,
                                  CurrentUserId);
@@ -19241,7 +19238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => SendNotifications(UserGroup,
                                  ParentUserGroups,
-                                 new NotificationMessageType[] { MessageType },
+                                 [ MessageType ],
                                  EventTrackingId,
                                  CurrentUserId);
 
@@ -20859,9 +20856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UserGroupName">The name of a user group (might not be unique).</param>
         protected internal IEnumerable<IUserGroup> _SearchUserGroupsByName(String UserGroupName)
 
-            => userGroups.Values.
-                           Where(userGroup => userGroup.Name.Equals(UserGroupName)).
-                           ToArray();
+            => [.. userGroups.Values.Where(userGroup => userGroup.Name.Equals(UserGroupName))];
 
 
         /// <summary>
@@ -20892,7 +20887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<IUserGroup>();
+            return [];
 
         }
 
@@ -20916,7 +20911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             UserGroups = foundUserGroups;
 
-            return foundUserGroups.Any();
+            return foundUserGroups.Count != 0;
 
         }
 
@@ -20950,7 +20945,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            UserGroups = Array.Empty<IUserGroup>();
+            UserGroups = [];
             return false;
 
         }
@@ -21495,7 +21490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<ANotification>();
+            return [];
 
         }
 
@@ -21529,7 +21524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<ANotification>();
+            return [];
 
         }
 
@@ -21566,7 +21561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<T>();
+            return [];
 
         }
 
@@ -21603,7 +21598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<T>();
+            return [];
 
         }
 
@@ -21654,7 +21649,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     UsersSemaphore.Release();
             }
 
-            return Array.Empty<T>();
+            return [];
 
         }
 
@@ -21706,7 +21701,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     UsersSemaphore.Release();
             }
 
-            return Array.Empty<T>();
+            return [];
 
         }
 
@@ -21757,7 +21752,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     UsersSemaphore.Release();
             }
 
-            return Array.Empty<T>();
+            return [];
 
         }
 
@@ -21809,7 +21804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     UsersSemaphore.Release();
             }
 
-            return Array.Empty<T>();
+            return [];
 
         }
 
@@ -21833,7 +21828,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => TryGetUser(UserId, out var user) && user is not null
                    ? user.GetNotifications(NotificationMessageTypeFilter)
-                   : Array.Empty<ANotification>();
+                   : [];
 
         #endregion
 
@@ -21857,7 +21852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => TryGetUser(UserId, out var user) && user is not null
                    ? user.GetNotificationsOf<T>(NotificationMessageTypeFilter)
-                   : Array.Empty<T>();
+                   : [];
 
         #endregion
 
@@ -22010,7 +22005,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all notification groups.
         /// </summary>
-        protected readonly Dictionary<NotificationGroup_Id, NotificationGroup> notificationGroups = new();
+        protected readonly Dictionary<NotificationGroup_Id, NotificationGroup> notificationGroups = [];
 
         /// <summary>
         /// An enumeration of all notification groups.
@@ -22025,7 +22020,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return notificationGroups.Values.ToArray();
+                        return [.. notificationGroups.Values];
 
                     }
                     finally
@@ -22039,7 +22034,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                 }
 
-                return Array.Empty<NotificationGroup>();
+                return [];
 
             }
         }
@@ -22092,8 +22087,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
                     return NotificationMessagesSemaphore.Wait(SemaphoreSlimTimeout)
-                               ? notificationMessages.Values.ToArray()
-                               : new NotificationMessage[0];
+                               ? [.. notificationMessages.Values]
+                               : [];
                 }
                 finally
                 {
@@ -22176,7 +22171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             await SendNotifications(NotificationMessage,
-                                    new NotificationMessageType[] { MessageType },
+                                    [ MessageType ],
                                     OldNotificationMessage,
                                     EventTrackingId,
                                     CurrentUserId);
@@ -22939,18 +22934,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public static DeleteNotificationMessageResult Success
 
-                => new DeleteNotificationMessageResult(true);
+                => new (true);
 
             public static DeleteNotificationMessageResult Failed(I18NString Reason)
 
-                => new DeleteNotificationMessageResult(false,
-                                             Reason);
+                => new (false,
+                        Reason);
 
             public static DeleteNotificationMessageResult Failed(Exception Exception)
 
-                => new DeleteNotificationMessageResult(false,
-                                             I18NString.Create(
-                                                               Exception.Message));
+                => new (false,
+                        I18NString.Create(Exception.Message));
 
             public override String ToString()
 
@@ -23150,7 +23144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected NotificationMessage _GetNotificationMessage(NotificationMessage_Id NotificationMessageId)
         {
 
-            if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage notificationMessage))
+            if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out var notificationMessage))
                 return notificationMessage;
 
             return null;
@@ -23264,7 +23258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var UserOrganizations = User.Organizations(Access_Levels.ReadOnly, Recursive: true).SafeSelect(org => org.Id).ToArray();
 
-                return notificationMessages.Values.Where(message => message.Owners.Intersect(UserOrganizations).Any()).ToArray();
+                return [.. notificationMessages.Values.Where(message => message.Owners.Intersect(UserOrganizations).Any())];
 
             }
             finally
@@ -23328,7 +23322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           User_Id?                 CurrentUserId     = null)
 
             => SendNotifications(Organization,
-                                 new[] { MessageType },
+                                 [ MessageType ],
                                  OldOrganization,
                                  EventTrackingId,
                                  CurrentUserId);
@@ -23576,7 +23570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => SendNotifications(Organization,
                                  ParentOrganizations,
-                                 new[] { MessageType },
+                                 [ MessageType ],
                                  EventTrackingId,
                                  CurrentUserId);
 
@@ -25451,9 +25445,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OrganizationName">The name of a organization (might not be unique).</param>
         protected internal IEnumerable<IOrganization> _SearchOrganizationsByName(I18NString OrganizationName)
 
-            => organizations.Values.
-                              Where(organization => organization.Name.Equals(OrganizationName)).
-                              ToArray();
+            => [.. organizations.Values.Where(organization => organization.Name.Equals(OrganizationName))];
 
         /// <summary>
         /// Find all organizations having the given organization name.
@@ -25534,7 +25526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            return Array.Empty<Organization>();
+            return [];
 
         }
 
@@ -25559,7 +25551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Organizations = foundOrganizations;
 
-            return foundOrganizations.Any();
+            return foundOrganizations.Count != 0;
 
         }
 
@@ -25582,7 +25574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Organizations = foundOrganizations;
 
-            return foundOrganizations.Any();
+            return foundOrganizations.Count != 0;
 
         }
 
@@ -25863,7 +25855,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             await SendNotifications(OrganizationGroup,
-                                    new NotificationMessageType[] { MessageType },
+                                    [ MessageType ],
                                     OldOrganizationGroup,
                                     EventTrackingId,
                                     CurrentUserId);
@@ -27074,7 +27066,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => SendNotifications(User,
                                  EdgeLabel,
                                  UserGroup,
-                                 new NotificationMessageType[] { MessageType },
+                                 [ MessageType ],
                                  EventTrackingId,
                                  CurrentUserId);
 
@@ -27588,7 +27580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
 
-            return edges.Any()
+            return edges.Count != 0
 
                        ? RemoveUserFromUserGroupResult.Success(User,
                                                                EdgeLabel,
@@ -27763,7 +27755,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
 
-            return edges.Any()
+            return edges.Count != 0
 
                        ? RemoveUserFromUserGroupResult.Success(User,
                                                                UserGroup,
@@ -27889,7 +27881,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             var childResults = currentOrg.Organization2OrganizationInEdges.Where(edge => edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
-                                          Select(edge => CheckImpersonate(edge.Source, Astronaut, AstronautFound, Member, new HashSet<IUser>(VetoUsers))).ToArray();
+                                          Select(edge => CheckImpersonate(edge.Source, Astronaut, AstronautFound, Member, [.. VetoUsers])).ToArray();
 
             return childResults.Any(result => result == true);
 
@@ -28008,7 +28000,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => SendNotifications(User,
                                  EdgeLabel,
                                  Organization,
-                                 new NotificationMessageType[] { MessageType },
+                                 [ MessageType ],
                                  EventTrackingId,
                                  CurrentUserId);
 
@@ -28533,7 +28525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
 
-            return edges.Any()
+            return edges.Count != 0
 
                        ? RemoveUserFromOrganizationResult.Success(User,
                                                                   EdgeLabel,
@@ -28707,7 +28699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
 
-            return edges.Any()
+            return edges.Count != 0
 
                        ? RemoveUserFromOrganizationResult.Success(User,
                                                                   Organization,
@@ -28815,7 +28807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => SendNotifications(OrganizationOut,
                                  EdgeLabel,
                                  OrganizationIn,
-                                 new[] { MessageType },
+                                 [ MessageType ],
                                  EventTrackingId,
                                  CurrentUserId);
 

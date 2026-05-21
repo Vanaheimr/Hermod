@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Parse an EDNS Client Subnet option from raw data bytes.
         /// </summary>
         /// <param name="Data">The raw option data.</param>
-        public new static EDNSClientSubnetOption Parse(Byte[] Data)
+        public static EDNSClientSubnetOption Parse(Byte[] Data)
         {
 
             if (Data.Length < 4)

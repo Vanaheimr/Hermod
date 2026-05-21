@@ -820,7 +820,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(Int32)))
                 {
-                    if (Int32.TryParse(value.ToString(), out var int32))
+                    if (Int32.TryParse(value?.ToString(), out var int32))
                     {
                         Value = (T) (Object) int32;
                         SetHeaderField(Key, Value);
@@ -830,7 +830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(UInt32)))
                 {
-                    if (UInt32.TryParse(value.ToString(), out var uInt32))
+                    if (UInt32.TryParse(value?.ToString(), out var uInt32))
                     {
                         Value = (T) (Object) uInt32;
                         SetHeaderField(Key, Value);
@@ -840,7 +840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(Int64)))
                 {
-                    if (Int64.TryParse(value.ToString(), out var int64))
+                    if (Int64.TryParse(value?.ToString(), out var int64))
                     {
                         Value = (T) (Object) int64;
                         SetHeaderField(Key, Value);
@@ -850,7 +850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(UInt64)))
                 {
-                    if (UInt64.TryParse(value.ToString(), out var uInt64))
+                    if (UInt64.TryParse(value?.ToString(), out var uInt64))
                     {
                         Value = (T) (Object) uInt64;
                         SetHeaderField(Key, Value);
@@ -862,9 +862,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     try
                     {
-                        Value = (T) value;
-                        SetHeaderField(Key, Value);
-                        return true;
+
+                        if (value is T valueT)
+                        {
+                            Value = valueT;
+                            SetHeaderField(Key, valueT);
+                            return true;
+                        }
+
+                        Value = default;
+                        return false;
+
                     }
                     catch
                     {
@@ -1438,17 +1446,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a HTTP header enumerator.
         /// </summary>
         public IEnumerator<KeyValuePair<String, Object>> GetEnumerator()
-        {
-            return headerFields.GetEnumerator();
-        }
+
+            => headerFields.
+                   Where(kvp => kvp.Value is not null).
+                   Cast<KeyValuePair<String, Object>>().
+                   GetEnumerator();
 
         /// <summary>
         /// Return a HTTP header enumerator.
         /// </summary>
         IEnumerator IEnumerable.GetEnumerator()
-        {
-            return headerFields.GetEnumerator();
-        }
+
+            => headerFields.
+                   Where(kvp => kvp.Value is not null).
+                   Cast<KeyValuePair<String, Object>>().
+                   GetEnumerator();
 
         #endregion
 

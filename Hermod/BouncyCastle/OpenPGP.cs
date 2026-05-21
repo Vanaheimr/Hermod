@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (InputStream is null)
                 throw new ArgumentException("The given text input is not valid PGP/GPG data!");
 
-            PgpPublicKeyRing PublicKeyRing = null;
+            PgpPublicKeyRing? PublicKeyRing = null;
 
             var PublicKeyRingBundle  = new PgpPublicKeyRingBundle(InputStream);
             if (PublicKeyRingBundle is not null)
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #region Open/create output streams
 
-            BcpgOutputStream WrappedOutputStream = null;
+            BcpgOutputStream? WrappedOutputStream = null;
 
             if (ArmoredOutput)
                 WrappedOutputStream = new BcpgOutputStream(new ArmoredOutputStream(OutputStream));
@@ -325,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             foreach (var UserId in SecretKey.PublicKey.GetUserIds().Cast<String>())
             {
                 var SignatureSubpacketGenerator = new PgpSignatureSubpacketGenerator();
-                SignatureSubpacketGenerator.SetSignerUserId(isCritical: false, userId: UserId);
+                SignatureSubpacketGenerator.AddSignerUserId(isCritical: false, userId: UserId);
                 SignatureGenerator.SetHashedSubpackets(SignatureSubpacketGenerator.Generate());
                 break; //wtf?
             }

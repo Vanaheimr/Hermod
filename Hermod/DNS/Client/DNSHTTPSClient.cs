@@ -112,6 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               String?                                                    HTTPUserAgent                        = null,
                               IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                              String?                                                    TLSHostname                          = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -142,6 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -210,6 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               String?                                                    HTTPUserAgent                        = null,
                               IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                              String?                                                    TLSHostname                          = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -240,6 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -307,6 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               String?                                                    HTTPUserAgent                        = null,
                               IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                              String?                                                    TLSHostname                          = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -337,6 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,  // Connection
                    null,  // DefaultRequestBuilder
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -418,6 +424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        String?                                                    HTTPUserAgent                        = null,
                        IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                       String?                                                    TLSHostname                          = null,
                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                        SslProtocols?                                              TLSProtocols                         = null,
                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -434,7 +441,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        UInt16?                                                    MaxNumberOfRetries                   = null,
                        UInt32?                                                    BufferSize                           = null,
 
-                       Boolean?                                                   DisableLogging                       = null)
+                       Boolean?                                                   DisableLogging                       = null,
+                       ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                       ILoggerFactory?                                            LoggerFactory                        = null)
 
         {
 
@@ -450,90 +459,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              HTTPUserAgent,
                              HTTPAuthentication,
 
-                             RemoteCertificateValidationHandler,
-                             TLSProtocols,
-                             CipherSuitesPolicy,
-                             CertificateChainPolicy,
-                             CertificateRevocationCheckMode,
-                             AllowRenegotiation,
-                             AllowTLSResume,
-
-                             PreferIPv4,
-                             ConnectTimeout,
-                             ReceiveTimeout,
-                             SendTimeout,
-                             TransmissionRetryDelay,
-                             MaxNumberOfRetries,
-                             BufferSize,
-
-                             DisableLogging
-
-                         );
-
-            var response = await client.ConnectAsync();
-
-            return (client, response);
-
-        }
-
-        #endregion
-
-        #region ConnectNew (URL, DNSService = null, ..., DNSClient = null)
-
-        /// <summary>
-        /// Create a new DNSHTTPSClient and connect to the given URL.
-        /// </summary>
-        /// <param name="URL">The URL to connect to.</param>
-        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports for the given URL hostname.</param>
-        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
-        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
-        /// <param name="SendTimeout">An optional timeout for sending data.</param>
-        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<(DNSHTTPSClient?, TCPConnectionResult)>
-
-            ConnectNew(URL                                                        URL,
-                       SRV_Spec?                                                  DNSService                           = null,
-                       I18NString?                                                Description                          = null,
-                       DNSHTTPSMode?                                              Mode                                 = null,
-                       Boolean?                                                   RecursionDesired                     = null,
-                       TimeSpan?                                                  QueryTimeout                         = null,
-
-                       String?                                                    HTTPUserAgent                        = null,
-                       IHTTPAuthentication?                                       HTTPAuthentication                   = null,
-
-                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
-                       SslProtocols?                                              TLSProtocols                         = null,
-                       CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
-                       X509ChainPolicy?                                           CertificateChainPolicy               = null,
-                       X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
-                       Boolean?                                                   AllowRenegotiation                   = null,
-                       Boolean?                                                   AllowTLSResume                       = null,
-
-                       IPVersionPreference?                                       PreferIPv4                           = null,
-                       TimeSpan?                                                  ConnectTimeout                       = null,
-                       TimeSpan?                                                  ReceiveTimeout                       = null,
-                       TimeSpan?                                                  SendTimeout                          = null,
-                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
-                       UInt16?                                                    MaxNumberOfRetries                   = null,
-                       UInt32?                                                    BufferSize                           = null,
-                       DNSClient?                                                 DNSClient                            = null,
-
-                       Boolean?                                                   DisableLogging                       = null)
-
-        {
-
-            var client = new DNSHTTPSClient(
-
-                             URL,
-                             Description,
-                             Mode,
-                             RecursionDesired,
-                             QueryTimeout,
-
-                             HTTPUserAgent,
-                             HTTPAuthentication,
-
+                             TLSHostname,
                              RemoteCertificateValidationHandler,
                              TLSProtocols,
                              CipherSuitesPolicy,
@@ -551,7 +477,97 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              BufferSize,
 
                              DisableLogging,
-                             DNSClient
+                             Logger,
+                             LoggerFactory
+
+                         );
+
+            var response = await client.ConnectAsync();
+
+            return (client, response);
+
+        }
+
+        #endregion
+
+        #region ConnectNew (URL, ..., DNSClient = null)
+
+        /// <summary>
+        /// Create a new DNSHTTPSClient and connect to the given URL.
+        /// </summary>
+        /// <param name="URL">The URL to connect to.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        public static async Task<(DNSHTTPSClient?, TCPConnectionResult)>
+
+            ConnectNew(URL                                                        URL,
+                       I18NString?                                                Description                          = null,
+                       DNSHTTPSMode?                                              Mode                                 = null,
+                       Boolean?                                                   RecursionDesired                     = null,
+                       TimeSpan?                                                  QueryTimeout                         = null,
+
+                       String?                                                    HTTPUserAgent                        = null,
+                       IHTTPAuthentication?                                       HTTPAuthentication                   = null,
+
+                       String?                                                    TLSHostname                          = null,
+                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
+                       SslProtocols?                                              TLSProtocols                         = null,
+                       CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
+                       X509ChainPolicy?                                           CertificateChainPolicy               = null,
+                       X509RevocationMode?                                        CertificateRevocationCheckMode       = null,
+                       Boolean?                                                   AllowRenegotiation                   = null,
+                       Boolean?                                                   AllowTLSResume                       = null,
+
+                       IPVersionPreference?                                       PreferIPv4                           = null,
+                       TimeSpan?                                                  ConnectTimeout                       = null,
+                       TimeSpan?                                                  ReceiveTimeout                       = null,
+                       TimeSpan?                                                  SendTimeout                          = null,
+                       TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
+                       UInt16?                                                    MaxNumberOfRetries                   = null,
+                       UInt32?                                                    BufferSize                           = null,
+
+                       Boolean?                                                   DisableLogging                       = null,
+                       DNSClient?                                                 DNSClient                            = null,
+                       ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                       ILoggerFactory?                                            LoggerFactory                        = null)
+
+        {
+
+            var client = new DNSHTTPSClient(
+
+                             URL,
+                             Description,
+                             Mode,
+                             RecursionDesired,
+                             QueryTimeout,
+
+                             HTTPUserAgent,
+                             HTTPAuthentication,
+
+                             TLSHostname,
+                             RemoteCertificateValidationHandler,
+                             TLSProtocols,
+                             CipherSuitesPolicy,
+                             CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
+                             AllowRenegotiation,
+                             AllowTLSResume,
+
+                             PreferIPv4,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
+                             BufferSize,
+
+                             DisableLogging,
+                             DNSClient,
+                             Logger,
+                             LoggerFactory
 
                          );
 
@@ -1160,6 +1176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             Boolean?                                                   RecursionDesired                     = null,
                                             TimeSpan?                                                  QueryTimeout                         = null,
 
+                                            String?                                                    TLSHostname                          = null,
                                             RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                                             SslProtocols?                                              TLSProtocols                         = null,
                                             CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -1178,7 +1195,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             String?                                                    HTTPUserAgent                        = null,
 
                                             Boolean?                                                   DisableLogging                       = null,
-                                            DNSClient?                                                 DNSClient                            = null)
+                                            DNSClient?                                                 DNSClient                            = null,
+                                            ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                                            ILoggerFactory?                                            LoggerFactory                        = null)
 
             => new (
                    URL.Parse(Mode == DNSHTTPSMode.JSON
@@ -1192,6 +1211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -1209,7 +1229,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient
+                   DNSClient,
+                   Logger,
+                   LoggerFactory
                );
 
         #endregion
@@ -1222,6 +1244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                                         String?                                                    HTTPUserAgent                        = null,
 
+                                                        String?                                                    TLSHostname                          = null,
                                                         RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                                                         SslProtocols?                                              TLSProtocols                         = null,
                                                         CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -1239,7 +1262,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                         UInt32?                                                    BufferSize                           = null,
 
                                                         Boolean?                                                   DisableLogging                       = null,
-                                                        DNSClient?                                                 DNSClient                            = null)
+                                                        DNSClient?                                                 DNSClient                            = null,
+                                                        ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                                                        ILoggerFactory?                                            LoggerFactory                        = null)
 
             => new (
                    URL.Parse("https://one.one.one.one/dns-query"),
@@ -1251,6 +1276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -1268,7 +1294,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient
+                   DNSClient,
+                   Logger,
+                   LoggerFactory
                );
 
         public static DNSHTTPSClient Cloudflare_IPv4_1(DNSHTTPSMode?                                              Mode                                 = null,
@@ -1277,6 +1305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                                        String?                                                    HTTPUserAgent                        = null,
 
+                                                       String?                                                    TLSHostname                          = null,
                                                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                                                        SslProtocols?                                              TLSProtocols                         = null,
                                                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -1306,6 +1335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidationHandler,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -1329,10 +1359,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSHTTPSClient Cloudflare_IPv4_2(DNSHTTPSMode?                                              Mode                                 = null,
                                                        Boolean?                                                   RecursionDesired                     = null,
                                                        TimeSpan?                                                  QueryTimeout                         = null,
-                                                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
 
                                                        String?                                                    HTTPUserAgent                        = null,
 
+                                                       String?                                                    TLSHostname                          = null,
+                                                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                                                        SslProtocols?                                              TLSProtocols                         = null,
                                                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
                                                        X509ChainPolicy?                                           CertificateChainPolicy               = null,
@@ -1361,6 +1392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidationHandler,
                    TLSProtocols,
                    CipherSuitesPolicy,

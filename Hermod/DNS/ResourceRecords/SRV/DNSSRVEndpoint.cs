@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Compares two DNS SRV Endpoints.
         /// </summary>
         /// <param name="DNSSRVEndpoint">A DNS SRV Endpoint to compare with.</param>
-        public Int32 CompareTo(DNSSRVEndpoint DNSSRVEndpoint)
+        public Int32 CompareTo(DNSSRVEndpoint? DNSSRVEndpoint)
         {
 
             var c = 0;

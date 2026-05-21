@@ -175,8 +175,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private const     String                                                                    LogfileName                   = "HTTPWebSocketServer.log";
 
-        public  const     UInt16                                                                    DefaultMaxClientConnections   = 16;
-
         #endregion
 
         #region Properties
@@ -318,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
-        public event OnNewTCPConnectionDelegate?                        OnNewTCPConnection;
+        public new event OnNewTCPConnectionDelegate?                        OnNewTCPConnection;
 
         /// <summary>
         /// An event sent whenever a new TLS connection was accepted.
@@ -328,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a TCP connection was closed.
         /// </summary>
-        public event OnTCPConnectionClosedDelegate?                     OnTCPConnectionClosed;
+        public new event OnTCPConnectionClosedDelegate?                     OnTCPConnectionClosed;
 
 
         /// <summary>

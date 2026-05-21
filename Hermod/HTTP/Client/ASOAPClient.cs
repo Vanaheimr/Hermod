@@ -130,6 +130,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               HTTPHostname?                                              VirtualHostname              = null,
                               I18NString?                                                Description                  = null,
                               IPVersionPreference?                                       PreferIPv4                   = null,
+
+                              String?                                                    TLSHostname                  = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
                               IEnumerable<X509Certificate2>?                             ClientCertificates           = null,
@@ -163,6 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    Connection     ?? ConnectionType.Close,
                    null, //DefaultRequestBuilder,
 
+                   TLSHostname,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCertificates,

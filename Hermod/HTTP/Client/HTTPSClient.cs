@@ -52,6 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            ConnectionType?                                           Connection                            = null,
                            DefaultRequestBuilderDelegate?                            DefaultRequestBuilder                 = null,
 
+                           String?                                                   TLSHostname                           = null,
                            LocalCertificateSelectionHandler?                         LocalCertificateSelector              = null,
                            IEnumerable<X509Certificate2>?                            ClientCertificates                    = null,
                            SslStreamCertificateContext?                              ClientCertificateContext              = null,
@@ -90,6 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    DefaultRequestBuilder,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -147,6 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            ConnectionType?                                            Connection                            = null,
                            DefaultRequestBuilderDelegate?                             DefaultRequestBuilder                 = null,
 
+                           String?                                                    TLSHostname                           = null,
                            LocalCertificateSelectionHandler?                          LocalCertificateSelector              = null,
                            IEnumerable<X509Certificate2>?                             ClientCertificates                    = null,
                            SslStreamCertificateContext?                               ClientCertificateContext              = null,
@@ -184,6 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    DefaultRequestBuilder,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -242,6 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            ConnectionType?                                           Connection                            = null,
                            DefaultRequestBuilderDelegate?                            DefaultRequestBuilder                 = null,
 
+                           String?                                                   TLSHostname                           = null,
                            LocalCertificateSelectionHandler?                         LocalCertificateSelector              = null,
                            IEnumerable<X509Certificate2>?                            ClientCertificates                    = null,
                            SslStreamCertificateContext?                              ClientCertificateContext              = null,
@@ -281,6 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Connection,
                    DefaultRequestBuilder,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -352,6 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ConnectionType?                                           Connection                            = null,
                        DefaultRequestBuilderDelegate?                            DefaultRequestBuilder                 = null,
 
+                       String?                                                   TLSHostname                           = null,
                        LocalCertificateSelectionHandler?                         LocalCertificateSelector              = null,
                        IEnumerable<X509Certificate2>?                            ClientCertificates                    = null,
                        SslStreamCertificateContext?                              ClientCertificateContext              = null,
@@ -393,6 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Connection,
                              DefaultRequestBuilder,
 
+                             TLSHostname,
                              LocalCertificateSelector,
                              ClientCertificates,
                              ClientCertificateContext,
@@ -450,6 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ConnectionType?                                           Connection                            = null,
                        DefaultRequestBuilderDelegate?                            DefaultRequestBuilder                 = null,
 
+                       String?                                                   TLSHostname                           = null,
                        LocalCertificateSelectionHandler?                         LocalCertificateSelector              = null,
                        IEnumerable<X509Certificate2>?                            ClientCertificates                    = null,
                        SslStreamCertificateContext?                              ClientCertificateContext              = null,
@@ -492,6 +501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Connection,
                              DefaultRequestBuilder,
 
+                             TLSHostname,
                              LocalCertificateSelector,
                              ClientCertificates,
                              ClientCertificateContext,
@@ -553,6 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ConnectionType?                                           Connection                            = null,
                        DefaultRequestBuilderDelegate?                            DefaultRequestBuilder                 = null,
 
+                       String?                                                   TLSHostname                           = null,
                        LocalCertificateSelectionHandler?                         LocalCertificateSelector              = null,
                        IEnumerable<X509Certificate2>?                            ClientCertificates                    = null,
                        SslStreamCertificateContext?                              ClientCertificateContext              = null,
@@ -595,6 +606,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Connection,
                              DefaultRequestBuilder,
 
+                             TLSHostname,
                              LocalCertificateSelector,
                              ClientCertificates,
                              ClientCertificateContext,
@@ -658,6 +670,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ConnectionType?                                           Connection                            = null,
                        DefaultRequestBuilderDelegate?                            DefaultRequestBuilder                 = null,
 
+                       String?                                                   TLSHostname                           = null,
                        LocalCertificateSelectionHandler?                         LocalCertificateSelector              = null,
                        IEnumerable<X509Certificate2>?                            ClientCertificates                    = null,
                        SslStreamCertificateContext?                              ClientCertificateContext              = null,
@@ -702,6 +715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Connection,
                              DefaultRequestBuilder,
 
+                             TLSHostname,
                              LocalCertificateSelector,
                              ClientCertificates,
                              ClientCertificateContext,

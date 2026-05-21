@@ -28,42 +28,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// An HTTP version identifier.
     /// </summary>
-    public struct HTTPVersion : IEquatable<HTTPVersion>,
-                                IComparable<HTTPVersion>,
-                                IComparable
+    /// <param name="Major">The major number.</param>
+    /// <param name="Minor">The minor number.</param>
+    public readonly struct HTTPVersion(UInt16 Major,
+                                       UInt16 Minor)
+
+        : IEquatable<HTTPVersion>,
+          IComparable<HTTPVersion>,
+          IComparable
+
     {
+
+        #region Data
+
+        public static readonly Char[] splitter = ['.', '/'];
+
+        #endregion
 
         #region Properties
 
         /// <summary>
         /// The major of this HTTP version
         /// </summary>
-        public UInt16  Major   { get; }
+        public UInt16 Major { get; } = Major;
 
         /// <summary>
         /// The minor of this HTTP version
         /// </summary>
-        public UInt16  Minor   { get; }
-
-        #endregion
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Create a new HTTP version identifier.
-        /// </summary>
-        /// <param name="Major">The major number.</param>
-        /// <param name="Minor">The minor number.</param>
-        public HTTPVersion(UInt16 Major, UInt16 Minor)
-        {
-            this.Major  = Major;
-            this.Minor  = Minor;
-        }
+        public UInt16 Minor { get; } = Minor;
 
         #endregion
 
 
-        #region Parse   (Text)
+        #region Parse    (Text)
 
         /// <summary>
         /// Parse the given text representation of a HTTP version, e.g. "HTTP/1.1".
@@ -81,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParse(Text)
+        #region TryParse (Text)
 
         /// <summary>
         /// Try to parse the given text representation of a HTTP version, e.g. "HTTP/1.1".
@@ -99,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParse(Text, out Version)
+        #region TryParse (Text, out Version)
 
         /// <summary>
         /// Try to parse the given text representation of a HTTP version, e.g. "HTTP/1.1".
@@ -109,18 +106,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out HTTPVersion Version)
         {
 
-            var MajorMinor = Text.Split(new Char[] { '.' }, StringSplitOptions.None);
+            Version = default;
 
-            if (MajorMinor.Length != 2 ||
-                !UInt16.TryParse(MajorMinor[0], out UInt16 Major) ||
-                !UInt16.TryParse(MajorMinor[1], out UInt16 Minor))
-            {
-                Version = default(HTTPVersion);
+            if (String.IsNullOrWhiteSpace(Text))
                 return false;
+
+            Text = Text.Trim();
+
+            // Remove optional "HTTP/" prefix (case-insensitive)
+            if (Text.StartsWith("HTTP/", StringComparison.OrdinalIgnoreCase))
+                Text = Text[5..].Trim();
+
+            var majorMinor = Text.Split(splitter, StringSplitOptions.None);
+
+            if (majorMinor.Length == 2 &&
+                UInt16.TryParse(majorMinor[0], out var major) &&
+                UInt16.TryParse(majorMinor[1], out var minor))
+            {
+
+                Version = new HTTPVersion(
+                              major,
+                              minor
+                          );
+
+                return true;
+
             }
 
-            Version = new HTTPVersion(Major, Minor);
-            return true;
+            Version = default;
+            return false;
 
         }
 
@@ -130,14 +144,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Static HTTP versions
 
         /// <summary>
-        /// HTTP 1.0
+        /// HTTP/1.0
         /// </summary>
-        public static readonly HTTPVersion HTTP_1_0 = new HTTPVersion(1, 0);
+        public static readonly HTTPVersion HTTP_1_0 = new (1, 0);
 
         /// <summary>
-        /// HTTP 1.1
+        /// HTTP/1.1
         /// </summary>
-        public static readonly HTTPVersion HTTP_1_1 = new HTTPVersion(1, 1);
+        public static readonly HTTPVersion HTTP_1_1 = new (1, 1);
+
+        /// <summary>
+        /// HTTP/2.0
+        /// </summary>
+        public static readonly HTTPVersion HTTP_2_0 = new (2, 0);
 
         #endregion
 
@@ -152,20 +171,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
-        {
+        public static Boolean operator == (HTTPVersion HTTPVersion1,
+                                           HTTPVersion HTTPVersion2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPVersion1, HTTPVersion2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) HTTPVersion1 is null) || ((Object) HTTPVersion2 is null))
-                return false;
-
-            return HTTPVersion1.Equals(HTTPVersion2);
-
-        }
+            => HTTPVersion1.Equals(HTTPVersion2);
 
         #endregion
 
@@ -177,8 +186,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
-            => !(HTTPVersion1 == HTTPVersion2);
+        public static Boolean operator != (HTTPVersion HTTPVersion1,
+                                           HTTPVersion HTTPVersion2)
+
+            => !HTTPVersion1.Equals(HTTPVersion2);
 
         #endregion
 
@@ -190,15 +201,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
-        {
+        public static Boolean operator < (HTTPVersion HTTPVersion1,
+                                          HTTPVersion HTTPVersion2)
 
-            if ((Object) HTTPVersion1 is null)
-                throw new ArgumentNullException(nameof(HTTPVersion1), "The given HTTPVersion1 must not be null!");
-
-            return HTTPVersion1.CompareTo(HTTPVersion2) < 0;
-
-        }
+            => HTTPVersion1.CompareTo(HTTPVersion2) < 0;
 
         #endregion
 
@@ -210,8 +216,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
-            => !(HTTPVersion1 > HTTPVersion2);
+        public static Boolean operator <= (HTTPVersion HTTPVersion1,
+                                           HTTPVersion HTTPVersion2)
+
+            => HTTPVersion1.CompareTo(HTTPVersion2) <= 0;
 
         #endregion
 
@@ -223,15 +231,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
-        {
+        public static Boolean operator > (HTTPVersion HTTPVersion1,
+                                          HTTPVersion HTTPVersion2)
 
-            if ((Object) HTTPVersion1 is null)
-                throw new ArgumentNullException(nameof(HTTPVersion1), "The given HTTPVersion1 must not be null!");
-
-            return HTTPVersion1.CompareTo(HTTPVersion2) > 0;
-
-        }
+            => HTTPVersion1.CompareTo(HTTPVersion2) > 0;
 
         #endregion
 
@@ -243,8 +246,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
-            => !(HTTPVersion1 < HTTPVersion2);
+        public static Boolean operator >= (HTTPVersion HTTPVersion1,
+                                           HTTPVersion HTTPVersion2)
+
+            => HTTPVersion1.CompareTo(HTTPVersion2) >= 0;
 
         #endregion
 
@@ -258,16 +263,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
         {
 
-            if (Object is null)
-                throw new ArgumentNullException("The given object must not be null!");
+            if (Object is not HTTPVersion httpVersion)
+                throw new ArgumentException("The given object is not a HTTP version!", nameof(Object));
 
-            if (!(Object is HTTPVersion))
-                throw new ArgumentException("The given object is not a HTTP version!");
-
-            return CompareTo((HTTPVersion) Object);
+            return CompareTo(httpVersion);
 
         }
 
@@ -279,18 +281,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="HTTPVersion">An object to compare with.</param>
-        public Int32 CompareTo(HTTPVersion HTTPVersion)
+        public readonly Int32 CompareTo(HTTPVersion HTTPVersion)
         {
 
-            if ((Object) HTTPVersion is null)
-                throw new ArgumentNullException("The given HTTP version must not be null!");
+            var c = Major.CompareTo(HTTPVersion.Major);
 
-            var _MajorCompared = Major.CompareTo(HTTPVersion.Major);
+            if (c == 0)
+                c = Minor.CompareTo(HTTPVersion.Minor);
 
-            if (_MajorCompared != 0)
-                return _MajorCompared;
-
-            return Minor.CompareTo(HTTPVersion.Minor);
+            return c;
 
         }
 
@@ -307,18 +306,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        public override Boolean Equals(Object? Object)
 
-            if (Object is null)
-                return false;
-
-            if (!(Object is HTTPVersion))
-                return false;
-
-            return Equals((HTTPVersion) Object);
-
-        }
+            => Object is HTTPVersion httpVersion &&
+                   Equals(httpVersion);
 
         #endregion
 
@@ -330,15 +321,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPVersion">An HTTPVersion to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPVersion HTTPVersion)
-        {
 
-            if ((Object) HTTPVersion is null)
-                return false;
-
-            return Major == HTTPVersion.Major &&
-                   Minor == HTTPVersion.Minor;
-
-        }
+            => Major.Equals(HTTPVersion.Major) &&
+               Minor.Equals(HTTPVersion.Minor);
 
         #endregion
 
@@ -368,7 +353,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => String.Concat(Major, ".", Minor);
+
+            => $"{Major}.{Minor}";
 
         #endregion
 

@@ -55,15 +55,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
     /// </summary>
     /// <seealso cref="https://modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf"/>
     /// <seealso cref="https://modbus.org/docs/MB-TCP-Security-v21_2018-07-24.pdf"/>
-    public class ModbusTCPClient : IModbusClient
+    public class ModbusTCPClient : ATLSClient,
+                                   IModbusClient
     {
 
         #region Data
 
-        private Socket?           TCPSocket;
-        private MyNetworkStream?  TCPStream;
-        private SslStream?        TLSStream;
-        private Stream?           HTTPStream;
         private Int32             internalInvocationId;
 
 
@@ -109,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The remote IP address of the Modbus device to connect to.
         /// </summary>
-        public IIPAddress                                                     RemoteIPAddress               { get; }
+        public new IIPAddress?                                                RemoteIPAddress               { get; }
 
         /// <summary>
         /// The remote TCP port of the Modbus device to connect to.
@@ -132,17 +129,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// An optional description of this Modbus/TCP client.
         /// </summary>
-        public String?                                                        Description                   { get; set; }
+        public new String?                                                    Description                   { get; set; }
 
         /// <summary>
         /// The remote TLS certificate validator.
         /// </summary>
-        public RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator    { get; }
+        public new RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator { get; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionHandler?                              LocalCertificateSelector     { get; }
+        public new LocalCertificateSelectionHandler?                          LocalCertificateSelector      { get; }
 
         /// <summary>
         /// The TLS client certificate to use for HTTP authentication.
@@ -167,12 +164,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The delay between transmission retries.
         /// </summary>
-        public TransmissionRetryDelayDelegate                                 TransmissionRetryDelay        { get; }
+        public new TransmissionRetryDelayDelegate                             TransmissionRetryDelay        { get; }
 
         /// <summary>
         /// The maximum number of retries when communicating with a remote Modbus device to connect to.
         /// </summary>
-        public UInt16                                                         MaxNumberOfRetries            { get; }
+        public new UInt16                                                     MaxNumberOfRetries            { get; }
 
         /// <summary>
         /// Whether to pipeline multiple Modbus request through a single TCP connection.
@@ -187,14 +184,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient                                                      DNSClient                     { get; }
+        public new DNSClient                                                  DNSClient                     { get; }
 
 
         #region Available
 
         public Int32? Available
 
-            => TCPSocket?.Available;
+            => tcpClient?.Available;
 
         #endregion
 
@@ -202,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public Boolean? Connected
 
-            => TCPSocket?.Connected;
+            => IsConnected;
 
         #endregion
 
@@ -215,15 +212,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             get
             {
-                return TCPSocket?.LingerState;
+                return tcpClient?.Client?.LingerState;
             }
 
             set
             {
-                if (TCPSocket is not null &&
+                if (tcpClient?.Client is not null &&
                     value     is not null)
                 {
-                    TCPSocket.LingerState = value;
+                    tcpClient.Client.LingerState = value;
                 }
             }
 
@@ -239,14 +236,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         {
             get
             {
-                return TCPSocket?.NoDelay;
+                return tcpClient?.NoDelay;
             }
             set
             {
-                if (TCPSocket is not null &&
+                if (tcpClient is not null &&
                     value     is not null)
                 {
-                    TCPSocket.NoDelay = value.Value;
+                    tcpClient.NoDelay = value.Value;
                 }
             }
         }
@@ -261,14 +258,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         {
             get
             {
-                return (Byte?) TCPSocket?.Ttl;
+                return (Byte?) tcpClient?.Client?.Ttl;
             }
             set
             {
-                if (TCPSocket is not null &&
+                if (tcpClient?.Client is not null &&
                     value     is not null)
                 {
-                    TCPSocket.Ttl = value.Value;
+                    tcpClient.Client.Ttl = value.Value;
                 }
             }
         }
@@ -305,6 +302,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Constructor(s)
 
+        #region Helpers
+
+        private static IPPort ResolveRemoteTCPPort(IPPort?        RemoteTCPPort,
+                                                   SslProtocols?  TLSProtocol,
+                                                   URLProtocols?  URLProtocol = null)
+
+            => RemoteTCPPort ?? (TLSProtocol.HasValue || URLProtocol?.EnforcesTLS() == true
+                                      ? DefaultSecurePort
+                                      : DefaultRemotePort);
+
+
+        private static URL BuildModbusURL(HTTPHostname  RemoteHostname,
+                                          IPPort?       RemoteTCPPort,
+                                          SslProtocols? TLSProtocol)
+
+            => URL.Parse(
+                   String.Concat(
+                       TLSProtocol.HasValue
+                           ? "smodbus://"
+                           : "modbus://",
+                       RemoteHostname,
+                       ":",
+                       ResolveRemoteTCPPort(RemoteTCPPort, TLSProtocol)
+                   )
+               );
+
+
+        private static LocalCertificateSelectionHandler? BuildLocalCertificateSelector(LocalCertificateSelectionHandler?  LocalCertificateSelector,
+                                                                                       X509Certificate?                   ClientCert)
+
+            => LocalCertificateSelector ??
+               (ClientCert is not null
+                    ? (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => ClientCert
+                    : null);
+
+
+        private static IEnumerable<X509Certificate2>? ToClientCertificates(X509Certificate? ClientCert)
+
+            => ClientCert is null
+                   ? null
+                   : [
+                         ClientCert as X509Certificate2 ??
+                         new X509Certificate2(ClientCert)
+                     ];
+
+        #endregion
+
         #region ModbusTCPClient(RemoteHostname,  RemoteTCPPort = null, ...)
 
         /// <summary>
@@ -333,6 +377,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
                                X509Certificate?                                               ClientCert                   = null,
+                               IEnumerable<X509Certificate2>?                                 ClientCertificateChain       = null,
+                               String?                                                        TLSHostname                  = null,
                                SslProtocols?                                                  TLSProtocol                  = null,
                                Boolean?                                                       PreferIPv4                   = null,
                                TimeSpan?                                                      RequestTimeout               = null,
@@ -342,33 +388,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                ModbusTCPClientLogger?                                         Logger                       = null,
                                DNSClient?                                                     DNSClient                    = null)
 
+            : base(BuildModbusURL(RemoteHostname, RemoteTCPPort, TLSProtocol),
+                   Description.ToI18NString(),
+
+                   RemoteCertificateValidator: RemoteCertificateValidator is not null
+                                                   ? (sender,
+                                                      certificate,
+                                                      certificateChain,
+                                                      tlsClient,
+                                                      policyErrors) => RemoteCertificateValidator.Invoke(
+                                                                           sender,
+                                                                           certificate,
+                                                                           certificateChain,
+                                                                           (ModbusTCPClient) tlsClient,
+                                                                           policyErrors
+                                                                       )
+                                                   : null,
+                   LocalCertificateSelector:   BuildLocalCertificateSelector(LocalCertificateSelector, ClientCert),
+                   ClientCertificates:         ToClientCertificates(ClientCert),
+                   ClientCertificateChain:     ClientCertificateChain,
+                   TLSProtocols:               TLSProtocol ?? (SslProtocols.Tls12 | SslProtocols.Tls13),
+                   EnforceTLS:                 TLSProtocol.HasValue,
+
+                   IPVersionPreference:        PreferIPv4 == true
+                                                   ? IPVersionPreference.PreferIPv4
+                                                   : IPVersionPreference.PreferIPv6,
+                   ConnectTimeout:             RequestTimeout ?? DefaultRequestTimeout,
+                   ReceiveTimeout:             RequestTimeout ?? DefaultRequestTimeout,
+                   SendTimeout:                RequestTimeout ?? DefaultRequestTimeout,
+                   TransmissionRetryDelay:     TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds)),
+                   MaxNumberOfRetries:         MaxNumberOfRetries,
+
+                   DNSClient:                  DNSClient,
+                   TLSHostname:                TLSHostname)
+
         {
 
             this.RemoteHostname              = RemoteHostname;
-            this.RemoteTCPPort               = RemoteTCPPort          ?? (TLSProtocol.HasValue
-                                                                             ? DefaultSecurePort
-                                                                             : DefaultRemotePort);
+            this.RemoteTCPPort               = ResolveRemoteTCPPort(RemoteTCPPort, TLSProtocol);
             this.UnitAddress                 = UnitAddress            ?? 1;
             this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
             this.Description                 = Description;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.LocalCertificateSelector    = LocalCertificateSelector;
+            this.LocalCertificateSelector    = BuildLocalCertificateSelector(LocalCertificateSelector, ClientCert);
             this.ClientCert                  = ClientCert;
-            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.TLSProtocol                 = TLSProtocol            ?? (SslProtocols.Tls12 | SslProtocols.Tls13);
             this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
-            this.DNSClient                   = DNSClient              ?? new DNSClient();
-
-            if (this.LocalCertificateSelector is null && this.ClientCert is not null)
-                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
-
-#pragma warning disable SCS0005 // Weak random number generator.
+            this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
             this.internalInvocationId        = Random.Shared.Next(1000);
-#pragma warning restore SCS0005 // Weak random number generator.
 
         }
 
@@ -402,6 +474,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
                                X509Certificate?                                               ClientCert                   = null,
+                               IEnumerable<X509Certificate2>?                                 ClientCertificateChain       = null,
+                               String?                                                        TLSHostname                  = null,
                                SslProtocols?                                                  TLSProtocol                  = null,
                                Boolean?                                                       PreferIPv4                   = null,
                                TimeSpan?                                                      RequestTimeout               = null,
@@ -411,33 +485,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                ModbusTCPClientLogger?                                         Logger                       = null,
                                DNSClient?                                                     DNSClient                    = null)
 
+            : base(RemoteIPAddress,
+                   ResolveRemoteTCPPort(RemoteTCPPort, TLSProtocol),
+                   Description.ToI18NString(),
+
+                   RemoteCertificateValidator: RemoteCertificateValidator is not null
+                                                   ? (sender,
+                                                      certificate,
+                                                      certificateChain,
+                                                      tlsClient,
+                                                      policyErrors) => RemoteCertificateValidator.Invoke(
+                                                                           sender,
+                                                                           certificate,
+                                                                           certificateChain,
+                                                                           (ModbusTCPClient) tlsClient,
+                                                                           policyErrors
+                                                                       )
+                                                   : null,
+                   LocalCertificateSelector:   BuildLocalCertificateSelector(LocalCertificateSelector, ClientCert),
+                   ClientCertificates:         ToClientCertificates(ClientCert),
+                   ClientCertificateChain:     ClientCertificateChain,
+                   TLSProtocols:               TLSProtocol ?? (SslProtocols.Tls12 | SslProtocols.Tls13),
+                   EnforceTLS:                 TLSProtocol.HasValue,
+
+                   IPVersionPreference:        PreferIPv4 == true
+                                                   ? IPVersionPreference.PreferIPv4
+                                                   : IPVersionPreference.PreferIPv6,
+                   ConnectTimeout:             RequestTimeout ?? DefaultRequestTimeout,
+                   ReceiveTimeout:             RequestTimeout ?? DefaultRequestTimeout,
+                   SendTimeout:                RequestTimeout ?? DefaultRequestTimeout,
+                   TransmissionRetryDelay:     TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds)),
+                   MaxNumberOfRetries:         MaxNumberOfRetries,
+                   TLSHostname:                TLSHostname)
+
         {
 
             this.RemoteIPAddress             = RemoteIPAddress;
-            this.RemoteTCPPort               = RemoteTCPPort          ?? (TLSProtocol.HasValue
-                                                                             ? DefaultSecurePort
-                                                                             : DefaultRemotePort);
+            this.RemoteTCPPort               = ResolveRemoteTCPPort(RemoteTCPPort, TLSProtocol);
             this.UnitAddress                 = UnitAddress            ?? 1;
             this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
             this.Description                 = Description;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.LocalCertificateSelector   = LocalCertificateSelector;
+            this.LocalCertificateSelector    = BuildLocalCertificateSelector(LocalCertificateSelector, ClientCert);
             this.ClientCert                  = ClientCert;
-            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
+            this.TLSProtocol                 = TLSProtocol            ?? (SslProtocols.Tls12 | SslProtocols.Tls13);
             this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
-            this.DNSClient                   = DNSClient              ?? new DNSClient();
-
-            if (this.LocalCertificateSelector is null && this.ClientCert is not null)
-                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
-
-#pragma warning disable SCS0005 // Weak random number generator.
+            this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
             this.internalInvocationId        = Random.Shared.Next(1000);
-#pragma warning restore SCS0005 // Weak random number generator.
 
         }
 
@@ -469,6 +568,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
                                X509Certificate?                                               ClientCert                   = null,
+                               IEnumerable<X509Certificate2>?                                 ClientCertificateChain       = null,
+                               String?                                                        TLSHostname                  = null,
                                SslProtocols?                                                  TLSProtocol                  = null,
                                Boolean?                                                       PreferIPv4                   = null,
                                TimeSpan?                                                      RequestTimeout               = null,
@@ -478,24 +579,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                ModbusTCPClientLogger?                                         Logger                       = null,
                                DNSClient?                                                     DNSClient                    = null)
 
-            : this(RemoteURL.Hostname,
-                   RemoteURL.Port,
-                   UnitAddress,
-                   StartingAddressOffset,
-                   Description,
-                   RemoteCertificateValidator,
-                   LocalCertificateSelector,
-                   ClientCert,
-                   TLSProtocol,
-                   PreferIPv4,
-                   RequestTimeout,
-                   TransmissionRetryDelay,
-                   MaxNumberOfRetries,
-                   UseRequestPipelining,
-                   Logger,
-                   DNSClient)
+            : base(RemoteURL,
+                   Description.ToI18NString(),
 
-        { }
+                   RemoteCertificateValidator: RemoteCertificateValidator is not null
+                                                   ? (sender,
+                                                      certificate,
+                                                      certificateChain,
+                                                      tlsClient,
+                                                      policyErrors) => RemoteCertificateValidator.Invoke(
+                                                                           sender,
+                                                                           certificate,
+                                                                           certificateChain,
+                                                                           (ModbusTCPClient) tlsClient,
+                                                                           policyErrors
+                                                                       )
+                                                   : null,
+                   LocalCertificateSelector:   BuildLocalCertificateSelector(LocalCertificateSelector, ClientCert),
+                   ClientCertificates:         ToClientCertificates(ClientCert),
+                   ClientCertificateChain:     ClientCertificateChain,
+                   TLSProtocols:               TLSProtocol ?? (SslProtocols.Tls12 | SslProtocols.Tls13),
+                   EnforceTLS:                 TLSProtocol.HasValue || RemoteURL.Protocol.EnforcesTLS(),
+
+                   IPVersionPreference:        PreferIPv4 == true
+                                                   ? IPVersionPreference.PreferIPv4
+                                                   : IPVersionPreference.PreferIPv6,
+                   ConnectTimeout:             RequestTimeout ?? DefaultRequestTimeout,
+                   ReceiveTimeout:             RequestTimeout ?? DefaultRequestTimeout,
+                   SendTimeout:                RequestTimeout ?? DefaultRequestTimeout,
+                   TransmissionRetryDelay:     TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds)),
+                   MaxNumberOfRetries:         MaxNumberOfRetries,
+
+                   DNSClient:                  DNSClient,
+                   TLSHostname:                TLSHostname)
+
+        {
+
+            this.RemoteHostname              = RemoteURL.Hostname;
+            this.RemoteTCPPort               = ResolveRemoteTCPPort(RemoteURL.Port, TLSProtocol, RemoteURL.Protocol);
+            this.UnitAddress                 = UnitAddress            ?? 1;
+            this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
+            this.Description                 = Description;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this.LocalCertificateSelector    = BuildLocalCertificateSelector(LocalCertificateSelector, ClientCert);
+            this.ClientCert                  = ClientCert;
+            this.TLSProtocol                 = TLSProtocol            ?? (SslProtocols.Tls12 | SslProtocols.Tls13);
+            this.PreferIPv4                  = PreferIPv4             ?? false;
+            this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
+            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
+            this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
+            this.UseRequestPipelining        = UseRequestPipelining;
+            this.Logger                      = Logger;
+            this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
+            this.internalInvocationId        = Random.Shared.Next(1000);
+
+        }
 
         #endregion
 
@@ -619,16 +757,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 //Counters.ReadHoldingRegisters.IncResponses_OK();
 
             }
-            catch (Exception e)
+            catch
             {
                 //Counters.ReadHoldingRegisters.IncResponses_Error();
+                throw;
             }
 
-            response ??= new ReadHoldingRegistersResponse(request,
-                                                          request.TransactionId,
-                                                          Array.Empty<UInt16>(),
-                                                          request.ProtocolId,
-                                                          request.UnitId);
+            response ??= new ReadHoldingRegistersResponse(
+                             request,
+                             request.TransactionId,
+                             [],
+                             request.ProtocolId,
+                             request.UnitId
+                         );
 
 
             #region Send OnReadHoldingRegistersResponse event
@@ -1005,7 +1146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var response = ReadHoldingRegisters(StartingAddress, NumberOfRegisters).Result;
 
-            Text = Encoding.UTF8.GetString(response.EntirePDU.Skip(9).TakeWhile(b => b != 0x00).ToArray());
+            Text = Encoding.UTF8.GetString([.. response.EntirePDU.Skip(9).TakeWhile(b => b != 0x00)]);
 
             return Text.Length > 0;
 
@@ -1013,7 +1154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             return TryRead(StartingAddress,
                            NumberOfRegisters,
                            out Text,
-                           array => Encoding.UTF8.GetString(array.Skip(3).TakeWhile(b => b != 0x00).ToArray()));
+                           array => Encoding.UTF8.GetString([.. array.Skip(3).TakeWhile(b => b != 0x00)]));
 
         }
 
@@ -1088,7 +1229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public Boolean GetByteArray(ModbusPacket ModbusPacket, out Byte[] ByteArray)
         {
 
-            ByteArray = Array.Empty<Byte>();
+            ByteArray = [];
             Boolean _CRC = false;
             var retries = 0;
 
@@ -1117,7 +1258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             if (_CRC)
                 return true;
 
-            ByteArray = Array.Empty<Byte>();
+            ByteArray = [];
             return false;
 
         }
@@ -1148,247 +1289,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             await Task.Delay(500);
 
-            return new Byte[0];
+            return [];
 
         }
 
         private async Task<Byte[]> WriteAsyncData(ModbusTCPRequest Request)
         {
 
-            var sw = new Stopwatch();
-
-            if (TCPSocket is null)
+            if (!IsConnected ||
+                ActiveStream is null)
             {
 
-                TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                       SocketType.   Stream,
-                                       ProtocolType. Tcp) {
+                var connectionResult = await ReconnectAsync().ConfigureAwait(false);
 
-                    SendTimeout    = (Int32) RequestTimeout.TotalMilliseconds,
-                    ReceiveTimeout = (Int32) RequestTimeout.TotalMilliseconds
-
-                };
-
-                TCPSocket.Connect(new System.Net.IPEndPoint(System.Net.IPAddress.Parse(RemoteIPAddress.ToString()),
-                                                            RemoteTCPPort.ToInt32()));
+                if (connectionResult.IsFailure)
+                    throw new IOException(connectionResult.Errors.Select(error => error.ToString()).AggregateWith(", "));
 
             }
 
-            if (TCPSocket is not null && TCPStream is null)
-            {
+            var modbusStream = ActiveStream ?? throw new IOException("The Modbus/TCP stream could not be created!");
 
-                TCPStream = new MyNetworkStream(TCPSocket, true) {
-                    ReadTimeout = (Int32) RequestTimeout.TotalMilliseconds
-                };
+            Request.LocalSocket   = LocalSocket  ?? IPSocket.Zero;
+            Request.RemoteSocket  = RemoteSocket ?? IPSocket.Zero;
 
-                Request.LocalSocket   = IPSocket.FromIPEndPoint(TCPSocket.LocalEndPoint)  ?? IPSocket.Zero;
-                Request.RemoteSocket  = IPSocket.FromIPEndPoint(TCPSocket.RemoteEndPoint) ?? IPSocket.Zero;
-
-            }
-
-            #region Create TCP connection (possibly also do DNS lookups)
-
-            //Boolean restart;
-
-            //do
-            //{
-
-            //    restart = false;
-
-            //    if (TCPSocket is null)
-            //    {
-
-            //        System.Net.IPEndPoint? _FinalIPEndPoint = null;
-
-            //        if (RemoteIPAddress is null)
-            //        {
-
-            //            #region Localhost
-
-            //            if (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
-            //                RemoteIPAddress = IPv4Address.Localhost;
-
-            //            else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
-            //                RemoteIPAddress = IPv6Address.Localhost;
-
-            //            else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-            //                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
-
-            //            else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-            //                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
-
-            //            #endregion
-
-            //            #region DNS lookup...
-
-            //            if (RemoteIPAddress is null)
-            //            {
-
-            //                var IPv4AddressLookupTask = DNSClient.
-            //                                                Query<A>(RemoteURL.Hostname.Name).
-            //                                                ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
-
-            //                var IPv6AddressLookupTask = DNSClient.
-            //                                                Query<AAAA>(RemoteURL.Hostname.Name).
-            //                                                ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
-
-            //                await Task.WhenAll(IPv4AddressLookupTask,
-            //                                    IPv6AddressLookupTask).
-            //                            ConfigureAwait(false);
-
-            //                if (PreferIPv4)
-            //                {
-            //                    if (IPv6AddressLookupTask.Result.Any())
-            //                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
-
-            //                    if (IPv4AddressLookupTask.Result.Any())
-            //                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
-            //                }
-            //                else
-            //                {
-            //                    if (IPv4AddressLookupTask.Result.Any())
-            //                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
-
-            //                    if (IPv6AddressLookupTask.Result.Any())
-            //                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
-            //                }
-
-            //            }
-
-            //            #endregion
-
-            //        }
-
-            //        if (RemoteIPAddress is not null && RemotePort is not null)
-            //            _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-            //                                                            RemotePort.Value.ToInt32());
-            //        else
-            //            throw new Exception("DNS lookup failed!");
-
-
-            //        sw.Start();
-
-            //        //TCPClient = new TcpClient();
-            //        //TCPClient.Connect(_FinalIPEndPoint);
-            //        //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-            //        if (RemoteIPAddress.IsIPv4)
-            //            TCPSocket = new Socket(AddressFamily.InterNetwork,
-            //                                    SocketType.Stream,
-            //                                    ProtocolType.Tcp);
-
-            //        if (RemoteIPAddress.IsIPv6)
-            //            TCPSocket = new Socket(AddressFamily.InterNetworkV6,
-            //                                    SocketType.Stream,
-            //                                    ProtocolType.Tcp);
-
-            //        if (TCPSocket is not null)
-            //        {
-            //            TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-            //            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-            //            TCPSocket.Connect(_FinalIPEndPoint);
-            //            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-            //        }
-
-            //    }
-
-            //    TCPStream = TCPSocket is not null
-            //                    ? new MyNetworkStream(TCPSocket, true) {
-            //                            ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-            //                        }
-            //                    : null;
-
-                #endregion
-
-            #region Create (Crypto-)Stream
-
-                //    if (RemoteURL.Protocol == URLProtocols.https &&
-                //        RemoteCertificateValidator is not null   &&
-                //        TCPStream                  is not null)
-                //    {
-
-                //        if (TLSStream is null)
-                //        {
-
-                //            TLSStream = new SslStream(TCPStream,
-                //                                      false,
-                //                                      RemoteCertificateValidator,
-                //                                      LocalCertificateSelector,
-                //                                      EncryptionPolicy.RequireEncryption)
-                //            {
-
-                //                ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-
-                //            };
-
-                //            HTTPStream = TLSStream;
-
-                //            try
-                //            {
-
-                //                await TLSStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
-                //                                                          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
-                //                                                          this.TLSProtocol,
-                //                                                          false);// true);
-
-                //            }
-                //            catch
-                //            {
-                //                TCPSocket = null;
-                //                restart   = true;
-                //            }
-
-                //        }
-
-                //    }
-
-                //    else
-                //    {
-                //        TLSStream  = null;
-                //        HTTPStream = TCPStream;
-                //    }
-
-                //    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-                //}
-                //while (restart);
-
-                #endregion
-
-
-            TCPStream?.Write(Request.EntirePDU);
-
-
-            #region Wait timeout for the server to react!
-
-
-            while (!TCPStream.DataAvailable)
-            {
-
-                if (sw.ElapsedMilliseconds >= RequestTimeout.TotalMilliseconds)
-                    throw new HTTPTimeoutException(sw.Elapsed);
-
-                Thread.Sleep(1);
-
-            }
-
-            //DebugX.LogT("ModbusTCP Client (" + Request.HTTPMethod + " " + Request.URL + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
-
-            #endregion
-
-
-            HTTPStream = TCPStream;
+            await modbusStream.WriteAsync(Request.EntirePDU).ConfigureAwait(false);
+            await modbusStream.FlushAsync().ConfigureAwait(false);
 
             var responseBuffer = new Byte[65536];
+            using var timeout  = new CancellationTokenSource(RequestTimeout);
 
-            //do
-            //{
-
-                var bytesRead = await HTTPStream.ReadAsync(responseBuffer);
-
-            //} while (HeaderEndsAt == 0 &&
-            //             sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
-
+            var bytesRead = await modbusStream.ReadAsync(
+                                      responseBuffer,
+                                      timeout.Token
+                                  ).ConfigureAwait(false);
 
             Array.Resize(ref responseBuffer,
                          bytesRead);
@@ -1445,21 +1378,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
 
 
-        public void Close()
+        void IModbusClient.Close()
         {
-            TCPStream?.Close();
-            TCPSocket?.Close();
+            base.Close().GetAwaiter().GetResult();
         }
 
 
-        public void Dispose()
+        public override void Dispose()
         {
-
-            TCPStream?.Close();
-            TCPSocket?.Close();
-
-            TCPStream?.Dispose();
-            TCPSocket?.Dispose();
+            base.Dispose();
 
         }
 

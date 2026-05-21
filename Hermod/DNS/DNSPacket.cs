@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
            // if (Packet.Length < 12)
            //     return null;
 
-            var position               = 0;
+            //var position               = 0;
 
             var transactionId          = Stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
             var flags1                 = Stream.ReadByte();     // Packet[position++];

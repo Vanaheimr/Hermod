@@ -18,7 +18,6 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System;
 
 #endregion
 
@@ -73,12 +72,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The unique user identification.
         /// </summary>
-        public User_Id   Login      { get; }
+        public User_Id   Login       { get; }
 
         /// <summary>
         /// The password of the user.
         /// </summary>
-        public Password  Password   { get; }
+        public Password  Password    { get; }
 
         #endregion
 
@@ -146,7 +145,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LoginPassword1">A login & password.</param>
         /// <param name="LoginPassword2">Another login & password.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (LoginPassword LoginPassword1, LoginPassword LoginPassword2)
+        public static Boolean operator == (LoginPassword LoginPassword1,
+                                           LoginPassword LoginPassword2)
 
             => LoginPassword1.Equals(LoginPassword2);
 
@@ -160,7 +160,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LoginPassword1">A login & password.</param>
         /// <param name="LoginPassword2">Another login & password.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (LoginPassword LoginPassword1, LoginPassword LoginPassword2)
+        public static Boolean operator != (LoginPassword LoginPassword1,
+                                           LoginPassword LoginPassword2)
 
             => !LoginPassword1.Equals(LoginPassword2);
 
@@ -176,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
 
             => Object is LoginPassword loginPassword
                    ? CompareTo(loginPassword)
@@ -207,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
 
             => Object is LoginPassword loginPassword &&
                    Equals(loginPassword);

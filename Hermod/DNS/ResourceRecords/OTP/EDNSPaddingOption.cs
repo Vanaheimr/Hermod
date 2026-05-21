@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Parse an EDNS Padding option from raw data bytes.
         /// </summary>
         /// <param name="Data">The raw option data.</param>
-        public new static EDNSPaddingOption Parse(Byte[] Data)
+        public static EDNSPaddingOption Parse(Byte[] Data)
 
             => new ((UInt16) Data.Length);
 

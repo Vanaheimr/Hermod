@@ -1174,7 +1174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// <summary>
         /// Dispose this TCP connection.
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
             if (!isClosed)
             {
