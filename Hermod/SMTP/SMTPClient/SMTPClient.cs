@@ -184,9 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                        UseTLS == TLSUsage.TLSSocket
                            ? "tls://"
                            : "tcp://",
-                       RemoteHost,
-                       ":",
-                       RemotePort
+                       $"{RemoteHost.Trimmed}:{RemotePort}"
                    )
                );
 

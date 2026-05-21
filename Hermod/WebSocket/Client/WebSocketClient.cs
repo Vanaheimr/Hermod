@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The optional Time-Based One-Time Password (TOTP) configuration.
         /// </summary>
-        public TOTPConfig?                                                     TOTPConfig                                { get; }
+        public TOTPConfig?                                                     TOTPConfig                                { get; set; }
 
         /// <summary>
         /// The HTTP user agent identification.
