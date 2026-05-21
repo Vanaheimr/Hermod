@@ -129,7 +129,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         protected ASOAPClient(URL                                                        RemoteURL,
                               HTTPHostname?                                              VirtualHostname              = null,
                               I18NString?                                                Description                  = null,
-                              IPVersionPreference?                                       PreferIPv4                   = null,
 
                               String?                                                    TLSHostname                  = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
@@ -151,8 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               UInt16?                                                    MaxNumberOfRetries           = null,
                               UInt32?                                                    InternalBufferSize           = null,
                               Boolean                                                    UseHTTPPipelining            = false,
-                              HTTPClientLogger?                                          HTTPLogger                   = null,
+                              IPVersionPreference?                                       PreferIPv4                   = null,
 
+                              HTTPClientLogger?                                          HTTPLogger                   = null,
                               Boolean?                                                   DisableLogging               = null,
                               IDNSClient?                                                DNSClient                    = null)
 

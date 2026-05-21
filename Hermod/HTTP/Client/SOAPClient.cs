@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         public SOAPClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,
                           I18NString?                                                Description                  = null,
-                          IPVersionPreference?                                       PreferIPv4                   = null,
+                          
                           String?                                                    TLSHostname                  = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
@@ -127,15 +127,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           UInt16?                                                    MaxNumberOfRetries           = null,
                           UInt32?                                                    InternalBufferSize           = null,
                           Boolean                                                    UseHTTPPipelining            = false,
-                          HTTPClientLogger?                                          HTTPLogger                   = null,
+                          IPVersionPreference?                                       PreferIPv4                   = null,
 
+                          HTTPClientLogger?                                          HTTPLogger                   = null,
                           Boolean?                                                   DisableLogging               = null,
                           IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
                    Description,
-                   PreferIPv4,
 
                    TLSHostname,
                    RemoteCertificateValidator,
@@ -157,8 +157,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    MaxNumberOfRetries,
                    InternalBufferSize,
                    UseHTTPPipelining,
-                   HTTPLogger,
+                   PreferIPv4,
 
+                   HTTPLogger,
                    DisableLogging,
                    DNSClient)
 
@@ -450,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           HTTPHostname?                                              VirtualHostname              = null,
                           Boolean                                                    UseFakeURLPrefix             = true,
                           I18NString?                                                Description                  = null,
-                          IPVersionPreference?                                       PreferIPv4                   = null,
+
                           String?                                                    TLSHostname                  = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
@@ -471,15 +472,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           UInt16?                                                    MaxNumberOfRetries           = null,
                           UInt32?                                                    InternalBufferSize           = null,
                           Boolean                                                    UseHTTPPipelining            = false,
-                          HTTPClientLogger?                                          HTTPLogger                   = null,
+                          IPVersionPreference?                                       PreferIPv4                   = null,
 
+                          HTTPClientLogger?                                          HTTPLogger                   = null,
                           Boolean?                                                   DisableLogging               = null,
                           IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
                    Description,
-                   PreferIPv4,
+
                    TLSHostname,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
@@ -500,8 +502,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    MaxNumberOfRetries,
                    InternalBufferSize,
                    UseHTTPPipelining,
-                   HTTPLogger,
+                   PreferIPv4,
 
+                   HTTPLogger,
                    DisableLogging,
                    DNSClient)
 
