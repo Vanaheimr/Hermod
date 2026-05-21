@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Parse an EDNS COOKIE option from raw data bytes.
         /// </summary>
         /// <param name="Data">The raw option data.</param>
-        public new static EDNSCookieOption Parse(Byte[] Data)
+        public static EDNSCookieOption Parse(Byte[] Data)
         {
 
             if (Data.Length < 8)

@@ -179,8 +179,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Compares two DNS Questions.
         /// </summary>
         /// <param name="DNSQuestion">A DNS Question to compare with.</param>
-        public Int32 CompareTo(DNSQuestion DNSQuestion)
+        public Int32 CompareTo(DNSQuestion? DNSQuestion)
         {
+
+            if (DNSQuestion is null)
+                throw new ArgumentNullException(nameof(DNSQuestion), "The given DNS Question must not be null!");
 
             var c = DomainName.CompareTo(DNSQuestion.DomainName);
 

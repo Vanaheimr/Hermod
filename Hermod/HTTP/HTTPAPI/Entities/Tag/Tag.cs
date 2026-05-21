@@ -72,8 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Id">The unique identification of the user tag.</param>
         /// <param name="Description">An optional (multi-language) description of the user tag.</param>
-        public Tag(Tag_Id      Id,
-                   I18NString  Description   = null)
+        public Tag(Tag_Id       Id,
+                   I18NString?  Description   = null)
         {
 
             this.Id           = Id;

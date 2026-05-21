@@ -441,7 +441,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        UInt16?                                                    MaxNumberOfRetries                   = null,
                        UInt32?                                                    BufferSize                           = null,
 
-                       Boolean?                                                   DisableLogging                       = null)
+                       Boolean?                                                   DisableLogging                       = null,
+                       ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                       ILoggerFactory?                                            LoggerFactory                        = null)
 
         {
 
@@ -474,7 +476,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              MaxNumberOfRetries,
                              BufferSize,
 
-                             DisableLogging
+                             DisableLogging,
+                             Logger,
+                             LoggerFactory
 
                          );
 
@@ -486,13 +490,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region ConnectNew (URL, DNSService = null, ..., DNSClient = null)
+        #region ConnectNew (URL, ..., DNSClient = null)
 
         /// <summary>
         /// Create a new DNSHTTPSClient and connect to the given URL.
         /// </summary>
         /// <param name="URL">The URL to connect to.</param>
-        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports for the given URL hostname.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
@@ -501,7 +504,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static async Task<(DNSHTTPSClient?, TCPConnectionResult)>
 
             ConnectNew(URL                                                        URL,
-                       SRV_Spec?                                                  DNSService                           = null,
                        I18NString?                                                Description                          = null,
                        DNSHTTPSMode?                                              Mode                                 = null,
                        Boolean?                                                   RecursionDesired                     = null,
@@ -526,9 +528,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        TransmissionRetryDelayDelegate?                            TransmissionRetryDelay               = null,
                        UInt16?                                                    MaxNumberOfRetries                   = null,
                        UInt32?                                                    BufferSize                           = null,
-                       DNSClient?                                                 DNSClient                            = null,
 
-                       Boolean?                                                   DisableLogging                       = null)
+                       Boolean?                                                   DisableLogging                       = null,
+                       DNSClient?                                                 DNSClient                            = null,
+                       ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                       ILoggerFactory?                                            LoggerFactory                        = null)
 
         {
 
@@ -561,7 +565,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              BufferSize,
 
                              DisableLogging,
-                             DNSClient
+                             DNSClient,
+                             Logger,
+                             LoggerFactory
 
                          );
 
@@ -1189,7 +1195,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             String?                                                    HTTPUserAgent                        = null,
 
                                             Boolean?                                                   DisableLogging                       = null,
-                                            DNSClient?                                                 DNSClient                            = null)
+                                            DNSClient?                                                 DNSClient                            = null,
+                                            ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                                            ILoggerFactory?                                            LoggerFactory                        = null)
 
             => new (
                    URL.Parse(Mode == DNSHTTPSMode.JSON
@@ -1221,7 +1229,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient
+                   DNSClient,
+                   Logger,
+                   LoggerFactory
                );
 
         #endregion
@@ -1252,7 +1262,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                         UInt32?                                                    BufferSize                           = null,
 
                                                         Boolean?                                                   DisableLogging                       = null,
-                                                        DNSClient?                                                 DNSClient                            = null)
+                                                        DNSClient?                                                 DNSClient                            = null,
+                                                        ILogger<DNSHTTPSClient>?                                   Logger                               = null,
+                                                        ILoggerFactory?                                            LoggerFactory                        = null)
 
             => new (
                    URL.Parse("https://one.one.one.one/dns-query"),
@@ -1282,7 +1294,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    BufferSize,
 
                    DisableLogging,
-                   DNSClient
+                   DNSClient,
+                   Logger,
+                   LoggerFactory
                );
 
         public static DNSHTTPSClient Cloudflare_IPv4_1(DNSHTTPSMode?                                              Mode                                 = null,

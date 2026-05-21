@@ -420,7 +420,7 @@ public class ModbusPKI
             critical: true));
 
         certificateRequest.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-            new OidCollection { new("1.3.6.1.5.5.7.3.2") /* clientAuth */ }, critical: false));
+            [new("1.3.6.1.5.5.7.3.2") /* clientAuth */], critical: false));
 
         if (role is not null)
             certificateRequest.CertificateExtensions.Add(BuildSunSpecRoleExtension(role));

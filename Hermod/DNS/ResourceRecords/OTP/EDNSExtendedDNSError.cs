@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Parse an EDNS Extended DNS Error option from raw data bytes.
         /// </summary>
         /// <param name="Data">The raw option data.</param>
-        public new static EDNSExtendedDNSError Parse(Byte[] Data)
+        public static EDNSExtendedDNSError Parse(Byte[] Data)
         {
 
             if (Data.Length < 2)

@@ -890,7 +890,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 ActiveTLSUnicastSocket    = null;
                 listenerTasks.Clear();
 
-                cancellationTokenSource.Dispose();
+                cancellationTokenSource?.Dispose();
                 this.cancellationTokenSource = null;
             }
 

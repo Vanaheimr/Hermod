@@ -133,9 +133,7 @@ public sealed class ModbusTCPClient : IAsyncDisposable
 
             var options = new SslClientAuthenticationOptions {
                               TargetHost                      = tlsTargetHost,
-                              ClientCertificates              = new X509CertificateCollection {
-                                                                    clientCertificate
-                                                                },
+                              ClientCertificates              = [ clientCertificate ],
                               EnabledSslProtocols             = enabledProtocols,
                               CertificateRevocationCheckMode  = X509RevocationMode.NoCheck,
                               AllowRenegotiation              = false,

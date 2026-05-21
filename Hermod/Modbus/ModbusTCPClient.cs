@@ -440,10 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
             this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
-
-#pragma warning disable SCS0005 // Weak random number generator.
             this.internalInvocationId        = Random.Shared.Next(1000);
-#pragma warning restore SCS0005 // Weak random number generator.
 
         }
 
@@ -539,10 +536,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
             this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
-
-#pragma warning disable SCS0005 // Weak random number generator.
             this.internalInvocationId        = Random.Shared.Next(1000);
-#pragma warning restore SCS0005 // Weak random number generator.
 
         }
 
@@ -637,10 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
             this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
-
-#pragma warning disable SCS0005 // Weak random number generator.
             this.internalInvocationId        = Random.Shared.Next(1000);
-#pragma warning restore SCS0005 // Weak random number generator.
 
         }
 
@@ -772,11 +763,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 throw;
             }
 
-            response ??= new ReadHoldingRegistersResponse(request,
-                                                          request.TransactionId,
-                                                          Array.Empty<UInt16>(),
-                                                          request.ProtocolId,
-                                                          request.UnitId);
+            response ??= new ReadHoldingRegistersResponse(
+                             request,
+                             request.TransactionId,
+                             [],
+                             request.ProtocolId,
+                             request.UnitId
+                         );
 
 
             #region Send OnReadHoldingRegistersResponse event
@@ -1153,7 +1146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var response = ReadHoldingRegisters(StartingAddress, NumberOfRegisters).Result;
 
-            Text = Encoding.UTF8.GetString(response.EntirePDU.Skip(9).TakeWhile(b => b != 0x00).ToArray());
+            Text = Encoding.UTF8.GetString([.. response.EntirePDU.Skip(9).TakeWhile(b => b != 0x00)]);
 
             return Text.Length > 0;
 
@@ -1161,7 +1154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             return TryRead(StartingAddress,
                            NumberOfRegisters,
                            out Text,
-                           array => Encoding.UTF8.GetString(array.Skip(3).TakeWhile(b => b != 0x00).ToArray()));
+                           array => Encoding.UTF8.GetString([.. array.Skip(3).TakeWhile(b => b != 0x00)]));
 
         }
 
@@ -1236,7 +1229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public Boolean GetByteArray(ModbusPacket ModbusPacket, out Byte[] ByteArray)
         {
 
-            ByteArray = Array.Empty<Byte>();
+            ByteArray = [];
             Boolean _CRC = false;
             var retries = 0;
 
@@ -1265,7 +1258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             if (_CRC)
                 return true;
 
-            ByteArray = Array.Empty<Byte>();
+            ByteArray = [];
             return false;
 
         }
@@ -1296,7 +1289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             await Task.Delay(500);
 
-            return new Byte[0];
+            return [];
 
         }
 
@@ -1314,10 +1307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             }
 
-            var modbusStream = ActiveStream;
-
-            if (modbusStream is null)
-                throw new IOException("The Modbus/TCP stream could not be created!");
+            var modbusStream = ActiveStream ?? throw new IOException("The Modbus/TCP stream could not be created!");
 
             Request.LocalSocket   = LocalSocket  ?? IPSocket.Zero;
             Request.RemoteSocket  = RemoteSocket ?? IPSocket.Zero;

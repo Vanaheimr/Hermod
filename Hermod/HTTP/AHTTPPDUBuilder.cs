@@ -885,9 +885,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     try
                     {
-                        Value = (T) (Object) value;
-                        SetHeaderField(Key, Value);
-                        return true;
+
+                        if (value is T valueT2)
+                        {
+                            Value = valueT2;
+                            SetHeaderField(Key, Value);
+                            return true;
+                        }
+
+                        Value = default;
+                        return false;
+
                     }
                     catch
                     {

@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Parse an EDNS TCP Keepalive option from raw data bytes.
         /// </summary>
         /// <param name="Data">The raw option data.</param>
-        public new static EDNSKeepaliveOption Parse(Byte[] Data)
+        public static EDNSKeepaliveOption Parse(Byte[] Data)
         {
 
             // Query: empty data (0 bytes) — signal keepalive support
