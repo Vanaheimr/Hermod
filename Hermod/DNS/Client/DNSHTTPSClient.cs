@@ -112,6 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               String?                                                    HTTPUserAgent                        = null,
                               IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                              String?                                                    TLSHostname                          = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -142,6 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -210,6 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               String?                                                    HTTPUserAgent                        = null,
                               IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                              String?                                                    TLSHostname                          = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -240,6 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -307,6 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               String?                                                    HTTPUserAgent                        = null,
                               IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                              String?                                                    TLSHostname                          = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                               SslProtocols?                                              TLSProtocols                         = null,
                               CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -337,6 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,  // Connection
                    null,  // DefaultRequestBuilder
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -418,6 +424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        String?                                                    HTTPUserAgent                        = null,
                        IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                       String?                                                    TLSHostname                          = null,
                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                        SslProtocols?                                              TLSProtocols                         = null,
                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -450,6 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              HTTPUserAgent,
                              HTTPAuthentication,
 
+                             TLSHostname,
                              RemoteCertificateValidationHandler,
                              TLSProtocols,
                              CipherSuitesPolicy,
@@ -502,6 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        String?                                                    HTTPUserAgent                        = null,
                        IHTTPAuthentication?                                       HTTPAuthentication                   = null,
 
+                       String?                                                    TLSHostname                          = null,
                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                        SslProtocols?                                              TLSProtocols                         = null,
                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -534,6 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              HTTPUserAgent,
                              HTTPAuthentication,
 
+                             TLSHostname,
                              RemoteCertificateValidationHandler,
                              TLSProtocols,
                              CipherSuitesPolicy,
@@ -1160,6 +1170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             Boolean?                                                   RecursionDesired                     = null,
                                             TimeSpan?                                                  QueryTimeout                         = null,
 
+                                            String?                                                    TLSHostname                          = null,
                                             RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                                             SslProtocols?                                              TLSProtocols                         = null,
                                             CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -1192,6 +1203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -1222,6 +1234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                                         String?                                                    HTTPUserAgent                        = null,
 
+                                                        String?                                                    TLSHostname                          = null,
                                                         RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator           = null,
                                                         SslProtocols?                                              TLSProtocols                         = null,
                                                         CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -1251,6 +1264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidator,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -1277,6 +1291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                                        String?                                                    HTTPUserAgent                        = null,
 
+                                                       String?                                                    TLSHostname                          = null,
                                                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                                                        SslProtocols?                                              TLSProtocols                         = null,
                                                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
@@ -1306,6 +1321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidationHandler,
                    TLSProtocols,
                    CipherSuitesPolicy,
@@ -1329,10 +1345,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSHTTPSClient Cloudflare_IPv4_2(DNSHTTPSMode?                                              Mode                                 = null,
                                                        Boolean?                                                   RecursionDesired                     = null,
                                                        TimeSpan?                                                  QueryTimeout                         = null,
-                                                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
 
                                                        String?                                                    HTTPUserAgent                        = null,
 
+                                                       String?                                                    TLSHostname                          = null,
+                                                       RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidationHandler   = null,
                                                        SslProtocols?                                              TLSProtocols                         = null,
                                                        CipherSuitesPolicy?                                        CipherSuitesPolicy                   = null,
                                                        X509ChainPolicy?                                           CertificateChainPolicy               = null,
@@ -1361,6 +1378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    HTTPUserAgent,
                    null,
 
+                   TLSHostname,
                    RemoteCertificateValidationHandler,
                    TLSProtocols,
                    CipherSuitesPolicy,

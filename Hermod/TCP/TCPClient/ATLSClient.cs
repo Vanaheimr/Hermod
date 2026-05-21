@@ -53,20 +53,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Properties
 
         /// <summary>
+        /// Use this hostname for TLS SNI (Server Name Indication) and remote certificate validation.
+        /// If null, the RemoteURL's hostname or the RemoteIPAddress will be used.
+        /// </summary>
+        public String?                                                   TLSHostname                      { get; }
+
+        /// <summary>
         /// The remote TLS server certificate validation handler.
         /// </summary>
         public RemoteTLSServerCertificateValidationHandler<ATLSClient>?  RemoteCertificateValidator       { get; }
+
+        /// <summary>
+        /// The local TLS client certificate selection handler.
+        /// </summary>
         public LocalCertificateSelectionHandler?                         LocalCertificateSelector         { get; }
+
+        /// <summary>
+        /// The TLS client certificates to use for authentication. Ignored if ClientCertificateContext is provided.
+        /// </summary>
         public IEnumerable<X509Certificate2>                             ClientCertificates               { get; private set; } = [];
+
+        /// <summary>
+        /// The TLS client certificate context, including the client certificate and any intermediate CAs.
+        /// If provided, this takes precedence over ClientCertificates.
+        /// </summary>
         public SslStreamCertificateContext?                              ClientCertificateContext         { get; private set; }
+
+        /// <summary>
+        /// The TLS client certificate chain, including the client certificate and any intermediate CAs.
+        /// </summary>
         public IEnumerable<X509Certificate2>                             ClientCertificateChain           { get; } = [];
+
+        /// <summary>
+        /// The TLS protocols to use. Defaults to TLS 1.3 if not specified.
+        /// </summary>
         public SslProtocols                                              TLSProtocols                     { get; } = SslProtocols.Tls13;
+
+        /// <summary>
+        /// The TLS cipher suites policy to use.
+        /// If null, the system defaults will be used.
+        /// </summary>
         public CipherSuitesPolicy?                                       CipherSuitesPolicy               { get; }
+
+        /// <summary>
+        /// The TLS certificate chain policy to use for validating the server's certificate chain.
+        /// </summary>
         public X509ChainPolicy?                                          CertificateChainPolicy           { get; }
+
+        /// <summary>
+        /// The TLS certificate revocation check mode to use for validating the server's certificate.
+        /// </summary>
         public X509RevocationMode?                                       CertificateRevocationCheckMode   { get; }
+
+        /// <summary>
+        /// The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation).
+        /// If empty, ALPN will be disabled.
+        /// </summary>
         public IEnumerable<SslApplicationProtocol>                       ApplicationProtocols             { get; } = [];
+
+        /// <summary>
+        /// Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting,
+        /// </summary>
         public Boolean                                                   EnforceTLS                       { get; }
+
+        /// <summary>
+        /// Whether to allow TLS renegotiation.
+        /// Defaults to true if not specified.
+        /// </summary>
         public Boolean?                                                  AllowRenegotiation               { get; }
+
+        /// <summary>
+        /// Whether to allow TLS session resumption.
+        /// Defaults to false if not specified.
+        /// </summary>
         public Boolean?                                                  AllowTLSResume                   { get; }
 
         protected Stream? ActiveStream
@@ -89,6 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              IPPort                                                    TCPPort,
                              I18NString?                                               Description                      = null,
 
+                             String?                                                   TLSHostname                      = null,
                              RemoteTLSServerCertificateValidationHandler<ATLSClient>?  RemoteCertificateValidator       = null,
                              LocalCertificateSelectionHandler?                         LocalCertificateSelector         = null,
                              IEnumerable<X509Certificate2>?                            ClientCertificates               = null,
@@ -134,6 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.RemoteCertificateValidator      = RemoteCertificateValidator;
             this.LocalCertificateSelector        = LocalCertificateSelector;
+            this.TLSHostname                     = TLSHostname;
             this.ClientCertificates              = ClientCertificates               ?? [];
             this.ClientCertificateContext        = ClientCertificateContext;
             this.ClientCertificateChain          = ClientCertificateChain           ?? [];
@@ -155,6 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATLSClient(URL                                                       URL,
                              I18NString?                                               Description                      = null,
 
+                             String?                                                   TLSHostname                      = null,
                              RemoteTLSServerCertificateValidationHandler<ATLSClient>?  RemoteCertificateValidator       = null,
                              LocalCertificateSelectionHandler?                         LocalCertificateSelector         = null,
                              IEnumerable<X509Certificate2>?                            ClientCertificates               = null,
@@ -200,6 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.TLSHostname                     = TLSHostname;
             this.RemoteCertificateValidator      = RemoteCertificateValidator;
             this.LocalCertificateSelector        = LocalCertificateSelector;
             this.ClientCertificates              = ClientCertificates               ?? [];
@@ -224,6 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              SRV_Spec                                                  DNSService,
                              I18NString?                                               Description                      = null,
 
+                             String?                                                   TLSHostname                      = null,
                              RemoteTLSServerCertificateValidationHandler<ATLSClient>?  RemoteCertificateValidator       = null,
                              LocalCertificateSelectionHandler?                         LocalCertificateSelector         = null,
                              IEnumerable<X509Certificate2>?                            ClientCertificates               = null,
@@ -270,6 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.TLSHostname                     = TLSHostname;
             this.RemoteCertificateValidator      = RemoteCertificateValidator;
             this.LocalCertificateSelector        = LocalCertificateSelector;
             this.ClientCertificates              = ClientCertificates               ?? [];
@@ -402,13 +467,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                                             : null,
                                                 AllowRenegotiation                    = AllowRenegotiation ?? true,
                                                 AllowTlsResume                        = AllowTLSResume     ?? false,
-                                                TargetHost                            = !RemoteURL.IsNullOrEmpty
-                                                                                            ? RemoteURL.Hostname.ToString() // SNI!
-                                                                                            : DomainName?.      ToString() ??
-                                                                                              RemoteIPAddress?. ToString(),
-                                                ClientCertificates                    = ClientCertificates.IsNeitherNullNorEmpty()
-                                                                                            ? [.. ClientCertificates]
-                                                                                            : null,
+                                                TargetHost                            = TLSHostname ??
+                                                                                        (!RemoteURL.IsNullOrEmpty
+                                                                                             ? RemoteURL.Hostname.ToString() // SNI!
+                                                                                             : DomainName?.      ToString() ??
+                                                                                               RemoteIPAddress?. ToString()),
+                                                ClientCertificates                    = ClientCertificateContext is null &&
+                                                                                       ClientCertificates.IsNeitherNullNorEmpty()
+                                                                                             ? [.. ClientCertificates]
+                                                                                             : null,
                                                 ClientCertificateContext              = ClientCertificateContext,
                                                 CertificateRevocationCheckMode        = CertificateRevocationCheckMode ?? X509RevocationMode.NoCheck,
                                                 EncryptionPolicy                      = EncryptionPolicy.RequireEncryption,

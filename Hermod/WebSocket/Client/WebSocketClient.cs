@@ -400,6 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean                                                         DisableMaintenanceTasks          = false,
                                TimeSpan?                                                       MaintenanceEvery                 = null,
 
+                               String?                                                         TLSHostname                      = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator       = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector         = null,
                                IEnumerable<X509Certificate2>?                                  ClientCertificates               = null,
@@ -436,6 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    TCPPort,
                    Description,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -553,6 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean                                                         DisableMaintenanceTasks          = false,
                                TimeSpan?                                                       MaintenanceEvery                 = null,
 
+                               String?                                                         TLSHostname                      = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator       = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector         = null,
                                IEnumerable<X509Certificate2>?                                  ClientCertificates               = null,
@@ -589,6 +592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             : base(URL,
                    Description,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -675,7 +679,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Create a new charge point websocket client running on a charge point
         /// and connecting to a central system to invoke methods.
         /// </summary>
-        /// <param name="URL">The remote URL of the HTTP endpoint to connect to.</param>
+        /// <param name="DomainName">The domain name of the HTTP endpoint to connect to.</param>
+        /// <param name="DNSService">The DNS service to use for resolving the domain name.</param>
+        /// 
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this HTTP/websocket client.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
@@ -708,6 +714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean                                                         DisableMaintenanceTasks          = false,
                                TimeSpan?                                                       MaintenanceEvery                 = null,
 
+                               String?                                                         TLSHostname                      = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator       = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector         = null,
                                IEnumerable<X509Certificate2>?                                  ClientCertificates               = null,
@@ -745,6 +752,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    DNSService,
                    Description,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,

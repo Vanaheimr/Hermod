@@ -93,6 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    RecursionDesired                 = null,
                             TimeSpan?                                                   QueryTimeout                     = null,
 
+                            String?                                                     TLSHostname                      = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator       = null,
                             SslProtocols?                                               TLSProtocols                     = null,
                             CipherSuitesPolicy?                                         CipherSuitesPolicy               = null,
@@ -117,6 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TCPPort ?? IPPort.DNS_TLS,
                    Description,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -174,6 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    RecursionDesired                 = null,
                             TimeSpan?                                                   QueryTimeout                     = null,
 
+                            String?                                                     TLSHostname                      = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidator       = null,
                             SslProtocols?                                               TLSProtocols                     = null,
                             CipherSuitesPolicy?                                         CipherSuitesPolicy               = null,
@@ -199,6 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             : base(URL,
                    Description,
 
+                   TLSHostname,
                    RemoteCertificateValidator is not null
                        ? (sender,
                           certificate,
@@ -620,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Google (8.8.8.8)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -638,7 +642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Google (8.8.4.4)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -657,7 +661,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Google (2001:4860:4860::8888)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -675,7 +679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Google (2001:4860:4860::8844)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         #endregion
@@ -810,8 +814,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (one.one.one.one)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator,
-                   DNSClient: DNSClient
+                   RemoteCertificateValidator:  RemoteCertificateValidator,
+                   DNSClient:                   DNSClient
                );
 
         /// <summary>
@@ -829,7 +833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (1.1.1.1)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -847,7 +851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (1.0.0.1)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -865,7 +869,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (162.159.36.1)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -883,7 +887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (162.159.46.1)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -901,7 +905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (2606:4700:4700::1001)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -919,7 +923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (2606:4700:4700::1111)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -937,7 +941,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (2606:4700:4700::0064)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         /// <summary>
@@ -955,7 +959,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    I18NString.Create("Cloudflare (2606:4700:4700::6400)"),
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidator
+                   RemoteCertificateValidator: RemoteCertificateValidator
                );
 
         #endregion
