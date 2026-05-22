@@ -203,7 +203,7 @@ public class SunSpecModbusTLSTests
     }
 
     private static async Task ReadAndAssertEnergyMeterAsync(Int32              listenPort,
-                                                            String?            tlsHostname,
+                                                            String?            TLSHostname,
                                                             String             pkiDirectory,
                                                             CancellationToken  ct)
     {
@@ -234,7 +234,7 @@ public class SunSpecModbusTLSTests
                                                                 ),
                                ClientCert:                 clientCertificateChain[0],
                                ClientCertificateChain:     clientCertificateChain,
-                               TLSHostname:                tlsHostname,
+                               TLSHostname:                TLSHostname,
                                TLSProtocol:                SslProtocols.Tls12 | SslProtocols.Tls13,
                                PreferIPv4:                 true,
                                RequestTimeout:             TimeSpan.FromSeconds(5),

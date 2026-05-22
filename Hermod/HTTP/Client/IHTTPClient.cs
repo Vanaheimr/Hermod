@@ -1249,7 +1249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional Time-Based One-Time Password (TOTP) generator.
         /// </summary>
-        TOTPConfig?                                                TOTPConfig                    { get; }
+        TOTPConfig?                                                TOTPConfig                    { get; set; }
 
         /// <summary>
         /// The HTTP user agent identification.
