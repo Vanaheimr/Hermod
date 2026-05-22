@@ -3541,6 +3541,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        public Boolean IsMember(IUser? User, UserGroup_Id GroupId)
+        {
+
+            if (User is not null &&
+                TryGetUserGroup(GroupId, out var group) &&
+                group.HasEdge(User2UserGroupEdgeLabel.IsMember, User))
+            {
+                return true;
+            }
+
+            return false;
+
+        }
+
         #endregion
 
 
@@ -20737,8 +20752,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserGroupId">The unique identification of an user group.</param>
         /// <param name="UserGroup">The user group.</param>
-        protected internal Boolean _TryGetUserGroup(UserGroup_Id     UserGroupId,
-                                                    out IUserGroup?  UserGroup)
+        protected internal Boolean _TryGetUserGroup(UserGroup_Id                         UserGroupId,
+                                                    [NotNullWhen(true)] out IUserGroup?  UserGroup)
         {
 
             if (!UserGroupId.IsNullOrEmpty &&
@@ -20758,8 +20773,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserGroupId">The unique identification of an user group.</param>
         /// <param name="UserGroup">The user group.</param>
-        protected internal Boolean _TryGetUserGroup(UserGroup_Id?   UserGroupId,
-                                                    out IUserGroup?  UserGroup)
+        protected internal Boolean _TryGetUserGroup(UserGroup_Id?                        UserGroupId,
+                                                    [NotNullWhen(true)] out IUserGroup?  UserGroup)
         {
 
             if (UserGroupId.IsNotNullOrEmpty() &&
@@ -20780,8 +20795,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserGroupId">The unique identification of an user group.</param>
         /// <param name="UserGroup">The user group.</param>
-        public Boolean TryGetUserGroup(UserGroup_Id     UserGroupId,
-                                       out IUserGroup?  UserGroup)
+        public Boolean TryGetUserGroup(UserGroup_Id                         UserGroupId,
+                                       [NotNullWhen(true)] out IUserGroup?  UserGroup)
         {
 
             if (UserGroupsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -20815,8 +20830,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserGroupId">The unique identification of an user group.</param>
         /// <param name="UserGroup">The user group.</param>
-        public Boolean TryGetUserGroup(UserGroup_Id?    UserGroupId,
-                                       out IUserGroup?  UserGroup)
+        public Boolean TryGetUserGroup(UserGroup_Id?                        UserGroupId,
+                                       [NotNullWhen(true)] out IUserGroup?  UserGroup)
         {
 
             if (UserGroupsSemaphore.Wait(SemaphoreSlimTimeout))

@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -41,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Indicates whether this user group identification is null or empty.
         /// </summary>
         /// <param name="UserGroupId">An user group identification.</param>
-        public static Boolean IsNotNullOrEmpty(this UserGroup_Id? UserGroupId)
+        public static Boolean IsNotNullOrEmpty([NotNullWhen(true)] this UserGroup_Id? UserGroupId)
             => UserGroupId.HasValue && UserGroupId.Value.IsNotNullOrEmpty;
 
     }
