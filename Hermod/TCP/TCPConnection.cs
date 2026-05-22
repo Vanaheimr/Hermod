@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                                                       ClientCertificateRequired       = ClientCertificateValidator is not null,
                                                       CertificateRevocationCheckMode  = X509RevocationMode.NoCheck,
                                                       CertificateChainPolicy          = chainPolicy,
-                                                      EnabledSslProtocols             = AllowedTLSProtocols ?? SslProtocols.Tls13,
+                                                      EnabledSslProtocols             = AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
                                                       EncryptionPolicy                = EncryptionPolicy.RequireEncryption
                                                   };
 
