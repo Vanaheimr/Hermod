@@ -387,20 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                     this.SSLStream  = new SslStream(
                                           innerStream:                        NetworkStream,
                                           leaveInnerStreamOpen:               true,
-                                          userCertificateValidationCallback:  ClientCertificateValidator is null
-                                                                                  ? null
-                                                                                  : (sender,
-                                                                                     certificate,
-                                                                                     chain,
-                                                                                     policyErrors) => ClientCertificateValidator(
-                                                                                                          sender,
-                                                                                                          certificate is not null
-                                                                                                              ? new X509Certificate2(certificate)
-                                                                                                              : null,
-                                                                                                          chain,
-                                                                                                          TCPServer,
-                                                                                                          policyErrors
-                                                                                                      ).IsValid,
+                                          userCertificateValidationCallback:  null,
                                           userCertificateSelectionCallback:   LocalCertificateSelector is null
                                                                                   ? null
                                                                                   : (sender,
