@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -57,6 +57,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         private readonly  SemaphoreSlim  sendRequestSemaphore = new (1, 1);
+        private           CancellationTokenSource?  backgroundConnectionRenewalCTS;
+        private           Task?                     backgroundConnectionRenewalTask;
+        private           Int32                     backgroundConnectionRenewalGeneration;
 
         /// <summary>
         /// The internal HTTP stream.
@@ -86,6 +89,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TOTPConfig?                    TOTPConfig                             { get; set; }
         public ConnectionType?                Connection                             { get;}
         public TimeSpan                       RequestTimeout                         { get; set; }         = TimeSpan.FromSeconds(120);
+
+        /// <summary>
+        /// When set, the background renewal task tries to refresh the connection slightly before it reaches MaxConnectionLifetime.
+        /// </summary>
+        public TimeSpan                       BackgroundConnectionRenewalLeadTime    { get; set; }         = TimeSpan.FromSeconds(5);
 
         public Boolean?                       ConsumeRequestChunkedTEImmediately     { get;}
         public Boolean?                       ConsumeResponseChunkedTEImmediately    { get;}
@@ -166,7 +174,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                               Boolean?                                                   DisableLogging                        = null,
                               ILogger<AHTTPClient>?                                      Logger                                = null,
-                              ILoggerFactory?                                            LoggerFactory                         = null)
+                              ILoggerFactory?                                            LoggerFactory                         = null,
+                              TimeSpan?                                                  MaxConnectionLifetime                 = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTP,
@@ -223,6 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.ConsumeRequestChunkedTEImmediately   = ConsumeRequestChunkedTEImmediately;
             this.ConsumeResponseChunkedTEImmediately  = ConsumeResponseChunkedTEImmediately;
+            this.MaxConnectionLifetime                = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
@@ -281,7 +291,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   DisableLogging                        = null,
                               IDNSClient?                                                DNSClient                             = null,
                               ILogger<AHTTPClient>?                                      Logger                                = null,
-                              ILoggerFactory?                                            LoggerFactory                         = null)
+                              ILoggerFactory?                                            LoggerFactory                         = null,
+                              TimeSpan?                                                  MaxConnectionLifetime                 = null)
 
             : base(URL,
                    Description,
@@ -338,6 +349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.ConsumeRequestChunkedTEImmediately   = ConsumeRequestChunkedTEImmediately;
             this.ConsumeResponseChunkedTEImmediately  = ConsumeResponseChunkedTEImmediately;
+            this.MaxConnectionLifetime                = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
@@ -396,7 +408,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   DisableLogging                        = null,
                               IDNSClient?                                                DNSClient                             = null,
                               ILogger<AHTTPClient>?                                      Logger                                = null,
-                              ILoggerFactory?                                            LoggerFactory                         = null)
+                              ILoggerFactory?                                            LoggerFactory                         = null,
+                              TimeSpan?                                                  MaxConnectionLifetime                 = null)
 
             : base(DomainName,
                    DNSService,
@@ -454,6 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.ConsumeRequestChunkedTEImmediately   = ConsumeRequestChunkedTEImmediately;
             this.ConsumeResponseChunkedTEImmediately  = ConsumeResponseChunkedTEImmediately;
+            this.MaxConnectionLifetime                = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
@@ -486,7 +500,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 clientCancellationTokenSource?.Cancel();
 
+                StopBackgroundConnectionRenewal();
+
                 try { httpStream?.Dispose(); } catch { }
+                httpStream = null;
 
                 IsHTTPConnected = false;
 
@@ -510,6 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 IsHTTPConnected        = true;
                 KeepAliveMessageCount  = 0;
+                ScheduleBackgroundConnectionRenewal();
 
                 return tcpConnectionResult;
 
@@ -558,8 +576,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             IsHTTPConnected        = true;
             KeepAliveMessageCount  = 0;
+            ScheduleBackgroundConnectionRenewal();
 
             return response;
+
+        }
+
+        #endregion
+
+        #region Background connection renewal
+
+        private void StopBackgroundConnectionRenewal()
+        {
+
+            Interlocked.Increment(ref backgroundConnectionRenewalGeneration);
+
+            var cts = backgroundConnectionRenewalCTS;
+            backgroundConnectionRenewalCTS = null;
+
+            try { cts?.Cancel(); } catch { }
+
+        }
+
+        private void ScheduleBackgroundConnectionRenewal()
+        {
+
+            StopBackgroundConnectionRenewal();
+
+            if (!MaxConnectionLifetime.HasValue ||
+                !NextConnectionRenewalAt.HasValue ||
+                !IsConnected ||
+                !IsHTTPConnected)
+            {
+                return;
+            }
+
+            var cts         = new CancellationTokenSource();
+            var generation  = Volatile.Read(ref backgroundConnectionRenewalGeneration);
+
+            backgroundConnectionRenewalCTS  = cts;
+            backgroundConnectionRenewalTask = Task.Run(
+                async () => await RunBackgroundConnectionRenewal(generation, cts.Token).ConfigureAwait(false),
+                CancellationToken.None
+            );
+
+        }
+
+        private async Task RunBackgroundConnectionRenewal(Int32              Generation,
+                                                          CancellationToken  CancellationToken)
+        {
+
+            while (!CancellationToken.IsCancellationRequested &&
+                   Generation == Volatile.Read(ref backgroundConnectionRenewalGeneration))
+            {
+
+                var renewalAt = NextConnectionRenewalAt;
+                if (!renewalAt.HasValue ||
+                    !IsConnected ||
+                    !IsHTTPConnected)
+                {
+                    return;
+                }
+
+                var dueAt = renewalAt.Value - BackgroundConnectionRenewalLeadTime;
+                if (dueAt < Timestamp.Now)
+                    dueAt = Timestamp.Now;
+
+                var delay = dueAt - Timestamp.Now;
+                if (delay > TimeSpan.Zero)
+                    await Task.Delay(delay, CancellationToken).ConfigureAwait(false);
+
+                if (CancellationToken.IsCancellationRequested ||
+                    Generation != Volatile.Read(ref backgroundConnectionRenewalGeneration) ||
+                    !IsConnected ||
+                    !IsHTTPConnected)
+                {
+                    return;
+                }
+
+                if (!await sendRequestSemaphore.WaitAsync(0, CancellationToken).ConfigureAwait(false))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), CancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                try
+                {
+
+                    if (NextConnectionRenewalAt.HasValue &&
+                        Timestamp.Now >= NextConnectionRenewalAt.Value - BackgroundConnectionRenewalLeadTime &&
+                        IsConnected &&
+                        IsHTTPConnected)
+                    {
+
+                        await ReconnectAsync(CancellationToken.None).ConfigureAwait(false);
+                        return;
+
+                    }
+
+                }
+                finally
+                {
+                    sendRequestSemaphore.Release();
+                }
+
+            }
 
         }
 
@@ -737,7 +858,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (retry > 1)
                             DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{retry} of {MaxNumberOfRetries}...");
 
-                        if (!IsConnected || !IsHTTPConnected || IsConnectionClosed)
+                        if (!IsConnected || !IsHTTPConnected || IsConnectionClosed || IsConnectionLifetimeExceeded)
                         {
                             try
                             {
@@ -1216,6 +1337,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             IsHTTPConnected = false;
+            StopBackgroundConnectionRenewal();
+
+            // The next reconnect should fetch DNS upstream and refresh the DNS cache
+            // instead of reusing a possibly stale cached load-balancer address.
+            ForceDNSCacheUpdateOnNextConnect();
 
             try { httpStream?.Dispose(); } catch { }
 
@@ -1333,6 +1459,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    EventName,
                    OICPCommand
                );
+
+        #endregion
+
+
+        #region Dispose / IAsyncDisposable
+
+        public override async ValueTask DisposeAsync()
+        {
+
+            StopBackgroundConnectionRenewal();
+
+            try { httpStream?.Dispose(); } catch { }
+            httpStream = null;
+
+            try { tlsStream?.Dispose(); } catch { }
+            tlsStream = null;
+
+            await base.DisposeAsync().ConfigureAwait(false);
+
+        }
+
+        public override void Dispose()
+        {
+
+            DisposeAsync().AsTask().GetAwaiter().GetResult();
+            GC.SuppressFinalize(this);
+
+        }
 
         #endregion
 

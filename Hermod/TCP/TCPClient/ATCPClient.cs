@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -69,7 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected                 TcpClient?               tcpClient;
         protected                 CancellationTokenSource  clientCancellationTokenSource;
-        private                   Int32                    bypassDNSCacheOnNextConnect;
+        private                   Int32                    forceDNSCacheUpdateOnNextConnect;
+        private                   DateTimeOffset?          connectionEstablishedAt;
 
         private readonly          ILogger<ATCPClient>      logger;
         private readonly          ILoggerFactory           loggerFactory;
@@ -182,7 +183,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  TransmissionRetryDelayDelegate  TransmissionRetryDelay    { get; }
         public  UInt16                          MaxNumberOfRetries        { get; } = DefaultMaxNumberOfRetries;
         public  UInt32                          InternalBufferSize        { get; }
-        public  Boolean                         BypassDNSCacheOnReconnect { get; set; } = true;
+
+        /// <summary>
+        /// An optional maximum lifetime for the current TCP connection.
+        /// When this value is set, long-lived clients should reconnect once the lifetime is exceeded.
+        /// </summary>
+        public  TimeSpan?                       MaxConnectionLifetime     { get; set; }
+
+        /// <summary>
+        /// The timestamp when the current TCP connection was established.
+        /// </summary>
+        public  DateTimeOffset?                 ConnectionEstablishedAt
+            => connectionEstablishedAt;
+
+        /// <summary>
+        /// The current age of the TCP connection, if connected.
+        /// </summary>
+        public  TimeSpan?                       ConnectionAge
+            => connectionEstablishedAt.HasValue
+                   ? Timestamp.Now - connectionEstablishedAt.Value
+                   : null;
+
+        /// <summary>
+        /// The timestamp when the current TCP connection should be renewed, if a maximum lifetime is configured.
+        /// </summary>
+        public  DateTimeOffset?                 NextConnectionRenewalAt
+            => connectionEstablishedAt.HasValue && MaxConnectionLifetime.HasValue
+                   ? connectionEstablishedAt.Value + MaxConnectionLifetime.Value
+                   : null;
+
+        /// <summary>
+        /// Whether the current TCP connection exceeded its configured maximum lifetime.
+        /// </summary>
+        public  Boolean                         IsConnectionLifetimeExceeded
+            => NextConnectionRenewalAt.HasValue &&
+               Timestamp.Now >= NextConnectionRenewalAt.Value;
+
+        /// <summary>
+        /// When enabled, reconnects force an upstream DNS lookup and refresh the DNS cache with the new result.
+        /// </summary>
+        public  Boolean                         ForceDNSCacheUpdateOnReconnect { get; set; } = true;
 
 
         /// <summary>
@@ -411,18 +451,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 try { tcpClient?.Client?.Shutdown(SocketShutdown.Both); } catch { }
                 try { tcpClient?.Close();                               } catch { }
                 try { tcpClient?.Dispose();                             } catch { }
+                tcpClient = null;
 
                 ResolvedIPAddress = null;
                 ResolvedIPAddresses.Clear();
                 clientCancellationTokenSource?.Dispose();
+                clientCancellationTokenSource = new CancellationTokenSource();
+                connectionEstablishedAt = null;
 
                 CurrentLocalEndPoint  = null;
                 CurrentRemoteEndPoint = null;
                 LocalSocket           = null;
                 RemoteSocket          = null;
 
-                if (BypassDNSCacheOnReconnect)
-                    BypassDNSCacheOnNextConnect();
+                if (ForceDNSCacheUpdateOnReconnect)
+                    ForceDNSCacheUpdateOnNextConnect();
 
             }
             catch (Exception e)
@@ -467,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             var timings = new TCPClientConnectTimings();
-            var bypassDNSCache = Interlocked.Exchange(ref bypassDNSCacheOnNextConnect, 0) == 1;
+            var forceDNSCacheUpdate = Interlocked.Exchange(ref forceDNSCacheUpdateOnNextConnect, 0) == 1;
 
             try
             {
@@ -512,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         var serviceRecords         = await DNSClient.Query_DNSService(
                                                                 DNSServiceName:     DNSServiceName.Parse($"{DNSService}.{hostname}"),
                                                                 RecursionDesired:   true,
-                                                                BypassCache:        bypassDNSCache,
+                                                                ForceUpdate:        forceDNSCacheUpdate,
                                                                 CancellationToken:  CancellationToken
                                                             ).ConfigureAwait(false);
 
@@ -566,14 +609,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         var ipv4AddressLookupTask  = DNSClient.Query_IPv4Addresses(
                                                          dnsSRVRemoteHost ?? DomainName.Parse(hostname),
                                                          RecursionDesired:   true,
-                                                         BypassCache:        bypassDNSCache,
+                                                         ForceUpdate:        forceDNSCacheUpdate,
                                                          CancellationToken:  CancellationToken
                                                      );
 
                         var ipv6AddressLookupTask  = DNSClient.Query_IPv6Addresses(
                                                          dnsSRVRemoteHost ?? DomainName.Parse(hostname),
                                                          RecursionDesired:   true,
-                                                         BypassCache:        bypassDNSCache,
+                                                         ForceUpdate:        forceDNSCacheUpdate,
                                                          CancellationToken:  CancellationToken
                                                      );
 
@@ -692,6 +735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     }
 
                     await Log("Client connected!");
+                    connectionEstablishedAt = Timestamp.Now;
 
                 }
 
@@ -712,12 +756,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (protected) BypassDNSCacheOnNextConnect()
+        #region (protected) ForceDNSCacheUpdateOnNextConnect()
 
-        protected void BypassDNSCacheOnNextConnect()
+        protected void ForceDNSCacheUpdateOnNextConnect()
         {
 
-            Interlocked.Exchange(ref bypassDNSCacheOnNextConnect, 1);
+            Interlocked.Exchange(ref forceDNSCacheUpdateOnNextConnect, 1);
 
         }
 
@@ -879,6 +923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var tcpClientToClose = tcpClient;
             tcpClient = null;
+            connectionEstablishedAt = null;
 
             try { tcpClientToClose?.Close();   } catch { }
             try { tcpClientToClose?.Dispose(); } catch { }

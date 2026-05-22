@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -580,13 +580,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
-                                   Boolean?                             BypassCache         = false,
+                                   Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default)
 
             => QueryHTTP(
@@ -594,7 +594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ResourceRecordTypes,
                    Timeout,
                    RecursionDesired,
-                   BypassCache,
+                   ForceUpdate,
                    null,
                    null,
                    CancellationToken
@@ -605,7 +605,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                        IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                        TimeSpan?                            Timeout                   = null,
                                        Boolean?                             RecursionDesired          = true,
-                                       Boolean?                             BypassCache               = false,
+                                       Boolean?                             ForceUpdate               = false,
                                        ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,
                                        ClientResponseLogHandler?            HTTPResponseLogDelegate   = null,
                                        CancellationToken                    CancellationToken         = default)
@@ -615,7 +615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ResourceRecordTypes,
                    Timeout,
                    RecursionDesired,
-                   BypassCache,
+                   ForceUpdate,
                    HTTPRequestLogDelegate,
                    HTTPResponseLogDelegate,
                    CancellationToken
@@ -623,13 +623,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, ForceUpdate = false, ...)
 
         public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
-                                   Boolean?                             BypassCache         = false,
+                                   Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default)
 
             => QueryHTTP(
@@ -637,7 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ResourceRecordTypes,
                    Timeout,
                    RecursionDesired,
-                   BypassCache,
+                   ForceUpdate,
                    null,
                    null,
                    CancellationToken
@@ -647,7 +647,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                              TimeSpan?                            Timeout                   = null,
                                              Boolean?                             RecursionDesired          = true,
-                                             Boolean?                             BypassCache               = false,
+                                             Boolean?                             ForceUpdate               = false,
                                              ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,
                                              ClientResponseLogHandler?            HTTPResponseLogDelegate   = null,
                                              CancellationToken                    CancellationToken         = default)
@@ -673,7 +673,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  resourceRecordTypes,
                                  Timeout,
                                  RecursionDesired,
-                                 BypassCache,
+                                 ForceUpdate,
                                  HTTPRequestLogDelegate,
                                  HTTPResponseLogDelegate,
                                  CancellationToken
@@ -911,7 +911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                 List<DNSResourceRecordTypes>          ResourceRecordTypes,
                                                                 TimeSpan?                            Timeout,
                                                                 Boolean?                             RecursionDesired,
-                                                                Boolean?                             BypassCache,
+                                                                Boolean?                             ForceUpdate,
                                                                 ClientRequestLogHandler?             HTTPRequestLogDelegate,
                                                                 ClientResponseLogHandler?            HTTPResponseLogDelegate,
                                                                 CancellationToken                    CancellationToken)
@@ -930,7 +930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          [ recordType ],
                                          Timeout,
                                          RecursionDesired,
-                                         BypassCache,
+                                         ForceUpdate,
                                          HTTPRequestLogDelegate,
                                          HTTPResponseLogDelegate,
                                          CancellationToken

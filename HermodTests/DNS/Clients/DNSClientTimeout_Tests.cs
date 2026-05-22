@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response            = await client.Query<A>(
                                                 DomainName.Parse("timeout.example"),
                                                 Timeout:      timeout,
-                                                BypassCache:  true
+                                                ForceUpdate:  true
                                             );
 
             stopwatch.Stop();
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                 async () => await client.Query<A>(
                                       DomainName.Parse("canceled.example"),
                                       Timeout:            TimeSpan.FromSeconds(5),
-                                      BypassCache:        true,
+                                      ForceUpdate:        true,
                                       CancellationToken:  cts.Token
                                   ),
                 Throws.InstanceOf<OperationCanceledException>()

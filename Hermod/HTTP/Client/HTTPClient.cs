@@ -81,7 +81,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                           Boolean?                                                   DisableLogging                        = null,
                           ILogger<AHTTPClient>?                                      Logger                                = null,
-                          ILoggerFactory?                                            LoggerFactory                         = null)
+                          ILoggerFactory?                                            LoggerFactory                         = null,
+                          TimeSpan?                                                  MaxConnectionLifetime                 = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
@@ -133,9 +134,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ConsumeRequestChunkedTEImmediately,
                    ConsumeResponseChunkedTEImmediately,
 
-                   DisableLogging,
-                   Logger,
-                   LoggerFactory)
+                    DisableLogging,
+                    Logger,
+                    LoggerFactory,
+                    MaxConnectionLifetime)
 
         { }
 
@@ -181,7 +183,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   DisableLogging                        = null,
                           IDNSClient?                                                DNSClient                             = null,
                           ILogger<AHTTPClient>?                                      Logger                                = null,
-                          ILoggerFactory?                                            LoggerFactory                         = null)
+                          ILoggerFactory?                                            LoggerFactory                         = null,
+                          TimeSpan?                                                  MaxConnectionLifetime                 = null)
 
             : base(URL,
                    Description,
@@ -232,9 +235,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ConsumeResponseChunkedTEImmediately,
 
                    DisableLogging,
-                   DNSClient,
-                   Logger,
-                   LoggerFactory)
+                    DNSClient,
+                    Logger,
+                    LoggerFactory,
+                    MaxConnectionLifetime)
 
         { }
 
@@ -282,7 +286,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   DisableLogging                        = null,
                           IDNSClient?                                                DNSClient                             = null,
                           ILogger<AHTTPClient>?                                      Logger                                = null,
-                          ILoggerFactory?                                            LoggerFactory                         = null)
+                          ILoggerFactory?                                            LoggerFactory                         = null,
+                          TimeSpan?                                                  MaxConnectionLifetime                 = null)
 
             : base(DomainName,
                    DNSService,
@@ -335,9 +340,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ConsumeResponseChunkedTEImmediately,
 
                    DisableLogging,
-                   DNSClient,
-                   Logger,
-                   LoggerFactory)
+                    DNSClient,
+                    Logger,
+                    LoggerFactory,
+                    MaxConnectionLifetime)
 
         { }
 

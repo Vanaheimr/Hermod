@@ -826,6 +826,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TimeSpan                                                   RequestTimeout                { get; set; }
 
         /// <summary>
+        /// An optional maximum lifetime for pooled HTTP/TCP connections.
+        /// </summary>
+        public TimeSpan?                                                  MaxConnectionLifetime         { get; set; }
+
+        /// <summary>
         /// The delay between transmission retries.
         /// </summary>
         public TransmissionRetryDelayDelegate                             TransmissionRetryDelay        { get; }
@@ -923,7 +928,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
                               Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
 
-                              Boolean?                                                   DisableLogging                        = null)
+                              Boolean?                                                   DisableLogging                        = null,
+                              TimeSpan?                                                  MaxConnectionLifetime                 = null)
         {
 
             this.RemoteIPAddress                  = IPAddress;
@@ -936,6 +942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCertificates               = ClientCertificates     ?? [];
             this.ClientCertificateChain           = ClientCertificateChain ?? [];
             this.TransmissionRetryDelay           = TransmissionRetryDelay ?? DefaultTransmissionRetryDelay;
+            this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
                                                                                                    Host               = HTTPHostname.Parse(IPAddress.ToString()),
@@ -984,9 +991,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                          ConsumeRequestChunkedTEImmediately,
                                                                          ConsumeResponseChunkedTEImmediately,
 
-                                                                         DisableLogging
+                                                                          DisableLogging,
+                                                                          MaxConnectionLifetime: this.MaxConnectionLifetime
 
-                                                                     );
+                                                                      );
 
             this.idleHTTPClients                  = Channel.CreateBounded<HTTPClient>(
                                                         new BoundedChannelOptions(this.MaxNumberOfClients) {
@@ -1045,7 +1053,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
 
                               Boolean?                                                   DisableLogging                        = null,
-                              IDNSClient?                                                DNSClient                             = null)
+                              IDNSClient?                                                DNSClient                             = null,
+                              TimeSpan?                                                  MaxConnectionLifetime                 = null)
         {
 
             this.RemoteURL                        = URL;
@@ -1057,6 +1066,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCertificates               = ClientCertificates     ?? [];
             this.ClientCertificateChain           = ClientCertificateChain ?? [];
             this.TransmissionRetryDelay           = TransmissionRetryDelay ?? DefaultTransmissionRetryDelay;
+            this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
                                                                                                    Host               = URL.Hostname,
@@ -1104,9 +1114,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                          ConsumeResponseChunkedTEImmediately,
 
                                                                          DisableLogging,
-                                                                         DNSClient
+                                                                          DNSClient,
+                                                                          MaxConnectionLifetime: this.MaxConnectionLifetime
 
-                                                                     );
+                                                                      );
 
             this.idleHTTPClients                  = Channel.CreateBounded<HTTPClient>(
                                                         new BoundedChannelOptions(this.MaxNumberOfClients) {
@@ -1167,7 +1178,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
 
                               Boolean?                                                   DisableLogging                        = null,
-                              IDNSClient?                                                DNSClient                             = null)
+                              IDNSClient?                                                DNSClient                             = null,
+                              TimeSpan?                                                  MaxConnectionLifetime                 = null)
 
         {
 
@@ -1182,6 +1194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCertificates               = ClientCertificates     ?? [];
             this.ClientCertificateChain           = ClientCertificateChain ?? [];
             this.TransmissionRetryDelay           = TransmissionRetryDelay ?? DefaultTransmissionRetryDelay;
+            this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
                                                                                                    Host               = HTTPHostname.Parse(DomainName.FullName.TrimEnd('.')),
@@ -1231,9 +1244,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                          ConsumeResponseChunkedTEImmediately,
 
                                                                          DisableLogging,
-                                                                         DNSClient
+                                                                          DNSClient,
+                                                                          MaxConnectionLifetime: this.MaxConnectionLifetime
 
-                                                                     );
+                                                                      );
 
             this.idleHTTPClients                  = Channel.CreateBounded<HTTPClient>(
                                                         new BoundedChannelOptions(this.MaxNumberOfClients) {

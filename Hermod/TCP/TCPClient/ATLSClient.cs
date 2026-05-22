@@ -368,6 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
 
                 try { tlsStream?.Dispose(); } catch { }
+                tlsStream = null;
 
                 var tcpConnectionResult = await base.ReconnectAsync(CancellationToken);
 

@@ -267,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                 var response = await client.Query<A>(
                                          DomainName.Parse("api.example.test."),
                                          Timeout:      TimeSpan.FromSeconds(2),
-                                         BypassCache:  true
+                                         ForceUpdate:  true
                                      );
 
                 Assert.That(response.ResponseCode,                          Is.EqualTo(DNSResponseCodes.NoError));
@@ -375,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                 var response = await client.Query<A>(
                                    DomainName.Parse("api.example.test."),
                                    Timeout:      TimeSpan.FromSeconds(2),
-                                   BypassCache:  true
+                                   ForceUpdate:  true
                                );
 
                 Assert.That(response.ResponseCode, Is.EqualTo(DNSResponseCodes.NoError));
@@ -469,14 +469,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
         #endregion
 
-        #region DNSClient_BypassCache_Sees_Runtime_Zone_Changes()
+        #region DNSClient_ForceUpdate_Sees_Runtime_Zone_Changes()
 
         [Test]
-        public async Task DNSClient_BypassCache_Sees_Runtime_Zone_Changes()
+        public async Task DNSClient_ForceUpdate_Sees_Runtime_Zone_Changes()
         {
 
             var zone   = new InMemoryDNSZone().
-                             Set(CreateARecord("bypass.example.test.", "127.0.0.20", TimeSpan.FromMinutes(5)));
+                             Set(CreateARecord("force-update.example.test.", "127.0.0.20", TimeSpan.FromMinutes(5)));
 
             var server = new DNSServer(
                              new AuthoritativeDNSRequestHandler(zone),
@@ -504,22 +504,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                                    );
 
                 var firstResponse = await client.Query<A>(
-                                        DomainName.Parse("bypass.example.test."),
+                                        DomainName.Parse("force-update.example.test."),
                                         Timeout:  TimeSpan.FromSeconds(2)
                                     );
 
                 Assert.That(firstResponse.FilteredAnswers.Single().IPv4Address, Is.EqualTo(IPv4Address.Parse("127.0.0.20")));
 
-                zone.Set(CreateARecord("bypass.example.test.", "127.0.0.21", TimeSpan.FromMinutes(5)));
+                zone.Set(CreateARecord("force-update.example.test.", "127.0.0.21", TimeSpan.FromMinutes(5)));
 
-                var bypassedResponse = await client.Query<A>(
-                                           DomainName.Parse("bypass.example.test."),
+                var forceUpdatedResponse = await client.Query<A>(
+                                           DomainName.Parse("force-update.example.test."),
                                            Timeout:      TimeSpan.FromSeconds(2),
-                                           BypassCache:  true
+                                           ForceUpdate:  true
                                        );
 
-                Assert.That(bypassedResponse.ResponseCode, Is.EqualTo(DNSResponseCodes.NoError));
-                Assert.That(bypassedResponse.FilteredAnswers.Single().IPv4Address, Is.EqualTo(IPv4Address.Parse("127.0.0.21")));
+                Assert.That(forceUpdatedResponse.ResponseCode, Is.EqualTo(DNSResponseCodes.NoError));
+                Assert.That(forceUpdatedResponse.FilteredAnswers.Single().IPv4Address, Is.EqualTo(IPv4Address.Parse("127.0.0.21")));
 
             }
             finally

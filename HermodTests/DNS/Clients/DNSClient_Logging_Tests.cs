@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<A>(
                                DomainName.Parse("timeout.example"),
                                Timeout:      TimeSpan.FromMilliseconds(75),
-                               BypassCache:  true
+                               ForceUpdate:  true
                            );
 
             Assert.That(response.IsTimeout, Is.True);

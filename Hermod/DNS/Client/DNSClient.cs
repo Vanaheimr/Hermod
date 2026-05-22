@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public partial void LogDNSResponse(String DNSServiceName, String RecordTypes, String Answers, Double Runtime);
 
 
-        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         /// <summary>
         /// Query the configured DNS server(s) for the specified domain name and resource record types.
@@ -370,13 +370,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="ResourceRecordTypes">An enumeration of DNS resource record types to query for (e.g. A, AAAA, CNAME). Use 'Any' to query for all types.</param>
         /// <param name="Timeout">An optional timeout for this query. If not specified, the client's default QueryTimeout will be used.</param>
         /// <param name="RecursionDesired">Whether to set the Recursion Desired flag in the DNS query. If not specified, the client's default RecursionDesired setting will be used (default: true).</param>
-        /// <param name="BypassCache">Whether to bypass the DNS cache for this query and force a network request. Default: false.</param>
+        /// <param name="ForceUpdate">Whether to force an upstream DNS query and update the DNS cache with the response. Default: false.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel the query.</param>
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
-                                   Boolean?                             BypassCache         = false,
+                                   Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default)
 
             => Query(
@@ -384,13 +384,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ResourceRecordTypes,
                    Timeout,
                    RecursionDesired,
-                   BypassCache,
+                   ForceUpdate,
                    CancellationToken
                );
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         /// <summary>
         /// Query the configured DNS server(s) for the specified DNS service name and resource record types.
@@ -399,13 +399,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="ResourceRecordTypes">An enumeration of DNS resource record types to query for (e.g. SRV, SVCB, HTTPS). Use 'Any' to query for all types.</param>
         /// <param name="Timeout">An optional timeout for this query. If not specified, the client's default QueryTimeout will be used.</param>
         /// <param name="RecursionDesired">Whether to set the Recursion Desired flag in the DNS query. If not specified, the client's default RecursionDesired setting will be used (default: true).</param>
-        /// <param name="BypassCache">Whether to bypass the DNS cache for this query and force a network request. Default: false.</param>
+        /// <param name="ForceUpdate">Whether to force an upstream DNS query and update the DNS cache with the response. Default: false.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel the query.</param>
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                          TimeSpan?                            Timeout             = null,
                                          Boolean?                             RecursionDesired    = true,
-                                         Boolean?                             BypassCache         = false,
+                                         Boolean?                             ForceUpdate         = false,
                                          CancellationToken                    CancellationToken   = default)
         {
 
@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Try to get answers from the DNS cache
 
-            if (UseCache && !(BypassCache ?? false) &&
+            if (UseCache && !(ForceUpdate ?? false) &&
                 DNSCache.TryGetDNSInfo(DNSServiceName, out var cachedResults))
             {
 
@@ -806,7 +806,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                              resourceRecordTypes,
                                                              Timeout,
                                                              RecursionDesired,
-                                                             BypassCache,
+                                                             ForceUpdate,
                                                              CancellationToken
                                                          ).ConfigureAwait(false);
 

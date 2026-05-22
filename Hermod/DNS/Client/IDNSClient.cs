@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T>            (DomainName,             Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query<T>            (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<DNSInfo<T>>
 
@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      DomainName         DomainName,
                      TimeSpan?          Timeout             = null,
                      Boolean?           RecursionDesired    = true,
-                     Boolean?           BypassCache         = false,
+                     Boolean?           ForceUpdate         = false,
                      CancellationToken  CancellationToken   = default)
 
             where T : ADNSResourceRecord
@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     [ GetResourceRecordType<T>() ],
                                     Timeout,
                                     RecursionDesired,
-                                    BypassCache,
+                                    ForceUpdate,
                                     CancellationToken
                                 ).ConfigureAwait(false);
 
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T>            (DNSServiceName,         Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query<T>            (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<DNSInfo<T>>
 
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      DNSServiceName     DNSServiceName,
                      TimeSpan?          Timeout             = null,
                      Boolean?           RecursionDesired    = true,
-                     Boolean?           BypassCache         = false,
+                     Boolean?           ForceUpdate         = false,
                      CancellationToken  CancellationToken   = default)
 
             where T : ADNSResourceRecord
@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     [ GetResourceRecordType<T>() ],
                                     Timeout,
                                     RecursionDesired,
-                                    BypassCache,
+                                    ForceUpdate,
                                     CancellationToken
                                 ).ConfigureAwait(false);
 
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query<T1, T2>       (DomainName,     Mapper, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query<T1, T2>       (DomainName,     Mapper, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<T2>>
 
@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            Func<TRR, T2>      Mapper,
                            TimeSpan?          Timeout             = null,
                            Boolean?           RecursionDesired    = true,
-                           Boolean?           BypassCache         = false,
+                           Boolean?           ForceUpdate         = false,
                            CancellationToken  CancellationToken   = default)
 
             where TRR : ADNSResourceRecord
@@ -133,13 +133,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           DomainName,
                           Timeout,
                           RecursionDesired,
-                          BypassCache,
+                          ForceUpdate,
                           CancellationToken
                       )).FilteredAnswers.Select(v => Mapper(v));
 
         #endregion
 
-        #region Query<T1, T2>       (DNSServiceName, Mapper, Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query<T1, T2>       (DNSServiceName, Mapper, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<T2>>
 
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            Func<TRR, T2>      Mapper,
                            TimeSpan?          Timeout             = null,
                            Boolean?           RecursionDesired    = true,
-                           Boolean?           BypassCache         = false,
+                           Boolean?           ForceUpdate         = false,
                            CancellationToken  CancellationToken   = default)
 
             where TRR : ADNSResourceRecord
@@ -157,14 +157,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           DNSServiceName,
                           Timeout,
                           RecursionDesired,
-                          BypassCache,
+                          ForceUpdate,
                           CancellationToken
                       )).FilteredAnswers.Select(v => Mapper(v));
 
         #endregion
 
 
-        #region Query_IPv4Addresses (DomainName,             Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPv4Addresses (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv4Address>>
 
@@ -172,20 +172,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 DomainName         DomainName,
                                 TimeSpan?          Timeout             = null,
                                 Boolean?           RecursionDesired    = true,
-                                Boolean?           BypassCache         = false,
+                                Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<A>(
                               DNSServiceName.Parse(DomainName.FullName),
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(ARecord => ARecord.IPv4Address);
 
         #endregion
 
-        #region Query_IPv4Addresses (DNSServiceName,         Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPv4Addresses (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv4Address>>
 
@@ -193,20 +193,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 DNSServiceName     DNSServiceName,
                                 TimeSpan?          Timeout             = null,
                                 Boolean?           RecursionDesired    = true,
-                                Boolean?           BypassCache         = false,
+                                Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<A>(
                               DNSServiceName,
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(ARecord => ARecord.IPv4Address);
 
         #endregion
 
-        #region Query_IPv4Addresses (RemoteURL,              Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPv4Addresses (RemoteURL,              Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv4Address>>
 
@@ -214,21 +214,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 URL                RemoteURL,
                                 TimeSpan?          Timeout             = null,
                                 Boolean?           RecursionDesired    = true,
-                                Boolean?           BypassCache         = false,
+                                Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<A>(
                               DomainName.Parse(RemoteURL.Hostname.Name),
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(ARecord => ARecord.IPv4Address);
 
         #endregion
 
 
-        #region Query_IPv6Addresses (DomainName,             Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPv6Addresses (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv6Address>>
 
@@ -236,20 +236,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 DomainName         DomainName,
                                 TimeSpan?          Timeout             = null,
                                 Boolean?           RecursionDesired    = true,
-                                Boolean?           BypassCache         = false,
+                                Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<AAAA>(
                               DNSServiceName.Parse(DomainName.FullName),
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address);
 
         #endregion
 
-        #region Query_IPv6Addresses (DNSServiceName,         Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPv6Addresses (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv6Address>>
 
@@ -257,20 +257,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 DNSServiceName     DNSServiceName,
                                 TimeSpan?          Timeout             = null,
                                 Boolean?           RecursionDesired    = true,
-                                Boolean?           BypassCache         = false,
+                                Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<AAAA>(
                               DNSServiceName,
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address);
 
         #endregion
 
-        #region Query_IPv6Addresses (RemoteURL,              Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPv6Addresses (RemoteURL,              Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv6Address>>
 
@@ -278,21 +278,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 URL                RemoteURL,
                                 TimeSpan?          Timeout             = null,
                                 Boolean?           RecursionDesired    = true,
-                                Boolean?           BypassCache         = false,
+                                Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<AAAA>(
                               DomainName.Parse(RemoteURL.Hostname.Name),
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address);
 
         #endregion
 
 
-        #region Query_IPAddresses   (DomainName,             Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPAddresses   (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IIPAddress>>
 
@@ -300,13 +300,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               DomainName         DomainName,
                               TimeSpan?          Timeout             = null,
                               Boolean?           RecursionDesired    = true,
-                              Boolean?           BypassCache         = false,
+                              Boolean?           ForceUpdate         = false,
                               CancellationToken  CancellationToken   = default)
 
         {
 
-            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(DomainName, Timeout, RecursionDesired, BypassCache, CancellationToken);
-            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(DomainName, Timeout, RecursionDesired, BypassCache, CancellationToken);
+            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(DomainName, Timeout, RecursionDesired, ForceUpdate, CancellationToken);
+            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(DomainName, Timeout, RecursionDesired, ForceUpdate, CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,
@@ -323,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (DNSServiceName,         Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPAddresses   (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IIPAddress>>
 
@@ -331,13 +331,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               DNSServiceName     DNSServiceName,
                               TimeSpan?          Timeout             = null,
                               Boolean?           RecursionDesired    = true,
-                              Boolean?           BypassCache         = false,
+                              Boolean?           ForceUpdate         = false,
                               CancellationToken  CancellationToken   = default)
 
         {
 
-            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(DNSServiceName, Timeout, RecursionDesired, BypassCache, CancellationToken);
-            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(DNSServiceName, Timeout, RecursionDesired, BypassCache, CancellationToken);
+            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(DNSServiceName, Timeout, RecursionDesired, ForceUpdate, CancellationToken);
+            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(DNSServiceName, Timeout, RecursionDesired, ForceUpdate, CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,
@@ -354,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (RemoteURL,              Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_IPAddresses   (RemoteURL,              Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IIPAddress>>
 
@@ -362,13 +362,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               URL                RemoteURL,
                               TimeSpan?          Timeout             = null,
                               Boolean?           RecursionDesired    = true,
-                              Boolean?           BypassCache         = false,
+                              Boolean?           ForceUpdate         = false,
                               CancellationToken  CancellationToken   = default)
 
         {
 
-            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(DomainName.Parse(RemoteURL.Hostname.Name), Timeout, RecursionDesired, BypassCache, CancellationToken);
-            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(DomainName.Parse(RemoteURL.Hostname.Name), Timeout, RecursionDesired, BypassCache, CancellationToken);
+            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(DomainName.Parse(RemoteURL.Hostname.Name), Timeout, RecursionDesired, ForceUpdate, CancellationToken);
+            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(DomainName.Parse(RemoteURL.Hostname.Name), Timeout, RecursionDesired, ForceUpdate, CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_DNSService    (DomainName,             Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_DNSService    (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<SRV>>
 
@@ -395,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              SRV_Spec           DNSServiceSpec,
                              TimeSpan?          Timeout             = null,
                              Boolean?           RecursionDesired    = true,
-                             Boolean?           BypassCache         = false,
+                             Boolean?           ForceUpdate         = false,
                              CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<SRV>(
@@ -405,13 +405,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               ),
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers;
 
         #endregion
 
-        #region Query_DNSService    (DNSServiceName,          Timeout = null, RecursionDesired = true, BypassCache = false, ...)
+        #region Query_DNSService    (DNSServiceName,          Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<SRV>>
 
@@ -419,14 +419,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              DNSServiceName     DNSServiceName,
                              TimeSpan?          Timeout             = null,
                              Boolean?           RecursionDesired    = true,
-                             Boolean?           BypassCache         = false,
+                             Boolean?           ForceUpdate         = false,
                              CancellationToken  CancellationToken   = default)
 
                 => (await IDNSClient.Query<SRV>(
                               DNSServiceName,
                               Timeout,
                               RecursionDesired,
-                              BypassCache,
+                              ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers;
 
@@ -442,24 +442,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   IAsyncDisposable
     {
 
-        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, BypassCache = false, RecursionDesired = true, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, ForceUpdate = false, RecursionDesired = true, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
-                                   Boolean?                             BypassCache         = false,
+                                   Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default);
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null,BypassCache = false, RecursionDesired = true, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null,ForceUpdate = false, RecursionDesired = true, ...)
 
         public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
                                    Boolean?                             RecursionDesired    = true,
-                                   Boolean?                             BypassCache         = false,
+                                   Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default);
 
         #endregion
