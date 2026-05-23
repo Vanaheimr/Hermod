@@ -1157,11 +1157,28 @@ Error:
                 URLPathPrefix + "serviceCheck",
                 HTTPDelegate: request => {
 
+                    ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
+                    ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
+
                     var jsonResponse  = JSONObject.Create(
-                                            new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPServer.HTTPServerName),
-                                            new JProperty("instance",   Environment.MachineName),
-                                            new JProperty("content",    RandomExtensions.RandomString(20))
+
+                                            new JProperty("timestamp",     Timestamp.Now),
+                                            new JProperty("service",       HTTPServer.HTTPServerName),
+                                            new JProperty("instance",      Environment.MachineName),
+                                            new JProperty("content",       RandomExtensions.RandomString(20)),
+
+                                            new JProperty("diagnostics",   JSONObject.Create(
+                                                new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients),
+                                                new JProperty("threadPoolBusy",      workerMax - workerAvail),
+                                                new JProperty("threadPoolPending",   ThreadPool.PendingWorkItemCount),
+                                                new JProperty("gcGen0",              GC.CollectionCount(0)),
+                                                new JProperty("gcGen1",              GC.CollectionCount(1)),
+                                                new JProperty("gcGen2",              GC.CollectionCount(2)),
+                                                new JProperty("gcPauseTotalMs",      GC.GetTotalPauseDuration().TotalMilliseconds),
+                                                new JProperty("heapMB",              GC.GetTotalMemory(false) / 1_048_576.0),
+                                                new JProperty("workingSetMB",        Environment.WorkingSet   / 1_048_576.0)
+                                            ))
+
                                         );
 
                     if (ServiceCheckKeys?.PublicKey is not null)
@@ -1217,6 +1234,9 @@ Error:
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: request => {
 
+                    ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
+                    ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
+
                     var content = String.Empty;
 
                     #region Try to parse a text HTTP body...
@@ -1247,10 +1267,24 @@ Error:
 
 
                     var jsonResponse  = JSONObject.Create(
+
                                             new JProperty("timestamp",  Timestamp.Now),
                                             new JProperty("service",    HTTPServer.HTTPServerName),
                                             new JProperty("instance",   Environment.MachineName),
-                                            new JProperty("content",    content?.Reverse())
+                                            new JProperty("content",    content?.Reverse()),
+
+                                            new JProperty("diagnostics",   JSONObject.Create(
+                                                new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients),
+                                                new JProperty("threadPoolBusy",      workerMax - workerAvail),
+                                                new JProperty("threadPoolPending",   ThreadPool.PendingWorkItemCount),
+                                                new JProperty("gcGen0",              GC.CollectionCount(0)),
+                                                new JProperty("gcGen1",              GC.CollectionCount(1)),
+                                                new JProperty("gcGen2",              GC.CollectionCount(2)),
+                                                new JProperty("gcPauseTotalMs",      GC.GetTotalPauseDuration().TotalMilliseconds),
+                                                new JProperty("heapMB",              GC.GetTotalMemory(false) / 1_048_576.0),
+                                                new JProperty("workingSetMB",        Environment.WorkingSet   / 1_048_576.0)
+                                            ))
+
                                         );
 
                     if (ServiceCheckKeys?.PublicKey is not null)
