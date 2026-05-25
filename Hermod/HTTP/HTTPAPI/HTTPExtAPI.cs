@@ -27,6 +27,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Diagnostics.Runtime;
 
 using Newtonsoft.Json.Linq;
 
@@ -1274,10 +1275,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         protected static readonly  TimeSpan       SemaphoreSlimTimeout                  = TimeSpan.FromSeconds(30);
 
+        private          readonly  SemaphoreSlim  createGCDumpLock                      = new(1, 1);
+
+
         /// <summary>
         /// The default language of the API.
         /// </summary>
-        public  const             Languages                                     DefaultDefaultLanguage                  = Languages.en;
+        public const             Languages                                     DefaultDefaultLanguage                  = Languages.en;
 
         public  const             Byte                                          DefaultMinUserIdLength                  = 4;
         public  const             Byte                                          DefaultMinRealmLength                   = 2;
@@ -4315,10 +4319,147 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region /shared/HTTPExtAPIX
 
-          //  this.MapResourceAssemblyFolder(HTTPHostname.Any,
-          //                                 URLPathPrefix + "shared/HTTPExtAPIX",
-          //                                 HTTPRoot[..^1],
-          //                                 typeof(HTTPExtAPIX).Assembly);
+            //  this.MapResourceAssemblyFolder(HTTPHostname.Any,
+            //                                 URLPathPrefix + "shared/HTTPExtAPIX",
+            //                                 HTTPRoot[..^1],
+            //                                 typeof(HTTPExtAPIX).Assembly);
+
+            #endregion
+
+
+            var rootGroupId = UserGroup_Id.Parse("root");
+
+            #region POST  ~/createGCDump
+
+            // -------------------------------------------------
+            // curl -X POST http://127.0.0.1:3004/createGCDump
+            // -------------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "createGCDump",
+                HTTPDelegate: async request => {
+
+                    #region Check Check Access Rights
+
+                    if (!IsMember(request.User, rootGroupId))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                   Server                     = HTTPServer.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "OPTIONS", "HEAD", "GET", "COUNT" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   //WWWAuthenticate            = WWWAuthenticateDefaults,
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    #endregion
+
+                    if (!await createGCDumpLock.WaitAsync(0))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.Conflict,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "POST" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                                   ContentType                = HTTPContentType.Text.PLAIN,
+                                   Content                    = "A dump is already in progress!".ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    try
+                    {
+
+                        // Force full compacting GC
+                        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+                        GC.WaitForPendingFinalizers();
+                        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+
+                        using var dataTarget  = DataTarget.CreateSnapshotAndAttach(Environment.ProcessId);
+                        using var runtime     = dataTarget.ClrVersions[0].CreateRuntime();
+                        var       heap        = runtime.Heap;
+
+                        var stats             = new Dictionary<String, (int Count, long Size)>();
+                        var totalObjects      = 0L;
+                        var totalSize         = 0L;
+
+                        foreach (var obj in heap.EnumerateObjects())
+                        {
+
+                            if (!obj.IsValid)
+                                continue;
+
+                            var typeName  = obj.Type?.Name ?? "<unknown>";
+                            var size      = (long) obj.Size;
+                            totalObjects++;
+                            totalSize    += size;
+
+                            if (stats.TryGetValue(typeName, out var existing))
+                                stats[typeName] = (existing.Count + 1, existing.Size + size);
+                            else
+                                stats[typeName] = (1, size);
+
+                        }
+
+                        var ranked = stats.OrderByDescending(x => x.Value.Size).ToList();
+
+                        var report = new JObject(
+                            new JProperty("timestamp", DateTime.UtcNow),
+                            new JProperty("totalObjects", totalObjects),
+                            new JProperty("totalSizeBytes", totalSize),
+                            new JProperty("totalSizeMB", Math.Round(totalSize / 1024.0 / 1024.0, 1)),
+                            new JProperty("generations", GC.MaxGeneration + 1),
+                            new JProperty("types", new JArray(
+                                ranked.Select((x, i) => new JObject(
+                                    new JProperty("rank", i + 1),
+                                    new JProperty("type", x.Key),
+                                    new JProperty("count", x.Value.Count),
+                                    new JProperty("sizeBytes", x.Value.Size),
+                                    new JProperty("avgBytes", x.Value.Count > 0
+                                        ? (double)x.Value.Size / x.Value.Count
+                                        : 0)   // Division-by-zero-Schutz + expliziter Cast
+                                ))
+                            ))
+                        );
+
+
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "POST" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = report.ToString(Newtonsoft.Json.Formatting.None).ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+                    }
+                    catch (Exception ex)
+                    {
+
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.InternalServerError,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "POST" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                                   ContentType                = HTTPContentType.Text.PLAIN,
+                                   Content                    = ex.ToString().ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    }
+                    finally
+                    {
+                        createGCDumpLock.Release();
+                    }
+                });
 
             #endregion
 
@@ -10724,6 +10865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
         #region Database file...
 
