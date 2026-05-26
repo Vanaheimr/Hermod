@@ -17,9 +17,8 @@
 
 #region Usings
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
