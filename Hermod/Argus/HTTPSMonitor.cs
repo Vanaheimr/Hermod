@@ -76,6 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
             String?            error              = null;
             String             responseBody       = "";
             ServerDiagnostics? serverDiagnostics  = null;
+            String?            diagnosticsError   = null;
 
             try
             {
@@ -114,8 +115,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                 }
 
                 var path          = URL.Path.IsNotNullOrEmpty
-                                        ? HTTPPath.Root
-                                        : URL.Path;
+                                        ? URL.Path
+                                        : HTTPPath.Root;
                 var request       = $"GET {path} HTTP/1.1\r\nHost: {URL.Hostname}\r\nConnection: close\r\nUser-Agent: Vanaheimr Argus/1.0\r\n\r\n";
                 var requestBytes  = System.Text.Encoding.ASCII.GetBytes(request);
 
@@ -162,7 +163,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                     if (doc.RootElement.TryGetProperty("diagnostics", out var diagEl))
                         serverDiagnostics = JsonSerializer.Deserialize<ServerDiagnostics>(diagEl.GetRawText(), DiagJsonOpts);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    diagnosticsError = ex.Message;
+                }
             }
 
             var total        = dnsDelay + tcpDelay + tlsDelay + ttfbDelay + downloadDelay;
@@ -203,6 +207,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                            $" GC:{serverDiagnostics.GcGen0}/{serverDiagnostics.GcGen1}/{serverDiagnostics.GcGen2} pause:{serverDiagnostics.GcPauseTotalMs.TotalMilliseconds:F1}ms alloc:{serverDiagnostics.GcAllocatedTotalMB:F0}MB heap:{serverDiagnostics.HeapMB:F0}MB ws:{serverDiagnostics.WorkingSetMB:F0}MB" +
                            $" Process:threads:{serverDiagnostics.ProcessThreads} handles:{serverDiagnostics.ProcessHandleCount} private:{serverDiagnostics.ProcessPrivateMB:F0}MB";
 
+            }
+            else if (diagnosticsError is not null)
+            {
+                diagPart = $" | Diagnostics parse failed: {diagnosticsError[..Math.Min(80, diagnosticsError.Length)]}";
             }
 
             var errorPart    = measurement.Error is not null

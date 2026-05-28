@@ -15,13 +15,29 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text.Json.Serialization;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
     public record ThreadPoolDiagnostics(
+
+        [property: JsonPropertyName("threads")]
         UInt32  Threads     = 0,
+
+        [property: JsonPropertyName("completed")]
         UInt64  Completed   = 0,
+
+        [property: JsonPropertyName("pending")]
         UInt64  Pending     = 0,
-        UInt32  Busy        = 0);
+
+        [property: JsonPropertyName("busy")]
+        UInt32  Busy        = 0
+
+    );
 
 }

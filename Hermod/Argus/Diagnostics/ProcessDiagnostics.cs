@@ -15,14 +15,32 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text.Json.Serialization;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
     public record ProcessDiagnostics(
+
+        [property: JsonPropertyName("cpuPercent")]
         Double?  CPUPercent   = null,
+
+        [property: JsonPropertyName("cpuCores")]
         Double?  CPUCores     = null,
+
+        [property: JsonPropertyName("threads")]
         UInt32   Threads      = 0,
+
+        [property: JsonPropertyName("handleCount")]
         UInt32   HandleCount  = 0,
-        Double   PrivateMB    = 0);
+
+        [property: JsonPropertyName("privateMB")]
+        Double   PrivateMB    = 0
+
+    );
 
 }

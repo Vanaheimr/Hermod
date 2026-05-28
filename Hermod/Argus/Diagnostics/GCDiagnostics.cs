@@ -15,16 +15,38 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text.Json.Serialization;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
     public record GCDiagnostics(
+
+        [property: JsonPropertyName("gen0")]
         UInt32    Gen0              = 0,
+
+        [property: JsonPropertyName("gen1")]
         UInt32    Gen1              = 0,
+
+        [property: JsonPropertyName("gen2")]
         UInt32    Gen2              = 0,
+
+        [property: JsonPropertyName("pauseTotalMs")]
         TimeSpan  PauseTotalMs      = default,
+
+        [property: JsonPropertyName("heapMB")]
         Double    HeapMB            = 0,
+
+        [property: JsonPropertyName("allocatedTotalMB")]
         Double    AllocatedTotalMB  = 0,
-        Double    WorkingSetMB      = 0);
+
+        [property: JsonPropertyName("workingSetMB")]
+        Double    WorkingSetMB      = 0
+
+    );
 
 }

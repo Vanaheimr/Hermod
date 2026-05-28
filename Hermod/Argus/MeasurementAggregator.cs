@@ -65,34 +65,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
                     }
 
-                    serverDiagnostics = new ServerDiagnostics(
-                                            ProcessorCount:  lastDiag.ProcessorCount,
-                                            TCP:             new TCPDiagnostics(
-                                                                 ActiveConnections:  (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ActiveConnections))
-                                                             ),
-                                            ThreadPool:      new ThreadPoolDiagnostics(
-                                                                 Threads:            (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ThreadPoolThreads)),
-                                                                 Completed:          lastDiag.ThreadPoolCompleted,
-                                                                 Pending:            (UInt64) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ThreadPoolPending)),
-                                                                 Busy:               (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ThreadPoolBusy))
-                                                             ),
-                                            GC:              new GCDiagnostics(
-                                                                 Gen0:               lastDiag.GcGen0,
-                                                                 Gen1:               lastDiag.GcGen1,
-                                                                 Gen2:               lastDiag.GcGen2,
-                                                                 PauseTotalMs:       lastDiag.GcPauseTotalMs,
-                                                                 HeapMB:             Avg(diagItems, serverDiagnostics => serverDiagnostics.HeapMB),
-                                                                 AllocatedTotalMB:   lastDiag.GcAllocatedTotalMB,
-                                                                 WorkingSetMB:       Avg(diagItems, serverDiagnostics => serverDiagnostics.WorkingSetMB)
-                                                             ),
-                                            Process:         new ProcessDiagnostics(
-                                                                 CPUPercent:         AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.ProcessCpuPercent),
-                                                                 CPUCores:           AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.ProcessCpuCores),
-                                                                 Threads:            (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessThreads)),
-                                                                 HandleCount:        (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessHandleCount)),
-                                                                 PrivateMB:          Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessPrivateMB)
-                                                             )
-                                        );
+                    serverDiagnostics = new ServerDiagnostics {
+                                            ProcessorCount  = lastDiag.ProcessorCount,
+                                            TCP             = new TCPDiagnostics(
+                                                                  ActiveConnections:  (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ActiveConnections))
+                                                              ),
+                                            ThreadPool      = new ThreadPoolDiagnostics(
+                                                                  Threads:            (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ThreadPoolThreads)),
+                                                                  Completed:          lastDiag.ThreadPoolCompleted,
+                                                                  Pending:            (UInt64) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ThreadPoolPending)),
+                                                                  Busy:               (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ThreadPoolBusy))
+                                                              ),
+                                            GC              = new GCDiagnostics(
+                                                                  Gen0:               lastDiag.GcGen0,
+                                                                  Gen1:               lastDiag.GcGen1,
+                                                                  Gen2:               lastDiag.GcGen2,
+                                                                  PauseTotalMs:       lastDiag.GcPauseTotalMs,
+                                                                  HeapMB:             Avg(diagItems, serverDiagnostics => serverDiagnostics.HeapMB),
+                                                                  AllocatedTotalMB:   lastDiag.GcAllocatedTotalMB,
+                                                                  WorkingSetMB:       Avg(diagItems, serverDiagnostics => serverDiagnostics.WorkingSetMB)
+                                                              ),
+                                            Process         = new ProcessDiagnostics(
+                                                                  CPUPercent:         AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.ProcessCpuPercent),
+                                                                  CPUCores:           AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.ProcessCpuCores),
+                                                                  Threads:            (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessThreads)),
+                                                                  HandleCount:        (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessHandleCount)),
+                                                                  PrivateMB:          Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessPrivateMB)
+                                                              )
+                                        };
 
                 }
 

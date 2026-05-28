@@ -15,24 +15,32 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text.Json.Serialization;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
-    public record ServerDiagnostics(
-        UInt32                 ProcessorCount  = 0,
-        TCPDiagnostics         TCP             = null!,
-        ThreadPoolDiagnostics  ThreadPool      = null!,
-        GCDiagnostics          GC              = null!,
-        ProcessDiagnostics     Process         = null!)
+    public record ServerDiagnostics
     {
 
-        public TCPDiagnostics         TCP               { get; init; } = TCP        ?? new();
+        [JsonPropertyName("processorCount")]
+        public UInt32                 ProcessorCount    { get; init; } = 0;
 
-        public ThreadPoolDiagnostics  ThreadPool        { get; init; } = ThreadPool ?? new();
+        [JsonPropertyName("tcp")]
+        public TCPDiagnostics         TCP               { get; init; } = new();
 
-        public GCDiagnostics          GC                { get; init; } = GC         ?? new();
+        [JsonPropertyName("threadPool")]
+        public ThreadPoolDiagnostics  ThreadPool        { get; init; } = new();
 
-        public ProcessDiagnostics     Process           { get; init; } = Process    ?? new();
+        [JsonPropertyName("gc")]
+        public GCDiagnostics          GC                { get; init; } = new();
+
+        [JsonPropertyName("process")]
+        public ProcessDiagnostics     Process           { get; init; } = new();
 
         public UInt32                 ActiveConnections    => TCP.ActiveConnections;
         public UInt32                 ThreadPoolThreads    => ThreadPool.Threads;

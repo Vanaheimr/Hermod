@@ -15,10 +15,20 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text.Json.Serialization;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
     public record TCPDiagnostics(
-        UInt32 ActiveConnections = 0);
+
+        [property: JsonPropertyName("activeConnections")]
+        UInt32 ActiveConnections = 0
+
+    );
 
 }
