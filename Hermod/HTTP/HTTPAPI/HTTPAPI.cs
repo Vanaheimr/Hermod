@@ -218,8 +218,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private   readonly ConcurrentDictionary<String, PathNode>                      routeNodes        = [];
         protected readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources      = [];
 
-        private   readonly CPUUsageSampler                                             cpuUsageSampler   = new();
-
         #endregion
 
         #region Events
@@ -1144,6 +1142,9 @@ Error:
         #endregion
 
 
+        protected static Double MB(Int64 Bytes)
+            => Bytes / 1_048_576.0;
+
         private void RegisterURLTemplates()
         {
 
@@ -1160,54 +1161,11 @@ Error:
                 URLPathPrefix + "serviceCheck",
                 HTTPDelegate: request => {
 
-                    ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
-                    ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
-
-                    var cpu           = cpuUsageSampler.Sample();
-                    var process       = Process.GetCurrentProcess();
-
                     var jsonResponse  = JSONObject.Create(
-
-                                            new JProperty("timestamp",     Timestamp.Now),
-                                            new JProperty("service",       HTTPServer.HTTPServerName),
-                                            new JProperty("instance",      Environment.MachineName),
-                                            new JProperty("content",       RandomExtensions.RandomString(20)),
-
-                                            new JProperty("diagnostics",   JSONObject.Create(
-
-                                                new JProperty("processorCount",          Environment.ProcessorCount),
-
-                                                new JProperty("tcp",         JSONObject.Create(
-                                                    new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
-                                                )),
-
-                                                new JProperty("threadPool",  JSONObject.Create(
-                                                    new JProperty("threads",             ThreadPool.ThreadCount),
-                                                    new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
-                                                    new JProperty("pending",             ThreadPool.PendingWorkItemCount),
-                                                    new JProperty("busy",                workerMax - workerAvail)
-                                                )),
-
-                                                new JProperty("gc",          JSONObject.Create(
-                                                    new JProperty("gen0",                GC.CollectionCount(0)),
-                                                    new JProperty("gen1",                GC.CollectionCount(1)),
-                                                    new JProperty("gen2",                GC.CollectionCount(2)),
-                                                    new JProperty("pauseTotalMs",        GC.GetTotalPauseDuration().TotalMilliseconds),
-                                                    new JProperty("heapMB",              GC.GetTotalMemory(false)         / 1_048_576.0),
-                                                    new JProperty("allocatedTotalMB",    GC.GetTotalAllocatedBytes(false) / 1_048_576.0),
-                                                    new JProperty("workingSetMB",        Environment.WorkingSet           / 1_048_576.0)
-                                                )),
-
-                                                new JProperty("process",     JSONObject.Create(
-                                                    new JProperty("cpuPercent",          cpu?.Percent),
-                                                    new JProperty("cpuCores",            cpu?.Cores),
-                                                    new JProperty("threads",             process.Threads.Count),
-                                                    new JProperty("handleCount",         process.HandleCount),
-                                                    new JProperty("privateMB",           process.PrivateMemorySize64      / 1_048_576.0)
-                                                ))
-
-                                            ))
-
+                                            new JProperty("timestamp",  Timestamp.Now),
+                                            new JProperty("service",    HTTPServer.HTTPServerName),
+                                            new JProperty("instance",   Environment.MachineName),
+                                            new JProperty("content",    RandomExtensions.RandomString(20))
                                         );
 
                     if (ServiceCheckKeys?.PublicKey is not null)
@@ -1263,13 +1221,7 @@ Error:
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: request => {
 
-                    ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
-                    ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
-
-                    var cpu           = cpuUsageSampler.Sample();
-                    var process       = Process.GetCurrentProcess();
-
-                    var content       = String.Empty;
+                    var content = String.Empty;
 
                     #region Try to parse a text HTTP body...
 
@@ -1299,47 +1251,10 @@ Error:
 
 
                     var jsonResponse  = JSONObject.Create(
-
-                                            new JProperty("timestamp",     Timestamp.Now),
-                                            new JProperty("service",       HTTPServer.HTTPServerName),
-                                            new JProperty("instance",      Environment.MachineName),
-                                            new JProperty("content",       content?.Reverse()),
-
-                                            new JProperty("diagnostics",   JSONObject.Create(
-
-                                                new JProperty("processorCount",          Environment.ProcessorCount),
-
-                                                new JProperty("tcp",         JSONObject.Create(
-                                                    new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
-                                                )),
-
-                                                new JProperty("threadPool",  JSONObject.Create(
-                                                    new JProperty("threads",             ThreadPool.ThreadCount),
-                                                    new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
-                                                    new JProperty("pending",             ThreadPool.PendingWorkItemCount),
-                                                    new JProperty("busy",                workerMax - workerAvail)
-                                                )),
-
-                                                new JProperty("gc",          JSONObject.Create(
-                                                    new JProperty("gen0",                GC.CollectionCount(0)),
-                                                    new JProperty("gen1",                GC.CollectionCount(1)),
-                                                    new JProperty("gen2",                GC.CollectionCount(2)),
-                                                    new JProperty("pauseTotalMs",        GC.GetTotalPauseDuration().TotalMilliseconds),
-                                                    new JProperty("heapMB",              GC.GetTotalMemory(false)         / 1_048_576.0),
-                                                    new JProperty("allocatedTotalMB",    GC.GetTotalAllocatedBytes(false) / 1_048_576.0),
-                                                    new JProperty("workingSetMB",        Environment.WorkingSet           / 1_048_576.0)
-                                                )),
-
-                                                new JProperty("process",     JSONObject.Create(
-                                                    new JProperty("cpuPercent",          cpu?.Percent),
-                                                    new JProperty("cpuCores",            cpu?.Cores),
-                                                    new JProperty("threads",             process.Threads.Count),
-                                                    new JProperty("handleCount",         process.HandleCount),
-                                                    new JProperty("privateMB",           process.PrivateMemorySize64      / 1_048_576.0)
-                                                ))
-
-                                            ))
-
+                                            new JProperty("timestamp",  Timestamp.Now),
+                                            new JProperty("service",    HTTPServer.HTTPServerName),
+                                            new JProperty("instance",   Environment.MachineName),
+                                            new JProperty("content",    content?.Reverse())
                                         );
 
                     if (ServiceCheckKeys?.PublicKey is not null)
@@ -1384,211 +1299,6 @@ Error:
 
             #endregion
 
-            #region GET   ~/monitoring
-
-            // ---------------------------------------
-            // curl http://127.0.0.1:2000/monitoring
-            // ---------------------------------------
-            AddHandler(
-                HTTPMethod.GET,
-                URLPathPrefix + "monitoring",
-                HTTPDelegate: request => {
-
-                    var process           = Process.GetCurrentProcess();
-                    process.Refresh();
-
-                    var freeSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-                                            RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                                                ? ResourcesMonitor.GetMemoryMetricsOnUnix()
-                                                : ResourcesMonitor.GetMemoryMetricsOnWindows();
-
-                    var driveInfo         = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
-                    var freeDiscSpace     = (Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100;
-
-                    var jsonResponse      = JSONObject.Create(
-                                                new JProperty("timestamp",  Timestamp.Now),
-                                                new JProperty("service",    HTTPServer.HTTPServerName),
-                                                new JProperty("instance",   Environment.MachineName),
-                                                new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
-                                                new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
-                                                new JProperty("content",    RandomExtensions.RandomString(20))
-                                            );
-
-                    if (ServiceCheckKeys?.PublicKey is not null)
-                    {
-
-                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
-
-                        if (ServiceCheckKeys.PrivateKey is not null)
-                        {
-
-                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckKeys.PrivateKey);
-                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                            var signature   = signer.GenerateSignature().ToHexString();
-
-                            jsonResponse.Add("signature", signature);
-
-                        }
-
-                    }
-
-                    return Task.FromResult(
-                        new HTTPResponse.Builder(request) {
-                            HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPServer?.HTTPServerName,
-                            Date                       = Timestamp.Now,
-                            AccessControlAllowOrigin   = "*",
-                            AccessControlAllowMethods  = [ "POST" ],
-                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
-                            ContentType                = HTTPContentType.Application.JSON_UTF8,
-                            Content                    = jsonResponse.ToUTF8Bytes(),
-                            CacheControl               = "no-cache",
-                            Connection                 = ConnectionType.KeepAlive
-                        }.AsImmutable);
-
-                },
-                AllowReplacement: URLReplacement.Allow
-            );
-
-            #endregion
-
-            #region GET   ~/connections
-
-            // ---------------------------------------
-            // curl http://127.0.0.1:3004/connections
-            // ---------------------------------------
-            AddHandler(
-                HTTPMethod.GET,
-                URLPathPrefix + "connections",
-                HTTPDelegate: request => {
-
-                    var jsonResponse  = new JArray(
-                                            HTTPServer.ClientConnections.Select(connection => connection.ToJSON())
-                                        );
-
-                    return Task.FromResult(
-                        new HTTPResponse.Builder(request) {
-                            HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPServer?.HTTPServerName,
-                            Date                       = Timestamp.Now,
-                            AccessControlAllowOrigin   = "*",
-                            AccessControlAllowMethods  = [ "POST" ],
-                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
-                            ContentType                = HTTPContentType.Application.JSON_UTF8,
-                            Content                    = jsonResponse.
-                                                             ToString(Newtonsoft.Json.Formatting.Indented).
-                                                             ToUTF8Bytes(),
-                            CacheControl               = "no-cache",
-                            Connection                 = ConnectionType.KeepAlive
-                        }.AsImmutable);
-
-                },
-                AllowReplacement: URLReplacement.Allow
-            );
-
-            #endregion
-
-
-
-
-
-            #region POST  ~/restart
-
-            // -----------------------------------------------
-            // curl -v -X POST http://127.0.0.1:2000/restart
-            // -----------------------------------------------
-            AddHandler(
-                HTTPMethod.POST,
-                URLPathPrefix + "/restart",
-                HTTPRequestLogger:   RestartRequest,
-                HTTPResponseLogger:  RestartResponse,
-                HTTPDelegate:        request => {
-
-                    #region Try to get HTTP user and its organizations
-
-                    //// Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                    //if (!TryGetHTTPUser(Request,
-                    //                    out var httpUser,
-                    //                    out var httpOrganizations,
-                    //                    out var httpResponseBuilder,
-                    //                    Access_Levels.Admin,
-                    //                    Recursive: true) ||
-                    //    httpUser is null ||
-                    //   !httpOrganizations.Any())
-                    //{
-                    //    return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                    //}
-
-                    #endregion
-
-
-                    //Task.Run(() => {
-                    //    Task.Delay(10000);
-            //            Environment.Exit(1000);
-                    //});
-
-                    return Task.FromResult(
-                        new HTTPResponse.Builder(request) {
-                            HTTPStatusCode  = HTTPStatusCode.OK,
-                            Server          = HTTPServer?.HTTPServerName,
-                            Connection      = ConnectionType.KeepAlive
-                        }.AsImmutable);
-
-                }
-            );
-
-            #endregion
-
-            #region POST  ~/stop
-
-            // --------------------------------------------
-            // curl -v -X POST http://127.0.0.1:2000/stop
-            // --------------------------------------------
-            AddHandler(
-                HTTPMethod.POST,
-                URLPathPrefix + "/stop",
-                HTTPRequestLogger:   StopRequest,
-                HTTPResponseLogger:  StopResponse,
-                HTTPDelegate:        request => {
-
-                    #region Try to get HTTP user and its organizations
-
-                    //// Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                    //if (!TryGetHTTPUser(request,
-                    //                    out var httpUser,
-                    //                    out var httpOrganizations,
-                    //                    out var httpResponseBuilder,
-                    //                    Access_Levels.Admin,
-                    //                    Recursive: true) ||
-                    //    httpUser is null ||
-                    //   !httpOrganizations.Any())
-                    //{
-                    //    return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                    //}
-
-                    #endregion
-
-
-                    //Task.Run(() => {
-                    //    Task.Delay(1000);
-          //          Environment.Exit(0);
-                    //});
-
-                    return Task.FromResult(
-                        new HTTPResponse.Builder(request) {
-                            HTTPStatusCode  = HTTPStatusCode.OK,
-                            Server          = HTTPServer?.HTTPServerName,
-                            Connection      = ConnectionType.KeepAlive
-                        }.AsImmutable);
-
-                }
-            );
-
-            #endregion
 
         }
 

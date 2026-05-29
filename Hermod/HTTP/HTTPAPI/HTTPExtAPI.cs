@@ -21,10 +21,12 @@ using System.Text;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Reflection;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Diagnostics.Runtime;
@@ -50,6 +52,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
+using org.GraphDefined.Vanaheimr.Hermod.Argus;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
 #endregion
@@ -1252,40 +1255,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public new const           String         DefaultHTTPServerName                = "GraphDefined HTTPExt API";
+        public new const           String           DefaultHTTPServerName                = "GraphDefined HTTPExt API";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public new const           String         DefaultHTTPServiceName               = "GraphDefined HTTPExt API";
+        public new const           String           DefaultHTTPServiceName               = "GraphDefined HTTPExt API";
 
         /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public new const           String         HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public new const           String           HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
         ///// <summary>
         ///// The default HTTP server port.
         ///// </summary>
-        //public new static readonly IPPort         DefaultHTTPServerPort                = IPPort.Parse(2305);
+        //public new static readonly IPPort           DefaultHTTPServerPort                = IPPort.Parse(2305);
 
-        public const               String         DefaultHTTPExtAPI_DatabaseFileName   = "HTTPExtAPI.db";
-        public const               String         DefaultHTTPExtAPI_LogfileName        = "HTTPExtAPI.log";
-        public const               String         DefaultPasswordFile                   = "passwords.db";
-        public const               String         DefaultHTTPCookiesFile                = "HTTPCookies.db";
-        public const               String         DefaultPasswordResetsFile             = "passwordResets.db";
+        public const               String           DefaultHTTPExtAPI_DatabaseFileName   = "HTTPExtAPI.db";
+        public const               String           DefaultHTTPExtAPI_LogfileName        = "HTTPExtAPI.log";
+        public const               String           DefaultPasswordFile                   = "passwords.db";
+        public const               String           DefaultHTTPCookiesFile                = "HTTPCookies.db";
+        public const               String           DefaultPasswordResetsFile             = "passwordResets.db";
 
-        protected static readonly  SemaphoreSlim  LogFileSemaphore                      = new (1, 1);
-        protected static readonly  SemaphoreSlim  UsersSemaphore                        = new (1, 1);
-        protected static readonly  SemaphoreSlim  UserGroupsSemaphore                   = new (1, 1);
-        protected static readonly  SemaphoreSlim  APIKeysSemaphore                      = new (1, 1);
-        protected static readonly  SemaphoreSlim  OrganizationsSemaphore                = new (1, 1);
-        protected static readonly  SemaphoreSlim  OrganizationGroupsSemaphore           = new (1, 1);
-        protected static readonly  SemaphoreSlim  NotificationMessagesSemaphore         = new (1, 1);
+        protected static readonly  SemaphoreSlim    LogFileSemaphore                      = new (1, 1);
+        protected static readonly  SemaphoreSlim    UsersSemaphore                        = new (1, 1);
+        protected static readonly  SemaphoreSlim    UserGroupsSemaphore                   = new (1, 1);
+        protected static readonly  SemaphoreSlim    APIKeysSemaphore                      = new (1, 1);
+        protected static readonly  SemaphoreSlim    OrganizationsSemaphore                = new (1, 1);
+        protected static readonly  SemaphoreSlim    OrganizationGroupsSemaphore           = new (1, 1);
+        protected static readonly  SemaphoreSlim    NotificationMessagesSemaphore         = new (1, 1);
 
-        protected static readonly  TimeSpan       SemaphoreSlimTimeout                  = TimeSpan.FromSeconds(30);
+        protected static readonly  TimeSpan         SemaphoreSlimTimeout                  = TimeSpan.FromSeconds(30);
 
-        private          readonly  SemaphoreSlim  createGCDumpLock                      = new(1, 1);
+        private          readonly  CPUUsageSampler  cpuUsageSampler                       = new();
+        private          readonly  SemaphoreSlim    createGCDumpLock                      = new(1, 1);
 
 
         /// <summary>
@@ -4203,6 +4207,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private void RegisterURLTemplates()
         {
 
+            var rootGroupId = UserGroup_Id.Parse("root");
+
             var URLPathPrefix = HTTPPath.Root;
 
             //HTTPServer.AddAuth  (request => {
@@ -4333,143 +4339,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                 URLPathPrefix + "shared/HTTPExtAPI",
             //                                 HTTPRoot[..^1],
             //                                 typeof(HTTPExtAPI).Assembly);
-
-            #endregion
-
-
-            var rootGroupId = UserGroup_Id.Parse("root");
-
-            #region POST  ~/createGCDump
-
-            // -------------------------------------------------
-            // curl -X POST http://127.0.0.1:3004/createGCDump
-            // -------------------------------------------------
-            AddHandler(
-                HTTPMethod.POST,
-                URLPathPrefix + "createGCDump",
-                HTTPDelegate: async request => {
-
-                    #region Check Check Access Rights
-
-                    if (!IsMember(request.User, rootGroupId))
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                   Server                     = HTTPServer.HTTPServerName,
-                                   Date                       = Timestamp.Now,
-                                   AccessControlAllowOrigin   = "*",
-                                   AccessControlAllowMethods  = [ "OPTIONS", "HEAD", "GET", "COUNT" ],
-                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                   //WWWAuthenticate            = WWWAuthenticateDefaults,
-                                   Connection                 = ConnectionType.KeepAlive
-                               }.AsImmutable;
-
-                    #endregion
-
-                    if (!await createGCDumpLock.WaitAsync(0))
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode             = HTTPStatusCode.Conflict,
-                                   Server                     = HTTPServer?.HTTPServerName,
-                                   Date                       = Timestamp.Now,
-                                   AccessControlAllowOrigin   = "*",
-                                   AccessControlAllowMethods  = [ "POST" ],
-                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
-                                   ContentType                = HTTPContentType.Text.PLAIN,
-                                   Content                    = "A dump is already in progress!".ToUTF8Bytes(),
-                                   CacheControl               = "no-cache",
-                                   Connection                 = ConnectionType.KeepAlive
-                               }.AsImmutable;
-
-                    try
-                    {
-
-                        // Force full compacting GC
-                        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-                        GC.WaitForPendingFinalizers();
-                        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-
-                        using var dataTarget  = DataTarget.CreateSnapshotAndAttach(Environment.ProcessId);
-                        using var runtime     = dataTarget.ClrVersions[0].CreateRuntime();
-                        var       heap        = runtime.Heap;
-
-                        var stats             = new Dictionary<String, (int Count, long Size)>();
-                        var totalObjects      = 0L;
-                        var totalSize         = 0L;
-
-                        foreach (var obj in heap.EnumerateObjects())
-                        {
-
-                            if (!obj.IsValid)
-                                continue;
-
-                            var typeName  = obj.Type?.Name ?? "<unknown>";
-                            var size      = (long) obj.Size;
-                            totalObjects++;
-                            totalSize    += size;
-
-                            if (stats.TryGetValue(typeName, out var existing))
-                                stats[typeName] = (existing.Count + 1, existing.Size + size);
-                            else
-                                stats[typeName] = (1, size);
-
-                        }
-
-                        var ranked = stats.OrderByDescending(x => x.Value.Size).ToList();
-
-                        var report = new JObject(
-                            new JProperty("timestamp", DateTime.UtcNow),
-                            new JProperty("totalObjects", totalObjects),
-                            new JProperty("totalSizeBytes", totalSize),
-                            new JProperty("totalSizeMB", Math.Round(totalSize / 1024.0 / 1024.0, 1)),
-                            new JProperty("generations", GC.MaxGeneration + 1),
-                            new JProperty("types", new JArray(
-                                ranked.Select((x, i) => new JObject(
-                                    new JProperty("rank", i + 1),
-                                    new JProperty("type", x.Key),
-                                    new JProperty("count", x.Value.Count),
-                                    new JProperty("sizeBytes", x.Value.Size),
-                                    new JProperty("avgBytes", x.Value.Count > 0
-                                        ? (double)x.Value.Size / x.Value.Count
-                                        : 0)   // Division-by-zero-Schutz + expliziter Cast
-                                ))
-                            ))
-                        );
-
-
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode             = HTTPStatusCode.OK,
-                                   Server                     = HTTPServer?.HTTPServerName,
-                                   Date                       = Timestamp.Now,
-                                   AccessControlAllowOrigin   = "*",
-                                   AccessControlAllowMethods  = [ "POST" ],
-                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
-                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                   Content                    = report.ToString(Newtonsoft.Json.Formatting.None).ToUTF8Bytes(),
-                                   CacheControl               = "no-cache",
-                                   Connection                 = ConnectionType.KeepAlive
-                               }.AsImmutable;
-                    }
-                    catch (Exception ex)
-                    {
-
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode             = HTTPStatusCode.InternalServerError,
-                                   Server                     = HTTPServer?.HTTPServerName,
-                                   Date                       = Timestamp.Now,
-                                   AccessControlAllowOrigin   = "*",
-                                   AccessControlAllowMethods  = [ "POST" ],
-                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
-                                   ContentType                = HTTPContentType.Text.PLAIN,
-                                   Content                    = ex.ToString().ToUTF8Bytes(),
-                                   CacheControl               = "no-cache",
-                                   Connection                 = ConnectionType.KeepAlive
-                               }.AsImmutable;
-
-                    }
-                    finally
-                    {
-                        createGCDumpLock.Release();
-                    }
-                });
 
             #endregion
 
@@ -10874,6 +10743,397 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+
+
+            // Administrative API endpoints...
+
+            #region GET   ~/monitoring
+
+            // ---------------------------------------
+            // curl http://127.0.0.1:2000/monitoring
+            // ---------------------------------------
+            AddHandler(
+                HTTPMethod.GET,
+                URLPathPrefix + "monitoring",
+                HTTPDelegate: request => {
+
+                    #region Check Check Access Rights
+
+                    if (!IsMember(request.User, rootGroupId))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                       Server                     = HTTPServer.HTTPServerName,
+                                       Date                       = Timestamp.Now,
+                                       AccessControlAllowOrigin   = "*",
+                                       AccessControlAllowMethods  = [ "OPTIONS", "HEAD", "GET", "COUNT" ],
+                                       AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                       //WWWAuthenticate            = WWWAuthenticateDefaults,
+                                       Connection                 = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    #endregion
+
+                    ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
+                    ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
+
+                    var cpu                    = cpuUsageSampler.Sample();
+                    var gcInfo                 = GC.     GetGCMemoryInfo();
+                    var process                = Process.GetCurrentProcess();
+                    //process.Refresh();
+
+                    var availableSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+                                                 RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                                                     ? ResourcesMonitor.GetMemoryMetricsOnUnix()
+                                                     : ResourcesMonitor.GetMemoryMetricsOnWindows();
+
+                    var driveInfo              = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
+                    var freeDiscSpace          = PercentageDouble.Parse((Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100);
+
+                    var jsonResponse           = JSONObject.Create(
+
+                                                     new JProperty("timestamp",  Timestamp.Now),
+                                                     new JProperty("service",    HTTPServer.HTTPServerName),
+                                                     new JProperty("instance",   Environment.MachineName),
+                                               //      new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
+                                               //      new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
+                                                     new JProperty("content",    RandomExtensions.RandomString(20)),
+
+                                                     new JProperty("processorCount",          Environment.ProcessorCount),
+
+                                                     new JProperty("tcp",         JSONObject.Create(
+                                                         new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
+                                                     )),
+
+                                                     new JProperty("threadPool",  JSONObject.Create(
+                                                         new JProperty("threads",             ThreadPool.ThreadCount),
+                                                         new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
+                                                         new JProperty("pending",             ThreadPool.PendingWorkItemCount),
+                                                         new JProperty("busy",                workerMax - workerAvail)
+                                                     )),
+
+                                                     new JProperty("gc",          JSONObject.Create(
+
+                                                         new JProperty("gen0",                   GC.CollectionCount(0)),
+                                                         new JProperty("gen1",                   GC.CollectionCount(1)),
+                                                         new JProperty("gen2",                   GC.CollectionCount(2)),
+                                                         new JProperty("pauseTotalMs",           GC.GetTotalPauseDuration().TotalMilliseconds),
+                                                         new JProperty("heapMB",              MB(GC.GetTotalMemory        (false))),
+                                                         new JProperty("allocatedTotalMB",    MB(GC.GetTotalAllocatedBytes(false))),
+                                                         new JProperty("workingSetMB",        MB(Environment.WorkingSet)),
+
+                                                         new JProperty("memoryInfo",  JSONObject.Create(
+
+                                                             new JProperty("index",                          gcInfo.Index),
+                                                             new JProperty("generation",                     gcInfo.Generation),
+                                                             new JProperty("compacted",                      gcInfo.Compacted),
+                                                             new JProperty("concurrent",                     gcInfo.Concurrent),
+                                                             new JProperty("heapSizeMB",                  MB(gcInfo.HeapSizeBytes)),
+                                                             new JProperty("fragmentedMB",                MB(gcInfo.FragmentedBytes)),
+                                                             new JProperty("promotedMB",                  MB(gcInfo.PromotedBytes)),
+                                                             new JProperty("totalCommittedMB",            MB(gcInfo.TotalCommittedBytes)),
+                                                             new JProperty("totalAvailableMemoryMB",      MB(gcInfo.TotalAvailableMemoryBytes)),
+                                                             new JProperty("memoryLoadMB",                MB(gcInfo.MemoryLoadBytes)),
+                                                             new JProperty("highMemoryLoadThresholdMB",   MB(gcInfo.HighMemoryLoadThresholdBytes)),
+                                                             new JProperty("pauseTimePercentage",            gcInfo.PauseTimePercentage),
+                                                             new JProperty("pinnedObjects",                  gcInfo.PinnedObjectsCount),
+                                                             new JProperty("finalizationPending",            gcInfo.FinalizationPendingCount),
+
+                                                             new JProperty("generations",  JSONArray.Create(
+                                                                 gcInfo.GenerationInfo.ToArray().Select((gcGenerationInfo, index) => JSONObject.Create(
+                                                                     new JProperty("generation",              index),
+                                                                     new JProperty("sizeBeforeMB",            MB(gcGenerationInfo.SizeBeforeBytes)),
+                                                                     new JProperty("sizeAfterMB",             MB(gcGenerationInfo.SizeAfterBytes)),
+                                                                     new JProperty("fragmentationBeforeMB",   MB(gcGenerationInfo.FragmentationBeforeBytes)),
+                                                                     new JProperty("fragmentationAfterMB",    MB(gcGenerationInfo.FragmentationAfterBytes))
+                                                                 ))
+                                                             ))
+
+                                                         ))
+
+                                                     )),
+
+                                                     new JProperty("process",     JSONObject.Create(
+                                                         new JProperty("cpuPercent",          cpu?.Percent),
+                                                         new JProperty("cpuCores",            cpu?.Cores),
+                                                         new JProperty("threads",                process.Threads.Count),
+                                                         new JProperty("handleCount",            process.HandleCount),
+                                                         new JProperty("privateMB",           MB(process.PrivateMemorySize64))
+                                                     )),
+
+                                                     new JProperty("disc",        JSONObject.Create(
+                                                         new JProperty("freePercent",         freeDiscSpace.Value)
+                                                     ))
+
+                                                 );
+
+                    if (ServiceCheckKeys?.PublicKey is not null)
+                    {
+
+                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+
+                        if (ServiceCheckKeys.PrivateKey is not null)
+                        {
+
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
+
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckKeys.PrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
+
+                            jsonResponse.Add("signature", signature);
+
+                        }
+
+                    }
+
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = [ "POST" ],
+                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                            Content                    = jsonResponse.ToUTF8Bytes(),
+                            CacheControl               = "no-cache",
+                            Connection                 = ConnectionType.KeepAlive
+                        }.AsImmutable);
+
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
+
+            #endregion
+
+            #region POST  ~/createGCDump
+
+            // -------------------------------------------------
+            // curl -X POST http://127.0.0.1:3004/createGCDump
+            // -------------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "createGCDump",
+                HTTPDelegate: async request => {
+
+                    #region Check Check Access Rights
+
+                    if (!IsMember(request.User, rootGroupId))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                   Server                     = HTTPServer.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "OPTIONS", "HEAD", "GET", "COUNT" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   //WWWAuthenticate            = WWWAuthenticateDefaults,
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    #endregion
+
+                    if (!await createGCDumpLock.WaitAsync(0))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.Conflict,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "POST" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                                   ContentType                = HTTPContentType.Text.PLAIN,
+                                   Content                    = "A dump is already in progress!".ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    try
+                    {
+
+                        // Force full compacting GC
+                        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+                        GC.WaitForPendingFinalizers();
+                        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+
+                        using var dataTarget  = DataTarget.CreateSnapshotAndAttach(Environment.ProcessId);
+                        using var runtime     = dataTarget.ClrVersions[0].CreateRuntime();
+                        var       heap        = runtime.Heap;
+
+                        var stats             = new Dictionary<String, (int Count, long Size)>();
+                        var totalObjects      = 0L;
+                        var totalSize         = 0L;
+
+                        foreach (var obj in heap.EnumerateObjects())
+                        {
+
+                            if (!obj.IsValid)
+                                continue;
+
+                            var typeName  = obj.Type?.Name ?? "<unknown>";
+                            var size      = (long) obj.Size;
+                            totalObjects++;
+                            totalSize    += size;
+
+                            if (stats.TryGetValue(typeName, out var existing))
+                                stats[typeName] = (existing.Count + 1, existing.Size + size);
+                            else
+                                stats[typeName] = (1, size);
+
+                        }
+
+                        var ranked = stats.OrderByDescending(x => x.Value.Size).ToList();
+
+                        var report = new JObject(
+                            new JProperty("timestamp", DateTime.UtcNow),
+                            new JProperty("totalObjects", totalObjects),
+                            new JProperty("totalSizeBytes", totalSize),
+                            new JProperty("totalSizeMB", Math.Round(totalSize / 1024.0 / 1024.0, 1)),
+                            new JProperty("generations", GC.MaxGeneration + 1),
+                            new JProperty("types", new JArray(
+                                ranked.Select((x, i) => new JObject(
+                                    new JProperty("rank", i + 1),
+                                    new JProperty("type", x.Key),
+                                    new JProperty("count", x.Value.Count),
+                                    new JProperty("sizeBytes", x.Value.Size),
+                                    new JProperty("avgBytes", x.Value.Count > 0
+                                        ? (double)x.Value.Size / x.Value.Count
+                                        : 0)   // Division-by-zero-Schutz + expliziter Cast
+                                ))
+                            ))
+                        );
+
+
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "POST" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = report.ToString(Newtonsoft.Json.Formatting.None).ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+                    }
+                    catch (Exception ex)
+                    {
+
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.InternalServerError,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "POST" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                                   ContentType                = HTTPContentType.Text.PLAIN,
+                                   Content                    = ex.ToString().ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    }
+                    finally
+                    {
+                        createGCDumpLock.Release();
+                    }
+                });
+
+            #endregion
+
+
+            #region POST  ~/restart
+
+            // -----------------------------------------------
+            // curl -v -X POST http://127.0.0.1:2000/restart
+            // -----------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "/restart",
+                HTTPRequestLogger:   RestartRequest,
+                HTTPResponseLogger:  RestartResponse,
+                HTTPDelegate:  async request => {
+
+                    #region Check Check Access Rights
+
+                    if (!IsMember(request.User, rootGroupId))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                   Server                     = HTTPServer.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "OPTIONS", "HEAD", "GET", "COUNT" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   //WWWAuthenticate            = WWWAuthenticateDefaults,
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    #endregion
+
+
+                    //Task.Run(() => {
+                    //    Task.Delay(10000);
+            //            Environment.Exit(1000);
+                    //});
+
+                    return new HTTPResponse.Builder(request) {
+                               HTTPStatusCode  = HTTPStatusCode.OK,
+                               Server          = HTTPServer?.HTTPServerName,
+                               Connection      = ConnectionType.KeepAlive
+                           }.AsImmutable;
+
+                }
+            );
+
+            #endregion
+
+            #region POST  ~/stop
+
+            // --------------------------------------------
+            // curl -v -X POST http://127.0.0.1:2000/stop
+            // --------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "/stop",
+                HTTPRequestLogger:   StopRequest,
+                HTTPResponseLogger:  StopResponse,
+                HTTPDelegate:  async request => {
+
+                    #region Check Check Access Rights
+
+                    if (!IsMember(request.User, rootGroupId))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                   Server                     = HTTPServer.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "OPTIONS", "HEAD", "GET", "COUNT" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   //WWWAuthenticate            = WWWAuthenticateDefaults,
+                                   Connection                 = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    #endregion
+
+
+                    //Task.Run(() => {
+                    //    Task.Delay(1000);
+          //          Environment.Exit(0);
+                    //});
+
+                    return new HTTPResponse.Builder(request) {
+                               HTTPStatusCode  = HTTPStatusCode.OK,
+                               Server          = HTTPServer?.HTTPServerName,
+                               Connection      = ConnectionType.KeepAlive
+                           }.AsImmutable;
+
+                }
+            );
+
+            #endregion
 
         }
 
