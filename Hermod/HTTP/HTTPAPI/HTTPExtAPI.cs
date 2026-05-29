@@ -12507,7 +12507,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!userGroups.ContainsKey(userGroup.Id))
                         {
-                            userGroup.APIX = this;
+                            userGroup.API = this;
                             userGroups.AddAndReturnValue(userGroup.Id, userGroup);
                         }
 
@@ -12538,7 +12538,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!userGroups.ContainsKey(userGroup.Id))
                         {
-                            userGroup.APIX = this;
+                            userGroup.API = this;
                             userGroups.AddAndReturnValue(userGroup.Id, userGroup);
                         }
 
@@ -19924,7 +19924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -19963,7 +19963,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                            nameof(UserGroup),
             //                                            "UserGroup name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(addUserGroup_MessageType,
@@ -20089,7 +20089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20128,7 +20128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                       nameof(UserGroup),
             //                                                       "UserGroup name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(addUserGroupIfNotExists_MessageType,
@@ -20258,7 +20258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddOrUpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20288,7 +20288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                    nameof(UserGroup),
             //                                                    "The given user group name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(addOrUpdateUserGroup_MessageType,
@@ -20483,7 +20483,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return UpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -20492,7 +20492,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(updateUserGroup_MessageType,
@@ -20630,7 +20630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (UserGroup.APIX != this)
+            if (UserGroup.API != this)
                 return UpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -20815,7 +20815,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX != this)
+            if (UserGroup.API != this)
                 return DeleteUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is not attached to this API!".ToI18NString(),
