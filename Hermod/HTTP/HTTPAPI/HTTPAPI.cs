@@ -33,6 +33,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using org.GraphDefined.Vanaheimr.Hermod.Argus;
 
 #endregion 
 
@@ -212,10 +213,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public    const    String                                                      HTTPRoot       = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public    const    String                                                      HTTPRoot          = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
-        private   readonly ConcurrentDictionary<String, PathNode>                      routeNodes     = [];
-        protected readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources   = [];
+        private   readonly ConcurrentDictionary<String, PathNode>                      routeNodes        = [];
+        protected readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources      = [];
+
+        private   readonly CPUUsageSampler                                             cpuUsageSampler   = new();
 
         #endregion
 
@@ -1160,6 +1163,9 @@ Error:
                     ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
                     ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
 
+                    var cpu           = cpuUsageSampler.Sample();
+                    var process       = Process.GetCurrentProcess();
+
                     var jsonResponse  = JSONObject.Create(
 
                                             new JProperty("timestamp",     Timestamp.Now),
@@ -1168,15 +1174,38 @@ Error:
                                             new JProperty("content",       RandomExtensions.RandomString(20)),
 
                                             new JProperty("diagnostics",   JSONObject.Create(
-                                                new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients),
-                                                new JProperty("threadPoolBusy",      workerMax - workerAvail),
-                                                new JProperty("threadPoolPending",   ThreadPool.PendingWorkItemCount),
-                                                new JProperty("gcGen0",              GC.CollectionCount(0)),
-                                                new JProperty("gcGen1",              GC.CollectionCount(1)),
-                                                new JProperty("gcGen2",              GC.CollectionCount(2)),
-                                                new JProperty("gcPauseTotalMs",      GC.GetTotalPauseDuration().TotalMilliseconds),
-                                                new JProperty("heapMB",              GC.GetTotalMemory(false) / 1_048_576.0),
-                                                new JProperty("workingSetMB",        Environment.WorkingSet   / 1_048_576.0)
+
+                                                new JProperty("processorCount",          Environment.ProcessorCount),
+
+                                                new JProperty("tcp",         JSONObject.Create(
+                                                    new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
+                                                )),
+
+                                                new JProperty("threadPool",  JSONObject.Create(
+                                                    new JProperty("threads",             ThreadPool.ThreadCount),
+                                                    new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
+                                                    new JProperty("pending",             ThreadPool.PendingWorkItemCount),
+                                                    new JProperty("busy",                workerMax - workerAvail)
+                                                )),
+
+                                                new JProperty("gc",          JSONObject.Create(
+                                                    new JProperty("gen0",                GC.CollectionCount(0)),
+                                                    new JProperty("gen1",                GC.CollectionCount(1)),
+                                                    new JProperty("gen2",                GC.CollectionCount(2)),
+                                                    new JProperty("pauseTotalMs",        GC.GetTotalPauseDuration().TotalMilliseconds),
+                                                    new JProperty("heapMB",              GC.GetTotalMemory(false)         / 1_048_576.0),
+                                                    new JProperty("allocatedTotalMB",    GC.GetTotalAllocatedBytes(false) / 1_048_576.0),
+                                                    new JProperty("workingSetMB",        Environment.WorkingSet           / 1_048_576.0)
+                                                )),
+
+                                                new JProperty("process",     JSONObject.Create(
+                                                    new JProperty("cpuPercent",          cpu?.Percent),
+                                                    new JProperty("cpuCores",            cpu?.Cores),
+                                                    new JProperty("threads",             process.Threads.Count),
+                                                    new JProperty("handleCount",         process.HandleCount),
+                                                    new JProperty("privateMB",           process.PrivateMemorySize64      / 1_048_576.0)
+                                                ))
+
                                             ))
 
                                         );
@@ -1237,7 +1266,10 @@ Error:
                     ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
                     ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
 
-                    var content = String.Empty;
+                    var cpu           = cpuUsageSampler.Sample();
+                    var process       = Process.GetCurrentProcess();
+
+                    var content       = String.Empty;
 
                     #region Try to parse a text HTTP body...
 
@@ -1268,21 +1300,44 @@ Error:
 
                     var jsonResponse  = JSONObject.Create(
 
-                                            new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPServer.HTTPServerName),
-                                            new JProperty("instance",   Environment.MachineName),
-                                            new JProperty("content",    content?.Reverse()),
+                                            new JProperty("timestamp",     Timestamp.Now),
+                                            new JProperty("service",       HTTPServer.HTTPServerName),
+                                            new JProperty("instance",      Environment.MachineName),
+                                            new JProperty("content",       content?.Reverse()),
 
                                             new JProperty("diagnostics",   JSONObject.Create(
-                                                new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients),
-                                                new JProperty("threadPoolBusy",      workerMax - workerAvail),
-                                                new JProperty("threadPoolPending",   ThreadPool.PendingWorkItemCount),
-                                                new JProperty("gcGen0",              GC.CollectionCount(0)),
-                                                new JProperty("gcGen1",              GC.CollectionCount(1)),
-                                                new JProperty("gcGen2",              GC.CollectionCount(2)),
-                                                new JProperty("gcPauseTotalMs",      GC.GetTotalPauseDuration().TotalMilliseconds),
-                                                new JProperty("heapMB",              GC.GetTotalMemory(false) / 1_048_576.0),
-                                                new JProperty("workingSetMB",        Environment.WorkingSet   / 1_048_576.0)
+
+                                                new JProperty("processorCount",          Environment.ProcessorCount),
+
+                                                new JProperty("tcp",         JSONObject.Create(
+                                                    new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
+                                                )),
+
+                                                new JProperty("threadPool",  JSONObject.Create(
+                                                    new JProperty("threads",             ThreadPool.ThreadCount),
+                                                    new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
+                                                    new JProperty("pending",             ThreadPool.PendingWorkItemCount),
+                                                    new JProperty("busy",                workerMax - workerAvail)
+                                                )),
+
+                                                new JProperty("gc",          JSONObject.Create(
+                                                    new JProperty("gen0",                GC.CollectionCount(0)),
+                                                    new JProperty("gen1",                GC.CollectionCount(1)),
+                                                    new JProperty("gen2",                GC.CollectionCount(2)),
+                                                    new JProperty("pauseTotalMs",        GC.GetTotalPauseDuration().TotalMilliseconds),
+                                                    new JProperty("heapMB",              GC.GetTotalMemory(false)         / 1_048_576.0),
+                                                    new JProperty("allocatedTotalMB",    GC.GetTotalAllocatedBytes(false) / 1_048_576.0),
+                                                    new JProperty("workingSetMB",        Environment.WorkingSet           / 1_048_576.0)
+                                                )),
+
+                                                new JProperty("process",     JSONObject.Create(
+                                                    new JProperty("cpuPercent",          cpu?.Percent),
+                                                    new JProperty("cpuCores",            cpu?.Cores),
+                                                    new JProperty("threads",             process.Threads.Count),
+                                                    new JProperty("handleCount",         process.HandleCount),
+                                                    new JProperty("privateMB",           process.PrivateMemorySize64      / 1_048_576.0)
+                                                ))
+
                                             ))
 
                                         );
