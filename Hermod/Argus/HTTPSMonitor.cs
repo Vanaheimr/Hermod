@@ -39,6 +39,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
     {
 
+        private const Int32   MaxBaselineSamples                    = 120;
+        private const Double  PostTimeoutDiscardFactor              = 8.0;
+
+        private static readonly TimeSpan MinPostTimeoutDiscardDelay  = TimeSpan.FromSeconds(2);
+
+        private readonly Queue<TimeSpan> recentSuccessfulTotals      = new();
+        private Boolean                  previousCheckTimedOut       = false;
+
         public async Task RunAsync(TimeSpan interval, CancellationToken ct)
         {
             using var timer = new PeriodicTimer(interval);
@@ -59,6 +67,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                 new TimeSpanMillisecondsJsonConverter()
             }
         };
+
+        private static Boolean IsTimeoutError(String? error)
+        {
+
+            if (String.IsNullOrWhiteSpace(error))
+                return false;
+
+            return error.Contains("timeout",            StringComparison.OrdinalIgnoreCase) ||
+                   error.Contains("timed out",          StringComparison.OrdinalIgnoreCase) ||
+                   error.Contains("Zeitüberschreitung", StringComparison.OrdinalIgnoreCase);
+
+        }
+
+        private static TimeSpan? Median(IReadOnlyCollection<TimeSpan> values)
+        {
+
+            if (values.Count == 0)
+                return null;
+
+            var sorted = values.
+                             Select(value => value.TotalMilliseconds).
+                             Order().
+                             ToArray();
+
+            var middle = sorted.Length / 2;
+
+            return TimeSpan.FromMilliseconds(sorted.Length % 2 == 0
+                                                 ? (sorted[middle - 1] + sorted[middle]) / 2
+                                                 : sorted[middle]);
+
+        }
+
+        private Boolean ShouldDiscardFirstSuccessAfterTimeout(Measurement  measurement,
+                                                              out String   reason)
+        {
+
+            reason = "";
+
+            if (!previousCheckTimedOut || !measurement.Success || recentSuccessfulTotals.Count < 5)
+                return false;
+
+            var median = Median(recentSuccessfulTotals);
+            if (median is null)
+                return false;
+
+            var threshold = TimeSpan.FromMilliseconds(
+                                Math.Max(
+                                    MinPostTimeoutDiscardDelay.TotalMilliseconds,
+                                    median.Value.TotalMilliseconds * PostTimeoutDiscardFactor
+                                )
+                            );
+
+            if (measurement.TotalTime <= threshold)
+                return false;
+
+            reason = $"first success after timeout took {measurement.TotalTime.TotalMilliseconds:F1} ms; " +
+                     $"recent median is {median.Value.TotalMilliseconds:F1} ms, discard threshold is {threshold.TotalMilliseconds:F1} ms";
+
+            return true;
+
+        }
+
+        private void TrackSuccessfulBaseline(Measurement measurement)
+        {
+
+            if (!measurement.Success)
+                return;
+
+            recentSuccessfulTotals.Enqueue(measurement.TotalTime);
+
+            while (recentSuccessfulTotals.Count > MaxBaselineSamples)
+                recentSuccessfulTotals.Dequeue();
+
+        }
 
         private async Task CheckOnce(CancellationToken ct)
         {
@@ -184,7 +266,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                    serverDiagnostics
                                );
 
+            // A timeout can leave the next successful request measuring recovery noise rather than
+            // service latency: DNS/TCP/TLS setup, server warm-up, cold caches, or a just-freed queue
+            // can dominate that single sample.  We only discard the first successful sample after an
+            // actual timeout, only when we already have a small baseline, and only when it is far
+            // above both an absolute floor and the recent median.  Normal latency spikes that are not
+            // immediately after a timeout remain logged and visible.
+            if (ShouldDiscardFirstSuccessAfterTimeout(measurement, out var discardReason))
+            {
+
+                previousCheckTimedOut = false;
+
+                OnMeasurement?.Invoke(
+                    measurement,
+                    Name,
+                    URL,
+                    "SKIP",
+                    "",
+                    $" | discarded recovery sample: {discardReason}"
+                );
+
+                return;
+
+            }
+
             await MeasurementStore.AddAsync(measurement);
+
+            TrackSuccessfulBaseline(measurement);
+            previousCheckTimedOut = !measurement.Success && IsTimeoutError(measurement.Error);
 
             var statusIcon   = measurement.Success
                                    ? "OK"
