@@ -25,9 +25,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
     public record WatchTargetConfig(
-        String           Name,
-        URL              URL,
-        WatchTargetType  Type,
-        TimeSpan         CheckInterval);
+        String                           Name,
+        URL                              URL,
+        WatchTargetType                  Type,
+        TimeSpan                         CheckInterval,
+        IReadOnlyDictionary<String, String>? Headers = null);
 
 }

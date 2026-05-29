@@ -33,6 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
     public class HTTPSMonitor(String               Name,
                               URL                  URL,
                               MeasurementStore     MeasurementStore,
+                              IReadOnlyDictionary<String, String>? RequestHeaders = null,
                               MeasurementHandler?  OnMeasurement   = null)
 
         : IMonitor
@@ -46,6 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
         private readonly Queue<TimeSpan> recentSuccessfulTotals      = new();
         private Boolean                  previousCheckTimedOut       = false;
+        private readonly IReadOnlyDictionary<String, String> requestHeaders = RequestHeaders ?? new Dictionary<String, String>();
 
         public async Task RunAsync(TimeSpan interval, CancellationToken ct)
         {
@@ -199,7 +201,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                 var path          = URL.Path.IsNotNullOrEmpty
                                         ? URL.Path
                                         : HTTPPath.Root;
-                var request       = $"GET {path} HTTP/1.1\r\nHost: {URL.Hostname}\r\nConnection: close\r\nUser-Agent: Vanaheimr Argus/1.0\r\n\r\n";
+                var additionalHeaders = String.Join(
+                                            "",
+                                            requestHeaders.Select(header => $"{header.Key}: {header.Value}\r\n")
+                                        );
+                var request       = $"GET {path} HTTP/1.1\r\nHost: {URL.Hostname}\r\nConnection: close\r\nUser-Agent: Vanaheimr Argus/1.0\r\n{additionalHeaders}\r\n";
                 var requestBytes  = System.Text.Encoding.ASCII.GetBytes(request);
 
                 stopwatch.Restart();
