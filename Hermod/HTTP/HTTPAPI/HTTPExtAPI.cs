@@ -4207,10 +4207,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private void RegisterURLTemplates()
         {
 
-            var rootGroupId = UserGroup_Id.Parse("root");
-
-            var URLPathPrefix = HTTPPath.Root;
-
             //HTTPServer.AddAuth  (request => {
 
             //    // Allow OPTIONS requests / call pre-flight requests in cross-origin resource sharing (CORS)
@@ -10746,6 +10742,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             // Administrative API endpoints...
+
+            var rootGroupId = UserGroup_Id.Parse("root");
 
             #region GET   ~/monitoring
 
