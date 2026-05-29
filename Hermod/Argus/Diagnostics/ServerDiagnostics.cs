@@ -42,6 +42,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
         [JsonPropertyName("process")]
         public ProcessDiagnostics     Process           { get; init; } = new();
 
+        [JsonPropertyName("disc")]
+        public DiscDiagnostics?       Disc              { get; init; } = null;
+
+        [JsonPropertyName("availableRAM")]
+        public AvailableRAMDiagnostics? AvailableRAM    { get; init; } = null;
+
         public UInt32                 ActiveConnections    => TCP.ActiveConnections;
         public UInt32                 ThreadPoolThreads    => ThreadPool.Threads;
         public UInt64                 ThreadPoolCompleted  => ThreadPool.Completed;
@@ -54,11 +60,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
         public Double                 HeapMB               => GC.HeapMB;
         public Double                 GcAllocatedTotalMB   => GC.AllocatedTotalMB;
         public Double                 WorkingSetMB         => GC.WorkingSetMB;
+        public GCMemoryInfoDiagnostics? GcMemoryInfo       => GC.MemoryInfo;
+        public Double?                GcHeapSizeMB         => GC.MemoryInfo?.HeapSizeMB;
+        public Double?                GcFragmentedMB       => GC.MemoryInfo?.FragmentedMB;
+        public Double?                GcPromotedMB         => GC.MemoryInfo?.PromotedMB;
+        public Double?                GcTotalCommittedMB   => GC.MemoryInfo?.TotalCommittedMB;
+        public Double?                GcMemoryLoadMB       => GC.MemoryInfo?.MemoryLoadMB;
+        public Double?                GcPauseTimePercent   => GC.MemoryInfo?.PauseTimePercentage;
+        public Int64?                 GcPinnedObjects      => GC.MemoryInfo?.PinnedObjects;
+        public Int64?                 GcFinalizationPending => GC.MemoryInfo?.FinalizationPending;
         public Double?                ProcessCpuPercent    => Process.CPUPercent;
         public Double?                ProcessCpuCores      => Process.CPUCores;
         public UInt32                 ProcessThreads       => Process.Threads;
         public UInt32                 ProcessHandleCount   => Process.HandleCount;
         public Double                 ProcessPrivateMB     => Process.PrivateMB;
+        public Double?                DiscFreePercent      => Disc?.FreePercent;
+        public Double?                AvailableRAMTotalMB  => AvailableRAM?.Total;
+        public Double?                AvailableRAMFreeMB   => AvailableRAM?.Free;
+        public Double?                AvailableRAMUsedMB   => AvailableRAM?.Used;
+        public Double?                AvailableRAMFreePercent => AvailableRAM?.FreePercent;
 
     }
 

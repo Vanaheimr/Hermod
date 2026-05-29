@@ -65,6 +65,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
                     }
 
+                    var memoryInfoItems = diagItems.
+                                              Select(measurement => measurement.ServerDiagnostics!.GcMemoryInfo).
+                                              Where(memoryInfo => memoryInfo is not null).
+                                              Select(memoryInfo => memoryInfo!).
+                                              ToList();
+
+                    var lastMemoryInfo = memoryInfoItems.LastOrDefault();
+
+                    GCMemoryInfoDiagnostics? memoryInfo = null;
+
+                    if (lastMemoryInfo is not null)
+                    {
+
+                        static Double AvgMemoryInfo(List<GCMemoryInfoDiagnostics> items, Func<GCMemoryInfoDiagnostics, Double> selector)
+
+                            => items.Count == 0
+                                   ? 0
+                                   : items.Average(selector);
+
+                        memoryInfo = lastMemoryInfo with {
+                                         HeapSizeMB                = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.HeapSizeMB),
+                                         FragmentedMB              = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.FragmentedMB),
+                                         PromotedMB                = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.PromotedMB),
+                                         TotalCommittedMB          = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.TotalCommittedMB),
+                                         TotalAvailableMemoryMB    = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.TotalAvailableMemoryMB),
+                                         MemoryLoadMB              = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.MemoryLoadMB),
+                                         HighMemoryLoadThresholdMB = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.HighMemoryLoadThresholdMB),
+                                         PauseTimePercentage       = AvgMemoryInfo(memoryInfoItems, memoryInfo => memoryInfo.PauseTimePercentage)
+                                     };
+
+                    }
+
                     serverDiagnostics = new ServerDiagnostics {
                                             ProcessorCount  = lastDiag.ProcessorCount,
                                             TCP             = new TCPDiagnostics(
@@ -83,7 +115,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                                                   PauseTotalMs:       lastDiag.GcPauseTotalMs,
                                                                   HeapMB:             Avg(diagItems, serverDiagnostics => serverDiagnostics.HeapMB),
                                                                   AllocatedTotalMB:   lastDiag.GcAllocatedTotalMB,
-                                                                  WorkingSetMB:       Avg(diagItems, serverDiagnostics => serverDiagnostics.WorkingSetMB)
+                                                                  WorkingSetMB:       Avg(diagItems, serverDiagnostics => serverDiagnostics.WorkingSetMB),
+                                                                  MemoryInfo:         memoryInfo
                                                               ),
                                             Process         = new ProcessDiagnostics(
                                                                   CPUPercent:         AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.ProcessCpuPercent),
@@ -91,7 +124,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                                                   Threads:            (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessThreads)),
                                                                   HandleCount:        (UInt32) Math.Round(Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessHandleCount)),
                                                                   PrivateMB:          Avg(diagItems, serverDiagnostics => serverDiagnostics.ProcessPrivateMB)
-                                                              )
+                                                              ),
+                                            Disc            = AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.DiscFreePercent) is { } discFreePercent
+                                                                  ? new DiscDiagnostics(
+                                                                        FreePercent: discFreePercent
+                                                                    )
+                                                                  : null,
+                                            AvailableRAM    = AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.AvailableRAMTotalMB) is { } availableRAMTotal &&
+                                                              AvgNullable(diagItems, serverDiagnostics => serverDiagnostics.AvailableRAMFreeMB)  is { } availableRAMFree
+                                                                  ? new AvailableRAMDiagnostics(
+                                                                        Total: availableRAMTotal,
+                                                                        Free:  availableRAMFree
+                                                                    )
+                                                                  : null
                                         };
 
                 }

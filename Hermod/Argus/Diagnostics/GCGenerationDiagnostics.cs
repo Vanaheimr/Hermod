@@ -24,31 +24,22 @@ using System.Text.Json.Serialization;
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
-    public record GCDiagnostics(
+    public record GCGenerationDiagnostics(
 
-        [property: JsonPropertyName("gen0")]
-        UInt32    Gen0              = 0,
+        [property: JsonPropertyName("generation")]
+        UInt32  Generation              = 0,
 
-        [property: JsonPropertyName("gen1")]
-        UInt32    Gen1              = 0,
+        [property: JsonPropertyName("sizeBeforeMB")]
+        Double  SizeBeforeMB            = 0,
 
-        [property: JsonPropertyName("gen2")]
-        UInt32    Gen2              = 0,
+        [property: JsonPropertyName("sizeAfterMB")]
+        Double  SizeAfterMB             = 0,
 
-        [property: JsonPropertyName("pauseTotalMs")]
-        TimeSpan  PauseTotalMs      = default,
+        [property: JsonPropertyName("fragmentationBeforeMB")]
+        Double  FragmentationBeforeMB   = 0,
 
-        [property: JsonPropertyName("heapMB")]
-        Double    HeapMB            = 0,
-
-        [property: JsonPropertyName("allocatedTotalMB")]
-        Double    AllocatedTotalMB  = 0,
-
-        [property: JsonPropertyName("workingSetMB")]
-        Double                   WorkingSetMB      = 0,
-
-        [property: JsonPropertyName("memoryInfo")]
-        GCMemoryInfoDiagnostics? MemoryInfo        = null
+        [property: JsonPropertyName("fragmentationAfterMB")]
+        Double  FragmentationAfterMB    = 0
 
     );
 

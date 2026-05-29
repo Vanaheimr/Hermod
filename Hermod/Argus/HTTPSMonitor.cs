@@ -248,8 +248,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                 try
                 {
                     using var doc = JsonDocument.Parse(responseBody);
-                    if (doc.RootElement.TryGetProperty("diagnostics", out var diagEl))
-                        serverDiagnostics = JsonSerializer.Deserialize<ServerDiagnostics>(diagEl.GetRawText(), DiagJsonOpts);
+                    var diagEl = doc.RootElement.TryGetProperty("diagnostics", out var nestedDiagnostics)
+                                     ? nestedDiagnostics
+                                     : doc.RootElement;
+
+                    if (diagEl.TryGetProperty("processorCount", out _) ||
+                        diagEl.TryGetProperty("tcp",            out _) ||
+                        diagEl.TryGetProperty("threadPool",     out _) ||
+                        diagEl.TryGetProperty("gc",             out _) ||
+                        diagEl.TryGetProperty("process",        out _) ||
+                        diagEl.TryGetProperty("disc",           out _) ||
+                        diagEl.TryGetProperty("availableRAM",   out _))
+                    {
+                        serverDiagnostics = JsonSerializer.Deserialize<ServerDiagnostics>(
+                                                diagEl.GetRawText(),
+                                                DiagJsonOpts
+                                            );
+                    }
                 }
                 catch (Exception ex)
                 {
