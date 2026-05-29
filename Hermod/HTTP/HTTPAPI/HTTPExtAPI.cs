@@ -3566,7 +3566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (User is not null &&
                 TryGetUserGroup(GroupId, out var group) &&
                (group.HasEdge(User2UserGroupEdgeLabel.IsAdmin,  User) ||
-                group.HasEdge(User2UserGroupEdgeLabel.IsMember, User))
+                group.HasEdge(User2UserGroupEdgeLabel.IsMember, User)))
             {
                 return true;
             }
