@@ -10782,7 +10782,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var process                = Process.GetCurrentProcess();
                     //process.Refresh();
 
-                    var availableSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+                    var availableRAM           = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
                                                  RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
                                                      ? ResourcesMonitor.GetMemoryMetricsOnUnix()
                                                      : ResourcesMonitor.GetMemoryMetricsOnWindows();
@@ -10792,27 +10792,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var jsonResponse           = JSONObject.Create(
 
-                                                     new JProperty("timestamp",  Timestamp.Now),
-                                                     new JProperty("service",    HTTPServer.HTTPServerName),
-                                                     new JProperty("instance",   Environment.MachineName),
-                                               //      new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
-                                               //      new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
-                                                     new JProperty("content",    RandomExtensions.RandomString(20)),
+                                                     new JProperty("timestamp",        Timestamp.Now),
+                                                     new JProperty("service",          HTTPServer.HTTPServerName),
+                                                     new JProperty("instance",         Environment.MachineName),
+                                               //      new JProperty("usedRAM",          process.PrivateMemorySize64 / (1024 * 1024)),
+                                               //      new JProperty("sharedRAM",        process.WorkingSet64        / (1024 * 1024)),
+                                                     new JProperty("content",          RandomExtensions.RandomString(20)),
 
-                                                     new JProperty("processorCount",          Environment.ProcessorCount),
+                                                     new JProperty("processorCount",   Environment.ProcessorCount),
 
-                                                     new JProperty("tcp",         JSONObject.Create(
+                                                     new JProperty("availableRAM",     JSONObject.Create(
+                                                         new JProperty("total",   availableRAM.Total),
+                                                         new JProperty("free",    availableRAM.Free)
+                                                     )),
+
+                                                     new JProperty("tcp",              JSONObject.Create(
                                                          new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
                                                      )),
 
-                                                     new JProperty("threadPool",  JSONObject.Create(
+                                                     new JProperty("threadPool",       JSONObject.Create(
                                                          new JProperty("threads",             ThreadPool.ThreadCount),
                                                          new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
                                                          new JProperty("pending",             ThreadPool.PendingWorkItemCount),
                                                          new JProperty("busy",                workerMax - workerAvail)
                                                      )),
 
-                                                     new JProperty("gc",          JSONObject.Create(
+                                                     new JProperty("gc",               JSONObject.Create(
 
                                                          new JProperty("gen0",                   GC.CollectionCount(0)),
                                                          new JProperty("gen1",                   GC.CollectionCount(1)),
@@ -10853,7 +10858,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                      )),
 
-                                                     new JProperty("process",     JSONObject.Create(
+                                                     new JProperty("process",          JSONObject.Create(
                                                          new JProperty("cpuPercent",          cpu?.Percent),
                                                          new JProperty("cpuCores",            cpu?.Cores),
                                                          new JProperty("threads",                process.Threads.Count),
@@ -10861,7 +10866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          new JProperty("privateMB",           MB(process.PrivateMemorySize64))
                                                      )),
 
-                                                     new JProperty("disc",        JSONObject.Create(
+                                                     new JProperty("disc",             JSONObject.Create(
                                                          new JProperty("freePercent",         freeDiscSpace.Value)
                                                      ))
 
