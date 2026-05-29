@@ -60,10 +60,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// Extension method for the HTTPExt API.
     /// </summary>
-    public static class HTTPExtAPIXExtensions
+    public static class HTTPExtAPIExtensions
     {
 
-        #region ParseUserId(this HTTPRequest, HTTPExtAPIX, out UserId,           out HTTPResponse)
+        #region ParseUserId         (this HTTPRequest, HTTPExtAPI, out UserId,                           out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -71,14 +71,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
-        public static Boolean ParseUserId(this HTTPRequest           HTTPRequest,
-                                          HTTPExtAPI                 HTTPExtAPIX,
-                                          out User_Id?               UserId,
-                                          out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseUserId(this HTTPRequest                                HTTPRequest,
+                                          HTTPExtAPI                                      HTTPExtAPI,
+                                          [NotNullWhen(true)]  out User_Id?               UserId,
+                                          [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             #region Initial checks
@@ -86,8 +86,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPIX    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPI    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPI),  "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.KeepAlive
                 };
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
@@ -137,12 +137,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserId2(this HTTPRequest          HTTPRequest,
-                                           HTTPExtAPI                HTTPExtAPIX,
+                                           HTTPExtAPI                HTTPExtAPI,
                                            out User_Id?              UserId,
                                            ref HTTPResponse.Builder  HTTPResponseBuilder)
         {
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseUser  (this HTTPRequest, HTTPExtAPIX, out UserId, out User, out HTTPResponse)
+        #region ParseUser           (this HTTPRequest, HTTPExtAPI, out UserId,         out User,         out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -175,16 +175,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="User">The resolved user.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
-        public static Boolean ParseUser(this HTTPRequest           HTTPRequest,
-                                        HTTPExtAPI                   HTTPExtAPIX,
-                                        out User_Id?               UserId,
-                                        out IUser?                 User,
-                                        out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseUser(this HTTPRequest                                HTTPRequest,
+                                        HTTPExtAPI                                      HTTPExtAPI,
+                                        [NotNullWhen(true)]  out User_Id?               UserId,
+                                        [NotNullWhen(true)]  out IUser?                 User,
+                                        [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             #region Initial checks
@@ -192,8 +192,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPIX    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPI is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPI),  "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.KeepAlive
                 };
@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
@@ -231,11 +231,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!HTTPExtAPIX.TryGetUser(UserId.Value, out User)) {
+            if (!HTTPExtAPI.TryGetUser(UserId.Value, out User)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserId!"" }".ToUTF8Bytes(),
@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseUserGroupId(this HTTPRequest, HTTPExtAPIX, out HTTPExtAPIX,                 out HTTPResponse)
+        #region ParseUserGroupId    (this HTTPRequest, HTTPExtAPI, out UserGroupId,                      out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -261,14 +261,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
-        public static Boolean ParseUserGroupId(this HTTPRequest           HTTPRequest,
-                                               HTTPExtAPI                   HTTPExtAPIX,
-                                               out UserGroup_Id?          UserGroupId,
-                                               out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseUserGroupId(this HTTPRequest                                HTTPRequest,
+                                               HTTPExtAPI                                      HTTPExtAPI,
+                                               [NotNullWhen(true)]  out UserGroup_Id?          UserGroupId,
+                                               [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             #region Initial checks
@@ -276,8 +276,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPIX    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPI    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPI),  "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.KeepAlive
                 };
@@ -305,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
@@ -322,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseUserGroup  (this HTTPRequest, HTTPExtAPIX, out UserGroupId, out UserGroup, out HTTPResponse)
+        #region ParseUserGroup      (this HTTPRequest, HTTPExtAPI, out UserGroupId,    out UserGroup,    out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -330,16 +330,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
         /// <param name="UserGroup">The resolved user.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
-        public static Boolean ParseUserGroup(this HTTPRequest           HTTPRequest,
-                                             HTTPExtAPI                   HTTPExtAPIX,
-                                             out UserGroup_Id?          UserGroupId,
-                                             out IUserGroup?            UserGroup,
-                                             out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseUserGroup(this HTTPRequest                                HTTPRequest,
+                                             HTTPExtAPI                                      HTTPExtAPI,
+                                             [NotNullWhen(true)]  out UserGroup_Id?          UserGroupId,
+                                             [NotNullWhen(true)]  out IUserGroup?            UserGroup,
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             #region Initial checks
@@ -347,8 +347,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPIX    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPI    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPI),  "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -360,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.KeepAlive
                 };
@@ -375,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
@@ -386,11 +386,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!HTTPExtAPIX.TryGetUserGroup(UserGroupId.Value, out UserGroup)) {
+            if (!HTTPExtAPI.TryGetUserGroup(UserGroupId.Value, out UserGroup)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserGroupId!"" }".ToUTF8Bytes(),
@@ -408,7 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseOrganizationId(this HTTPRequest, HTTPExtAPIX, out OrganizationId,                   out HTTPResponse)
+        #region ParseOrganizationId (this HTTPRequest, HTTPExtAPI, out OrganizationId,                   out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -416,14 +416,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPIX">The Organizations API.</param>
+        /// <param name="HTTPExtAPI">The Organizations API.</param>
         /// <param name="OrganizationId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
-        public static Boolean ParseOrganizationId(this HTTPRequest           HTTPRequest,
-                                                  HTTPExtAPI                   HTTPExtAPIX,
-                                                  out Organization_Id?       OrganizationId,
-                                                  out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseOrganizationId(this HTTPRequest                                HTTPRequest,
+                                                  HTTPExtAPI                                      HTTPExtAPI,
+                                                  [NotNullWhen(true)]  out Organization_Id?       OrganizationId,
+                                                  [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             #region Initial checks
@@ -431,8 +431,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPIX    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given Organizations API must not be null!");
+            if (HTTPExtAPI    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPI),  "The given Organizations API must not be null!");
 
             #endregion
 
@@ -444,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.KeepAlive
                 };
@@ -460,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
@@ -477,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOrganization  (this HTTPRequest, HTTPExtAPIX, out OrganizationId, out Organization, out HTTPResponse)
+        #region ParseOrganization   (this HTTPRequest, HTTPExtAPI, out OrganizationId, out Organization, out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -485,16 +485,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPIX">The Organizations API.</param>
+        /// <param name="HTTPExtAPI">The Organizations API.</param>
         /// <param name="OrganizationId">The parsed unique user identification.</param>
         /// <param name="Organization">The resolved user.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
-        public static Boolean ParseOrganization(this HTTPRequest           HTTPRequest,
-                                                HTTPExtAPI                   HTTPExtAPIX,
-                                                out Organization_Id?       OrganizationId,
-                                                out IOrganization?         Organization,
-                                                out HTTPResponse.Builder?  HTTPResponse)
+        public static Boolean ParseOrganization(this HTTPRequest                                HTTPRequest,
+                                                HTTPExtAPI                                      HTTPExtAPI,
+                                                [NotNullWhen(true)]  out Organization_Id?       OrganizationId,
+                                                [NotNullWhen(true)]  out IOrganization?         Organization,
+                                                [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             #region Initial checks
@@ -502,8 +502,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPIX    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given Organizations API must not be null!");
+            if (HTTPExtAPI    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPI),  "The given Organizations API must not be null!");
 
             #endregion
 
@@ -515,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.KeepAlive
                 };
@@ -530,7 +530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
@@ -541,11 +541,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!HTTPExtAPIX.TryGetOrganization(OrganizationId.Value, out Organization)) {
+            if (!HTTPExtAPI.TryGetOrganization(OrganizationId.Value, out Organization)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
+                    Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown OrganizationId!"" }".ToUTF8Bytes(),
@@ -565,12 +565,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateUser           (Id, Name, EMail,                            Password = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
+        // Create User...
+
+        #region CreateUser            (Id, Name, EMail,                            Password = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
 
         /// <summary>
         /// Create a new user.
         /// </summary>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
@@ -594,7 +596,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUser(this HTTPExtAPI     HTTPExtAPIX,
+        public async static Task<IUser?> CreateUser(this HTTPExtAPI     HTTPExtAPI,
                                                     User_Id             Id,
                                                     I18NString          Name,
                                                     SimpleEMailAddress  EMail,
@@ -622,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     User_Id?            CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUser(
+            var addUserResult = await HTTPExtAPI.AddUser(
 
                                           new User(
                                               Id,
@@ -688,12 +690,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateUser           (Id, Name, EMail, AccessRight, Organization, Password = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
+        #region CreateUser            (Id, Name, EMail, AccessRight, Organization, Password = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
 
         /// <summary>
         /// Create a new user.
         /// </summary>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="AccessRight">The organization membership of the new user.</param>
@@ -719,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUser(this HTTPExtAPI             HTTPExtAPIX,
+        public async static Task<IUser?> CreateUser(this HTTPExtAPI             HTTPExtAPI,
                                                     User_Id                     Id,
                                                     I18NString                  Name,
                                                     SimpleEMailAddress          EMail,
@@ -749,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     User_Id?                    CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUser(
+            var addUserResult = await HTTPExtAPI.AddUser(
 
                                           new User(
                                               Id,
@@ -818,12 +820,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateUserIfNotExists(Id, EMail, Password, Name = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
+        #region CreateUserIfNotExists (Id, EMail, Password, Name = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
 
         /// <summary>
         /// Create a new user, if he/she does not already exist.
         /// </summary>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
@@ -847,7 +849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI     HTTPExtAPIX,
+        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI     HTTPExtAPI,
                                                                User_Id             Id,
                                                                I18NString          Name,
                                                                SimpleEMailAddress  EMail,
@@ -875,7 +877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                User_Id?            CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(
+            var addUserResult = await HTTPExtAPI.AddUserIfNotExists(
 
                                           new User(
                                               Id,
@@ -941,12 +943,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateUserIfNotExists(Id, EMail, Password, Name = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
+        #region CreateUserIfNotExists (Id, EMail, Password, Name = null, Description = null, PublicKeyRing = null, SecretKeyRing = null, MobilePhone = null, IsPublic = true, IsDisabled = false, IsAuthenticated = false)
 
         /// <summary>
         /// Create a new user, if he/she does not already exist.
         /// </summary>
-        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="AccessRight">The organization membership of the new user.</param>
@@ -972,7 +974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI             HTTPExtAPIX,
+        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI             HTTPExtAPI,
                                                                User_Id                     Id,
                                                                I18NString                  Name,
                                                                SimpleEMailAddress          EMail,
@@ -1002,7 +1004,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                User_Id?                    CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(
+            var addUserResult = await HTTPExtAPI.AddUserIfNotExists(
 
                                           new User(
                                               Id,
@@ -1072,9 +1074,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateOrganization           (Id, Name = null, Description = null, ParentOrganization = null)
+        // Create Organization...
 
-        public async static Task<IOrganization?> CreateOrganization(this HTTPExtAPI            HTTPExtAPIX,
+        #region CreateOrganization            (Id, Name = null, Description = null, ParentOrganization = null)
+
+        public async static Task<IOrganization?> CreateOrganization(this HTTPExtAPI            HTTPExtAPI,
 
                                                                     Organization_Id            Id,
                                                                     I18NString?                Name                 = null,
@@ -1094,23 +1098,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     User_Id?                   CurrentUserId        = null)
         {
 
-            var addOrganizationResult = await HTTPExtAPIX.AddOrganization(new Organization(
-                                                                           Id,
-                                                                           Name,
-                                                                           Description,
-                                                                           Website,
-                                                                           EMail,
-                                                                           Telephone,
-                                                                           Address,
-                                                                           GeoLocation,
-                                                                           Tags,
-                                                                           IsDisabled,
-                                                                           DataSource: DataSource
-                                                                       ),
-                                                                       ParentOrganization ?? HTTPExtAPIX.NoOwner,
-                                                                       null,
-                                                                       EventTrackingId,
-                                                                       CurrentUserId);
+            var addOrganizationResult = await HTTPExtAPI.AddOrganization(
+                                                  new Organization(
+                                                      Id,
+                                                      Name,
+                                                      Description,
+                                                      Website,
+                                                      EMail,
+                                                      Telephone,
+                                                      Address,
+                                                      GeoLocation,
+                                                      Tags,
+                                                      IsDisabled,
+                                                      DataSource: DataSource
+                                                  ),
+                                                  ParentOrganization ?? HTTPExtAPI.NoOwner,
+                                                  null,
+                                                  EventTrackingId,
+                                                  CurrentUserId
+                                              );
 
             return addOrganizationResult.Result == CommandResult.Success
                        ? addOrganizationResult.Organization
@@ -1120,9 +1126,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateOrganizationIfNotExists(Id, Name = null, Description = null, ParentOrganization = null)
+        #region CreateOrganizationIfNotExists (Id, Name = null, Description = null, ParentOrganization = null)
 
-        public async static Task<IOrganization?> CreateOrganizationIfNotExists(this HTTPExtAPI            HTTPExtAPIX,
+        public async static Task<IOrganization?> CreateOrganizationIfNotExists(this HTTPExtAPI            HTTPExtAPI,
 
                                                                                Organization_Id            Id,
                                                                                I18NString?                Name                 = null,
@@ -1142,23 +1148,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                User_Id?                   CurrentUserId        = null)
         {
 
-            var addOrganizationResult = await HTTPExtAPIX.AddOrganizationIfNotExists(new Organization(
-                                                                                      Id,
-                                                                                      Name,
-                                                                                      Description,
-                                                                                      Website,
-                                                                                      EMail,
-                                                                                      Telephone,
-                                                                                      Address,
-                                                                                      GeoLocation,
-                                                                                      Tags,
-                                                                                      IsDisabled,
-                                                                                      DataSource: DataSource
-                                                                                  ),
-                                                                                  ParentOrganization ?? HTTPExtAPIX.NoOwner,
-                                                                                  null,
-                                                                                  EventTrackingId,
-                                                                                  CurrentUserId);
+            var addOrganizationResult = await HTTPExtAPI.AddOrganizationIfNotExists(
+                                                  new Organization(
+                                                      Id,
+                                                      Name,
+                                                      Description,
+                                                      Website,
+                                                      EMail,
+                                                      Telephone,
+                                                      Address,
+                                                      GeoLocation,
+                                                      Tags,
+                                                      IsDisabled,
+                                                      DataSource: DataSource
+                                                  ),
+                                                  ParentOrganization ?? HTTPExtAPI.NoOwner,
+                                                  null,
+                                                  EventTrackingId,
+                                                  CurrentUserId
+                                              );
 
             return addOrganizationResult.Result == CommandResult.Success
                        ? addOrganizationResult.Organization
@@ -1168,6 +1176,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        // HTTP Event Sources...
 
         #region MapJSONEventSource(this HTTPAPI, EventSource, ...)
 
@@ -1259,8 +1269,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// </summary>
         //public new static readonly IPPort         DefaultHTTPServerPort                = IPPort.Parse(2305);
 
-        public const               String         DefaultHTTPExtAPIX_DatabaseFileName   = "HTTPExtAPIX.db";
-        public const               String         DefaultHTTPExtAPIX_LogfileName        = "HTTPExtAPIX.log";
+        public const               String         DefaultHTTPExtAPI_DatabaseFileName   = "HTTPExtAPI.db";
+        public const               String         DefaultHTTPExtAPI_LogfileName        = "HTTPExtAPI.log";
         public const               String         DefaultPasswordFile                   = "passwords.db";
         public const               String         DefaultHTTPCookiesFile                = "HTTPCookies.db";
         public const               String         DefaultPasswordResetsFile             = "passwordResets.db";
@@ -2268,12 +2278,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                       IsDevelopment                    = null,
                           IEnumerable<String>?           DevelopmentServers               = null,
                           Boolean                        SkipURLTemplates                 = false,
-                          String?                        DatabaseFileName                 = DefaultHTTPExtAPIX_DatabaseFileName,
+                          String?                        DatabaseFileName                 = DefaultHTTPExtAPI_DatabaseFileName,
                           Boolean?                       DisableNotifications             = false,
                           Boolean?                       DisableLogging                   = false,
-                          String?                        LoggingPath                      = null, //DefaultHTTPExtAPIX_LoggingPath,
-                          String?                        LoggingContext                   = null, //DefaultHTTPExtAPIX_LoggingContext,
-                          String?                        LogfileName                      = DefaultHTTPExtAPIX_LogfileName,
+                          String?                        LoggingPath                      = null, //DefaultHTTPExtAPI_LoggingPath,
+                          String?                        LoggingContext                   = null, //DefaultHTTPExtAPI_LoggingContext,
+                          String?                        LogfileName                      = DefaultHTTPExtAPI_LogfileName,
                           LogfileCreatorDelegate?        LogfileCreator                   = null,
                           ILoggerFactory?                LoggerFactory                    = null)
 
@@ -2311,7 +2321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (this.APIVersionHash.IsNullOrEmpty())
                 this.APIVersionHash              = "unknown";
 
-            this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPIX_DatabaseFileName);
+            this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPI_DatabaseFileName);
 
             this.HTTPAPIPath                     = this.LoggingPath + "UsersAPI"       + Path.DirectorySeparatorChar;
             this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
@@ -2449,7 +2459,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!SkipURLTemplates)
                 RegisterURLTemplates();
 
-            //DebugX.Log(nameof(HTTPExtAPIX) + " version '" + APIVersionHash + "' initialized...");
+            //DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
 
             //if (AutoStart)
             //    Start();
@@ -2499,7 +2509,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// <param name="DisableNotifications">Disable external notifications.</param>
         ///// <param name="DisableLogfile">Disable the log file.</param>
         ///// <param name="LogfileName">The name of the logfile for this API.</param>
-        //public static HTTPExtAPIX AttachToHTTPAPI(HTTPServer                           HTTPServer,
+        //public static HTTPExtAPI AttachToHTTPAPI(HTTPServer                           HTTPServer,
         //                                       HTTPHostname?                        HTTPHostname                     = null,
         //                                       String                               ServiceName                      = "GraphDefined HTTPExt API",
         //                                       String                               ExternalDNSName                  = null,
@@ -2547,7 +2557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                       String                               LogfileName                      = DefaultLogfileName)
 
 
-        //    => new HTTPExtAPIX(HTTPServer,
+        //    => new HTTPExtAPI(HTTPServer,
         //                    HTTPHostname,
         //                    ServiceName,
         //                    ExternalDNSName,
@@ -3095,7 +3105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Path           = notification.RemoteURL.Path,
                                                    Content        = new JArray(JSONNotification).ToUTF8Bytes(),
                                                    ContentType    = HTTPContentType.Application.JSON_UTF8,
-                                                   UserAgent      = "HTTPExtAPIX Notification API",
+                                                   UserAgent      = "HTTPExtAPI Notification API",
                                                    API_Key        = notification.APIKey.HasValue
                                                                         ? notification.APIKey
                                                                         : null,
@@ -4210,10 +4220,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             //    #region Allow some URLs for anonymous access...
 
-            //    if (request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/defaults") ||
-            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/webfonts") ||
-            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/login")    ||
-            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/js")       ||
+            //    if (request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/defaults") ||
+            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/webfonts") ||
+            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/login")    ||
+            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/js")       ||
             //        request.Path.StartsWith(URLPathPrefix + "/defaults")                 ||
             //        request.Path.StartsWith(URLPathPrefix + "/favicon.ico")              ||
 
@@ -4317,12 +4327,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //});
 
 
-            #region /shared/HTTPExtAPIX
+            #region /shared/HTTPExtAPI
 
             //  this.MapResourceAssemblyFolder(HTTPHostname.Any,
-            //                                 URLPathPrefix + "shared/HTTPExtAPIX",
+            //                                 URLPathPrefix + "shared/HTTPExtAPI",
             //                                 HTTPRoot[..^1],
-            //                                 typeof(HTTPExtAPIX).Assembly);
+            //                                 typeof(HTTPExtAPI).Assembly);
 
             #endregion
 
@@ -5305,388 +5315,388 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:2100/users
             // --------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.ADD,
-                              HTTPPath.Parse("/users"),
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPRequestLogger:   AddUsersHTTPRequest,
-                              HTTPResponseLogger:  AddUsersHTTPResponse,
-                              HTTPDelegate:        async Request => {
+                HTTPMethod.ADD,
+                HTTPPath.Parse("/users"),
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPRequestLogger:   AddUsersHTTPRequest,
+                HTTPResponseLogger:  AddUsersHTTPResponse,
+                HTTPDelegate:        async request => {
 
-                                  #region Create HTTP response template
+                    #region Create HTTP response template
 
-                                  var responseBuilder = new HTTPResponse.Builder(Request) {
-                                                            HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                            Server                      = HTTPServer?.HTTPServerName,
-                                                            Date                        = Timestamp.Now,
-                                                            AccessControlAllowOrigin    = "*",
-                                                            AccessControlAllowMethods   = [ "ADD", "SET", "GET" ],
-                                                            AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                            ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                            Connection                  = ConnectionType.KeepAlive
-                                                        };
+                    var responseBuilder = new HTTPResponse.Builder(request) {
+                                            HTTPStatusCode              = HTTPStatusCode.BadRequest,
+                                            Server                      = HTTPServer?.HTTPServerName,
+                                            Date                        = Timestamp.Now,
+                                            AccessControlAllowOrigin    = "*",
+                                            AccessControlAllowMethods   = [ "ADD", "SET", "GET" ],
+                                            AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                            ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                            Connection                  = ConnectionType.KeepAlive
+                                        };
 
-                                  #endregion
+                    #endregion
 
-                                  #region Get HTTP user and its organizations
+                    #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser2(Request,
-                                                       out var httpUser,
-                                                       out var httpOrganizations,
-                                                       ref responseBuilder,
-                                                       AccessLevel: Access_Levels.ReadWrite,
-                                                       Recursive: true) ||
-                                      httpUser is null ||
-                                     !httpOrganizations.Any())
-                                  {
-                                      return responseBuilder;
-                                  }
+                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    if (!TryGetHTTPUser2(request,
+                                        out var httpUser,
+                                        out var httpOrganizations,
+                                        ref responseBuilder,
+                                        AccessLevel: Access_Levels.ReadWrite,
+                                        Recursive: true) ||
+                        httpUser is null ||
+                        !httpOrganizations.Any())
+                    {
+                        return responseBuilder;
+                    }
 
-                                  #endregion
-
-
-                                  var userDetails = Request.QueryString.GetBoolean("userDetails", false);
-
-
-                                  #region Parse JSON HTTP body...
-
-                                  #region Try to parse JSON array or object HTTP body...
-
-                                  if (!Request.TryParseJSONRequestBody(out var jsonArray,
-                                                                       out var jsonObject,
-                                                                       ref responseBuilder,
-                                                                       AllowEmptyHTTPBody: false))
-                                  {
-                                      return responseBuilder;
-                                  }
-
-                                  #endregion
+                    #endregion
+
+
+                    var userDetails = request.QueryString.GetBoolean("userDetails", false);
+
+
+                    #region Parse JSON HTTP body...
+
+                    #region Try to parse JSON array or object HTTP body...
+
+                    if (!request.TryParseJSONRequestBody(out var jsonArray,
+                                                        out var jsonObject,
+                                                        ref responseBuilder,
+                                                        AllowEmptyHTTPBody: false))
+                    {
+                        return responseBuilder;
+                    }
+
+                    #endregion
 
-                                  #region Validate JSON array
-
-                                  jsonArray ??= [];
-
-                                  if (jsonObject is not null)
-                                      jsonArray.Add(jsonObject);
-
-                                  if (!jsonArray.Any())
-                                  {
-
-                                      responseBuilder.Content = JSONObject.Create(
-                                                                    new JProperty("description",  $"An empty HTTP request body is not allowed!")
-                                                                ).ToUTF8Bytes();
-
-                                      return responseBuilder;
-
-                                  }
-
-                                  #endregion
-
-
-                                  var newUsers                  = new List<User>();
-                                  var newUsersWithAccessRights  = new List<User2OrganizationEdge>();
-
-                                  foreach (var jsonToken in jsonArray)
-                                  {
-
-                                      if (jsonToken is JObject json)
-                                      {
-
-                                          #region Parse UserId               [optional]
-
-                                          // It is valid to omitt the user identification!
-
-                                          if (json.ParseOptional("@id",
-                                                                 "user identification",
-                                                                 User_Id.TryParse,
-                                                                 out User_Id? userIdBody,
-                                                                 out var errorResponse))
-                                          {
-
-                                              if (errorResponse is not null)
-                                                  return new HTTPResponse.Builder(Request) {
-                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer?.HTTPServerName,
-                                                             Date                       = Timestamp.Now,
-                                                             AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
-                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                             Content                    = JSONObject.Create(
-                                                                                              new JProperty("data",         json["@id"]),
-                                                                                              new JProperty("description",  $"The given user identification is invalid: {errorResponse}")
-                                                                                          ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.KeepAlive
-                                                         };
-
-                                          }
-
-                                          #endregion
-
-                                          #region Parse NewUser              [mandatory]
-
-                                          if (!User.TryParseJSON(json,
-                                                                 out var newUser,
-                                                                 out errorResponse,
-                                                                 userIdBody ?? User_Id.Random(), // It is valid to omitt the user identification!
-                                                                 MinUserIdLength,
-                                                                 MinUserNameLength) || newUser is null)
-                                          {
-
-                                              return new HTTPResponse.Builder(Request) {
-                                                         HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                         Server                     = HTTPServer?.HTTPServerName,
-                                                         Date                       = Timestamp.Now,
-                                                         AccessControlAllowOrigin   = "*",
-                                                         AccessControlAllowMethods  = [ "GET", "ADD" ],
-                                                         AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                         ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                         Content                    = JSONObject.Create(
-                                                                                          new JProperty("data",         json),
-                                                                                          new JProperty("description",  errorResponse)
-                                                                                      ).ToUTF8Bytes(),
-                                                         Connection                 = ConnectionType.KeepAlive
-                                                     };
-
-                                          }
-
-                                          #endregion
-
-                                          #region Parse AccessRightsArray    [optional]
-
-                                          if (json.ParseOptional("accessRights",
-                                                                 "access rights",
-                                                                 out JArray accessRightsJSONArray,
-                                                                 out errorResponse))
-                                          {
-
-                                              if (errorResponse is not null)
-                                                  return new HTTPResponse.Builder(Request) {
-                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer?.HTTPServerName,
-                                                             Date                       = Timestamp.Now,
-                                                             AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
-                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                             Content                    = JSONObject.Create(
-                                                                                              new JProperty("data",         json["accessRights"]),
-                                                                                              new JProperty("description",  errorResponse)
-                                                                                          ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.KeepAlive
-                                                         };
-
-                                          }
-
-                                          #endregion
-
-
-                                          if (!accessRightsJSONArray.Any())
-                                              newUsers.Add(newUser);
-
-                                          foreach (var accessRightJSON in accessRightsJSONArray)
-                                          {
-
-                                              #region Validate access right JSON object
-
-                                              if (accessRightJSON is not JObject accessRightObject)
-                                                  return new HTTPResponse.Builder(Request) {
-                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer?.HTTPServerName,
-                                                             Date                       = Timestamp.Now,
-                                                             AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
-                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                             Content                    = JSONObject.Create(
-                                                                                              new JProperty("data",         accessRightJSON),
-                                                                                              new JProperty("description",  "Invalid 'accessRight' JSON object!")
-                                                                                          ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.KeepAlive
-                                                         };
-
-                                              #endregion
-
-                                              #region Parse AccessRight     [mandatory]
-
-                                              if (!accessRightObject.ParseMandatoryEnum("accessRight",
-                                                                                        "access right",
-                                                                                        out User2OrganizationEdgeLabel accessRight,
-                                                                                        out errorResponse))
-                                              {
-
-                                                  return new HTTPResponse.Builder(Request) {
-                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer?.HTTPServerName,
-                                                             Date                       = Timestamp.Now,
-                                                             AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
-                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                             Content                    = JSONObject.Create(
-                                                                                              new JProperty("data",         accessRightObject["accessRight"]),
-                                                                                              new JProperty("description",  $"Invalid 'access right': {errorResponse}")
-                                                                                          ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.KeepAlive
-                                                         };
-
-                                              }
-
-                                              #endregion
-
-                                              #region Parse Organization    [mandatory]
-
-                                              if (!accessRightObject.ParseMandatory("organizationId",
-                                                                                    "organization identification",
-                                                                                    Organization_Id.TryParse,
-                                                                                    out Organization_Id organizationId,
-                                                                                    out errorResponse))
-                                              {
-
-                                                  return new HTTPResponse.Builder(Request) {
-                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer?.HTTPServerName,
-                                                             Date                       = Timestamp.Now,
-                                                             AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
-                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                             Content                    = JSONObject.Create(
-                                                                                              new JProperty("data",         accessRightObject["organizationId"]),
-                                                                                              new JProperty("description",  $"Invalid organization identification: {errorResponse}")
-                                                                                          ).ToUTF8Bytes(),
-                                                             Connection                 = ConnectionType.KeepAlive
-                                                         };
-
-                                              }
-
-                                              if (!organizations.TryGetValue(organizationId, out var organization))
-                                              {
-
-                                                  return new HTTPResponse.Builder(Request) {
-                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer?.HTTPServerName,
-                                                             Date                       = Timestamp.Now,
-                                                             AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = [ "GET", "ADD" ],
-                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                             Content                    = JSONObject.Create(
-                                                                                              new JProperty("data",         organizationId.ToString()),
-                                                                                              new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
-                                                                                          ).ToUTF8Bytes()
-                                                         };
-
-                                              }
-
-                                              #endregion
-
-                                              newUsersWithAccessRights.Add(new User2OrganizationEdge(newUser,
-                                                                                                     accessRight,
-                                                                                                     organization));
-
-                                          }
-
-                                      }
-
-                                      #region ...or invalid JSON token found!
-
-                                      else
-                                      {
-
-                                          responseBuilder.Content = JSONObject.Create(
-                                                                        new JProperty("data",         jsonToken),
-                                                                        new JProperty("description",  $"Invalid JSON token: '{jsonToken}'!")
-                                                                    ).ToUTF8Bytes();
-
-                                          return responseBuilder;
-
-                                      }
-
-                                      #endregion
-
-                                  }
-
-                                  #endregion
-
-
-                                  #region Add new user(s) without access rights
-
-                                  var results = new List<AddUserResult>();
-
-                                  foreach (var newUser in newUsers)
-                                  {
-
-                                      results.Add(await AddUser(newUser,
-                                                                EventTrackingId: Request.EventTrackingId,
-                                                                CurrentUserId:   httpUser.Id));
-
-                                  }
-
-                                  #endregion
-
-                                  #region Add new user(s) with access rights
-
-                                  foreach (var newUserGrouped in newUsersWithAccessRights.GroupBy(edge => edge.Source))
-                                  {
-
-                                      results.Add(await AddUser(newUserGrouped.Key,
-                                                                newUserGrouped.Select(edge => new Tuple<User2OrganizationEdgeLabel, IOrganization>(
-                                                                                                  edge.EdgeLabel,
-                                                                                                  edge.Target
-                                                                                              )),
-                                                                EventTrackingId: Request.EventTrackingId,
-                                                                CurrentUserId:   httpUser.Id));
-
-                                  }
-
-                                  #endregion
-
-
-                                  #region No processable user data found!
-
-                                  if (results.Count == 0)
-                                  {
-
-                                      responseBuilder.Content = JSONObject.Create(
-                                                                    new JProperty("description",  $"No processable user data found!")
-                                                                ).ToUTF8Bytes();
-
-                                      return responseBuilder;
-
-                                  }
-
-                                  #endregion
-
-
-                                  #region User(s) created
-
-                                  responseBuilder.HTTPStatusCode  = results.All(result => result.Result == CommandResult.Success)
-                                                                        ? HTTPStatusCode.Created
-                                                                        : HTTPStatusCode.BadRequest;
-
-                                  responseBuilder.Content         = results.ToJSON(addUserResult => JSONProperties.FilterNulls(
-
-                                                                                                        userDetails
-                                                                                                            ? new JProperty("user",           addUserResult.Entity!.   ToJSON(true))
-                                                                                                            : new JProperty("userId",         addUserResult.Entity!.Id.ToString()),
-
-                                                                                                              new JProperty("accessRights",   new JArray(
-                                                                                                                                                  addUserResult.Entity!.User2Organization_OutEdges.Select(
-                                                                                                                                                      edge => new JArray(
-                                                                                                                                                                  edge.EdgeLabel.ToString(),
-                                                                                                                                                                  edge.Target.Id.ToString()
-                                                                                                                                                              )
-                                                                                                                                                  )
-                                                                                                                                              ))
-                                                                                                    ),
-                                                                                   CustomResultSerializer).ToUTF8Bytes();
-
-                                  return responseBuilder;
-
-                                  #endregion
-
-                              });
+                    #region Validate JSON array
+
+                    jsonArray ??= [];
+
+                    if (jsonObject is not null)
+                        jsonArray.Add(jsonObject);
+
+                    if (!jsonArray.Any())
+                    {
+
+                        responseBuilder.Content = JSONObject.Create(
+                                                    new JProperty("description",  $"An empty HTTP request body is not allowed!")
+                                                ).ToUTF8Bytes();
+
+                        return responseBuilder;
+
+                    }
+
+                    #endregion
+
+
+                    var newUsers                  = new List<User>();
+                    var newUsersWithAccessRights  = new List<User2OrganizationEdge>();
+
+                    foreach (var jsonToken in jsonArray)
+                    {
+
+                        if (jsonToken is JObject json)
+                        {
+
+                            #region Parse UserId               [optional]
+
+                            // It is valid to omitt the user identification!
+
+                            if (json.ParseOptional("@id",
+                                                    "user identification",
+                                                    User_Id.TryParse,
+                                                    out User_Id? userIdBody,
+                                                    out var errorResponse))
+                            {
+
+                                if (errorResponse is not null)
+                                    return new HTTPResponse.Builder(request) {
+                                                HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                Server                     = HTTPServer?.HTTPServerName,
+                                                Date                       = Timestamp.Now,
+                                                AccessControlAllowOrigin   = "*",
+                                                AccessControlAllowMethods  = [ "GET", "ADD" ],
+                                                AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                Content                    = JSONObject.Create(
+                                                                                new JProperty("data",         json["@id"]),
+                                                                                new JProperty("description",  $"The given user identification is invalid: {errorResponse}")
+                                                                            ).ToUTF8Bytes(),
+                                                Connection                 = ConnectionType.KeepAlive
+                                            };
+
+                            }
+
+                            #endregion
+
+                            #region Parse NewUser              [mandatory]
+
+                            if (!User.TryParseJSON(json,
+                                                    out var newUser,
+                                                    out errorResponse,
+                                                    userIdBody ?? User_Id.Random(), // It is valid to omitt the user identification!
+                                                    MinUserIdLength,
+                                                    MinUserNameLength) || newUser is null)
+                            {
+
+                                return new HTTPResponse.Builder(request) {
+                                            HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                            Server                     = HTTPServer?.HTTPServerName,
+                                            Date                       = Timestamp.Now,
+                                            AccessControlAllowOrigin   = "*",
+                                            AccessControlAllowMethods  = [ "GET", "ADD" ],
+                                            AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                            Content                    = JSONObject.Create(
+                                                                            new JProperty("data",         json),
+                                                                            new JProperty("description",  errorResponse)
+                                                                        ).ToUTF8Bytes(),
+                                            Connection                 = ConnectionType.KeepAlive
+                                        };
+
+                            }
+
+                            #endregion
+
+                            #region Parse AccessRightsArray    [optional]
+
+                            if (json.ParseOptional("accessRights",
+                                                    "access rights",
+                                                    out JArray accessRightsJSONArray,
+                                                    out errorResponse))
+                            {
+
+                                if (errorResponse is not null)
+                                    return new HTTPResponse.Builder(request) {
+                                                HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                Server                     = HTTPServer?.HTTPServerName,
+                                                Date                       = Timestamp.Now,
+                                                AccessControlAllowOrigin   = "*",
+                                                AccessControlAllowMethods  = [ "GET", "ADD" ],
+                                                AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                Content                    = JSONObject.Create(
+                                                                                new JProperty("data",         json["accessRights"]),
+                                                                                new JProperty("description",  errorResponse)
+                                                                            ).ToUTF8Bytes(),
+                                                Connection                 = ConnectionType.KeepAlive
+                                            };
+
+                            }
+
+                            #endregion
+
+
+                            if (!accessRightsJSONArray.Any())
+                                newUsers.Add(newUser);
+
+                            foreach (var accessRightJSON in accessRightsJSONArray)
+                            {
+
+                                #region Validate access right JSON object
+
+                                if (accessRightJSON is not JObject accessRightObject)
+                                    return new HTTPResponse.Builder(request) {
+                                                HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                Server                     = HTTPServer?.HTTPServerName,
+                                                Date                       = Timestamp.Now,
+                                                AccessControlAllowOrigin   = "*",
+                                                AccessControlAllowMethods  = [ "GET", "ADD" ],
+                                                AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                Content                    = JSONObject.Create(
+                                                                                new JProperty("data",         accessRightJSON),
+                                                                                new JProperty("description",  "Invalid 'accessRight' JSON object!")
+                                                                            ).ToUTF8Bytes(),
+                                                Connection                 = ConnectionType.KeepAlive
+                                            };
+
+                                #endregion
+
+                                #region Parse AccessRight     [mandatory]
+
+                                if (!accessRightObject.ParseMandatoryEnum("accessRight",
+                                                                        "access right",
+                                                                        out User2OrganizationEdgeLabel accessRight,
+                                                                        out errorResponse))
+                                {
+
+                                    return new HTTPResponse.Builder(request) {
+                                                HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                Server                     = HTTPServer?.HTTPServerName,
+                                                Date                       = Timestamp.Now,
+                                                AccessControlAllowOrigin   = "*",
+                                                AccessControlAllowMethods  = [ "GET", "ADD" ],
+                                                AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                Content                    = JSONObject.Create(
+                                                                                new JProperty("data",         accessRightObject["accessRight"]),
+                                                                                new JProperty("description",  $"Invalid 'access right': {errorResponse}")
+                                                                            ).ToUTF8Bytes(),
+                                                Connection                 = ConnectionType.KeepAlive
+                                            };
+
+                                }
+
+                                #endregion
+
+                                #region Parse Organization    [mandatory]
+
+                                if (!accessRightObject.ParseMandatory("organizationId",
+                                                                    "organization identification",
+                                                                    Organization_Id.TryParse,
+                                                                    out Organization_Id organizationId,
+                                                                    out errorResponse))
+                                {
+
+                                    return new HTTPResponse.Builder(request) {
+                                                HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                Server                     = HTTPServer?.HTTPServerName,
+                                                Date                       = Timestamp.Now,
+                                                AccessControlAllowOrigin   = "*",
+                                                AccessControlAllowMethods  = [ "GET", "ADD" ],
+                                                AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                Content                    = JSONObject.Create(
+                                                                                new JProperty("data",         accessRightObject["organizationId"]),
+                                                                                new JProperty("description",  $"Invalid organization identification: {errorResponse}")
+                                                                            ).ToUTF8Bytes(),
+                                                Connection                 = ConnectionType.KeepAlive
+                                            };
+
+                                }
+
+                                if (!organizations.TryGetValue(organizationId, out var organization))
+                                {
+
+                                    return new HTTPResponse.Builder(request) {
+                                                HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                Server                     = HTTPServer?.HTTPServerName,
+                                                Date                       = Timestamp.Now,
+                                                AccessControlAllowOrigin   = "*",
+                                                AccessControlAllowMethods  = [ "GET", "ADD" ],
+                                                AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                Content                    = JSONObject.Create(
+                                                                                new JProperty("data",         organizationId.ToString()),
+                                                                                new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
+                                                                            ).ToUTF8Bytes()
+                                            };
+
+                                }
+
+                                #endregion
+
+                                newUsersWithAccessRights.Add(new User2OrganizationEdge(newUser,
+                                                                                        accessRight,
+                                                                                        organization));
+
+                            }
+
+                        }
+
+                        #region ...or invalid JSON token found!
+
+                        else
+                        {
+
+                            responseBuilder.Content = JSONObject.Create(
+                                                        new JProperty("data",         jsonToken),
+                                                        new JProperty("description",  $"Invalid JSON token: '{jsonToken}'!")
+                                                    ).ToUTF8Bytes();
+
+                            return responseBuilder;
+
+                        }
+
+                        #endregion
+
+                    }
+
+                    #endregion
+
+
+                    #region Add new user(s) without access rights
+
+                    var results = new List<AddUserResult>();
+
+                    foreach (var newUser in newUsers)
+                    {
+
+                        results.Add(await AddUser(newUser,
+                                                EventTrackingId: request.EventTrackingId,
+                                                CurrentUserId:   httpUser.Id));
+
+                    }
+
+                    #endregion
+
+                    #region Add new user(s) with access rights
+
+                    foreach (var newUserGrouped in newUsersWithAccessRights.GroupBy(edge => edge.Source))
+                    {
+
+                        results.Add(await AddUser(newUserGrouped.Key,
+                                                newUserGrouped.Select(edge => new Tuple<User2OrganizationEdgeLabel, IOrganization>(
+                                                                                    edge.EdgeLabel,
+                                                                                    edge.Target
+                                                                                )),
+                                                EventTrackingId: request.EventTrackingId,
+                                                CurrentUserId:   httpUser.Id));
+
+                    }
+
+                    #endregion
+
+
+                    #region No processable user data found!
+
+                    if (results.Count == 0)
+                    {
+
+                        responseBuilder.Content = JSONObject.Create(
+                                                    new JProperty("description",  $"No processable user data found!")
+                                                ).ToUTF8Bytes();
+
+                        return responseBuilder;
+
+                    }
+
+                    #endregion
+
+
+                    #region User(s) created
+
+                    responseBuilder.HTTPStatusCode  = results.All(result => result.Result == CommandResult.Success)
+                                                        ? HTTPStatusCode.Created
+                                                        : HTTPStatusCode.BadRequest;
+
+                    responseBuilder.Content         = results.ToJSON(addUserResult => JSONProperties.FilterNulls(
+
+                                                                                        userDetails
+                                                                                            ? new JProperty("user",           addUserResult.Entity!.   ToJSON(true))
+                                                                                            : new JProperty("userId",         addUserResult.Entity!.Id.ToString()),
+
+                                                                                                new JProperty("accessRights",   new JArray(
+                                                                                                                                    addUserResult.Entity!.User2Organization_OutEdges.Select(
+                                                                                                                                        edge => new JArray(
+                                                                                                                                                    edge.EdgeLabel.ToString(),
+                                                                                                                                                    edge.Target.Id.ToString()
+                                                                                                                                                )
+                                                                                                                                    )
+                                                                                                                                ))
+                                                                                    ),
+                                                                    CustomResultSerializer).ToUTF8Bytes();
+
+                    return responseBuilder;
+
+                    #endregion
+
+                });
 
             #endregion
 
@@ -5696,93 +5706,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/users
             // -------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.GET,
-                              URLPathPrefix + "users",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: Request => {
+                HTTPMethod.GET,
+                URLPathPrefix + "users",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: request => {
 
-                                  #region Create HTTP response template
+                    #region Create HTTP response template
 
-                                  var responseBuilder = new HTTPResponse.Builder(Request) {
-                                                            HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                            Server                     = HTTPServer?.HTTPServerName,
-                                                            Date                       = Timestamp.Now,
-                                                            AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = [ "GET", "COUNT", "OPTIONS" ],
-                                                            AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                            ETag                       = "1",
-                                                            ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                            Connection                 = ConnectionType.KeepAlive,
-                                                            Vary                       = "Accept"
-                                                        };
+                    var responseBuilder = new HTTPResponse.Builder(request) {
+                                            HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                            Server                     = HTTPServer?.HTTPServerName,
+                                            Date                       = Timestamp.Now,
+                                            AccessControlAllowOrigin   = "*",
+                                            AccessControlAllowMethods  = [ "GET", "COUNT", "OPTIONS" ],
+                                            AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                            ETag                       = "1",
+                                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                            Connection                 = ConnectionType.KeepAlive,
+                                            Vary                       = "Accept"
+                                        };
 
-                                  #endregion
+                    #endregion
 
-                                  #region Try to get HTTP user and its organizations
+                    #region Try to get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser2(Request,
-                                                       out var httpUser,
-                                                       out var httpOrganizations,
-                                                       ref responseBuilder,
-                                                       AccessLevel: Access_Levels.ReadOnly,
-                                                       Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
-                                  {
-                                      return Task.FromResult(responseBuilder.AsImmutable);
-                                  }
+                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    if (!TryGetHTTPUser2(request,
+                                        out var httpUser,
+                                        out var httpOrganizations,
+                                        ref responseBuilder,
+                                        AccessLevel: Access_Levels.ReadOnly,
+                                        Recursive: true) ||
+                        httpUser is null ||
+                        httpOrganizations.Count == 0)
+                    {
+                        return Task.FromResult(responseBuilder.AsImmutable);
+                    }
 
-                                  #endregion
-
-
-                                  var withMetadata         = Request.QueryString.GetBoolean("withMetadata", false);
-                                  var includeFilter        = Request.QueryString.CreateStringFilter<IUser>("match",
-                                                                                                           (user, include) => user.Id.   ToString().Contains(include, StringComparison.OrdinalIgnoreCase) ||
-                                                                                                                              user.Name.FirstText().Contains(include, StringComparison.OrdinalIgnoreCase) ||
-                                                                                                                              user.Description.     Matches (include, StringComparison.OrdinalIgnoreCase));
-
-                                  var skip                 = Request.QueryString.GetUInt64 ("skip");
-                                  var take                 = Request.QueryString.GetUInt64 ("take");
-
-                                  var expand               = Request.QueryString.GetStrings("expand");
-                                  var expandAccessRights   = expand.ContainsIgnoreCase("accessRights")  ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
-                                  var expandOrganizations  = expand.ContainsIgnoreCase("organizations") ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
-
-                                  var filteredUsers        = httpOrganizations.
-                                                                 SafeSelectMany(organization => organization.Users).
-                                                                 Distinct      ().
-                                                                 Where         (includeFilter).
-                                                                 OrderBy       (user => user.Name.FirstText()).
-                                                                 ToArray();
-
-                                  var filteredCount        = filteredUsers.ULongCount();
-                                  var totalCount           = httpOrganizations.ULongCount();
-
-                                  var jsonResults          = filteredUsers.
-                                                                 ToJSON(skip,
-                                                                        take,
-                                                                        Embedded:    false,
-                                                                        UserToJSON:  GetUserSerializator(Request, httpUser));
+                    #endregion
 
 
-                                  #region Create HTTP response
+                    var withMetadata         = request.QueryString.GetBoolean("withMetadata", false);
+                    var includeFilter        = request.QueryString.CreateStringFilter<IUser>("match",
+                                                                                            (user, include) => user.Id.   ToString().Contains(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                user.Name.FirstText().Contains(include, StringComparison.OrdinalIgnoreCase) ||
+                                                                                                                user.Description.     Matches (include, StringComparison.OrdinalIgnoreCase));
 
-                                  responseBuilder.HTTPStatusCode                = HTTPStatusCode.OK;
-                                  responseBuilder.X_ExpectedTotalNumberOfItems  = filteredCount;
-                                  responseBuilder.Content                       = withMetadata
-                                                                                      ? JSONObject.Create(
-                                                                                            new JProperty("totalCount",     totalCount),
-                                                                                            new JProperty("filteredCount",  filteredCount),
-                                                                                            new JProperty("users",          jsonResults)
-                                                                                        ).ToUTF8Bytes()
-                                                                                      : jsonResults.ToUTF8Bytes();
+                    var skip                 = request.QueryString.GetUInt64 ("skip");
+                    var take                 = request.QueryString.GetUInt64 ("take");
 
-                                  #endregion
+                    var expand               = request.QueryString.GetStrings("expand");
+                    var expandAccessRights   = expand.ContainsIgnoreCase("accessRights")  ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
+                    var expandOrganizations  = expand.ContainsIgnoreCase("organizations") ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
 
-                                  return Task.FromResult(responseBuilder.AsImmutable);
+                    var filteredUsers        = httpOrganizations.
+                                                    SafeSelectMany(organization => organization.Users).
+                                                    Distinct      ().
+                                                    Where         (includeFilter).
+                                                    OrderBy       (user => user.Name.FirstText()).
+                                                    ToArray();
 
-                              });
+                    var filteredCount        = filteredUsers.ULongCount();
+                    var totalCount           = httpOrganizations.ULongCount();
+
+                    var jsonResults          = filteredUsers.
+                                                    ToJSON(skip,
+                                                        take,
+                                                        Embedded:    false,
+                                                        UserToJSON:  GetUserSerializator(request, httpUser));
+
+
+                    #region Create HTTP response
+
+                    responseBuilder.HTTPStatusCode                = HTTPStatusCode.OK;
+                    responseBuilder.X_ExpectedTotalNumberOfItems  = filteredCount;
+                    responseBuilder.Content                       = withMetadata
+                                                                        ? JSONObject.Create(
+                                                                            new JProperty("totalCount",     totalCount),
+                                                                            new JProperty("filteredCount",  filteredCount),
+                                                                            new JProperty("users",          jsonResults)
+                                                                        ).ToUTF8Bytes()
+                                                                        : jsonResults.ToUTF8Bytes();
+
+                    #endregion
+
+                    return Task.FromResult(responseBuilder.AsImmutable);
+
+                });
 
             #endregion
 
@@ -5871,26 +5881,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // curl -X OPTIONS -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // -----------------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.OPTIONS,
-                              URLPathPrefix + "users/{UserId}",
-                              HTTPDelegate: Request => {
+                HTTPMethod.OPTIONS,
+                URLPathPrefix + "users/{UserId}",
+                HTTPDelegate: request => {
 
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer?.HTTPServerName,
-                                          Date                       = Timestamp.Now,
-                                          AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
-                                          AccessControlAllowHeaders  = [ "X-PINGOTHER", "Content-Type", "Accept", "Authorization", "X-App-Version" ],
-                                          AccessControlMaxAge        = 3600,
-                                          //ETag                       = "1",
-                                          CacheControl               = "public",
-                                          //Expires                    = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                          Connection                 = ConnectionType.KeepAlive
-                                      }.AsImmutable);
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
+                            AccessControlAllowHeaders  = [ "X-PINGOTHER", "Content-Type", "Accept", "Authorization", "X-App-Version" ],
+                            AccessControlMaxAge        = 3600,
+                            //ETag                       = "1",
+                            CacheControl               = "public",
+                            //Expires                    = "Mon, 25 Jun 2015 21:31:12 GMT",
+                            Connection                 = ConnectionType.KeepAlive
+                        }.AsImmutable);
 
-                              });
+                });
 
             #endregion
 
@@ -5900,257 +5910,261 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // -------------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.ADD,
-                              URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPRequestLogger:   AddUserHTTPRequest,
-                              HTTPResponseLogger:  AddUserHTTPResponse,
-                              HTTPDelegate:        async Request => {
+                HTTPMethod.ADD,
+                URLPathPrefix + "users/{UserId}",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPRequestLogger:   AddUserHTTPRequest,
+                HTTPResponseLogger:  AddUserHTTPResponse,
+                HTTPDelegate:        async request => {
 
-                                  #region Create HTTP response template
+                    #region Create HTTP response template
 
-                                  var responseBuilder = new HTTPResponse.Builder(Request) {
-                                                            HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                            Server                      = HTTPServer?.HTTPServerName,
-                                                            Date                        = Timestamp.Now,
-                                                            AccessControlAllowOrigin    = "*",
-                                                            AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
-                                                            AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                            ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                            Connection                  = ConnectionType.KeepAlive
-                                                        };
+                    var responseBuilder = new HTTPResponse.Builder(request) {
+                                            HTTPStatusCode              = HTTPStatusCode.BadRequest,
+                                            Server                      = HTTPServer?.HTTPServerName,
+                                            Date                        = Timestamp.Now,
+                                            AccessControlAllowOrigin    = "*",
+                                            AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
+                                            AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                            ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                            Connection                  = ConnectionType.KeepAlive
+                                        };
 
-                                  #endregion
+                    #endregion
 
-                                  #region Get HTTP user and its organizations
+                    #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser2(Request,
-                                                       out var httpUser,
-                                                       out var httpOrganizations,
-                                                       ref responseBuilder,
-                                                       AccessLevel: Access_Levels.ReadWrite,
-                                                       Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
-                                  {
-                                      return responseBuilder;
-                                  }
+                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    if (!TryGetHTTPUser2(request,
+                                        out var httpUser,
+                                        out var httpOrganizations,
+                                        ref responseBuilder,
+                                        AccessLevel: Access_Levels.ReadWrite,
+                                        Recursive: true) ||
+                        httpUser is null ||
+                        httpOrganizations.Count == 0)
+                    {
+                        return responseBuilder;
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Check UserId URL parameter
+                    #region Check UserId URL parameter
 
-                                  if (!Request.ParseUserId2(this,
-                                                            out var userIdURL,
-                                                            ref responseBuilder) ||
-                                      !userIdURL.HasValue ||
-                                       userIdURL.IsNullOrEmpty())
-                                  {
-                                      return responseBuilder;
-                                  }
+                    if (!request.ParseUserId2(this,
+                                            out var userIdURL,
+                                            ref responseBuilder) ||
+                        !userIdURL.HasValue ||
+                        userIdURL.IsNullOrEmpty())
+                    {
+                        return responseBuilder;
+                    }
 
-                                  #endregion
+                    #endregion
 
 
-                                  #region Parse JSON Object HTTP body...
+                    #region Parse JSON Object HTTP body...
 
-                                  if (!Request.TryParseJSONObjectRequestBody2(out var json, ref responseBuilder))
-                                      return responseBuilder;
+                    if (!request.TryParseJSONObjectRequestBody2(out var json, ref responseBuilder))
+                        return responseBuilder;
 
-                                  #region Parse UserId               [optional]
+                    #region Parse UserId               [optional]
 
-                                  // It is valid to omitt the user identification!
-                                  if (json.ParseOptional("@id",
-                                                         "user identification",
-                                                         User_Id.TryParse,
-                                                         out User_Id? userIdBody,
-                                                         out var errorResponse))
-                                  {
+                    // It is valid to omitt the user identification!
+                    if (json.ParseOptional("@id",
+                                            "user identification",
+                                            User_Id.TryParse,
+                                            out User_Id? userIdBody,
+                                            out var errorResponse))
+                    {
 
-                                      if (errorResponse is not null)
-                                      {
+                        if (errorResponse is not null)
+                        {
 
-                                          responseBuilder.Content = JSONObject.Create(
-                                                                        new JProperty("data", json["@id"]),
-                                                                        new JProperty("description", $"The given user identification is invalid: {errorResponse}")
-                                                                    ).ToUTF8Bytes();
+                            responseBuilder.Content = JSONObject.Create(
+                                                        new JProperty("data", json["@id"]),
+                                                        new JProperty("description", $"The given user identification is invalid: {errorResponse}")
+                                                    ).ToUTF8Bytes();
 
-                                          return responseBuilder;
+                            return responseBuilder;
 
-                                      }
+                        }
 
-                                  }
+                    }
 
-                                  if (userIdBody.HasValue &&
-                                      userIdURL.Value != userIdBody.Value)
-                                  {
+                    if (userIdBody.HasValue &&
+                        userIdURL.Value != userIdBody.Value)
+                    {
 
-                                      responseBuilder.Content = JSONObject.Create(
-                                                                    new JProperty("description",  $"The user identification within the URL '{userIdURL.Value}' does not match with the user identification within the JSON request body '{userIdBody.Value}'!")
-                                                                ).ToUTF8Bytes();
+                        responseBuilder.Content = JSONObject.Create(
+                                                    new JProperty("description",  $"The user identification within the URL '{userIdURL.Value}' does not match with the user identification within the JSON request body '{userIdBody.Value}'!")
+                                                ).ToUTF8Bytes();
 
-                                      return responseBuilder;
+                        return responseBuilder;
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Parse NewUser              [mandatory]
+                    #region Parse NewUser              [mandatory]
 
-                                  if (!User.TryParseJSON(json,
-                                                         out var newUser,
-                                                         out errorResponse,
-                                                         userIdURL,
-                                                         MinUserIdLength,
-                                                         MinUserNameLength) || newUser is null)
-                                  {
+                    if (!User.TryParseJSON(json,
+                                            out var newUser,
+                                            out errorResponse,
+                                            userIdURL,
+                                            MinUserIdLength,
+                                            MinUserNameLength) || newUser is null)
+                    {
 
-                                      responseBuilder.Content = JSONObject.Create(
-                                                                    new JProperty("data",         json),
-                                                                    new JProperty("description",  errorResponse)
-                                                                ).ToUTF8Bytes();
+                        responseBuilder.Content = JSONObject.Create(
+                                                    new JProperty("data",         json),
+                                                    new JProperty("description",  errorResponse)
+                                                ).ToUTF8Bytes();
 
-                                      return responseBuilder;
+                        return responseBuilder;
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Parse AccessRightsArray    [optional]
+                    #region Parse AccessRightsArray    [optional]
 
-                                  if (json.ParseOptional("accessRights",
-                                                         "access rights",
-                                                         out JArray accessRightsJSONArray,
-                                                         out errorResponse))
-                                  {
-                                      if (errorResponse is not null)
-                                      {
+                    if (json.ParseOptional("accessRights",
+                                            "access rights",
+                                            out JArray accessRightsJSONArray,
+                                            out errorResponse))
+                    {
+                        if (errorResponse is not null)
+                        {
 
-                                          responseBuilder.Content = JSONObject.Create(
-                                                                        new JProperty("data",         json["accessRights"]),
-                                                                        new JProperty("description",  errorResponse)
-                                                                    ).ToUTF8Bytes();
+                            responseBuilder.Content = JSONObject.Create(
+                                                        new JProperty("data",         json["accessRights"]),
+                                                        new JProperty("description",  errorResponse)
+                                                    ).ToUTF8Bytes();
 
-                                          return responseBuilder;
+                            return responseBuilder;
 
-                                      }
-                                  }
+                        }
+                    }
 
-                                  #endregion
+                    #endregion
 
 
-                                  var accessRights = new List<Tuple<User2OrganizationEdgeLabel, IOrganization>>();
+                    var accessRights = new List<Tuple<User2OrganizationEdgeLabel, IOrganization>>();
 
-                                  foreach (var accessRightJSON in accessRightsJSONArray)
-                                  {
+                    foreach (var accessRightJSON in accessRightsJSONArray)
+                    {
 
-                                      #region Validate access right JSON object
+                        #region Validate access right JSON object
 
-                                      if (accessRightJSON is not JObject accessRightObject)
-                                      {
+                        if (accessRightJSON is not JObject accessRightObject)
+                        {
 
-                                          responseBuilder.Content = JSONObject.Create(
-                                                                        new JProperty("data",         accessRightJSON),
-                                                                        new JProperty("description",  "Invalid 'accessRight' JSON object!")
-                                                                    ).ToUTF8Bytes();
+                            responseBuilder.Content = JSONObject.Create(
+                                                        new JProperty("data",         accessRightJSON),
+                                                        new JProperty("description",  "Invalid 'accessRight' JSON object!")
+                                                    ).ToUTF8Bytes();
 
-                                          return responseBuilder;
+                            return responseBuilder;
 
-                                      }
+                        }
 
-                                      #endregion
+                        #endregion
 
-                                      #region Parse AccessRight     [mandatory]
+                        #region Parse AccessRight     [mandatory]
 
-                                      if (!accessRightObject.ParseMandatoryEnum("accessRight",
-                                                                                "access right",
-                                                                                out User2OrganizationEdgeLabel accessRight,
-                                                                                out errorResponse))
-                                      {
+                        if (!accessRightObject.ParseMandatoryEnum("accessRight",
+                                                                "access right",
+                                                                out User2OrganizationEdgeLabel accessRight,
+                                                                out errorResponse))
+                        {
 
-                                          responseBuilder.Content = JSONObject.Create(
-                                                                        new JProperty("data",         accessRightObject["accessRight"]),
-                                                                        new JProperty("description",  $"Invalid 'access right': {errorResponse}")
-                                                                    ).ToUTF8Bytes();
+                            responseBuilder.Content = JSONObject.Create(
+                                                        new JProperty("data",         accessRightObject["accessRight"]),
+                                                        new JProperty("description",  $"Invalid 'access right': {errorResponse}")
+                                                    ).ToUTF8Bytes();
 
-                                          return responseBuilder;
+                            return responseBuilder;
 
-                                      }
+                        }
 
-                                      #endregion
+                        #endregion
 
-                                      #region Parse Organization    [mandatory]
+                        #region Parse Organization    [mandatory]
 
-                                      if (!accessRightObject.ParseMandatory("organizationId",
-                                                                            "organization identification",
-                                                                            Organization_Id.TryParse,
-                                                                            out Organization_Id organizationId,
-                                                                            out errorResponse))
-                                      {
+                        if (!accessRightObject.ParseMandatory("organizationId",
+                                                            "organization identification",
+                                                            Organization_Id.TryParse,
+                                                            out Organization_Id organizationId,
+                                                            out errorResponse))
+                        {
 
-                                          responseBuilder.Content = JSONObject.Create(
-                                                                        new JProperty("data",         accessRightObject["organizationId"]),
-                                                                        new JProperty("description",  $"Invalid organization identification: {errorResponse}")
-                                                                    ).ToUTF8Bytes();
+                            responseBuilder.Content = JSONObject.Create(
+                                                        new JProperty("data",         accessRightObject["organizationId"]),
+                                                        new JProperty("description",  $"Invalid organization identification: {errorResponse}")
+                                                    ).ToUTF8Bytes();
 
-                                          return responseBuilder;
+                            return responseBuilder;
 
-                                      }
+                        }
 
-                                      if (!organizations.TryGetValue(organizationId, out var organization))
-                                      {
+                        if (!organizations.TryGetValue(organizationId, out var organization))
+                        {
 
-                                          responseBuilder.Content = JSONObject.Create(
-                                                                        new JProperty("data",         organizationId.ToString()),
-                                                                        new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
-                                                                    ).ToUTF8Bytes();
+                            responseBuilder.Content = JSONObject.Create(
+                                                        new JProperty("data",         organizationId.ToString()),
+                                                        new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
+                                                    ).ToUTF8Bytes();
 
-                                          return responseBuilder;
+                            return responseBuilder;
 
-                                      }
+                        }
 
-                                      #endregion
+                        #endregion
 
-                                      accessRights.Add(new Tuple<User2OrganizationEdgeLabel, IOrganization>(accessRight,
-                                                                                                            organization));
+                        accessRights.Add(new Tuple<User2OrganizationEdgeLabel, IOrganization>(accessRight,
+                                                                                            organization));
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
 
-                                  var result = accessRights.Count > 0
+                    var result = accessRights.Count > 0
 
-                                                  ? await AddUser(newUser,
-                                                                  accessRights,
-                                                                  EventTrackingId: Request.EventTrackingId,
-                                                                  CurrentUserId:   httpUser.Id)
+                                    ? await AddUser(
+                                                newUser,
+                                                accessRights,
+                                                EventTrackingId: request.EventTrackingId,
+                                                CurrentUserId:   httpUser.Id
+                                            )
 
-                                                  : await AddUser(newUser,
-                                                                  EventTrackingId: Request.EventTrackingId,
-                                                                  CurrentUserId:   httpUser.Id);
+                                    : await AddUser(
+                                                newUser,
+                                                EventTrackingId: request.EventTrackingId,
+                                                CurrentUserId:   httpUser.Id
+                                            );
 
 
-                                  switch (result.Result)
-                                  {
+                    switch (result.Result)
+                    {
 
-                                      case CommandResult.Success:
-                                          responseBuilder.HTTPStatusCode  = HTTPStatusCode.Created;
-                                          responseBuilder.Content         = newUser.ToJSON(Embedded: false).ToUTF8Bytes();
-                                          break;
+                        case CommandResult.Success:
+                            responseBuilder.HTTPStatusCode  = HTTPStatusCode.Created;
+                            responseBuilder.Content         = newUser.ToJSON(Embedded: false).ToUTF8Bytes();
+                            break;
 
-                                      default:
-                                          responseBuilder.Content         = JSONObject.Create(
-                                                                                new JProperty("description",  "Could create the new user!")
-                                                                            ).ToUTF8Bytes();
-                                          break;
+                        default:
+                            responseBuilder.Content         = JSONObject.Create(
+                                                                new JProperty("description",  "Could create the new user!")
+                                                            ).ToUTF8Bytes();
+                            break;
 
-                                  }
+                    }
 
-                                  return responseBuilder;
+                    return responseBuilder;
 
-                              });
+                });
 
             #endregion
 
@@ -6180,119 +6194,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //      http://127.0.0.1:2000/users/214080158
             // ---------------------------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.SET,
-                              URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPRequestLogger:   SetUserHTTPRequest,
-                              HTTPResponseLogger:  SetUserHTTPResponse,
-                              HTTPDelegate:        async Request => {
+                HTTPMethod.SET,
+                URLPathPrefix + "users/{UserId}",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPRequestLogger:   SetUserHTTPRequest,
+                HTTPResponseLogger:  SetUserHTTPResponse,
+                HTTPDelegate:        async request => {
 
-                                  #region Get HTTP user and its organizations
+                    #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null)
-                                  {
-                                      return httpResponseBuilder!;
-                                  }
+                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    if (!TryGetHTTPUser(request,
+                                        out var httpUser,
+                                        out var httpOrganizations,
+                                        out var httpResponseBuilder,
+                                        Access_Levels.ReadWrite,
+                                        Recursive: true))
+                    {
+                        return httpResponseBuilder;
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Check UserId URL parameter
+                    #region Check UserId URL parameter
 
-                                  if (!Request.ParseUserId(this,
-                                                           out var UserIdURL,
-                                                           out httpResponseBuilder))
-                                  {
-                                      return httpResponseBuilder!;
-                                  }
+                    if (!request.ParseUserId(this,
+                                             out var UserIdURL,
+                                             out httpResponseBuilder))
+                    {
+                        return httpResponseBuilder;
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Parse JSON
+                    #region Parse JSON
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
-                                      return httpResponseBuilder!;
+                    if (!request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                        return httpResponseBuilder;
 
-                                  if (!User.TryParseJSON(json,
-                                                         out var user,
-                                                         out var ErrorResponse,
-                                                         UserIdURL) || user is null)
-                                  {
+                    if (!User.TryParseJSON(json,
+                                           out var user,
+                                           out var ErrorResponse,
+                                           UserIdURL) || user is null)
+                    {
 
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer?.HTTPServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = [ "GET", "SET" ],
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 ETag                       = "1",
-                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
-                                                                                  new JProperty("description",  ErrorResponse)
-                                                                              ).ToUTF8Bytes()
-                                             }.AsImmutable;
+                        return new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                    Server                     = HTTPServer?.HTTPServerName,
+                                    Date                       = Timestamp.Now,
+                                    AccessControlAllowOrigin   = "*",
+                                    AccessControlAllowMethods  = [ "GET", "SET" ],
+                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                    ETag                       = "1",
+                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                    Content                    = JSONObject.Create(
+                                                                    new JProperty("description",  ErrorResponse)
+                                                                ).ToUTF8Bytes()
+                                }.AsImmutable;
 
-                                  }
+                    }
 
-                                  #endregion
-
-
-                                  // Has the current HTTP user the required
-                                  // access rights to update?
-                                  if (httpUser.Id != user.Id && !CanImpersonate(httpUser, user))
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer?.HTTPServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = [ "GET", "SET" ],
-                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.KeepAlive
-                                             }.AsImmutable;
+                    #endregion
 
 
-                                  var result = await AddOrUpdateUser(user,
-                                                                     EventTrackingId: Request.EventTrackingId,
-                                                                     CurrentUserId:   httpUser.Id);
+                    // Has the current HTTP user the required
+                    // access rights to update?
+                    if (httpUser.Id != user.Id && !CanImpersonate(httpUser, user))
+                        return new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode              = HTTPStatusCode.Forbidden,
+                                    Server                      = HTTPServer?.HTTPServerName,
+                                    Date                        = Timestamp.Now,
+                                    AccessControlAllowOrigin    = "*",
+                                    AccessControlAllowMethods   = [ "GET", "SET" ],
+                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                    Connection                  = ConnectionType.KeepAlive
+                                }.AsImmutable;
 
 
-                                  return result.Result == CommandResult.Success
+                    var result = await AddOrUpdateUser(user,
+                                                       EventTrackingId:  request.EventTrackingId,
+                                                       CurrentUserId:    httpUser.Id);
 
-                                             ? new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer?.HTTPServerName,
-                                                   Date                        = Timestamp.Now,
-                                                   AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = [ "GET", "SET" ],
-                                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   //ETag                        = _User.HashValue,
-                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                     = user.ToJSON().ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.KeepAlive
-                                               }.AsImmutable
 
-                                             : new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                   Server                     = HTTPServer?.HTTPServerName,
-                                                   Date                       = Timestamp.Now,
-                                                   AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = [ "GET", "SET" ],
-                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                   ETag                       = "1",
-                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                    = JSONObject.Create(
-                                                                                    new JProperty("description", result?.Description?.ToJSON())
-                                                                                ).ToUTF8Bytes()
-                                               }.AsImmutable;
+                    return result.Result == CommandResult.Success
 
-                              });
+                                ? new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode              = HTTPStatusCode.OK,
+                                    Server                      = HTTPServer?.HTTPServerName,
+                                    Date                        = Timestamp.Now,
+                                    AccessControlAllowOrigin    = "*",
+                                    AccessControlAllowMethods   = [ "GET", "SET" ],
+                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                    //ETag                        = _User.HashValue,
+                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                    Content                     = user.ToJSON().ToUTF8Bytes(),
+                                    Connection                  = ConnectionType.KeepAlive
+                                }.AsImmutable
+
+                                : new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                    Server                     = HTTPServer?.HTTPServerName,
+                                    Date                       = Timestamp.Now,
+                                    AccessControlAllowOrigin   = "*",
+                                    AccessControlAllowMethods  = [ "GET", "SET" ],
+                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                    ETag                       = "1",
+                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                    Content                    = JSONObject.Create(
+                                                                    new JProperty("description", result?.Description?.ToJSON())
+                                                                ).ToUTF8Bytes()
+                                }.AsImmutable;
+
+                });
 
             #endregion
 
@@ -6302,99 +6315,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // curl -v -X DELETE -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // ----------------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.DELETE,
-                              URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: async Request => {
+                HTTPMethod.DELETE,
+                URLPathPrefix + "users/{UserId}",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: async request => {
 
-                                  #region Get HTTP user and its organizations
+                    #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Recursive: true) ||
-                                      httpUser is null)
-                                  {
-                                      return httpResponseBuilder!;
-                                  }
+                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    if (!TryGetHTTPUser(request,
+                                        out var httpUser,
+                                        out var httpOrganizations,
+                                        out var httpResponseBuilder,
+                                        Recursive: true) ||
+                        httpUser is null)
+                    {
+                        return httpResponseBuilder;
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Check UserId URL parameter
+                    #region Check UserId URL parameter
 
-                                  if (!Request.ParseUser(this,
-                                                         out var userId,
-                                                         out var user,
-                                                         out httpResponseBuilder) ||
-                                     !userId.HasValue ||
-                                      user is null)
-                                  {
-                                      return httpResponseBuilder!;
-                                  }
+                    if (!request.ParseUser(this,
+                                           out var userId,
+                                           out var user,
+                                           out httpResponseBuilder))
+                    {
+                        return httpResponseBuilder;
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Validate user
+                    #region Validate user
 
-                                  if (httpUser != user && !CanImpersonate(httpUser,
-                                                                          user,
-                                                                          Access_Levels.ReadWrite))
-                                  {
-                                      return new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                              Server                     = HTTPServer?.HTTPServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
-                                              AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                              Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", "This operation is not allowed!")
-                                                                              ).ToUTF8Bytes(),
-                                              Connection                 = ConnectionType.KeepAlive,
-                                              Vary                       = "Accept"
-                                          }.AsImmutable;
-                                  }
+                    if (httpUser != user && !CanImpersonate(httpUser,
+                                                            user,
+                                                            Access_Levels.ReadWrite))
+                    {
+                        return new HTTPResponse.Builder(request) {
+                                HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                Server                     = HTTPServer?.HTTPServerName,
+                                Date                       = Timestamp.Now,
+                                AccessControlAllowOrigin   = "*",
+                                AccessControlAllowMethods  = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
+                                AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                Content                    = JSONObject.Create(
+                                                                    new JProperty("description", "This operation is not allowed!")
+                                                                ).ToUTF8Bytes(),
+                                Connection                 = ConnectionType.KeepAlive,
+                                Vary                       = "Accept"
+                            }.AsImmutable;
+                    }
 
-                                  #endregion
+                    #endregion
 
 
-                                  var result = await DeleteUser(user,
-                                                                EventTrackingId: Request.EventTrackingId,
-                                                                CurrentUserId:   httpUser.Id);
+                    var result = await DeleteUser(
+                                           user,
+                                           EventTrackingId:  request.EventTrackingId,
+                                           CurrentUserId:    httpUser.Id
+                                       );
 
 
-                                  return result.Result == CommandResult.Success
+                    return result.Result == CommandResult.Success
 
-                                             ? new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer?.HTTPServerName,
-                                                   Date                        = Timestamp.Now,
-                                                   AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
-                                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                     = user.ToJSON(false).ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.KeepAlive,
-                                                   Vary                        = "Accept"
-                                               }.AsImmutable
+                                ? new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode              = HTTPStatusCode.OK,
+                                    Server                      = HTTPServer?.HTTPServerName,
+                                    Date                        = Timestamp.Now,
+                                    AccessControlAllowOrigin    = "*",
+                                    AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
+                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                    Content                     = user.ToJSON(false).ToUTF8Bytes(),
+                                    Connection                  = ConnectionType.KeepAlive,
+                                    Vary                        = "Accept"
+                                }.AsImmutable
 
-                                             : new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode              = HTTPStatusCode.FailedDependency,
-                                                   Server                      = HTTPServer?.HTTPServerName,
-                                                   Date                        = Timestamp.Now,
-                                                   AccessControlAllowOrigin    = "*",
-                                                   AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
-                                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                     = JSONObject.Create(
-                                                                                    new JProperty("description", result?.Description?.ToJSON())
-                                                                                ).ToUTF8Bytes(),
-                                                   Connection                  = ConnectionType.KeepAlive,
-                                                   Vary                        = "Accept"
-                                               }.AsImmutable;
+                                : new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode              = HTTPStatusCode.FailedDependency,
+                                    Server                      = HTTPServer?.HTTPServerName,
+                                    Date                        = Timestamp.Now,
+                                    AccessControlAllowOrigin    = "*",
+                                    AccessControlAllowMethods   = [ "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" ],
+                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                    Content                     = JSONObject.Create(
+                                                                    new JProperty("description", result?.Description?.ToJSON())
+                                                                ).ToUTF8Bytes(),
+                                    Connection                  = ConnectionType.KeepAlive,
+                                    Vary                        = "Accept"
+                                }.AsImmutable;
 
             });
 
@@ -6848,7 +6861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Recursive: true) ||
                                        superUser is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -6860,7 +6873,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            out httpResponseBuilder) ||
                                       !userIdURL.HasValue)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   if (!TryGetUser(userIdURL.Value, out var userURL) ||
@@ -6966,7 +6979,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Recursive: true) ||
                                        superUser is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -6978,7 +6991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            out httpResponseBuilder) ||
                                        userIdURL is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   if (!TryGetUser(userIdURL.Value, out var UserURL) ||
@@ -7073,7 +7086,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Recursive: true) ||
                                       httpUser is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7087,7 +7100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       !userIdURL.HasValue ||
                                        user is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7113,7 +7126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON
 
                                   if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   #endregion
 
@@ -7378,7 +7391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Recursive: true) ||
                                       httpUser is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7390,7 +7403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          out var user,
                                                          out httpResponseBuilder))
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7419,7 +7432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON and new notifications...
 
                                   if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   String? ErrorString = null;
 
@@ -7570,7 +7583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Recursive: true) ||
                                       httpUser is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7582,7 +7595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          out var user,
                                                          out httpResponseBuilder))
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7611,7 +7624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON and new notifications...
 
                                   if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   String? ErrorString = null;
 
@@ -7919,7 +7932,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Recursive: true) ||
                                       httpUser is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7933,7 +7946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       !userId.HasValue ||
                                        user is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -7941,7 +7954,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON HTTP body...
 
                                   if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   #region Parse APIKey    [mandatory]
 
@@ -8055,7 +8068,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Recursive: true) ||
                                       httpUser is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -8069,7 +8082,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       !userId.HasValue ||
                                        user is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -8547,7 +8560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       httpUser is null ||
                                       httpOrganizations.Count == 0)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -8555,7 +8568,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON and create the new child organization...
 
                                   if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   #region Parse new organization
 
@@ -8868,7 +8881,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       httpUser is null ||
                                       httpOrganizations.Count == 0)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -8880,7 +8893,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    out httpResponseBuilder) ||
                                       !organizationIdURL.HasValue)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -8889,7 +8902,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON and create the new child organization...
 
                                   if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   #region Parse new child organization
 
@@ -9114,7 +9127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       httpUser is null ||
                                       httpOrganizations.Count == 0)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -9128,7 +9141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       !organizationIdURL.HasValue ||
                                        organization is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -9153,7 +9166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON and create the new child organization...
 
                                   if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   #region Parse updated organization
 
@@ -9247,7 +9260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       httpUser is null ||
                                       httpOrganizations.Count == 0)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -9261,7 +9274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       !organizationIdURL.HasValue ||
                                        organization is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -10121,7 +10134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       httpUser is null ||
                                       httpOrganizations.Count == 0)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -10135,7 +10148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       !organizationId.HasValue ||
                                        organization is null)
                                   {
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
                                   }
 
                                   #endregion
@@ -10160,7 +10173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON and new notifications...
 
                                   if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
-                                      return httpResponseBuilder!;
+                                      return httpResponseBuilder;
 
                                   String? errorString = null;
 
@@ -10573,42 +10586,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/notifications
             // ---------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.GET,
-                              URLPathPrefix + "notifications",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: Request => {
+                HTTPMethod.GET,
+                URLPathPrefix + "notifications",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: request => {
 
-                                  #region Get HTTP user and its organizations
+                    #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
+                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    if (!TryGetHTTPUser(request,
+                                        out var HTTPUser,
+                                        out var HTTPOrganizations,
+                                        out var Response,
+                                        Recursive: true))
+                    {
+                        return Task.FromResult(Response.AsImmutable);
+                    }
 
-                                  #endregion
+                    #endregion
 
 
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPServer?.HTTPServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = [ "GET", "SET" ],
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 ETag                       = "1",
-                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                    = JSONArray.Create(
-                                                                                  GetNotificationMessages(HTTPUser).Select(notificationMessage => notificationMessage.ToJSON())
-                                                                              ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.KeepAlive,
-                                                 Vary                       = "Accept"
-                                             }.AsImmutable);
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "GET", "SET" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   ETag                       = "1",
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = JSONArray.Create(
+                                                                    GetNotificationMessages(HTTPUser).Select(notificationMessage => notificationMessage.ToJSON())
+                                                                ).ToUTF8Bytes(),
+                                   Connection                 = ConnectionType.KeepAlive,
+                                   Vary                       = "Accept"
+                               }.AsImmutable);
 
             });
 
@@ -10620,55 +10633,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/newNotification
             // -----------------------------------------------------------------------------
             AddHandler(
-                              HTTPMethod.GET,
-                              URLPathPrefix + "newNotification",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: Request => {
+                HTTPMethod.GET,
+                URLPathPrefix + "newNotification",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: request => {
 
-                                  #region Get HTTP user and its organizations
+                    #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
+                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                    if (!TryGetHTTPUser(request,
+                                        out var HTTPUser,
+                                        out var HTTPOrganizations,
+                                        out var Response,
+                                        Recursive: true))
+                    {
+                        return Task.FromResult(Response.AsImmutable);
+                    }
 
-                                  #endregion
+                    #endregion
 
 
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPServer?.HTTPServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = [ "GET", "SET" ],
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 ETag                       = "1",
-                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
-                                                                                  new JProperty("@context",  "https://opendata.social/contexts/UsersAPI/newNotification"),
-                                                                                  new JProperty("user",      JSONObject.Create(
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                   Server                     = HTTPServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = [ "GET", "SET" ],
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   ETag                       = "1",
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = JSONObject.Create(
+                                                                    new JProperty("@context",  "https://opendata.social/contexts/UsersAPI/newNotification"),
+                                                                    new JProperty("user",      JSONObject.Create(
 
-                                                                                      new JProperty("name",  HTTPUser.EMail.OwnerName),
-                                                                                      new JProperty("email", HTTPUser.EMail.Address.ToString()),
+                                                                        new JProperty("name",  HTTPUser.EMail.OwnerName),
+                                                                        new JProperty("email", HTTPUser.EMail.Address.ToString()),
 
-                                                                                      HTTPUser.MobilePhone.HasValue
-                                                                                          ? new JProperty("phoneNumber", HTTPUser.MobilePhone.Value.ToString())
-                                                                                          : null
+                                                                        HTTPUser.MobilePhone.HasValue
+                                                                            ? new JProperty("phoneNumber", HTTPUser.MobilePhone.Value.ToString())
+                                                                            : null
 
-                                                                                  )),
-                                                                                  new JProperty("notificationGroups", new JArray(
-                                                                                       notificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
-                                                                                  ))
-                                                                               ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.KeepAlive,
-                                                 Vary                       = "Accept"
-                                             }.AsImmutable);
+                                                                    )),
+                                                                    new JProperty("notificationGroups", new JArray(
+                                                                         notificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
+                                                                    ))
+                                                                 ).ToUTF8Bytes(),
+                                   Connection                 = ConnectionType.KeepAlive,
+                                   Vary                       = "Accept"
+                               }.AsImmutable);
 
             });
 
@@ -10704,7 +10717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPMethod.GET,
                 HTTPPath.Parse("/hashimage"),
                 HTTPContentType.Image.PNG,
-                HTTPDelegate: Request => {
+                HTTPDelegate: request => {
 
                     Byte x =  13;
                     Byte y =  13;
@@ -10741,7 +10754,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var f = s.ToArray();
 
                     return Task.FromResult(
-                        new HTTPResponse.Builder(Request) {
+                        new HTTPResponse.Builder(request) {
                             HTTPStatusCode  = HTTPStatusCode.OK,
                             Server          = HTTPServer?.HTTPServerName,
                             ContentType     = HTTPContentType.Image.PNG,
@@ -10765,10 +10778,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddHandler(
                               HTTPMethod.OPTIONS,
                               URLPathPrefix + "changeSets",
-                              HTTPDelegate: Request => {
+                              HTTPDelegate: request => {
 
                                   return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
+                                      new HTTPResponse.Builder(request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
                                           Server                     = HTTPServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
@@ -10791,12 +10804,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPMethod.GET,
                               URLPathPrefix + "changeSets",
                               HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: async Request => {
+                              HTTPDelegate: async request => {
 
                                   #region Check API Key...
 
-                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Values.Contains(Request.API_Key.Value))
-                                      return new HTTPResponse.Builder(Request) {
+                                  if (request.API_Key is null || !remoteAuthAPIKeys.Values.Contains(request.API_Key.Value))
+                                      return new HTTPResponse.Builder(request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
                                                  Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
@@ -10806,8 +10819,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
 
-                                                                                  Request.API_Key.HasValue
-                                                                                      ? new JProperty("apiKey",  Request.API_Key?.ToString() ?? "")
+                                                                                  request.API_Key.HasValue
+                                                                                      ? new JProperty("apiKey",  request.API_Key?.ToString() ?? "")
                                                                                       : null,
 
                                                                                   new JProperty("description",  "Please use a valid API key!")
@@ -10818,12 +10831,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #endregion
 
-                                  var withMetadata                            = Request.QueryString.GetBoolean ("withMetadata", false);
-                                  var since                                   = Request.QueryString.GetDateTime("since");
-                                  var skipUntil                               = Request.QueryString.GetString  ("skipUntil");
-                                  var skip                                    = Request.QueryString.GetUInt64  ("skip");
-                                  var take                                    = Request.QueryString.GetUInt64  ("take");
-                                  var match                                   = Request.QueryString.GetString  ("match");
+                                  var withMetadata                            = request.QueryString.GetBoolean ("withMetadata", false);
+                                  var since                                   = request.QueryString.GetDateTime("since");
+                                  var skipUntil                               = request.QueryString.GetString  ("skipUntil");
+                                  var skip                                    = request.QueryString.GetUInt64  ("skip");
+                                  var take                                    = request.QueryString.GetUInt64  ("take");
+                                  var match                                   = request.QueryString.GetString  ("match");
 
                                   var (filteredChangeSets, totalCount, ETag)  = await LoadChangeSetsFromDisc(since,
                                                                                                              skipUntil,
@@ -10837,7 +10850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   var JSONResults                             = new JArray(filteredChangeSets);
 
 
-                                  return new HTTPResponse.Builder(Request) {
+                                  return new HTTPResponse.Builder(request) {
                                              HTTPStatusCode                = HTTPStatusCode.OK,
                                              Server                        = HTTPServer?.HTTPServerName,
                                              Date                          = Timestamp.Now,
@@ -10953,7 +10966,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            DebugX.Log("Reloading all HTTPExtAPIX database helper files...");
+            DebugX.Log("Reloading all HTTPExtAPI database helper files...");
 
             #region Read Password file...
 
@@ -11275,7 +11288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            DebugX.Log("Reloading of all HTTPExtAPIX database helper files finished...");
+            DebugX.Log("Reloading of all HTTPExtAPI database helper files finished...");
 
         }
 
