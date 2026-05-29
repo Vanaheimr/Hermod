@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -116,6 +112,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public new readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/userGroup");
 
         #endregion
+
+        HTTPExtAPI? IUserGroup.API { get; set; }
 
         #region User      -> UserGroup edges
 
@@ -475,9 +473,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        //HTTPExtAPI?  IUserGroup.API  { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        HTTPExtAPI? IUserGroup.APIX { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
         #region Constructor(s)
 
         /// <summary>
@@ -547,12 +542,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Embedded">Whether this data structure is embedded into another data structure.</param>
         public override JObject ToJSON(Boolean Embedded = false)
 
-            => ToJSON(Embedded: false,
-                      ExpandUsers: InfoStatus.ShowIdOnly,
-                      ExpandParentGroup: InfoStatus.ShowIdOnly,
-                      ExpandSubgroups: InfoStatus.ShowIdOnly,
-                      ExpandAttachedFiles: InfoStatus.ShowIdOnly,
-                      IncludeAttachedFileSignatures: InfoStatus.ShowIdOnly);
+            => ToJSON(Embedded:                       false,
+                      ExpandUsers:                    InfoStatus.ShowIdOnly,
+                      ExpandParentGroup:              InfoStatus.ShowIdOnly,
+                      ExpandSubgroups:                InfoStatus.ShowIdOnly,
+                      ExpandAttachedFiles:            InfoStatus.ShowIdOnly,
+                      IncludeAttachedFileSignatures:  InfoStatus.ShowIdOnly);
 
 
         /// <summary>
@@ -560,16 +555,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Embedded">Whether this data is embedded into another data structure, e.g. into a UserGroup.</param>
         /// <param name="IncludeCryptoHash">Whether to include the cryptograhical hash value of this object.</param>
-        public virtual JObject ToJSON(Boolean Embedded = false,
-                                      InfoStatus ExpandUsers = InfoStatus.ShowIdOnly,
-                                      InfoStatus ExpandParentGroup = InfoStatus.ShowIdOnly,
-                                      InfoStatus ExpandSubgroups = InfoStatus.ShowIdOnly,
-                                      InfoStatus ExpandAttachedFiles = InfoStatus.ShowIdOnly,
-                                      InfoStatus IncludeAttachedFileSignatures = InfoStatus.ShowIdOnly)
+        public virtual JObject ToJSON(Boolean     Embedded                        = false,
+                                      InfoStatus  ExpandUsers                     = InfoStatus.ShowIdOnly,
+                                      InfoStatus  ExpandParentGroup               = InfoStatus.ShowIdOnly,
+                                      InfoStatus  ExpandSubgroups                 = InfoStatus.ShowIdOnly,
+                                      InfoStatus  ExpandAttachedFiles             = InfoStatus.ShowIdOnly,
+                                      InfoStatus  IncludeAttachedFileSignatures   = InfoStatus.ShowIdOnly)
         {
 
 
-            var JSON = base.ToJSON(Embedded,
+            var json = base.ToJSON(Embedded,
                                    false, //IncludeLastChange,
                                    null,
 
@@ -586,7 +581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Members.SafeAny() && ExpandUsers != InfoStatus.Hidden
                                        ? ExpandSubgroups.Switch(
                                                () => new JProperty("memberIds", new JArray(Members.SafeSelect(user => user.Id.ToString()))),
-                                               () => new JProperty("members", new JArray(Members.SafeSelect(user => user.ToJSON(Embedded: true)))))
+                                               () => new JProperty("members",   new JArray(Members.SafeSelect(user => user.   ToJSON(Embedded: true)))))
                                        //ExpandParentGroup:  InfoStatus.Hidden,
                                        //ExpandSubgroups:    InfoStatus.Expand)))))
                                        : null,
@@ -594,7 +589,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    ParentGroup is not null && ExpandParentGroup != InfoStatus.Hidden
                                        ? ExpandParentGroup.Switch(
                                                () => new JProperty("parentGroupId", ParentGroup.Id.ToString()),
-                                               () => new JProperty("parentGroup", ParentGroup.ToJSON(true)))
+                                               () => new JProperty("parentGroup",   ParentGroup.   ToJSON(true)))
                                        : null,
 
                                    Subgroups.SafeAny() && ExpandSubgroups != InfoStatus.Hidden
@@ -609,7 +604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-            return JSON;
+            return json;
 
         }
 
@@ -1004,11 +999,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public override Int32 CompareTo(Object Object)
+        public override Int32 CompareTo(Object? Object)
         {
 
-            if (Object is UserGroup UserGroup)
-                CompareTo(UserGroup);
+            if (Object is UserGroup userGroup)
+                CompareTo(userGroup);
 
             throw new ArgumentException("The given object is not a user group!");
 
@@ -1045,11 +1040,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
-            if (Object is UserGroup UserGroup)
-                return Equals(UserGroup);
+            if (Object is UserGroup userGroup)
+                return Equals(userGroup);
 
             return false;
 

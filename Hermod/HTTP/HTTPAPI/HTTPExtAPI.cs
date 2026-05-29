@@ -1274,65 +1274,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public const               String           DefaultHTTPExtAPI_DatabaseFileName   = "HTTPExtAPI.db";
         public const               String           DefaultHTTPExtAPI_LogfileName        = "HTTPExtAPI.log";
-        public const               String           DefaultPasswordFile                   = "passwords.db";
-        public const               String           DefaultHTTPCookiesFile                = "HTTPCookies.db";
-        public const               String           DefaultPasswordResetsFile             = "passwordResets.db";
+        public const               String           DefaultPasswordFile                  = "passwords.db";
+        public const               String           DefaultHTTPCookiesFile               = "HTTPCookies.db";
+        public const               String           DefaultPasswordResetsFile            = "passwordResets.db";
 
-        protected static readonly  SemaphoreSlim    LogFileSemaphore                      = new (1, 1);
-        protected static readonly  SemaphoreSlim    UsersSemaphore                        = new (1, 1);
-        protected static readonly  SemaphoreSlim    UserGroupsSemaphore                   = new (1, 1);
-        protected static readonly  SemaphoreSlim    APIKeysSemaphore                      = new (1, 1);
-        protected static readonly  SemaphoreSlim    OrganizationsSemaphore                = new (1, 1);
-        protected static readonly  SemaphoreSlim    OrganizationGroupsSemaphore           = new (1, 1);
-        protected static readonly  SemaphoreSlim    NotificationMessagesSemaphore         = new (1, 1);
+        protected static readonly  SemaphoreSlim    LogFileSemaphore                     = new (1, 1);
+        protected static readonly  SemaphoreSlim    UsersSemaphore                       = new (1, 1);
+        protected static readonly  SemaphoreSlim    UserGroupsSemaphore                  = new (1, 1);
+        protected static readonly  SemaphoreSlim    APIKeysSemaphore                     = new (1, 1);
+        protected static readonly  SemaphoreSlim    OrganizationsSemaphore               = new (1, 1);
+        protected static readonly  SemaphoreSlim    OrganizationGroupsSemaphore          = new (1, 1);
+        protected static readonly  SemaphoreSlim    NotificationMessagesSemaphore        = new (1, 1);
 
-        protected static readonly  TimeSpan         SemaphoreSlimTimeout                  = TimeSpan.FromSeconds(30);
+        protected static readonly  TimeSpan         SemaphoreSlimTimeout                 = TimeSpan.FromSeconds(30);
 
-        private          readonly  CPUUsageSampler  cpuUsageSampler                       = new();
-        private          readonly  SemaphoreSlim    createGCDumpLock                      = new(1, 1);
+        private          readonly  CPUUsageSampler  cpuUsageSampler                      = new();
+        private          readonly  SemaphoreSlim    createGCDumpLock                     = new(1, 1);
 
 
         /// <summary>
         /// The default language of the API.
         /// </summary>
-        public const             Languages                                     DefaultDefaultLanguage                  = Languages.en;
+        public const               Languages                                     DefaultDefaultLanguage                  = Languages.en;
 
-        public  const             Byte                                          DefaultMinUserIdLength                  = 4;
-        public  const             Byte                                          DefaultMinRealmLength                   = 2;
-        public  const             Byte                                          DefaultMinUserNameLength                = 4;
-        public  const             Byte                                          DefaultMinUserGroupIdLength             = 4;
-        public  const             UInt16                                        DefaultMinAPIKeyLength                  = 20;
-        public  const             Byte                                          DefaultMinOrganizationIdLength          = 4;
-        public  const             Byte                                          DefaultMinOrganizationGroupIdLength     = 4;
-        public  const             Byte                                          DefaultMinNotificationMessageIdLength   = 8;
+        public  const              Byte                                          DefaultMinUserIdLength                  = 4;
+        public  const              Byte                                          DefaultMinRealmLength                   = 2;
+        public  const              Byte                                          DefaultMinUserNameLength                = 4;
+        public  const              Byte                                          DefaultMinUserGroupIdLength             = 4;
+        public  const              UInt16                                        DefaultMinAPIKeyLength                  = 20;
+        public  const              Byte                                          DefaultMinOrganizationIdLength          = 4;
+        public  const              Byte                                          DefaultMinOrganizationGroupIdLength     = 4;
+        public  const              Byte                                          DefaultMinNotificationMessageIdLength   = 8;
 
-        public  static readonly   PasswordQualityCheckDelegate                  DefaultPasswordQualityCheck             = password => password.Length >= 8 ? 1.0f : 0;
-        public  static readonly   TimeSpan                                      DefaultMaxSignInSessionLifetime         = TimeSpan.FromDays(30);
+        public  static readonly    PasswordQualityCheckDelegate                  DefaultPasswordQualityCheck             = password => password.Length >= 8 ? 1.0f : 0;
+        public  static readonly    TimeSpan                                      DefaultMaxSignInSessionLifetime         = TimeSpan.FromDays(30);
 
-        public  const             String                                        SignUpContext                           = "";
-        public  const             String                                        SignInOutContext                        = "";
+        public  const              String                                        SignUpContext                           = "";
+        public  const              String                                        SignInOutContext                        = "";
 
 
         /// <summary>
         /// The name of the default HTTP cookie.
         /// </summary>
-        public  static readonly   HTTPCookieName                                DefaultCookieName                       = HTTPCookieName.Parse("GraphDefinedHTTPAPI");
+        public  static readonly    HTTPCookieName                                DefaultCookieName                       = HTTPCookieName.Parse("GraphDefinedHTTPAPI");
 
-        public  static readonly   Organization_Id                               DefaultAdminOrganizationId              = Organization_Id.Parse("Admins");
+        public  static readonly    Organization_Id                               DefaultAdminOrganizationId              = Organization_Id.Parse("Admins");
 
-        public  const             String                                        HTTPCookieDomain                        = "";
+        public  const              String                                        HTTPCookieDomain                        = "";
 
 
-        protected static readonly String[]  Split1  = ["\r\n"];
-        protected static readonly String[]  Split2  = [ ": " ];
-        protected static readonly String[]  Split3  = [ " " ];
-        protected static readonly Char[]    Split4  = [ ',' ];
-        protected static readonly Char[]    Split5  = [ '|' ];
+        protected static readonly  String[]  Split1  = ["\r\n"];
+        protected static readonly  String[]  Split2  = [ ": " ];
+        protected static readonly  String[]  Split3  = [ " " ];
+        protected static readonly  Char[]    Split4  = [ ',' ];
+        protected static readonly  Char[]    Split5  = [ '|' ];
 
-        public    static readonly User                                          Anonymous = new (User_Id.Parse("anonymous"),
-                                                                                                 "Anonymous".ToI18NString(),
-                                                                                                 SimpleEMailAddress.Parse("anonymous@example.com"),
-                                                                                                 AcceptedEULA: Timestamp.Now);
+        public    static readonly  User                                          Anonymous = new (User_Id.Parse("anonymous"),
+                                                                                                  "Anonymous".ToI18NString(),
+                                                                                                  SimpleEMailAddress.Parse("anonymous@example.com"),
+                                                                                                  AcceptedEULA: Timestamp.Now);
 
         #endregion
 
@@ -2237,7 +2237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LoggingPath">The path for all logfiles.</param>
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        public HTTPExtAPI(HTTPServer                HTTPServer,
+        public HTTPExtAPI(HTTPServer                     HTTPServer,
                           IEnumerable<HTTPHostname>?     Hostnames                        = null,
                           HTTPPath?                      RootPath                         = null,
                           IEnumerable<HTTPContentType>?  HTTPContentTypes                 = null,
@@ -3565,7 +3565,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (User is not null &&
                 TryGetUserGroup(GroupId, out var group) &&
-                group.HasEdge(User2UserGroupEdgeLabel.IsMember, User))
+               (group.HasEdge(User2UserGroupEdgeLabel.IsAdmin,  User) ||
+                group.HasEdge(User2UserGroupEdgeLabel.IsMember, User)))
             {
                 return true;
             }
@@ -4206,10 +4207,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private void RegisterURLTemplates()
         {
-
-            var rootGroupId = UserGroup_Id.Parse("root");
-
-            var URLPathPrefix = HTTPPath.Root;
 
             //HTTPServer.AddAuth  (request => {
 
@@ -10747,6 +10744,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Administrative API endpoints...
 
+            var rootGroupId = UserGroup_Id.Parse("root");
+
             #region GET   ~/monitoring
 
             // ---------------------------------------
@@ -12509,7 +12508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!userGroups.ContainsKey(userGroup.Id))
                         {
-                            userGroup.APIX = this;
+                            userGroup.API = this;
                             userGroups.AddAndReturnValue(userGroup.Id, userGroup);
                         }
 
@@ -12540,7 +12539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!userGroups.ContainsKey(userGroup.Id))
                         {
-                            userGroup.APIX = this;
+                            userGroup.API = this;
                             userGroups.AddAndReturnValue(userGroup.Id, userGroup);
                         }
 
@@ -19926,7 +19925,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -19965,7 +19964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                            nameof(UserGroup),
             //                                            "UserGroup name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(addUserGroup_MessageType,
@@ -20091,7 +20090,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20130,7 +20129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                       nameof(UserGroup),
             //                                                       "UserGroup name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(addUserGroupIfNotExists_MessageType,
@@ -20260,7 +20259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddOrUpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20290,7 +20289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                    nameof(UserGroup),
             //                                                    "The given user group name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(addOrUpdateUserGroup_MessageType,
@@ -20485,7 +20484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (UserGroup.APIX is not null && UserGroup.APIX != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return UpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -20494,7 +20493,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            UserGroup.APIX = this;
+            UserGroup.API = this;
 
 
             await WriteToDatabaseFile(updateUserGroup_MessageType,
@@ -20632,7 +20631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (UserGroup.APIX != this)
+            if (UserGroup.API != this)
                 return UpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -20817,7 +20816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.APIX != this)
+            if (UserGroup.API != this)
                 return DeleteUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is not attached to this API!".ToI18NString(),

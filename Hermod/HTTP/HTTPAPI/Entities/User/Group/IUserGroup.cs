@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         //HTTPExtAPI? API { get; set; }
-        HTTPExtAPI? APIX { get; set; }
+        HTTPExtAPI? API { get; set; }
         IEnumerable<UserGroup> ParentUserGroups { get; }
         IEnumerable<UserGroup> SubUserGroups { get; }
         IEnumerable<User2UserGroupEdge> User2UserGroupEdges { get; }
