@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
             try
             {
 
-                var json          = JObject.Parse(responseBody);
+                var json          = ParseSignedResponse(responseBody);
                 var publicKeyHex  = json["publicKey"]?.Value<String>();
                 var signatureHex  = json["signature"]?.Value<String>();
 
@@ -391,12 +391,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                            );
                 }
 
-                // The serviceCheck endpoint signs the JSON after publicKey was added and before
-                // signature was appended. Keep publicKey in the signed payload and remove only
-                // signature to reconstruct the exact signed message shape.
-                var signedJSON = JObject.Parse(json.ToString(Formatting.None));
-                signedJSON.Remove("signature");
-
                 var ecp        = ECNamedCurveTable.GetByName("secp256r1");
                 var ecParams   = new ECDomainParameters(ecp.Curve, ecp.G, ecp.N, ecp.H, ecp.GetSeed());
                 var publicKey  = new ECPublicKeyParameters(
@@ -406,10 +400,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                   );
 
                 var signature  = signatureHex.FromHEX();
-                var valid      = VerifySignature(CanonicalJSON.Serialize(signedJSON), publicKey, signature);
-
-                if (!valid)
-                    valid = VerifySignature(signedJSON.ToString(Formatting.None), publicKey, signature);
+                var valid      = CreateSignaturePayloadCandidates(
+                                     responseBody,
+                                     json,
+                                     publicKeyHex,
+                                     signatureHex
+                                 ).Any(plainText => VerifySignature(plainText, publicKey, signature));
 
                 return new SignatureVerification(
                            Present:  true,
@@ -426,6 +422,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                            Error:    ex.Message
                        );
             }
+
+        }
+
+        private static JObject ParseSignedResponse(String ResponseBody)
+        {
+
+            // Keep JSON scalar types as they appeared on the wire. Newtonsoft's default
+            // DateParseHandling turns ISO timestamps into DateTime values; serializing those
+            // values again can change "+00:00" into "Z" or otherwise alter the byte payload.
+            // Signature verification must canonicalize the received JSON shape, not a typed
+            // interpretation of it.
+            using var stringReader = new StringReader(ResponseBody);
+            using var jsonReader   = new JsonTextReader(stringReader) {
+                DateParseHandling = DateParseHandling.None
+            };
+
+            return JObject.Load(jsonReader);
+
+        }
+
+        private static IEnumerable<String> CreateSignaturePayloadCandidates(String   ResponseBody,
+                                                                            JObject  JSON,
+                                                                            String   PublicKeyHEX,
+                                                                            String   SignatureHEX)
+        {
+
+            // Current /monitoring responses are signed after publicKey has been appended and
+            // before signature is appended. Keep that as the primary candidate.
+            var signedJSON = (JObject) JSON.DeepClone();
+            signedJSON.Remove("signature");
+
+            yield return CanonicalJSON.Serialize(signedJSON);
+
+            // Older local builds used the compact Newtonsoft representation before the shared
+            // canonical JSON helper existed. Keeping this fallback makes Argus tolerant while
+            // all monitored services converge on canonical JSON.
+            yield return signedJSON.ToString(Formatting.None);
+
+            // Some experimental serviceCheck snippets signed before publicKey was appended.
+            // This is not the desired wire format, but accepting it keeps diagnostics useful
+            // when talking to mixed deployments.
+            var signedJSONWithoutPublicKey = (JObject) signedJSON.DeepClone();
+            signedJSONWithoutPublicKey.Remove("publicKey");
+
+            yield return CanonicalJSON.Serialize(signedJSONWithoutPublicKey);
+            yield return signedJSONWithoutPublicKey.ToString(Formatting.None);
+
+            // Last-resort byte-preserving fallback for compact responses where signature is
+            // the final property. This detects a server that signed the exact emitted JSON
+            // instead of the canonical representation.
+            if (TryRemoveTrailingSignature(ResponseBody, SignatureHEX) is { } rawPayload)
+            {
+                yield return rawPayload;
+                yield return rawPayload.Replace(
+                                 $",\"publicKey\":\"{PublicKeyHEX}\"",
+                                 "",
+                                 StringComparison.Ordinal
+                             );
+            }
+
+        }
+
+        private static String? TryRemoveTrailingSignature(String ResponseBody,
+                                                          String SignatureHEX)
+        {
+
+            var signatureSuffix = $",\"signature\":\"{SignatureHEX}\"}}";
+
+            return ResponseBody.EndsWith(signatureSuffix, StringComparison.Ordinal)
+                       ? ResponseBody[..^signatureSuffix.Length] + "}"
+                       : null;
 
         }
 

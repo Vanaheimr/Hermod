@@ -518,6 +518,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        protected static Double MB(Int64 Bytes)
+            => Bytes / 1_048_576.0;
+
+
 
         #region (protected) LogEvent     (Module, Logger, LogHandler, ...)
 

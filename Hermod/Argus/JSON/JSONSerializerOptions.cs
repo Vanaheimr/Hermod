@@ -33,6 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
             Converters = {
                 new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
                 new URLJsonConverter(),
+                new ISO8601DateTimeOffsetJsonConverter(),
                 new TimeSpanMillisecondsJsonConverter()
             }
         };

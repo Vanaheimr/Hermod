@@ -1288,8 +1288,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         protected static readonly  TimeSpan         SemaphoreSlimTimeout                 = TimeSpan.FromSeconds(30);
 
-        private          readonly  CPUUsageSampler  cpuUsageSampler                      = new();
-        private          readonly  SemaphoreSlim    createGCDumpLock                     = new(1, 1);
+        public    static readonly  UserGroup_Id     rootGroupId                          = UserGroup_Id.Parse("root");
+
+        private          readonly  CPUUsageSampler  cpuUsageSampler                      = new ();
+        private          readonly  SemaphoreSlim    createGCDumpLock                     = new (1, 1);
 
 
         /// <summary>
@@ -3858,6 +3860,141 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             return false;
+
+        }
+
+        #endregion
+
+
+
+        #region GetServiceMonitoringJSON(Content)
+
+        /// <summary>
+        /// Get a JSON object with various monitoring information about the service, e.g. CPU usage, RAM usage, GC info, etc.
+        /// </summary>
+        /// <param name="Content">The content to include in the JSON object.</param>
+        public JObject GetServiceMonitoringJSON(String Content)
+        {
+
+            ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
+            ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
+
+            var cpu            = cpuUsageSampler.Sample();
+            var gcInfo         = GC.     GetGCMemoryInfo();
+            var process        = Process.GetCurrentProcess();
+            //process.Refresh();
+
+            var availableRAM   = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+                                 RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                                     ? ResourcesMonitor.GetMemoryMetricsOnUnix()
+                                     : ResourcesMonitor.GetMemoryMetricsOnWindows();
+
+            var driveInfo      = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
+            var freeDiscSpace  = PercentageDouble.Parse((Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100);
+
+            var json           = JSONObject.Create(
+
+                                     new JProperty("timestamp",        Timestamp.Now.ToISO8601()),
+                                     new JProperty("service",          HTTPServer.HTTPServerName),
+                                     new JProperty("instance",         Environment.MachineName),
+                             //      new JProperty("usedRAM",          process.PrivateMemorySize64 / (1024 * 1024)),
+                             //      new JProperty("sharedRAM",        process.WorkingSet64        / (1024 * 1024)),
+                                     new JProperty("content",          Content),
+
+                                     new JProperty("processorCount",   Environment.ProcessorCount),
+
+                                     availableRAM is not null
+                                         ? new JProperty("availableRAM",   JSONObject.Create(
+                                                                             new JProperty("total",   availableRAM.Total),
+                                                                             new JProperty("free",    availableRAM.Free)
+                                                                         ))
+                                         : null,
+
+                                     new JProperty("tcp",              JSONObject.Create(
+                                         new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
+                                     )),
+
+                                     new JProperty("threadPool",       JSONObject.Create(
+                                         new JProperty("threads",             ThreadPool.ThreadCount),
+                                         new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
+                                         new JProperty("pending",             ThreadPool.PendingWorkItemCount),
+                                         new JProperty("busy",                workerMax - workerAvail)
+                                     )),
+
+                                     new JProperty("gc",               JSONObject.Create(
+
+                                         new JProperty("gen0",                   GC.CollectionCount(0)),
+                                         new JProperty("gen1",                   GC.CollectionCount(1)),
+                                         new JProperty("gen2",                   GC.CollectionCount(2)),
+                                         new JProperty("pauseTotalMs",           GC.GetTotalPauseDuration().TotalMilliseconds),
+                                         new JProperty("heapMB",              MB(GC.GetTotalMemory        (false))),
+                                         new JProperty("allocatedTotalMB",    MB(GC.GetTotalAllocatedBytes(false))),
+                                         new JProperty("workingSetMB",        MB(Environment.WorkingSet)),
+
+                                         new JProperty("memoryInfo",  JSONObject.Create(
+
+                                             new JProperty("index",                          gcInfo.Index),
+                                             new JProperty("generation",                     gcInfo.Generation),
+                                             new JProperty("compacted",                      gcInfo.Compacted),
+                                             new JProperty("concurrent",                     gcInfo.Concurrent),
+                                             new JProperty("heapSizeMB",                  MB(gcInfo.HeapSizeBytes)),
+                                             new JProperty("fragmentedMB",                MB(gcInfo.FragmentedBytes)),
+                                             new JProperty("promotedMB",                  MB(gcInfo.PromotedBytes)),
+                                             new JProperty("totalCommittedMB",            MB(gcInfo.TotalCommittedBytes)),
+                                             new JProperty("totalAvailableMemoryMB",      MB(gcInfo.TotalAvailableMemoryBytes)),
+                                             new JProperty("memoryLoadMB",                MB(gcInfo.MemoryLoadBytes)),
+                                             new JProperty("highMemoryLoadThresholdMB",   MB(gcInfo.HighMemoryLoadThresholdBytes)),
+                                             new JProperty("pauseTimePercentage",            gcInfo.PauseTimePercentage),
+                                             new JProperty("pinnedObjects",                  gcInfo.PinnedObjectsCount),
+                                             new JProperty("finalizationPending",            gcInfo.FinalizationPendingCount),
+
+                                             new JProperty("generations",  JSONArray.Create(
+                                                 gcInfo.GenerationInfo.ToArray().Select((gcGenerationInfo, index) => JSONObject.Create(
+                                                     new JProperty("generation",              index),
+                                                     new JProperty("sizeBeforeMB",            MB(gcGenerationInfo.SizeBeforeBytes)),
+                                                     new JProperty("sizeAfterMB",             MB(gcGenerationInfo.SizeAfterBytes)),
+                                                     new JProperty("fragmentationBeforeMB",   MB(gcGenerationInfo.FragmentationBeforeBytes)),
+                                                     new JProperty("fragmentationAfterMB",    MB(gcGenerationInfo.FragmentationAfterBytes))
+                                                 ))
+                                             ))
+
+                                         ))
+
+                                     )),
+
+                                     new JProperty("process",          JSONObject.Create(
+                                         new JProperty("cpuPercent",          cpu?.Percent),
+                                         new JProperty("cpuCores",            cpu?.Cores),
+                                         new JProperty("threads",                process.Threads.Count),
+                                         new JProperty("handleCount",            process.HandleCount),
+                                         new JProperty("privateMB",           MB(process.PrivateMemorySize64))
+                                     )),
+
+                                     new JProperty("disc",             JSONObject.Create(
+                                         new JProperty("freePercent",         freeDiscSpace.Value)
+                                     ))
+
+                                 );
+
+            if (ServiceCheckKeys?.PublicKey is not null)
+            {
+
+                json.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+
+                if (ServiceCheckKeys.PrivateKey is not null)
+                {
+                    json.Add(
+                        "signature",
+                        CanonicalJSON.Sign_ECDSA_SHA256(
+                            CanonicalJSON.Serialize(json),
+                            ServiceCheckKeys.PrivateKey
+                        ).ToHexString()
+                    );
+                }
+
+            }
+
+            return json;
 
         }
 
@@ -10744,8 +10881,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Administrative API endpoints...
 
-            var rootGroupId = UserGroup_Id.Parse("root");
-
             #region GET   ~/monitoring
 
             // ---------------------------------------
@@ -10774,127 +10909,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                    ThreadPool.GetAvailableThreads(out var workerAvail, out var ioAvail);
-                    ThreadPool.GetMaxThreads      (out var workerMax,   out var ioMax);
 
-                    var cpu                    = cpuUsageSampler.Sample();
-                    var gcInfo                 = GC.     GetGCMemoryInfo();
-                    var process                = Process.GetCurrentProcess();
-                    //process.Refresh();
-
-                    var availableRAM           = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-                                                 RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                                                     ? ResourcesMonitor.GetMemoryMetricsOnUnix()
-                                                     : ResourcesMonitor.GetMemoryMetricsOnWindows();
-
-                    var driveInfo              = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
-                    var freeDiscSpace          = PercentageDouble.Parse((Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100);
-
-                    var jsonResponse           = JSONObject.Create(
-
-                                                     new JProperty("timestamp",        Timestamp.Now),
-                                                     new JProperty("service",          HTTPServer.HTTPServerName),
-                                                     new JProperty("instance",         Environment.MachineName),
-                                               //      new JProperty("usedRAM",          process.PrivateMemorySize64 / (1024 * 1024)),
-                                               //      new JProperty("sharedRAM",        process.WorkingSet64        / (1024 * 1024)),
-                                                     new JProperty("content",          RandomExtensions.RandomString(20)),
-
-                                                     new JProperty("processorCount",   Environment.ProcessorCount),
-
-                                                     availableRAM is not null
-                                                         ? new JProperty("availableRAM",   JSONObject.Create(
-                                                                                               new JProperty("total",   availableRAM.Total),
-                                                                                               new JProperty("free",    availableRAM.Free)
-                                                                                           ))
-                                                         : null,
-
-                                                     new JProperty("tcp",              JSONObject.Create(
-                                                         new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
-                                                     )),
-
-                                                     new JProperty("threadPool",       JSONObject.Create(
-                                                         new JProperty("threads",             ThreadPool.ThreadCount),
-                                                         new JProperty("completed",           ThreadPool.CompletedWorkItemCount),
-                                                         new JProperty("pending",             ThreadPool.PendingWorkItemCount),
-                                                         new JProperty("busy",                workerMax - workerAvail)
-                                                     )),
-
-                                                     new JProperty("gc",               JSONObject.Create(
-
-                                                         new JProperty("gen0",                   GC.CollectionCount(0)),
-                                                         new JProperty("gen1",                   GC.CollectionCount(1)),
-                                                         new JProperty("gen2",                   GC.CollectionCount(2)),
-                                                         new JProperty("pauseTotalMs",           GC.GetTotalPauseDuration().TotalMilliseconds),
-                                                         new JProperty("heapMB",              MB(GC.GetTotalMemory        (false))),
-                                                         new JProperty("allocatedTotalMB",    MB(GC.GetTotalAllocatedBytes(false))),
-                                                         new JProperty("workingSetMB",        MB(Environment.WorkingSet)),
-
-                                                         new JProperty("memoryInfo",  JSONObject.Create(
-
-                                                             new JProperty("index",                          gcInfo.Index),
-                                                             new JProperty("generation",                     gcInfo.Generation),
-                                                             new JProperty("compacted",                      gcInfo.Compacted),
-                                                             new JProperty("concurrent",                     gcInfo.Concurrent),
-                                                             new JProperty("heapSizeMB",                  MB(gcInfo.HeapSizeBytes)),
-                                                             new JProperty("fragmentedMB",                MB(gcInfo.FragmentedBytes)),
-                                                             new JProperty("promotedMB",                  MB(gcInfo.PromotedBytes)),
-                                                             new JProperty("totalCommittedMB",            MB(gcInfo.TotalCommittedBytes)),
-                                                             new JProperty("totalAvailableMemoryMB",      MB(gcInfo.TotalAvailableMemoryBytes)),
-                                                             new JProperty("memoryLoadMB",                MB(gcInfo.MemoryLoadBytes)),
-                                                             new JProperty("highMemoryLoadThresholdMB",   MB(gcInfo.HighMemoryLoadThresholdBytes)),
-                                                             new JProperty("pauseTimePercentage",            gcInfo.PauseTimePercentage),
-                                                             new JProperty("pinnedObjects",                  gcInfo.PinnedObjectsCount),
-                                                             new JProperty("finalizationPending",            gcInfo.FinalizationPendingCount),
-
-                                                             new JProperty("generations",  JSONArray.Create(
-                                                                 gcInfo.GenerationInfo.ToArray().Select((gcGenerationInfo, index) => JSONObject.Create(
-                                                                     new JProperty("generation",              index),
-                                                                     new JProperty("sizeBeforeMB",            MB(gcGenerationInfo.SizeBeforeBytes)),
-                                                                     new JProperty("sizeAfterMB",             MB(gcGenerationInfo.SizeAfterBytes)),
-                                                                     new JProperty("fragmentationBeforeMB",   MB(gcGenerationInfo.FragmentationBeforeBytes)),
-                                                                     new JProperty("fragmentationAfterMB",    MB(gcGenerationInfo.FragmentationAfterBytes))
-                                                                 ))
-                                                             ))
-
-                                                         ))
-
-                                                     )),
-
-                                                     new JProperty("process",          JSONObject.Create(
-                                                         new JProperty("cpuPercent",          cpu?.Percent),
-                                                         new JProperty("cpuCores",            cpu?.Cores),
-                                                         new JProperty("threads",                process.Threads.Count),
-                                                         new JProperty("handleCount",            process.HandleCount),
-                                                         new JProperty("privateMB",           MB(process.PrivateMemorySize64))
-                                                     )),
-
-                                                     new JProperty("disc",             JSONObject.Create(
-                                                         new JProperty("freePercent",         freeDiscSpace.Value)
-                                                     ))
-
-                                                 );
-
-                    if (ServiceCheckKeys?.PublicKey is not null)
-                    {
-
-                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
-
-                        if (ServiceCheckKeys.PrivateKey is not null)
-                        {
-
-                            var plaintext   = CanonicalJSON.Serialize(jsonResponse);
-                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckKeys.PrivateKey);
-                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                            var signature   = signer.GenerateSignature().ToHexString();
-
-                            jsonResponse.Add("signature", signature);
-
-                        }
-
-                    }
+                    var serviceMonitoringJSON  = GetServiceMonitoringJSON(RandomExtensions.RandomString(20));
 
                     return Task.FromResult(
                         new HTTPResponse.Builder(request) {
@@ -10905,7 +10921,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             AccessControlAllowMethods  = [ "POST" ],
                             AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                            Content                    = jsonResponse.ToUTF8Bytes(),
+                            Content                    = serviceMonitoringJSON.ToUTF8Bytes(),
+                            CacheControl               = "no-cache",
+                            Connection                 = ConnectionType.KeepAlive
+                        }.AsImmutable);
+
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
+
+            #endregion
+
+            #region POST  ~/monitoring
+
+            // ----------------------------------------------------------------------------------------------------------------
+            // curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"123\"}"  http://127.0.0.1:2000/monitoring
+            // ----------------------------------------------------------------------------------------------------------------
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "monitoring",
+                HTTPDelegate: request => {
+
+                    #region Check Check Access Rights
+
+                    if (!IsMember(request.User, rootGroupId))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                       Server                     = HTTPServer.HTTPServerName,
+                                       Date                       = Timestamp.Now,
+                                       AccessControlAllowOrigin   = "*",
+                                       AccessControlAllowMethods  = [ "OPTIONS", "HEAD", "GET", "COUNT" ],
+                                       AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                       //WWWAuthenticate            = WWWAuthenticateDefaults,
+                                       Connection                 = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    #endregion
+
+
+                    var content = String.Empty;
+
+                    #region Try to parse a text HTTP body...
+
+                    HTTPResponse.Builder? httpResponse = null;
+
+                    if (request.ContentType == HTTPContentType.Text.PLAIN &&
+                        request.TryParseUTF8StringRequestBody(out content, out httpResponse))
+                    {
+                        
+                    }
+
+                    #endregion
+
+                    #region ...or parse a JSON HTTP body
+
+                    else if (request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
+                        request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
+                        jsonRequest is not null)
+                    {
+                        content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
+                    }
+
+                    if (httpResponse is not null)
+                        return Task.FromResult(httpResponse.AsImmutable);
+
+                    #endregion
+
+
+                    var serviceMonitoringJSON  = GetServiceMonitoringJSON(content?.Reverse() ?? "");
+
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = [ "POST" ],
+                            AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
+                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                            Content                    = serviceMonitoringJSON.ToUTF8Bytes(),
                             CacheControl               = "no-cache",
                             Connection                 = ConnectionType.KeepAlive
                         }.AsImmutable);

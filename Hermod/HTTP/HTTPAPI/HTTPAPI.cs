@@ -17,23 +17,17 @@
 
 #region Usings
 
-using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
 
-using Org.BouncyCastle.Security;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using org.GraphDefined.Vanaheimr.Hermod.Argus;
 
 #endregion 
 
@@ -198,6 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    );
 
         #endregion
+
 
     }
 
@@ -766,7 +761,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
         internal ParsedRequest2 GetRequestHandle(HTTPPath    Path,
                                                  HTTPMethod  Method)
         {
@@ -1142,14 +1136,8 @@ Error:
         #endregion
 
 
-        protected static Double MB(Int64 Bytes)
-            => Bytes / 1_048_576.0;
-
         private void RegisterURLTemplates()
         {
-
-            var URLPathPrefix = HTTPPath.Root;
-
 
             #region GET   ~/serviceCheck
 
@@ -1161,31 +1149,27 @@ Error:
                 URLPathPrefix + "serviceCheck",
                 HTTPDelegate: request => {
 
-                    var jsonResponse  = JSONObject.Create(
-                                            new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPServer.HTTPServerName),
-                                            new JProperty("instance",   Environment.MachineName),
-                                            new JProperty("content",    RandomExtensions.RandomString(20))
-                                        );
+                    var serviceCheckJSON  = JSONObject.Create(
+                                                new JProperty("timestamp",   Timestamp.Now.ToISO8601()),
+                                                new JProperty("service",     HTTPServer.HTTPServerName),
+                                                new JProperty("instance",    Environment.MachineName),
+                                                new JProperty("content",     RandomExtensions.RandomString(20))
+                                            );
 
                     if (ServiceCheckKeys?.PublicKey is not null)
                     {
 
-                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
 
                         if (ServiceCheckKeys.PrivateKey is not null)
                         {
-
-                            var plaintext   = CanonicalJSON.Serialize(jsonResponse);
-                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckKeys.PrivateKey);
-                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                            var signature   = signer.GenerateSignature().ToHexString();
-
-                            jsonResponse.Add("signature", signature);
-
+                            serviceCheckJSON.Add(
+                                "signature",
+                                CanonicalJSON.Sign_ECDSA_SHA256(
+                                    CanonicalJSON.Serialize(serviceCheckJSON),
+                                    ServiceCheckKeys.PrivateKey
+                                ).ToHexString()
+                            );
                         }
 
                     }
@@ -1199,7 +1183,7 @@ Error:
                                    AccessControlAllowMethods  = [ "POST" ],
                                    AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
                                    ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                   Content                    = jsonResponse.ToUTF8Bytes(),
+                                   Content                    = serviceCheckJSON.ToUTF8Bytes(),
                                    CacheControl               = "no-cache",
                                    Connection                 = ConnectionType.KeepAlive
                                }.AsImmutable);
@@ -1250,31 +1234,27 @@ Error:
                     #endregion
 
 
-                    var jsonResponse  = JSONObject.Create(
-                                            new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPServer.HTTPServerName),
-                                            new JProperty("instance",   Environment.MachineName),
-                                            new JProperty("content",    content?.Reverse())
-                                        );
+                    var serviceCheckJSON  = JSONObject.Create(
+                                                new JProperty("timestamp",   Timestamp.Now.ToISO8601()),
+                                                new JProperty("service",     HTTPServer.HTTPServerName),
+                                                new JProperty("instance",    Environment.MachineName),
+                                                new JProperty("content",     content?.Reverse() ?? "")
+                                            );
 
                     if (ServiceCheckKeys?.PublicKey is not null)
                     {
 
-                        jsonResponse.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
 
                         if (ServiceCheckKeys.PrivateKey is not null)
                         {
-
-                            var plaintext   = CanonicalJSON.Serialize(jsonResponse);
-                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                            signer.Init(true, ServiceCheckKeys.PrivateKey);
-                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                            var signature   = signer.GenerateSignature().ToHexString();
-
-                            jsonResponse.Add("signature", signature);
-
+                            serviceCheckJSON.Add(
+                                "signature",
+                                CanonicalJSON.Sign_ECDSA_SHA256(
+                                    CanonicalJSON.Serialize(serviceCheckJSON),
+                                    ServiceCheckKeys.PrivateKey
+                                ).ToHexString()
+                            );
                         }
 
                     }
@@ -1288,7 +1268,7 @@ Error:
                             AccessControlAllowMethods  = [ "POST" ],
                             AccessControlAllowHeaders  = [ "Content-Type", "Accept" ],
                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                            Content                    = jsonResponse.ToUTF8Bytes(),
+                            Content                    = serviceCheckJSON.ToUTF8Bytes(),
                             CacheControl               = "no-cache",
                             Connection                 = ConnectionType.KeepAlive
                         }.AsImmutable);
@@ -1299,125 +1279,7 @@ Error:
 
             #endregion
 
-
         }
-
-        #endregion
-
-
-
-
-
-
-        #region HTTP Server Sent Events
-
-        //#region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
-
-        ///// <summary>
-        ///// Add a HTTP Sever Sent Events source.
-        ///// </summary>
-        ///// <param name="EventIdentification">The unique identification of the event source.</param>
-        ///// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        ///// <param name="RetryInterval ">The retry interval.</param>
-        ///// <param name="DataSerializer">A delegate to serialize the stored events.</param>
-        ///// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
-        ///// <param name="EnableLogging">Enables storing and reloading events </param>
-        ///// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
-        ///// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        ///// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        //public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id                     EventIdentification,
-        //                                                    UInt32                                 MaxNumberOfCachedEvents      = 500,
-        //                                                    TimeSpan?                              RetryInterval                = null,
-        //                                                    Func<TData, String>?                   DataSerializer               = null,
-        //                                                    Func<String, TData>?                   DataDeserializer             = null,
-        //                                                    Boolean                                EnableLogging                = true,
-        //                                                    String?                                LogfilePath                  = null,
-        //                                                    String?                                LogfilePrefix                = null,
-        //                                                    Func<String, DateTimeOffset, String>?  LogfileName                  = null,
-        //                                                    String?                                LogfileReloadSearchPattern   = null)
-
-        //    => HTTPServer.AddEventSource(
-        //           EventIdentification,
-        //           this,
-        //           MaxNumberOfCachedEvents,
-        //           RetryInterval ,
-        //           DataSerializer,
-        //           DataDeserializer,
-        //           EnableLogging,
-        //           LogfilePath,
-        //           LogfilePrefix,
-        //           LogfileName,
-        //           LogfileReloadSearchPattern
-        //       );
-
-        //#endregion
-
-
-
-        //#region Get   (EventSourceId)
-
-        ///// <summary>
-        ///// Return the event source identified by the given event source identification.
-        ///// </summary>
-        ///// <param name="EventSourceId">A string to identify an event source.</param>
-        //public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceId)
-
-        //    => HTTPServer.Get(EventSourceId);
-
-
-        ///// <summary>
-        ///// Return the event source identified by the given event source identification.
-        ///// </summary>
-        ///// <param name="EventSourceId">A string to identify an event source.</param>
-        //public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceId)
-
-        //    => HTTPServer.Get<TData>(EventSourceId);
-
-        //#endregion
-
-        //#region TryGet(EventSourceId, out EventSource)
-
-        ///// <summary>
-        ///// Return the event source identified by the given event source identification.
-        ///// </summary>
-        ///// <param name="EventSourceId">A string to identify an event source.</param>
-        ///// <param name="EventSource">The event source.</param>
-        //public Boolean TryGet(HTTPEventSource_Id EventSourceId, out IHTTPEventSource? EventSource)
-
-        //    => HTTPServer.TryGet(EventSourceId, out EventSource);
-
-
-        ///// <summary>
-        ///// Return the event source identified by the given event source identification.
-        ///// </summary>
-        ///// <param name="EventSourceId">A string to identify an event source.</param>
-        ///// <param name="EventSource">The event source.</param>
-        //public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceId, out IHTTPEventSource<TData>? EventSource)
-
-        //    => HTTPServer.TryGet(EventSourceId, out EventSource);
-
-        //#endregion
-
-        //#region EventSources(IncludeEventSource = null)
-
-        ///// <summary>
-        ///// Return a filtered enumeration of all event sources.
-        ///// </summary>
-        ///// <param name="IncludeEventSource">An event source filter delegate.</param>
-        //public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
-
-        //    => HTTPServer.EventSources(IncludeEventSource);
-
-
-        ///// <summary>
-        ///// Return a filtered enumeration of all event sources.
-        ///// </summary>
-        ///// <param name="IncludeEventSource">An event source filter delegate.</param>
-        //public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
-
-        //    => HTTPServer.EventSources<TData>(IncludeEventSource);
-
-        //#endregion
 
         #endregion
 
@@ -1721,7 +1583,6 @@ Error:
         #endregion
 
         #endregion
-
 
 
         #region (private)  LogEvent     (Logger, LogHandler, ...)
