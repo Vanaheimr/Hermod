@@ -35,8 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      IComparable
     {
 
-        //HTTPExtAPI?  API  { get; set; }
-        HTTPExtAPI? APIX { get; set; }
+        HTTPExtAPI? API { get; set; }
 
         JSONLDContext JSONLDContext { get; }
 
@@ -58,8 +57,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         IEnumerable<IUser> Users { get; }
         string? Website { get; }
 
-
-        
 
         Organization2OrganizationEdge AddEdge(Organization2OrganizationEdge Edge);
         IEnumerable<Organization2OrganizationEdge> AddEdges(IEnumerable<Organization2OrganizationEdge> Edges);

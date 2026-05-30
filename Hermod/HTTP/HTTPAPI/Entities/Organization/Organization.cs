@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Aegir;
@@ -146,38 +148,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Illegal attempt to change the API of this organization!");
 
                 api = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this organization!");
-
-            }
-
-        }
-
-        #endregion
-
-        #region APIX
-
-        private HTTPExtAPI? apiX;
-
-        /// <summary>
-        /// The HTTPExtAPI of this organization.
-        /// </summary>
-        public HTTPExtAPI? APIX
-        {
-
-            get
-            {
-                return apiX;
-            }
-
-            set
-            {
-
-                if (apiX == value)
-                    return;
-
-                if (apiX is not null)
-                    throw new ArgumentException("Illegal attempt to change the API of this organization!");
-
-                apiX = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this organization!");
 
             }
 
@@ -710,21 +680,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             ? Tags(_TagsBuilder)
                                                             : _TagsBuilder;
             this.IsDisabled                           = IsDisabled;
-            this.AttachedFiles                        = AttachedFiles ?? Array.Empty<AttachedFile>();
+            this.AttachedFiles                        = AttachedFiles ?? [];
 
             this.notifications                        = new NotificationStore(Notifications);
 
             this._User2Organization_Edges             = User2OrganizationEdges            is not null && User2OrganizationEdges.           IsNeitherNullNorEmpty()
-                                                            ? new List<User2OrganizationEdge>        (User2OrganizationEdges)
-                                                            : new List<User2OrganizationEdge>();
+                                                            ? [.. User2OrganizationEdges]
+                                                            : [];
 
             this._Organization2Organization_InEdges   = Organization2OrganizationInEdges  is not null && Organization2OrganizationInEdges. IsNeitherNullNorEmpty()
-                                                            ? new List<Organization2OrganizationEdge>(Organization2OrganizationInEdges)
-                                                            : new List<Organization2OrganizationEdge>();
+                                                            ? [.. Organization2OrganizationInEdges]
+                                                            : [];
 
             this._Organization2Organization_OutEdges  = Organization2OrganizationOutEdges is not null && Organization2OrganizationOutEdges.IsNeitherNullNorEmpty()
-                                                            ? new List<Organization2OrganizationEdge>(Organization2OrganizationOutEdges)
-                                                            : new List<Organization2OrganizationEdge>();
+                                                            ? [.. Organization2OrganizationOutEdges]
+                                                            : [];
 
         }
 
@@ -735,60 +705,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private readonly NotificationStore notifications;
 
-        #region AddNotification(Notification,                           OnUpdate = null)
+        #region AddNotification    (Notification,                           OnUpdate = null)
 
         public T AddNotification<T>(T           Notification,
                                     Action<T>?  OnUpdate   = null)
 
             where T : ANotification
 
-            => notifications.Add(Notification,
-                                 OnUpdate);
+            => notifications.Add(
+                   Notification,
+                   OnUpdate
+               );
 
         #endregion
 
-        #region AddNotification(Notification, NotificationMessageType,  OnUpdate = null)
+        #region AddNotification    (Notification, NotificationMessageType,  OnUpdate = null)
 
         public T AddNotification<T>(T                        Notification,
                                     NotificationMessageType  NotificationMessageType,
-                                    Action<T>?               OnUpdate  = null)
+                                    Action<T>?               OnUpdate   = null)
 
             where T : ANotification
 
-            => notifications.Add(Notification,
-                                 NotificationMessageType,
-                                 OnUpdate);
+            => notifications.Add(
+                   Notification,
+                   NotificationMessageType,
+                   OnUpdate
+               );
 
         #endregion
 
-        #region AddNotification(Notification, NotificationMessageTypes, OnUpdate = null)
+        #region AddNotification    (Notification, NotificationMessageTypes, OnUpdate = null)
 
         public T AddNotification<T>(T                                     Notification,
                                     IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                                    Action<T>?                            OnUpdate  = null)
+                                    Action<T>?                            OnUpdate   = null)
 
             where T : ANotification
 
-            => notifications.Add(Notification,
-                                 NotificationMessageTypes,
-                                 OnUpdate);
+            => notifications.Add(
+                   Notification,
+                   NotificationMessageTypes,
+                   OnUpdate
+               );
 
         #endregion
 
-        #region RemoveNotification(NotificationType,                           OnRemoval = null)
+
+        #region RemoveNotification (NotificationType, OnRemoval = null)
 
         public Task RemoveNotification<T>(T           NotificationType,
                                           Action<T>?  OnRemoval   = null)
 
             where T : ANotification
 
-            => notifications.Remove(NotificationType,
-                                    OnRemoval);
+            => notifications.Remove(
+                   NotificationType,
+                   OnRemoval
+               );
 
         #endregion
 
 
-        #region GetNotifications  (NotificationMessageType = null)
+        #region GetNotifications   (NotificationMessageType = null)
 
         public IEnumerable<ANotification> GetNotifications(NotificationMessageType?  NotificationMessageType = null)
         {
@@ -800,7 +779,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetNotificationsOf(params NotificationMessageTypes)
+        #region GetNotificationsOf (params NotificationMessageTypes)
 
         public IEnumerable<T> GetNotificationsOf<T>(params NotificationMessageType[] NotificationMessageTypes)
 
@@ -825,7 +804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetNotifications  (NotificationMessageTypeFilter)
+        #region GetNotifications   (NotificationMessageTypeFilter)
 
         public IEnumerable<ANotification> GetNotifications(Func<NotificationMessageType, Boolean> NotificationMessageTypeFilter)
         {
@@ -837,7 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetNotificationsOf(NotificationMessageTypeFilter)
+        #region GetNotificationsOf (NotificationMessageTypeFilter)
 
         public IEnumerable<T> GetNotificationsOf<T>(Func<NotificationMessageType, Boolean> NotificationMessageTypeFilter)
 
@@ -859,17 +838,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public JObject GetNotificationInfos()
 
-            => JSONObject.Create(new JProperty("user", JSONObject.Create(
+            => JSONObject.Create(
 
-                                     new JProperty("name",               EMail.OwnerName),
-                                     new JProperty("email",              EMail.Address.ToString())
+                   new JProperty("organization", JSONObject.Create(
 
-                                     //MobilePhone.HasValue
-                                     //    ? new JProperty("phoneNumber",  MobilePhone.Value.ToString())
-                                     //    : null
+                       new JProperty("name",               EMail?.OwnerName),
+                       new JProperty("email",              EMail?.Address.ToString())
 
-                                 )),
-                                 new JProperty("notifications",  notifications.ToJSON()));
+                       //MobilePhone.HasValue
+                       //    ? new JProperty("phoneNumber",  MobilePhone.Value.ToString())
+                       //    : null
+
+                   )),
+
+                   new JProperty("notifications",   notifications.ToJSON())
+
+               );
 
         #endregion
 
@@ -991,10 +975,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (static) TryParseJSON(JSONObject, ..., out Organization, out ErrorResponse)
 
-        public static Boolean TryParseJSON(JObject            JSONObject,
-                                           out Organization?  Organization,
-                                           out String?        ErrorResponse,
-                                           Organization_Id?   OrganizationIdURL   = null)
+        public static Boolean TryParseJSON(JObject                                 JSONObject,
+                                           [NotNullWhen(true)]  out Organization?  Organization,
+                                           [NotNullWhen(false)] out String?        ErrorResponse,
+                                           Organization_Id?                        OrganizationIdURL   = null)
         {
 
             try

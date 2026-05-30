@@ -10782,10 +10782,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var process                = Process.GetCurrentProcess();
                     //process.Refresh();
 
-                    var availableRAM           = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-                                                 RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                                                     ? ResourcesMonitor.GetMemoryMetricsOnUnix()
-                                                     : ResourcesMonitor.GetMemoryMetricsOnWindows();
+              //      var availableRAM           = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+              //                                   RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+              //                                       ? ResourcesMonitor.GetMemoryMetricsOnUnix()
+              //                                       : ResourcesMonitor.GetMemoryMetricsOnWindows();
 
                     var driveInfo              = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
                     var freeDiscSpace          = PercentageDouble.Parse((Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100);
@@ -11881,7 +11881,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out errorResponse) && user2 is not null)
+                                          out errorResponse))
                     {
 
                         user = user2;
@@ -11892,7 +11892,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -11904,17 +11904,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out errorResponse) && user2 is not null)
+                                          out errorResponse))
                     {
 
                         user = user2;
 
-                        user.API = this;
-                        users.AddAndReturnValue(user.Id, user);
+                        if (users.TryAdd(user.Id, user))
+                            user.API = this;
+                        else
+                            DebugX.Log($"User '{user.Id}' already exists!");
+
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -11926,21 +11929,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out errorResponse) && user2 is not null)
+                                          out errorResponse))
                     {
 
                         user = user2;
 
-                        if (!users.ContainsKey(user.Id))
-                        {
+                        if (users.TryAdd(user.Id, user))
                             user.API = this;
-                            users.AddAndReturnValue(user.Id, user);
-                        }
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -11952,7 +11952,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out errorResponse) && user2 is not null)
+                                          out errorResponse))
                     {
 
                         user = user2;
@@ -11969,7 +11969,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -11981,7 +11981,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out errorResponse) && user2 is not null)
+                                          out errorResponse))
                     {
 
                         user = user2;
@@ -12000,7 +12000,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12012,7 +12012,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out errorResponse) && user2 is not null)
+                                          out errorResponse))
                     {
 
                         user = user2;
@@ -12031,7 +12031,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12045,13 +12045,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out errorResponse) && apiKey is not null)
+                                        out errorResponse))
                     {
                         apiKeys.AddAndReturnValue(apiKey.Id, apiKey);
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(apiKey)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12064,7 +12064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out errorResponse) && apiKey is not null)
+                                        out errorResponse))
                     {
 
                         if (!apiKeys.ContainsKey(apiKey.Id))
@@ -12076,7 +12076,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(apiKey)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12089,7 +12089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out errorResponse) && apiKey is not null)
+                                        out errorResponse))
                     {
 
                         apiKeys.TryRemove(apiKey.Id, out var OldAPIKey);
@@ -12099,7 +12099,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(apiKey)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12112,9 +12112,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out errorResponse) && apiKey is not null)
+                                        out errorResponse))
                     {
-                        if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))// && OldAPIKey is not null)
+                        if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))
                         {
                             apiKeys.TryUpdate(apiKey.Id, apiKey, OldAPIKey);
                             apiKey.APIX = this;
@@ -12123,7 +12123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(apiKey)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12136,13 +12136,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out errorResponse) && apiKey is not null)
+                                        out errorResponse))
                     {
                         apiKeys.TryRemove(apiKey.Id, out _);
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(apiKey)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12155,24 +12155,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out errorResponse) && organization2 is not null)
+                                                  out errorResponse))
                     {
 
                         organization = organization2;
 
-                        if (!organizations.ContainsKey(organization.Id))
-                        {
-                            organization.APIX = this;
-                            organizations.TryAdd(organization.Id, organization);
-                        }
-
+                        if (organizations.TryAdd(organization.Id, organization))
+                            organization.API = this;
                         else
-                            DebugX.Log("Organization '" + organization.Id + "' already exists!");
+                            DebugX.Log($"Organization '{organization.Id}' already exists!");
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12184,21 +12180,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out errorResponse) && organization2 is not null)
+                                                  out errorResponse))
                     {
 
                         organization = organization2;
 
-                        if (!organizations.ContainsKey(organization.Id))
-                        {
-                            organization.APIX = this;
-                            organizations.AddAndReturnValue(organization.Id, organization);
-                        }
+                        if (organizations.TryAdd(organization.Id, organization))
+                            organization.API = this;
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12210,7 +12203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out errorResponse) && organization2 is not null)
+                                                  out errorResponse))
                     {
 
                         organization = organization2;
@@ -12218,17 +12211,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (organizations.TryGetValue(organization.Id, out var OldOrganization))
                         {
                             organizations.TryRemove(OldOrganization.Id, out _);
-                            organization.APIX = this;
+                            organization.API = this;
                             organization.CopyAllLinkedDataFrom(OldOrganization);
                         }
 
                         organizations.TryAdd(organization.Id, organization);
-                        organization.APIX = this;
+                        organization.API = this;
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12240,7 +12233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out errorResponse) && organization2 is not null)
+                                                  out errorResponse))
                     {
 
                         organization = organization2;
@@ -12249,7 +12242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             organizations.TryRemove(OldOrganization.Id, out _);
-                            organization.APIX = this;
+                            organization.API = this;
                             organization.CopyAllLinkedDataFrom(OldOrganization);
 
                             organizations.TryAdd(organization.Id, organization);
@@ -12259,7 +12252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12271,7 +12264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out errorResponse) && organization2 is not null)
+                                                  out errorResponse))
                     {
 
                         organization = organization2;
@@ -12298,7 +12291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12309,41 +12302,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 case "addUserToOrganization":
 
-                    if (!User_Id.TryParse(Data["user"]?.Value<String>(), out var U2O_UserId))
+                    if (!User_Id.TryParse(Data["user"]?.Value<String>() ?? "", out var U2O_UserId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid user identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Invalid user identification '{Data["user"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetUser(U2O_UserId, out var U2O_User))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown user '" + U2O_UserId + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Unknown user '{U2O_UserId}'!");
                         break;
                     }
 
 
-                    if (!Organization_Id.TryParse(Data["organization"]?.Value<String>(), out Organization_Id U2O_OrganizationId))
+                    if (!Organization_Id.TryParse(Data["organization"]?.Value<String>() ?? "", out var U2O_OrganizationId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Invalid organization identification '{Data["organization"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetOrganization(U2O_OrganizationId, out var U2O_Organization))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown organization '" + U2O_OrganizationId + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Unknown organization '{U2O_OrganizationId}'!");
                         break;
                     }
 
 
-                    if (!Enum.TryParse(Data["edge"].Value<String>(), out User2OrganizationEdgeLabel U2O_EdgeLabel))
+                    if (!Enum.TryParse(Data["edge"]?.Value<String>() ?? "", out User2OrganizationEdgeLabel U2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Unknown edge label '{Data["edge"]?.Value<String>()}'!");
                         break;
                     }
 
 
-                    U2O_Organization.AddUser(U2O_User.AddOutgoingEdge(U2O_EdgeLabel,
-                                                                      U2O_Organization));
+                    U2O_Organization.AddUser(
+                        U2O_User.AddOutgoingEdge(
+                            U2O_EdgeLabel,
+                            U2O_Organization
+                        )
+                    );
 
                     break;
 
@@ -12353,43 +12350,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 case "removeUserFromOrganization":
 
-                    if (!User_Id.TryParse(Data["user"]?.Value<String>(), out U2O_UserId))
+                    if (!User_Id.TryParse(Data["user"]?.Value<String>() ?? "", out U2O_UserId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid user identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Invalid user identification '{Data["user"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetUser(U2O_UserId, out U2O_User))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown user '" + U2O_UserId + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Unknown user '{U2O_UserId}'!");
                         break;
                     }
 
 
-                    if (!Organization_Id.TryParse(Data["organization"]?.Value<String>(), out U2O_OrganizationId))
+                    if (!Organization_Id.TryParse(Data["organization"]?.Value<String>() ?? "", out U2O_OrganizationId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Invalid organization identification '{Data["organization"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetOrganization(U2O_OrganizationId, out U2O_Organization))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown organization '" + U2O_OrganizationId + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Unknown organization '{U2O_OrganizationId}'!");
                         break;
                     }
 
 
-                    if (!Enum.TryParse(Data["edge"].Value<String>(), out U2O_EdgeLabel))
+                    if (!Enum.TryParse(Data["edge"]?.Value<String>() ?? "", out U2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: Unknown edge label '{Data["edge"]?.Value<String>()}'!");
                         break;
                     }
 
-                    foreach (var edge in U2O_User.Edges(U2O_Organization).Where(_edge => _edge.EdgeLabel == U2O_EdgeLabel).ToArray())
+                    foreach (var edge in U2O_User.Edges(U2O_Organization).
+                                             Where(_edge => _edge.EdgeLabel == U2O_EdgeLabel).
+                                             ToArray())
+                    {
                         U2O_User.RemoveOutEdge(edge);
+                    }
 
-                    foreach (var edge in U2O_Organization.User2OrganizationInEdges(U2O_User).Where(_edge => _edge.EdgeLabel == U2O_EdgeLabel).ToArray())
+                    foreach (var edge in U2O_Organization.User2OrganizationInEdges(U2O_User).
+                                             Where(_edge => _edge.EdgeLabel == U2O_EdgeLabel).
+                                             ToArray())
+                    {
                         U2O_Organization.RemoveUser(edge.EdgeLabel, U2O_User);
+                    }
 
                     break;
 
@@ -12399,41 +12404,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 case "linkOrganizations":
 
-                    if (!Organization_Id.TryParse(Data["organizationOut"]?.Value<String>(), out var O2O_OrganizationIdOut))
+                    if (!Organization_Id.TryParse(Data["organizationOut"]?.Value<String>() ?? "", out var O2O_OrganizationIdOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid outgoing organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid outgoing organization identification '{Data["organizationOut"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdOut, out var O2O_OrganizationOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown outgoing organization '" + O2O_OrganizationIdOut + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown outgoing organization '{O2O_OrganizationIdOut}'!");
                         break;
                     }
 
 
-                    if (!Organization_Id.TryParse(Data["organizationIn"]?.Value<String>(), out var O2O_OrganizationIdIn))
+                    if (!Organization_Id.TryParse(Data["organizationIn"]?.Value<String>() ?? "", out var O2O_OrganizationIdIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid incoming organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid incoming organization identification '{Data["organizationIn"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdIn, out var O2O_OrganizationIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown incoming organization '" + O2O_OrganizationIdIn + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown incoming organization '{O2O_OrganizationIdIn}'!");
                         break;
                     }
 
 
-                    if (!Enum.TryParse(Data["edge"].Value<String>(), out Organization2OrganizationEdgeLabel O2O_EdgeLabel))
+                    if (!Enum.TryParse(Data["edge"]?.Value<String>() ?? "", out Organization2OrganizationEdgeLabel O2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown edge label '{Data["edge"]?.Value<String>()}'!");
                         break;
                     }
 
 
-                    O2O_OrganizationIn.AddEdge(O2O_OrganizationOut.AddOutEdge(O2O_EdgeLabel,
-                                                                              O2O_OrganizationIn));
+                    O2O_OrganizationIn.AddEdge(
+                        O2O_OrganizationOut.AddOutEdge(
+                            O2O_EdgeLabel,
+                            O2O_OrganizationIn
+                        )
+                    );
 
                     break;
 
@@ -12443,35 +12452,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 case "unlinkOrganizations":
 
-                    if (!Organization_Id.TryParse(Data["organizationOut"]?.Value<String>(), out O2O_OrganizationIdOut))
+                    if (!Organization_Id.TryParse(Data["organizationOut"]?.Value<String>() ?? "", out O2O_OrganizationIdOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid outgoing organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid outgoing organization identification '{Data["organizationOut"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdOut, out O2O_OrganizationOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown outgoing organization '" + O2O_OrganizationIdOut + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown outgoing organization '{O2O_OrganizationIdOut}'!");
                         break;
                     }
 
 
-                    if (!Organization_Id.TryParse(Data["organizationIn"]?.Value<String>(), out O2O_OrganizationIdIn))
+                    if (!Organization_Id.TryParse(Data["organizationIn"]?.Value<String>() ?? "", out O2O_OrganizationIdIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid incoming organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid incoming organization identification '{Data["organizationIn"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdIn, out O2O_OrganizationIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown incoming organization '" + O2O_OrganizationIdIn + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown incoming organization '{O2O_OrganizationIdIn}'!");
                         break;
                     }
 
 
-                    if (!Enum.TryParse(Data["edge"].Value<String>(), out O2O_EdgeLabel))
+                    if (!Enum.TryParse(Data["edge"]?.Value<String>() ?? "", out O2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown edge label '{Data["edge"]?.Value<String>()}'!");
                         break;
                     }
 
@@ -12511,19 +12520,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         userGroup = userGroup2;
 
-                        if (!userGroups.ContainsKey(userGroup.Id))
-                        {
+                        if (userGroups.TryAdd(userGroup.Id, userGroup))
                             userGroup.API = this;
-                            userGroups.AddAndReturnValue(userGroup.Id, userGroup);
-                        }
-
                         else
-                            DebugX.Log("User group '" + userGroup.Id + "' already exists!");
+                            DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: User group '{userGroup.Id}' already exists!");
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12542,16 +12547,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         userGroup = userGroup2;
 
-                        if (!userGroups.ContainsKey(userGroup.Id))
-                        {
+                        if (userGroups.TryAdd(userGroup.Id, userGroup))
                             userGroup.API = this;
-                            userGroups.AddAndReturnValue(userGroup.Id, userGroup);
-                        }
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
 
                     break;
 
@@ -12561,41 +12563,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 case "addUserToUserGroup":
 
-                    if (!User_Id.TryParse(Data["userId"]?.Value<String>(), out var U2G_UserId))
+                    if (!User_Id.TryParse(Data["userId"]?.Value<String>() ?? "", out var U2G_UserId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid user identification '" + Data["userId"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid user identification '{Data["userId"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetUser(U2G_UserId, out var U2G_User))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown user '" + U2G_UserId + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown user '{U2G_UserId}'!");
                         break;
                     }
 
 
-                    if (!UserGroup_Id.TryParse(Data["userGroupId"]?.Value<String>(), out var U2G_GroupId))
+                    if (!UserGroup_Id.TryParse(Data["userGroupId"]?.Value<String>() ?? "", out var U2G_GroupId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid group identification '" + Data["userGroupId"]?.Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid group identification '{Data["userGroupId"]?.Value<String>()}'!");
                         break;
                     }
 
                     if (!TryGetUserGroup(U2G_GroupId, out var U2G_Group))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown group '" + U2G_GroupId + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown group '{U2G_GroupId}'!");
                         break;
                     }
 
 
-                    if (!Enum.TryParse(Data["edgeLabel"].Value<String>(), out User2UserGroupEdgeLabel U2G_EdgeLabel))
+                    if (!Enum.TryParse(Data["edgeLabel"]?.Value<String>() ?? "", out User2UserGroupEdgeLabel U2G_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edgeLabel"].Value<String>() + "'!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown edge label '{Data["edgeLabel"]?.Value<String>() ?? ""}'!");
                         break;
                     }
 
 
-                    U2G_Group.AddUser(U2G_User.AddToUserGroup(U2G_EdgeLabel,
-                                                              U2G_Group));
+                    U2G_Group.AddUser(
+                        U2G_User.AddToUserGroup(
+                            U2G_EdgeLabel,
+                            U2G_Group
+                        )
+                    );
 
                     break;
 
@@ -12611,7 +12617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Data["@context"]?.Value<String>().IsNotNullOrEmpty() != true)
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the @context is invalid or missing!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the @context is invalid or missing!");
                         break;
                     }
 
@@ -12620,19 +12626,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["userId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'userId' is invalid or missing!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the 'userId' is invalid or missing!");
                             break;
                         }
 
-                        if (!User_Id.TryParse(Data["userId"]?.Value<String>(), out userId))
+                        if (!User_Id.TryParse(Data["userId"]?.Value<String>() ?? "", out userId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the userId '" + (Data["userId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the userId '{Data["userId"]?.Value<String>() ?? ""}' could not be parsed!");
                             break;
                         }
 
                         if (!TryGetUser(userId, out user))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the user '" + userId + "' is unknown!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the user '{userId}' is unknown!");
                             break;
                         }
 
@@ -12643,19 +12649,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["organizationId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'organizationId' is invalid or missing!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the 'organizationId' is invalid or missing!");
                             break;
                         }
 
-                        if (!Organization_Id.TryParse(Data["organizationId"]?.Value<String>(), out organizationId))
+                        if (!Organization_Id.TryParse(Data["organizationId"]?.Value<String>() ?? "", out organizationId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organizationId '" + (Data["organizationId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the organizationId '{Data["organizationId"]?.Value<String>() ?? ""}' could not be parsed!");
                             break;
                         }
 
                         if (!TryGetOrganization(organizationId, out organization))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organization '" + organizationId + "' is unknown!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the organization '{organizationId}' is unknown!");
                             break;
                         }
 
@@ -12673,7 +12679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given Telegram notification!");
 
                             break;
 
@@ -12687,7 +12693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram group notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given Telegram group notification!");
 
                             break;
 
@@ -12701,7 +12707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given SMS notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given SMS notification!");
 
                             break;
 
@@ -12715,7 +12721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given HTTPS notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given HTTPS notification!");
 
                             break;
 
@@ -12729,13 +12735,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given e-mail notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given e-mail notification!");
 
                             break;
 
 
                         default:
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given 'add notification' command as the @context '" + (Data["@context"]?.Value<String>() ?? "") + "' is unknown!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given 'add notification' command as the @context '{Data["@context"]?.Value<String>() ?? ""}' is unknown!");
                             break;
 
                     }
@@ -12753,7 +12759,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Data["@context"]?.Value<String>().IsNotNullOrEmpty() != true)
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the @context is invalid or missing!"));
+                        DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the @context is invalid or missing!");
                         break;
                     }
 
@@ -12762,19 +12768,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["userId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'userId' is invalid or missing!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the 'userId' is invalid or missing!");
                             break;
                         }
 
-                        if (!User_Id.TryParse(Data["userId"]?.Value<String>(), out userId))
+                        if (!User_Id.TryParse(Data["userId"]?.Value<String>() ?? "", out userId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the userId '" + (Data["userId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the userId '{Data["userId"]?.Value<String>() ?? ""}' could not be parsed!");
                             break;
                         }
 
                         if (!TryGetUser(userId, out user))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the user '" + userId + "' is unknown!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the user '{userId}' is unknown!");
                             break;
                         }
 
@@ -12785,19 +12791,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["organizationId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'organizationId' is invalid or missing!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the 'organizationId' is invalid or missing!");
                             break;
                         }
 
-                        if (!Organization_Id.TryParse(Data["organizationId"]?.Value<String>(), out organizationId))
+                        if (!Organization_Id.TryParse(Data["organizationId"]?.Value<String>() ?? "", out organizationId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organizationId '" + (Data["organizationId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the organizationId '{Data["organizationId"]?.Value<String>() ?? ""}' could not be parsed!");
                             break;
                         }
 
                         if (!TryGetOrganization(organizationId, out organization))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organization '" + organizationId + "' is unknown!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given '{Command}' command as the organization '{organizationId}' is unknown!");
                             break;
                         }
 
@@ -12820,7 +12826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given Telegram notification!");
 
                             break;
 
@@ -12839,7 +12845,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram group notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given Telegram group notification!");
 
                             break;
 
@@ -12858,7 +12864,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given SMS notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given SMS notification!");
 
                             break;
 
@@ -12877,7 +12883,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given HTTPS notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given HTTPS notification!");
 
                             break;
 
@@ -12896,13 +12902,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given e-mail notification!"));
+                                DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given e-mail notification!");
 
                             break;
 
 
                         default:
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given 'add notification' command as the @context '" + (Data["@context"]?.Value<String>() ?? "") + "' is unknown!"));
+                            DebugX.Log($"{nameof(HTTPExtAPI)} Could not parse the given 'add notification' command as the @context '{Data["@context"]?.Value<String>() ?? ""}' is unknown!");
                             break;
 
                     }
@@ -12913,10 +12919,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
                 default:
-                    DebugX.Log(String.Concat(nameof(HTTPExtAPI), ": does not know what to do with event '", Command,
-                                             Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty,
-                                             LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty,
-                                             "'!"));
+                    DebugX.Log($"{nameof(HTTPExtAPI)}: does not know what to do with event '{Command}'" +
+                               $"{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}" +
+                               $"{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}" +
+                               "'!");
                     break;
 
             }
@@ -24256,7 +24262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.APIX is not null && Organization.APIX != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -24297,7 +24303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                       nameof(Organization),
             //                                       "Organization name '" + Organization.Name + "' is too short!");
 
-            Organization.APIX = this;
+            Organization.API = this;
 
 
             await WriteToDatabaseFile(addOrganization_MessageType,
@@ -24485,7 +24491,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.APIX is not null && Organization.APIX != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -24525,7 +24531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                  nameof(Organization),
             //                                                  "Organization name '" + Organization.Name + "' is too short!");
 
-            Organization.APIX = this;
+            Organization.API = this;
 
 
             await WriteToDatabaseFile(addOrganizationIfNotExists_MessageType,
@@ -24718,7 +24724,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.APIX is not null && Organization.APIX != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddOrUpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -24751,7 +24757,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                               nameof(Organization),
             //                                               "Organization name '" + Organization.Name + "' is too short!");
 
-            Organization.APIX = this;
+            Organization.API = this;
 
 
             await WriteToDatabaseFile(addOrUpdateOrganization_MessageType,
@@ -25075,7 +25081,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (Organization.APIX is not null && Organization.APIX != this)
+            if (Organization.API is not null && Organization.API != this)
                 return UpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -25084,7 +25090,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            Organization.APIX = this;
+            Organization.API = this;
 
 
             await WriteToDatabaseFile(updateOrganization_MessageType,
@@ -25216,7 +25222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (Organization.APIX != this)
+            if (Organization.API != this)
                 return UpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is not attached to this API!".ToI18NString(),
@@ -25402,7 +25408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.APIX != this)
+            if (Organization.API != this)
                 return DeleteOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is not attached to this API!".ToI18NString(),
@@ -25760,8 +25766,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationId">The unique identification of an organization.</param>
         /// <param name="Organization">The organization.</param>
-        protected internal Boolean _TryGetOrganization(Organization_Id     OrganizationId,
-                                                       out IOrganization?  Organization)
+        protected internal Boolean _TryGetOrganization(Organization_Id                         OrganizationId,
+                                                       [NotNullWhen(true)] out IOrganization?  Organization)
         {
 
             if (OrganizationId.IsNotNullOrEmpty && organizations.TryGetValue(OrganizationId, out var organization))
@@ -25780,8 +25786,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationId">The unique identification of an organization.</param>
         /// <param name="Organization">The organization.</param>
-        protected internal Boolean _TryGetOrganization(Organization_Id?    OrganizationId,
-                                                       out IOrganization?  Organization)
+        protected internal Boolean _TryGetOrganization(Organization_Id?                        OrganizationId,
+                                                       [NotNullWhen(true)] out IOrganization?  Organization)
         {
 
             if (OrganizationId.HasValue &&
@@ -25803,8 +25809,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationId">The unique identification of an organization.</param>
         /// <param name="Organization">The organization.</param>
-        public Boolean TryGetOrganization(Organization_Id     OrganizationId,
-                                          out IOrganization?  Organization)
+        public Boolean TryGetOrganization(Organization_Id                         OrganizationId,
+                                          [NotNullWhen(true)] out IOrganization?  Organization)
         {
 
             if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -25838,8 +25844,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationId">The unique identification of an organization.</param>
         /// <param name="Organization">The organization.</param>
-        public Boolean TryGetOrganization(Organization_Id?    OrganizationId,
-                                          out IOrganization?  Organization)
+        public Boolean TryGetOrganization(Organization_Id?                        OrganizationId,
+                                          [NotNullWhen(true)] out IOrganization?  Organization)
         {
 
             if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -28717,7 +28723,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  nameof(Organization),
                                                                  "The given organization must not be null!");
 
-            if (Organization.APIX is not null && Organization.APIX != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddUserToOrganizationResult.ArgumentError(User,
                                                                  EdgeLabel,
                                                                  Organization,
@@ -28908,7 +28914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       nameof(Organization),
                                                                       "The given organization must not be null!");
 
-            if (Organization.APIX is not null && Organization.APIX != this)
+            if (Organization.API is not null && Organization.API != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       EdgeLabel,
                                                                       Organization,
@@ -29084,7 +29090,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       nameof(Organization),
                                                                       "The given organization must not be null!");
 
-            if (Organization.APIX is not null && Organization.APIX != this)
+            if (Organization.API is not null && Organization.API != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       Organization,
                                                                       eventTrackingId,
