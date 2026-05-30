@@ -67,12 +67,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                          ))
                            );
 
-            response.Add("publicKey", keys.PublicKeyHEX);
+            response.Add("publicKey", keys.PublicKeyECHEX);
 
             var plaintext  = CanonicalJSON.Serialize(response);
             var hash       = SHA256.HashData(plaintext.ToUTF8Bytes());
             var signer     = SignerUtilities.GetSigner("NONEwithECDSA");
-            signer.Init(true, keys.PrivateKey);
+            signer.Init(true, keys.PrivateKeyEC);
             signer.BlockUpdate(hash, 0, hash.Length);
             response.Add("signature", signer.GenerateSignature().ToHexString());
 

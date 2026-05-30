@@ -3976,18 +3976,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                  );
 
-            if (ServiceCheckKeys?.PublicKey is not null)
+            if (ServiceCheckKeys?.PublicKeyEC is not null)
             {
 
-                json.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+                json.Add("publicKey", ServiceCheckKeys.PublicKeyECHEX);
 
-                if (ServiceCheckKeys.PrivateKey is not null)
+                if (ServiceCheckKeys.PrivateKeyEC is not null)
                 {
                     json.Add(
                         "signature",
                         CanonicalJSON.Sign_ECDSA_SHA256(
                             CanonicalJSON.Serialize(json),
-                            ServiceCheckKeys.PrivateKey
+                            ServiceCheckKeys.PrivateKeyEC
                         ).ToHexString()
                     );
                 }

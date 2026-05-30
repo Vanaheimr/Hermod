@@ -1156,18 +1156,18 @@ Error:
                                                 new JProperty("content",     RandomExtensions.RandomString(20))
                                             );
 
-                    if (ServiceCheckKeys?.PublicKey is not null)
+                    if (ServiceCheckKeys?.PublicKeyEC is not null)
                     {
 
-                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyECHEX);
 
-                        if (ServiceCheckKeys.PrivateKey is not null)
+                        if (ServiceCheckKeys.PrivateKeyEC is not null)
                         {
                             serviceCheckJSON.Add(
                                 "signature",
                                 CanonicalJSON.Sign_ECDSA_SHA256(
                                     CanonicalJSON.Serialize(serviceCheckJSON),
-                                    ServiceCheckKeys.PrivateKey
+                                    ServiceCheckKeys.PrivateKeyEC
                                 ).ToHexString()
                             );
                         }
@@ -1241,18 +1241,18 @@ Error:
                                                 new JProperty("content",     content?.Reverse() ?? "")
                                             );
 
-                    if (ServiceCheckKeys?.PublicKey is not null)
+                    if (ServiceCheckKeys?.PublicKeyEC is not null)
                     {
 
-                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyHEX);
+                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyECHEX);
 
-                        if (ServiceCheckKeys.PrivateKey is not null)
+                        if (ServiceCheckKeys.PrivateKeyEC is not null)
                         {
                             serviceCheckJSON.Add(
                                 "signature",
                                 CanonicalJSON.Sign_ECDSA_SHA256(
                                     CanonicalJSON.Serialize(serviceCheckJSON),
-                                    ServiceCheckKeys.PrivateKey
+                                    ServiceCheckKeys.PrivateKeyEC
                                 ).ToHexString()
                             );
                         }

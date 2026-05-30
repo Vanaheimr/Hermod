@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -18,8 +18,12 @@
 #region Usings
 
 using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Security;
+using Org.BouncyCastle.X509;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -40,53 +44,152 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         /// <summary>
-        /// The default elliptic curve to use for the service check.
+        /// The default elliptic curve to use for service checks.
         /// </summary>
-        public const String DefaultECCurve = "secp256r1";
+        public const String  DefaultECCurve    = "secp256r1";
+
+        /// <summary>
+        /// The default ml-DSA parameters to use for service checks.
+        /// </summary>
+        public const String  DefaultMLDSAName  = "ml_dsa_65";
 
         #endregion
 
         #region Properties
 
-        #region PrivateKey
+        #region EC
 
         /// <summary>
-        /// The private elliptic curve key of the service check.
+        /// The private elliptic curve key of service checks.
         /// </summary>
-        public ECPrivateKeyParameters  PrivateKey    { get; }
+        public ECPrivateKeyParameters?  PrivateKeyEC     { get; }
 
         /// <summary>
-        /// The private elliptic curve key of the service check as byte array.
+        /// The private elliptic curve key of service checks as byte array.
         /// </summary>
-        public Byte[]                  PrivateKeyBytes
-            => PrivateKey.D.ToByteArray();
+        public Byte[]?                  PrivateKeyECBytes
+            => PrivateKeyEC?.D.ToByteArray();
 
         /// <summary>
-        /// The private elliptic curve key of the service check as hexadecimal string.
+        /// The private elliptic curve key of service checks as hexadecimal string.
         /// </summary>
-        public String                  PrivateKeyHEX
-            => PrivateKeyBytes.ToHexString();
+        public String?                  PrivateKeyECHEX
+            => PrivateKeyECBytes?.ToHexString();
+
+        /// <summary>
+        /// The private elliptic curve key of service checks as DER encoded PKCS#8 PrivateKeyInfo.
+        /// </summary>
+        public Byte[]?                  PrivateKeyECASN1Bytes
+            => PrivateKeyEC is not null
+                   ? PrivateKeyInfoFactory.CreatePrivateKeyInfo(PrivateKeyEC).GetDerEncoded()
+                   : null;
+
+        /// <summary>
+        /// The private elliptic curve key of service checks as hexadecimal DER encoded PKCS#8 PrivateKeyInfo.
+        /// </summary>
+        public String?                  PrivateKeyECASN1HEX
+            => PrivateKeyECASN1Bytes?.ToHexString();
+
+
+
+        /// <summary>
+        /// The public elliptic curve key of service checks.
+        /// </summary>
+        public ECPublicKeyParameters?   PublicKeyEC      { get; }
+
+        /// <summary>
+        /// The public elliptic curve key of service checks as byte array.
+        /// </summary>
+        public Byte[]?                  PublicKeyECBytes
+            => PublicKeyEC?.Q.GetEncoded();
+
+        /// <summary>
+        /// The public elliptic curve key of service checks as hexadecimal string.
+        /// </summary>
+        public String?                  PublicKeyECHEX
+            => PublicKeyECBytes?.ToHexString();
+
+        /// <summary>
+        /// The public elliptic curve key of service checks as DER encoded X.509 SubjectPublicKeyInfo.
+        /// </summary>
+        public Byte[]?                  PublicKeyECASN1Bytes
+            => PublicKeyEC is not null
+                   ? SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(PublicKeyEC).GetDerEncoded()
+                   : null;
+
+        /// <summary>
+        /// The public elliptic curve key of service checks as hexadecimal DER encoded X.509 SubjectPublicKeyInfo.
+        /// </summary>
+        public String?                  PublicKeyECASN1HEX
+            => PublicKeyECASN1Bytes?.ToHexString();
 
         #endregion
 
-        #region PublicKey
+        #region ML-DSA
 
         /// <summary>
-        /// The public elliptic curve key of the service check.
+        /// The private ML-DSA post-quantum key of service checks.
         /// </summary>
-        public ECPublicKeyParameters   PublicKey     { get; }
+        public MLDsaPrivateKeyParameters?  PrivateKeyMLDSA     { get; }
 
         /// <summary>
-        /// The public elliptic curve key of the service check as byte array.
+        /// The private ML-DSA post-quantum key of service checks as byte array.
         /// </summary>
-        public Byte[]                  PublicKeyBytes
-            => PublicKey. Q.GetEncoded();
+        public Byte[]?                     PrivateKeyMLDSABytes
+            => PrivateKeyMLDSA?.GetEncoded();
 
         /// <summary>
-        /// The public elliptic curve key of the service check as hexadecimal string.
+        /// The private ML-DSA post-quantum key of service checks as hexadecimal string.
         /// </summary>
-        public String                  PublicKeyHEX
-            => PublicKeyBytes.ToHexString();
+        public String?                     PrivateKeyMLDSAHEX
+            => PrivateKeyMLDSABytes?.ToHexString();
+
+        /// <summary>
+        /// The private ML-DSA post-quantum key of service checks as DER encoded PKCS#8 PrivateKeyInfo.
+        /// </summary>
+        public Byte[]?                     PrivateKeyMLDSAASN1Bytes
+            => PrivateKeyMLDSA is not null
+                   ? PrivateKeyInfoFactory.CreatePrivateKeyInfo(PrivateKeyMLDSA).GetDerEncoded()
+                   : null;
+
+        /// <summary>
+        /// The private ML-DSA post-quantum key of service checks as hexadecimal DER encoded PKCS#8 PrivateKeyInfo.
+        /// </summary>
+        public String?                     PrivateKeyMLDSAASN1HEX
+            => PrivateKeyMLDSAASN1Bytes?.ToHexString();
+
+
+
+        /// <summary>
+        /// The public ML-DSA post-quantum key of service checks.
+        /// </summary>
+        public MLDsaPublicKeyParameters?   PublicKeyMLDSA      { get; }
+
+        /// <summary>
+        /// The public ML-DSA post-quantum key of service checks as byte array.
+        /// </summary>
+        public Byte[]?                     PublicKeyMLDSABytes
+            => PublicKeyMLDSA?.GetEncoded();
+
+        /// <summary>
+        /// The public ML-DSA post-quantum key of service checks as hexadecimal string.
+        /// </summary>
+        public String?                     PublicKeyMLDSAHEX
+            => PublicKeyMLDSABytes?.ToHexString();
+
+        /// <summary>
+        /// The public ML-DSA post-quantum key of service checks as DER encoded X.509 SubjectPublicKeyInfo.
+        /// </summary>
+        public Byte[]?                     PublicKeyMLDSAASN1Bytes
+            => PublicKeyMLDSA is not null
+                   ? SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(PublicKeyMLDSA).GetDerEncoded()
+                   : null;
+
+        /// <summary>
+        /// The public ML-DSA post-quantum key of service checks as hexadecimal DER encoded X.509 SubjectPublicKeyInfo.
+        /// </summary>
+        public String?                     PublicKeyMLDSAASN1HEX
+            => PublicKeyMLDSAASN1Bytes?.ToHexString();
 
         #endregion
 
@@ -97,20 +200,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create new service check keys.
         /// </summary>
-        /// <param name="PrivateKey"></param>
-        /// <param name="PublicKey"></param>
-        public ServiceCheckKeys(ECPrivateKeyParameters  PrivateKey,
-                                ECPublicKeyParameters   PublicKey)
+        /// <param name="PrivateKeyEC">An optional private elliptic curve key.</param>
+        /// <param name="PublicKeyEC">An optional public elliptic curve key.</param>
+        /// <param name="PrivateKeyMLDSA">An optional private ML-DSA key.</param>
+        /// <param name="PublicKeyMLDSA">An optional public ML-DSA key.</param>
+        public ServiceCheckKeys(ECPrivateKeyParameters?     PrivateKeyEC      = null,
+                                ECPublicKeyParameters?      PublicKeyEC       = null,
+                                MLDsaPrivateKeyParameters?  PrivateKeyMLDSA   = null,
+                                MLDsaPublicKeyParameters?   PublicKeyMLDSA    = null)
         {
 
-            this.PrivateKey  = PrivateKey;
-            this.PublicKey   = PublicKey;
+            if ((PrivateKeyEC is null) != (PublicKeyEC is null))
+                throw new ArgumentException("The EC private and public keys must either both be set or both be null!");
+
+            if (PrivateKeyMLDSA is null && PublicKeyMLDSA is not null)
+                throw new ArgumentException("An ML-DSA public key without the matching private key can not be used as service check keys!");
+
+            PublicKeyMLDSA ??= PrivateKeyMLDSA?.GetPublicKey();
+
+            if (PrivateKeyEC is null && PrivateKeyMLDSA is null)
+                throw new ArgumentException("At least one EC or ML-DSA key pair must be set!");
+
+            this.PrivateKeyEC     = PrivateKeyEC;
+            this.PublicKeyEC      = PublicKeyEC;
+            this.PrivateKeyMLDSA  = PrivateKeyMLDSA;
+            this.PublicKeyMLDSA   = PublicKeyMLDSA;
 
             unchecked
             {
 
-                hashCode = this.PrivateKeyHEX.GetHashCode() * 3 ^
-                           this.PublicKeyHEX. GetHashCode();
+                hashCode = (PrivateKeyECHEX    ?? "").GetHashCode() * 11 ^
+                           (PublicKeyECHEX     ?? "").GetHashCode() *  7 ^
+                           (PrivateKeyMLDSAHEX ?? "").GetHashCode() *  5 ^
+                           (PublicKeyMLDSAHEX  ?? "").GetHashCode();
 
             }
 
@@ -119,13 +241,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GenerateECKeys (ECCurve = null)
+        #region GenerateKeys       (ECCurve = "secp256r1", MLDSAName = "ml_dsa_65")
+
+        /// <summary>
+        /// Generate new Elliptic Curve (secp256r1) and ML-DSA (ml_dsa_65) service check keys.
+        /// </summary>
+        /// <param name="ECCurve">An optional elliptic curve to use. The default is secp256r1.</param>
+        /// <param name="MLDSAName">The optional ML-DSA parameters to use. The default is ml_dsa_65.</param>
+        public static ServiceCheckKeys GenerateKeys(String  ECCurve     = DefaultECCurve,
+                                                    String  MLDSAName   = DefaultMLDSAName)
+        {
+
+            var ecKeys     = GenerateECKeys   (ECCurve);
+            var mlDSAKeys  = GenerateMLDSAKeys(MLDSAName);
+
+            return new ServiceCheckKeys(
+                       ecKeys.   PrivateKeyEC,
+                       ecKeys.   PublicKeyEC,
+                       mlDSAKeys.PrivateKeyMLDSA,
+                       mlDSAKeys.PublicKeyMLDSA
+                   );
+
+        }
+
+        #endregion
+
+
+        // Elliptic Curve Cryptography (ECC)
+
+        #region GenerateECKeys     (ECCurve   = "secp256r1")
 
         /// <summary>
         /// Generate new service check keys for the optional given elliptic curve.
         /// </summary>
         /// <param name="ECCurve">An optional elliptic curve to use. The default is secp256r1.</param>
-        public static ServiceCheckKeys GenerateECKeys(String? ECCurve = null)
+        public static ServiceCheckKeys GenerateECKeys(String ECCurve = DefaultECCurve)
         {
 
             var ecParameters        = ECNamedCurveTable.GetByName(
@@ -146,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GenerateECKeys (EllipticCurveSpec)
+        #region GenerateECKeys     (EllipticCurveSpec)
 
         /// <summary>
         /// Generate new service check keys for the given elliptic curve specification.
@@ -159,12 +309,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             generator.Init(new ECKeyGenerationParameters(EllipticCurveSpec, new SecureRandom()));
             var keyPair     = generator.GenerateKeyPair();
 
-            var privateKey  = keyPair.Private as ECPrivateKeyParameters;
-            var publicKey   = keyPair.Public  as ECPublicKeyParameters;
-
             return new ServiceCheckKeys(
-                       privateKey!,
-                       publicKey!
+                       keyPair.Private as ECPrivateKeyParameters,
+                       keyPair.Public  as ECPublicKeyParameters
                    );
 
         }
@@ -172,16 +319,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseECKeysHEX (PrivateKey, PublicKey, ECCurve = null)
+        #region ParseECKeysHEX     (PrivateKeyEC, PublicKeyEC, ECCurve = null)
 
         /// <summary>
         /// Parse the given hexadecimal encoded private and public elliptic curve keys for the optional given elliptic curve.
         /// </summary>
-        /// <param name="PrivateKey">The hexadecimal encoded private key.</param>
-        /// <param name="PublicKey">The hexadecimal encoded public key.</param>
+        /// <param name="PrivateKeyEC">The hexadecimal encoded private EC key.</param>
+        /// <param name="PublicKeyEC">The hexadecimal encoded public EC key.</param>
         /// <param name="ECCurve">An optional elliptic curve to use. The default is secp256r1.</param>
-        public static ServiceCheckKeys ParseECKeysHEX(String   PrivateKey,
-                                                      String   PublicKey,
+        public static ServiceCheckKeys ParseECKeysHEX(String   PrivateKeyEC,
+                                                      String   PublicKeyEC,
                                                       String?  ECCurve   = null)
         {
 
@@ -198,8 +345,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       );
 
             return ParseECKeysHEX(
-                       PrivateKey,
-                       PublicKey,
+                       PrivateKeyEC,
+                       PublicKeyEC,
                        ecDomainParameters
                    );
 
@@ -207,43 +354,302 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseECKeysHEX (PrivateKey, PublicKey, EllipticCurveSpec)
+        #region ParseECKeysHEX     (PrivateKeyEC, PublicKeyEC, EllipticCurveSpec)
 
         /// <summary>
         /// Parse the given hexadecimal encoded private and public elliptic curve keys for the given elliptic curve specification.
         /// </summary>
-        /// <param name="PrivateKey">The hexadecimal encoded private key.</param>
-        /// <param name="PublicKey">The hexadecimal encoded public key.</param>
+        /// <param name="PrivateKeyEC">The hexadecimal encoded private EC key.</param>
+        /// <param name="PublicKeyEC">The hexadecimal encoded public EC key.</param>
         /// <param name="EllipticCurveSpec">The elliptic curve specification to use.</param>
-        public static ServiceCheckKeys ParseECKeysHEX(String              PrivateKey,
-                                                      String              PublicKey,
+        public static ServiceCheckKeys ParseECKeysHEX(String              PrivateKeyEC,
+                                                      String              PublicKeyEC,
                                                       ECDomainParameters  EllipticCurveSpec)
         {
 
-            var privateKey  = new ECPrivateKeyParameters(
-                                  new BigInteger(
-                                      PrivateKey,
-                                      16
-                                  ),
-                                  EllipticCurveSpec
-                              );
+            var privateKeyEC  = new ECPrivateKeyParameters(
+                                    new BigInteger(
+                                        PrivateKeyEC,
+                                        16
+                                    ),
+                                    EllipticCurveSpec
+                                );
 
-            var publicKey   = new ECPublicKeyParameters(
-                                  "ECDSA",
-                                  EllipticCurveSpec.Curve.DecodePoint(
-                                      PublicKey.FromHEX()
-                                  ),
-                                  EllipticCurveSpec
-                              );
+            var publicKeyEC   = new ECPublicKeyParameters(
+                                    "ECDSA",
+                                    EllipticCurveSpec.Curve.DecodePoint(
+                                        PublicKeyEC.FromHEX()
+                                    ),
+                                    EllipticCurveSpec
+                                );
 
             return new ServiceCheckKeys(
-                       privateKey,
-                       publicKey
+                       privateKeyEC,
+                       publicKeyEC
                    );
 
         }
 
         #endregion
+
+
+        #region ParseECKeysASN1    (PrivateKeyECASN1, PublicKeyECASN1)
+
+        /// <summary>
+        /// Parse the given DER encoded PKCS#8 private and X.509 SubjectPublicKeyInfo public elliptic curve keys.
+        /// </summary>
+        /// <param name="PrivateKeyECASN1">The DER encoded PKCS#8 private EC key.</param>
+        /// <param name="PublicKeyECASN1">The DER encoded X.509 SubjectPublicKeyInfo public EC key.</param>
+        public static ServiceCheckKeys ParseECKeysASN1(Byte[]  PrivateKeyECASN1,
+                                                       Byte[]  PublicKeyECASN1)
+        {
+
+            if (PrivateKeyFactory.CreateKey(PrivateKeyECASN1) is not ECPrivateKeyParameters privateKeyEC)
+                throw new ArgumentException("The given ASN.1 private key is not an EC key!", nameof(PrivateKeyECASN1));
+
+            if (PublicKeyFactory. CreateKey(PublicKeyECASN1)  is not ECPublicKeyParameters  publicKeyEC)
+                throw new ArgumentException("The given ASN.1 public key is not an EC key!",  nameof(PublicKeyECASN1));
+
+            return ParseECKeysHEX(
+                       privateKeyEC.D.ToByteArray().ToHexString(),
+                       publicKeyEC. Q.GetEncoded(). ToHexString(),
+                       privateKeyEC.Parameters
+                   );
+
+        }
+
+        #endregion
+
+        #region ParseECKeysASN1    (PrivateKeyECASN1, PublicKeyECASN1)
+
+        /// <summary>
+        /// Parse the given hexadecimal DER encoded PKCS#8 private and X.509 SubjectPublicKeyInfo public elliptic curve keys.
+        /// </summary>
+        /// <param name="PrivateKeyECASN1">The hexadecimal DER encoded PKCS#8 private EC key.</param>
+        /// <param name="PublicKeyECASN1">The hexadecimal DER encoded X.509 SubjectPublicKeyInfo public EC key.</param>
+        public static ServiceCheckKeys ParseECKeysASN1(String  PrivateKeyECASN1,
+                                                       String  PublicKeyECASN1)
+
+            => ParseECKeysASN1(
+                   PrivateKeyECASN1.FromHEX(),
+                   PublicKeyECASN1. FromHEX()
+               );
+
+        #endregion
+
+
+
+        // Multi-Level Digital Signature Algorithm (ML-DSA, Post-Quantum Digital Signature Algorithm)
+
+        #region GenerateMLDSAKeys  (MLDSAName = "ml_dsa_65")
+
+        /// <summary>
+        /// Generate new service check keys for the optional given ML-DSA parameter set.
+        /// </summary>
+        /// <param name="MLDSAName">The optional ML-DSA parameters to use. The default is ml_dsa_65.</param>
+        public static ServiceCheckKeys GenerateMLDSAKeys(String MLDSAName = DefaultMLDSAName)
+
+            => GenerateMLDSAKeys(ParseMLDSAParameters(MLDSAName));
+
+        #endregion
+
+        #region GenerateMLDSAKeys  (MLDSAParameters)
+
+        /// <summary>
+        /// Generate new service check keys for the given ML-DSA parameter set.
+        /// </summary>
+        /// <param name="MLDSAParameters">The ML-DSA parameters to use.</param>
+        public static ServiceCheckKeys GenerateMLDSAKeys(MLDsaParameters MLDSAParameters)
+        {
+
+            var generator = new MLDsaKeyPairGenerator();
+
+            generator.Init(
+                new MLDsaKeyGenerationParameters(
+                    new SecureRandom(),
+                    MLDSAParameters
+                )
+            );
+
+            var keyPair = generator.GenerateKeyPair();
+
+            return new ServiceCheckKeys(
+                       PrivateKeyMLDSA: keyPair.Private as MLDsaPrivateKeyParameters,
+                       PublicKeyMLDSA:  keyPair.Public  as MLDsaPublicKeyParameters
+                   );
+
+        }
+
+        #endregion
+
+
+        #region ParseMLDSAKeysHEX  (PrivateKeyMLDSA, MLDSAName = "ml_dsa_65")
+
+        /// <summary>
+        /// Parse the given hexadecimal encoded private ML-DSA key for the optional given ML-DSA parameter set.
+        /// </summary>
+        /// <param name="PrivateKeyMLDSA">The hexadecimal encoded private ML-DSA key.</param>
+        /// <param name="MLDSAName">The optional ML-DSA parameters to use. The default is ml_dsa_65.</param>
+        public static ServiceCheckKeys ParseMLDSAKeysHEX(String  PrivateKeyMLDSA,
+                                                         String  MLDSAName = DefaultMLDSAName)
+
+            => ParseMLDSAKeysHEX(
+                   PrivateKeyMLDSA,
+                   ParseMLDSAParameters(MLDSAName)
+               );
+
+        #endregion
+
+        #region ParseMLDSAKeysHEX  (PrivateKeyMLDSA, MLDSAParameters)
+
+        /// <summary>
+        /// Parse the given hexadecimal encoded private ML-DSA key for the given ML-DSA parameter set.
+        /// </summary>
+        /// <param name="PrivateKeyMLDSA">The hexadecimal encoded private ML-DSA key.</param>
+        /// <param name="MLDSAParameters">The ML-DSA parameters to use.</param>
+        public static ServiceCheckKeys ParseMLDSAKeysHEX(String           PrivateKeyMLDSA,
+                                                         MLDsaParameters  MLDSAParameters)
+        {
+
+            var privateKeyMLDSA = MLDsaPrivateKeyParameters.FromEncoding(
+                                      MLDSAParameters,
+                                      PrivateKeyMLDSA.FromHEX()
+                                  );
+
+            return new ServiceCheckKeys(
+                       PrivateKeyMLDSA: privateKeyMLDSA,
+                       PublicKeyMLDSA:  privateKeyMLDSA.GetPublicKey()
+                   );
+
+        }
+
+        #endregion
+
+
+        #region ParseMLDSAKeysASN1 (PrivateKeyMLDSAASN1)
+
+        /// <summary>
+        /// Parse the given DER encoded PKCS#8 private ML-DSA key.
+        /// </summary>
+        /// <param name="PrivateKeyMLDSAASN1">The DER encoded PKCS#8 private ML-DSA key.</param>
+        public static ServiceCheckKeys ParseMLDSAKeysASN1(Byte[] PrivateKeyMLDSAASN1)
+        {
+
+            var privateKeyMLDSA = PrivateKeyFactory.CreateKey(PrivateKeyMLDSAASN1) as MLDsaPrivateKeyParameters;
+
+            if (privateKeyMLDSA is null)
+                throw new ArgumentException("The given ASN.1 private key is not an ML-DSA key!", nameof(PrivateKeyMLDSAASN1));
+
+            return ParseMLDSAKeysHEX(
+                       privateKeyMLDSA.GetEncoded().ToHexString(),
+                       privateKeyMLDSA.Parameters
+                   );
+
+        }
+
+        #endregion
+
+        #region ParseMLDSAKeysASN1 (PrivateKeyMLDSAASN1)
+
+        /// <summary>
+        /// Parse the given hexadecimal DER encoded PKCS#8 private ML-DSA key.
+        /// </summary>
+        /// <param name="PrivateKeyMLDSAASN1">The hexadecimal DER encoded PKCS#8 private ML-DSA key.</param>
+        public static ServiceCheckKeys ParseMLDSAKeysASN1(String PrivateKeyMLDSAASN1)
+
+            => ParseMLDSAKeysASN1(PrivateKeyMLDSAASN1.FromHEX());
+
+        #endregion
+
+
+        #region ParseMLDSAPublicKeyHEX  (PublicKeyMLDSA, MLDSAName = "ml_dsa_65")
+
+        /// <summary>
+        /// Parse the given hexadecimal encoded public ML-DSA key for the optional given ML-DSA parameter set.
+        /// </summary>
+        /// <param name="PublicKeyMLDSA">The hexadecimal encoded public ML-DSA key.</param>
+        /// <param name="MLDSAName">The optional ML-DSA parameters to use. The default is ml_dsa_65.</param>
+        public static MLDsaPublicKeyParameters ParseMLDSAPublicKeyHEX(String  PublicKeyMLDSA,
+                                                                      String  MLDSAName = DefaultMLDSAName)
+
+            => MLDsaPublicKeyParameters.FromEncoding(
+                   ParseMLDSAParameters(MLDSAName),
+                   PublicKeyMLDSA.FromHEX()
+               );
+
+        #endregion
+
+        #region ParseMLDSAPublicKeyASN1 (PublicKeyMLDSAASN1)
+
+        /// <summary>
+        /// Parse the given DER encoded X.509 SubjectPublicKeyInfo public ML-DSA key.
+        /// </summary>
+        /// <param name="PublicKeyMLDSAASN1">The DER encoded X.509 SubjectPublicKeyInfo public ML-DSA key.</param>
+        public static MLDsaPublicKeyParameters ParseMLDSAPublicKeyASN1(Byte[] PublicKeyMLDSAASN1)
+        {
+
+            var publicKeyMLDSA = PublicKeyFactory.CreateKey(PublicKeyMLDSAASN1) as MLDsaPublicKeyParameters;
+
+            if (publicKeyMLDSA is null)
+                throw new ArgumentException("The given ASN.1 public key is not an ML-DSA key!", nameof(PublicKeyMLDSAASN1));
+
+            return ParseMLDSAPublicKeyHEX(
+                       publicKeyMLDSA.GetEncoded().ToHexString(),
+                       MLDSAParametersName(publicKeyMLDSA.Parameters)
+                   );
+
+        }
+
+        #endregion
+
+        #region ParseMLDSAPublicKeyASN1 (PublicKeyMLDSAASN1)
+
+        /// <summary>
+        /// Parse the given hexadecimal DER encoded X.509 SubjectPublicKeyInfo public ML-DSA key.
+        /// </summary>
+        /// <param name="PublicKeyMLDSAASN1">The hexadecimal DER encoded X.509 SubjectPublicKeyInfo public ML-DSA key.</param>
+        public static MLDsaPublicKeyParameters ParseMLDSAPublicKeyASN1(String PublicKeyMLDSAASN1)
+
+            => ParseMLDSAPublicKeyASN1(PublicKeyMLDSAASN1.FromHEX());
+
+        #endregion
+
+
+        #region ParseMLDSAParameters    (MLDSAName)
+
+        /// <summary>
+        /// Parse ML-DSA parameters by name.
+        /// </summary>
+        /// <param name="MLDSAName">The ML-DSA parameter set name.</param>
+        public static MLDsaParameters ParseMLDSAParameters(String MLDSAName)
+
+            => MLDSAName switch {
+                   "ml_dsa_44"  => MLDsaParameters.ml_dsa_44,  // AES-128-Security (NIST Level 1)
+                   "ml_dsa_65"  => MLDsaParameters.ml_dsa_65,  // AES-192-Security (NIST Level 3)
+                   "ml_dsa_87"  => MLDsaParameters.ml_dsa_87,  // AES-256-Security (NIST Level 5)
+                   _            => throw new ArgumentException("Invalid ML-DSA parameters!", nameof(MLDSAName))
+               };
+
+        #endregion
+
+        #region MLDSAParametersName     (MLDSAParameters)
+
+        /// <summary>
+        /// Return the canonical ML-DSA parameter set name.
+        /// </summary>
+        /// <param name="MLDSAParameters">The ML-DSA parameter set.</param>
+        public static String MLDSAParametersName(MLDsaParameters MLDSAParameters)
+
+            => MLDSAParameters == MLDsaParameters.ml_dsa_44
+                   ? "ml_dsa_44"
+                   : MLDSAParameters == MLDsaParameters.ml_dsa_65
+                         ? "ml_dsa_65"
+                         : MLDSAParameters == MLDsaParameters.ml_dsa_87
+                               ? "ml_dsa_87"
+                               : throw new ArgumentException("Invalid ML-DSA parameters!", nameof(MLDSAParameters));
+
+        #endregion
+
 
 
         #region Operator overloading
@@ -382,10 +788,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ServiceCheckKeys is null)
                 throw new ArgumentNullException(nameof(ServiceCheckKeys), "The given service check keys must not be null!");
 
-            var c = PrivateKeyHEX.CompareTo(ServiceCheckKeys.PrivateKeyHEX);
+            var c = String.Compare(PrivateKeyECHEX,     ServiceCheckKeys.PrivateKeyECHEX,    StringComparison.Ordinal);
 
             if (c == 0)
-                c = PublicKeyHEX. CompareTo(ServiceCheckKeys.PublicKeyHEX);
+                c = String.Compare(PublicKeyECHEX,      ServiceCheckKeys.PublicKeyECHEX,     StringComparison.Ordinal);
+
+            if (c == 0)
+                c = String.Compare(PrivateKeyMLDSAHEX,  ServiceCheckKeys.PrivateKeyMLDSAHEX, StringComparison.Ordinal);
+
+            if (c == 0)
+                c = String.Compare(PublicKeyMLDSAHEX,   ServiceCheckKeys.PublicKeyMLDSAHEX,  StringComparison.Ordinal);
 
             return c;
 
@@ -420,8 +832,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => ServiceCheckKeys is not null &&
 
-               PrivateKeyBytes.SequenceEqual(ServiceCheckKeys.PrivateKeyBytes) &&
-               PublicKeyBytes. SequenceEqual(ServiceCheckKeys.PublicKeyBytes);
+               PrivateKeyECBytes.   IsEqualTo(ServiceCheckKeys.PrivateKeyECBytes)    &&
+               PublicKeyECBytes.    IsEqualTo(ServiceCheckKeys.PublicKeyECBytes)     &&
+               PrivateKeyMLDSABytes.IsEqualTo(ServiceCheckKeys.PrivateKeyMLDSABytes) &&
+               PublicKeyMLDSABytes. IsEqualTo(ServiceCheckKeys.PublicKeyMLDSABytes);
 
         #endregion
 
@@ -446,7 +860,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => $"PrivateKey: {PrivateKeyHEX}, PublicKey: {PublicKeyHEX}";
+            => $"EC Keys: {PrivateKeyECHEX ?? "-"} / {PublicKeyECHEX ?? "-"}, " +
+               $"ML-DSA Keys: {PrivateKeyMLDSAHEX ?? "-"} / {PublicKeyMLDSAHEX ?? "-"}";
 
         #endregion
 
