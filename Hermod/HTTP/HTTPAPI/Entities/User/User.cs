@@ -29,6 +29,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -1004,12 +1005,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (static) TryParseJSON(JSONObject, ..., out User, out ErrorResponse, ...)
 
-        public static Boolean TryParseJSON(JObject      JSONObject,
-                                           out User?    User,
-                                           out String?  ErrorResponse,
-                                           User_Id?     UserIdURL           = null,
-                                           Byte?        MinUserIdLength     = 0,
-                                           Byte?        MinUserNameLength   = 0)
+        public static Boolean TryParseJSON(JObject                           JSONObject,
+                                           [NotNullWhen(true)]  out User?    User,
+                                           [NotNullWhen(false)] out String?  ErrorResponse,
+                                           User_Id?                          UserIdURL           = null,
+                                           Byte?                             MinUserIdLength     = 0,
+                                           Byte?                             MinUserNameLength   = 0)
         {
 
             try

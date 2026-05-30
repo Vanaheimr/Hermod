@@ -63,8 +63,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Add(NotificationType,                           OnUpdate = null)
 
-        public T Add<T>(T          NotificationType,
-                        Action<T>  OnUpdate  = null)
+        public T Add<T>(T           NotificationType,
+                        Action<T>?  OnUpdate   = null)
 
             where T : ANotification
 
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         public T Add<T>(T                        NotificationType,
                         NotificationMessageType  NotificationMessageType,
-                        Action<T>                OnUpdate  = null)
+                        Action<T>?               OnUpdate   = null)
 
             where T : ANotification
 
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         public T Add<T>(T                                     NotificationType,
                         IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                        Action<T>                             OnUpdate  = null)
+                        Action<T>?                            OnUpdate   = null)
 
             where T : ANotification
 
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #endregion
 
 
-        #region GetNotifications  (NotificationMessageType = null)
+        #region GetNotifications   (NotificationMessageType = null)
 
         public IEnumerable<ANotification> GetNotifications(NotificationMessageType?  NotificationMessageType = null)
         {
@@ -234,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #endregion
 
-        #region GetNotificationsOf(params NotificationMessageTypes)
+        #region GetNotificationsOf (params NotificationMessageTypes)
 
         public IEnumerable<T> GetNotificationsOf<T>(params NotificationMessageType[]  NotificationMessageTypes)
 
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #endregion
 
-        #region GetNotifications  (NotificationMessageTypeFilter)
+        #region GetNotifications   (NotificationMessageTypeFilter)
 
         public IEnumerable<ANotification> GetNotifications(Func<NotificationMessageType, Boolean>  NotificationMessageTypeFilter)
         {
@@ -288,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #endregion
 
-        #region GetNotificationsOf(NotificationMessageTypeFilter)
+        #region GetNotificationsOf (NotificationMessageTypeFilter)
 
         public IEnumerable<T> GetNotificationsOf<T>(Func<NotificationMessageType, Boolean> NotificationMessageTypeFilter)
 
@@ -320,8 +320,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Remove(NotificationType, OnRemoval = null)
 
-        public async Task Remove<T>(T          NotificationType,
-                                    Action<T>  OnRemoval  = null)
+        public async Task Remove<T>(T           NotificationType,
+                                    Action<T>?  OnRemoval   = null)
 
             where T : ANotification
 
@@ -343,20 +343,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         public JArray ToJSON()
 
-            => new JArray(notifications.
-                              OrderBy   (notification => notification.SortKey).
-                              SafeSelect(notification => notification.ToJSON(false)));
+            => new (notifications.
+                        OrderBy   (notification => notification.SortKey).
+                        SafeSelect(notification => notification.ToJSON(false)));
 
 
         public JObject ToJSON(UInt32 Number)
 
             => notifications.
-                  OrderBy(notification => notification.SortKey).
+                   OrderBy(notification => notification.SortKey).
                    Skip(Number - 1).
                    FirstOrDefault()?.
                    ToJSON(false)
 
-                ?? new JObject();
+                ?? [];
 
         public IEnumerator<ANotification> GetEnumerator()
         {
