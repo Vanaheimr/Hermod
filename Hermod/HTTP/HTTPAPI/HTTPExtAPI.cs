@@ -10801,10 +10801,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                      new JProperty("processorCount",   Environment.ProcessorCount),
 
-                                                     new JProperty("availableRAM",     JSONObject.Create(
-                                                         new JProperty("total",   availableRAM.Total),
-                                                         new JProperty("free",    availableRAM.Free)
-                                                     )),
+                                                     new JProperty("availableRAM",     availableRAM is not null
+                                                                                           ? JSONObject.Create(
+                                                                                                 new JProperty("total",   availableRAM.Total),
+                                                                                                 new JProperty("free",    availableRAM.Free)
+                                                                                             )
+                                                                                           : null),
 
                                                      new JProperty("tcp",              JSONObject.Create(
                                                          new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
