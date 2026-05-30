@@ -10782,10 +10782,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var process                = Process.GetCurrentProcess();
                     //process.Refresh();
 
-              //      var availableRAM           = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-              //                                   RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-              //                                       ? ResourcesMonitor.GetMemoryMetricsOnUnix()
-              //                                       : ResourcesMonitor.GetMemoryMetricsOnWindows();
+                    var availableRAM           = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+                                                 RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                                                     ? ResourcesMonitor.GetMemoryMetricsOnUnix()
+                                                     : ResourcesMonitor.GetMemoryMetricsOnWindows();
 
                     var driveInfo              = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
                     var freeDiscSpace          = PercentageDouble.Parse((Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100);
@@ -10801,12 +10801,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                      new JProperty("processorCount",   Environment.ProcessorCount),
 
-                                                     new JProperty("availableRAM",     availableRAM is not null
-                                                                                           ? JSONObject.Create(
-                                                                                                 new JProperty("total",   availableRAM.Total),
-                                                                                                 new JProperty("free",    availableRAM.Free)
-                                                                                             )
-                                                                                           : null),
+                                                     availableRAM is not null
+                                                         ? new JProperty("availableRAM",   JSONObject.Create(
+                                                                                               new JProperty("total",   availableRAM.Total),
+                                                                                               new JProperty("free",    availableRAM.Free)
+                                                                                           ))
+                                                         : null,
 
                                                      new JProperty("tcp",              JSONObject.Create(
                                                          new JProperty("activeConnections",   HTTPServer.NumberOfConnectedClients)
