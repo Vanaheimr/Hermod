@@ -10882,7 +10882,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (ServiceCheckKeys.PrivateKey is not null)
                         {
 
-                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var plaintext   = CanonicalJSON.Serialize(jsonResponse);
                             var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
                             var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
@@ -13469,11 +13469,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                var JSONMessageCopy  = JObject.Parse(JSONMessage.ToString(Newtonsoft.Json.Formatting.None));
+                var JSONMessageCopy    = JObject.Parse(JSONMessage.ToString(Newtonsoft.Json.Formatting.None));
                 JSONMessageCopy.Remove("signatures");
-                var plainText        = JSONMessageCopy.ToString(Newtonsoft.Json.Formatting.None)?.ToUTF8Bytes();
+                var canonicalPlainText  = CanonicalJSON.ToUTF8Bytes(JSONMessageCopy);
+                var legacyPlainText     = JSONMessageCopy.ToString(Newtonsoft.Json.Formatting.None).ToUTF8Bytes();
 
-                var results          = new List<Boolean>();
+                var results            = new List<Boolean>();
 
                 foreach (var signatureJSON in signaturesJSON)
                 {
@@ -13488,10 +13489,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var publicKey  = signatureJSON["publicKey"]?.Value<String>()?.FromBASE64();
                     var signature  = signatureJSON["signature"]?.Value<String>()?.FromBASE64();
 
-                    if (plainText is null     ||
-                        publicKey is null     ||
+                    if (publicKey is null     ||
                         signature is null     ||
-                        plainText.Length == 0 ||
                         publicKey.Length == 0 ||
                         signature.Length == 0)
                     {
@@ -13517,12 +13516,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var ecParams      = new ECDomainParameters(ecp.Curve, ecp.G, ecp.N, ecp.H, ecp.GetSeed());
                     var pubKeyParams  = new ECPublicKeyParameters("ECDSA", ecParams.Curve.DecodePoint(publicKey), ecParams);
 
-                    var sha256Hash    = SHA256.HashData(plainText);
-
                     var verifier      = SignerUtilities.GetSigner("NONEwithECDSA");
                     verifier.Init(false, pubKeyParams);
+                    var sha256Hash    = SHA256.HashData(canonicalPlainText);
                     verifier.BlockUpdate(sha256Hash);
                     var result        = verifier.VerifySignature(signature);
+
+                    if (!result)
+                    {
+                        verifier      = SignerUtilities.GetSigner("NONEwithECDSA");
+                        verifier.Init(false, pubKeyParams);
+                        sha256Hash    = SHA256.HashData(legacyPlainText);
+                        verifier.BlockUpdate(sha256Hash);
+                        result        = verifier.VerifySignature(signature);
+                    }
 
                     results.Add(result);
 
@@ -13568,15 +13575,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return false;
                 }
 
-                var cc = new Newtonsoft.Json.Converters.IsoDateTimeConverter {
-                    DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.fffZ"
-                };
-
-                var messageText  = JSONMessage.ToString(Newtonsoft.Json.Formatting.None, cc);
-                var messageJSON  = JObject.Parse(messageText);
+                var messageJSON  = JObject.Parse(JSONMessage.ToString(Newtonsoft.Json.Formatting.None));
                 messageJSON.Remove("signatures");
 
-                var plainText    = messageJSON.ToString(Newtonsoft.Json.Formatting.None, cc);
+                var plainText    = CanonicalJSON.Serialize(messageJSON);
                 var sha256Hash   = SHA256.HashData(plainText.ToUTF8Bytes());
 
                 if (JSONMessage["signatures"] is not JArray signaturesJSON)

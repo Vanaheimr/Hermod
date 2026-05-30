@@ -38,6 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                                    Boolean             Success,
                                                    String?             Error,
 
+        [property: JsonPropertyName("signature")] SignatureVerification? SignatureVerification = null,
+
         [property: JsonPropertyName("diag")]       ServerDiagnostics?  ServerDiagnostics = null);
 
 }

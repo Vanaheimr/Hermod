@@ -1176,7 +1176,7 @@ Error:
                         if (ServiceCheckKeys.PrivateKey is not null)
                         {
 
-                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var plaintext   = CanonicalJSON.Serialize(jsonResponse);
                             var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
                             var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
@@ -1265,7 +1265,7 @@ Error:
                         if (ServiceCheckKeys.PrivateKey is not null)
                         {
 
-                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var plaintext   = CanonicalJSON.Serialize(jsonResponse);
                             var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
                             var signer      = SignerUtilities.GetSigner("NONEwithECDSA");

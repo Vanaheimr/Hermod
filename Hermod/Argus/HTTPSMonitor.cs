@@ -20,9 +20,18 @@
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Diagnostics;
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
+
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -159,6 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
             String?            error              = null;
             String             responseBody       = "";
+            SignatureVerification? signatureVerification = null;
             ServerDiagnostics? serverDiagnostics  = null;
             String?            diagnosticsError   = null;
 
@@ -245,6 +255,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
             if (!String.IsNullOrEmpty(responseBody))
             {
+                signatureVerification = VerifyResponseSignature(responseBody);
+
                 try
                 {
                     using var doc = JsonDocument.Parse(responseBody);
@@ -260,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                         diagEl.TryGetProperty("disc",           out _) ||
                         diagEl.TryGetProperty("availableRAM",   out _))
                     {
-                        serverDiagnostics = JsonSerializer.Deserialize<ServerDiagnostics>(
+                        serverDiagnostics = System.Text.Json.JsonSerializer.Deserialize<ServerDiagnostics>(
                                                 diagEl.GetRawText(),
                                                 DiagJsonOpts
                                             );
@@ -284,6 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                    statusCode,
                                    success,
                                    error,
+                                   signatureVerification,
                                    serverDiagnostics
                                );
 
@@ -355,6 +368,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                 diagPart,
                 errorPart
             );
+
+        }
+
+        private static SignatureVerification VerifyResponseSignature(String responseBody)
+        {
+
+            try
+            {
+
+                var json          = JObject.Parse(responseBody);
+                var publicKeyHex  = json["publicKey"]?.Value<String>();
+                var signatureHex  = json["signature"]?.Value<String>();
+
+                if (String.IsNullOrWhiteSpace(publicKeyHex) ||
+                    String.IsNullOrWhiteSpace(signatureHex))
+                {
+                    return new SignatureVerification(
+                               Present:  false,
+                               Valid:    false,
+                               Error:    "Missing publicKey or signature"
+                           );
+                }
+
+                // The serviceCheck endpoint signs the JSON after publicKey was added and before
+                // signature was appended. Keep publicKey in the signed payload and remove only
+                // signature to reconstruct the exact signed message shape.
+                var signedJSON = JObject.Parse(json.ToString(Formatting.None));
+                signedJSON.Remove("signature");
+
+                var ecp        = ECNamedCurveTable.GetByName("secp256r1");
+                var ecParams   = new ECDomainParameters(ecp.Curve, ecp.G, ecp.N, ecp.H, ecp.GetSeed());
+                var publicKey  = new ECPublicKeyParameters(
+                                     "ECDSA",
+                                     ecParams.Curve.DecodePoint(publicKeyHex.FromHEX()),
+                                     ecParams
+                                  );
+
+                var signature  = signatureHex.FromHEX();
+                var valid      = VerifySignature(CanonicalJSON.Serialize(signedJSON), publicKey, signature);
+
+                if (!valid)
+                    valid = VerifySignature(signedJSON.ToString(Formatting.None), publicKey, signature);
+
+                return new SignatureVerification(
+                           Present:  true,
+                           Valid:    valid,
+                           Error:    valid ? null : "Signature verification failed"
+                       );
+
+            }
+            catch (Exception ex)
+            {
+                return new SignatureVerification(
+                           Present:  true,
+                           Valid:    false,
+                           Error:    ex.Message
+                       );
+            }
+
+        }
+
+        private static Boolean VerifySignature(String PlainText,
+                                               ECPublicKeyParameters PublicKey,
+                                               Byte[] Signature)
+        {
+
+            var hash      = SHA256.HashData(PlainText.ToUTF8Bytes());
+            var verifier  = SignerUtilities.GetSigner("NONEwithECDSA");
+            verifier.Init(false, PublicKey);
+            verifier.BlockUpdate(hash, 0, hash.Length);
+
+            return verifier.VerifySignature(Signature);
 
         }
 
