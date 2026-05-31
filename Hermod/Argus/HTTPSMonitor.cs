@@ -157,6 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
         {
 
          //   var uri            = new Uri(URL.ToString());
+            var startedAt      = DateTimeOffset.UtcNow;
             var stopwatch      = new Stopwatch();
             var dnsDelay       = TimeSpan.Zero;
             var tcpDelay       = TimeSpan.Zero;
@@ -298,7 +299,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                    error,
                                    signatureVerification,
                                    serverDiagnostics
-                               );
+                               ) {
+                                   StartedAt = startedAt
+                               };
 
             // A timeout can leave the next successful request measuring recovery noise rather than
             // service latency: DNS/TCP/TLS setup, server warm-up, cold caches, or a just-freed queue

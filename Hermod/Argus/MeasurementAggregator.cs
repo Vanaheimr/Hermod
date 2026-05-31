@@ -143,6 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
                 result.Add(worst with {
                     Timestamp          = bucketTimestamp,
+                    StartedAt          = bucketTimestamp,
                     Success            = bucket.All(m => m.Success),
                     Error              = bucket.FirstOrDefault(m => m.Error is not null)?.Error,
                     SignatureVerification = bucket.LastOrDefault(m => m.SignatureVerification is not null)?.SignatureVerification,

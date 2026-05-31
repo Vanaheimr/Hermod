@@ -40,6 +40,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
         [property: JsonPropertyName("signature")] SignatureVerification? SignatureVerification = null,
 
-        [property: JsonPropertyName("diag")]       ServerDiagnostics?  ServerDiagnostics = null);
+        [property: JsonPropertyName("diag")]       ServerDiagnostics?  ServerDiagnostics = null)
+    {
+
+        /// <summary>
+        /// The timestamp when the check started. Older log files do not contain this value;
+        /// consumers can derive it from Timestamp - TotalTime when needed for display.
+        /// </summary>
+        [JsonPropertyName("startedAt")]
+        public DateTimeOffset? StartedAt { get; init; }
+
+    }
 
 }
