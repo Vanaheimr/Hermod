@@ -51,8 +51,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(keys.PrivateKeyEC,       Is.Not.Null);
             Assert.That(keys.PublicKeyEC,        Is.Not.Null);
-            Assert.That(keys.PrivateKeyECHEX,    Is.Not.Empty);
-            Assert.That(keys.PublicKeyECHEX,     Is.Not.Empty);
+            Assert.That(keys.PrivateKeyEC_HEX,    Is.Not.Empty);
+            Assert.That(keys.PublicKeyEC_HEX,     Is.Not.Empty);
             Assert.That(keys.PrivateKeyMLDSA,    Is.Null);
             Assert.That(keys.PublicKeyMLDSA,     Is.Null);
 
@@ -60,27 +60,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-        #region Parse_EC_ASN1_Keys_Test()
+        #region Parse_EC_DER_Keys_Test()
 
         /// <summary>
-        /// ASN.1 encoded EC keys contain their curve information and can be parsed without passing the curve explicitly.
+        /// DER encoded EC keys contain their curve information and can be parsed without passing the curve explicitly.
         /// </summary>
         [Test]
-        public void Parse_EC_ASN1_Keys_Test()
+        public void Parse_EC_DER_Keys_Test()
         {
 
             var generated = ServiceCheckKeys.GenerateECKeys("secp384r1");
-            var parsed    = ServiceCheckKeys.ParseECKeysASN1(
-                                generated.PrivateKeyECASN1HEX!,
-                                generated.PublicKeyECASN1HEX!
+            var parsed    = ServiceCheckKeys.ParseECKeysDER(
+                                generated.PrivateKeyEC_DER_HEX!,
+                                generated.PublicKeyEC_DER_HEX!
                             );
 
-            Assert.That(parsed.PrivateKeyECBytes, Is.EqualTo(generated.PrivateKeyECBytes));
-            Assert.That(parsed.PublicKeyECBytes,  Is.EqualTo(generated.PublicKeyECBytes));
+            Assert.That(parsed.PrivateKeyEC_Bytes, Is.EqualTo(generated.PrivateKeyEC_Bytes));
+            Assert.That(parsed.PublicKeyEC_Bytes,  Is.EqualTo(generated.PublicKeyEC_Bytes));
 
         }
 
         #endregion
+
 
         #region Generate_MLDSA_65_Keys_Test()
 
@@ -97,9 +98,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(keys.PublicKeyEC,        Is.Null);
             Assert.That(keys.PrivateKeyMLDSA,    Is.Not.Null);
             Assert.That(keys.PublicKeyMLDSA,     Is.Not.Null);
-            Assert.That(keys.PrivateKeyMLDSAHEX, Is.Not.Empty);
-            Assert.That(keys.PublicKeyMLDSAHEX,  Is.Not.Empty);
-            Assert.That(keys.PublicKeyMLDSABytes, Has.Length.EqualTo(1952));
+            Assert.That(keys.PrivateKeyMLDSA_HEX, Is.Not.Empty);
+            Assert.That(keys.PublicKeyMLDSA_HEX,  Is.Not.Empty);
+            Assert.That(keys.PublicKeyMLDSA_Bytes, Has.Length.EqualTo(1952));
 
         }
 
@@ -115,31 +116,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var generated = ServiceCheckKeys.GenerateMLDSAKeys();
-            var parsed    = ServiceCheckKeys.ParseMLDSAKeysHEX(generated.PrivateKeyMLDSAHEX!);
+            var parsed    = ServiceCheckKeys.ParseMLDSAKeysHEX(generated.PrivateKeyMLDSA_HEX!);
 
-            Assert.That(parsed.PrivateKeyMLDSABytes, Is.EqualTo(generated.PrivateKeyMLDSABytes));
-            Assert.That(parsed.PublicKeyMLDSABytes,  Is.EqualTo(generated.PublicKeyMLDSABytes));
+            Assert.That(parsed.PrivateKeyMLDSA_Bytes, Is.EqualTo(generated.PrivateKeyMLDSA_Bytes));
+            Assert.That(parsed.PublicKeyMLDSA_Bytes,  Is.EqualTo(generated.PublicKeyMLDSA_Bytes));
 
         }
 
         #endregion
 
-        #region Parse_MLDSA_ASN1_Keys_Test()
+        #region Parse_MLDSA_DER_Keys_Test()
 
         /// <summary>
-        /// ASN.1 encoded ML-DSA keys contain their parameter set and can be parsed without passing it explicitly.
+        /// DER encoded ML-DSA keys contain their parameter set and can be parsed without passing it explicitly.
         /// </summary>
         [Test]
-        public void Parse_MLDSA_ASN1_Keys_Test()
+        public void Parse_MLDSA_DER_Keys_Test()
         {
 
             var generated = ServiceCheckKeys.GenerateMLDSAKeys("ml_dsa_87");
-            var parsed    = ServiceCheckKeys.ParseMLDSAKeysASN1(generated.PrivateKeyMLDSAASN1HEX!);
-            var publicKey = ServiceCheckKeys.ParseMLDSAPublicKeyASN1(generated.PublicKeyMLDSAASN1HEX!);
+            var parsed    = ServiceCheckKeys.ParseMLDSAKeysDER     (generated.PrivateKeyMLDSA_DER_HEX!);
+            var publicKey = ServiceCheckKeys.ParseMLDSAPublicKeyDER(generated.PublicKeyMLDSA_DER_HEX!);
 
-            Assert.That(parsed.PrivateKeyMLDSABytes, Is.EqualTo(generated.PrivateKeyMLDSABytes));
-            Assert.That(parsed.PublicKeyMLDSABytes,  Is.EqualTo(generated.PublicKeyMLDSABytes));
-            Assert.That(publicKey.GetEncoded(),      Is.EqualTo(generated.PublicKeyMLDSABytes));
+            Assert.That(parsed.PrivateKeyMLDSA_Bytes, Is.EqualTo(generated.PrivateKeyMLDSA_Bytes));
+            Assert.That(parsed.PublicKeyMLDSA_Bytes,  Is.EqualTo(generated.PublicKeyMLDSA_Bytes));
+            Assert.That(publicKey.GetEncoded(),       Is.EqualTo(generated.PublicKeyMLDSA_Bytes));
 
         }
 
@@ -171,6 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
+
 
         #region Generate_Hybrid_Keys_Test()
 

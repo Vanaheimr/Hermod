@@ -1159,7 +1159,7 @@ Error:
                     if (ServiceCheckKeys?.PublicKeyEC is not null)
                     {
 
-                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyECHEX);
+                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyEC_HEX);
 
                         if (ServiceCheckKeys.PrivateKeyEC is not null)
                         {
@@ -1244,7 +1244,7 @@ Error:
                     if (ServiceCheckKeys?.PublicKeyEC is not null)
                     {
 
-                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyECHEX);
+                        serviceCheckJSON.Add("publicKey", ServiceCheckKeys.PublicKeyEC_HEX);
 
                         if (ServiceCheckKeys.PrivateKeyEC is not null)
                         {

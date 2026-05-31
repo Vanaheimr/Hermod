@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                          ))
                            );
 
-            response.Add("publicKey", keys.PublicKeyECHEX);
+            response.Add("publicKey", keys.PublicKeyEC_HEX);
 
             var plaintext  = CanonicalJSON.Serialize(response);
             var hash       = SHA256.HashData(plaintext.ToUTF8Bytes());
