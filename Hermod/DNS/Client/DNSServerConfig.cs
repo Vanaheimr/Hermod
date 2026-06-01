@@ -155,7 +155,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => String.Concat(
 
-                   $"{Transport.ToString().ToLower()}://{DomainName?.ToString() ?? IPAddress.ToString()}:{Port}",
+                   $"{Transport.ToString().ToLower()}://{DomainName?.ToString() ?? (IPAddress.IsIPv6
+                                                                                        ? $"[{IPAddress.ToString()}]"
+                                                                                        : IPAddress.ToString())}:{Port}",
 
                    QueryTimeout.HasValue
                        ? $", timeout: {Math.Round(QueryTimeout.Value.TotalSeconds)} sec."
