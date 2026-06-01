@@ -162,7 +162,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.RemoteIPAddress   = IPAddress;
             this.RemotePort        = Port             ?? IPPort.DNS;
-            this.RemoteURL         = URL.Parse($"dns://{IPAddress}:{this.RemotePort}");
+            this.RemoteURL         = IPAddress.IsIPv6
+                                         ? URL.Parse($"dns://[{IPAddress}]:{this.RemotePort}")
+                                         : URL.Parse($"dns://{IPAddress}:{this.RemotePort}");
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? DefaultQueryTimeout;
             this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSUDPClient>();

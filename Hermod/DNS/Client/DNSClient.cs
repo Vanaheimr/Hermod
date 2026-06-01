@@ -920,15 +920,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                    TimeSpan         Timeout)
         {
 
-            return DNSServer.Transport switch
-            {
+            return DNSServer.Transport switch {
 
                 DNSTransport.UDP =>
                     new DNSUDPClient(
                         DNSServer.IPAddress,
                         DNSServer.Port,
-                        QueryTimeout: Timeout,
-                        LoggerFactory: loggerFactory
+                        QueryTimeout:   Timeout,
+                        LoggerFactory:  loggerFactory
                     ),
 
                 DNSTransport.TCP =>
@@ -936,8 +935,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSTCPClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            QueryTimeout: Timeout,
-                            LoggerFactory: loggerFactory
+                            QueryTimeout:   Timeout,
+                            LoggerFactory:  loggerFactory
                         )
                     ),
 
@@ -946,8 +945,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSTLSClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            QueryTimeout: Timeout,
-                            LoggerFactory: loggerFactory
+                            QueryTimeout:   Timeout,
+                            LoggerFactory:  loggerFactory
                         )
                     ),
 
@@ -956,9 +955,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            Mode:         DNSHTTPSMode.POST,
-                            QueryTimeout: Timeout,
-                            LoggerFactory: loggerFactory
+                            Mode:           DNSHTTPSMode.POST,
+                            QueryTimeout:   Timeout,
+                            LoggerFactory:  loggerFactory
                         )
                     ),
 
@@ -967,9 +966,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            Mode:         DNSHTTPSMode.JSON,
-                            QueryTimeout: Timeout,
-                            LoggerFactory: loggerFactory
+                            Mode:           DNSHTTPSMode.JSON,
+                            QueryTimeout:   Timeout,
+                            LoggerFactory:  loggerFactory
                         )
                     ),
 
@@ -978,9 +977,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            Mode:         DNSHTTPSMode.GET,
-                            QueryTimeout: Timeout,
-                            LoggerFactory: loggerFactory
+                            Mode:           DNSHTTPSMode.GET,
+                            QueryTimeout:   Timeout,
+                            LoggerFactory:  loggerFactory
                         )
                     ),
 
@@ -990,9 +989,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            Mode:         DNSHTTPSMode.POST,
-                            QueryTimeout: Timeout,
-                            LoggerFactory: loggerFactory
+                            Mode:           DNSHTTPSMode.POST,
+                            QueryTimeout:   Timeout,
+                            LoggerFactory:  loggerFactory
                         )
                     ),
 
@@ -1001,17 +1000,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             DNSServer.IPAddress,
                             DNSServer.Port,
-                            Mode:         DNSHTTPSMode.JSON,
-                            QueryTimeout: Timeout,
-                            LoggerFactory: loggerFactory
+                            Mode:           DNSHTTPSMode.JSON,
+                            QueryTimeout:   Timeout,
+                            LoggerFactory:  loggerFactory
                         )
                     ),
 
                 _ => new DNSUDPClient(
                           DNSServer.IPAddress,
                           DNSServer.Port,
-                          QueryTimeout: Timeout,
-                          LoggerFactory: loggerFactory
+                          QueryTimeout:     Timeout,
+                          LoggerFactory:    loggerFactory
                       )
 
             };
