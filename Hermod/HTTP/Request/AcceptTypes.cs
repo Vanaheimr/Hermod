@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public AcceptTypes Clone()
 
-            => [.. acceptedTypes.Select(acceptType => acceptType.Clone()).ToArray()];
+            => new ([.. acceptedTypes.Select(acceptType => acceptType.Clone())]);
 
         #endregion
 
@@ -128,7 +128,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (AcceptType is null)
                 return;
 
-            acceptedTypes.Add(AcceptType);
+            if (!acceptedTypes.Contains(AcceptType))
+                acceptedTypes.Add(AcceptType);
 
         }
 
@@ -143,12 +144,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPContentType is null)
                 return;
 
-            acceptedTypes.Add(
-                new AcceptType(
-                    HTTPContentType,
-                    Quality
-                )
-            );
+            var newAcceptType = new AcceptType(
+                                    HTTPContentType,
+                                    Quality
+                                );
+
+            if (!acceptedTypes.Contains(newAcceptType))
+                acceptedTypes.Add(newAcceptType);
 
         }
 
