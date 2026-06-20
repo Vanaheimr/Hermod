@@ -2871,8 +2871,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CreateLogEntry     (this Request)
+
+        public String CreateLogEntry()
+
+            => String.Concat(
+                   HTTPResponse.RequestMarker,                              Environment.NewLine,
+                   HTTPSource.ToString(), " -> ", RemoteSocket.ToString(),  Environment.NewLine,
+                   Timestamp.ToISO8601(),                                   Environment.NewLine,
+                   EventTrackingId,                                         Environment.NewLine,
+                   EntirePDU,                                               Environment.NewLine,
+                   //HTTPResponse.ResponseMarker,                             Environment.NewLine,
+                   //Response.Timestamp.ToISO8601(),                          Environment.NewLine,
+                   //Response.EntirePDU,                                      Environment.NewLine,
+                   HTTPResponse.EndMarker,                                  Environment.NewLine
+               );
+
+        #endregion
+
+        #region AppendToLogfile    (this Request, Logfilename)
 
 
+        private static readonly SemaphoreSlim appendToLogfileSemaphore = new (1, 1);
+
+        /// <summary>
+        /// Append the given HTTP request to the given log file.
+        /// </summary>
+        /// <param name="Logfilename">The log file name, e.g. "HTTPRequests.log".</param>
+        public async Task AppendToLogfile(String Logfilename)
+        {
+
+            await appendToLogfileSemaphore.WaitAsync(TimeSpan.FromSeconds(5));
+
+            try
+            {
+
+                await File.AppendAllTextAsync(
+                          Logfilename,
+                          CreateLogEntry() + Environment.NewLine
+                      );
+
+            }
+            catch (Exception e)
+            {
+                DebugX.LogException(e, $"{nameof(HTTPRequest)}.{nameof(AppendToLogfile)}({Logfilename}, ...)");
+            }
+            finally
+            {
+                appendToLogfileSemaphore.Release();
+            }
+
+        }
+
+        #endregion
 
 
         #region GetSecurityTokenFromCookie(this Request, SessionCookieName)
