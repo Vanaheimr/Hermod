@@ -181,7 +181,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                           HTTPAPI?                                                  DefaultAPI                   = null,
                           ILoggerFactory?                                           LoggerFactory                = null,
-                          Boolean?                                                  AutoStart                    = false)
+                          Boolean?                                                  AutoStart                    = false,
+                          UInt64?                                                   MaxHTTPBodySize              = null)
 
             : base(IPAddress,
                    TCPPort,
@@ -225,7 +226,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    WardenCheckEvery,
 
                    LoggerFactory,
-                   AutoStart: false)
+                   AutoStart: false,
+                   MaxHTTPBodySize)
 
         {
 
@@ -299,7 +301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                      TimeSpan?                                                 WardenCheckEvery             = null,
 
                      HTTPAPI?                                                  DefaultAPI                   = null,
-                     ILoggerFactory?                                           LoggerFactory                = null)
+                     ILoggerFactory?                                           LoggerFactory                = null,
+                     UInt64?                                                   MaxHTTPBodySize              = null)
 
         {
 
@@ -337,7 +340,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              DefaultAPI,
                              LoggerFactory,
 
-                             AutoStart: false
+                             AutoStart:       false,
+                             MaxHTTPBodySize: MaxHTTPBodySize
 
                          );
 
@@ -1205,6 +1209,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
+                if (e is HTTPBodyTooLargeException)
+                {
+                    return new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode = HTTPStatusCode.RequestEntityTooLarge,
+                               Server         = HTTPServerName,
+                               ContentType    = HTTPContentType.Application.JSON_UTF8,
+                               Content        = JSONObject.Create(
+                                                    new JProperty("description", "The request body is too large."),
+                                                    new JProperty("maximumBytes", MaxHTTPBodySize)
+                                                ).ToUTF8Bytes(),
+                               Connection     = ConnectionType.Close
+                           };
+                }
+
                 return new HTTPResponse.Builder(Request) {
                            HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                            Server          = HTTPServerName,

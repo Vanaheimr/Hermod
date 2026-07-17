@@ -26,6 +26,8 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
@@ -99,6 +101,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP server name.
         /// </summary>
         public String  HTTPServerName    { get; } = DefaultHTTPServerName;
+
+        /// <summary>
+        /// The maximum request-body size accepted by this HTTP server.
+        /// </summary>
+        public UInt64  MaxHTTPBodySize   { get; }
 
         #endregion
 
@@ -185,7 +192,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            TimeSpan?                                                 WardenCheckEvery             = null,
 
                            ILoggerFactory?                                           LoggerFactory                = null,
-                           Boolean?                                                  AutoStart                    = false)
+                           Boolean?                                                  AutoStart                    = false,
+                           UInt64?                                                   MaxHTTPBodySize              = null)
 
             : base(IPAddress,
                    TCPPort,
@@ -229,6 +237,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
                                              : (UInt32) BufferSize.Value
                                        : DefaultBufferSize;
+
+            this.MaxHTTPBodySize = MaxHTTPBodySize ?? AHTTPPDU.DefaultMaxHTTPBodySize;
+            if (this.MaxHTTPBodySize == 0 || this.MaxHTTPBodySize > Int32.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(MaxHTTPBodySize), "The maximum HTTP body size must be between 1 and Int32.MaxValue bytes.");
 
             #region Subscribe to TCP server events
 
@@ -347,6 +359,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         connection.IncrementKeepAliveMessageCount();
                         request.   KeepAliveMessageCount  = connection.KeepAliveMessageCount;
 
+                        if (request.ContentLength is UInt64 contentLength &&
+                            contentLength > MaxHTTPBodySize)
+                        {
+                            await SendResponse(
+                                      stream,
+                                      CreateRequestBodyTooLargeResponse(request),
+                                      CancellationToken
+                                  );
+
+                            break;
+                        }
+
                         #region Shift remaining data
 
                         var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
@@ -382,6 +406,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  bodyDataStream,
                                                  request.ContentLength.Value,
                                                  LeaveInnerStreamOpen: true
+                                              );
+
+                            if (request.IsChunkedTransferEncoding)
+                                bodyStream = new MaximumLengthStream(
+                                                 bodyStream,
+                                                 MaxHTTPBodySize,
+                                                 LeaveInnerStreamOpen: false
                                              );
 
                         }
@@ -405,8 +436,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             var discardBuffer = new Byte[4096];
                             int read;
 
-                            while ((read = await bodyStream.ReadAsync(discardBuffer, CancellationToken)) > 0)
-                            { }
+                            try
+                            {
+                                while ((read = await bodyStream.ReadAsync(discardBuffer, CancellationToken)) > 0)
+                                { }
+                            }
+                            catch (HTTPBodyTooLargeException)
+                            {
+                                bodyStream.Dispose();
+                                httpResponse = CreateRequestBodyTooLargeResponse(request);
+                            }
 
                         }
 
@@ -561,6 +600,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         #region (protected) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
+
+        private HTTPResponse CreateRequestBodyTooLargeResponse(HTTPRequest Request)
+            => new HTTPResponse.Builder(Request) {
+                   HTTPStatusCode = HTTPStatusCode.RequestEntityTooLarge,
+                   Server         = HTTPServerName,
+                   Date           = Timestamp.Now,
+                   Connection     = ConnectionType.Close,
+                   ContentType    = HTTPContentType.Application.JSON_UTF8,
+                   Content        = JSONObject.Create(
+                                        new JProperty("description", "The request body is too large."),
+                                        new JProperty("maximumBytes", MaxHTTPBodySize)
+                                    ).ToUTF8Bytes()
+               }.AsImmutable;
 
         /// <summary>
         /// Process the given HTTP request.

@@ -70,6 +70,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public const UInt32 MaxHTTPBodyReceiveBufferSize      = 1024 * 1024 * 1024;
 
+        /// <summary>
+        /// The default maximum size of a materialized HTTP request body (==8 MByte).
+        /// </summary>
+        public const UInt64 DefaultMaxHTTPBodySize             = 8UL * 1024 * 1024;
+
         #endregion
 
         #region Non-HTTP header fields
@@ -573,6 +578,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public UInt32  HTTPBodyReceiveBufferSize   { get; }
 
+        /// <summary>
+        /// The maximum number of request-body bytes that may be materialized.
+        /// </summary>
+        public UInt64  MaxHTTPBodySize             { get; internal set; }
+
         #endregion
 
         #region CloseActionAfterBodyWasRead
@@ -596,6 +606,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.Timestamp                  = Illias.Timestamp.Now;
             this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
+            this.MaxHTTPBodySize             = DefaultMaxHTTPBodySize;
             this.RawHTTPHeader              = "";
             this.RawPDU                     = "";
             this.FirstPDULine               = "";
@@ -626,6 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.httpBody                                   = HTTPPDU.HTTPBody;
             this.HTTPBodyStream                             = HTTPPDU.HTTPBodyStream;
             this.HTTPBodyReceiveBufferSize                  = DefaultHTTPBodyReceiveBufferSize;
+            this.MaxHTTPBodySize                             = HTTPPDU.MaxHTTPBodySize;
             this.ConsumeChunkedTransferEncodingImmediately  = HTTPPDU.ConsumeChunkedTransferEncodingImmediately;
             this.CancellationToken                          = HTTPPDU.CancellationToken;
             this.EventTrackingId                            = HTTPPDU.EventTrackingId;
@@ -1509,67 +1521,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 invokeCloseAction = true;
 
                 if (HTTPBodyStream is null ||
-                   !ContentLength.HasValue ||
-                    ContentLength.Value == 0)
+                    ContentLength == 0)
                 {
                     httpBody = [];
                     return true;
                 }
 
-                if (ContentLength.Value > Int32.MaxValue)
-                    throw new IOException($"The HTTP body is too large to buffer in memory: {ContentLength.Value} bytes!");
-
-                httpBody      = new Byte[(Int32) ContentLength.Value];
-                var position  = 0;
-
-                while (position < httpBody.Length)
+                if (ContentLength is UInt64 contentLength &&
+                    contentLength > MaxHTTPBodySize)
                 {
+                    throw new HTTPBodyTooLargeException(
+                        contentLength,
+                        MaxHTTPBodySize
+                    );
+                }
 
-                    try
+                // Never use Content-Length as an allocation size. Start with a
+                // small bounded buffer and grow only with bytes actually read.
+                using var memoryStream = new MemoryStream(16 * 1024);
+                var buffer             = ArrayPool<Byte>.Shared.Rent(16 * 1024);
+                UInt64 totalRead       = 0;
+
+                try
+                {
+                    while (true)
                     {
-
                         var read = await HTTPBodyStream.ReadAsync(
-                                             httpBody.AsMemory(
-                                                 position,
-                                                 httpBody.Length - position
-                                             ),
+                                             buffer.AsMemory(),
                                              CancellationToken
                                          ).ConfigureAwait(false);
 
                         if (read == 0)
                             break;
 
-                        position += read;
+                        totalRead += (UInt64) read;
+                        if (totalRead > MaxHTTPBodySize)
+                            throw new HTTPBodyTooLargeException(totalRead, MaxHTTPBodySize);
 
+                        await memoryStream.WriteAsync(
+                            buffer.AsMemory(0, read),
+                            CancellationToken
+                        ).ConfigureAwait(false);
+
+                        if (ContentLength is UInt64 expectedLength &&
+                            totalRead >= expectedLength)
+                        {
+                            break;
+                        }
                     }
-                    catch (IOException ex)
+
+                    httpBody = memoryStream.ToArray();
+
+                    return ContentLength is not UInt64 expectedBodyLength ||
+                           totalRead == expectedBodyLength;
+                }
+                catch (IOException ex)
+                {
+                    // Preserve socket timeout behavior while allowing body-size
+                    // violations to reach the HTTP layer as 413.
+                    if (ex is HTTPBodyTooLargeException)
+                        throw;
+
+                    if (ex.InnerException is SocketException socketException &&
+                        socketException.ErrorCode == 10060)
                     {
-                        // If the ReceiveTimeout is reached an IOException will be raised...
-                        // with an InnerException of type SocketException and ErrorCode 10060
-
-                        // If it's not the "expected" exception, let's not hide the error
-                        if (ex.InnerException is not SocketException socketException || socketException.ErrorCode != 10060)
-                            throw;
-
-                        // If it is the receive timeout, then reading ended
-                        break;
-
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.LogT($"{nameof(AHTTPPDU)} could not read HTTP body ({ContentLength.Value} bytes): {e.Message}");
+                        httpBody = memoryStream.ToArray();
                         return false;
                     }
 
+                    throw;
                 }
-
-                if (position == httpBody.Length)
-                    return true;
-
-                else
+                catch (Exception e)
                 {
-                    Array.Resize(ref httpBody, position);
+                    DebugX.LogT($"{nameof(AHTTPPDU)} could not read HTTP body ({ContentLength?.ToString() ?? "chunked"} bytes): {e.Message}");
                     return false;
+                }
+                finally
+                {
+                    ArrayPool<Byte>.Shared.Return(buffer);
                 }
 
             }

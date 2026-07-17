@@ -1248,6 +1248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPServer         = HTTPServer;
             this.ServerCertificate  = ServerCertificate;
             this.ClientCertificate  = ClientCertificate;
+            this.MaxHTTPBodySize    = HTTPServer?.MaxHTTPBodySize ?? DefaultMaxHTTPBodySize;
 
             this.HTTPMethod         = HTTPMethod;
             this.Path               = Path;
@@ -1319,6 +1320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPServer         = HTTPServer;
             this.ServerCertificate  = ServerCertificate;
             this.ClientCertificate  = ClientCertificate;
+            this.MaxHTTPBodySize    = HTTPServer?.MaxHTTPBodySize ?? DefaultMaxHTTPBodySize;
 
 
             // 1st line of the request
@@ -2119,6 +2121,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   CancellationToken:  CancellationToken
 
                               );
+
+                HTTPRequest.MaxHTTPBodySize = HTTPServer?.MaxHTTPBodySize ?? DefaultMaxHTTPBodySize;
 
                 var httpSources = HTTPRequest.X_Forwarded_For;
                 if (httpSources.Any())
