@@ -329,6 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
                                               var responseStream  = new MemoryStream();
                                               responseStream.Write((new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes());
+                                              responseStream.Position = 0;
 
                                               return Task.FromResult(
                                                          new HTTPResponse.Builder(request) {

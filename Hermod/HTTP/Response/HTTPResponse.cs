@@ -328,6 +328,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Func<HTTPResponse, ChunkedTransferEncodingStream, Task>  ChunkWorker      { get; set; } = (response, stream) => Task.CompletedTask;
         public Func<HTTPResponse, StreamWriter,                  Task>  HTTPSSEWorker    { get; set; } = (response, stream) => Task.CompletedTask;
 
+        /// <summary>
+        /// Whether the server shall apply chunked transfer encoding to the static response body.
+        /// </summary>
+        public Boolean AutomaticallyChunkContent { get; internal set; }
+
         #region Standard response header fields
 
         #region Age
@@ -1637,7 +1642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public Task<IEnumerable<(String, String)>>
+        public async Task<IEnumerable<(String, String)>>
 
             ReadAllChunks(Action<HTTPResponseChunk>  OnChunkReceived,
                           CancellationToken          CancellationToken   = default)
@@ -1645,12 +1650,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
-                return chunkedStream.ReadAllChunks(
-                           (timestamp, elapsed, counter, data) => OnChunkReceived(new HTTPResponseChunk(this, timestamp, elapsed, counter, data)),
-                           CancellationToken
-                       );
+            {
+                var trailers = await chunkedStream.ReadAllChunks(
+                                         (timestamp, elapsed, counter, data) => OnChunkReceived(new HTTPResponseChunk(this, timestamp, elapsed, counter, data)),
+                                         CancellationToken
+                                     );
 
-            return Task.FromResult<IEnumerable<(String, String)>>([]);
+                SetTrailingHeaders(trailers);
+                ChunkExtensions = chunkedStream.ChunkExtensions;
+
+                return trailers;
+            }
+
+            return [];
 
         }
 

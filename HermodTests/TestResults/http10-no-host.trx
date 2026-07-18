@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="40810e5b-d363-4b5f-b672-b111c3942171" name="achim@OCTAL 2026-07-18 17:45:03" runUser="OCTAL\CodexSandboxOffline" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-07-18T17:45:03.6807327+02:00" queuing="2026-07-18T17:45:03.6807331+02:00" start="2026-07-18T17:45:02.7537469+02:00" finish="2026-07-18T17:45:03.6876968+02:00" />
+  <TestSettings name="default" id="d98f4395-aaf4-40cb-a54d-5e639283b293">
+    <Deployment runDeploymentRoot="achim_OCTAL_2026-07-18_17_45_03" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="5eaeca6e-1ff0-4cea-9a56-d63a07471bfc" testId="b2151af5-78f9-990a-b73c-57fc3218abc6" testName="HTTP_1_0_Request_Does_Not_Require_A_Host_Header" computerName="OCTAL" duration="00:00:00.2327240" startTime="2026-07-18T17:45:03.3411878+02:00" endTime="2026-07-18T17:45:03.5738438+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5eaeca6e-1ff0-4cea-9a56-d63a07471bfc">
+      <Output>
+        <ErrorInfo>
+          <Message>  HTTP/1.1 500 Internal Server Error&#xD;
+Date: Sat, 18 Jul 2026 15:45:03 GMT&#xD;
+Server: GraphDefined Hermod HTTP Server v2.0&#xD;
+Content-Type: application/json; charset=utf-8&#xD;
+Content-Length: 79&#xD;
+Connection: close&#xD;
+&#xD;
+{"request":"GET / HTTP/1.0","description":"An internal server error occurred."}&#xD;
+Assert.That(response, Does.StartWith("HTTP/1.1 200"))&#xD;
+  Expected: String starting with "HTTP/1.1 200"&#xD;
+  But was:  "HTTP/1.1 500 Internal Server Error&#xD;
+Date: Sat, 18 Jul 2026 15:45:03 GMT&#xD;
+Server: GraphDefined Hermod HTTP Server v2.0&#xD;
+Content-Type: application/json; charset=utf-8&#xD;
+Content-Length: 79&#xD;
+Connection: close&#xD;
+&#xD;
+{"request":"GET / HTTP/1.0","description":"An internal server error occurred."}"&#xD;
+</Message>
+          <StackTrace>   at org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.HTTPServerSocketRegressionTests.HTTP_1_0_Request_Does_Not_Require_A_Host_Header() in D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\HTTP\HTTPServerSocketRegressionTests.cs:line 847&#xD;
+   at org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.HTTPServerSocketRegressionTests.HTTP_1_0_Request_Does_Not_Require_A_Host_Header() in D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\HTTP\HTTPServerSocketRegressionTests.cs:line 855&#xD;
+   at NUnit.Framework.Internal.TaskAwaitAdapter.GenericAdapter`1.BlockUntilCompleted()&#xD;
+   at NUnit.Framework.Internal.MessagePumpStrategy.NoMessagePumpStrategy.WaitForCompletion(AwaitAdapter awaiter)&#xD;
+   at NUnit.Framework.Internal.AsyncToSyncAdapter.Await[TResult](TestExecutionContext context, Func`1 invoke)&#xD;
+   at NUnit.Framework.Internal.AsyncToSyncAdapter.Await(TestExecutionContext context, Func`1 invoke)&#xD;
+   at NUnit.Framework.Internal.Commands.TestMethodCommand.RunTestMethod(TestExecutionContext context)&#xD;
+   at NUnit.Framework.Internal.Commands.TestMethodCommand.Execute(TestExecutionContext context)&#xD;
+   at NUnit.Framework.Internal.Execution.SimpleWorkItem.&lt;&gt;c__DisplayClass3_0.&lt;PerformWork&gt;b__0()&#xD;
+   at NUnit.Framework.Internal.ContextUtils.&lt;&gt;c__DisplayClass1_0`1.&lt;DoIsolated&gt;b__0(Object _)&#xD;
+   at NUnit.Framework.Internal.ContextUtils.&lt;&gt;c__DisplayClass2_0.&lt;DoIsolated&gt;b__0(Object s)&#xD;
+
+1)    at org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.HTTPServerSocketRegressionTests.HTTP_1_0_Request_Does_Not_Require_A_Host_Header() in D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\HTTP\HTTPServerSocketRegressionTests.cs:line 847&#xD;
+
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="HTTP_1_0_Request_Does_Not_Require_A_Host_Header" storage="d:\coding\openchargingcloud\chargyapi_prod1\libs\hermod\hermodtests\bin\debug\net10.0\org.graphdefined.vanaheimr.hermod.tests.dll" id="b2151af5-78f9-990a-b73c-57fc3218abc6">
+      <Execution id="5eaeca6e-1ff0-4cea-9a56-d63a07471bfc" />
+      <TestMethod codeBase="D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\bin\Debug\net10.0\org.GraphDefined.Vanaheimr.Hermod.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.HTTPServerSocketRegressionTests" name="HTTP_1_0_Request_Does_Not_Require_A_Host_Header" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="b2151af5-78f9-990a-b73c-57fc3218abc6" executionId="5eaeca6e-1ff0-4cea-9a56-d63a07471bfc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Ergebnisse nicht in einer Liste" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Alle geladenen Ergebnisse" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>NUnit Adapter 1.0.0.0: Test execution started&#xD;
+Running selected tests in D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\bin\Debug\net10.0\org.GraphDefined.Vanaheimr.Hermod.Tests.dll&#xD;
+   NUnit3TestExecutor discovered 1 of 1 NUnit test cases using Current Discovery mode, Non-Explicit run&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

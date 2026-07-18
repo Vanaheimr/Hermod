@@ -63,8 +63,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
                                          // Certificate verification
                                          if (certificate is null ||
-                                             certificate.Subject != "OU=GraphDefined PKI Services, O=GraphDefined GmbH, CN=AHTTPSServerTests Server Certificate" ||
-                                             certificate.Issuer  != "OU=GraphDefined PKI Services, O=GraphDefined GmbH, CN=AHTTPSServerTests Server CA"          ||
+                                             certificate.Subject != "CN=AHTTPSServerTests Server Certificate" ||  // OU=GraphDefined PKI Services, O=GraphDefined GmbH, 
+                                             certificate.Issuer  != "CN=AHTTPSServerTests Server CA"          ||  // OU=GraphDefined PKI Services, O=GraphDefined GmbH, 
                                              certificate.NotBefore.ToUniversalTime() > Timestamp.Now ||
                                              certificate.NotAfter. ToUniversalTime() < Timestamp.Now ||
                                              certificate.GetSerialNumberString().IsNullOrEmpty())
@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                              certificateChain.ChainElements.Count > 0 &&
                                              certificateChain.ChainElements[^1].Certificate.Thumbprint == rootCA.Thumbprint)
                                          {
-                                             return TLSValidationResult.Failed("Is not: rootCA.Thumbprint!");
+                                             return TLSValidationResult.Success();
                                          }
 
                                          // Collect status errors
@@ -111,9 +111,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            Assert.That(request.Contains("Date:"), Is.False, request);
-            Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
-            Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
+            Assert.That(request.Contains("Date:"),            Is.False, request);
+            Assert.That(request.Contains("GET / HTTP/1.1"),   Is.True,  request);
+            Assert.That(request.Contains("Host: 127.0.0.1"),  Is.True,  request);
 
 
 

@@ -87,6 +87,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker { get; set; } = (request, stream) => Task.CompletedTask;
 
+            /// <summary>
+            /// Whether the HTTP client shall invoke <see cref="ChunkWorker"/> to create the chunked request body.
+            /// </summary>
+            public Boolean  UseChunkWorker  { get; set; }
+
             public Object?      SubprotocolRequest    { get; set; }
 
             #endregion
@@ -1576,6 +1581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         FakeURLPrefix       = FakeURLPrefix,
                         ChunkWorker         = ChunkWorker,
+                        UseChunkWorker      = UseChunkWorker,
                         SubprotocolRequest  = SubprotocolRequest
 
                     };

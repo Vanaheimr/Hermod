@@ -38,6 +38,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPEventSourceExtensions
     {
 
+        #region WriteHeartbeat(StreamWriter, Comment = "keep-alive", CancellationToken = default)
+
+        /// <summary>
+        /// Write and flush an SSE comment heartbeat. SSE clients ignore comments while
+        /// intermediaries and idle connections observe regular traffic.
+        /// </summary>
+        public static async Task WriteHeartbeat(this StreamWriter       StreamWriter,
+                                                String                   Comment             = "keep-alive",
+                                                CancellationToken        CancellationToken   = default)
+        {
+
+            ArgumentNullException.ThrowIfNull(StreamWriter);
+
+            await StreamWriter.WriteAsync($": {Comment.Replace("\r", "").Replace("\n", " ")}\n\n");
+            await StreamWriter.FlushAsync(CancellationToken);
+
+        }
+
+        #endregion
+
+
         #region SubmitEvent(SubEvent, HTTPRequest)
 
         /// <summary>
@@ -921,9 +942,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+        #region GetEventsWithReconnect(HTTPClient, Path, ...)
+
+        /// <summary>
+        /// Read a server-sent event stream and reconnect a bounded number of times.
+        /// The last received event id is sent as the Last-Event-ID request header on
+        /// subsequent requests. A retry field received from the server controls the
+        /// delay before the next reconnect.
+        /// </summary>
+        /// <param name="HTTPClient">The HTTP client used to request the event stream.</param>
+        /// <param name="Path">The path of the event stream.</param>
+        /// <param name="MaxNumberOfReconnects">The maximum number of reconnects after the initial request.</param>
+        /// <param name="ReconnectInterval">The fallback reconnect interval when the stream does not provide a retry field.</param>
+        /// <param name="RequestBuilder">An optional delegate to configure every event stream request.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static async Task<List<HTTPEvent<JObject>>> GetEventsWithReconnect(IHTTPClient                      HTTPClient,
+                                                                                   HTTPPath                          Path,
+                                                                                   UInt16                            MaxNumberOfReconnects  = 1,
+                                                                                   TimeSpan?                         ReconnectInterval      = null,
+                                                                                   Action<HTTPRequest.Builder>?      RequestBuilder         = null,
+                                                                                   CancellationToken                 CancellationToken      = default)
+        {
+
+            var events             = new List<HTTPEvent<JObject>>();
+            var lastEventId        = (UInt64?) null;
+            var reconnectInterval  = ReconnectInterval ?? TimeSpan.FromSeconds(1);
+
+            for (var requestNumber = 0;
+                 requestNumber <= MaxNumberOfReconnects && !CancellationToken.IsCancellationRequested;
+                 requestNumber++)
+            {
+
+                var httpResponse = await HTTPClient.GET(
+                                             Path,
+                                             RequestBuilder: requestBuilder => {
+
+                                                 RequestBuilder?.Invoke(requestBuilder);
+
+                                                 if (lastEventId.HasValue)
+                                                     requestBuilder.LastEventId = lastEventId.Value;
+
+                                             },
+                                             CancellationToken: CancellationToken
+                                         );
+
+                var retryIntervalFromServer = (TimeSpan?) null;
+
+                var parsedEvents = await ParseHTTPResponseStream(
+                                             httpResponse,
+                                             RetryInterval: retryInterval => retryIntervalFromServer = retryInterval,
+                                             cancellationToken: CancellationToken
+                                         );
+
+                events.AddRange(parsedEvents);
+
+                if (parsedEvents.Count > 0)
+                    lastEventId = parsedEvents.MaxBy(httpEvent => httpEvent.Id)?.Id;
+
+                if (retryIntervalFromServer.HasValue)
+                    reconnectInterval = retryIntervalFromServer.Value;
+
+                if (requestNumber < MaxNumberOfReconnects &&
+                    !CancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(reconnectInterval, CancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                }
+
+            }
+
+            return events;
+
+        }
+
+        #endregion
+
+
         public static async Task<List<HTTPEvent<JObject>>> ParseHTTPResponseStream(HTTPResponse       HTTPResponse,
                                                                                    TimeSpan?          lineTimeout       = null,
-                                                                                   CancellationToken  cancellationToken = default)
+                                                                                   CancellationToken  cancellationToken = default,
+                                                                                   Action<TimeSpan>?  RetryInterval      = null)
         {
 
             if (HTTPResponse?.HTTPBodyStream is null)
@@ -936,7 +1040,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var events        = new List<HTTPEvent<JObject>>();
             var currentEvent  = new HTTPEvent<JObject>.EventBuilder();
-            var isData        = false;
 
             string? line;
             while (!cancellationToken.IsCancellationRequested)
@@ -980,13 +1083,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
                     }
                     currentEvent.Reset();
-                    isData = false;
-                    continue;
-                }
-
-                if (isData)
-                {
-                    currentEvent.AppendData(line);
                     continue;
                 }
 
@@ -1015,12 +1111,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         break;
 
                     case "data":
-                        isData = true;
                         currentEvent.AppendData(value);
                         break;
 
                     case "retry":
-                        // Optional: currentEvent.RetryMs = int.Parse(value);
+                        if (UInt32.TryParse(value, out var retryMilliseconds))
+                            RetryInterval?.Invoke(TimeSpan.FromMilliseconds(retryMilliseconds));
                         break;
 
                 }

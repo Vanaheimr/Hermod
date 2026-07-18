@@ -53,11 +53,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected readonly ConcurrentDictionary<String, Object?>  headerFields         = new (StringComparer.OrdinalIgnoreCase);
         protected readonly ConcurrentDictionary<String, Object>   headerFieldsParsed   = new (StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// The HTTP trailer header fields received after a chunked message body.
+        /// </summary>
+        public ConcurrentDictionary<String, String>               TrailingHeaders      { get; } = new (StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// The chunk extensions received for each chunk-size line, in wire order.
+        /// </summary>
+        public IReadOnlyList<IReadOnlyDictionary<String, IReadOnlyList<String>>>  ChunkExtensions  { get; internal set; } = [];
+
+        internal ChunkedTransferEncodingStream?                   ChunkedTransferEncodingStream { get; set; }
+
         protected readonly static String[]  lineSeparator    = ["\n", "\r\n"];
         protected readonly static Char[]    colonSeparator   = [':'  ];
         protected readonly static Char[]    slashSeparator   = [ '/' ];
         protected readonly static Char[]    spaceSeparator   = [ ' ' ];
-        protected readonly static Char[]    urlSeparator     = [ '?', '!'];
+        protected readonly static Char[]    urlSeparator     = [ '?'     ];
         protected readonly static Char[]    hashSeparator    = [ '#' ];
 
         /// <summary>
@@ -268,18 +280,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public Boolean IsConnectionClose
+            => HasConnectionOption(ConnectionType.Close);
+
+        private Boolean HasConnectionOption(ConnectionType ConnectionOption)
         {
-            get
+
+            if (!headerFields.TryGetValue(HTTPHeaderField.Connection.Name, out var value) ||
+                value is null)
             {
-
-                var connection = Connection;
-
-                if (connection.HasValue && connection.Value == ConnectionType.Close)
-                    return true;
-
                 return false;
-
             }
+
+            var expectedOption = ConnectionOption.ToString();
+
+            static IEnumerable<String> SplitOptions(String Text)
+                => Text.Split(',', StringSplitOptions.RemoveEmptyEntries |
+                                    StringSplitOptions.TrimEntries);
+
+            return value switch
+            {
+                String         text             => SplitOptions(text).Any(option => option.Equals(expectedOption, StringComparison.OrdinalIgnoreCase)),
+                String[]       texts            => texts.SelectMany(SplitOptions).Any(option => option.Equals(expectedOption, StringComparison.OrdinalIgnoreCase)),
+                ConnectionType connectionType   => SplitOptions(connectionType.ToString()).Any(option => option.Equals(expectedOption, StringComparison.OrdinalIgnoreCase)),
+                _                               => SplitOptions(value.ToString() ?? String.Empty).Any(option => option.Equals(expectedOption, StringComparison.OrdinalIgnoreCase))
+            };
+
         }
 
         #endregion
@@ -390,10 +415,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Whether this HTTP PDU uses chunked transfer encoding.
         /// </summary>
-        public Boolean IsChunkedTransferEncoding
+       public Boolean IsChunkedTransferEncoding
 
-            => TransferEncoding is not null &&
-               TransferEncoding.Equals("chunked", StringComparison.OrdinalIgnoreCase);
+           => TransferEncoding is not null &&
+               TransferEncoding.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                              .LastOrDefault()
+                              ?.Equals("chunked", StringComparison.OrdinalIgnoreCase) == true;
 
         #endregion
 
@@ -404,9 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                var connection = Connection;
-
-                if (connection.HasValue && connection.Value == ConnectionType.KeepAlive)
+                if (HasConnectionOption(ConnectionType.KeepAlive))
                     return GetHeaderField(HTTPHeaderField.KeepAlive);
 
                 return null;
@@ -419,10 +444,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                var connection = Connection;
+                var hasClose     = HasConnectionOption(ConnectionType.Close);
+                var hasKeepAlive = HasConnectionOption(ConnectionType.KeepAlive);
 
-                if (connection.HasValue && connection.Value == ConnectionType.KeepAlive)
+                if (this is HTTPResponse response &&
+                    response.HTTPRequest is not null)
+                {
+
+                    if (!response.HTTPRequest.IsKeepAlive || hasClose)
+                    {
+                        return false;
+                    }
+
+                    // HTTP/1.0 persistence must be explicitly negotiated in
+                    // both directions. HTTP/1.1 is persistent by default.
+                    return response.HTTPRequest.ProtocolVersion == HTTPVersion.HTTP_1_1 ||
+                           hasKeepAlive;
+
+                }
+
+                if (hasClose)
+                    return false;
+
+                if (hasKeepAlive)
                     return true;
+
+                if (this is HTTPRequest request)
+                    return request.ProtocolVersion == HTTPVersion.HTTP_1_1;
 
                 return false;
 
@@ -480,6 +528,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return httpBody.ToUTF8String();
 
                 }
+                catch (HTTPBodyTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPChunkMetadataTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPInvalidChunkException)
+                {
+                    throw;
+                }
+                catch (HTTPReadTimeoutException)
+                {
+                    throw;
+                }
+                catch (HTTPIncompleteBodyException)
+                {
+                    throw;
+                }
                 catch
                 { }
 
@@ -516,6 +584,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                 }
+                catch (HTTPBodyTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPChunkMetadataTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPInvalidChunkException)
+                {
+                    throw;
+                }
+                catch (HTTPReadTimeoutException)
+                {
+                    throw;
+                }
+                catch (HTTPIncompleteBodyException)
+                {
+                    throw;
+                }
                 catch
                 { }
 
@@ -551,6 +639,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
+                }
+                catch (HTTPBodyTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPChunkMetadataTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPInvalidChunkException)
+                {
+                    throw;
+                }
+                catch (HTTPReadTimeoutException)
+                {
+                    throw;
+                }
+                catch (HTTPIncompleteBodyException)
+                {
+                    throw;
                 }
                 catch
                 { }
@@ -707,7 +815,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                StringSplitOptions.RemoveEmptyEntries
                            );
 
-            if (allLines is null || allLines.Length < 2)
+            if (allLines is null || allLines.Length < 1)
                 throw new Exception("Bad request");
 
             FirstPDULine = allLines.First();
@@ -1486,10 +1594,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var chunks = new MemoryStream();
 
-                // ignore trailers
-                _ = await chunkedStream.ReadAllChunks(
-                              async (timestamp, elapsed, counter, data) => await chunks.WriteAsync(data)
-                          );
+                var trailers = await chunkedStream.ReadAllChunks(
+                                       async (timestamp, elapsed, counter, data) => await chunks.WriteAsync(data)
+                                   );
+
+                SetTrailingHeaders(trailers);
+                ChunkExtensions = chunkedStream.ChunkExtensions;
 
                 return chunks.ToArray();
 
@@ -1498,6 +1608,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return [];
 
         }
+
+        #region (internal) SetTrailingHeaders(Trailers)
+
+        /// <summary>
+        /// Store the trailer header fields received after a chunked message body.
+        /// Multiple values for the same field are combined according to HTTP field-value semantics.
+        /// </summary>
+        /// <param name="Trailers">The received trailer header fields.</param>
+        protected internal void SetTrailingHeaders(IEnumerable<(String Name, String Value)> Trailers)
+        {
+
+            foreach (var (name, value) in Trailers)
+            {
+                TrailingHeaders.AddOrUpdate(
+                    name,
+                    value,
+                    (_, existingValue) => String.Concat(existingValue, ", ", value)
+                );
+            }
+
+        }
+
+        #endregion
 
 
         #region TryReadHTTPBodyStream()
@@ -1521,7 +1654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 invokeCloseAction = true;
 
                 if (HTTPBodyStream is null ||
-                    ContentLength == 0)
+                    (!IsChunkedTransferEncoding && ContentLength == 0))
                 {
                     httpBody = [];
                     return true;
@@ -1563,23 +1696,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             CancellationToken
                         ).ConfigureAwait(false);
 
-                        if (ContentLength is UInt64 expectedLength &&
+                        if (!IsChunkedTransferEncoding &&
+                            ContentLength is UInt64 expectedLength &&
                             totalRead >= expectedLength)
                         {
                             break;
                         }
                     }
 
+                    if (ChunkedTransferEncodingStream is not null)
+                    {
+                        SetTrailingHeaders(ChunkedTransferEncodingStream.TrailerHeaders);
+                        ChunkExtensions = ChunkedTransferEncodingStream.ChunkExtensions;
+                    }
+
+                    else if (HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
+                    {
+                        SetTrailingHeaders(chunkedStream.TrailerHeaders);
+                        ChunkExtensions = chunkedStream.ChunkExtensions;
+                    }
+
                     httpBody = memoryStream.ToArray();
 
-                    return ContentLength is not UInt64 expectedBodyLength ||
+                    return IsChunkedTransferEncoding ||
+                           ContentLength is not UInt64 expectedBodyLength ||
                            totalRead == expectedBodyLength;
+                }
+                catch (HTTPBodyTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPIncompleteBodyException)
+                {
+                    throw;
+                }
+                catch (HTTPChunkMetadataTooLargeException)
+                {
+                    throw;
+                }
+                catch (HTTPInvalidChunkException)
+                {
+                    throw;
+                }
+                catch (HTTPReadTimeoutException)
+                {
+                    throw;
                 }
                 catch (IOException ex)
                 {
                     // Preserve socket timeout behavior while allowing body-size
                     // violations to reach the HTTP layer as 413.
                     if (ex is HTTPBodyTooLargeException)
+                        throw;
+
+                    if (ex is HTTPIncompleteBodyException)
                         throw;
 
                     if (ex.InnerException is SocketException socketException &&

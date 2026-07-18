@@ -67,6 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private readonly ConcurrentDictionary<HTTPHostname,       HostnameNodeX>     hostnameNodes   = [];
         private readonly ConcurrentDictionary<HTTPHostname,       HTTPAPINode>       routeNodes      = [];
         private readonly List<AHTTPPipeline>                                         httpPipelines   = [];
+        private volatile Boolean                                                     includeStackTracesInErrorResponses;
 
         /// <summary>
         /// Command-line JSON HTTP clients, libraries, and API tools...
@@ -87,6 +88,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => routeNodes[HTTPHostname.Any]?.Children["/"]?.HTTPAPI
                    ?? throw new InvalidOperationException("The main API '/' is not registered!");
+
+        /// <summary>
+        /// Whether internal exception details and stack traces are included in
+        /// HTTP error responses. Disabled by default.
+        /// </summary>
+        public Boolean IncludeStackTracesInErrorResponses
+        {
+            get => includeStackTracesInErrorResponses;
+            set => includeStackTracesInErrorResponses = value;
+        }
 
         #endregion
 
@@ -150,6 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="DefaultAPI"></param>
+        /// <param name="IncludeStackTracesInErrorResponses">Whether internal exception details and stack traces are included in HTTP error responses.</param>
         public HTTPServer(IIPAddress?                                               IPAddress                    = null,
                           IPPort?                                                   TCPPort                      = null,
                           String?                                                   HTTPServerName               = null,
@@ -181,8 +193,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                           HTTPAPI?                                                  DefaultAPI                   = null,
                           ILoggerFactory?                                           LoggerFactory                = null,
-                          Boolean?                                                  AutoStart                    = false,
-                          UInt64?                                                   MaxHTTPBodySize              = null)
+                           Boolean?                                                  AutoStart                    = false,
+                           UInt64?                                                   MaxHTTPBodySize              = null,
+                           UInt32?                                                   MaxHTTPHeaderSize            = null,
+                           UInt32?                                                   MaxHTTPHeaderLineLength      = null,
+                           UInt32?                                                   MaxHTTPRequestTargetLength   = null,
+                           UInt32?                                                   MaxHTTPHeaderCount           = null,
+                           UInt32?                                                   MaxHTTPChunkSizeLineLength   = null,
+                           UInt32?                                                   MaxHTTPChunkTrailerLineLength = null,
+                           UInt32?                                                   MaxHTTPChunkTrailerCount     = null,
+                           UInt32?                                                   MaxHTTPChunkTrailerSize      = null,
+                           UInt32?                                                   MaxHTTPChunkMetadataSize     = null,
+                           TimeSpan?                                                 HeaderReadTimeout            = null,
+                           TimeSpan?                                                 BodyReadTimeout              = null,
+                           Boolean                                                   IncludeStackTracesInErrorResponses = false)
 
             : base(IPAddress,
                    TCPPort,
@@ -225,11 +249,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    WardenInitialDelay,
                    WardenCheckEvery,
 
-                   LoggerFactory,
-                   AutoStart: false,
-                   MaxHTTPBodySize)
+                    LoggerFactory,
+                    AutoStart:         false,
+                    MaxHTTPBodySize:              MaxHTTPBodySize,
+                    MaxHTTPHeaderSize:            MaxHTTPHeaderSize,
+                    MaxHTTPHeaderLineLength:      MaxHTTPHeaderLineLength,
+                    MaxHTTPRequestTargetLength:   MaxHTTPRequestTargetLength,
+                    MaxHTTPHeaderCount:           MaxHTTPHeaderCount,
+                    MaxHTTPChunkSizeLineLength:   MaxHTTPChunkSizeLineLength,
+                    MaxHTTPChunkTrailerLineLength: MaxHTTPChunkTrailerLineLength,
+                    MaxHTTPChunkTrailerCount:     MaxHTTPChunkTrailerCount,
+                    MaxHTTPChunkTrailerSize:      MaxHTTPChunkTrailerSize,
+                    MaxHTTPChunkMetadataSize:     MaxHTTPChunkMetadataSize,
+                    HeaderReadTimeout:            HeaderReadTimeout,
+                    BodyReadTimeout:              BodyReadTimeout)
 
         {
+
+            this.IncludeStackTracesInErrorResponses = IncludeStackTracesInErrorResponses;
 
             if (DefaultAPI is not null)
             {
@@ -267,6 +304,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        private const String InternalServerErrorDescription = "An internal server error occurred.";
+
+        private String GetExceptionDescriptionForResponse(Exception Exception)
+        {
+
+            var includeExceptionDetails = IncludeStackTracesInErrorResponses;
+
+            return includeExceptionDetails
+                       ? Exception.Message + Environment.NewLine + Exception.StackTrace
+                       : InternalServerErrorDescription;
+
+        }
+
+        private JObject CreateInternalServerErrorJSON(HTTPRequest? Request,
+                                                       Exception    Exception)
+        {
+
+            var includeExceptionDetails = IncludeStackTracesInErrorResponses;
+
+            var json = JSONObject.Create(
+                           new JProperty("request",          Request?.FirstPDULine       ?? "null"),
+                           new JProperty("eventTrackingId",  Request?.EventTrackingId.ToString() ?? "null"),
+                           new JProperty("description",      includeExceptionDetails
+                                                                   ? Exception.Message
+                                                                   : InternalServerErrorDescription)
+                       );
+
+            if (includeExceptionDetails)
+            {
+                json.Add(new JProperty("stackTrace", Exception.StackTrace));
+                json.Add(new JProperty("source",     Exception.TargetSite?.Module.Name));
+                json.Add(new JProperty("type",       Exception.TargetSite?.ReflectedType?.Name));
+            }
+
+            return json;
+
+        }
+
+
         #region (static) StartNew(...)
 
         public static async Task<HTTPServer>
@@ -301,8 +377,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                      TimeSpan?                                                 WardenCheckEvery             = null,
 
                      HTTPAPI?                                                  DefaultAPI                   = null,
-                     ILoggerFactory?                                           LoggerFactory                = null,
-                     UInt64?                                                   MaxHTTPBodySize              = null)
+                      ILoggerFactory?                                           LoggerFactory                = null,
+                      UInt64?                                                   MaxHTTPBodySize              = null,
+                      UInt32?                                                   MaxHTTPHeaderSize            = null,
+                      UInt32?                                                   MaxHTTPHeaderLineLength      = null,
+                      UInt32?                                                   MaxHTTPRequestTargetLength   = null,
+                      UInt32?                                                   MaxHTTPHeaderCount           = null,
+                      UInt32?                                                   MaxHTTPChunkSizeLineLength   = null,
+                      UInt32?                                                   MaxHTTPChunkTrailerLineLength = null,
+                      UInt32?                                                   MaxHTTPChunkTrailerCount     = null,
+                      UInt32?                                                   MaxHTTPChunkTrailerSize      = null,
+                      UInt32?                                                   MaxHTTPChunkMetadataSize     = null,
+                      TimeSpan?                                                 HeaderReadTimeout            = null,
+                       TimeSpan?                                                 BodyReadTimeout              = null,
+                       Boolean                                                   IncludeStackTracesInErrorResponses = false)
 
         {
 
@@ -340,8 +428,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              DefaultAPI,
                              LoggerFactory,
 
-                             AutoStart:       false,
-                             MaxHTTPBodySize: MaxHTTPBodySize
+                              AutoStart:         false,
+                               MaxHTTPBodySize:              MaxHTTPBodySize,
+                               MaxHTTPHeaderSize:            MaxHTTPHeaderSize,
+                               MaxHTTPHeaderLineLength:      MaxHTTPHeaderLineLength,
+                               MaxHTTPRequestTargetLength:   MaxHTTPRequestTargetLength,
+                               MaxHTTPHeaderCount:           MaxHTTPHeaderCount,
+                               MaxHTTPChunkSizeLineLength:   MaxHTTPChunkSizeLineLength,
+                               MaxHTTPChunkTrailerLineLength: MaxHTTPChunkTrailerLineLength,
+                               MaxHTTPChunkTrailerCount:     MaxHTTPChunkTrailerCount,
+                               MaxHTTPChunkTrailerSize:      MaxHTTPChunkTrailerSize,
+                               MaxHTTPChunkMetadataSize:     MaxHTTPChunkMetadataSize,
+                               HeaderReadTimeout:            HeaderReadTimeout,
+                               BodyReadTimeout:              BodyReadTimeout,
+                               IncludeStackTracesInErrorResponses: IncludeStackTracesInErrorResponses
 
                          );
 
@@ -414,14 +514,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (segments[0] == "")
                     segments[0] = "/";
 
-                foreach (var segment in segments)
+                for (var segmentIndex = 0; segmentIndex < segments.Length; segmentIndex++)
                 {
+
+                    var segment = segments[segmentIndex];
 
                     var routeNode2 = routeNode1.Children.GetOrAdd(
                                          segment,
                                          pathSegment => {
 
-                                             if ((routeNode1.FullPath + "/" + pathSegment) == (hostname + path.ToString().TrimEnd('/')))
+                                             if (segmentIndex == segments.Length - 1)
                                              {
 
                                                  if (routeNode1.HTTPAPI is not null)
@@ -479,10 +581,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                if (!routeNodes.TryGetValue(Request.Host,     out var httpAPINode) &&
+                var requestHost = Request.Host;
+
+                if (requestHost.IsNullOrEmpty)
+                    requestHost = HTTPHostname.Any;
+
+                if (!routeNodes.TryGetValue(requestHost,      out var httpAPINode) &&
                     !routeNodes.TryGetValue(HTTPHostname.Any, out     httpAPINode))
                 {
-                    return ParsedRequest.Error($"Unknown hostname '{Request.Host}'!");
+                    return ParsedRequest.Error($"Unknown hostname '{requestHost}'!");
                 }
 
                 var segments = ("/" + Request.Path.ToString().Trim('/')).Split('/');
@@ -507,10 +614,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     httpAPINode = httpAPINode2;
 
-                    if (httpAPINode.HTTPAPI is not null)
+                    // A host node may already contain an API while also being
+                    // the parent of a more specific API path. Defer dispatch
+                    // to the parent API until no deeper API route matches.
+                    var hasMoreSpecificAPI = i + 1 < segments.Length &&
+                                             httpAPINode.Children.ContainsKey(segments[i + 1]);
+
+                    if (httpAPINode.HTTPAPI is not null &&
+                        !hasMoreSpecificAPI)
                     {
 
-                        var newPath          = HTTPPath.Parse(segments.AggregateWith('/')[(httpAPINode.HTTPAPI.RootPath.ToString().Length - 1)..]);
+                        // Build the API-relative path from the original request path.
+                        // Joining the already slash-prefixed server segments would
+                        // produce a doubled leading slash (for example "//test1.txt").
+                        var requestPath      = Request.Path.ToString();
+                        var rootPath         = httpAPINode.HTTPAPI.RootPath.ToString();
+                        var relativePath     = rootPath == "/"
+                                                    ? requestPath
+                                                    : requestPath[(rootPath.Length - 1)..];
+                        var newPath          = HTTPPath.Parse(relativePath);
                         var parsedRouteNode  = httpAPINode.HTTPAPI.GetRequestHandle(newPath);
 
                         if (parsedRouteNode.RouteNode is not null)
@@ -519,7 +641,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (!parsedRouteNode.RouteNode.Methods.TryGetValue(Request.HTTPMethod, out var methodNode))
                                 return ParsedRequest.Error(
                                            HTTPStatusCode.MethodNotAllowed,
-                                           "Method not allowed!"
+                                           "Method not allowed!",
+                                           parsedRouteNode.RouteNode.Methods.Keys
                                        );
 
                             if (!methodNode.ContentTypes.Any())
@@ -676,7 +799,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
-                return ParsedRequest.Error(e.Message + Environment.NewLine + e.StackTrace);
+                httpLogger.LogError(
+                    e,
+                    "Exception while resolving HTTP request {FirstPDULine} ({EventTrackingId}).",
+                    Request.FirstPDULine,
+                    Request.EventTrackingId
+                );
+
+                return ParsedRequest.Error(GetExceptionDescriptionForResponse(e));
             }
 
             return ParsedRequest.Error($"error!");
@@ -742,7 +872,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (!parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodNode))
                                 return ParsedRequest.Error(
                                            HTTPStatusCode.MethodNotAllowed,
-                                           "Method not allowed!"
+                                           "Method not allowed!",
+                                           parsedRouteNode.RouteNode.Methods.Keys
                                        );
 
                             if (methodNode.ContentTypes.Any() && HTTPContentTypeSelector is not null)
@@ -781,7 +912,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
-                return ParsedRequest.Error(e.Message + Environment.NewLine + e.StackTrace);
+                httpLogger.LogError(e, "Exception while resolving an HTTP request handler.");
+
+                return ParsedRequest.Error(GetExceptionDescriptionForResponse(e));
             }
 
             return ParsedRequest.Error($"error!");
@@ -1082,21 +1215,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                  httpResponse                  = await httpDelegate(Request);
 
-                            }
-                            catch (Exception e)
-                            {
+                             }
+                              catch (HTTPChunkMetadataTooLargeException)
+                              {
+                                  httpResponse = CreateInvalidChunkMetadataResponse(Request);
+                              }
+                               catch (HTTPBodyTooLargeException)
+                               {
+                                   httpResponse = CreateRequestBodyTooLargeResponse(Request);
+                               }
+                               catch (HTTPIncompleteBodyException)
+                               {
+                                   httpResponse = CreateIncompleteRequestBodyResponse(Request);
+                               }
+                               catch (HTTPInvalidChunkException)
+                              {
+                                  httpResponse = CreateInvalidChunkResponse(Request);
+                              }
+                              catch (HTTPReadTimeoutException)
+                             {
+                                 httpResponse = CreateRequestTimeoutResponse(Request);
+                             }
+                             catch (Exception e)
+                             {
 
-                                httpResponse = new HTTPResponse.Builder(Request) {
+                                 httpLogger.LogError(
+                                     e,
+                                     "Exception in HTTP request handler for {FirstPDULine} ({EventTrackingId}).",
+                                     Request.FirstPDULine,
+                                     Request.EventTrackingId
+                                 );
+
+                                 httpResponse = new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                                    Server          = HTTPServerName,
                                                    ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                   Content         = JSONObject.Create(
-                                                                         new JProperty("request",      Request.FirstPDULine),
-                                                                         new JProperty("description",  e.Message),
-                                                                         new JProperty("stackTrace",   e.StackTrace),
-                                                                         new JProperty("source",       e.TargetSite?.Module.Name),
-                                                                         new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
-                                                                     ).ToUTF8Bytes(),
+                                                   Content         = CreateInternalServerErrorJSON(Request, e).ToUTF8Bytes(),
                                                    Connection      = ConnectionType.KeepAlive
                                                };
 
@@ -1160,12 +1314,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          Server          = HTTPServerName,
                                          Date            = Timestamp.Now,
                                          ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                         Content         = JSONObject.Create(
-                                                               new JProperty("request",      Request.FirstPDULine),
-                                                               new JProperty("description",  parsedRequest.ErrorResponse)
-                                                           ).ToUTF8Bytes(),
-                                         Connection      = ConnectionType.KeepAlive
-                                     };
+                                          Content         = JSONObject.Create(
+                                                                new JProperty("request",      Request.FirstPDULine),
+                                                                new JProperty("description",  parsedRequest.ErrorResponse)
+                                                            ).ToUTF8Bytes(),
+                                          Allow           = parsedRequest.AllowedMethods,
+                                          Connection      = ConnectionType.KeepAlive
+                                      };
 
                 }
 
@@ -1223,17 +1378,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            };
                 }
 
+                if (e is HTTPIncompleteBodyException)
+                    return CreateIncompleteRequestBodyResponse(Request);
+
+                if (e is HTTPChunkMetadataTooLargeException)
+                    return CreateInvalidChunkMetadataResponse(Request);
+
+                if (e is HTTPInvalidChunkException)
+                    return CreateInvalidChunkResponse(Request);
+
+                if (e is HTTPReadTimeoutException)
+                    return CreateRequestTimeoutResponse(Request);
+
+                httpLogger.LogError(
+                    e,
+                    "Exception while processing HTTP request {FirstPDULine} ({EventTrackingId}).",
+                    Request?.FirstPDULine ?? "null",
+                    Request?.EventTrackingId.ToString() ?? "null"
+                );
+
                 return new HTTPResponse.Builder(Request) {
                            HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                            Server          = HTTPServerName,
                            ContentType     = HTTPContentType.Application.JSON_UTF8,
-                           Content         = JSONObject.Create(
-                                                 new JProperty("request",      Request?.FirstPDULine ?? "null"),
-                                                 new JProperty("description",  e.Message),
-                                                 new JProperty("stackTrace",   e.StackTrace),
-                                                 new JProperty("source",       e.TargetSite?.Module.Name),
-                                                 new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
-                                             ).ToUTF8Bytes(),
+                            Content         = CreateInternalServerErrorJSON(Request, e).ToUTF8Bytes(),
                            Connection      = ConnectionType.KeepAlive
                        };
             }
@@ -1257,6 +1425,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //}
 
         }
+
+        private HTTPResponse CreateRequestTimeoutResponse(HTTPRequest Request)
+            => new HTTPResponse.Builder(Request) {
+                   HTTPStatusCode = HTTPStatusCode.RequestTimeout,
+                   Server         = HTTPServerName,
+                   Date           = Timestamp.Now,
+                   Connection     = ConnectionType.Close,
+                   ContentType    = HTTPContentType.Application.JSON_UTF8,
+                   Content        = JSONObject.Create(
+                                        new JProperty("description", "The request body read timed out.")
+                                    ).ToUTF8Bytes()
+               }.AsImmutable;
 
         #endregion
 

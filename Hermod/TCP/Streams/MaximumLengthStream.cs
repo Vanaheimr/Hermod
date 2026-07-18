@@ -17,6 +17,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private readonly Stream  innerStream    = InnerStream;
         private readonly Boolean leaveInnerOpen = LeaveInnerStreamOpen;
         private          UInt64  bytesRead;
+        private          HTTP.HTTPBodyTooLargeException? terminalReadException;
 
         public UInt64 MaximumBytes { get; } = MaximumLength;
 
@@ -43,6 +44,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public override Int32 Read(Byte[] Buffer, Int32 Offset, Int32 Count)
         {
+            if (terminalReadException is not null)
+                throw terminalReadException;
+
             if (Count == 0)
                 return 0;
 
@@ -50,13 +54,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
                 var probe = new Byte[1];
                 if (innerStream.Read(probe, 0, 1) > 0)
-                    throw new HTTP.HTTPBodyTooLargeException(bytesRead + 1, MaximumBytes);
+                    throw terminalReadException = new HTTP.HTTPBodyTooLargeException(bytesRead + 1, MaximumBytes);
 
                 return 0;
             }
 
-            var bytesToRead = (Int32) Math.Min((UInt64) Count, MaximumBytes - bytesRead);
+            var bytesToRead = (Int32) Math.Min((UInt64) Count, MaximumBytes - bytesRead + 1);
             var read = innerStream.Read(Buffer, Offset, bytesToRead);
+
+            if ((UInt64) read > MaximumBytes - bytesRead)
+                throw terminalReadException = new HTTP.HTTPBodyTooLargeException(bytesRead + (UInt64) read, MaximumBytes);
+
             bytesRead += (UInt64) read;
             return read;
         }
@@ -64,6 +72,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public override async ValueTask<Int32> ReadAsync(Memory<Byte> Buffer,
                                                           CancellationToken CancellationToken = default)
         {
+            if (terminalReadException is not null)
+                throw terminalReadException;
+
             if (Buffer.Length == 0)
                 return 0;
 
@@ -71,13 +82,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
                 var probe = new Byte[1];
                 if (await innerStream.ReadAsync(probe.AsMemory(0, 1), CancellationToken).ConfigureAwait(false) > 0)
-                    throw new HTTP.HTTPBodyTooLargeException(bytesRead + 1, MaximumBytes);
+                    throw terminalReadException = new HTTP.HTTPBodyTooLargeException(bytesRead + 1, MaximumBytes);
 
                 return 0;
             }
 
-            var bytesToRead = (Int32) Math.Min((UInt64) Buffer.Length, MaximumBytes - bytesRead);
+            var bytesToRead = (Int32) Math.Min((UInt64) Buffer.Length, MaximumBytes - bytesRead + 1);
             var read = await innerStream.ReadAsync(Buffer[..bytesToRead], CancellationToken).ConfigureAwait(false);
+
+            if ((UInt64) read > MaximumBytes - bytesRead)
+                throw terminalReadException = new HTTP.HTTPBodyTooLargeException(bytesRead + (UInt64) read, MaximumBytes);
+
             bytesRead += (UInt64) read;
             return read;
         }

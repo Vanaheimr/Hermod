@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
     {
 
         public const String AuthenticationScheme  = "BasicAuthentication";
-        public const String ChallengeHeaderValue  = @"Basic realm=""Access to the staging site"", charset =""UTF-8""";
+        public const String ChallengeHeaderValue  = @"Basic realm=""Access to the staging site"", charset=""UTF-8""";
 
         private static readonly IReadOnlyDictionary<String, String> validCredentials = new Dictionary<String, String> {
             { "testUser1", "testPassword1" },
@@ -239,7 +239,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
+            #region GET     /close
+
+            app.MapGet("/close",
+                       (HttpContext context) => {
+
+                           context.Response.Headers.Connection = "close";
+
+                           return WriteTextAsync(
+                                      context.Response,
+                                      context.Connection.Id
+                                  );
+
+                       });
+
+            #endregion
+
+
+            #region GET     /keepalive
+
+            app.MapGet("/keepalive",
+                       (HttpContext context) =>
+                           WriteTextAsync(
+                               context.Response,
+                               context.Connection.Id
+                           )
+            );
+
+            #endregion
+
+
+            #region HEAD    /
+
+            app.MapMethods("/",
+                           [ "HEAD" ],
+                           (HttpResponse httpResponse) => {
+
+                               httpResponse.StatusCode     = StatusCodes.Status200OK;
+                               httpResponse.ContentLength  = Encoding.UTF8.GetByteCount("Hello World!");
+                               httpResponse.ContentType    = "text/plain; charset=utf-8";
+
+                               return Task.CompletedTask;
+
+                           });
+
+            #endregion
+
+            #region OPTIONS /
+
+            app.MapMethods("/",
+                           [ "OPTIONS" ],
+                           () => Results.NoContent());
+
+            #endregion
+
             #region GET     /NotForEveryone
+
+            #region GET     /notmodified
+
+            app.MapGet("/notmodified",
+                       () => Results.StatusCode(StatusCodes.Status304NotModified));
+
+            #endregion
+
+
+            #region GET     /resetcontent
+
+            app.MapGet("/resetcontent",
+                       () => Results.StatusCode(StatusCodes.Status205ResetContent));
+
+            #endregion
+
 
             app.MapGet("/NotForEveryone",
                        [Authorize(AuthenticationSchemes = BasicAuthenticationHandler.AuthenticationScheme)]
@@ -321,6 +391,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
+            #region QUERY   /query
+
+            app.MapMethods("/query",
+                           [ "QUERY" ],
+                           async (HttpRequest   httpRequest,
+                                  HttpResponse  httpResponse) => {
+
+                var requestBody = await new StreamReader(httpRequest.Body).ReadToEndAsync();
+
+                await WriteTextAsync(
+                          httpResponse,
+                          requestBody.Reverse()
+                      );
+
+            });
+
+            #endregion
+
+
+            #region GET     /events
+
+            #region GET     /events/multiline
+
+            app.MapGet("/events/multiline",
+                       (HttpResponse httpResponse) => {
+
+                httpResponse.Headers.Connection = "close";
+
+                return WriteTextAsync(
+                           httpResponse,
+                           "event: status\nid: 7\ndata: {\ndata:   \"message\": \"multiline\"\ndata: }\n\n",
+                           ContentType: "text/event-stream"
+                       );
+
+            });
+
+            #endregion
+
+
+            #region GET     /events/reconnect
+
+            app.MapGet("/events/reconnect",
+                       (HttpRequest   httpRequest,
+                        HttpResponse  httpResponse) => {
+
+                var lastEventId = UInt64.TryParse(httpRequest.Headers["Last-Event-ID"], out var eventId)
+                                      ? eventId
+                                      : 0;
+                var eventData   = lastEventId >= 2
+                                      ? ""
+                                      : lastEventId == 1
+                                            ? "event: status\nid: 2\ndata: {\"message\":\"second\"}\n\n"
+                                            : "retry: 100\n\nevent: status\nid: 1\ndata: {\"message\":\"first\"}\n\nevent: status\nid: 2\ndata: {\"message\":\"second\"}\n\n";
+
+                httpResponse.Headers.Connection = "close";
+
+                return WriteTextAsync(
+                           httpResponse,
+                           eventData,
+                           ContentType: "text/event-stream"
+                       );
+
+            });
+
+            #endregion
+
+
+            app.MapGet("/events", (HttpResponse httpResponse) => {
+
+                httpResponse.Headers.Connection = "close";
+
+                return WriteTextAsync(
+                           httpResponse,
+                           "retry: 100\n\nevent: status\nid: 1\ndata: {\"message\":\"from minimal API\"}\n\n",
+                           ContentType: "text/event-stream"
+                       );
+
+            });
+
+            #endregion
+
 
             #region GET     /chunked
 
@@ -371,6 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 http.Response.StatusCode   = 200;
                 http.Response.ContentType  = "text/plain";
                 http.Response.DeclareTrailer("X-Message-Length");
+                http.Response.DeclareTrailer("X-Protocol-Version");
                 //http.Response.Headers.TransferEncoding = "chunked";
 
                 var httpStream = http.Response.Body;

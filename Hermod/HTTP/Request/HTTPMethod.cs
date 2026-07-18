@@ -319,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Query a resource.
         /// </summary>
         public static HTTPMethod  QUERY             { get; }
-            = Register("QUERY");
+            = Register("QUERY", IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Composes a new resource (e.g. send a html form to compose a new resource)

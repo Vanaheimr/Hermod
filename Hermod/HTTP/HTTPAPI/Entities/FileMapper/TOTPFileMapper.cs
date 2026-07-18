@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var numberOfTemplateParameters  = URLTemplate.ToString().Count(c => c == '{');
 
                 var filePath    = Request.ParsedURLParameters.Length > numberOfTemplateParameters
-                                    ? Request.ParsedURLParameters.Last().URLDecode()
+                                    ? Request.ParsedURLParameters.Last()
                                     : "DefaultFilename";
 
                 // https://example.com/photos/photo.jpg?expiry=1717614500&token=abcdef

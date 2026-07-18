@@ -33,7 +33,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.JSON.Canonical
 {
 
     /// <summary>

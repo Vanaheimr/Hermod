@@ -208,6 +208,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region QUERY   (Path, Content, ...)
+
+        /// <summary>
+        /// Create a new HTTP QUERY request.
+        /// </summary>
+        public static Task<HTTPResponse> QUERY(this IHTTPClient              HTTPClient,
+                                                HTTPPath                      Path,
+                                                Byte[]?                       Content,
+                                                HTTPContentType?              ContentType                           = null,
+                                                QueryString?                  QueryString                           = null,
+                                                AcceptTypes?                  Accept                                = null,
+                                                IHTTPAuthentication?          Authentication                        = null,
+                                                String?                       UserAgent                             = null,
+                                                ConnectionType?               Connection                            = null,
+                                                TimeSpan?                     RequestTimeout                        = null,
+                                                EventTracking_Id?             EventTrackingId                       = null,
+                                                Byte                          NumberOfRetry                         = 0,
+                                                UInt16?                       MaxNumberOfRetries                    = null,
+                                                Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                                Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                                Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                                ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                                ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                                CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.QUERY,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   UserAgent,
+                   Connection,
+                   MaxNumberOfRetries,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
+
         #region PUT     (Path, Content, ...)
 
         public static Task<HTTPResponse> PUT(this IHTTPClient              HTTPClient,

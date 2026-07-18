@@ -1460,6 +1460,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private readonly ConcurrentDictionary<String, APIKey_Id>   remoteAuthAPIKeys = [];
 
+        private readonly InMemoryTokenBucketRateLimiter resetPasswordIPRateLimiter = new (
+                                                                                           Capacity:        5,
+                                                                                           RefillPeriod:    TimeSpan.FromMinutes(1),
+                                                                                           MaximumBuckets:  10_000,
+                                                                                           BucketLifetime:  TimeSpan.FromMinutes(10)
+                                                                                       );
+
+        private readonly InMemoryTokenBucketRateLimiter setPasswordIPRateLimiter = new (
+                                                                                          Capacity:        10,
+                                                                                          RefillPeriod:    TimeSpan.FromMinutes(1),
+                                                                                          MaximumBuckets:  10_000,
+                                                                                          BucketLifetime:  TimeSpan.FromMinutes(10)
+                                                                                      );
+
+        private readonly InMemoryTokenBucketRateLimiter passwordAccountRateLimiter = new (
+                                                                                              Capacity:        3,
+                                                                                              RefillPeriod:    TimeSpan.FromMinutes(1),
+                                                                                              MaximumBuckets:  20_000,
+                                                                                              BucketLifetime:  TimeSpan.FromMinutes(10)
+                                                                                          );
+
         /// <summary>
         /// API key for incoming remote authorizations.
         /// </summary>
@@ -2468,6 +2489,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Password endpoint rate limiting
+
+        private HTTPResponse.Builder? CheckPasswordRateLimit(HTTPRequest                         Request,
+                                                              String                             Endpoint,
+                                                              InMemoryTokenBucketRateLimiter     ClientRateLimiter,
+                                                              String?                            AccountKey = null)
+        {
+
+            var clientDecision = ClientRateLimiter.TryAcquire(
+                                     Endpoint + "|ip|" + Request.RemoteSocket.IPAddress
+                                 );
+
+            if (!clientDecision.Allowed)
+                return CreateRateLimitResponse(Request, clientDecision);
+
+            if (AccountKey is not null)
+            {
+
+                var normalizedAccountKey = AccountKey.Trim();
+                if (normalizedAccountKey.Length > 256)
+                    normalizedAccountKey = normalizedAccountKey[..256];
+
+                normalizedAccountKey = normalizedAccountKey.ToUpperInvariant();
+
+                var accountHash = Convert.ToHexString(
+                                      System.Security.Cryptography.SHA256.HashData(
+                                          Encoding.UTF8.GetBytes(normalizedAccountKey)
+                                      )
+                                  );
+
+                var accountDecision = passwordAccountRateLimiter.TryAcquire(
+                                           Endpoint + "|account|" + accountHash
+                                       );
+
+                if (!accountDecision.Allowed)
+                    return CreateRateLimitResponse(Request, accountDecision);
+
+            }
+
+            return null;
+
+        }
+
+
+        private HTTPResponse.Builder CreateRateLimitResponse(HTTPRequest       Request,
+                                                             RateLimitDecision Decision)
+        {
+
+            var retryAfterSeconds = Math.Max(
+                                         1,
+                                         (Int32) Math.Ceiling(Decision.RetryAfter.TotalSeconds)
+                                     );
+
+            return new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode             = HTTPStatusCode.TooManyRequests,
+                       Server                     = HTTPServer?.HTTPServerName,
+                       Date                       = Timestamp.Now,
+                       RetryAfter                 = retryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                       AccessControlAllowOrigin   = "*",
+                       AccessControlAllowMethods  = [ "RESET", "SET" ],
+                       AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                       Connection                 = ConnectionType.KeepAlive
+                   };
+
+        }
+
+        #endregion
+
+
         #region (static) AttachToHTTPAPI(HTTPServer, URLPrefix = "/", ...)
 
         ///// <summary>
@@ -3224,6 +3314,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              IsAdmin(User) == Access_Levels.ReadOnly  ? ":isAdminRO" : String.Empty,
                              IsAdmin(User) == Access_Levels.ReadWrite ? ":isAdminRW" : String.Empty);
 
+
+        #endregion
+
+        #region             NormalizeLoginRedirect(RedirectURL)
+
+        private static String NormalizeLoginRedirect(String? RedirectURL)
+        {
+
+            if (RedirectURL.IsNullOrEmpty())
+                return "/";
+
+            String decodedRedirectURL;
+
+            try
+            {
+                decodedRedirectURL = HTTPTools.URLDecode(RedirectURL);
+            }
+            catch
+            {
+                return "/";
+            }
+
+            // Login redirects are same-origin path references only. Reject
+            // absolute and protocol-relative URLs, backslashes (browser URL
+            // normalization can turn them into authority separators), control
+            // characters, and unbounded values before HTML encoding.
+            if (decodedRedirectURL.IsNullOrEmpty()                            ||
+                decodedRedirectURL.Length > 2048                              ||
+                !decodedRedirectURL.StartsWith("/", StringComparison.Ordinal)  ||
+                decodedRedirectURL.StartsWith("//", StringComparison.Ordinal)  ||
+                decodedRedirectURL.Contains('\\')                             ||
+                decodedRedirectURL.Any(Char.IsControl))
+            {
+                return "/";
+            }
+
+            return System.Net.WebUtility.HtmlEncode(decodedRedirectURL);
+
+        }
 
         #endregion
 
@@ -4591,12 +4720,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region Get RedirectURL
 
                     loginData.TryGetValue("redirect", out var redirectURL);
-
-                    if (redirectURL is not null && redirectURL.IsNotNullOrEmpty())
-                       redirectURL = HTTPTools.URLDecode(redirectURL);
-
-                    else
-                       redirectURL = "/";
+                    redirectURL = NormalizeLoginRedirect(redirectURL);
 
                     #endregion
 
@@ -4684,9 +4808,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
+                    // The password verification above establishes the authenticated
+                    // identity.  From this point onward all authorization and session
+                    // state must be bound to that verified user; possibleUsers may
+                    // contain other accounts (for example duplicate e-mail addresses).
+                    var validUser = validUsers.First();
+
                     #region Check whether the user has access to at least one organization
 
-                    if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
+                    if (!validUser.Organizations(Access_Levels.ReadOnly).Any())
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.Unauthorized,
@@ -4705,7 +4835,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Register security token
 
-                    var validUser        = possibleUsers.First();
                     var securityTokenId  = SecurityToken_Id.Parse(
                                                SHA256.HashData(
                                                    String.Concat(
@@ -4786,14 +4915,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: async Request => {
 
+                    var rateLimitResponse = CheckPasswordRateLimit(
+                                                Request,
+                                                "resetPassword",
+                                                resetPasswordIPRateLimiter
+                                            );
+
+                    if (rateLimitResponse is not null)
+                        return rateLimitResponse;
+
                     #region Parse JSON
 
                     if (!Request.TryParseJSONObjectRequestBody(out var json,
                                                                out var errorResponseBuilder) || json is null)
                     {
-
-                        // Slow down attackers!
-                        Thread.Sleep(5000);
 
                         return errorResponseBuilder!;
 
@@ -4807,9 +4942,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (userIdOrEMail.IsNullOrEmpty() || userIdOrEMail.Length < 4)
                     {
 
-                        // Slow down attackers!
-                        Thread.Sleep(5000);
-
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
                                    Server                     = HTTPServer?.HTTPServerName,
@@ -4821,6 +4953,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                };
 
                     }
+
+                    rateLimitResponse = CheckPasswordRateLimit(
+                                            Request,
+                                            "resetPassword",
+                                            resetPasswordIPRateLimiter,
+                                            userIdOrEMail
+                                        );
+
+                    if (rateLimitResponse is not null)
+                        return rateLimitResponse;
 
                     #endregion
 
@@ -4850,9 +4992,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (users.Count == 0)
                     {
-
-                        // Slow down attackers!
-                        Thread.Sleep(5000);
 
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.NotFound,
@@ -4936,14 +5075,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: async Request => {
 
+                    var rateLimitResponse = CheckPasswordRateLimit(
+                                                Request,
+                                                "setPassword",
+                                                setPasswordIPRateLimiter
+                                            );
+
+                    if (rateLimitResponse is not null)
+                        return rateLimitResponse;
+
                     #region Parse JSON
 
                     if (!Request.TryParseJSONObjectRequestBody(out var json,
                                                             out var errorResponseBuilder) || json is null)
                     {
-
-                        // Slow down attackers!
-                        Thread.Sleep(5000);
 
                         return errorResponseBuilder!;
 
@@ -4963,6 +5108,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         return errorResponseBuilder;
                     }
+
+                    rateLimitResponse = CheckPasswordRateLimit(
+                                            Request,
+                                            "setPassword",
+                                            setPasswordIPRateLimiter,
+                                            SecurityTokenId1.ToString()
+                                        );
+
+                    if (rateLimitResponse is not null)
+                        return rateLimitResponse;
 
                     #endregion
 
@@ -5017,9 +5172,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (SecurityTokenId1.Length != 40)
                     {
-
-                        // Slow down attackers!
-                        Thread.Sleep(5000);
 
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
@@ -6692,9 +6844,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
+                    // Bind authorization to the password-verified identity, not to
+                    // the first e-mail candidate.
+                    var validUser = validUsers.First();
+
                     #region Check whether the user has access to at least one organization
 
-                    if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
+                    if (!validUser.Organizations(Access_Levels.ReadOnly).Any())
                         return new HTTPResponse.Builder(request) {
                                     HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                     Server          = HTTPServer?.HTTPServerName,
@@ -6708,8 +6864,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 }.AsImmutable;
 
                     #endregion
-
-                    var validUser = validUsers.First();
 
                     #region Check EULA
 

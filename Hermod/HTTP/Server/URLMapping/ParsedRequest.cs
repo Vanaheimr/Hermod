@@ -30,17 +30,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Dictionary<String, String>  Parameters         { get; }
         public HTTPStatusCode?             HTTPStatusCode     { get; }
         public String?                     ErrorResponse      { get; }
+        public IEnumerable<HTTPMethod>     AllowedMethods     { get; }
 
         private ParsedRequest(HTTPRequestHandlersX?       RequestHandlers,
-                              Dictionary<String, String>  Parameters,
-                              HTTPStatusCode?             HTTPStatusCode   = null,
-                              String?                     ErrorResponse    = null)
+                               Dictionary<String, String>  Parameters,
+                               HTTPStatusCode?             HTTPStatusCode   = null,
+                               String?                     ErrorResponse    = null,
+                               IEnumerable<HTTPMethod>?    AllowedMethods   = null)
         {
 
             this.RequestHandlers  = RequestHandlers;
             this.Parameters       = Parameters;
             this.HTTPStatusCode   = HTTPStatusCode;
             this.ErrorResponse    = ErrorResponse;
+            this.AllowedMethods   = AllowedMethods ?? [];
 
         }
 
@@ -64,14 +67,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public static ParsedRequest Error(HTTPStatusCode  HTTPStatusCode,
-                                          String          ErrorResponse)
+                                           String          ErrorResponse,
+                                           IEnumerable<HTTPMethod>? AllowedMethods = null)
 
             => new (
                    null,
-                   [],
-                   HTTPStatusCode,
-                   ErrorResponse
-               );
+                    [],
+                    HTTPStatusCode,
+                    ErrorResponse,
+                    AllowedMethods
+                );
 
 
     }

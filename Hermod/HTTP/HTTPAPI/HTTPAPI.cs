@@ -211,6 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public    const    String                                                      HTTPRoot          = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
         private   readonly ConcurrentDictionary<String, PathNode>                      routeNodes        = [];
+        private   readonly Object                                                       routeRegistrationLock = new ();
         protected readonly ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources      = [];
 
         #endregion
@@ -336,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        public HTTPServer               HTTPServer                  { get; internal set; }
+        public HTTPServer                    HTTPServer                  { get; internal set; }
 
         /// <summary>
         /// The HTTP hostname of this HTTP API.
@@ -593,6 +594,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
 
+        private PathNode GetOrAddRouteNode(ConcurrentDictionary<String, PathNode>  Siblings,
+                                           String                                  Segment,
+                                           Func<String, PathNode>                  Factory,
+                                           HTTPPath                                URLTemplate)
+        {
+
+            lock (routeRegistrationLock)
+            {
+                if (Segment.StartsWith('{') && Segment.EndsWith('}') &&
+                    !Siblings.ContainsKey(Segment))
+                {
+                    var existingParameter = Siblings.FirstOrDefault(entry => entry.Value.ParameterName is not null);
+
+                    if (existingParameter.Value is not null)
+                    {
+                        var requestedCatchRest = Segment.EndsWith("..}", StringComparison.Ordinal);
+                        var requestedName      = Segment[1..^1];
+
+                        if (requestedCatchRest)
+                            requestedName = requestedName[..^2];
+
+                        if (String.Equals(
+                                existingParameter.Value.ParameterName,
+                                requestedName,
+                                StringComparison.OrdinalIgnoreCase
+                            ) &&
+                            existingParameter.Value.CatchRestOfPath2 == requestedCatchRest)
+                        {
+                            return existingParameter.Value;
+                        }
+
+                        throw new InvalidOperationException(
+                                  $"Ambiguous parameter route template '{URLTemplate}': " +
+                                  $"the sibling parameter route '{existingParameter.Value.FullPath}' already matches the same path segment."
+                              );
+                    }
+                }
+
+                return Siblings.GetOrAdd(Segment, Factory);
+            }
+
+        }
+
         /// <summary>
         /// Add a method callback for the given URL template.
         /// </summary>
@@ -650,7 +694,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (segments[0] == "")
                 segments[0] = "/";
 
-            var routeNode1    = routeNodes.GetOrAdd(
+            var routeNode1    = GetOrAddRouteNode(
+                                    routeNodes,
                                     segments[0],
                                     segment => {
 
@@ -679,13 +724,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    HTTPPath.Root.ToString()
                                                );
 
-                                    }
+                                    },
+                                    URLTemplate
                                 );
 
             foreach (var segment in segments.Skip(1))
             {
 
-                var routeNode2 = routeNode1.Children.GetOrAdd(
+                var routeNode2 = GetOrAddRouteNode(
+                                     routeNode1.Children,
                                      segment,
                                      segment => {
 
@@ -723,7 +770,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     "/" + segment
                                                 );
 
-                                     }
+                                     },
+                                     URLTemplate
                                  );
 
                 routeNode1 = routeNode2;
@@ -804,16 +852,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal ParsedRequest2 GetRequestHandle(HTTPPath Path)
         {
 
-            // https://datatracker.ietf.org/doc/html/rfc3986#section-2.4
-            // ...parsed and separated before the percent-encoded octets
-            // within those components can be safely decoded...
-            // "//" => "/" as most implementations do
+            // HTTPRequest has already validated the raw origin-form, separated
+            // its path segments and percent-decoded each segment exactly once.
             var segments     = Path.ToString().Trim   ('/').
                                                Split  ('/', StringSplitOptions.RemoveEmptyEntries).
-                                               Select (s => s.URLDecode()).
                                                ToArray();
 
-            var parameters   = new Dictionary<String, String>();
+            var parameters   = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
 
             var pathSegment  = segments.Length > 0 && !segments[0].IsNullOrWhiteSpace()
                                    ? segments[0].Trim()
@@ -832,6 +877,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             ? Path.ToString().TrimStart('/')
                             : pathSegment
                     );
+
+                    // The parameter route is the matched route node as well.
+                    // Without assigning it here, a root-level single-segment
+                    // parameter route gets its value parsed but is later
+                    // reported as an unknown path.
+                    routeNode = parameterCatcher;
 
                     if (parameterCatcher.CatchRestOfPath2)
                         return ParsedRequest2.Parsed(parameterCatcher, parameters);

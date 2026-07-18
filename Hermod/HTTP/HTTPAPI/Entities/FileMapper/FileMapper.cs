@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var numberOfTemplateParameters  = URLTemplate.ToString().Count(c => c == '{');
 
                 var filePath    = Request.ParsedURLParameters.Length > numberOfTemplateParameters
-                                    ? Request.ParsedURLParameters.Last().URLDecode()
+                                    ? Request.ParsedURLParameters.Last()
                                     : "DefaultFilename";
 
                 //var fileStream                  = //FileStreamProvider(filePath);

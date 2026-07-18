@@ -723,6 +723,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         "For example: This request is required to be " +
                                         "conditional; try using the 'If-Match'-header.");
 
+        /// <summary>
+        /// The client has sent too many requests in a given amount of time.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            TooManyRequests       = new (429,
+                                        "Too Many Requests",
+                                        "The client has sent too many requests in a given amount of time " +
+                                        "(rate limiting).");
+
+        /// <summary>
+        /// The server is unwilling to process the request because its header
+        /// fields are too large, too numerous, or include an oversized field.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            RequestHeaderFieldsTooLarge = new (431,
+                                               "Request Header Fields Too Large",
+                                               "The server is unwilling to process the request because its header fields are too large.");
+
         #endregion
 
         #region 5xx Server Error

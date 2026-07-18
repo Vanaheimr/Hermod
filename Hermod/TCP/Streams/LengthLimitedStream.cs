@@ -86,6 +86,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  (Int32) Math.Min((UInt64) Count, lengthLimit)
                              );
 
+            if (bytesRead == 0)
+                throw new HTTP.HTTPIncompleteBodyException(
+                          InitialLengthLimit,
+                          InitialLengthLimit - lengthLimit
+                      );
+
             lengthLimit     -= (UInt64) bytesRead;
 
             return bytesRead;
@@ -107,6 +113,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        Buffer[..(Int32) Math.Min((UInt64) Buffer.Length, lengthLimit)],
                                        CancellationToken
                                    );
+
+            if (bytesRead == 0)
+                throw new HTTP.HTTPIncompleteBodyException(
+                          InitialLengthLimit,
+                          InitialLengthLimit - lengthLimit
+                      );
 
             lengthLimit     -= (UInt64) bytesRead;
 

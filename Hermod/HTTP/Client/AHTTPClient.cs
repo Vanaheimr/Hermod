@@ -840,6 +840,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            ConsumeResponseChunkedTEImmediately ??= this.ConsumeResponseChunkedTEImmediately ?? true;
+
             var success = await sendRequestSemaphore.WaitAsync(
                                     MaxSemaphoreWaitTime ?? this.MaxSemaphoreWaitTime,
                                     CancellationToken
@@ -953,16 +955,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             #region Send HTTP Request
 
+                            var useChunkWorker      = Request.IsChunkedTransferEncoding &&
+                                                      Request.UseChunkWorker;
+                            var hasRequestBody      = useChunkWorker ||
+                                                      Request.HTTPBody is not null &&
+                                                      (Request.ContentLength > 0 ||
+                                                       Request.IsChunkedTransferEncoding);
+                            var waitFor100Continue = hasRequestBody &&
+                                                     Request.Expect?.Split(',').Any(expectation =>
+                                                         expectation.Trim().Equals("100-continue", StringComparison.OrdinalIgnoreCase)
+                                                     ) == true;
+
+                            async Task SendRequestBody()
+                            {
+
+                                if (useChunkWorker)
+                                {
+
+                                    using var chunkedStream = new ChunkedTransferEncodingStream(
+                                                                      httpStream,
+                                                                      LeaveInnerStreamOpen: true
+                                                                  );
+
+                                    await Request.ChunkWorker(
+                                              Request,
+                                              chunkedStream
+                                          ).ConfigureAwait(false);
+
+                                }
+
+                                else if (Request.HTTPBody is not null &&
+                                         (Request.ContentLength > 0 ||
+                                          Request.IsChunkedTransferEncoding))
+                                {
+                                    await httpStream.WriteAsync(
+                                              Request.HTTPBody,
+                                              linkedCancellationToken.Token
+                                          ).ConfigureAwait(false);
+                                }
+
+                            }
+
                             await httpStream.WriteAsync(
                                       Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"),
                                       linkedCancellationToken.Token
                                   ).ConfigureAwait(false);
 
-                            if (Request.HTTPBody is not null && Request.ContentLength > 0)
-                                await httpStream.WriteAsync(
-                                          Request.HTTPBody,
-                                          linkedCancellationToken.Token
-                                      ).ConfigureAwait(false);
+                            if (!waitFor100Continue && hasRequestBody)
+                                await SendRequestBody().ConfigureAwait(false);
 
                             await httpStream.FlushAsync(
                                       linkedCancellationToken.Token
@@ -1020,20 +1060,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 #endregion
 
-                                #region Parse HTTP Response
+                                 var responseHeader = Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span);
+
+                                if (!TryValidateResponseFraming(responseHeader, out var responseFramingError))
+                                {
+                                    bufferOwner?.Dispose();
+
+                                    return new HTTPResponse.Builder(Request) {
+                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                               Content         = responseFramingError.ToUTF8Bytes(),
+                                               ContentType     = HTTPContentType.Text.PLAIN,
+                                               Runtime         = stopwatch.Elapsed
+                                           };
+                                }
+
+                                 if (IsInterimResponse(responseHeader))
+                                {
+
+                                    if (waitFor100Continue &&
+                                        Is100ContinueResponse(responseHeader))
+                                    {
+                                        await SendRequestBody().ConfigureAwait(false);
+
+                                        await httpStream.FlushAsync(
+                                                  linkedCancellationToken.Token
+                                              ).ConfigureAwait(false);
+
+                                        waitFor100Continue = false;
+                                    }
+
+                                    var interimRemainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+                                    var interimRemainingLength = dataLength - interimRemainingStart;
+                                    buffer.Slice(interimRemainingStart, interimRemainingLength).CopyTo(buffer[..]);
+                                    dataLength = interimRemainingLength;
+
+                                     continue;
+
+                                 }
+
+                                 #region Parse HTTP Response
 
                                 var response = HTTPResponse.Parse(
-                                                   Timestamp.Now,
-                                                   stopwatch.Elapsed,
-                                                   Request,
-                                                   this,
-                                                   LocalSocket!. Value,
-                                                   RemoteSocket!.Value,
-                                                   new HTTPSource(LocalSocket!.Value),
-                                                   Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
-                                                   ConsumeResponseChunkedTEImmediately,
-                                                   CancellationToken: Request.CancellationToken
-                                               );
+                                                Timestamp.Now,
+                                                stopwatch.Elapsed,
+                                                Request,
+                                                this,
+                                                LocalSocket!. Value,
+                                                RemoteSocket!.Value,
+                                                new HTTPSource(LocalSocket!.Value),
+                                                responseHeader,
+                                                ConsumeResponseChunkedTEImmediately,
+                                                CancellationToken: Request.CancellationToken
+                                            );
 
                                 response.HTTPClient ??= this;
 
@@ -1041,21 +1119,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 #region Shift remaining data
 
-                                var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
-                                var remainingLength = dataLength - remainingStart;
-                                buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
-                                dataLength = remainingLength;
+                                 var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+                                 var remainingLength = dataLength - remainingStart;
+                                 buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
+                                 dataLength = remainingLength;
 
-                                #endregion
+                                 #endregion
 
-                                #region Setup HTTP body stream
+                                 #region Setup HTTP body stream
 
                                 Stream? bodyDataStream  = null;
                                 Stream? bodyStream      = null;
-                                var bodyAlreadyConsumed  = false;
+                                 var bodyAlreadyConsumed  = false;
+                                 var responseHasNoBody    = Request.HTTPMethod == HTTPMethod.HEAD ||
+                                                             response.HTTPStatusCode.Code is >= 100 and < 200 or 204 or 205 or 304;
+                                  var responseMustNotDeclareABody = response.HTTPStatusCode.Code is >= 100 and < 200 or 204 or 205;
+                                  var hasUnexpectedBodyBytes      = responseHasNoBody &&
+                                                                       (dataLength > 0 ||
+                                                                        (responseMustNotDeclareABody &&
+                                                                         (response.IsChunkedTransferEncoding ||
+                                                                          response.ContentLength.GetValueOrDefault() > 0)));
 
                                 var prefix = buffer[..dataLength];
-                                if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
+                                var isCloseDelimitedBody = !responseHasNoBody &&
+                                                           !response.IsChunkedTransferEncoding &&
+                                                           !response.ContentLength.HasValue &&
+                                                           response.IsConnectionClose;
+
+                                if (!responseHasNoBody &&
+                                    (response.IsChunkedTransferEncoding ||
+                                     response.ContentLength.HasValue ||
+                                     isCloseDelimitedBody))
                                 {
 
                                     bodyDataStream = new PrefixStream(
@@ -1084,8 +1178,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                            CancellationToken
                                              );
 
-                                             response.HTTPBody  = chunks.ToArray();
-                                             bodyAlreadyConsumed = true;
+                                            response.SetTrailingHeaders(trailers);
+                                            response.ChunkExtensions = chunkedStream.ChunkExtensions;
+                                            response.HTTPBody  = chunks.ToArray();
+                                            bodyAlreadyConsumed = true;
 
                                          }
 
@@ -1098,13 +1194,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          LeaveInnerStreamOpen: true
                                                      );
 
+                                    else if (isCloseDelimitedBody)
+                                        bodyStream = bodyDataStream;
+
                                 }
 
                                 response.HTTPBodyStream = bodyStream;
 
                                 #endregion
 
-                                if (response.ContentType == HTTPContentType.Text.EVENTSTREAM)
+                                if (!responseHasNoBody &&
+                                    response.ContentType == HTTPContentType.Text.EVENTSTREAM)
                                 {
 
                                     bodyStream?.Dispose();
@@ -1154,7 +1254,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             response.HTTPBodyStream = null;
 
                                         }
-                                        else if (!response.ContentLength.HasValue || response.ContentLength.Value == 0)
+                                        else if (responseHasNoBody ||
+                                                 !response.ContentLength.HasValue || response.ContentLength.Value == 0)
                                             response.HTTPBody = [];
 
                                     }
@@ -1173,7 +1274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 }
 
-                                if (response.IsConnectionClose)
+                                if (response.IsConnectionClose || hasUnexpectedBodyBytes)
                                 {
 
                                     IsHTTPConnected = false;
@@ -1312,6 +1413,153 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (private)   IsInterimResponse(HTTPHeader)
+
+        /// <summary>
+        /// Whether the given HTTP response header belongs to an informational
+        /// response that precedes the final response.
+        /// </summary>
+        private static Boolean IsInterimResponse(String HTTPHeader)
+        {
+
+            var statusLineEnd = HTTPHeader.IndexOf("\r\n", StringComparison.Ordinal);
+            var statusLine    = statusLineEnd >= 0
+                                    ? HTTPHeader[..statusLineEnd]
+                                    : HTTPHeader;
+
+            if (!statusLine.StartsWith("HTTP/", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var statusCodeStart = statusLine.IndexOf(' ');
+            if (statusCodeStart < 0)
+                return false;
+
+            var statusCodeEnd = statusLine.IndexOf(' ', statusCodeStart + 1);
+            var statusCode    = statusLine[(statusCodeStart + 1)..(statusCodeEnd >= 0 ? statusCodeEnd : statusLine.Length)];
+
+            return UInt16.TryParse(statusCode, out var statusCodeNumber) &&
+                   statusCodeNumber is >= 100 and < 200 and not 101;
+
+        }
+
+        #endregion
+
+
+        #region (private)   TryValidateResponseFraming(HTTPHeader, out ErrorDescription)
+
+        private static Boolean TryValidateResponseFraming(String   HTTPHeader,
+                                                           out String? ErrorDescription)
+        {
+
+            ErrorDescription = null;
+
+            var statusLine = HTTPHeader.Split("\r\n", 2, StringSplitOptions.None)[0];
+            var statusParts = statusLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+
+            if (statusParts.Length < 2 ||
+                statusParts[0] is not "HTTP/1.0" and not "HTTP/1.1" ||
+                statusParts[1].Length != 3 ||
+                !statusParts[1].All(character => character >= '0' && character <= '9') ||
+                !UInt16.TryParse(statusParts[1], out var statusCode) ||
+                statusCode is < 100 or > 599)
+            {
+                ErrorDescription = "Invalid HTTP response status line.";
+                return false;
+            }
+
+            var contentLengths    = new List<String>();
+            var transferEncodings = new List<String>();
+
+            foreach (var headerLine in HTTPHeader.Split("\r\n", StringSplitOptions.None).Skip(1))
+            {
+
+                var separatorIndex = headerLine.IndexOf(':');
+                if (separatorIndex <= 0 ||
+                    !headerLine[..separatorIndex].All(character => character is >= 'a' and <= 'z' or
+                                                                    >= 'A' and <= 'Z' or
+                                                                    >= '0' and <= '9' or
+                                                                    '!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+' or '-' or '.' or
+                                                                    '^' or '_' or '`' or '|' or '~'))
+                {
+                    ErrorDescription = "Invalid HTTP response header field line.";
+                    return false;
+                }
+
+                 var name  = headerLine[..separatorIndex];
+                 var value = headerLine[(separatorIndex + 1)..].Trim();
+
+                if (value.Any(character => character is < ' ' and not '\t' or '\x7F'))
+                {
+                    ErrorDescription = "Invalid HTTP response header field value.";
+                    return false;
+                }
+
+                 if (name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+                    contentLengths.Add(value);
+
+                else if (name.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                    transferEncodings.Add(value);
+
+            }
+
+            if (contentLengths.Count > 1 ||
+                contentLengths.Any(value => value.Contains(',') ||
+                                            value.IsNullOrEmpty() ||
+                                           !value.All(character => character >= '0' && character <= '9') ||
+                                           !UInt64.TryParse(value, out _)))
+            {
+                ErrorDescription = "Invalid or duplicate Content-Length in HTTP response.";
+                return false;
+            }
+
+            if (contentLengths.Count > 0 && transferEncodings.Count > 0)
+            {
+                ErrorDescription = "Content-Length and Transfer-Encoding must not be used together in an HTTP response.";
+                return false;
+            }
+
+            if (transferEncodings.Count > 0)
+            {
+
+                var transferCodings = transferEncodings.SelectMany(value => value.Split(',', StringSplitOptions.TrimEntries))
+                                                       .ToArray();
+
+                if (transferCodings.Length != 1 ||
+                    !transferCodings[0].Equals("chunked", StringComparison.OrdinalIgnoreCase))
+                {
+                    ErrorDescription = "Only a single final chunked Transfer-Encoding is supported in an HTTP response.";
+                    return false;
+                }
+
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+
+        #region (private)   Is100ContinueResponse(HTTPHeader)
+
+        /// <summary>
+        /// Whether the given HTTP response header belongs to a 100 Continue response.
+        /// </summary>
+        private static Boolean Is100ContinueResponse(String HTTPHeader)
+        {
+
+            var statusLineEnd = HTTPHeader.IndexOf("\r\n", StringComparison.Ordinal);
+            var statusLine    = statusLineEnd >= 0
+                                    ? HTTPHeader[..statusLineEnd]
+                                    : HTTPHeader;
+
+            return statusLine.StartsWith("HTTP/1.1 100", StringComparison.OrdinalIgnoreCase);
+
+        }
+
+        #endregion
+
+
         #region (private)   ReadHTTPBodyStream(BodyStream, CancellationToken)
 
         private static async Task<Byte[]> ReadHTTPBodyStream(Stream             BodyStream,
@@ -1353,7 +1601,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             httpStream = null;
             tlsStream  = null;
 
-            await Close().ConfigureAwait(false);
+            try
+            {
+                await Close().ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                DebugX.LogException(e, "while closing a failed HTTP client connection");
+            }
 
         }
 

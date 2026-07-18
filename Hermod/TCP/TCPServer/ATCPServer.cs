@@ -383,7 +383,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #region Or just listen on IPv4 (not localhost! && not dual mode ANY!)
 
-            if (this.IPAddress.IsIPv4 && this.TCPPort.IsZero)
+            if (this.IPAddress.IsIPv4      &&
+               !this.IPAddress.IsIPv6      &&
+               !this.IPAddress.IsLocalhost)
             {
 
                 this.tcpListenerIPv4         = new TcpListener(

@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c1bf2d4c-aa8f-4b0b-9c00-2aae9877d257" name="achim@OCTAL 2026-07-18 19:44:18" runUser="OCTAL\CodexSandboxOffline" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-07-18T19:44:18.2845731+02:00" queuing="2026-07-18T19:44:18.2845734+02:00" start="2026-07-18T19:44:16.9014722+02:00" finish="2026-07-18T19:44:18.2910836+02:00" />
+  <TestSettings name="default" id="bef925c1-c920-4ef8-81b0-e3d10c128e45">
+    <Deployment runDeploymentRoot="achim_OCTAL_2026-07-18_19_44_18" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="2c8a59da-6d35-4e92-b981-af35c3279392" testId="899587d9-11ad-9d44-d2d4-d06a64722eb2" testName="PUT_Root_Is_MethodNotAllowed" computerName="OCTAL" duration="00:00:00.1259540" startTime="2026-07-18T19:44:17.6025723+02:00" endTime="2026-07-18T19:44:17.7284634+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2c8a59da-6d35-4e92-b981-af35c3279392">
+      <Output>
+        <ErrorInfo>
+          <Message>  Assert.That(httpResponse.Headers.TryGetValues("Allow", out var allowedMethods), Is.True)&#xD;
+  Expected: True&#xD;
+  But was:  False&#xD;
+</Message>
+          <StackTrace>   at org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.DotNetHTTPClientTests.PUT_Root_Is_MethodNotAllowed() in D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\HTTP\dotNET\DotNetHTTPClientTests.cs:line 289&#xD;
+   at NUnit.Framework.Internal.TaskAwaitAdapter.GenericAdapter`1.BlockUntilCompleted()&#xD;
+   at NUnit.Framework.Internal.MessagePumpStrategy.NoMessagePumpStrategy.WaitForCompletion(AwaitAdapter awaiter)&#xD;
+   at NUnit.Framework.Internal.AsyncToSyncAdapter.Await[TResult](TestExecutionContext context, Func`1 invoke)&#xD;
+   at NUnit.Framework.Internal.AsyncToSyncAdapter.Await(TestExecutionContext context, Func`1 invoke)&#xD;
+   at NUnit.Framework.Internal.Commands.TestMethodCommand.RunTestMethod(TestExecutionContext context)&#xD;
+   at NUnit.Framework.Internal.Commands.TestMethodCommand.Execute(TestExecutionContext context)&#xD;
+   at NUnit.Framework.Internal.Execution.SimpleWorkItem.&lt;&gt;c__DisplayClass3_0.&lt;PerformWork&gt;b__0()&#xD;
+   at NUnit.Framework.Internal.ContextUtils.&lt;&gt;c__DisplayClass1_0`1.&lt;DoIsolated&gt;b__0(Object _)&#xD;
+   at NUnit.Framework.Internal.ContextUtils.&lt;&gt;c__DisplayClass2_0.&lt;DoIsolated&gt;b__0(Object s)&#xD;
+
+1)    at org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.DotNetHTTPClientTests.PUT_Root_Is_MethodNotAllowed() in D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\HTTP\dotNET\DotNetHTTPClientTests.cs:line 289&#xD;
+
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ce1892a8-f8c7-4877-a6b8-c094fbde3619" testId="021b96cc-4d2a-9045-54a9-ac1ba03f79a5" testName="PUT_Root_Is_MethodNotAllowed" computerName="OCTAL" duration="00:00:00.1088520" startTime="2026-07-18T19:44:18.0557043+02:00" endTime="2026-07-18T19:44:18.1645566+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ce1892a8-f8c7-4877-a6b8-c094fbde3619" />
+    <UnitTestResult executionId="abd5f437-f284-43a3-8de4-aac4febfc9fc" testId="c1276d35-1c13-f8c9-c1ad-04b3d25dab24" testName="PUT_Root_Is_MethodNotAllowed" computerName="OCTAL" duration="00:00:00.0875380" startTime="2026-07-18T19:44:17.7786309+02:00" endTime="2026-07-18T19:44:17.8661692+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="abd5f437-f284-43a3-8de4-aac4febfc9fc" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="PUT_Root_Is_MethodNotAllowed" storage="d:\coding\openchargingcloud\chargyapi_prod1\libs\hermod\hermodtests\bin\debug\net10.0\org.graphdefined.vanaheimr.hermod.tests.dll" id="c1276d35-1c13-f8c9-c1ad-04b3d25dab24">
+      <Execution id="abd5f437-f284-43a3-8de4-aac4febfc9fc" />
+      <TestMethod codeBase="D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\bin\Debug\net10.0\org.GraphDefined.Vanaheimr.Hermod.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.HTTPClientTests" name="PUT_Root_Is_MethodNotAllowed" />
+    </UnitTest>
+    <UnitTest name="PUT_Root_Is_MethodNotAllowed" storage="d:\coding\openchargingcloud\chargyapi_prod1\libs\hermod\hermodtests\bin\debug\net10.0\org.graphdefined.vanaheimr.hermod.tests.dll" id="899587d9-11ad-9d44-d2d4-d06a64722eb2">
+      <Execution id="2c8a59da-6d35-4e92-b981-af35c3279392" />
+      <TestMethod codeBase="D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\bin\Debug\net10.0\org.GraphDefined.Vanaheimr.Hermod.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.DotNetHTTPClientTests" name="PUT_Root_Is_MethodNotAllowed" />
+    </UnitTest>
+    <UnitTest name="PUT_Root_Is_MethodNotAllowed" storage="d:\coding\openchargingcloud\chargyapi_prod1\libs\hermod\hermodtests\bin\debug\net10.0\org.graphdefined.vanaheimr.hermod.tests.dll" id="021b96cc-4d2a-9045-54a9-ac1ba03f79a5">
+      <Execution id="ce1892a8-f8c7-4877-a6b8-c094fbde3619" />
+      <TestMethod codeBase="D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\bin\Debug\net10.0\org.GraphDefined.Vanaheimr.Hermod.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.HTTPClientTests_MinimalAPI" name="PUT_Root_Is_MethodNotAllowed" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="899587d9-11ad-9d44-d2d4-d06a64722eb2" executionId="2c8a59da-6d35-4e92-b981-af35c3279392" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="021b96cc-4d2a-9045-54a9-ac1ba03f79a5" executionId="ce1892a8-f8c7-4877-a6b8-c094fbde3619" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c1276d35-1c13-f8c9-c1ad-04b3d25dab24" executionId="abd5f437-f284-43a3-8de4-aac4febfc9fc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Ergebnisse nicht in einer Liste" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Alle geladenen Ergebnisse" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="3" executed="3" passed="2" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>NUnit Adapter 1.0.0.0: Test execution started&#xD;
+Running selected tests in D:\Coding\OpenChargingCloud\ChargyAPI_Prod1\libs\Hermod\HermodTests\bin\Debug\net10.0\org.GraphDefined.Vanaheimr.Hermod.Tests.dll&#xD;
+   NUnit3TestExecutor discovered 3 of 3 NUnit test cases using Current Discovery mode, Non-Explicit run&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

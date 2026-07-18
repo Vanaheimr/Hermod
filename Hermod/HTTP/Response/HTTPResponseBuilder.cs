@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public String             HTTPHeader
 
                 => String.Concat(
-                      (HTTPStatusCode ?? HTTPStatusCode.BadRequest).HTTPResponseString,
+                      $"{ProtocolName}/{ProtocolVersion} {(HTTPStatusCode ?? HTTPStatusCode.BadRequest).Code} {(HTTPStatusCode ?? HTTPStatusCode.BadRequest).Name}",
                        Environment.NewLine,
                        ConstructedHTTPHeader,
                        Environment.NewLine,
@@ -77,6 +77,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Func<HTTPResponse, ChunkedTransferEncodingStream, Task>  ChunkWorker      { get; set; } = (response, stream) => Task.CompletedTask;
 
             public Func<HTTPResponse, StreamWriter,                  Task>  HTTPSSEWorker    { get; set; } = (response, stream) => Task.CompletedTask;
+
+            /// <summary>
+            /// Trailer header fields to send after an automatically chunked static response body.
+            /// </summary>
+            public Dictionary<String, String>  TrailingHeaders  { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>
+            /// Whether the server shall apply chunked transfer encoding to the static response body.
+            /// </summary>
+            public Boolean  AutomaticallyChunkContent  { get; set; }
 
             #endregion
 
@@ -509,7 +519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.Timestamp        = ResponseTimestamp.Value;
                 this.Date             = ResponseTimestamp.Value;
                 this.ProtocolName     = "HTTP";
-                this.ProtocolVersion  = new HTTPVersion(1, 1);
+                this.ProtocolVersion  = HTTPRequest.ProtocolVersion;
                 base.EventTrackingId  = HTTPRequest.EventTrackingId ?? EventTracking_Id.New;
                 this.Runtime          = Runtime                     ?? ResponseTimestamp - HTTPRequest.Timestamp;
 
@@ -1232,6 +1242,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             protected override void PrepareImmutability()
             {
                 base.PrepareImmutability();
+
+                if (HTTPStatusCode?.Code is >= 100 and < 200 or 204 or 205)
+                {
+
+                    Content          = null;
+                    ContentStream    = null;
+                    ContentLength    = null;
+                    TransferEncoding = null;
+
+                }
             }
 
             #endregion
@@ -1248,6 +1268,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     Date ??= Illias.Timestamp.Now;
 
+                    if (TrailingHeaders.Count > 0)
+                    {
+                        ChunkedTransferEncodingStream.ValidateOutgoingTrailerHeaders(TrailingHeaders);
+
+                        if (Trailer.IsNullOrEmpty())
+                            Trailer = String.Join(", ", TrailingHeaders.Keys);
+                    }
+
                     PrepareImmutability();
 
                     HTTPResponse httpResponse;
@@ -1263,6 +1291,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     httpResponse.ChunkWorker   = ChunkWorker;
                     httpResponse.HTTPSSEWorker = HTTPSSEWorker;
+                    httpResponse.AutomaticallyChunkContent = AutomaticallyChunkContent;
+
+                    foreach (var (name, value) in TrailingHeaders)
+                        httpResponse.TrailingHeaders[name] = value;
 
                     return httpResponse;
 

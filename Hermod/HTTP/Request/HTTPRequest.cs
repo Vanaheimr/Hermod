@@ -21,6 +21,7 @@ using System.Xml.Linq;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 using Newtonsoft.Json.Linq;
 
@@ -1177,6 +1178,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Stream?                                                 NetworkStream           { get; internal set; }
         public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker             { get; set; } = (request, stream) => Task.CompletedTask;
 
+        /// <summary>
+        /// Whether the HTTP client shall invoke <see cref="ChunkWorker"/> to create the chunked request body.
+        /// </summary>
+        public Boolean                                                  UseChunkWorker         { get; set; }
+
 
         public volatile UInt32 KeepAliveMessageCount;
 
@@ -1249,6 +1255,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ServerCertificate  = ServerCertificate;
             this.ClientCertificate  = ClientCertificate;
             this.MaxHTTPBodySize    = HTTPServer?.MaxHTTPBodySize ?? DefaultMaxHTTPBodySize;
+
+            if (!TrySplitStrictHeaderLines(HTTPHeader, out _))
+                throw new FormatException("Invalid HTTP request header line endings or empty field line.");
 
             this.HTTPMethod         = HTTPMethod;
             this.Path               = Path;
@@ -1327,12 +1336,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Parse method
 
-            var firstPDULine        = FirstPDULine.Split(
-                                          spaceSeparator,
-                                          StringSplitOptions.RemoveEmptyEntries
-                                      ).
-                                      Select (element => element.Trim()).
-                                      ToArray();
+            if (!TrySplitStrictRequestLine(FirstPDULine, out var firstPDULine))
+                throw new FormatException("Invalid HTTP request line.");
 
             // e.g: PROPFIND /file/file Name HTTP/1.1
             if (firstPDULine.Length != 3)
@@ -1369,15 +1374,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Parse Request-Target and Path
 
             RequestTarget   = firstPDULine[1].Trim();
-            var parsedURL   = RequestTarget.Split(urlSeparator, 2, StringSplitOptions.None);
-            this.Path       = HTTPPath.Parse(parsedURL[0]);
 
-            //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
-            if (Path.Contains("://"))
+            if (!TryValidateRequestTarget(
+                     HTTPMethod,
+                     RequestTarget,
+                     out var normalizedPath,
+                     out _,
+                     out var requestTargetErrorDescription
+                 ))
             {
-                Path = Path.Substring(Path.IndexOf("://", StringComparison.Ordinal) + 3);
-                Path = Path.Substring(Path.IndexOf("/",   StringComparison.Ordinal));
+                throw new Exception(requestTargetErrorDescription);
             }
+
+            var parsedURL   = RequestTarget.Split(urlSeparator, 2, StringSplitOptions.None);
+            this.Path       = HTTPPath.Parse(normalizedPath);
 
             if (Path == "")
                 Path = HTTPPath.Root;
@@ -1406,36 +1416,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
             // status code to any HTTP/1.1 request message which lacks a Host header field.
 
-            // rfc 2616 - Section 5.2 The Resource Identified by a Request
-            // 1. If Request-URL is an absoluteURL, the host is part of the Request-URL.
-            //    Any Host header field value in the request MUST be ignored.
-            // 2. If the Request-URL is not an absoluteURL, and the request includes a
-            //    Host header field, the host is determined by the Host header field value.
-            // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
-            //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
-            if (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
-                hostHeaderRAW is not String hostHeaderString)
+            // This origin-server profile accepts only origin-form (plus OPTIONS *),
+            // so the target authority is always supplied by the Host header field.
+            if (ProtocolVersion == HTTPVersion.HTTP_1_1 &&
+                (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
+                 hostHeaderRAW is not String hostHeaderString ||
+                 !IsValidRequestHostHeader(hostHeaderString)))
             {
                 throw new Exception("The HTTP request must have have a valid HOST header!");
             }
-
-            // rfc 2616 - 3.2.2
-            // If the port is empty or not given, port 80 is assumed.
-            var hostHeader   = hostHeaderString.
-                                   Replace(":*", "").
-                                   Split  (colonSeparator, StringSplitOptions.RemoveEmptyEntries).
-                                   Select (v => v.Trim()).
-                                   ToArray();
-
-
-            //if (hostHeader.Length == 1)
-            //    headerFields[HTTPRequestHeaderField.Host.Name] = headerFields[HTTPRequestHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
-
-            if (hostHeader.Length == 2 && !UInt16.TryParse(hostHeader[1], out var hostPort))
-                throw new Exception("Invalid HTTP port in host header!");
-
-            if (hostHeader.Length  > 2)
-                throw new Exception("Invalid HTTP host header!");
 
             #endregion
 
@@ -1668,6 +1657,334 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
+        #region TryValidateRequestTarget(HTTPMethod, RequestTarget, out ErrorStatusCode, out ErrorDescription)
+
+        private static readonly UTF8Encoding strictUTF8Encoding = new (
+                                                                        encoderShouldEmitUTF8Identifier: false,
+                                                                        throwOnInvalidBytes:             true
+                                                                    );
+
+        private static readonly HashSet<String> commaJoinableRequestHeaderFields = new (StringComparer.OrdinalIgnoreCase) {
+                                                                                       "Accept",
+                                                                                       "Accept-Charset",
+                                                                                       "Accept-Encoding",
+                                                                                       "Accept-Language",
+                                                                                       "Cache-Control",
+                                                                                       "Connection",
+                                                                                       "Expect",
+                                                                                       "Forwarded",
+                                                                                       "If-Match",
+                                                                                       "If-None-Match",
+                                                                                       "TE",
+                                                                                       "Trailer",
+                                                                                       "Upgrade",
+                                                                                       "Via",
+                                                                                       "Warning",
+                                                                                       "X-Forwarded-For"
+                                                                                   };
+
+        private static Boolean IsTokenCharacter(Char Character)
+            => Character is >= 'a' and <= 'z' or
+                            >= 'A' and <= 'Z' or
+                            >= '0' and <= '9' or
+                            '!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+' or '-' or '.' or
+                            '^' or '_' or '`' or '|' or '~';
+
+        private static Boolean IsValidHeaderFieldName(String FieldName)
+            => FieldName.Length > 0 && FieldName.All(IsTokenCharacter);
+
+        private static Boolean IsValidHeaderFieldValue(String FieldValue)
+            => FieldValue.All(character => character == '\t' ||
+                                          character is >= ' ' and <= '~' ||
+                                          character is >= '\u0080' and <= '\u00FF');
+
+        private static String TrimOptionalWhitespace(String Text)
+            => Text.Trim(' ', '\t');
+
+        private static Boolean IsValidRequestHostHeader(String HostHeader)
+            => HostHeader.IsNotNullOrEmpty() &&
+               HostHeader != "*" &&
+               !HostHeader.EndsWith(":*", StringComparison.Ordinal) &&
+               !HostHeader.Any(Char.IsWhiteSpace) &&
+               !HostHeader.Contains('@') &&
+               HTTPHostname.TryParse(HostHeader, out _);
+
+        private static Boolean TrySplitStrictRequestLine(String                  RequestLine,
+                                                         [NotNullWhen(true)] out String[]?  Parts)
+        {
+
+            Parts = null;
+
+            var firstSpace  = RequestLine.IndexOf(' ');
+            var secondSpace = firstSpace > 0
+                                  ? RequestLine.IndexOf(' ', firstSpace + 1)
+                                  : -1;
+
+            if (firstSpace  <= 0 ||
+                secondSpace <= firstSpace + 1 ||
+                secondSpace == RequestLine.Length - 1 ||
+                RequestLine.IndexOf(' ', secondSpace + 1) >= 0 ||
+                RequestLine.Contains('\t'))
+            {
+                return false;
+            }
+
+            Parts = [
+                        RequestLine[..firstSpace],
+                        RequestLine[(firstSpace + 1)..secondSpace],
+                        RequestLine[(secondSpace + 1)..]
+                    ];
+
+            return true;
+
+        }
+
+        private static Boolean TrySplitStrictHeaderLines(String                  HTTPHeader,
+                                                          [NotNullWhen(true)] out String[]?  HeaderLines)
+        {
+
+            HeaderLines = null;
+
+            for (var i = 0; i < HTTPHeader.Length; i++)
+            {
+                if (HTTPHeader[i] == '\r')
+                {
+                    if (i + 1 >= HTTPHeader.Length || HTTPHeader[i + 1] != '\n')
+                        return false;
+
+                    i++;
+                }
+                else if (HTTPHeader[i] == '\n')
+                    return false;
+            }
+
+            var headerWithoutTrailingCRLF = HTTPHeader.EndsWith("\r\n", StringComparison.Ordinal)
+                                                ? HTTPHeader[..^2]
+                                                : HTTPHeader;
+
+            HeaderLines = headerWithoutTrailingCRLF.Split(
+                              [ "\r\n" ],
+                              StringSplitOptions.None
+                          );
+
+            return HeaderLines.Length >= 1 &&
+                   HeaderLines.All(line => line.Length > 0);
+
+        }
+
+        private static Boolean IsHexDigit(Char Character)
+            => Character is >= '0' and <= '9' or
+                            >= 'a' and <= 'f' or
+                            >= 'A' and <= 'F';
+
+        private static Byte HexValue(Char Character)
+            => Character is >= '0' and <= '9'
+                   ? (Byte) (Character - '0')
+                   : Character is >= 'a' and <= 'f'
+                         ? (Byte) (Character - 'a' + 10)
+                         : (Byte) (Character - 'A' + 10);
+
+        private static Boolean IsPathCharacter(Char Character)
+            => Character is >= 'a' and <= 'z' or
+                            >= 'A' and <= 'Z' or
+                            >= '0' and <= '9' or
+                            '-' or '.' or '_' or '~' or
+                            '!' or '$' or '&' or '\'' or '(' or ')' or '*' or '+' or ',' or ';' or '=' or
+                            ':' or '@';
+
+        private static Boolean ContainsPercentTriplet(String Text)
+        {
+
+            for (var i = 0; i + 2 < Text.Length; i++)
+            {
+                if (Text[i]     == '%' &&
+                    IsHexDigit(Text[i + 1]) &&
+                    IsHexDigit(Text[i + 2]))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+
+        }
+
+        private static Boolean TryDecodeAndValidatePathSegment(String                              RawSegment,
+                                                               [NotNullWhen(true)]  out String?  DecodedSegment,
+                                                               [NotNullWhen(false)] out String?  ErrorDescription)
+        {
+
+            DecodedSegment   = null;
+            ErrorDescription = null;
+            var bytes = new List<Byte>(RawSegment.Length);
+
+            for (var i = 0; i < RawSegment.Length; i++)
+            {
+                var character = RawSegment[i];
+
+                if (character == '%')
+                {
+                    if (i + 2 >= RawSegment.Length ||
+                        !IsHexDigit(RawSegment[i + 1]) ||
+                        !IsHexDigit(RawSegment[i + 2]))
+                    {
+                        ErrorDescription = "The request-target contains an invalid percent-encoding.";
+                        return false;
+                    }
+
+                    bytes.Add((Byte) ((HexValue(RawSegment[i + 1]) << 4) |
+                                       HexValue(RawSegment[i + 2])));
+                    i += 2;
+                }
+                else
+                {
+                    if (character > '\u007F' || !IsPathCharacter(character))
+                    {
+                        ErrorDescription = "The request-target contains an invalid path character.";
+                        return false;
+                    }
+
+                    bytes.Add((Byte) character);
+                }
+            }
+
+            try
+            {
+                DecodedSegment = strictUTF8Encoding.GetString([.. bytes]).
+                                                    Normalize(NormalizationForm.FormC);
+            }
+            catch (DecoderFallbackException)
+            {
+                ErrorDescription = "The request-target contains invalid UTF-8 percent-encoding.";
+                return false;
+            }
+
+            if (DecodedSegment is "." or "..")
+            {
+                ErrorDescription = "Dot-segments are not accepted in request-target paths.";
+                return false;
+            }
+
+            if (DecodedSegment.Contains('/') || DecodedSegment.Contains('\\'))
+            {
+                ErrorDescription = "Encoded path separators are not accepted in request-target paths.";
+                return false;
+            }
+
+            if (DecodedSegment.Any(character => Char.IsControl(character)))
+            {
+                ErrorDescription = "Control characters are not accepted in request-target paths.";
+                return false;
+            }
+
+            if (ContainsPercentTriplet(DecodedSegment))
+            {
+                ErrorDescription = "Double-encoded request-target path data is not accepted.";
+                return false;
+            }
+
+            return true;
+
+        }
+
+        private static Boolean TryNormalizeOriginFormPath(String                              RequestTarget,
+                                                          [NotNullWhen(true)]  out String?  NormalizedPath,
+                                                          [NotNullWhen(false)] out String?  ErrorDescription)
+        {
+
+            NormalizedPath   = null;
+            ErrorDescription = null;
+
+            var queryStart = RequestTarget.IndexOf('?');
+            var rawPath    = queryStart >= 0
+                                 ? RequestTarget[..queryStart]
+                                 : RequestTarget;
+
+            if (rawPath.Contains("//", StringComparison.Ordinal))
+            {
+                ErrorDescription = "Repeated path separators are not accepted.";
+                return false;
+            }
+
+            if (rawPath.Contains('\\'))
+            {
+                ErrorDescription = "Backslashes are not accepted in request-target paths.";
+                return false;
+            }
+
+            var decodedSegments = new List<String>();
+
+            foreach (var segment in rawPath.Split('/', StringSplitOptions.None))
+            {
+                if (!TryDecodeAndValidatePathSegment(segment, out var decodedSegment, out ErrorDescription))
+                    return false;
+
+                decodedSegments.Add(decodedSegment);
+            }
+
+            NormalizedPath = String.Join('/', decodedSegments);
+
+            return true;
+
+        }
+
+        private static Boolean TryValidateRequestTarget(HTTPMethod                          HTTPMethod,
+                                                        String                              RequestTarget,
+                                                        [NotNullWhen(true)] out String?    NormalizedPath,
+                                                        out HTTPStatusCode?                 ErrorStatusCode,
+                                                        [NotNullWhen(false)] out String?  ErrorDescription)
+        {
+
+            NormalizedPath    = null;
+            ErrorStatusCode   = null;
+            ErrorDescription  = null;
+
+            // Hermod is an origin server and deliberately does not implement CONNECT tunnelling.
+            if (HTTPMethod == HTTPMethod.CONNECT)
+            {
+                ErrorStatusCode   = HTTPStatusCode.NotImplemented;
+                ErrorDescription  = "CONNECT tunnelling is not implemented.";
+                return false;
+            }
+
+            if (RequestTarget == "*")
+            {
+
+                if (HTTPMethod == HTTPMethod.OPTIONS)
+                {
+                    NormalizedPath = "/";
+                    return true;
+                }
+
+                ErrorStatusCode   = HTTPStatusCode.BadRequest;
+                ErrorDescription  = "The asterisk-form request-target is only valid for OPTIONS.";
+                return false;
+
+            }
+
+            // Forward-proxy absolute-form and authority-form are intentionally not accepted.
+            // All remaining requests must use origin-form. Fragments never belong in a request-target.
+            if (!RequestTarget.StartsWith("/", StringComparison.Ordinal) ||
+                 RequestTarget.Contains('#'))
+            {
+                ErrorStatusCode   = HTTPStatusCode.BadRequest;
+                ErrorDescription  = "Invalid HTTP request-target form.";
+                return false;
+            }
+
+            if (!TryNormalizeOriginFormPath(RequestTarget, out NormalizedPath, out ErrorDescription))
+            {
+                ErrorStatusCode = HTTPStatusCode.BadRequest;
+                return false;
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+
         #region Parse(RequestTimestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, HTTPServer = null, ...)
 
         /// <summary>
@@ -1716,12 +2033,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Process first line...
 
-                var allLines = HTTPHeader.Split(
-                                   lineSeparator,
-                                   StringSplitOptions.RemoveEmptyEntries
-                               );
-
-                if (allLines is null || allLines.Length < 2)
+                if (!TrySplitStrictHeaderLines(HTTPHeader, out var allLines))
                 {
 
                     HTTPResponse = new HTTPResponse.Builder(
@@ -1774,7 +2086,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region ...process all other header lines
 
-                var headerFields = new ConcurrentDictionary<String, Object?>();
+                var headerFields = new ConcurrentDictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (var headerLine in allLines.Skip(1))
                 {
@@ -1784,29 +2096,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var keyValuePair = headerLine.Split(colonSeparator, 2);
 
-                    // Not valid for every HTTP header... but at least for most...
-                    if (keyValuePair.Length == 1)
-                        headerFields.TryAdd(keyValuePair[0].Trim(), String.Empty);
+                    if (keyValuePair.Length != 2 ||
+                        !IsValidHeaderFieldName(keyValuePair[0]) ||
+                        !IsValidHeaderFieldValue(keyValuePair[1]))
+                    {
+                        throw new FormatException("Invalid HTTP header field line.");
+                    }
 
                     else
                     {
 
-                        var key = keyValuePair[0].Trim();
+                        var key   = keyValuePair[0];
+                        var value = TrimOptionalWhitespace(keyValuePair[1]);
 
                         if (key.IsNotNullOrEmpty())
                         {
 
                             if (!headerFields.ContainsKey(key))
-                                headerFields.TryAdd(key, keyValuePair[1].Trim());
+                                headerFields.TryAdd(key, value);
 
                             else
                             {
 
-                                if (headerFields[key] is String existingValue)
-                                    headerFields[key] = new[] { existingValue, keyValuePair[1].Trim() };
+                                if (key.Equals(HTTPHeaderField.ContentLength.Name, StringComparison.OrdinalIgnoreCase))
+                                    headerFields[key] = new[] { headerFields[key]?.ToString() ?? String.Empty, value };
 
-                                else if (headerFields[key] is String[] existingValues)
-                                    headerFields[key] = existingValues.Append(keyValuePair[1].Trim()).ToArray();
+                                else if (key.Equals(HTTPHeaderField.TransferEncoding.Name, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var existingValue = headerFields[key] switch
+                                    {
+                                        String   text   => text,
+                                        String[] values => String.Join(", ", values),
+                                        _               => headerFields[key]?.ToString() ?? String.Empty
+                                    };
+
+                                    headerFields[key] = $"{existingValue}, {value}";
+                                }
+
+                                else if (key.Equals("Host",                StringComparison.OrdinalIgnoreCase) ||
+                                         key.Equals("Authorization",       StringComparison.OrdinalIgnoreCase) ||
+                                         key.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase) ||
+                                         key.Equals("Content-Type",        StringComparison.OrdinalIgnoreCase))
+                                {
+                                    throw new FormatException($"Duplicate {key} header field is not accepted.");
+                                }
+
+                                else if (key.Equals("Cookie", StringComparison.OrdinalIgnoreCase))
+                                    headerFields[key] = $"{headerFields[key]}; {value}";
+
+                                else if (commaJoinableRequestHeaderFields.Contains(key))
+                                    headerFields[key] = $"{headerFields[key]}, {value}";
+
+                                else
+                                    throw new FormatException($"Duplicate {key} header field is not accepted.");
 
                             }
 
@@ -1819,12 +2161,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
+                #region Validate HTTP message framing
+
+                var framingError = default(String);
+
+                if (headerFields.TryGetValue(HTTPHeaderField.ContentLength.Name, out var contentLengthValue) &&
+                    (contentLengthValue is not String contentLengthText ||
+                     contentLengthText.Contains(",")))
+                {
+                    framingError = "Duplicate or list-valued Content-Length is not accepted.";
+                }
+
+                if (framingError is null &&
+                    headerFields.TryGetValue(HTTPHeaderField.ContentLength.Name, out contentLengthValue) &&
+                    (contentLengthValue is not String validatedContentLengthText ||
+                     validatedContentLengthText.IsNullOrEmpty() ||
+                     !validatedContentLengthText.All(character => character >= '0' && character <= '9') ||
+                     !UInt64.TryParse(validatedContentLengthText, out _)))
+                {
+                    framingError = "Content-Length must be a non-negative decimal integer.";
+                }
+
+                if (headerFields.ContainsKey(HTTPHeaderField.ContentLength.Name) &&
+                    headerFields.ContainsKey(HTTPHeaderField.TransferEncoding.Name))
+                {
+                    framingError = "Content-Length and Transfer-Encoding must not be used together.";
+                }
+
+                if (headerFields.TryGetValue(HTTPHeaderField.TransferEncoding.Name, out var transferEncodingValue) &&
+                    transferEncodingValue is String transferEncodingText)
+                {
+                    var transferCodings = transferEncodingText.Split(",", StringSplitOptions.TrimEntries);
+
+                    if (transferCodings.Length == 0 ||
+                        transferCodings.Any(String.IsNullOrEmpty) ||
+                        !transferCodings[^1].Equals("chunked", StringComparison.OrdinalIgnoreCase))
+                    {
+                        framingError = "The final request transfer coding must be chunked.";
+                    }
+                }
+
+                if (framingError is not null)
+                {
+                    HTTPResponse = new HTTPResponse.Builder(
+
+                                       Illias.Timestamp.Now,
+                                       eventTrackingId,
+                                       TimeSpan.Zero,
+
+                                       HTTPSource,
+                                       LocalSocket,
+                                       RemoteSocket,
+                                       ConnectionType.Close,
+
+                                       HTTPStatusCode.BadRequest,
+                                       framingError,
+                                       CancellationToken
+
+                                   );
+
+                    return false;
+                }
+
+                #endregion
+
+
                 // 1st line of the request
 
                 #region Parse method
 
-                var httpMethodHeader    = firstPDULine.Split(spaceSeparator,
-                                                             StringSplitOptions.RemoveEmptyEntries);
+                if (!TrySplitStrictRequestLine(firstPDULine, out var httpMethodHeader))
+                {
+
+                    HTTPResponse = new HTTPResponse.Builder(
+
+                                       Illias.Timestamp.Now,
+                                       eventTrackingId,
+                                       TimeSpan.Zero,
+
+                                       HTTPSource,
+                                       LocalSocket,
+                                       RemoteSocket,
+                                       ConnectionType.Close,
+
+                                       HTTPStatusCode.BadRequest,
+                                       "Invalid HTTP request line!",
+                                       CancellationToken
+
+                                   );
+
+                    return false;
+
+                }
 
                 // e.g: PROPFIND /file/file Name HTTP/1.1
                 if (httpMethodHeader.Length != 3)
@@ -1881,10 +2309,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse protocol name and -version
 
-                var protocolArray      = httpMethodHeader[2].Split(slashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
-                var protocolName       = protocolArray[0].ToUpper();
+                var protocol          = httpMethodHeader[2];
+                var slashIndex        = protocol.IndexOf('/');
+                var protocolNameValid = slashIndex == 4 &&
+                                         protocol.LastIndexOf('/') == slashIndex &&
+                                         protocol.StartsWith("HTTP/", StringComparison.Ordinal);
 
-                if (!String.Equals(protocolName, "HTTP", StringComparison.CurrentCultureIgnoreCase))
+                if (!protocolNameValid)
                 {
 
                     HTTPResponse = new HTTPResponse.Builder(
@@ -1908,7 +2339,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (!HTTPVersion.TryParse(protocolArray[1], out var httpProtocolVersion))
+                var versionValid = protocol.Length == 8 &&
+                                   protocol[5] >= '0' && protocol[5] <= '9' &&
+                                   protocol[6] == '.' &&
+                                   protocol[7] >= '0' && protocol[7] <= '9';
+
+                if (!versionValid ||
+                    !HTTPVersion.TryParse(protocol[5..], out var httpProtocolVersion))
                 {
 
                     HTTPResponse = new HTTPResponse.Builder(
@@ -1961,15 +2398,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Parse Path
 
                 var rawURL     = httpMethodHeader[1];
-                var parsedURL  = rawURL.Split(urlSeparator, 2, StringSplitOptions.None);
-                var path       = HTTPPath.Parse(parsedURL[0]);
 
-                //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
-                if (path.Contains("://"))
+                if (!TryValidateRequestTarget(
+                         httpMethod,
+                         rawURL,
+                         out var normalizedPath,
+                         out var requestTargetErrorStatusCode,
+                         out var requestTargetErrorDescription
+                     ))
                 {
-                    path = path.Substring(path.IndexOf("://", StringComparison.Ordinal) + 3);
-                    path = path.Substring(path.IndexOf("/",   StringComparison.Ordinal));
+
+                    HTTPResponse = new HTTPResponse.Builder(
+
+                                       Illias.Timestamp.Now,
+                                       eventTrackingId,
+                                       TimeSpan.Zero,
+
+                                       HTTPSource,
+                                       LocalSocket,
+                                       RemoteSocket,
+                                       ConnectionType.Close,
+
+                                       requestTargetErrorStatusCode!,
+                                       requestTargetErrorDescription,
+                                       CancellationToken
+
+                                   );
+
+                    return false;
+
                 }
+
+                var parsedURL  = rawURL.Split(urlSeparator, 2, StringSplitOptions.None);
+                var path       = HTTPPath.Parse(normalizedPath);
 
                 if (path == "")
                     path = HTTPPath.Root;
@@ -2000,15 +2461,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
                 // status code to any HTTP/1.1 request message which lacks a Host header field.
 
-                // rfc 2616 - Section 5.2 The Resource Identified by a Request
-                // 1. If Request-URL is an absoluteURL, the host is part of the Request-URL.
-                //    Any Host header field value in the request MUST be ignored.
-                // 2. If the Request-URL is not an absoluteURL, and the request includes a
-                //    Host header field, the host is determined by the Host header field value.
-                // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
-                //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
-                if (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
-                    hostHeaderRAW is not String hostHeaderString)
+                // This origin-server profile accepts only origin-form (plus OPTIONS *),
+                // so the target authority is always supplied by the Host header field.
+                if (httpProtocolVersion == HTTPVersion.HTTP_1_1 &&
+                    (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
+                     hostHeaderRAW is not String hostHeaderString ||
+                     !IsValidRequestHostHeader(hostHeaderString)))
                 {
 
                     HTTPResponse = new HTTPResponse.Builder(
@@ -2032,66 +2490,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                // rfc 2616 - 3.2.2
-                // If the port is empty or not given, port 80 is assumed.
-                var hostHeader   = hostHeaderString.
-                                       Replace(":*", "").
-                                       Split  (colonSeparator, StringSplitOptions.RemoveEmptyEntries).
-                                       Select (v => v.Trim()).
-                                       ToArray();
-
-
-                //if (hostHeader.Length == 1)
-                //    headerFields[HTTPRequestHeaderField.Host.Name] = headerFields[HTTPRequestHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
-
-                if (hostHeader.Length == 2 && !UInt16.TryParse(hostHeader[1], out var hostPort))
-                {
-
-                    HTTPResponse = new HTTPResponse.Builder(
-
-                                       Illias.Timestamp.Now,
-                                       eventTrackingId,
-                                       TimeSpan.Zero,
-
-                                       HTTPSource,
-                                       LocalSocket,
-                                       RemoteSocket,
-                                       ConnectionType.Close,
-
-                                       HTTPStatusCode.BadRequest,
-                                       "Invalid HTTP port in host header!",
-                                       CancellationToken
-
-                                   );
-
-                    return false;
-
-                }
-
-                if (hostHeader.Length  > 2)
-                {
-
-                    HTTPResponse = new HTTPResponse.Builder(
-
-                                       Illias.Timestamp.Now,
-                                       eventTrackingId,
-                                       TimeSpan.Zero,
-
-                                       HTTPSource,
-                                       LocalSocket,
-                                       RemoteSocket,
-                                       ConnectionType.Close,
-
-                                       HTTPStatusCode.BadRequest,
-                                       "Invalid HTTP host header!",
-                                       CancellationToken
-
-                                   );
-
-                    return false;
-
-                }
-
                 #endregion
 
 
@@ -2105,7 +2503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   HTTPHeader,
                                   httpMethod,
                                   path,
-                                  protocolName,
+                                   protocol[..slashIndex],
                                   httpProtocolVersion,
                                   headerFields,
 
@@ -2121,6 +2519,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   CancellationToken:  CancellationToken
 
                               );
+
+                HTTPRequest.RequestTarget   = rawURL;
 
                 HTTPRequest.MaxHTTPBodySize = HTTPServer?.MaxHTTPBodySize ?? DefaultMaxHTTPBodySize;
 

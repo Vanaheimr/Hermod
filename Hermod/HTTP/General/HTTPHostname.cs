@@ -265,16 +265,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Text.StartsWith('[') && Text.Contains(']'))
             {
 
-                hostname = Text[..(Text.IndexOf(']') + 1)];
+                var closingBracket = Text.IndexOf(']');
+                hostname = Text[..(closingBracket + 1)];
+                var remainder = Text[(closingBracket + 1)..];
 
-                if (Text.Length > hostname.Length + 2)
-                    portText = Text[(Text.IndexOf(']') + 1)..];
+                if (remainder.IsNotNullOrEmpty())
+                {
+                    if (!remainder.StartsWith(':') || remainder.Length == 1)
+                    {
+                        Hostname       = default;
+                        ErrorResponse  = $"Invalid IPv6 host/port separator: '{Text}'!";
+                        return false;
+                    }
+
+                    portText = remainder[1..];
+                }
+
+                if (!System.Net.IPAddress.TryParse(hostname[1..^1], out var ipv6Address) ||
+                    ipv6Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
+                {
+                    Hostname       = default;
+                    ErrorResponse  = $"Invalid IPv6 address literal: '{hostname}'!";
+                    return false;
+                }
 
             }
 
             else
             {
                 var parts = Text.Split(':');
+
+                if (parts.Length > 2)
+                {
+                    Hostname       = default;
+                    ErrorResponse  = $"An IPv6 address literal must be enclosed in brackets: '{Text}'!";
+                    return false;
+                }
+
                 hostname  = parts.Length > 0 ? parts[0]?.Trim() : null;
                 portText  = parts.Length > 1 ? parts[1]?.Trim() : null;
             }
