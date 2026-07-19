@@ -29,6 +29,8 @@
     <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.ttf" />
     <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\css\FontAwesome\webfonts\fa-v4compatibility.woff2" />
     <EmbeddedResource Include="HTTP\HTTPAPI\HTTPRoot\ts\date.format.ts" />
+    <!-- Mozilla Public Suffix List snapshot, embedded for DMARC organizational-domain lookups. -->
+    <EmbeddedResource Include="SMTP\DNSVerifications\public_suffix_list.dat" />
   </ItemGroup>
 
   <ItemGroup>
