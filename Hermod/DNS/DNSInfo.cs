@@ -387,8 +387,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             ]);
 
             else if (rrLookup_DomainName.TryGetValue(typeId, out var constructor_DomainName))
+                // ParseLenient: RR owner names read from the wire may be underscore names
+                // (e.g. "_dmarc.example.com", "selector._domainkey.example.com").
                 return (ADNSResourceRecord) constructor_DomainName.Invoke([
-                                                DomainName.    Parse(resourceName),
+                                                DomainName.    ParseLenient(resourceName),
                                                 DNSStream
                                             ]);
 
