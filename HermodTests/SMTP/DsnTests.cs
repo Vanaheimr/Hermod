@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             mail.To      = (EMailAddress) SimpleEMailAddress.Parse("you@example.org");
             mail.Subject = "hi";
 
-            await sender.SendAsync((EMail) mail, Dsn: new DsnParameters(notify));
+            await sender.SendAsync(new EMailEnvelop((EMail) mail) { Dsn = new DsnParameters(notify) });
 
             return queue.Enqueued[0];
 
@@ -158,13 +158,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             mail.To      = (EMailAddress) SimpleEMailAddress.Parse("you@example.org");
             mail.Subject = "test";
 
-            await sender.SendAsync((EMail) mail, Dsn: new DsnParameters(DsnNotify.Success | DsnNotify.Failure, DsnRet.Full, "env-42"));
+            await sender.SendAsync(new EMailEnvelop((EMail) mail) {
+                                       Dsn = new DsnParameters(DsnNotify.Success | DsnNotify.Failure, DsnRet.Full, "env-42")
+                                   });
 
             Assert.That(queue.Enqueued, Has.Count.EqualTo(1));
             var queued = queue.Enqueued[0];
             Assert.That(queued.Notify, Is.EqualTo(DsnNotify.Success | DsnNotify.Failure));
             Assert.That(queued.Ret,    Is.EqualTo(DsnRet.Full));
             Assert.That(queued.EnvId,  Is.EqualTo("env-42"));
+
+        }
+
+        [Test]
+        public async Task Envelope_carries_all_transaction_parameters_onto_the_queued_mail()
+        {
+
+            var queue  = new CapturingQueue();
+            var sender = new MailSender(queue, Logger);
+
+            var mail = new TextEMailBuilder { Text = "hi" };
+            mail.From    = (EMailAddress) SimpleEMailAddress.Parse("me@example.com");
+            mail.To      = (EMailAddress) SimpleEMailAddress.Parse("you@example.org");
+            mail.Subject = "test";
+
+            // DSN, MT-PRIORITY and REQUIRETLS are envelope (transaction) parameters — they live on
+            // the EMailEnvelop, not on the EMail and not on the send method.
+            await sender.SendAsync(new EMailEnvelop((EMail) mail) {
+                                       Dsn        = new DsnParameters(DsnNotify.Success, DsnRet.Hdrs, "env-77"),
+                                       Priority   = 7,
+                                       RequireTls = true
+                                   });
+
+            var queued = queue.Enqueued[0];
+            Assert.That(queued.Notify,     Is.EqualTo(DsnNotify.Success));
+            Assert.That(queued.Ret,        Is.EqualTo(DsnRet.Hdrs));
+            Assert.That(queued.EnvId,      Is.EqualTo("env-77"));
+            Assert.That(queued.Priority,   Is.EqualTo((SByte) 7));
+            Assert.That(queued.RequireTls, Is.True);
 
         }
 

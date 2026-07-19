@@ -39,17 +39,17 @@ public sealed class MailSender
 {
 
     private readonly IMailQueue           mailQueue;
-    private readonly SMTPOutboundClient?   directClient;
+    private readonly SMTPOutboundClient?  directClient;
     private readonly ILogger              logger;
 
     /// <summary>
     /// Create a new mail sender over the given outbound queue. A <see cref="QueueProcessor"/>
     /// must be draining that same queue for the mail to actually be delivered.
     /// </summary>
-    /// <param name="MailQueue">The outbound queue for asynchronous "letter" delivery (<see cref="SendAsync(EMailEnvelop, Boolean, CancellationToken)"/>).</param>
+    /// <param name="MailQueue">The outbound queue for asynchronous "letter" delivery (<see cref="SendAsync(EMailEnvelop, CancellationToken)"/>).</param>
     /// <param name="Logger">A logger.</param>
     /// <param name="DirectDeliveryClient">
-    /// Optional outbound client used by <see cref="SendDirectAsync(EMailEnvelop, Boolean, CancellationToken)"/> for
+    /// Optional outbound client used by <see cref="SendDirectAsync(EMailEnvelop, CancellationToken)"/> for
     /// synchronous direct-to-MX delivery. Pass the same <see cref="SMTPOutboundClient"/> the
     /// <see cref="QueueProcessor"/> uses (it is stateless per send, so sharing is safe). When null,
     /// only the queued path is available.
@@ -64,19 +64,17 @@ public sealed class MailSender
     }
 
 
-    #region SendAsync(EMailEnvelop, RequireTls = false, ...)
+    #region SendAsync(EMailEnvelop, ...)
 
     /// <summary>
     /// Queue the given e-mail envelope for delivery. Recipients are grouped by domain and one
     /// queue item is created per domain (each targets a single MX set). Returns the queue IDs.
+    /// The envelope carries the transaction parameters — <see cref="EMailEnvelop.Dsn"/>,
+    /// <see cref="EMailEnvelop.Priority"/> and <see cref="EMailEnvelop.RequireTls"/>.
     /// </summary>
-    /// <param name="EMailEnvelop">A composed e-mail envelope (sender, recipients, message).</param>
-    /// <param name="RequireTls">Demand authenticated TLS for delivery (RFC 8689); defer instead of downgrading.</param>
+    /// <param name="EMailEnvelop">A composed e-mail envelope (sender, recipients, message, transaction parameters).</param>
     /// <param name="CancellationToken">An optional cancellation token.</param>
     public async Task<IReadOnlyList<String>> SendAsync(EMailEnvelop       EMailEnvelop,
-                                                       Boolean            RequireTls          = false,
-                                                       DsnParameters?     Dsn                 = null,
-                                                       SByte              Priority            = 0,
                                                        CancellationToken  CancellationToken   = default)
     {
 
@@ -91,7 +89,6 @@ public sealed class MailSender
         // Serialize the composed message to the RFC 5322 wire format. CRLF is forced here (never
         // Environment.NewLine); dot-stuffing is applied later by the outbound client, not now.
         var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText());
-        var dsn            = Dsn ?? DsnParameters.None;
 
         var ids = new List<String>();
 
@@ -109,11 +106,11 @@ public sealed class MailSender
                 EnvelopeTo      = to,
                 MessageContent  = messageContent,
                 TargetDomain    = domain,
-                RequireTls      = RequireTls,
-                Notify          = dsn.Notify,
-                Ret             = dsn.Ret,
-                EnvId           = dsn.EnvId,
-                Priority        = Priority
+                RequireTls      = EMailEnvelop.RequireTls,
+                Notify          = EMailEnvelop.Dsn.Notify,
+                Ret             = EMailEnvelop.Dsn.Ret,
+                EnvId           = EMailEnvelop.Dsn.EnvId,
+                Priority        = EMailEnvelop.Priority
             }, CancellationToken).ConfigureAwait(false);
 
             ids.Add(id);
@@ -127,25 +124,27 @@ public sealed class MailSender
 
     #endregion
 
-    #region SendAsync(EMail, RequireTls = false, ...)
+    #region SendAsync(EMail, ...)
 
     /// <summary>
     /// Queue the given e-mail for delivery, deriving the SMTP envelope from its <c>From</c>/<c>To</c>
     /// headers. The rich <c>Hermod.Mail</c> builders (e.g. <see cref="HTMLEMailBuilder"/>) convert
-    /// implicitly to <see cref="EMail"/>, so a builder can be passed directly.
+    /// implicitly to <see cref="EMail"/>, so a builder can be passed directly. To set transaction
+    /// parameters (DSN, priority, REQUIRETLS), construct an <see cref="EMailEnvelop"/> instead:
+    /// <c>new EMailEnvelop(mail) { Priority = 4, Dsn = … }</c>.
     /// </summary>
     public Task<IReadOnlyList<String>> SendAsync(EMail              EMail,
-                                                 Boolean            RequireTls          = false,
-                                                 DsnParameters?     Dsn                 = null,
-                                                 SByte              Priority            = 0,
                                                  CancellationToken  CancellationToken   = default)
 
-        => SendAsync(new EMailEnvelop(EMail), RequireTls, Dsn, Priority, CancellationToken);
+        => SendAsync(
+               new EMailEnvelop(EMail),
+               CancellationToken
+           );
 
     #endregion
 
 
-    #region SendDirectAsync(EMailEnvelop, RequireTls = false, ...)  — synchronous direct-to-MX
+    #region SendDirectAsync(EMailEnvelop, ...)  — synchronous direct-to-MX
 
     /// <summary>
     /// Deliver the given e-mail envelope **directly to each recipient domain's MX now**, waiting
@@ -153,15 +152,12 @@ public sealed class MailSender
     /// immediately whether the recipient's mail server accepted the message (e.g. a password-reset
     /// or contract e-mail), and accept that a transient failure is the caller's to handle.
     /// One delivery is attempted per recipient domain; the per-domain results are returned.
+    /// The envelope carries the transaction parameters (DSN, priority, REQUIRETLS).
     /// </summary>
-    /// <param name="EMailEnvelop">A composed e-mail envelope (sender, recipients, message).</param>
-    /// <param name="RequireTls">Demand authenticated TLS; defer/fail instead of downgrading (RFC 8689).</param>
+    /// <param name="EMailEnvelop">A composed e-mail envelope (sender, recipients, message, transaction parameters).</param>
     /// <param name="CancellationToken">An optional cancellation token.</param>
     /// <exception cref="InvalidOperationException">This sender was created without a direct-delivery client.</exception>
     public async Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMailEnvelop       EMailEnvelop,
-                                                                       Boolean            RequireTls          = false,
-                                                                       DsnParameters?     Dsn                 = null,
-                                                                       SByte              Priority            = 0,
                                                                        CancellationToken  CancellationToken   = default)
     {
 
@@ -189,7 +185,9 @@ public sealed class MailSender
             var domain = byDomain.Key.TrimEnd('.').ToLowerInvariant();
             var to     = byDomain.Select(rcpt => rcpt.Address.ToString()).ToArray();
 
-            var result = await directClient.SendAsync(domain, from, to, messageContent, RequireTls, Dsn ?? DsnParameters.None, Priority, CancellationToken)
+            var result = await directClient.SendAsync(domain, from, to, messageContent,
+                                                      EMailEnvelop.RequireTls, EMailEnvelop.Dsn, EMailEnvelop.Priority,
+                                                      CancellationToken)
                                            .ConfigureAwait(false);
 
             results.Add(new DirectSendResult(domain, to, result));
@@ -208,15 +206,12 @@ public sealed class MailSender
 
     /// <summary>
     /// Deliver the given e-mail directly to its recipients' MX now (envelope derived from the
-    /// <c>From</c>/<c>To</c> headers). See <see cref="SendDirectAsync(EMailEnvelop, Boolean, CancellationToken)"/>.
+    /// <c>From</c>/<c>To</c> headers). See <see cref="SendDirectAsync(EMailEnvelop, CancellationToken)"/>.
     /// </summary>
     public Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMail              EMail,
-                                                                 Boolean            RequireTls          = false,
-                                                                 DsnParameters?     Dsn                 = null,
-                                                                 SByte              Priority            = 0,
                                                                  CancellationToken  CancellationToken   = default)
 
-        => SendDirectAsync(new EMailEnvelop(EMail), RequireTls, Dsn, Priority, CancellationToken);
+        => SendDirectAsync(new EMailEnvelop(EMail), CancellationToken);
 
     #endregion
 
@@ -225,7 +220,7 @@ public sealed class MailSender
 
 /// <summary>
 /// The result of a synchronous direct-to-MX delivery to one recipient domain
-/// (<see cref="MailSender.SendDirectAsync(EMailEnvelop, Boolean, CancellationToken)"/>).
+/// (<see cref="MailSender.SendDirectAsync(EMailEnvelop, CancellationToken)"/>).
 /// </summary>
 /// <param name="TargetDomain">The recipient domain that was delivered to.</param>
 /// <param name="Recipients">The recipients at that domain.</param>

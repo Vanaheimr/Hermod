@@ -54,6 +54,7 @@ public sealed record MailSubmissionResult(MailSubmissionStatus  Status,
 
     public static MailSubmissionResult NoRecipients   => new (MailSubmissionStatus.NoRecipients,  0, "no recipients");
     public static MailSubmissionResult NotConfigured  => new (MailSubmissionStatus.NotConfigured, 0, "no submission server configured");
+
 }
 
 #endregion
@@ -72,16 +73,18 @@ public sealed record MailSubmissionResult(MailSubmissionStatus  Status,
 public interface IMailSubmitter
 {
 
-    /// <summary>Submit the given e-mail envelope and return the server's verdict.</summary>
+    /// <summary>
+    /// Submit the given e-mail envelope and return the server's verdict. The envelope carries the
+    /// transaction parameters (DSN request, MT-PRIORITY, REQUIRETLS).
+    /// </summary>
     Task<MailSubmissionResult> SubmitAsync(EMailEnvelop       EMailEnvelop,
-                                           DsnParameters?     Dsn                = null,
-                                           SByte              Priority           = 0,
                                            CancellationToken  CancellationToken  = default);
 
-    /// <summary>Submit the given e-mail (envelope derived from its From/To headers).</summary>
+    /// <summary>
+    /// Submit the given e-mail (envelope derived from its From/To headers). To set transaction
+    /// parameters, construct an <see cref="EMailEnvelop"/> instead.
+    /// </summary>
     Task<MailSubmissionResult> SubmitAsync(EMail              EMail,
-                                           DsnParameters?     Dsn                = null,
-                                           SByte              Priority           = 0,
                                            CancellationToken  CancellationToken  = default);
 
 }
@@ -142,8 +145,6 @@ public sealed class MailSubmitter : IMailSubmitter
 
 
     public async Task<MailSubmissionResult> SubmitAsync(EMailEnvelop       EMailEnvelop,
-                                                        DsnParameters?     Dsn                = null,
-                                                        SByte              Priority           = 0,
                                                         CancellationToken  CancellationToken  = default)
     {
 
@@ -157,15 +158,16 @@ public sealed class MailSubmitter : IMailSubmitter
         var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText());
 
         // In smarthost mode the targetDomain is only informational (the connection goes to the
-        // configured relay); pass the relay host.
+        // configured relay); pass the relay host. TLS is required if either the submitter is
+        // configured to demand it or this specific envelope does (REQUIRETLS).
         var result = await client.SendAsync(
                                config.RelayHost,
                                from,
                                recipients,
                                messageContent,
-                               config.RequireTls,
-                               Dsn ?? DsnParameters.None,
-                               Priority,
+                               config.RequireTls || EMailEnvelop.RequireTls,
+                               EMailEnvelop.Dsn,
+                               EMailEnvelop.Priority,
                                CancellationToken
                            ).ConfigureAwait(false);
 
@@ -184,11 +186,9 @@ public sealed class MailSubmitter : IMailSubmitter
 
 
     public Task<MailSubmissionResult> SubmitAsync(EMail              EMail,
-                                                  DsnParameters?     Dsn                = null,
-                                                  SByte              Priority           = 0,
                                                   CancellationToken  CancellationToken  = default)
 
-        => SubmitAsync(new EMailEnvelop(EMail), Dsn, Priority, CancellationToken);
+        => SubmitAsync(new EMailEnvelop(EMail), CancellationToken);
 
 }
 
@@ -210,14 +210,14 @@ public sealed class NullMailSubmitter : IMailSubmitter
         this.logger = Logger;
     }
 
-    public Task<MailSubmissionResult> SubmitAsync(EMailEnvelop EMailEnvelop, DsnParameters? Dsn = null, SByte Priority = 0, CancellationToken CancellationToken = default)
+    public Task<MailSubmissionResult> SubmitAsync(EMailEnvelop EMailEnvelop, CancellationToken CancellationToken = default)
     {
         logger?.Log(LogLevel.Debug, $"NullMailSubmitter: dropped a message to {EMailEnvelop.RcptTo.Count()} recipient(s)");
         return Task.FromResult(MailSubmissionResult.NotConfigured);
     }
 
-    public Task<MailSubmissionResult> SubmitAsync(EMail EMail, DsnParameters? Dsn = null, SByte Priority = 0, CancellationToken CancellationToken = default)
-        => SubmitAsync(new EMailEnvelop(EMail), Dsn, Priority, CancellationToken);
+    public Task<MailSubmissionResult> SubmitAsync(EMail EMail, CancellationToken CancellationToken = default)
+        => SubmitAsync(new EMailEnvelop(EMail), CancellationToken);
 
 }
 

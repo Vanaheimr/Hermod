@@ -181,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                     mail.From    = (EMailAddress) SimpleEMailAddress.Parse("me@example.com");
                     mail.To      = (EMailAddress) SimpleEMailAddress.Parse($"p{p}@example.org");
                     mail.Subject = "s";
-                    await sender.SendAsync((EMail) mail, Priority: p);
+                    await sender.SendAsync(new EMailEnvelop((EMail) mail) { Priority = p });
                 }
 
                 var pending = await queue.GetPendingAsync(50);

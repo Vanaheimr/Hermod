@@ -15,11 +15,21 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     /// <summary>
-    /// An e-mail envelop.
+    /// An e-mail envelop: the SMTP transaction around a message — MAIL FROM, RCPT TO, and the
+    /// transaction ("envelope") parameters that travel on those commands but are NOT part of the
+    /// RFC 5322 message itself (they have no header representation and are invisible to the
+    /// recipient's mail client): DSN requests (RFC 3461), the MT-PRIORITY transport priority
+    /// (RFC 6710) and REQUIRETLS (RFC 8689).
     /// </summary>
     public class EMailEnvelop
     {
@@ -45,6 +55,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// The embedded e-mail.
         /// </summary>
         public EMail             Mail            { get; }
+
+
+        /// <summary>
+        /// The delivery status notifications requested for this transaction (RFC 3461):
+        /// NOTIFY/RET/ENVID, emitted on MAIL FROM / RCPT TO when the receiving server supports DSN.
+        /// </summary>
+        public DsnParameters     Dsn             { get; init; } = DsnParameters.None;
+
+        /// <summary>
+        /// The SMTP transport priority (MT-PRIORITY, RFC 6710): -9..9, default 0, higher is more
+        /// urgent. Orders the outbound queue and is passed to the next hop when it supports the
+        /// extension. Distinct from the message's header-level <see cref="EMail.Importance"/>.
+        /// </summary>
+        public SByte             Priority        { get; init; } = 0;
+
+        /// <summary>
+        /// Demand authenticated TLS for this transaction (REQUIRETLS, RFC 8689): defer or fail
+        /// instead of ever downgrading to cleartext.
+        /// </summary>
+        public Boolean           RequireTls      { get; init; } = false;
 
         #endregion
 
