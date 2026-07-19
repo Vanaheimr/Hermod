@@ -316,8 +316,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     await mailQueue.UpdateAsync(mail, ct);
 
-                    // Positive delivery status notification (RFC 3461), if NOTIFY=SUCCESS was requested.
-                    await bounceHandler.SendDeliveryNotificationAsync(mail, ct);
+                    // Relayed status notification (RFC 3461) — only if NOTIFY=SUCCESS was requested and
+                    // the next hop did not advertise DSN (else it owns the delivered notification).
+                    await bounceHandler.SendRelayNotificationAsync(mail, result.RemoteSupportsDsn, ct);
                     break;
 
                 case SendStatus.TempFail:

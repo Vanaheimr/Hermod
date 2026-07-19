@@ -936,6 +936,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 // mailbox, decompress + parse it and record a summary (best-effort side effect).
                 if (tlsRptIngestor is not null && TlsRptIngestor.IsTlsRptReport(stampedMessage))
                     tlsRptIngestor.Ingest(stampedMessage);
+
+                // Positive delivery DSN (RFC 3461): the message reached a local mailbox, so issue an
+                // Action: delivered notification for every local recipient that requested NOTIFY=SUCCESS.
+                // (Needs the outbound queue to send the report back to the sender.)
+                if (mailQueue is not null)
+                {
+                    var localDsns = _recipientDsns.Where(r => _localRcptTo.Contains(r.Recipient)).ToList();
+                    if (localDsns.Any(r => r.Notify.HasFlag(DsnNotify.Success)))
+                        await new BounceHandler(config, mailQueue, logger).SendLocalDeliveryNotificationAsync(
+                            _mailFrom ?? "", localDsns, stampedRaw, _dsnEnvId, _dsnRet, ct);
+                }
             }
 
             // Queue for outbound delivery for remote recipients (relay)

@@ -189,40 +189,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         #endregion
 
 
-        #region Success DSN emission on delivery
+        #region Success DSN — relay ("relayed") and local acceptance ("delivered")
 
         private static SMTPServerConfig Config
             => new () { Hostname = "mx.example.com" };
 
         [Test]
-        public async Task Success_DSN_is_queued_when_NOTIFY_SUCCESS_was_requested()
+        public async Task Relay_of_a_NOTIFY_SUCCESS_mail_queues_a_relayed_DSN_when_next_hop_has_no_dsn()
         {
 
             var queue   = new CapturingQueue();
             var handler = new BounceHandler(Config, queue, Logger);
 
-            await handler.SendDeliveryNotificationAsync(await QueueOneAsync(DsnNotify.Success | DsnNotify.Failure));
+            // remoteSupportsDsn = false → we own the notification.
+            await handler.SendRelayNotificationAsync(await QueueOneAsync(DsnNotify.Success | DsnNotify.Failure), remoteSupportsDsn: false);
 
-            Assert.That(queue.Enqueued, Has.Count.EqualTo(1), "a delivery DSN must be queued");
+            Assert.That(queue.Enqueued, Has.Count.EqualTo(1), "a relayed DSN must be queued");
             var dsn = queue.Enqueued[0];
-            Assert.That(dsn.EnvelopeFrom, Is.EqualTo(""), "a report has a null sender (loop prevention)");
-            Assert.That(dsn.EnvelopeTo,   Is.EqualTo(new[] { "me@example.com" }), "addressed back to the original sender");
+            Assert.That(dsn.EnvelopeFrom,   Is.EqualTo(""), "a report has a null sender (loop prevention)");
+            Assert.That(dsn.EnvelopeTo,     Is.EqualTo(new[] { "me@example.com" }), "addressed back to the original sender");
             Assert.That(dsn.MessageContent, Does.Contain("multipart/report; report-type=delivery-status"));
-            Assert.That(dsn.MessageContent, Does.Contain("Action: delivered"));
-            Assert.That(dsn.MessageContent, Does.Contain("Final-Recipient: rfc822; you@example.org"));
+            Assert.That(dsn.MessageContent, Does.Contain("Action: relayed"), "relaying is not final delivery (RFC 3461)");
 
         }
 
         [Test]
-        public async Task No_success_DSN_without_NOTIFY_SUCCESS()
+        public async Task No_relay_DSN_when_the_next_hop_supports_dsn()
         {
 
             var queue   = new CapturingQueue();
             var handler = new BounceHandler(Config, queue, Logger);
 
-            await handler.SendDeliveryNotificationAsync(await QueueOneAsync(DsnNotify.Failure));
+            // remoteSupportsDsn = true → the next hop owns the delivered notification; we must not duplicate.
+            await handler.SendRelayNotificationAsync(await QueueOneAsync(DsnNotify.Success), remoteSupportsDsn: true);
 
-            Assert.That(queue.Enqueued, Is.Empty, "no delivery DSN unless SUCCESS was requested");
+            Assert.That(queue.Enqueued, Is.Empty, "the next hop issues the delivered DSN, so we don't");
+
+        }
+
+        [Test]
+        public async Task No_relay_DSN_without_NOTIFY_SUCCESS()
+        {
+
+            var queue   = new CapturingQueue();
+            var handler = new BounceHandler(Config, queue, Logger);
+
+            await handler.SendRelayNotificationAsync(await QueueOneAsync(DsnNotify.Failure), remoteSupportsDsn: false);
+
+            Assert.That(queue.Enqueued, Is.Empty, "no success notification unless SUCCESS was requested");
+
+        }
+
+        [Test]
+        public async Task Local_delivery_queues_a_delivered_DSN_for_NOTIFY_SUCCESS_recipients()
+        {
+
+            var queue   = new CapturingQueue();
+            var handler = new BounceHandler(Config, queue, Logger);
+
+            var recipients = new[]
+            {
+                new RecipientDsn { Recipient = "you@example.com", Notify = DsnNotify.Success | DsnNotify.Failure },
+                new RecipientDsn { Recipient = "quiet@example.com", Notify = DsnNotify.Failure }   // no success → no DSN
+            };
+
+            await handler.SendLocalDeliveryNotificationAsync(
+                "sender@remote.org", recipients, "Subject: hi\r\n\r\nbody", envId: null, ret: DsnRet.Full);
+
+            Assert.That(queue.Enqueued, Has.Count.EqualTo(1), "exactly one recipient asked for success");
+            var dsn = queue.Enqueued[0];
+            Assert.That(dsn.EnvelopeTo,     Is.EqualTo(new[] { "sender@remote.org" }));
+            Assert.That(dsn.MessageContent, Does.Contain("Action: delivered"), "local mailbox delivery is final");
+            Assert.That(dsn.MessageContent, Does.Contain("Final-Recipient: rfc822; you@example.com"));
 
         }
 

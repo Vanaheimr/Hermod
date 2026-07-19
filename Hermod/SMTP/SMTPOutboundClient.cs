@@ -45,6 +45,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     String?     RemoteMx = null,
                                     TimeSpan?   Duration = null)
     {
+
+        /// <summary>
+        /// Whether the receiving server advertised the DSN extension. When true, any requested
+        /// success notification is that server's responsibility, so we must not also issue a
+        /// "relayed" DSN (RFC 3461 §5.3.1) — avoiding a duplicate.
+        /// </summary>
+        public Boolean RemoteSupportsDsn { get; init; }
+
         public static SendResult Success(String response, String mx, TimeSpan duration) =>
             new (SendStatus.Success, 250, response, mx, duration);
 
@@ -514,7 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     // Ignore QUIT errors
                 }
 
-                return ParseResponse(finalResponse, mxHost);
+                return ParseResponse(finalResponse, mxHost) with { RemoteSupportsDsn = supportsDsn };
 
             }
             finally

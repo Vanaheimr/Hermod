@@ -98,18 +98,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
         /// <summary>
-        /// Generate and queue a positive delivery status notification (RFC 3461) when the sender
-        /// requested NOTIFY=SUCCESS. No-op otherwise.
+        /// Generate and queue a "relayed" status notification (RFC 3461) after handing a message to the
+        /// next hop, but only when the sender requested NOTIFY=SUCCESS AND the next hop did not advertise
+        /// DSN. If it did, that server takes over the delivered-DSN responsibility (RFC 3461 §5.3.1) and
+        /// we must not also notify, to avoid a duplicate. No-op otherwise.
         /// </summary>
-        public async Task SendDeliveryNotificationAsync(
+        public async Task SendRelayNotificationAsync(
             QueuedMail          mail,
+            Boolean             remoteSupportsDsn,
             CancellationToken   ct = default)
         {
-            // Only if the sender asked for success notifications.
-            if (!mail.Notify.HasFlag(DsnNotify.Success))
+            if (!mail.Notify.HasFlag(DsnNotify.Success) || remoteSupportsDsn)
                 return;
 
-            // Never notify a null sender, and never notify about a notification (loop prevention).
             if (string.IsNullOrEmpty(mail.EnvelopeFrom) || mail.EnvelopeFrom == "<>" ||
                 IsBouncedMessage(mail.MessageContent))
                 return;
@@ -119,31 +120,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             foreach (var recipient in mail.EnvelopeTo)
             {
 
-                var dsn = dsnGenerator.GenerateDeliveryDsn(
+                var dsn = dsnGenerator.GenerateRelayDsn(
                     originalFrom:     mail.EnvelopeFrom,
                     recipient:        new RecipientDsn { Recipient = recipient, Notify = mail.Notify },
                     envId:            mail.EnvId,
                     ret:              mail.Ret,
-                    originalMessage:  mail.MessageContent);
+                    originalMessage:  mail.MessageContent,
+                    relayedTo:        mail.TargetDomain);
 
                 if (dsn is null)
                     continue;
 
-                await queue.EnqueueAsync(new QueuedMail
-                {
-                    Id              = $"dsn-{Guid.NewGuid():N}",
-                    EnvelopeFrom    = "",   // null sender (this is a report)
-                    EnvelopeTo      = [mail.EnvelopeFrom],
-                    MessageContent  = dsn,
-                    TargetDomain    = ExtractDomain(mail.EnvelopeFrom),
-                    QueuedAt        = DateTime.UtcNow,
-                    NextRetry       = DateTime.UtcNow
-                }, ct);
+                await EnqueueReportAsync(dsn, mail.EnvelopeFrom, ct);
 
             }
 
-            logger.Log(LogLevel.Info, $"Queued delivery DSN for {mail.EnvelopeFrom}");
+            logger.Log(LogLevel.Info, $"Queued relayed DSN for {mail.EnvelopeFrom}");
         }
+
+        /// <summary>
+        /// Generate and queue positive "delivered" status notifications (RFC 3461) after a message was
+        /// finally delivered to one or more local mailboxes, for each recipient that requested
+        /// NOTIFY=SUCCESS. No-op otherwise.
+        /// </summary>
+        public async Task SendLocalDeliveryNotificationAsync(
+            String                     envelopeFrom,
+            IEnumerable<RecipientDsn>  localRecipients,
+            String                     originalMessage,
+            String?                    envId,
+            DsnRet                     ret,
+            CancellationToken          ct = default)
+        {
+            if (string.IsNullOrEmpty(envelopeFrom) || envelopeFrom == "<>" ||
+                IsBouncedMessage(originalMessage))
+                return;
+
+            var dsnGenerator = new DsnGenerator(config);
+
+            foreach (var recipient in localRecipients)
+            {
+
+                var dsn = dsnGenerator.GenerateDeliveryDsn(
+                    originalFrom:     envelopeFrom,
+                    recipient:        recipient,
+                    envId:            envId,
+                    ret:              ret,
+                    originalMessage:  originalMessage);   // null unless NOTIFY=SUCCESS
+
+                if (dsn is null)
+                    continue;
+
+                await EnqueueReportAsync(dsn, envelopeFrom, ct);
+                logger.Log(LogLevel.Info, $"Queued delivered DSN for {envelopeFrom} (recipient {recipient.Recipient})");
+
+            }
+        }
+
+        // Queue a DSN report back to the original sender with a null return-path (loop-safe).
+        private Task EnqueueReportAsync(String dsnMessage, String originalSender, CancellationToken ct)
+            => queue.EnqueueAsync(new QueuedMail
+               {
+                   Id              = $"dsn-{Guid.NewGuid():N}",
+                   EnvelopeFrom    = "",   // null sender (this is a report)
+                   EnvelopeTo      = [originalSender],
+                   MessageContent  = dsnMessage,
+                   TargetDomain    = ExtractDomain(originalSender),
+                   QueuedAt        = DateTime.UtcNow,
+                   NextRetry       = DateTime.UtcNow
+               }, ct);
 
         /// <summary>
         /// Generate a delay notification (mail still in queue, will keep trying)
