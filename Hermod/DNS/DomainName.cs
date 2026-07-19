@@ -72,6 +72,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                              RegexOptions.CultureInvariant
                                                          );
 
+        /// <summary>
+        /// Like <see cref="DomainNameRegExpr"/>, but additionally allows the underscore ('_')
+        /// within labels. Resource record owner names read from the wire may legitimately
+        /// contain underscore labels (e.g. "_dmarc", "_domainkey", "_25._tcp"), so those must
+        /// be accepted when parsing a DNS response even though a hostname never has them.
+        /// </summary>
+        public static readonly Regex DomainNameWithUnderscoresRegExpr = new Regex(
+                                                             @"^(?=.{1,254}$)" +
+                                                             @"(?:[A-Za-z0-9_]" +
+                                                             @"(?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?" +
+                                                             @")" +
+                                                             @"(?:\.(?:[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?))*" +
+                                                             @"\.?$",
+                                                             RegexOptions.IgnoreCase |
+                                                             RegexOptions.Compiled   |
+                                                             RegexOptions.CultureInvariant
+                                                         );
+
         private readonly String[]  labels;
 
         #endregion
@@ -222,6 +240,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region ParseLenient(Text)
+
+        /// <summary>
+        /// Parse the given text as a domain name, additionally tolerating underscore ('_')
+        /// labels. Intended for resource record owner names read from a DNS response, which
+        /// may legitimately be underscore names (e.g. "_dmarc.example.com").
+        /// </summary>
+        /// <param name="Text">The text representation of a domain name.</param>
+        public static DomainName ParseLenient(String Text)
+        {
+
+            if (TryParse(Text, out var domainName, out var errorResponse, AllowUnderscoreLabels: true))
+                return domainName;
+
+            throw new ArgumentException($"Invalid text representation of a domain name: '{Text}': {errorResponse}",
+                                        nameof(Text));
+
+        }
+
+        #endregion
+
         #region TryParse (Text)
 
         /// <summary>
@@ -240,7 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region TryParse (Text, out DomainName, out ErrorResponse)
+        #region TryParse(Text, out DomainName, out ErrorResponse)
 
         /// <summary>
         /// Parse the given string as a domain name (RFC 1035).
@@ -251,6 +290,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean TryParse(String                                Text,
                                        [NotNullWhen(true)]  out DomainName?  DomainName,
                                        [NotNullWhen(false)] out String?      ErrorResponse)
+
+            => TryParse(Text,
+                        out DomainName,
+                        out ErrorResponse,
+                        false);
+
+        #endregion
+
+        #region (private) TryParse(Text, out DomainName, out ErrorResponse, AllowUnderscoreLabels)
+
+        /// <summary>
+        /// Parse the given string as a domain name (RFC 1035), optionally tolerating underscore
+        /// labels for resource record owner names read from the wire (e.g. "_dmarc.example.com").
+        /// </summary>
+        /// <param name="Text">The text representation of a domain name.</param>
+        /// <param name="DomainName">The parsed domain name.</param>
+        /// <param name="ErrorResponse">An optional error response in case the parsing fails.</param>
+        /// <param name="AllowUnderscoreLabels">Whether to tolerate underscore ('_') labels.</param>
+        private static Boolean TryParse(String                                Text,
+                                        [NotNullWhen(true)]  out DomainName?  DomainName,
+                                        [NotNullWhen(false)] out String?      ErrorResponse,
+                                        Boolean                               AllowUnderscoreLabels)
         {
 
             DomainName     = null;
@@ -275,7 +336,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (Text != ".")
             {
-                if (!DomainNameRegExpr.IsMatch(Text))
+                var regExpr = AllowUnderscoreLabels
+                                  ? DomainNameWithUnderscoresRegExpr
+                                  : DomainNameRegExpr;
+
+                if (!regExpr.IsMatch(Text))
                 {
                     ErrorResponse = "The given domain name does not match the required format!";
                     return false;
