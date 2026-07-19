@@ -38,18 +38,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 public sealed class MailSender
 {
 
-    private readonly IMailQueue  mailQueue;
-    private readonly ILogger     logger;
+    private readonly IMailQueue           mailQueue;
+    private readonly SMTPOutboundClient?   directClient;
+    private readonly ILogger              logger;
 
     /// <summary>
     /// Create a new mail sender over the given outbound queue. A <see cref="QueueProcessor"/>
     /// must be draining that same queue for the mail to actually be delivered.
     /// </summary>
-    public MailSender(IMailQueue  MailQueue,
-                      ILogger     Logger)
+    /// <param name="MailQueue">The outbound queue for asynchronous "letter" delivery (<see cref="SendAsync(EMailEnvelop, Boolean, CancellationToken)"/>).</param>
+    /// <param name="Logger">A logger.</param>
+    /// <param name="DirectDeliveryClient">
+    /// Optional outbound client used by <see cref="SendDirectAsync(EMailEnvelop, Boolean, CancellationToken)"/> for
+    /// synchronous direct-to-MX delivery. Pass the same <see cref="SMTPOutboundClient"/> the
+    /// <see cref="QueueProcessor"/> uses (it is stateless per send, so sharing is safe). When null,
+    /// only the queued path is available.
+    /// </param>
+    public MailSender(IMailQueue           MailQueue,
+                      ILogger              Logger,
+                      SMTPOutboundClient?  DirectDeliveryClient   = null)
     {
-        this.mailQueue  = MailQueue;
-        this.logger     = Logger;
+        this.mailQueue     = MailQueue;
+        this.logger        = Logger;
+        this.directClient  = DirectDeliveryClient;
     }
 
 
@@ -124,4 +135,92 @@ public sealed class MailSender
 
     #endregion
 
+
+    #region SendDirectAsync(EMailEnvelop, RequireTls = false, ...)  — synchronous direct-to-MX
+
+    /// <summary>
+    /// Deliver the given e-mail envelope **directly to each recipient domain's MX now**, waiting
+    /// for the receiving server's verdict — no queue, no retries. Use this when you must know
+    /// immediately whether the recipient's mail server accepted the message (e.g. a password-reset
+    /// or contract e-mail), and accept that a transient failure is the caller's to handle.
+    /// One delivery is attempted per recipient domain; the per-domain results are returned.
+    /// </summary>
+    /// <param name="EMailEnvelop">A composed e-mail envelope (sender, recipients, message).</param>
+    /// <param name="RequireTls">Demand authenticated TLS; defer/fail instead of downgrading (RFC 8689).</param>
+    /// <param name="CancellationToken">An optional cancellation token.</param>
+    /// <exception cref="InvalidOperationException">This sender was created without a direct-delivery client.</exception>
+    public async Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMailEnvelop       EMailEnvelop,
+                                                                       Boolean            RequireTls          = false,
+                                                                       CancellationToken  CancellationToken   = default)
+    {
+
+        if (directClient is null)
+            throw new InvalidOperationException(
+                "This MailSender has no direct-delivery client. Construct it with an SMTPOutboundClient " +
+                "(the DirectDeliveryClient parameter) to use SendDirectAsync.");
+
+        var from = EMailEnvelop.MailFrom.FirstOrDefault()?.Address.ToString();
+        if (String.IsNullOrEmpty(from))
+            throw new ArgumentException("The e-mail envelope has no sender (MAIL FROM).", nameof(EMailEnvelop));
+
+        var recipients = EMailEnvelop.RcptTo.ToList();
+        if (recipients.Count == 0)
+            throw new ArgumentException("The e-mail envelope has no recipients (RCPT TO).", nameof(EMailEnvelop));
+
+        var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText());
+
+        var results = new List<DirectSendResult>();
+
+        // Direct-to-MX delivery is per recipient domain (each has its own MX set).
+        foreach (var byDomain in recipients.GroupBy(rcpt => rcpt.Address.Domain, StringComparer.OrdinalIgnoreCase))
+        {
+
+            var domain = byDomain.Key.TrimEnd('.').ToLowerInvariant();
+            var to     = byDomain.Select(rcpt => rcpt.Address.ToString()).ToArray();
+
+            var result = await directClient.SendAsync(domain, from, to, messageContent, RequireTls, CancellationToken)
+                                           .ConfigureAwait(false);
+
+            results.Add(new DirectSendResult(domain, to, result));
+            logger.Log(result.Status == SendStatus.Success ? LogLevel.Info : LogLevel.Warning,
+                       $"MailSender: direct delivery to {domain} → {result.Status} ({result.ResponseCode} {result.ResponseText})");
+
+        }
+
+        return results;
+
+    }
+
+    #endregion
+
+    #region SendDirectAsync(EMail, RequireTls = false, ...)
+
+    /// <summary>
+    /// Deliver the given e-mail directly to its recipients' MX now (envelope derived from the
+    /// <c>From</c>/<c>To</c> headers). See <see cref="SendDirectAsync(EMailEnvelop, Boolean, CancellationToken)"/>.
+    /// </summary>
+    public Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMail              EMail,
+                                                                 Boolean            RequireTls          = false,
+                                                                 CancellationToken  CancellationToken   = default)
+
+        => SendDirectAsync(new EMailEnvelop(EMail), RequireTls, CancellationToken);
+
+    #endregion
+
+}
+
+
+/// <summary>
+/// The result of a synchronous direct-to-MX delivery to one recipient domain
+/// (<see cref="MailSender.SendDirectAsync(EMailEnvelop, Boolean, CancellationToken)"/>).
+/// </summary>
+/// <param name="TargetDomain">The recipient domain that was delivered to.</param>
+/// <param name="Recipients">The recipients at that domain.</param>
+/// <param name="Result">The receiving server's verdict (status, SMTP code, response text, MX host).</param>
+public sealed record DirectSendResult(String        TargetDomain,
+                                      String[]      Recipients,
+                                      SendResult    Result)
+{
+    /// <summary>Whether the receiving MX accepted the message.</summary>
+    public Boolean IsOk => Result.Status == SendStatus.Success;
 }
