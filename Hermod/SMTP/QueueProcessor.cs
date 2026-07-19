@@ -278,6 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.MessageContent,
                     mail.RequireTls,
                     new DsnParameters(mail.Notify, mail.Ret, mail.EnvId),
+                    mail.Priority,
                     ct
                 );
 

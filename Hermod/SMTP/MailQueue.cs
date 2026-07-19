@@ -66,6 +66,10 @@ public sealed class QueuedMail
     public DsnRet             Ret               { get; init; } = DsnRet.Full;
     public String?            EnvId             { get; init; }
 
+    // Transport priority (MT-PRIORITY, RFC 6710): -9..9, higher is more urgent. Used to order the
+    // queue and re-emitted on the outbound MAIL FROM when the next hop advertises MT-PRIORITY.
+    public SByte              Priority          { get; init; } = 0;
+
 }
 
 #endregion
@@ -251,28 +255,23 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
         await _lock.WaitAsync(ct);
         try
         {
-            var result = new List<QueuedMail>();
+            var candidates = new List<QueuedMail>();
             var now = DateTime.UtcNow;
 
-            var files = Directory.GetFiles(_queuePath, "*.json")
-                .OrderBy(f => File.GetCreationTimeUtc(f))
-                .Take(maxItems * 2);
-
-            foreach (var file in files)
+            // Collect every ready item, then order by MT-PRIORITY (RFC 6710) so higher-priority mail is
+            // delivered first; within the same priority keep FIFO by readiness (NextRetry).
+            foreach (var file in Directory.GetFiles(_queuePath, "*.json"))
             {
-                if (result.Count >= maxItems)
-                    break;
-
                 try
                 {
                     var json = await File.ReadAllTextAsync(file, ct);
                     var mail = JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
 
-                    if (mail is not null && 
+                    if (mail is not null &&
                         mail.Status is QueueItemStatus.Pending or QueueItemStatus.Deferred &&
                         mail.NextRetry <= now)
                     {
-                        result.Add(mail);
+                        candidates.Add(mail);
                     }
                 }
                 catch (Exception ex)
@@ -281,7 +280,11 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
                 }
             }
 
-            return result;
+            return candidates
+                .OrderByDescending(m => m.Priority)
+                .ThenBy(m => m.NextRetry)
+                .Take(maxItems)
+                .ToList();
         }
         finally
         {

@@ -18,11 +18,14 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 #endregion
 
@@ -123,6 +126,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             });
             Assert.That(mail.Importance, Is.EqualTo(MailImportance.Normal));
         }
+
+
+        #region MT-PRIORITY (RFC 6710) transport priority
+
+        private sealed class NullSmtpLogger : ILogger
+        {
+            public void Log(LogLevel level, String message) { }
+        }
+
+        [Test]
+        public void MtPriority_clamps_and_parses()
+        {
+            Assert.That(MtPriority.Clamp(100),  Is.EqualTo((SByte) 9));
+            Assert.That(MtPriority.Clamp(-100), Is.EqualTo((SByte) (-9)));
+            Assert.That(MtPriority.Parse("4"),  Is.EqualTo((SByte) 4));
+            Assert.That(MtPriority.Parse("x"),  Is.EqualTo((SByte) 0), "invalid → default");
+        }
+
+        [Test]
+        public void MtPriority_parses_the_MAIL_FROM_parameter()
+        {
+            Assert.That(MtPriority.ParseFromMailParams("SIZE=100 MT-PRIORITY=6 BODY=8BITMIME"), Is.EqualTo((SByte) 6));
+            Assert.That(MtPriority.ParseFromMailParams("SIZE=100"), Is.EqualTo((SByte) 0));
+        }
+
+        [Test]
+        public void MtPriority_appends_to_MAIL_FROM_only_when_supported_and_non_default()
+        {
+            Assert.That(MtPriority.AppendMailFromParam("MAIL FROM:<a@b.c>", 5, remoteSupportsMtPriority: true),
+                        Is.EqualTo("MAIL FROM:<a@b.c> MT-PRIORITY=5"));
+            Assert.That(MtPriority.AppendMailFromParam("MAIL FROM:<a@b.c>", 5, remoteSupportsMtPriority: false),
+                        Is.EqualTo("MAIL FROM:<a@b.c>"));
+            Assert.That(MtPriority.AppendMailFromParam("MAIL FROM:<a@b.c>", 0, remoteSupportsMtPriority: true),
+                        Is.EqualTo("MAIL FROM:<a@b.c>"));
+        }
+
+        [Test]
+        public async Task Queue_returns_higher_priority_mail_first()
+        {
+
+            var dir   = Path.Combine(Path.GetTempPath(), "hermod-prio-" + Guid.NewGuid().ToString("N"));
+            var queue = new FileMailQueue(dir, new NullSmtpLogger());
+
+            try
+            {
+
+                var sender = new MailSender(queue, new NullSmtpLogger());
+
+                // Enqueue in a deliberately unsorted order.
+                foreach (var p in new SByte[] { 0, 5, -3, 9, 2 })
+                {
+                    var mail = new TextEMailBuilder { Text = "b" };
+                    mail.From    = (EMailAddress) SimpleEMailAddress.Parse("me@example.com");
+                    mail.To      = (EMailAddress) SimpleEMailAddress.Parse($"p{p}@example.org");
+                    mail.Subject = "s";
+                    await sender.SendAsync((EMail) mail, Priority: p);
+                }
+
+                var pending = await queue.GetPendingAsync(50);
+
+                Assert.That(pending.Select(m => m.Priority).ToArray(),
+                            Is.EqualTo(new SByte[] { 9, 5, 2, 0, -3 }),
+                            "pending mail must be ordered by MT-PRIORITY, highest first");
+
+            }
+            finally
+            {
+                try { Directory.Delete(dir, recursive: true); } catch { }
+            }
+
+        }
+
+        #endregion
 
     }
 

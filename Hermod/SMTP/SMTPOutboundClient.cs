@@ -146,6 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                   String             messageContent,
                                                   Boolean            requireTls   = false,
                                                   DsnParameters?     dsn          = null,
+                                                  SByte              priority     = 0,
                                                   CancellationToken  ct           = default)
         {
 
@@ -228,6 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                targetDomain,
                                                mtaStsPolicy.Mode,
                                                dsn ?? DsnParameters.None,
+                                               priority,
                                                ct
                                            );
 
@@ -276,6 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         String              policyDomain,
                                                         MtaStsMode          stsMode,
                                                         DsnParameters       dsn,
+                                                        SByte               priority,
                                                         CancellationToken   ct)
         {
 
@@ -450,12 +453,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
                 }
 
-                // DSN (RFC 3461): only request notifications if the remote advertised the extension.
-                var supportsDsn = ehloResponse.Lines.Any(l =>
-                    l.Contains("DSN", StringComparison.OrdinalIgnoreCase));
+                // DSN (RFC 3461) / MT-PRIORITY (RFC 6710): only emit params the remote advertised.
+                var supportsDsn         = ehloResponse.Lines.Any(l => l.Contains("DSN", StringComparison.OrdinalIgnoreCase));
+                var supportsMtPriority  = ehloResponse.Lines.Any(l => l.Contains(MtPriority.Keyword, StringComparison.OrdinalIgnoreCase));
 
-                // MAIL FROM (with RET/ENVID when a DSN was requested and supported)
-                await writer.WriteLineAsync(DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn));
+                // MAIL FROM (with RET/ENVID and MT-PRIORITY when requested and supported)
+                var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
+                mailFromCommand     = MtPriority.AppendMailFromParam(mailFromCommand, priority, supportsMtPriority);
+                await writer.WriteLineAsync(mailFromCommand);
                 var mailResponse = await ReadResponseAsync(reader, ct);
                 if (!mailResponse.StartsWith("250"))
                 {

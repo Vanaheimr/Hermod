@@ -79,6 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private DsnRet                         _dsnRet          = DsnRet.Full;
         private readonly List<RecipientDsn>    _recipientDsns   = [];
 
+        // MT-PRIORITY (RFC 6710)
+        private SByte                          _mtPriority;
+
         // REQUIRETLS support (RFC 8689)
         private bool                           _requireTls;
 
@@ -286,6 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 "ENHANCEDSTATUSCODES",
                 "CHUNKING",  // RFC 3030 - BDAT command
                 "DSN",       // RFC 3461 - Delivery Status Notifications
+                "MT-PRIORITY", // RFC 6710 - Message Transfer Priorities
                 "SMTPUTF8"   // RFC 6531 - Internationalized Email
             };
 
@@ -516,6 +520,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var (envId, ret) = DsnParser.ParseMailFromParams(parameters);
             _dsnEnvId = envId;
             _dsnRet   = ret;
+
+            // Parse MT-PRIORITY (RFC 6710)
+            _mtPriority = MtPriority.ParseFromMailParams(parameters);
 
             // Parse REQUIRETLS (RFC 8689)
             _requireTls = RequireTlsHandler.ParseRequireTls(parameters);
@@ -963,7 +970,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         MessageContent = stampedRaw,
                         TargetDomain = domainGroup.Key,
                         QueuedAt = DateTime.UtcNow,
-                        NextRetry = DateTime.UtcNow
+                        NextRetry = DateTime.UtcNow,
+                        Priority = _mtPriority   // carry MT-PRIORITY (RFC 6710) onto the relay
                     };
 
                     await mailQueue.EnqueueAsync(queuedMail, ct);
@@ -1118,6 +1126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _mailFrom        = null;
             _dsnEnvId        = null;
             _dsnRet          = DsnRet.Full;
+            _mtPriority      = 0;
             _requireTls      = false;
             _inBdatSequence  = false;
             _state           = SMTPSessionState.Greeted;

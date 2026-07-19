@@ -75,11 +75,13 @@ public interface IMailSubmitter
     /// <summary>Submit the given e-mail envelope and return the server's verdict.</summary>
     Task<MailSubmissionResult> SubmitAsync(EMailEnvelop       EMailEnvelop,
                                            DsnParameters?     Dsn                = null,
+                                           SByte              Priority           = 0,
                                            CancellationToken  CancellationToken  = default);
 
     /// <summary>Submit the given e-mail (envelope derived from its From/To headers).</summary>
     Task<MailSubmissionResult> SubmitAsync(EMail              EMail,
                                            DsnParameters?     Dsn                = null,
+                                           SByte              Priority           = 0,
                                            CancellationToken  CancellationToken  = default);
 
 }
@@ -141,6 +143,7 @@ public sealed class MailSubmitter : IMailSubmitter
 
     public async Task<MailSubmissionResult> SubmitAsync(EMailEnvelop       EMailEnvelop,
                                                         DsnParameters?     Dsn                = null,
+                                                        SByte              Priority           = 0,
                                                         CancellationToken  CancellationToken  = default)
     {
 
@@ -162,6 +165,7 @@ public sealed class MailSubmitter : IMailSubmitter
                                messageContent,
                                config.RequireTls,
                                Dsn ?? DsnParameters.None,
+                               Priority,
                                CancellationToken
                            ).ConfigureAwait(false);
 
@@ -181,9 +185,10 @@ public sealed class MailSubmitter : IMailSubmitter
 
     public Task<MailSubmissionResult> SubmitAsync(EMail              EMail,
                                                   DsnParameters?     Dsn                = null,
+                                                  SByte              Priority           = 0,
                                                   CancellationToken  CancellationToken  = default)
 
-        => SubmitAsync(new EMailEnvelop(EMail), Dsn, CancellationToken);
+        => SubmitAsync(new EMailEnvelop(EMail), Dsn, Priority, CancellationToken);
 
 }
 
@@ -205,14 +210,14 @@ public sealed class NullMailSubmitter : IMailSubmitter
         this.logger = Logger;
     }
 
-    public Task<MailSubmissionResult> SubmitAsync(EMailEnvelop EMailEnvelop, DsnParameters? Dsn = null, CancellationToken CancellationToken = default)
+    public Task<MailSubmissionResult> SubmitAsync(EMailEnvelop EMailEnvelop, DsnParameters? Dsn = null, SByte Priority = 0, CancellationToken CancellationToken = default)
     {
         logger?.Log(LogLevel.Debug, $"NullMailSubmitter: dropped a message to {EMailEnvelop.RcptTo.Count()} recipient(s)");
         return Task.FromResult(MailSubmissionResult.NotConfigured);
     }
 
-    public Task<MailSubmissionResult> SubmitAsync(EMail EMail, DsnParameters? Dsn = null, CancellationToken CancellationToken = default)
-        => SubmitAsync(new EMailEnvelop(EMail), Dsn, CancellationToken);
+    public Task<MailSubmissionResult> SubmitAsync(EMail EMail, DsnParameters? Dsn = null, SByte Priority = 0, CancellationToken CancellationToken = default)
+        => SubmitAsync(new EMailEnvelop(EMail), Dsn, Priority, CancellationToken);
 
 }
 

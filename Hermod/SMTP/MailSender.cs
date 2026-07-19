@@ -76,6 +76,7 @@ public sealed class MailSender
     public async Task<IReadOnlyList<String>> SendAsync(EMailEnvelop       EMailEnvelop,
                                                        Boolean            RequireTls          = false,
                                                        DsnParameters?     Dsn                 = null,
+                                                       SByte              Priority            = 0,
                                                        CancellationToken  CancellationToken   = default)
     {
 
@@ -111,7 +112,8 @@ public sealed class MailSender
                 RequireTls      = RequireTls,
                 Notify          = dsn.Notify,
                 Ret             = dsn.Ret,
-                EnvId           = dsn.EnvId
+                EnvId           = dsn.EnvId,
+                Priority        = Priority
             }, CancellationToken).ConfigureAwait(false);
 
             ids.Add(id);
@@ -135,9 +137,10 @@ public sealed class MailSender
     public Task<IReadOnlyList<String>> SendAsync(EMail              EMail,
                                                  Boolean            RequireTls          = false,
                                                  DsnParameters?     Dsn                 = null,
+                                                 SByte              Priority            = 0,
                                                  CancellationToken  CancellationToken   = default)
 
-        => SendAsync(new EMailEnvelop(EMail), RequireTls, Dsn, CancellationToken);
+        => SendAsync(new EMailEnvelop(EMail), RequireTls, Dsn, Priority, CancellationToken);
 
     #endregion
 
@@ -158,6 +161,7 @@ public sealed class MailSender
     public async Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMailEnvelop       EMailEnvelop,
                                                                        Boolean            RequireTls          = false,
                                                                        DsnParameters?     Dsn                 = null,
+                                                                       SByte              Priority            = 0,
                                                                        CancellationToken  CancellationToken   = default)
     {
 
@@ -185,7 +189,7 @@ public sealed class MailSender
             var domain = byDomain.Key.TrimEnd('.').ToLowerInvariant();
             var to     = byDomain.Select(rcpt => rcpt.Address.ToString()).ToArray();
 
-            var result = await directClient.SendAsync(domain, from, to, messageContent, RequireTls, Dsn ?? DsnParameters.None, CancellationToken)
+            var result = await directClient.SendAsync(domain, from, to, messageContent, RequireTls, Dsn ?? DsnParameters.None, Priority, CancellationToken)
                                            .ConfigureAwait(false);
 
             results.Add(new DirectSendResult(domain, to, result));
@@ -209,9 +213,10 @@ public sealed class MailSender
     public Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMail              EMail,
                                                                  Boolean            RequireTls          = false,
                                                                  DsnParameters?     Dsn                 = null,
+                                                                 SByte              Priority            = 0,
                                                                  CancellationToken  CancellationToken   = default)
 
-        => SendDirectAsync(new EMailEnvelop(EMail), RequireTls, Dsn, CancellationToken);
+        => SendDirectAsync(new EMailEnvelop(EMail), RequireTls, Dsn, Priority, CancellationToken);
 
     #endregion
 
