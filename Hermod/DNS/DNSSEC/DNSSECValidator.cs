@@ -834,6 +834,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             return Algorithm switch {
 
+                // RSA/SHA-1 (algorithm 5) and RSA/SHA-1-NSEC3-SHA1 (algorithm 7).
+                // Deprecated (RFC 8624 §3.1) but still widely deployed in signed zones.
+                5 or 7 => VerifyRSA(PublicKey, Data, Signature, HashAlgorithmName.SHA1),
+
                 // RSA/SHA-256
                 8  => VerifyRSA(PublicKey, Data, Signature, HashAlgorithmName.SHA256),
 

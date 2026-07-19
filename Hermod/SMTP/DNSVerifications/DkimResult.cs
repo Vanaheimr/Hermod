@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -15,23 +15,14 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Hermod.Mail;
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
-
-    //public class SMTPServerException : SMTPException
-    //{
-
-    //    public SMTPServerException(String Message, Exception InnerException = null)
-    //        : base(Message, InnerException)
-    //    { }
-
-    //}
+    public enum DkimResult {
+        None,
+        Pass,
+        Fail,
+        TempError,
+        PermError
+    }
 
 }
