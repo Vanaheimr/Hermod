@@ -309,6 +309,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       Boolean                          RecursionDesired,
                                       IEnumerable<EDNSOption>?         EDNSOptions,
                                       params DNSResourceRecordTypes[]  ResourceRecordTypes)
+
+            => Query(DomainName,
+                     UDPPayloadSize,
+                     RecursionDesired,
+                     false,
+                     EDNSOptions,
+                     ResourceRecordTypes);
+
+        #endregion
+
+        #region Query(DomainName, UDPPayloadSize, RecursionDesired, DnssecOK, EDNSOptions, ResourceRecordTypes)
+
+        /// <summary>
+        /// Create a new DNS request with EDNS0 support (RFC 6891) and optional EDNS options.
+        /// </summary>
+        /// <param name="DomainName">The domain name to query.</param>
+        /// <param name="UDPPayloadSize">The EDNS0 UDP payload size to advertise. Set to 0 to disable EDNS0.</param>
+        /// <param name="RecursionDesired">Whether recursion is desired or not.</param>
+        /// <param name="DnssecOK">Whether to set the EDNS0 "DNSSEC OK" (DO) bit, requesting that the resolver return the RRSIG/DNSKEY/DS records needed for DNSSEC validation (RFC 4035 §3.2.1, RFC 6891 §6.1.3).</param>
+        /// <param name="EDNSOptions">Optional EDNS0 options to include in the OPT record (e.g. Cookie, Client Subnet, Padding, Keepalive).</param>
+        /// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
+        public static DNSPacket Query(DNSServiceName                   DomainName,
+                                      UInt16?                          UDPPayloadSize,
+                                      Boolean                          RecursionDesired,
+                                      Boolean                          DnssecOK,
+                                      IEnumerable<EDNSOption>?         EDNSOptions,
+                                      params DNSResourceRecordTypes[]  ResourceRecordTypes)
         {
 
             var questions = new List<DNSQuestion>();
@@ -328,7 +355,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         UDPPayloadSize:  UDPPayloadSize ?? DefaultUDPPayloadSize,
                         ExtendedRCODE:   0,
                         Version:         0,
-                        Flags:           0,
+                        // RFC 6891 §6.1.3 / RFC 4035 §3.2.1: the DO bit is the most
+                        // significant bit of the 16-bit OPT flags field (0x8000).
+                        Flags:           (UInt16) (DnssecOK ? 0x8000 : 0x0000),
                         Options:         EDNSOptions
                     )
                 );

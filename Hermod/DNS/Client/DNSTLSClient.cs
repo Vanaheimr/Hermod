@@ -70,6 +70,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public List<EDNSOption>  EDNSOptions               { get; } = [];
 
+        /// <inheritdoc />
+        public Boolean           DnssecOK                  { get; set; }
+
         /// <summary>
         /// The server-advertised idle timeout from the last EDNS TCP Keepalive
         /// response option (RFC 7828). Null if no keepalive option was received.
@@ -303,6 +306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                DNSServiceName,
                                0,
                                this.RecursionDesired ?? RecursionDesired ?? true,
+                               this.DnssecOK,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );

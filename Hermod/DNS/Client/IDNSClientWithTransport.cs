@@ -82,6 +82,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         List<EDNSOption>  EDNSOptions           { get; }
 
+        /// <summary>
+        /// Whether to set the EDNS0 "DNSSEC OK" (DO) bit on outgoing queries,
+        /// requesting that the resolver return the RRSIG/DNSKEY/DS records needed
+        /// for DNSSEC validation (RFC 4035 §3.2.1, RFC 6891 §6.1.3).
+        /// </summary>
+        Boolean           DnssecOK              { get; set; }
+
     }
 
 }

@@ -113,6 +113,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public List<EDNSOption>               EDNSOptions         { get; } = [];
 
         /// <summary>
+        /// Whether to set the EDNS0 "DNSSEC OK" (DO) bit on every query, so the
+        /// resolver returns the RRSIG/DNSKEY/DS records needed for DNSSEC validation
+        /// (RFC 4035 §3.2.1, RFC 6891 §6.1.3). Required for DANE (RFC 7672) and any
+        /// use of <see cref="DNSSECValidator"/>. Default false.
+        /// </summary>
+        public Boolean                        DnssecOK            { get; set; }
+
+        /// <summary>
         /// Optional EDNS Client Subnet option (RFC 7871).
         /// When set, the truncated client IP address is automatically included
         /// in every DNS query to enable geo-aware / CDN-optimized responses.
@@ -1059,6 +1067,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // Get or create the appropriate transport client based on the server's Transport setting.
             var transportClient = GetOrCreateTransportClient(DNSServer, Timeout);
             var isUDP           = DNSServer.Transport == DNSTransport.UDP;
+
+            // Propagate the DNSSEC OK (DO) bit so the transport requests RRSIG/DNSKEY/DS records.
+            transportClient.DnssecOK = this.DnssecOK;
 
             try
             {

@@ -87,6 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public List<EDNSOption>  EDNSOptions   { get; } = [];
 
+        /// <inheritdoc />
+        public Boolean           DnssecOK      { get; set; }
+
 
 
         /// <summary>
@@ -242,6 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                DNSServiceName,
                                UDPPayloadSize,
                                this.RecursionDesired ?? RecursionDesired ?? true,
+                               this.DnssecOK,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );

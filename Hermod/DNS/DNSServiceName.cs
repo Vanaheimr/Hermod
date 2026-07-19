@@ -243,8 +243,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             Offsets ??= [];
 
-            // Root domain
-            if (Labels.Count == 0)
+            // Root domain. A name parsed from "." (or "") is represented as a single empty
+            // label; it must serialize to just the terminating zero byte. Emitting a zero-length
+            // label followed by the terminator would put two 0x00 bytes on the wire and corrupt
+            // the packet (observed as FORMERR on root DNSKEY/DS queries).
+            if (Labels.Count == 0 || Labels.All(label => label.Length == 0))
             {
                 Stream.WriteByte(0x00);
                 return;
