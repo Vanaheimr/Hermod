@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Diagnostics;
+using System.Text.Unicode;
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Security.Cryptography;
@@ -250,6 +251,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public TimeSpan                             MaintenanceEvery                     { get; }
 
         /// <summary>
+        /// Whether to offer the "permessage-deflate" (RFC 7692) message compression
+        /// extension to the server. Disabled by default.
+        /// </summary>
+        public Boolean                              EnablePerMessageDeflate              { get; set; }
+
+        /// <summary>
         /// Disable web socket pings.
         /// </summary>
         public Boolean                              DisableWebSocketPings                { get; set; }
@@ -258,6 +265,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// The web socket ping interval.
         /// </summary>
         public TimeSpan                             WebSocketPingEvery                   { get; }
+
+        /// <summary>
+        /// The number of consecutive web socket ping intervals without any received
+        /// frame (data, pong or otherwise) after which the connection is considered
+        /// dead and closed locally (zombie/half-open connection detection).
+        /// Zero disables the check. Default: 3 (≈ 3 × WebSocketPingEvery of silence).
+        /// </summary>
+        public UInt32                               MaxOutstandingPings                  { get; set; } = 3;
 
 
         public TimeSpan?                            SlowNetworkSimulationDelay           { get; set; }
@@ -877,11 +892,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             // Sec-WebSocket-Protocol:  ocpp2.1, ocpp2.0.1
             // Sec-WebSocket-Version:   13
 
-            var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
+            // RFC 6455 Section 4.1 / 11: The Sec-WebSocket-Key must be a nonce
+            // from a strong source of entropy (cryptographically secure).
+            var swkaSHA1Base64      = RandomExtensions.SecureRandomBytes(16).ToBase64();
             var expectedWSAccept    = SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
 
             var httpRequestBuilder  = new HTTPRequest.Builder(this) {
                                           Path                  = RemoteURL.Path,
+                                          QueryString           = RemoteURL.QueryString ?? QueryString.Empty,
                                           Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
                                           Connection            = ConnectionType.Upgrade,
                                           Upgrade               = "websocket",
@@ -890,6 +908,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                           SecWebSocketVersion   = "13",
                                           Authorization         = HTTPAuthorization
                                       };
+
+            // Offer the 'permessage-deflate' extension (RFC 7692), if enabled.
+            if (EnablePerMessageDeflate)
+                httpRequestBuilder.SetHeaderField("Sec-WebSocket-Extensions", WebSocketPerMessageDeflate.ClientOfferHeader);
 
             HTTPRequestBuilder?.Invoke(httpRequestBuilder);
 
@@ -938,22 +960,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var pos     = 0U;
             var sw      = Stopwatch.StartNew();
 
-            do
+            // Read byte-by-byte until the end of the HTTP header block, as reading
+            // larger chunks might already consume WebSocket frames sent by the
+            // server directly after its HTTP response!
+            while (pos < buffer.Length)
             {
 
-                pos += (UInt32) await HTTPStream.ReadAsync(
-                                          buffer,
-                                          (Int32) pos,
-                                          2048,
-                                          CancellationToken
-                                      );
+                var read = await HTTPStream.ReadAsync(
+                                     buffer,
+                                     (Int32) pos,
+                                     1,
+                                     CancellationToken
+                                 );
+
+                if (read > 0)
+                {
+
+                    pos += (UInt32) read;
+
+                    if (pos           >= 4    &&
+                        buffer[pos-4] == 0x0d &&
+                        buffer[pos-3] == 0x0a &&
+                        buffer[pos-2] == 0x0d &&
+                        buffer[pos-1] == 0x0a)
+                    {
+                        break;
+                    }
+
+                }
+                else
+                    await Task.Delay(1, CancellationToken);
 
                 if (sw.Elapsed >= (HTTPRequest.Timeout ?? TimeSpan.FromSeconds(5)))
                     throw new HTTPTimeoutException(sw.Elapsed);
 
-                await Task.Delay(1, CancellationToken);
-
-            } while (tcpClient.GetStream().DataAvailable && pos < buffer.Length - 2048);
+            }
 
             var responseData  = buffer.ToUTF8String(pos);
             var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
@@ -1106,14 +1147,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         var webSocketUpgradeAccepted = true;
 
+                        // Validate the server's opening handshake (RFC 6455 Section 4.1).
+                        var responseUpgrade     = httpResponse.GetHeaderField("Upgrade")    ?? "";
+                        var responseConnection  = httpResponse.GetHeaderField("Connection") ?? "";
+
                         if (101 != httpResponse.HTTPStatusCode.Code) {
                             ClientCloseMessage  = $"Invalid HTTP StatusCode response: 101 != {httpResponse.HTTPStatusCode.Code}!";
                             networkingCancellationTokenSource.Cancel();
                             webSocketUpgradeAccepted = false;
                         }
 
+                        // Step 2: The 'Upgrade' header must contain the "websocket" token.
+                        else if (!responseUpgrade.Split(',').Any(v => v.Trim().Equals("websocket", StringComparison.OrdinalIgnoreCase))) {
+                            ClientCloseMessage  = $"Invalid HTTP 'Upgrade' response header: '{responseUpgrade}' does not contain 'websocket'!";
+                            networkingCancellationTokenSource.Cancel();
+                            webSocketUpgradeAccepted = false;
+                        }
+
+                        // Step 3: The 'Connection' header must contain the "Upgrade" token.
+                        else if (!responseConnection.Split(',').Any(v => v.Trim().Equals("Upgrade", StringComparison.OrdinalIgnoreCase))) {
+                            ClientCloseMessage  = $"Invalid HTTP 'Connection' response header: '{responseConnection}' does not contain 'Upgrade'!";
+                            networkingCancellationTokenSource.Cancel();
+                            webSocketUpgradeAccepted = false;
+                        }
+
+                        // Step 4: The 'Sec-WebSocket-Accept' hash must match.
                         else if (expectedWSAccept != httpResponse.SecWebSocketAccept) {
                             ClientCloseMessage  = $"Invalid HTTP Sec-WebSocket-Accept response: {expectedWSAccept} != {httpResponse.SecWebSocketAccept}!";
+                            networkingCancellationTokenSource.Cancel();
+                            webSocketUpgradeAccepted = false;
+                        }
+
+                        // Step 5: The server must not accept an extension the client did not offer.
+                        //         We only ever offer 'permessage-deflate' (and only if enabled).
+                        else if (httpResponse.GetHeaderField("Sec-WebSocket-Extensions") is String responseExtensions &&
+                                 responseExtensions.Trim().IsNotNullOrEmpty() &&
+                                 responseExtensions.Split(',').Any(ext => {
+                                     var extName = ext.Split(';')[0].Trim();
+                                     return extName.IsNotNullOrEmpty() &&
+                                            !(EnablePerMessageDeflate && extName.Equals("permessage-deflate", StringComparison.OrdinalIgnoreCase));
+                                 })) {
+                            ClientCloseMessage  = $"The server accepted an unsolicited WebSocket extension: '{responseExtensions}'!";
+                            networkingCancellationTokenSource.Cancel();
+                            webSocketUpgradeAccepted = false;
+                        }
+
+                        // Step 6: The server must not select a subprotocol the client did not offer.
+                        else if (httpResponse.SecWebSocketProtocol is String responseProtocol &&
+                                 responseProtocol.Trim().IsNotNullOrEmpty() &&
+                                 !SecWebSocketProtocols.Any(p => p.Equals(responseProtocol.Trim(), StringComparison.Ordinal))) {
+                            ClientCloseMessage  = $"The server selected an unsolicited WebSocket subprotocol: '{responseProtocol}'!";
                             networkingCancellationTokenSource.Cancel();
                             webSocketUpgradeAccepted = false;
                         }
@@ -1147,52 +1230,181 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             SlowNetworkSimulationDelay:  null
                                                         );
 
+                            // permessage-deflate (RFC 7692): attach the negotiated extension, if the server accepted it.
+                            if (EnablePerMessageDeflate)
+                                webSocketClientConnection.PerMessageDeflate = WebSocketPerMessageDeflate.ServerAcceptedDeflate(
+                                                                                  httpResponse.GetHeaderField("Sec-WebSocket-Extensions")
+                                                                              );
+
                             waitingForHTTPResponse = httpResponse;
 
-                            WebSocketFrame.Opcodes? fragmentOpcode  = null;
-                            var                     fragmentPayload = new MemoryStream();
+                            WebSocketFrame.Opcodes? fragmentOpcode         = null;
+                            var                     fragmentPayload        = new MemoryStream();
+                            var                     fragmentCompressed     = false;
+                            var                     utf8Validator          = new IncrementalUtf8Validator();
+                            var                     lastActivityTimestamp  = Timestamp.Now;
 
                             do
                             {
 
-                                if (webSocketClientConnection?.DataAvailable == true)
-                                {
-
                                     buffer = [];
                                     pos    = 0;
+
+                                    var needMoreData = true;
 
                                     do
                                     {
 
-                                        var buffer2 = new Byte[buffer.Length + (tcpClient?.Available ?? 0)];
-
-                                        do
+                                        // Only read from the network when the buffer does not
+                                        // already contain a complete frame: A blocking read
+                                        // while unprocessed frames are pending would deadlock
+                                        // with a remote endpoint waiting for our reply!
+                                        if (needMoreData)
                                         {
 
-                                            var read = webSocketClientConnection.Read(buffer2, 0, buffer2.Length);
+                                            // Instead of busy-polling DataAvailable, asynchronously wait for
+                                            // data with a periodic 1s wake-up to re-check the connection state.
+                                            var readBuffer   = new Byte[64 * 1024];
+                                            var readCount    = 0;
+                                            var readTimeout  = false;
 
-                                            if (read > 0)
+                                            using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(networkingCancellationToken))
                                             {
-                                                Array.Resize(ref buffer, (Int32) (pos + read));
-                                                Array.Copy(buffer2, 0, buffer, pos, read);
-                                                pos += read;
+
+                                                readCts.CancelAfter(TimeSpan.FromSeconds(1));
+
+                                                try
+                                                {
+                                                    readCount = await webSocketClientConnection.ReadAsync(readBuffer, readCts.Token);
+                                                }
+                                                catch (OperationCanceledException) when (!networkingCancellationToken.IsCancellationRequested)
+                                                {
+                                                    readTimeout = true;
+                                                }
+                                                catch (Exception e)
+                                                {
+                                                    Logger.LogDebug(e, "Read error on HTTP WebSocket client connection.");
+                                                    readCount = 0;
+                                                }
+
                                             }
 
-                                            //if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                                            //    throw new HTTPTimeoutException(sw.Elapsed);
+                                            // A read of zero bytes (real EOF), or a timeout while the remote TCP
+                                            // connection is gone, means the connection was closed. A TCP FIN/RST
+                                            // is invisible to DataAvailable-polling and must be detected explicitly!
+                                            if ((!readTimeout && readCount == 0) ||
+                                                (readTimeout && pos == 0 &&
+                                                 (webSocketClientConnection.IsClosed || webSocketClientConnection.IsRemoteTCPConnectionClosed)))
+                                            {
 
-                                            await Task.Delay(1);
+                                                if (!webSocketClientConnection.IsClosed)
+                                                {
 
-                                        } while (webSocketClientConnection.DataAvailable);
+                                                    // This synthetic close frame (status code 1006) is only
+                                                    // used locally for the event and will never be sent!
+                                                    await LogEvent(
+                                                              OnCloseMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  WebSocketFrame.Close(WebSocketFrame.ClosingStatusCode.AbnormalClosure),
+                                                                  EventTracking_Id.New,
+                                                                  WebSocketFrame.ClosingStatusCode.AbnormalClosure,
+                                                                  "The remote TCP connection was closed unexpectedly!",
+                                                                  CancellationToken
+                                                              )
+                                                          );
 
-                                        Array.Resize(ref buffer, (Int32) pos);
+                                                    await webSocketClientConnection.Close();
 
-                                        if (WebSocketFrame.TryParse(buffer.AsSpan(0, (Int32) pos),
-                                                                    out var frame,
-                                                                    out var frameLength,
-                                                                    out var errorResponse,
-                                                                    Logger: Logger))
+                                                    ClientCloseMessage ??= "The remote TCP connection was closed unexpectedly!";
+
+                                                }
+                                                else
+                                                    ClientCloseMessage ??= "The HTTP WebSocket connection was closed!";
+
+                                                buffer = null;
+                                                break;
+
+                                            }
+
+                                            // No data within the wake-up interval: check for a dead
+                                            // (zombie/half-open) connection, then keep waiting
+                                            // (a partial frame, if any, stays buffered).
+                                            if (readTimeout)
+                                            {
+
+                                                // Zombie detection: if no frame (data or pong) has been received
+                                                // within MaxOutstandingPings ping intervals, the peer is gone even
+                                                // though Socket.Poll cannot see the half-open TCP connection.
+                                                if (pos == 0 &&
+                                                    !DisableWebSocketPings &&
+                                                    MaxOutstandingPings > 0 &&
+                                                    !webSocketClientConnection.IsClosed &&
+                                                    Timestamp.Now - lastActivityTimestamp > TimeSpan.FromTicks(WebSocketPingEvery.Ticks * MaxOutstandingPings))
+                                                {
+
+                                                    Logger.LogWarning(
+                                                        "HTTP WebSocket client connection timed out (no data or pong for {Silence}); closing dead connection.",
+                                                        Timestamp.Now - lastActivityTimestamp
+                                                    );
+
+                                                    // This synthetic close frame (status code 1006) is only
+                                                    // used locally for the event and will never be sent!
+                                                    await LogEvent(
+                                                              OnCloseMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  WebSocketFrame.Close(WebSocketFrame.ClosingStatusCode.AbnormalClosure),
+                                                                  EventTracking_Id.New,
+                                                                  WebSocketFrame.ClosingStatusCode.AbnormalClosure,
+                                                                  "The remote endpoint stopped responding (ping timeout)!",
+                                                                  CancellationToken
+                                                              )
+                                                          );
+
+                                                    await webSocketClientConnection.Close();
+
+                                                    ClientCloseMessage ??= "The remote endpoint stopped responding (ping timeout)!";
+
+                                                    buffer = null;
+                                                    break;
+
+                                                }
+
+                                                continue;
+
+                                            }
+
+                                            Array.Resize(ref buffer, (Int32) (pos + readCount));
+                                            Array.Copy(readBuffer, 0, buffer, (Int32) pos, readCount);
+                                            pos += (UInt32) readCount;
+
+                                            // Any received bytes prove the peer is alive (liveness for zombie detection).
+                                            lastActivityTimestamp = Timestamp.Now;
+
+                                            needMoreData = false;
+
+                                        }
+
+                                        var parseResult = WebSocketFrame.Parse(buffer.AsSpan(0, (Int32) pos),
+                                                                               out var frame,
+                                                                               out var frameLength,
+                                                                               out var errorResponse,
+                                                                               out var suggestedCloseCode,
+                                                                               Logger:    Logger,
+                                                                               AllowRsv1: webSocketClientConnection.PerMessageDeflate is not null);
+
+                                        if (parseResult == WebSocketFrame.ParseResult.Success &&
+                                            frame is not null)
                                         {
+
+                                            needMoreData = false;
+
+                                            WebSocketFrame.ClosingStatusCode? failConnection = null;
 
                                             switch (frame.Opcode)
                                             {
@@ -1201,8 +1413,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Text:
 
-                                                    if (frame.IsFinal && fragmentOpcode is null)
+                                                    // RFC 6455 Section 5.4: A new data frame within
+                                                    // a fragmented message must fail the connection!
+                                                    if (fragmentOpcode is not null)
                                                     {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                        break;
+                                                    }
+
+                                                    // The accumulated message size must not exceed the configured limit.
+                                                    if (webSocketClientConnection.MaxTextMessageSizeIn.HasValue &&
+                                                        (UInt64) frame.Payload.Length > webSocketClientConnection.MaxTextMessageSizeIn.Value)
+                                                    {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                        break;
+                                                    }
+
+                                                    if (frame.IsFinal)
+                                                    {
+
+                                                        var textPayload = frame.Payload;
+
+                                                        // permessage-deflate (RFC 7692): decompress a compressed message.
+                                                        if (frame.IsCompressed && webSocketClientConnection.PerMessageDeflate is not null)
+                                                        {
+                                                            if (!webSocketClientConnection.PerMessageDeflate.TryDecompress(textPayload, out textPayload, out _, out var textExceededSizeLimit))
+                                                            {
+                                                                failConnection = textExceededSizeLimit
+                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                break;
+                                                            }
+                                                        }
+
+                                                        // RFC 6455 Section 8.1
+                                                        if (!Utf8.IsValid(textPayload))
+                                                        {
+                                                            failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                            break;
+                                                        }
 
                                                         await LogEvent(
                                                                     OnTextMessageReceived,
@@ -1212,7 +1461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         webSocketClientConnection,
                                                                         frame,
                                                                         EventTracking_Id.New,
-                                                                        frame.Payload.ToUTF8String(),
+                                                                        textPayload.ToUTF8String(),
                                                                         CancellationToken
                                                                     )
                                                                 );
@@ -1220,9 +1469,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     }
                                                     else
                                                     {
-                                                        fragmentOpcode = WebSocketFrame.Opcodes.Text;
+
+                                                        fragmentOpcode      = WebSocketFrame.Opcodes.Text;
+                                                        fragmentCompressed  = frame.IsCompressed && webSocketClientConnection.PerMessageDeflate is not null;
                                                         fragmentPayload.SetLength(0);
                                                         fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                        // A compressed message can only be UTF-8 validated after decompression.
+                                                        if (!fragmentCompressed)
+                                                        {
+                                                            utf8Validator.Reset();
+                                                            if (!utf8Validator.Append(frame.Payload, false))
+                                                                failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                        }
+
                                                     }
 
                                                 break;
@@ -1233,8 +1493,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Binary:
 
-                                                    if (frame.IsFinal && fragmentOpcode is null)
+                                                    // RFC 6455 Section 5.4: A new data frame within
+                                                    // a fragmented message must fail the connection!
+                                                    if (fragmentOpcode is not null)
                                                     {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                        break;
+                                                    }
+
+                                                    // The accumulated message size must not exceed the configured limit.
+                                                    if (webSocketClientConnection.MaxBinaryMessageSizeIn.HasValue &&
+                                                        (UInt64) frame.Payload.Length > webSocketClientConnection.MaxBinaryMessageSizeIn.Value)
+                                                    {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                        break;
+                                                    }
+
+                                                    if (frame.IsFinal)
+                                                    {
+
+                                                        var binaryPayload = frame.Payload;
+
+                                                        // permessage-deflate (RFC 7692): decompress a compressed message.
+                                                        if (frame.IsCompressed && webSocketClientConnection.PerMessageDeflate is not null)
+                                                        {
+                                                            if (!webSocketClientConnection.PerMessageDeflate.TryDecompress(binaryPayload, out binaryPayload, out _, out var binaryExceededSizeLimit))
+                                                            {
+                                                                failConnection = binaryExceededSizeLimit
+                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                break;
+                                                            }
+                                                        }
 
                                                         await LogEvent(
                                                                     OnBinaryMessageReceived,
@@ -1244,7 +1534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         webSocketClientConnection,
                                                                         frame,
                                                                         EventTracking_Id.New,
-                                                                        frame.Payload,
+                                                                        binaryPayload,
                                                                         CancellationToken
                                                                     )
                                                                 );
@@ -1252,7 +1542,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     }
                                                     else
                                                     {
-                                                        fragmentOpcode = WebSocketFrame.Opcodes.Binary;
+                                                        fragmentOpcode      = WebSocketFrame.Opcodes.Binary;
+                                                        fragmentCompressed  = frame.IsCompressed && webSocketClientConnection.PerMessageDeflate is not null;
                                                         fragmentPayload.SetLength(0);
                                                         fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
                                                     }
@@ -1265,62 +1556,105 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Continuation:
 
-                                                    if (fragmentOpcode is not null)
+                                                    if (fragmentOpcode is null)
+                                                    {
+                                                        Logger.LogWarning("Received Continuation frame without preceding Text/Binary frame.");
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                        break;
+                                                    }
+
+                                                    // The accumulated message size must not exceed the configured
+                                                    // limit. This is checked BEFORE buffering, to bound the memory
+                                                    // used by a maliciously fragmented message (RFC 6455 Section 7.4.1, 1009)!
+                                                    var maxFragmentedSize = fragmentOpcode == WebSocketFrame.Opcodes.Text
+                                                                                ? webSocketClientConnection.MaxTextMessageSizeIn
+                                                                                : webSocketClientConnection.MaxBinaryMessageSizeIn;
+
+                                                    if (maxFragmentedSize.HasValue &&
+                                                        (UInt64) fragmentPayload.Length + (UInt64) frame.Payload.Length > maxFragmentedSize.Value)
+                                                    {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                        break;
+                                                    }
+
+                                                    fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                    // RFC 6455 Section 8.1: Fail fast on invalid UTF-8! (Only for
+                                                    // uncompressed messages; a compressed message can only be
+                                                    // validated after decompression at the final frame.)
+                                                    if (fragmentOpcode == WebSocketFrame.Opcodes.Text &&
+                                                        !fragmentCompressed &&
+                                                        !utf8Validator.Append(frame.Payload, frame.IsFinal))
+                                                    {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                        break;
+                                                    }
+
+                                                    if (frame.IsFinal)
                                                     {
 
-                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+                                                        var completePayload = fragmentPayload.ToArray();
 
-                                                        if (frame.IsFinal)
+                                                        // permessage-deflate (RFC 7692): decompress the reassembled message.
+                                                        if (fragmentCompressed && webSocketClientConnection.PerMessageDeflate is not null)
+                                                        {
+                                                            if (!webSocketClientConnection.PerMessageDeflate.TryDecompress(completePayload, out completePayload, out _, out var fragmentExceededSizeLimit))
+                                                            {
+                                                                failConnection = fragmentExceededSizeLimit
+                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                break;
+                                                            }
+                                                        }
+
+                                                        // RFC 6455 Section 8.1: Validate the decompressed text message.
+                                                        if (fragmentOpcode == WebSocketFrame.Opcodes.Text &&
+                                                            fragmentCompressed &&
+                                                            !Utf8.IsValid(completePayload))
+                                                        {
+                                                            failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                            break;
+                                                        }
+
+                                                        if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
                                                         {
 
-                                                            var completePayload = fragmentPayload.ToArray();
+                                                            await LogEvent(
+                                                                        OnTextMessageReceived,
+                                                                        loggingDelegate => loggingDelegate.Invoke(
+                                                                            Timestamp.Now,
+                                                                            this,
+                                                                            webSocketClientConnection,
+                                                                            frame,
+                                                                            EventTracking_Id.New,
+                                                                            completePayload.ToUTF8String(),
+                                                                            CancellationToken
+                                                                        )
+                                                                    );
 
-                                                            if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
-                                                            {
+                                                        }
+                                                        else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
+                                                        {
 
-                                                                await LogEvent(
-                                                                            OnTextMessageReceived,
-                                                                            loggingDelegate => loggingDelegate.Invoke(
-                                                                                Timestamp.Now,
-                                                                                this,
-                                                                                webSocketClientConnection,
-                                                                                frame,
-                                                                                EventTracking_Id.New,
-                                                                                completePayload.ToUTF8String(),
-                                                                                CancellationToken
-                                                                            )
-                                                                        );
-
-                                                            }
-                                                            else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
-                                                            {
-
-                                                                await LogEvent(
-                                                                            OnBinaryMessageReceived,
-                                                                            loggingDelegate => loggingDelegate.Invoke(
-                                                                                Timestamp.Now,
-                                                                                this,
-                                                                                webSocketClientConnection,
-                                                                                frame,
-                                                                                EventTracking_Id.New,
-                                                                                completePayload,
-                                                                                CancellationToken
-                                                                            )
-                                                                        );
-
-                                                            }
-
-                                                            fragmentOpcode = null;
-                                                            fragmentPayload.SetLength(0);
+                                                            await LogEvent(
+                                                                        OnBinaryMessageReceived,
+                                                                        loggingDelegate => loggingDelegate.Invoke(
+                                                                            Timestamp.Now,
+                                                                            this,
+                                                                            webSocketClientConnection,
+                                                                            frame,
+                                                                            EventTracking_Id.New,
+                                                                            completePayload,
+                                                                            CancellationToken
+                                                                        )
+                                                                    );
 
                                                         }
 
-                                                    }
-                                                    else
-                                                    {
-                                                        Logger.LogWarning("Received Continuation frame without preceding Text/Binary frame.");
-                                                        if (CloseConnectionOnUnexpectedFrames)
-                                                            await webSocketClientConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
+                                                        fragmentOpcode      = null;
+                                                        fragmentCompressed  = false;
+                                                        fragmentPayload.SetLength(0);
+
                                                     }
 
                                                 break;
@@ -1361,7 +1695,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                     frame.Payload,
                                                                                     WebSocketFrame.Fin.Final,
                                                                                     WebSocketFrame.MaskStatus.On,
-                                                                                    RandomExtensions.RandomBytes(4)
+                                                                                    RandomExtensions.SecureRandomBytes(4)
                                                                                 ),
                                                                                 EventTracking_Id.New,
                                                                                 CancellationToken
@@ -1437,9 +1771,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 )
                                                             );
 
-                                                    // The close handshake demands that we send a close frame back!
+                                                    // The close handshake demands that we send a close frame back,
+                                                    // echoing the received close status code (RFC 6455 Section 5.5.1)!
+                                                    var receivedCloseCode = frame.GetClosingStatusCode();
+
                                                     await webSocketClientConnection.Close(
-                                                              WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                              receivedCloseCode == WebSocketFrame.ClosingStatusCode.NoStatusReceived
+                                                                  ? WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                                  : receivedCloseCode
                                                           );
 
                                                     break;
@@ -1461,7 +1800,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             }
 
-                                            if ((UInt64) buffer.Length > frameLength)
+                                            if (failConnection.HasValue)
+                                            {
+
+                                                Logger.LogWarning(
+                                                    "Failing WebSocket connection with close code {CloseCode}.",
+                                                    failConnection.Value
+                                                );
+
+                                                ClientCloseMessage ??= $"WebSocket protocol violation, failing connection with {failConnection.Value}!";
+
+                                                await webSocketClientConnection.Close(failConnection.Value);
+
+                                                buffer = null;
+
+                                            }
+                                            else if ((UInt64) buffer.Length > frameLength)
                                             {
                                                 var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
                                                 Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
@@ -1472,12 +1826,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 buffer = null;
 
                                         }
+                                        else if (parseResult == WebSocketFrame.ParseResult.ProtocolViolation)
+                                        {
 
-                                    } while (buffer is not null);
+                                            Logger.LogWarning(
+                                                "WebSocket protocol violation: {ErrorResponse}",
+                                                errorResponse
+                                            );
 
-                                }
-                                else
-                                    await Task.Delay(10);
+                                            ClientCloseMessage ??= $"WebSocket protocol violation: {errorResponse}";
+
+                                            await webSocketClientConnection.Close(suggestedCloseCode);
+
+                                            buffer = null;
+
+                                        }
+                                        else
+                                            needMoreData = true;
+
+                                    } while (buffer is not null &&
+                                             !networkingCancellationToken.IsCancellationRequested &&
+                                             ClientCloseMessage is null);
 
                             }
                             while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
@@ -1653,7 +2022,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                       $"{pingCounter}:{Description?.FirstText() ?? RemoteURL.ToString()}:{UUIDv7.Generate()}".ToUTF8Bytes(),
                                       WebSocketFrame.Fin.Final,
                                       WebSocketFrame.MaskStatus.On,
-                                      RandomExtensions.RandomBytes(4)
+                                      RandomExtensions.SecureRandomBytes(4)
                                   ),
                                   EventTracking_Id.New,
                                   tokenSource.Token
@@ -1917,12 +2286,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 CancellationToken  CancellationToken   = default)
 
             => SendWebSocketFrame(
-                   WebSocketFrame.Text(
-                       Text,
-                       WebSocketFrame.Fin.Final,
-                       WebSocketFrame.MaskStatus.On,
-                       RandomExtensions.RandomBytes(4)
-                   ),
+                   webSocketClientConnection?.PerMessageDeflate is not null
+                       ? WebSocketFrame.TextRaw(
+                             webSocketClientConnection.PerMessageDeflate.Compress(Text.ToUTF8Bytes()),
+                             WebSocketFrame.Fin.Final,
+                             WebSocketFrame.MaskStatus.On,
+                             RandomExtensions.SecureRandomBytes(4),
+                             Rsv1: WebSocketFrame.Rsv.On
+                         )
+                       : WebSocketFrame.Text(
+                             Text,
+                             WebSocketFrame.Fin.Final,
+                             WebSocketFrame.MaskStatus.On,
+                             RandomExtensions.SecureRandomBytes(4)
+                         ),
                    EventTrackingId,
                    CancellationToken
                );
@@ -1941,10 +2318,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             => SendWebSocketFrame(
                    WebSocketFrame.Binary(
-                       Bytes,
+                       webSocketClientConnection?.PerMessageDeflate is not null
+                           ? webSocketClientConnection.PerMessageDeflate.Compress(Bytes)
+                           : Bytes,
                        WebSocketFrame.Fin.Final,
                        WebSocketFrame.MaskStatus.On,
-                       RandomExtensions.RandomBytes(4)
+                       RandomExtensions.SecureRandomBytes(4),
+                       Rsv1: webSocketClientConnection?.PerMessageDeflate is not null
+                                 ? WebSocketFrame.Rsv.On
+                                 : WebSocketFrame.Rsv.Off
                    ),
                    EventTrackingId,
                    CancellationToken
@@ -1992,7 +2374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                   Reason,
                                   WebSocketFrame.Fin.Final,
                                   WebSocketFrame.MaskStatus.On,
-                                  RandomExtensions.RandomBytes(4)
+                                  RandomExtensions.SecureRandomBytes(4)
                               ),
                               EventTrackingId ?? EventTracking_Id.New,
                               CancellationToken

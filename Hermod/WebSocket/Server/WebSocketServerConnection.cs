@@ -45,6 +45,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
+        /// <summary>
+        /// The default maximum time an asynchronous send operation may take,
+        /// whenever no explicit WriteTimeout was set on this connection.
+        /// </summary>
+        public static readonly TimeSpan                          DefaultSendTimeout     = TimeSpan.FromSeconds(30);
+
+        /// <summary>
+        /// The default maximum time to wait for sending a close frame.
+        /// </summary>
+        public static readonly TimeSpan                          DefaultCloseTimeout    = TimeSpan.FromSeconds(5);
+
         private readonly  ConcurrentDictionary<String, Object?>  customData             = [];
 
         private readonly  TcpClient                              tcpClient;
@@ -225,6 +236,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public X509Certificate2?        ClientCertificate             { get; private set; }
 
         /// <summary>
+        /// The negotiated "permessage-deflate" (RFC 7692) extension, or null if
+        /// message compression was not negotiated for this connection.
+        /// </summary>
+        public WebSocketPerMessageDeflate?  PerMessageDeflate         { get; internal set; }
+
+        /// <summary>
         /// The cancellation token source for closing this connection.
         /// </summary>
         public CancellationTokenSource  CancellationTokenSource       { get; }
@@ -313,7 +330,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                            CancellationToken  CancellationToken = default)
         {
 
-            await socketWriteSemaphore.WaitAsync(CancellationToken);
+            // Stream.WriteTimeout only applies to SYNCHRONOUS writes, therefore
+            // WriteAsync(...) to a stalled remote endpoint would block forever,
+            // hold the write semaphore and thereby also deadlock Close()!
+            TimeSpan writeTimeout;
+            try
+            {
+                writeTimeout = networkStream.WriteTimeout > 0
+                                   ? TimeSpan.FromMilliseconds(networkStream.WriteTimeout)
+                                   : DefaultSendTimeout;
+            }
+            catch
+            {
+                writeTimeout = DefaultSendTimeout;
+            }
+
+            if (!await socketWriteSemaphore.WaitAsync(writeTimeout, CancellationToken))
+                return SentStatus.Error;
 
             try
             {
@@ -339,15 +372,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 else
                 {
 
-                    await networkStream.WriteAsync(Data,
-                                                   CancellationToken);
+                    using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                    timeoutCTS.CancelAfter(writeTimeout);
 
-                    await networkStream.FlushAsync(CancellationToken);
+                    await networkStream.WriteAsync(Data,
+                                                   timeoutCTS.Token);
+
+                    await networkStream.FlushAsync(timeoutCTS.Token);
 
                 }
 
                 return SentStatus.Success;
 
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
+                // Write timeout: The stream state is undefined now,
+                // as a frame might have been sent partially!
+                return SentStatus.FatalError;
             }
             catch (Exception e)
             {
@@ -475,6 +517,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        /// <summary>
+        /// Asynchronously read data from the network stream into the given buffer.
+        /// Unlike Read(...), a cancellation (e.g. a read timeout for the WebSocket
+        /// ping cadence) surfaces as an OperationCanceledException instead of being
+        /// swallowed, so the caller can distinguish a timeout from a closed connection.
+        /// </summary>
+        /// <param name="Buffer">The buffer for storing the received data.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <returns>Number of bytes read; 0 indicates that the remote endpoint closed the connection.</returns>
+        public ValueTask<Int32> ReadAsync(Memory<Byte>       Buffer,
+                                          CancellationToken  CancellationToken   = default)
+
+            => networkStream.ReadAsync(Buffer, CancellationToken);
+
         #endregion
 
         #region Close(StatusCode = NormalClosure, Reason = null, CancellationToken = default)
@@ -496,14 +552,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
                 if (StatusCode.HasValue || Reason is not null)
+                {
+
+                    // Closing must never block forever, even when a
+                    // concurrent send operation is stuck!
+                    using var closeCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                    closeCTS.CancelAfter(DefaultCloseTimeout);
+
                     await SendWebSocketFrame(
                               WebSocketFrame.Close(
                                   StatusCode ?? ClosingStatusCode.NormalClosure,
                                   Reason
                               ),
-                              CancellationToken
+                              closeCTS.Token
                           );
 
+                }
             }
             catch (Exception e)
             {
