@@ -46,7 +46,12 @@ Implemented (both server and client, unless noted):
 - Client nonces (`Sec-WebSocket-Key`) and all masking keys come from a
   cryptographically secure RNG (RFC 6455 Section 5.3 / 10.3).
 - Subprotocol negotiation (`Sec-WebSocket-Protocol`, e.g. `ocpp2.1`) with an
-  optional `SubprotocolSelector` delegate on the server.
+  optional `SubprotocolSelector` delegate on the server, plus an optional strict
+  mode (`RequireMatchingSubprotocol`) that rejects the handshake with
+  `400 Bad Request` when the client offers only unsupported subprotocols.
+- Client auto-reconnect after an unexpected connection loss, with exponential
+  backoff and jitter (`ReconnectPolicy`, opt-in; see below). A clean close or a
+  fatal protocol violation never triggers a reconnect.
 - Message and fragment size limits (`MaxTextMessageSizeIn/Out`,
   `MaxBinaryMessageSizeIn/Out`), enforced *before* buffering; violations close
   with 1009 (Message Too Big).
@@ -85,8 +90,9 @@ var server = new WebSocketServer(
                  AutoStart:              true
              );
 
-server.EnablePerMessageDeflate  = true;          // RFC 7692, off by default
-server.MaxTextMessageSizeIn     = 1024 * 1024;   // 1 MB
+server.EnablePerMessageDeflate     = true;          // RFC 7692, off by default
+server.MaxTextMessageSizeIn        = 1024 * 1024;   // 1 MB
+server.RequireMatchingSubprotocol  = true;          // reject unknown subprotocols with 400
 
 server.OnTextMessageReceived += async (timestamp, srv, connection, frame, eventTrackingId, text, ct) => {
     await server.SendTextMessage(connection, $"Echo: {text}");
@@ -102,6 +108,15 @@ var client = new WebSocketClient(
              );
 
 client.EnablePerMessageDeflate = true;           // RFC 7692, off by default
+
+// Opt-in auto-reconnect with exponential backoff + jitter (off by default):
+client.ReconnectPolicy = new WebSocketClientReconnectPolicy(
+                             InitialDelay:   TimeSpan.FromSeconds(1),
+                             MaxDelay:       TimeSpan.FromSeconds(30),
+                             BackoffFactor:  2.0,
+                             JitterRatio:    0.2,    // ±20 %
+                             MaxAttempts:    null    // unlimited
+                         );
 
 client.OnTextMessageReceived += async (timestamp, cl, connection, frame, eventTrackingId, text, ct) => {
     // ...

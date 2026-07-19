@@ -250,6 +250,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Boolean                                                         EnablePerMessageDeflate       { get; set; }
 
         /// <summary>
+        /// In strict mode, reject the WebSocket opening handshake with a
+        /// '400 Bad Request' when the client offers one or more subprotocols but
+        /// none of them is contained in <see cref="SecWebSocketProtocols"/>.
+        /// When false (the default), the handshake completes without a
+        /// 'Sec-WebSocket-Protocol' response header, as permitted by RFC 6455
+        /// Section 4.1, and the client may then close the connection itself.
+        /// Only effective when the server actually declares supported subprotocols;
+        /// a client that offers no subprotocol at all is never rejected by this.
+        /// </summary>
+        public Boolean                                                         RequireMatchingSubprotocol    { get; set; }
+
+        /// <summary>
         /// Disable web socket pings.
         /// </summary>
         public Boolean                                                         DisableWebSocketPings         { get; set; }
@@ -1287,6 +1299,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                        SecWebSocketVersion  = "13",
                                                                                        ContentType          = HTTPContentType.Text.PLAIN,
                                                                                        Content              = $"Unsupported Sec-WebSocket-Version '{secWSVersion}', only version 13 is supported!".ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                                // N6: In strict mode, reject the handshake when the client offered
+                                                                // subprotocols but none of them is supported. RFC 6455 Section 4.1
+                                                                // permits completing without a 'Sec-WebSocket-Protocol' header, but
+                                                                // OCPP deployments usually prefer to reject a peer that speaks no
+                                                                // known subprotocol rather than accept a connection the client must
+                                                                // immediately close again.
+                                                                else if (RequireMatchingSubprotocol &&
+                                                                         SecWebSocketProtocols.Any() &&
+                                                                         httpRequest.SecWebSocketProtocol.Any() &&
+                                                                        !httpRequest.SecWebSocketProtocol.Any(protocol => SecWebSocketProtocols.Contains(protocol)))
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                                                       Server          = HTTPServiceName,
+                                                                                       Connection      = ConnectionType.Close,
+                                                                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                       Content         = $"None of the requested WebSocket subprotocols ({httpRequest.SecWebSocketProtocol.AggregateWith(", ")}) is supported; expected one of: {SecWebSocketProtocols.AggregateWith(", ")}!".ToUTF8Bytes()
                                                                                    }.AsImmutable;
                                                                 }
 

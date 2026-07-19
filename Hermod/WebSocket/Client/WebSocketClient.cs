@@ -274,6 +274,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public UInt32                               MaxOutstandingPings                  { get; set; } = 3;
 
+        /// <summary>
+        /// The policy for automatically reconnecting after an unexpected loss of
+        /// the WebSocket connection (exponential backoff with jitter). Assign a
+        /// <see cref="WebSocketClientReconnectPolicy"/> to enable reconnects;
+        /// null (the default) disables them. A clean, application-initiated close
+        /// and a fatal protocol violation never trigger a reconnect.
+        /// </summary>
+        public WebSocketClientReconnectPolicy?      ReconnectPolicy                      { get; set; }
+
+        /// <summary>
+        /// The number of consecutive reconnect attempts since the last successfully
+        /// (re)established connection. Reset to zero whenever a connection is
+        /// established, incremented before each reconnect attempt.
+        /// </summary>
+        public UInt32                               ReconnectAttempts                    { get; private set; }
+
 
         public TimeSpan?                            SlowNetworkSimulationDelay           { get; set; }
 
@@ -302,6 +318,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
         #region Events
+
+        /// <summary>
+        /// An event sent before the client waits and then attempts to reconnect
+        /// after an unexpected loss of the WebSocket connection (see <see cref="ReconnectPolicy"/>).
+        /// </summary>
+        public event OnWebSocketClientReconnectingDelegate?           OnReconnecting;
 
         /// <summary>
         /// An event sent whenever a text message was sent.
@@ -1041,6 +1063,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                            waitingForHTTPResponse
                        );
 
+            ReconnectAttempts = 0;
+
             networkingTask = Task.Run(async () => {
 
                 do
@@ -1216,6 +1240,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             tcpClient?.Client is not null &&
                             HTTPStream        is not null)
                         {
+
+                            // The connection was (re)established successfully:
+                            // reset the reconnect backoff to start from InitialDelay again.
+                            ReconnectAttempts = 0;
 
                             var tcpStream = tcpClient.GetStream();
 
@@ -1941,6 +1969,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     catch (Exception e2)
                     {
                         Logger.LogError(e2, "Exception while invoking {EventName}.", nameof(ResponseLogDelegate));
+                    }
+
+                    #endregion
+
+                    #region Auto-reconnect: back off before the next connection attempt
+
+                    // The connection has ended. Reconnect only on an *unexpected* loss
+                    // (i.e. not on a clean, application-initiated close and not on a fatal
+                    // protocol violation, both of which the loop condition below handles),
+                    // and only if a reconnect policy has been configured.
+                    if (!networkingCancellationToken.IsCancellationRequested &&
+                        ClientCloseMessage is null)
+                    {
+
+                        var reconnectPolicy = ReconnectPolicy;
+
+                        // No policy => do not reconnect, leave the loop.
+                        if (reconnectPolicy is null)
+                            break;
+
+                        ReconnectAttempts++;
+
+                        if (reconnectPolicy.MaxAttempts.HasValue &&
+                            ReconnectAttempts > reconnectPolicy.MaxAttempts.Value)
+                        {
+                            Logger.LogWarning(
+                                "Giving up reconnecting to '{RemoteURL}' after {Attempts} failed attempt(s).",
+                                RemoteURL,
+                                reconnectPolicy.MaxAttempts.Value
+                            );
+                            break;
+                        }
+
+                        var reconnectDelay = reconnectPolicy.DelayForAttempt(ReconnectAttempts);
+
+                        Logger.LogInformation(
+                            "HTTP WebSocket connection to '{RemoteURL}' lost; reconnect attempt {Attempt} in {Delay:F1}s.",
+                            RemoteURL,
+                            ReconnectAttempts,
+                            reconnectDelay.TotalSeconds
+                        );
+
+                        await LogEvent(
+                                  OnReconnecting,
+                                  loggingDelegate => loggingDelegate.Invoke(
+                                      Timestamp.Now,
+                                      this,
+                                      ReconnectAttempts,
+                                      reconnectDelay,
+                                      networkingCancellationToken
+                                  )
+                              );
+
+                        try
+                        {
+                            await Task.Delay(reconnectDelay, networkingCancellationToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+
                     }
 
                     #endregion

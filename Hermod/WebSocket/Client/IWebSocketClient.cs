@@ -27,6 +27,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
     #region Delegates
 
+    /// <summary>
+    /// An event sent before the client waits and then attempts to reconnect
+    /// after an unexpected loss of the WebSocket connection.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="Client">The WebSocket client.</param>
+    /// <param name="Attempt">The 1-based reconnect attempt number.</param>
+    /// <param name="Delay">The delay the client waits before this attempt.</param>
+    /// <param name="CancellationToken">A cancellation token.</param>
+    public delegate Task  OnWebSocketClientReconnectingDelegate          (DateTimeOffset                     Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          UInt32                             Attempt,
+                                                                          TimeSpan                           Delay,
+                                                                          CancellationToken                  CancellationToken);
+
     public delegate Task  OnWebSocketClientFrameSentDelegate             (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
