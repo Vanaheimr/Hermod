@@ -588,11 +588,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     var Plaintext   = bodypartToBeSecured.ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
                     var Ciphertext  = new MemoryStream();
 
+                    // Encrypt to EVERY recipient (To + Cc) that carries a public key, so each of them
+                    // can decrypt the message with their own private key — not just the first To.
+                    // Prefer each recipient's encryption-capable (sub)key, fall back to the primary key,
+                    // and de-duplicate in case the same key is listed more than once.
+                    var recipientKeys = To.Concat(Cc).
+                                            Where (recipient => recipient.PublicKeyRing is not null).
+                                            Select(recipient => recipient.PublicKeyRing!.GetPublicKeys().Cast<PgpPublicKey>().FirstOrDefault(key => key.IsEncryptionKey)
+                                                                    ?? recipient.PublicKeyRing!.GetPublicKeys().Cast<PgpPublicKey>().First()).
+                                            DistinctBy(key => key.KeyId).
+                                            ToList();
+
                     OpenPGP.EncryptSignAndZip(InputStream:            new MemoryStream(Plaintext),
                                               Length:                 (UInt64) Plaintext.Length,
                                               SecretKey:              From.SecretKeyRing?.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
                                               Passphrase:             Passphrase,
-                                              PublicKey:              To.First().PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().First(),
+                                              PublicKeys:             recipientKeys,
                                               OutputStream:           Ciphertext,
                                               SymmetricKeyAlgorithm:  SymmetricKeyAlgorithm,
                                               HashAlgorithm:          HashAlgorithm,

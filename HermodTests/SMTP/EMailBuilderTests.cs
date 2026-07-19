@@ -57,7 +57,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private PgpSecretKeyRing  recipientSecretRing  = null!;   // Bob (recipient — needs a public key to encrypt to)
         private PgpPublicKeyRing  recipientPublicRing  = null!;
 
-        #region OneTimeSetUp — generate two RSA OpenPGP key rings
+        private PgpSecretKeyRing  carolSecretRing      = null!;   // Carol (second recipient, for multi-recipient encryption)
+        private PgpPublicKeyRing  carolPublicRing      = null!;
+
+        #region OneTimeSetUp — generate the RSA OpenPGP key rings
 
         [OneTimeSetUp]
         public void GenerateTestKey()
@@ -65,6 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             (secretKeyRing,       publicKeyRing)        = GenerateKeyRing("Alice <alice@example.com>");
             (recipientSecretRing, recipientPublicRing)  = GenerateKeyRing("Bob <bob@example.org>");
+            (carolSecretRing,     carolPublicRing)      = GenerateKeyRing("Carol <carol@example.net>");
 
             keyId = secretKeyRing.GetSecretKey().KeyId;
 
@@ -308,6 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private EMailAddress AliceNoKey   => (EMailAddress) SimpleEMailAddress.Parse("alice@example.com");
         private EMailAddress BobWithKey   => new ("Bob",   SimpleEMailAddress.Parse("bob@example.org"),   null, recipientPublicRing);
         private EMailAddress BobNoKey     => (EMailAddress) SimpleEMailAddress.Parse("bob@example.org");
+        private EMailAddress CarolWithKey => new ("Carol", SimpleEMailAddress.Parse("carol@example.net"), null, carolPublicRing);
 
         // A minimal text builder wired with the given sender/recipient/mode (passphrase always supplied).
         private TextEMailBuilder MakeBuilder(EMailAddress From, EMailAddress To, EMailSecurity Security)
@@ -408,6 +413,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             // encrypt always signs too, so a missing sender secret key must throw.
             var b = MakeBuilder(AliceNoKey, BobWithKey, EMailSecurity.encrypt);
             Assert.That(() => { EMail _ = b; }, Throws.TypeOf<ApplicationException>());
+        }
+
+        [Test]
+        public void Encrypt_addresses_every_recipient_not_just_the_first()
+        {
+
+            // Two recipients, both with a public key: the message must be encrypted to BOTH, so each
+            // can decrypt with their own private key (regression against "encrypt to To.First() only").
+            var b = new TextEMailBuilder { Text = $"Hallo {Marker}" };
+            b.From          = AliceWithKey;
+            b.To            = EMailAddressListBuilder.Create(BobWithKey, CarolWithKey);
+            b.Subject       = "Test Subject";
+            b.SecurityLevel = EMailSecurity.encrypt;
+            b.Passphrase    = Passphrase;
+
+            EMail mail = b;
+            var   text = String.Join("\r\n", mail.ToText());
+
+            AssertEncrypted(text);
+
+            // The armored ciphertext must carry one public-key encrypted session-key (PKESK) packet
+            // per recipient, keyed to each recipient's encryption key.
+            var recipientKeyIds = SessionKeyRecipients(ExtractPgpMessage(text));
+
+            Assert.That(recipientKeyIds.Length, Is.EqualTo(2), "one session-key packet per recipient");
+            Assert.That(recipientKeyIds, Does.Contain(EncryptionKeyId(recipientPublicRing)), "Bob must be a recipient");
+            Assert.That(recipientKeyIds, Does.Contain(EncryptionKeyId(carolPublicRing)),     "Carol must be a recipient");
+
+        }
+
+        // The KeyId the builder encrypts to for a given ring: prefer the encryption (sub)key, else the primary.
+        private static Int64 EncryptionKeyId(PgpPublicKeyRing Ring)
+            => (Ring.GetPublicKeys().Cast<PgpPublicKey>().FirstOrDefault(key => key.IsEncryptionKey)
+                    ?? Ring.GetPublicKeys().Cast<PgpPublicKey>().First()).KeyId;
+
+        // The recipient KeyIds a given armored PGP MESSAGE is encrypted to (one per PKESK packet).
+        private static Int64[] SessionKeyRecipients(String ArmoredPgpMessage)
+        {
+
+            using var ms      = new MemoryStream(Encoding.ASCII.GetBytes(ArmoredPgpMessage));
+            using var armor   = new ArmoredInputStream(ms);
+            var       factory = new PgpObjectFactory(armor);
+            var       encList = factory.NextPgpObject() as PgpEncryptedDataList;
+
+            Assert.That(encList, Is.Not.Null, "a PGP MESSAGE must begin with an encrypted-data list");
+
+            return encList!.GetEncryptedDataObjects().
+                            Cast<PgpPublicKeyEncryptedData>().
+                            Select(data => data.KeyId).
+                            ToArray();
+
         }
 
         #endregion
