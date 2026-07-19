@@ -391,6 +391,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
+        #region Importance (RFC 2156)
+
+        /// <summary>
+        /// The importance of this e-mail, read from its headers with the precedence
+        /// Importance → X-Priority → X-MSMail-Priority. Defaults to <see cref="MailImportance.Normal"/>.
+        /// </summary>
+        public MailImportance Importance
+        {
+            get
+            {
+
+                var importance = GetEMailHeader("Importance");
+                if (importance.IsNotNullOrEmpty())
+                {
+                    if (importance.Trim().Equals("high", StringComparison.OrdinalIgnoreCase)) return MailImportance.High;
+                    if (importance.Trim().Equals("low",  StringComparison.OrdinalIgnoreCase)) return MailImportance.Low;
+                    return MailImportance.Normal;
+                }
+
+                // X-Priority: "1 (Highest)" … "5 (Lowest)" — the leading digit is what matters.
+                var xPriority = GetEMailHeader("X-Priority").TrimStart();
+                if (xPriority.Length > 0 && Char.IsDigit(xPriority[0]))
+                {
+                    if (xPriority[0] is '1' or '2') return MailImportance.High;
+                    if (xPriority[0] is '4' or '5') return MailImportance.Low;
+                    return MailImportance.Normal;
+                }
+
+                var msPriority = GetEMailHeader("X-MSMail-Priority");
+                if (msPriority.IsNotNullOrEmpty())
+                {
+                    if (msPriority.Trim().Equals("high", StringComparison.OrdinalIgnoreCase)) return MailImportance.High;
+                    if (msPriority.Trim().Equals("low",  StringComparison.OrdinalIgnoreCase)) return MailImportance.Low;
+                }
+
+                return MailImportance.Normal;
+
+            }
+        }
+
+        #endregion
+
         #region Message Disposition Notifications (read receipts, RFC 8098)
 
         /// <summary>

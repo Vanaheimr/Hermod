@@ -164,6 +164,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             /// </summary>
             public EMailAddress?                         DispositionNotificationTo { get; set; }
 
+            /// <summary>
+            /// The importance of this e-mail (RFC 2156). Only High/Low emit headers; Normal is the default.
+            /// </summary>
+            public MailImportance                        Importance                { get; set; } = MailImportance.Normal;
+
 
 
 
@@ -444,6 +449,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                     if (DispositionNotificationTo is not null)
                         SetEMailHeader("Disposition-Notification-To", DispositionNotificationTo.ToString());
+
+                    // Message importance (RFC 2156 + the de-facto X-* headers). Only stamp High/Low;
+                    // Normal is the default and adds no headers.
+                    if (Importance == MailImportance.High)
+                    {
+                        SetEMailHeader("Importance",          "High");
+                        SetEMailHeader("Priority",            "urgent");
+                        SetEMailHeader("X-Priority",          "1 (Highest)");
+                        SetEMailHeader("X-MSMail-Priority",   "High");
+                    }
+                    else if (Importance == MailImportance.Low)
+                    {
+                        SetEMailHeader("Importance",          "Low");
+                        SetEMailHeader("Priority",            "non-urgent");
+                        SetEMailHeader("X-Priority",          "5 (Lowest)");
+                        SetEMailHeader("X-MSMail-Priority",   "Low");
+                    }
 
 
 
