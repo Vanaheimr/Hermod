@@ -69,8 +69,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                         ? new List<EMailBodypart>(NestedBodyparts)
                                         : Array.Empty<EMailBodypart>();
 
+            // Assign back through the setter so the "Content-Type" header is rewritten WITH the
+            // freshly generated boundary. GenerateMIMEBoundary only mutates the MailContentType
+            // object; the setter is what (re)writes the header. Without this, a multipart whose
+            // builder did not pre-generate the boundary (e.g. multipart/signed) serialized a
+            // Content-Type header with no boundary=, so the message re-parsed to a flat body.
             if (this.NestedBodyparts.Any())
-                this.ContentType.GenerateMIMEBoundary();
+                this.ContentType = this.ContentType!.GenerateMIMEBoundary();
 
         }
 
@@ -105,8 +110,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                 ? [.. NestedBodyparts]
                                                 : new List<EMailBodypart>();
 
+            // Assign back through the setter so the "Content-Type" header is rewritten WITH the
+            // freshly generated boundary. GenerateMIMEBoundary only mutates the MailContentType
+            // object; the setter is what (re)writes the header. Without this, a multipart whose
+            // builder did not pre-generate the boundary (e.g. multipart/signed) serialized a
+            // Content-Type header with no boundary=, so the message re-parsed to a flat body.
             if (this.NestedBodyparts.Any())
-                this.ContentType.GenerateMIMEBoundary();
+                this.ContentType = this.ContentType!.GenerateMIMEBoundary();
 
         }
 

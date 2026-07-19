@@ -561,6 +561,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                             throw new ApplicationException("Can not sign and encrypt the e-mail!");
                         }
 
+                        // Note: the encryption path always signs as well (OpenPGP.EncryptSignAndZip), so
+                        // "encrypt-only" is not a distinct case in this implementation — encrypting implies
+                        // a signature. The dispatch below therefore checks EncryptTheMail first.
                         EncryptTheMail = true;
 
                         break;
@@ -569,9 +572,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 #endregion
 
-                #region Sign the e-mail
+                // Order matters, and it is intentional: encryption is checked first because in this
+                // implementation encrypting *always* signs as well (OpenPGP.EncryptSignAndZip). We
+                // deliberately do NOT support encrypt-without-sign: an encrypted-but-unsigned mail gives
+                // confidentiality but no authenticity — the recipient cannot verify the sender, and it
+                // enables surreptitious-forwarding / tampering attacks (RFC 3156). Secure mail wants
+                // authenticated encryption, so "encrypt" ⇒ sign+encrypt, and only if we are not
+                // encrypting do we consider a plain (detached) signature. See EMailSecurity.encrypt.
 
-                if (SignTheMail & !EncryptTheMail)
+                #region Encrypt the e-mail (this always signs as well)
+
+                if (EncryptTheMail)
+                {
+
+                    var Plaintext   = bodypartToBeSecured.ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
+                    var Ciphertext  = new MemoryStream();
+
+                    // Encrypt to EVERY recipient (To + Cc) that carries a public key, so each of them
+                    // can decrypt the message with their own private key — not just the first To.
+                    // Prefer each recipient's encryption-capable (sub)key, fall back to the primary key,
+                    // and de-duplicate in case the same key is listed more than once.
+                    var recipientKeys = To.Concat(Cc).
+                                            Where (recipient => recipient.PublicKeyRing is not null).
+                                            Select(recipient => recipient.PublicKeyRing!.GetPublicKeys().Cast<PgpPublicKey>().FirstOrDefault(key => key.IsEncryptionKey)
+                                                                    ?? recipient.PublicKeyRing!.GetPublicKeys().Cast<PgpPublicKey>().First()).
+                                            DistinctBy(key => key.KeyId).
+                                            ToList();
+
+                    OpenPGP.EncryptSignAndZip(InputStream:            new MemoryStream(Plaintext),
+                                              Length:                 (UInt64) Plaintext.Length,
+                                              SecretKey:              From.SecretKeyRing?.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
+                                              Passphrase:             Passphrase,
+                                              PublicKeys:             recipientKeys,
+                                              OutputStream:           Ciphertext,
+                                              SymmetricKeyAlgorithm:  SymmetricKeyAlgorithm,
+                                              HashAlgorithm:          HashAlgorithm,
+                                              CompressionAlgorithm:   CompressionAlgorithm,
+                                              ArmoredOutput:          true,
+                                              Filename:               "encrypted.asc",
+                                              LastModificationTime:   Timestamp.Now);
+
+                    // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
+                    // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
+                    body = new EMailBodypart(ContentTypeBuilder:          AMail => new MailContentType(MailContentTypes.multipart_encrypted) {
+                                                                               Protocol = "application/pgp-encrypted",
+                                                                               CharSet  = "utf-8",
+                                                                           },
+                                              ContentTransferEncoding:     "8bit",
+                                              NestedBodyparts:             [
+
+                                                                               new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(MailContentTypes.application_pgp__encrypted) { CharSet = "utf-8" },
+                                                                                                 ContentDescription:   "PGP/MIME version identification",
+                                                                                                 ContentDisposition:   ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
+                                                                                                 Content:              [ "Version: 1" ]),
+
+                                                                               new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(MailContentTypes.application_octet__stream) { CharSet = "utf-8" },
+                                                                                                 ContentDescription:   "OpenPGP encrypted message",
+                                                                                                 ContentDisposition:   ContentDispositions.inline.ToString() + "; filename=\"encrypted.asc\"",
+                                                                                                 Content:              [ Ciphertext.ToArray().ToUTF8String() ]),
+
+                                                                           ]
+                                             );
+
+                }
+
+                #endregion
+
+                #region Sign the e-mail (only — encrypting, handled above, already signs)
+
+                else if (SignTheMail)
                 {
 
                     var dataToBeSigned      = bodypartToBeSecured.
@@ -617,53 +686,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                                                                                            ToUTF8String()
 
                                                                                                                            ])
-
-                                                                           ]
-                                             );
-
-                }
-
-                #endregion
-
-                #region Encrypt the e-mail
-
-                else if (SignTheMail & EncryptTheMail)
-                {
-
-                    var Plaintext   = bodypartToBeSecured.ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
-                    var Ciphertext  = new MemoryStream();
-
-                    OpenPGP.EncryptSignAndZip(InputStream:            new MemoryStream(Plaintext),
-                                              Length:                 (UInt64) Plaintext.Length,
-                                              SecretKey:              From.SecretKeyRing?.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
-                                              Passphrase:             Passphrase,
-                                              PublicKey:              To.First().PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().First(),
-                                              OutputStream:           Ciphertext,
-                                              SymmetricKeyAlgorithm:  SymmetricKeyAlgorithm,
-                                              HashAlgorithm:          HashAlgorithm,
-                                              CompressionAlgorithm:   CompressionAlgorithm,
-                                              ArmoredOutput:          true,
-                                              Filename:               "encrypted.asc",
-                                              LastModificationTime:   Timestamp.Now);
-
-                    // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
-                    // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
-                    body = new EMailBodypart(ContentTypeBuilder:          AMail => new MailContentType(MailContentTypes.multipart_encrypted) {
-                                                                               Protocol = "application/pgp-encrypted",
-                                                                               CharSet  = "utf-8",
-                                                                           },
-                                              ContentTransferEncoding:     "8bit",
-                                              NestedBodyparts:             [
-
-                                                                               new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(MailContentTypes.application_pgp__encrypted) { CharSet = "utf-8" },
-                                                                                                 ContentDescription:   "PGP/MIME version identification",
-                                                                                                 ContentDisposition:   ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
-                                                                                                 Content:              [ "Version: 1" ]),
-
-                                                                               new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(MailContentTypes.application_octet__stream) { CharSet = "utf-8" },
-                                                                                                 ContentDescription:   "OpenPGP encrypted message",
-                                                                                                 ContentDisposition:   ContentDispositions.inline.ToString() + "; filename=\"encrypted.asc\"",
-                                                                                                 Content:              [ Ciphertext.ToArray().ToUTF8String() ]),
 
                                                                            ]
                                              );

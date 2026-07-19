@@ -142,7 +142,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             }
 
-            if (Enum.TryParse<MailContentTypes>(splitted[0].Replace("/", "_").Replace("+", "__"), out var _mailContentType))
+            // Map the MIME type to the enum member name: '/' → '_', '-' → '__' (e.g.
+            // "application/pgp-signature" → application_pgp__signature). This must mirror
+            // MailContentType.ToString(), which does the inverse ('__' → '-', '_' → '/').
+            if (Enum.TryParse<MailContentTypes>(splitted[0].Replace("/", "_").Replace("+", "__").Replace("-", "__"), out var _mailContentType))
             {
 
                 mailContentType = _mailContentType;
@@ -183,20 +186,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                     }
 
-                    MailContentType  = new MailContentType(
-                                           mailContentType.Value,
-                                           CharSet:       charSet,
-                                           MIMEBoundary:  mimeBoundary,
-                                           Text:          ContentTypeString
-                                       );
-
-                    return true;
+                    // Any other parameter (e.g. "format=flowed", "name=…") is not modelled here — ignore it.
 
                 }
 
-                // Update text-version within the e-mail header
-                //     if (this.AbstractEMail is not null)
-                //         this.AbstractEMail.SetEMailHeader("Content-Type", this.ToString());
+                // Build the result once, after all parameters are known. This used to be done
+                // *inside* the loop only for an unrecognised parameter, so a content type whose
+                // parameters were all charset=/boundary= — e.g. "text/plain; charset=utf-8" or
+                // "multipart/mixed; boundary=…" — never got constructed and Parse returned null
+                // (which then NRE'd the MIME parser on re-parse).
+                MailContentType  = new MailContentType(
+                                       mailContentType.Value,
+                                       CharSet:       charSet,
+                                       MIMEBoundary:  String.IsNullOrEmpty(mimeBoundary) ? null : mimeBoundary,
+                                       Text:          ContentTypeString
+                                   );
+
+                return true;
 
             }
 

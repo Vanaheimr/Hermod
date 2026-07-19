@@ -47,8 +47,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         auto,
 
         /// <summary>
-        /// Signing and encrypting the e-mail is mandatory.
+        /// Signing <i>and</i> encrypting the e-mail is mandatory.
         /// </summary>
+        /// <remarks>
+        /// There is deliberately no "encrypt-only" mode. While OpenPGP/PGP-MIME (RFC 3156) permits
+        /// encrypting without signing, an encrypted-but-unsigned e-mail offers confidentiality but
+        /// <i>no authenticity</i>: the recipient cannot tell who actually sent it, so anyone holding
+        /// the recipient's public key could forge a message that decrypts cleanly in their name. It
+        /// also opens the door to surreptitious-forwarding / message-tampering attacks that a signature
+        /// over the plaintext prevents. Meaningful secure mail therefore wants <i>authenticated
+        /// encryption</i> — confidentiality together with a verifiable sender — so <see cref="encrypt"/>
+        /// always signs as well (see <c>Builder.EncodeBodyparts</c>, which uses
+        /// <c>OpenPGP.EncryptSignAndZip</c>). If a genuine encrypt-only use case ever arises it must be
+        /// added as its own explicit mode and code path, never as a silent side effect.
+        /// </remarks>
         encrypt
 
     }

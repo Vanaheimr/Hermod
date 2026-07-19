@@ -336,16 +336,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (internal) EncryptWith(this InputStream, PublicKey, SymmetricKeyAlgorithm, BufferSize = 0x10000)
+        #region (internal) EncryptWith(this InputStream, PublicKey,  SymmetricKeyAlgorithm, BufferSize = 0x10000)
 
         internal static Stream EncryptWith(this Stream               InputStream,
                                            PgpPublicKey              PublicKey,
                                            SymmetricKeyAlgorithmTag  SymmetricKeyAlgorithm,
                                            UInt32                    BufferSize = 0x10000)
+
+            => InputStream.EncryptWith([ PublicKey ], SymmetricKeyAlgorithm, BufferSize);
+
+        #endregion
+
+        #region (internal) EncryptWith(this InputStream, PublicKeys, SymmetricKeyAlgorithm, BufferSize = 0x10000)
+
+        internal static Stream EncryptWith(this Stream                InputStream,
+                                           IEnumerable<PgpPublicKey>  PublicKeys,
+                                           SymmetricKeyAlgorithmTag   SymmetricKeyAlgorithm,
+                                           UInt32                     BufferSize = 0x10000)
         {
 
             var EncryptedDataGenerator = new PgpEncryptedDataGenerator(SymmetricKeyAlgorithm, true, new SecureRandom());
-            EncryptedDataGenerator.AddMethod(PublicKey);
+
+            // Add one public-key encrypted session-key packet per recipient, so any single
+            // recipient's private key can recover the (shared) symmetric session key.
+            foreach (var publicKey in PublicKeys)
+                EncryptedDataGenerator.AddMethod(publicKey);
 
             return EncryptedDataGenerator.Open(InputStream, new Byte[BufferSize]);
 
@@ -417,7 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region EncryptSignAndZip(InputStream, Length, SecretKey, Passphrase, PublicKey, OutputStream, SymmetricKeyAlgorithm, HashAlgorithm, CompressionAlgorithm, ArmoredOutput, Filename, LastModificationTime)
+        #region EncryptSignAndZip(InputStream, Length, SecretKey, Passphrase, PublicKey,  OutputStream, ...)
 
         public static void EncryptSignAndZip(Stream                    InputStream,
                                              UInt64                    Length,
@@ -431,6 +446,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                              Boolean                   ArmoredOutput           = true,
                                              String                    Filename                = "encrypted.asc",
                                              DateTimeOffset?           LastModificationTime    = null)
+
+            => EncryptSignAndZip(InputStream,
+                                 Length,
+                                 SecretKey,
+                                 Passphrase,
+                                 [ PublicKey ],
+                                 OutputStream,
+                                 SymmetricKeyAlgorithm,
+                                 HashAlgorithm,
+                                 CompressionAlgorithm,
+                                 ArmoredOutput,
+                                 Filename,
+                                 LastModificationTime);
+
+        #endregion
+
+        #region EncryptSignAndZip(InputStream, Length, SecretKey, Passphrase, PublicKeys, OutputStream, ...)
+
+        /// <summary>
+        /// Sign the input with <paramref name="SecretKey"/> and encrypt it to every recipient in
+        /// <paramref name="PublicKeys"/> (one public-key encrypted session-key packet per recipient,
+        /// so any of them can decrypt the same message).
+        /// </summary>
+        public static void EncryptSignAndZip(Stream                     InputStream,
+                                             UInt64                     Length,
+                                             PgpSecretKey               SecretKey,
+                                             String                     Passphrase,
+                                             IEnumerable<PgpPublicKey>  PublicKeys,
+                                             Stream                     OutputStream,
+                                             SymmetricKeyAlgorithmTag   SymmetricKeyAlgorithm   = SymmetricKeyAlgorithmTag.Aes256,
+                                             HashAlgorithmTag           HashAlgorithm           = HashAlgorithmTag.Sha512,
+                                             CompressionAlgorithmTag    CompressionAlgorithm    = CompressionAlgorithmTag.Zip,
+                                             Boolean                    ArmoredOutput           = true,
+                                             String                     Filename                = "encrypted.asc",
+                                             DateTimeOffset?            LastModificationTime    = null)
         {
 
             #region Initial checks
@@ -444,8 +494,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Passphrase is null)
                 throw new ArgumentNullException("The pass phrase must not be null!");
 
-            if (PublicKey is null)
-                throw new ArgumentNullException("The public key must not be null!");
+            if (PublicKeys is null)
+                throw new ArgumentNullException("The public keys must not be null!");
+
+            var publicKeys = PublicKeys.ToList();
+
+            if (publicKeys.Count == 0)
+                throw new ArgumentException("At least one recipient public key is required!", nameof(PublicKeys));
 
             if (OutputStream is null)
                 throw new ArgumentNullException("The output stream must not be null!");
@@ -454,7 +509,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var InternalOutputStream = ArmoredOutput ? new ArmoredOutputStream(OutputStream) : OutputStream;
 
-            using (var EncryptionPipe          = InternalOutputStream.EncryptWith(PublicKey, SymmetricKeyAlgorithm))
+            using (var EncryptionPipe          = InternalOutputStream.EncryptWith(publicKeys, SymmetricKeyAlgorithm))
             using (var CompressAndEncryptPipe  = EncryptionPipe.CompressWith(CompressionAlgorithm))
             {
 
