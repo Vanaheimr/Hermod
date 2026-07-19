@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 
 #endregion
@@ -98,7 +99,7 @@ public sealed class MailSender
 
             var domain = byDomain.Key.TrimEnd('.').ToLowerInvariant();
             var to     = byDomain.Select(rcpt => rcpt.Address.ToString()).ToArray();
-            var id     = Guid.NewGuid().ToString("N");
+            var id     = UUIDv7.Generate().ToString("N");
 
             await mailQueue.EnqueueAsync(new QueuedMail {
                 Id              = id,
@@ -225,10 +226,15 @@ public sealed class MailSender
 /// <param name="TargetDomain">The recipient domain that was delivered to.</param>
 /// <param name="Recipients">The recipients at that domain.</param>
 /// <param name="Result">The receiving server's verdict (status, SMTP code, response text, MX host).</param>
-public sealed record DirectSendResult(String        TargetDomain,
-                                      String[]      Recipients,
-                                      SendResult    Result)
+public sealed record DirectSendResult(String      TargetDomain,
+                                      String[]    Recipients,
+                                      SendResult  Result)
 {
-    /// <summary>Whether the receiving MX accepted the message.</summary>
-    public Boolean IsOk => Result.Status == SendStatus.Success;
+
+    /// <summary>
+    /// Whether the receiving MX accepted the message.
+    /// </summary>
+    public Boolean IsOk
+        => Result.Status == SendStatus.Success;
+
 }

@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -37,14 +38,14 @@ public enum MtaStsMode
 
 public sealed partial record MtaStsPolicy
 {
-    public MtaStsMode   Mode        { get; init; } = MtaStsMode.None;
-    public List<String> MxPatterns  { get; init; } = [];
-    public TimeSpan     MaxAge      { get; init; } = TimeSpan.Zero;
-    public DateTime     FetchedAt   { get; init; } = DateTime.UtcNow;
-    public String?      PolicyId    { get; init; }
-    public Boolean      IsValid
+    public MtaStsMode      Mode        { get; init; } = MtaStsMode.None;
+    public List<String>    MxPatterns  { get; init; } = [];
+    public TimeSpan        MaxAge      { get; init; } = TimeSpan.Zero;
+    public DateTimeOffset  FetchedAt   { get; init; } = Timestamp.Now;
+    public String?         PolicyId    { get; init; }
+    public Boolean         IsValid
         => Mode != MtaStsMode.None &&
-           DateTime.UtcNow - FetchedAt < MaxAge;
+           Timestamp.Now - FetchedAt < MaxAge;
 
 
     /// <summary>
@@ -260,7 +261,7 @@ public sealed partial class MtaStsResolver : IDisposable
             MxPatterns = mxPatterns,
             MaxAge = maxAge,
             PolicyId = policyId,
-            FetchedAt = DateTime.UtcNow
+            FetchedAt = Timestamp.Now
         };
     }
 

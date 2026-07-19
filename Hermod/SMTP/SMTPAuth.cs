@@ -20,6 +20,7 @@
 using System.Text;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -645,13 +646,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             // Validate certificate
-            if (clientCertificate.NotAfter < DateTime.UtcNow)
+            if (clientCertificate.NotAfter < Timestamp.Now)
             {
                 logger.Log(LogLevel.Warning, $"EXTERNAL auth: Certificate expired ({clientCertificate.NotAfter})");
                 return new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Certificate expired");
             }
 
-            if (clientCertificate.NotBefore > DateTime.UtcNow)
+            if (clientCertificate.NotBefore > Timestamp.Now)
             {
                 logger.Log(LogLevel.Warning, $"EXTERNAL auth: Certificate not yet valid ({clientCertificate.NotBefore})");
                 return new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Certificate not yet valid");

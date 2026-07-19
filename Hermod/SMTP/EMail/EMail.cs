@@ -390,7 +390,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-
         #region Importance (RFC 2156)
 
         /// <summary>
@@ -478,15 +477,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             var reporter        = ReportingAgent.Address.ToString();
             var reporterDomain  = reporter.Contains('@') ? reporter[(reporter.IndexOf('@') + 1)..] : "localhost";
             var product         = ReportingUAProduct.IsNotNullOrEmpty() ? ReportingUAProduct! : "Hermod";
-            var boundary        = "=_mdn_" + Guid.NewGuid().ToString("N");
+            var boundary        = "=_mdn_" + UUIDv7.Generate().ToString("N");
 
             var lines = new List<String>
             {
                 $"From: {ReportingAgent}",
                 $"To: {notifyTo}",
                 $"Subject: Read receipt: {Subject}",
-                $"Date: {DateTime.UtcNow:R}",
-                $"Message-ID: <mdn.{Guid.NewGuid():N}@{reporterDomain}>",
+                $"Date: {Timestamp.Now:R}",
+                $"Message-ID: <mdn.{UUIDv7.Generate():N}@{reporterDomain}>",
                 "MIME-Version: 1.0",
                 "Auto-Submitted: auto-replied",   // RFC 3834 — this is an automatic reply; do not reply to it
                 "Content-Type: multipart/report; report-type=disposition-notification;",

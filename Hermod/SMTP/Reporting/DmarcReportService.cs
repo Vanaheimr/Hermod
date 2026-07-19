@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.IO.Compression;
 using System.Text;
 
@@ -137,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 await mailQueue.EnqueueAsync(new QueuedMail
                 {
-                    Id             = Guid.NewGuid().ToString("N"),
+                    Id             = UUIDv7.Generate().ToString("N"),
                     EnvelopeFrom   = options.ReportFromAddress,
                     EnvelopeTo     = [uri],
                     MessageContent = message,
@@ -156,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var gz        = Gzip(xml);
             var b64       = WrapBase64(Convert.ToBase64String(gz));
             var filename  = $"{options.ReportingDomain}!{report.PolicyDomain}!{report.WindowBegin.ToUnixTimeSeconds()}!{report.WindowEnd.ToUnixTimeSeconds()}.xml.gz";
-            var boundary  = "dmarc-" + Guid.NewGuid().ToString("N");
+            var boundary  = "dmarc-" + UUIDv7.Generate().ToString("N");
             var date      = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000",
                                                            System.Globalization.CultureInfo.InvariantCulture);
 
@@ -168,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
               .Append(" Submitter: ").Append(options.ReportingDomain)
               .Append(" Report-ID: ").Append(reportId).Append("\r\n");
             sb.Append("Date: ").Append(date).Append("\r\n");
-            sb.Append("Message-ID: <").Append(Guid.NewGuid().ToString("N")).Append('@').Append(options.ReportingDomain).Append(">\r\n");
+            sb.Append("Message-ID: <").Append(UUIDv7.Generate().ToString("N")).Append('@').Append(options.ReportingDomain).Append(">\r\n");
             sb.Append("Auto-Submitted: auto-generated\r\n");
             sb.Append("MIME-Version: 1.0\r\n");
             sb.Append("Content-Type: multipart/mixed; boundary=\"").Append(boundary).Append("\"\r\n");
@@ -240,14 +241,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                               options.ReportFromDisplay, uri, options.ReportingDomain,
                                               authenticationResults);
 
-                await mailQueue.EnqueueAsync(new QueuedMail
-                {
-                    Id             = Guid.NewGuid().ToString("N"),
-                    EnvelopeFrom   = options.ReportFromAddress,
-                    EnvelopeTo     = [uri],
-                    MessageContent = message,
-                    TargetDomain   = destDomain
-                }, ct);
+                await mailQueue.EnqueueAsync(
+                          new QueuedMail {
+                              Id              = UUIDv7.Generate().ToString("N"),
+                              EnvelopeFrom    = options.ReportFromAddress,
+                              EnvelopeTo      = [uri],
+                              MessageContent  = message,
+                              TargetDomain    = destDomain
+                          },
+                          ct
+                      );
 
                 logger.Log(LogLevel.Info, $"DMARC forensic report for {eval.HeaderFromDomain} queued to {uri}");
             }

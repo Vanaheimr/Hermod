@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Text;
 
 #endregion
@@ -34,8 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         {
             Directory.CreateDirectory(basePath);
 
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff");
-            var messageId = message.MessageId ?? Guid.NewGuid().ToString("N")[..16];
+            var timestamp = Timestamp.Now.ToString("yyyyMMdd_HHmmss_fff");
+            var messageId = message.MessageId ?? UUIDv7.Generate().ToString("N")[..16];
             var fileName = $"{timestamp}_{SanitizeFileName(messageId)}.eml";
             var filePath = Path.Combine(basePath, fileName);
 

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -369,7 +370,7 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
             Directory.CreateDirectory(storageDir);
             var org   = Sanitize(report.OrganizationName ?? "unknown");
             var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'");
-            var name  = $"{stamp}-{org}-{Guid.NewGuid():N}.json";
+            var name  = $"{stamp}-{org}-{UUIDv7.Generate():N}.json";
             File.WriteAllText(Path.Combine(storageDir, name), json);
         }
         catch (Exception ex)

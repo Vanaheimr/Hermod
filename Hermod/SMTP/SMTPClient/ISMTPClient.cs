@@ -145,13 +145,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
 
         Task<MailSentStatus> Send(EMail              EMail,
-                                  Byte               NumberOfRetries   = 3,
-                                  EventTracking_Id?  EventTrackingId   = null,
-                                  TimeSpan?          RequestTimeout    = null);
+                                  Byte               NumberOfRetries     = 3,
+                                  EventTracking_Id?  EventTrackingId     = null,
+                                  TimeSpan?          RequestTimeout      = null,
+                                  CancellationToken  CancellationToken   = default);
         Task<MailSentStatus> Send(EMailEnvelop       EMailEnvelop,
-                                  Byte               NumberOfRetries   = 3,
-                                  EventTracking_Id?  EventTrackingId   = null,
-                                  TimeSpan?          RequestTimeout    = null);
+                                  Byte               NumberOfRetries     = 3,
+                                  EventTracking_Id?  EventTrackingId     = null,
+                                  TimeSpan?          RequestTimeout      = null,
+                                  CancellationToken  CancellationToken   = default);
 
         void Dispose();
 

@@ -23,6 +23,7 @@ using System.Text.Json;
 using System.Globalization;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -598,7 +599,7 @@ public sealed class TlsRptReportService(TlsRptAggregator        aggregator,
             return;
         }
 
-        var reportId = $"{report.WindowEnd.ToUnixTimeSeconds()}.{Guid.NewGuid():N}@{options.ReportingDomain}";
+        var reportId = $"{report.WindowEnd.ToUnixTimeSeconds()}.{UUIDv7.Generate():N}@{options.ReportingDomain}";
         var json     = TlsRptReportJson.Build(report, options.OrgName, options.ContactInfo, reportId);
 
         foreach (var toAddress in policy.RuaMailto)
@@ -612,7 +613,7 @@ public sealed class TlsRptReportService(TlsRptAggregator        aggregator,
 
             await mailQueue.EnqueueAsync(new QueuedMail
             {
-                Id             = Guid.NewGuid().ToString("N"),
+                Id             = UUIDv7.Generate().ToString("N"),
                 EnvelopeFrom   = options.ReportFromAddress,
                 EnvelopeTo     = [toAddress],
                 MessageContent = message,
@@ -632,7 +633,7 @@ public sealed class TlsRptReportService(TlsRptAggregator        aggregator,
         var gz       = Gzip(json);
         var b64      = WrapBase64(Convert.ToBase64String(gz));
         var filename = $"{options.ReportingDomain}!{report.PolicyDomain}!{report.WindowBegin.ToUnixTimeSeconds()}!{report.WindowEnd.ToUnixTimeSeconds()}.json.gz";
-        var boundary = "tlsrpt-" + Guid.NewGuid().ToString("N");
+        var boundary = "tlsrpt-" + UUIDv7.Generate().ToString("N");
         var date     = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000", CultureInfo.InvariantCulture);
 
         var sb = new StringBuilder();
@@ -645,7 +646,7 @@ public sealed class TlsRptReportService(TlsRptAggregator        aggregator,
         sb.Append("TLS-Report-Domain: ").Append(report.PolicyDomain).Append("\r\n");
         sb.Append("TLS-Report-Submitter: ").Append(options.ReportingDomain).Append("\r\n");
         sb.Append("Date: ").Append(date).Append("\r\n");
-        sb.Append("Message-ID: <").Append(Guid.NewGuid().ToString("N")).Append('@').Append(options.ReportingDomain).Append(">\r\n");
+        sb.Append("Message-ID: <").Append(UUIDv7.Generate().ToString("N")).Append('@').Append(options.ReportingDomain).Append(">\r\n");
         sb.Append("Auto-Submitted: auto-generated\r\n");
         sb.Append("MIME-Version: 1.0\r\n");
         sb.Append("Content-Type: multipart/report; report-type=\"tlsrpt\"; boundary=\"").Append(boundary).Append("\"\r\n");

@@ -17,12 +17,13 @@
 
 #region Usings
 
-using System.Net.Security;
+using System.Text;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -158,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                   CancellationToken  ct           = default)
         {
 
-            var startTime = DateTime.UtcNow;
+            var startTime = Timestamp.Now;
 
             try
             {
@@ -243,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                         if (result.Status == SendStatus.Success)
                         {
-                            var duration = DateTime.UtcNow - startTime;
+                            var duration = Timestamp.Now - startTime;
                             return result with { Duration = duration };
                         }
 

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Text;
 
 #endregion
@@ -34,11 +35,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     }
 
     public sealed record BounceInfo(
-        BounceType  Type,
-        string      OriginalRecipient,
-        string      DiagnosticCode,
-        string      RemoteMta,
-        DateTime    FailureTime
+        BounceType      Type,
+        string          OriginalRecipient,
+        string          DiagnosticCode,
+        string          RemoteMta,
+        DateTimeOffset  FailureTime
     );
 
     #endregion
@@ -76,21 +77,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 OriginalRecipient: string.Join(", ", originalMail.EnvelopeTo),
                 DiagnosticCode: $"{failureResult.ResponseCode} {failureResult.ResponseText}",
                 RemoteMta: failureResult.RemoteMx ?? "unknown",
-                FailureTime: DateTime.UtcNow
+                FailureTime: Timestamp.Now
             );
 
             var bounceMessage = GenerateBounceMessage(originalMail, bounceInfo);
 
             // Queue the bounce with null sender (prevents bounce loops)
-            var bounceQueueItem = new QueuedMail
-            {
-                Id = $"bounce-{Guid.NewGuid():N}",
+            var bounceQueueItem = new QueuedMail {
+                Id = $"bounce-{UUIDv7.Generate():N}",
                 EnvelopeFrom = "",  // Null sender
                 EnvelopeTo = [originalMail.EnvelopeFrom],
                 MessageContent = bounceMessage,
                 TargetDomain = ExtractDomain(originalMail.EnvelopeFrom),
-                QueuedAt = DateTime.UtcNow,
-                NextRetry = DateTime.UtcNow
+                QueuedAt  = Timestamp.Now,
+                NextRetry = Timestamp.Now
             };
 
             await queue.EnqueueAsync(bounceQueueItem, ct);
@@ -180,13 +180,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private Task EnqueueReportAsync(String dsnMessage, String originalSender, CancellationToken ct)
             => queue.EnqueueAsync(new QueuedMail
                {
-                   Id              = $"dsn-{Guid.NewGuid():N}",
+                   Id              = $"dsn-{UUIDv7.Generate():N}",
                    EnvelopeFrom    = "",   // null sender (this is a report)
                    EnvelopeTo      = [originalSender],
                    MessageContent  = dsnMessage,
                    TargetDomain    = ExtractDomain(originalSender),
-                   QueuedAt        = DateTime.UtcNow,
-                   NextRetry       = DateTime.UtcNow
+                   QueuedAt        = Timestamp.Now,
+                   NextRetry       = Timestamp.Now
                }, ct);
 
         /// <summary>
@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             CancellationToken   ct = default)
         {
             // Only send delay notifications for messages that have been queued for a while
-            var queuedDuration = DateTime.UtcNow - mail.QueuedAt;
+            var queuedDuration = Timestamp.Now - mail.QueuedAt;
             if (queuedDuration < TimeSpan.FromHours(4))
             {
                 return;  // Too early for delay notification
@@ -213,13 +213,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var delayQueueItem = new QueuedMail
             {
-                Id = $"delay-{Guid.NewGuid():N}",
+                Id = $"delay-{UUIDv7.Generate():N}",
                 EnvelopeFrom = "",
                 EnvelopeTo = [mail.EnvelopeFrom],
                 MessageContent = delayMessage,
                 TargetDomain = ExtractDomain(mail.EnvelopeFrom),
-                QueuedAt = DateTime.UtcNow,
-                NextRetry = DateTime.UtcNow
+                QueuedAt = Timestamp.Now,
+                NextRetry = Timestamp.Now
             };
 
             await queue.EnqueueAsync(delayQueueItem, ct);
@@ -230,9 +230,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private string GenerateBounceMessage(QueuedMail original, BounceInfo bounce)
         {
-            var messageId = $"<bounce.{Guid.NewGuid():N}@{config.Hostname}>";
-            var date = DateTime.UtcNow.ToString("R");
-            var boundary = $"=_bounce_{Guid.NewGuid():N}";
+            var messageId = $"<bounce.{UUIDv7.Generate:N}@{config.Hostname}>";
+            var date = Timestamp.Now.ToString("R");
+            var boundary = $"=_bounce_{UUIDv7.Generate:N}";
 
             var sb = new StringBuilder();
 
@@ -314,9 +314,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private string GenerateDelayNotification(QueuedMail mail)
         {
-            var messageId = $"<delay.{Guid.NewGuid():N}@{config.Hostname}>";
-            var date = DateTime.UtcNow.ToString("R");
-            var queuedDuration = DateTime.UtcNow - mail.QueuedAt;
+            var messageId = $"<delay.{UUIDv7.Generate():N}@{config.Hostname}>";
+            var date = Timestamp.Now.ToString("R");
+            var queuedDuration = Timestamp.Now - mail.QueuedAt;
 
             var sb = new StringBuilder();
 

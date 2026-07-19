@@ -118,7 +118,9 @@ public sealed class MailSubmitter : IMailSubmitter
     private readonly SMTPOutboundClient   client;
     private readonly ILogger              logger;
 
-    /// <summary>Create a new submitter for the given relay/submission server.</summary>
+    /// <summary>
+    /// Create a new submitter for the given relay/submission server.
+    /// </summary>
     public MailSubmitter(MailSubmitterConfig  Config,
                          DNSClient            DNSClient,
                          ILogger              Logger,
@@ -139,7 +141,8 @@ public sealed class MailSubmitter : IMailSubmitter
                            },
                            DkimSigner,
                            DNSClient,
-                           Logger);
+                           Logger
+                       );
 
     }
 

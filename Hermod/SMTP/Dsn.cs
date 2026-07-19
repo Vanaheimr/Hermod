@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Text;
 
 #endregion
@@ -297,9 +298,9 @@ public sealed class DsnGenerator
         string          status,
         string          diagnosticCode)
     {
-        var messageId = $"<dsn.{Guid.NewGuid():N}@{_config.Hostname}>";
-        var date = DateTime.UtcNow.ToString("R");
-        var boundary = $"=_dsn_{Guid.NewGuid():N}";
+        var messageId = $"<dsn.{UUIDv7.Generate():N}@{_config.Hostname}>";
+        var date = Timestamp.Now.ToString("R");
+        var boundary = $"=_dsn_{UUIDv7.Generate():N}";
 
         var sb = new StringBuilder();
 

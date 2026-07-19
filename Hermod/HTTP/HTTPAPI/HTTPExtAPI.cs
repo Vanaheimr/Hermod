@@ -11236,7 +11236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         var ranked = stats.OrderByDescending(x => x.Value.Size).ToList();
 
                         var report = new JObject(
-                            new JProperty("timestamp", DateTime.UtcNow),
+                            new JProperty("timestamp", Timestamp.Now),
                             new JProperty("totalObjects", totalObjects),
                             new JProperty("totalSizeBytes", totalSize),
                             new JProperty("totalSizeMB", Math.Round(totalSize / 1024.0 / 1024.0, 1)),

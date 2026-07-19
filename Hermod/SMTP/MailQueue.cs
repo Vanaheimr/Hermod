@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -50,12 +51,12 @@ public sealed class QueuedMail
     public required String[]  EnvelopeTo        { get; init; }
     public required String    MessageContent    { get; init; }
     public required String    TargetDomain      { get; init; }
-    public DateTime           QueuedAt          { get; init; } = DateTime.UtcNow;
-    public DateTime           NextRetry         { get; set;  }  = DateTime.UtcNow;
+    public DateTimeOffset     QueuedAt          { get; init; }  = Timestamp.Now;
+    public DateTimeOffset     NextRetry         { get; set;  }  = Timestamp.Now;
     public UInt16             RetryCount        { get; set;  }  = 0;
     public String?            LastError         { get; set;  }
     public QueueItemStatus    Status            { get; set;  }  = QueueItemStatus.Pending;
-    public DateTime?          DeliveredAt       { get; set;  }
+    public DateTimeOffset?    DeliveredAt       { get; set;  }
     public String?            RemoteMx          { get; set;  }
     public String?            RemoteResponse    { get; set;  }
     public Boolean            RequireTls        { get; init; } = false;  // RFC 8689
@@ -214,7 +215,7 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
                         
                         if (mail is not null && 
                             mail.Status is QueueItemStatus.Pending or QueueItemStatus.Deferred &&
-                            mail.NextRetry <= DateTime.UtcNow)
+                            mail.NextRetry <= Timestamp.Now)
                         {
                             await _newMailChannel.Writer.WriteAsync(mail);
                         }
@@ -256,7 +257,7 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
         try
         {
             var candidates = new List<QueuedMail>();
-            var now = DateTime.UtcNow;
+            var now = Timestamp.Now;
 
             // Collect every ready item, then order by MT-PRIORITY (RFC 6710) so higher-priority mail is
             // delivered first; within the same priority keep FIFO by readiness (NextRetry).
@@ -298,7 +299,7 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
         try
         {
             var result = new List<QueuedMail>();
-            var now = DateTime.UtcNow;
+            var now = Timestamp.Now;
 
             var files = Directory.GetFiles(_queuePath, "*.json");
 
@@ -466,7 +467,7 @@ public static class RetryCalculator
     public const UInt16 MaxRetries = 12; // ~5 days total
     public static readonly TimeSpan MaxQueueTime = TimeSpan.FromDays(5);
 
-    public static DateTime GetNextRetryTime(UInt16 retryCount)
+    public static DateTimeOffset GetNextRetryTime(UInt16 retryCount)
     {
 
         var index = Math.Min(retryCount, RetryIntervals.Length - 1);
@@ -475,14 +476,14 @@ public static class RetryCalculator
         // Add some jitter (±10%) to prevent thundering herd
         var jitter = interval.TotalSeconds * (Random.Shared.NextDouble() * 0.2 - 0.1);
 
-        return DateTime.UtcNow.Add(interval).AddSeconds(jitter);
+        return Timestamp.Now.Add(interval).AddSeconds(jitter);
 
     }
 
     public static Boolean ShouldGiveUp(QueuedMail mail)
     {
         return mail.RetryCount >= MaxRetries ||
-               DateTime.UtcNow - mail.QueuedAt > MaxQueueTime;
+               Timestamp.Now - mail.QueuedAt > MaxQueueTime;
     }
 
 }

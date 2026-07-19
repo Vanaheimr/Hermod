@@ -133,26 +133,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-        #region Send(EMail,        NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
+        #region Send(EMail,        NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null, ...)
 
         public Task<MailSentStatus> Send(EMail              EMail,
                                          Byte               NumberOfRetries   = 3,
                                          EventTracking_Id?  EventTrackingId   = null,
-                                         TimeSpan?          RequestTimeout    = null)
-
-            => Send(new EMailEnvelop(EMail),
-                    NumberOfRetries,
-                    EventTrackingId,
-                    RequestTimeout);
+                                         TimeSpan?          RequestTimeout    = null,
+                                         CancellationToken  CancellationToken = default)
+            => Send(
+                   new EMailEnvelop(EMail),
+                   NumberOfRetries,
+                   EventTrackingId,
+                   RequestTimeout,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region Send(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
+        #region Send(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null, ...)
 
         public async Task<MailSentStatus> Send(EMailEnvelop       EMailEnvelop,
-                                               Byte               NumberOfRetries   = 3,
-                                               EventTracking_Id?  EventTrackingId   = null,
-                                               TimeSpan?          RequestTimeout    = null)
+                                               Byte               NumberOfRetries     = 3,
+                                               EventTracking_Id?  EventTrackingId     = null,
+                                               TimeSpan?          RequestTimeout      = null,
+                                               CancellationToken  CancellationToken   = default)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -185,7 +189,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var result = MailSentStatus.failed;
 
-            if (await eMailEnvelopsSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60)))
+            if (await eMailEnvelopsSemaphore.WaitAsync(
+                          RequestTimeout ?? TimeSpan.FromSeconds(60),
+                          CancellationToken))
             {
                 try
                 {

@@ -19,6 +19,7 @@
 
 using System.Threading.Channels;
 using System.Collections.Concurrent;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -48,17 +49,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public sealed class QueueProcessor : IAsyncDisposable
     {
 
-        private readonly IMailQueue                              mailQueue;
-        private readonly SMTPOutboundClient                      smtpOutboundClient;
-        private readonly BounceHandler                           bounceHandler;
-        private readonly QueueProcessorConfig                    queueProcessorConfig;
-        private readonly ILogger                                 logger;
+        private readonly IMailQueue                                    mailQueue;
+        private readonly SMTPOutboundClient                            smtpOutboundClient;
+        private readonly BounceHandler                                 bounceHandler;
+        private readonly QueueProcessorConfig                          queueProcessorConfig;
+        private readonly ILogger                                       logger;
 
-        private readonly SemaphoreSlim                           _deliverySemaphore;
-        private readonly ConcurrentDictionary<String, DateTime>  _domainLastSend           = new();
-        private readonly ConcurrentDictionary<String, Int32>     _domainSendCount          = new();
-        private readonly ConcurrentDictionary<String, Boolean>   _processingIds            = new();
-        private readonly HashSet<String>                         _delayNotificationsSent   = [];
+        private readonly SemaphoreSlim                                 _deliverySemaphore;
+        private readonly ConcurrentDictionary<String, DateTimeOffset>  _domainLastSend           = new();
+        private readonly ConcurrentDictionary<String, Int32>           _domainSendCount          = new();
+        private readonly ConcurrentDictionary<String, Boolean>         _processingIds            = new();
+        private readonly HashSet<String>                               _delayNotificationsSent   = [];
 
         private CancellationTokenSource? _cts;
         private Task?                    _newMailTask;
@@ -162,8 +163,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         _processingIds.TryRemove(mail.Id, out _);
 
                         // Defer for later
-                        mail.Status = QueueItemStatus.Deferred;
-                        mail.NextRetry = DateTime.UtcNow.AddSeconds(queueProcessorConfig.DomainCooldownSeconds);
+                        mail.Status     = QueueItemStatus.Deferred;
+                        mail.NextRetry  = Timestamp.Now.AddSeconds(queueProcessorConfig.DomainCooldownSeconds);
                         await mailQueue.UpdateAsync(mail, ct);
                         continue;
 
@@ -309,10 +310,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     logger.Log(LogLevel.Info, 
                         $"✓ Delivered {mail.Id} via {result.RemoteMx} in {result.Duration?.TotalMilliseconds:F0}ms");
 
-                    mail.Status = QueueItemStatus.Delivered;
-                    mail.DeliveredAt = DateTime.UtcNow;
-                    mail.RemoteMx = result.RemoteMx;
-                    mail.RemoteResponse = result.ResponseText;
+                    mail.Status          = QueueItemStatus.Delivered;
+                    mail.DeliveredAt     = Timestamp.Now;
+                    mail.RemoteMx        = result.RemoteMx;
+                    mail.RemoteResponse  = result.ResponseText;
 
                     await mailQueue.UpdateAsync(mail, ct);
 
@@ -349,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         // Send delay notification if applicable
                         if (queueProcessorConfig.SendDelayNotifications && 
                             !_delayNotificationsSent.Contains(mail.Id) &&
-                            DateTime.UtcNow - mail.QueuedAt > queueProcessorConfig.DelayNotificationAfter)
+                            Timestamp.Now - mail.QueuedAt > queueProcessorConfig.DelayNotificationAfter)
                         {
                             await bounceHandler.SendDelayNotificationAsync(mail, ct);
                             _delayNotificationsSent.Add(mail.Id);
@@ -380,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // Check cooldown
             if (_domainLastSend.TryGetValue(domain, out var lastSend))
             {
-                var elapsed = DateTime.UtcNow - lastSend;
+                var elapsed = Timestamp.Now - lastSend;
                 if (elapsed < TimeSpan.FromSeconds(queueProcessorConfig.DomainCooldownSeconds))
                 {
                     return false;
@@ -399,15 +400,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             return true;
         }
 
-        private void RecordDomainSend(string domain)
+        private void RecordDomainSend(String domain)
         {
-            _domainLastSend[domain] = DateTime.UtcNow;
+            _domainLastSend[domain] = Timestamp.Now;
             _domainSendCount.AddOrUpdate(domain, 1, (_, c) => c + 1);
         }
 
         private void ResetDomainCounters()
         {
-            var threshold = DateTime.UtcNow.AddSeconds(-queueProcessorConfig.DomainCooldownSeconds * 2);
+            var threshold = Timestamp.Now.AddSeconds(-queueProcessorConfig.DomainCooldownSeconds * 2);
         
             foreach (var kvp in _domainLastSend)
             {

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -971,7 +972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 {
                     var mailId = filePath is not null
                         ? $"{Path.GetFileNameWithoutExtension(filePath)}-{domainGroup.Key}"
-                        : $"{Guid.NewGuid():N}-{domainGroup.Key}";
+                        : $"{UUIDv7.Generate():N}-{domainGroup.Key}";
 
                     var queuedMail = new QueuedMail
                     {
@@ -980,8 +981,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         EnvelopeTo = domainGroup.ToArray(),
                         MessageContent = stampedRaw,
                         TargetDomain = domainGroup.Key,
-                        QueuedAt = DateTime.UtcNow,
-                        NextRetry = DateTime.UtcNow,
+                        QueuedAt = Timestamp.Now,
+                        NextRetry = Timestamp.Now,
                         Priority = _mtPriority   // carry MT-PRIORITY (RFC 6710) onto the relay
                     };
 
@@ -1081,7 +1082,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                    ? "SMTP"
                                    : "ESMTP" + (_tlsActive ? "S" : "") + (_authManager.IsAuthenticated ? "A" : "");
 
-            var id           = Guid.NewGuid().ToString("N")[..12].ToUpperInvariant();
+            var id           = UUIDv7.Generate().ToString("N")[..12].ToUpperInvariant();
             var timestamp    = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000",
                                                               System.Globalization.CultureInfo.InvariantCulture);
 

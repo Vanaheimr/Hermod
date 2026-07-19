@@ -19,6 +19,8 @@
 
 using System.Text.RegularExpressions;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
@@ -26,15 +28,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 public sealed class EMailMessage
 {
 
-    public String                              RawMessage    { get; init; } = "";
-    public List<KeyValuePair<String, String>>  Headers       { get; }       = [];
-    public String                              Body          { get; set; }  = "";
-    public String?                             From          { get; set; }
-    public List<String>                        To            { get; } = [];
-    public String?                             Subject       { get; set; }
-    public DateTime                            ReceivedAt    { get; init; } = DateTime.UtcNow;
-    public String?                             MessageId     { get; set; }
-    public DnsVerificationResult?              Verification  { get; set; }
+    public String                              RawMessage      { get; init; } = "";
+    public List<KeyValuePair<String, String>>  Headers         { get; }       = [];
+    public String                              Body            { get; set; }  = "";
+    public String?                             From            { get; set; }
+    public List<String>                        To              { get; } = [];
+    public String?                             Subject         { get; set; }
+    public DateTimeOffset                      ReceivedAt      { get; init; } = Timestamp.Now;
+    public String?                             MessageId       { get; set; }
+    public DnsVerificationResult?              Verification    { get; set; }
 
     public static EMailMessage Parse(String rawMessage)
     {
@@ -68,6 +70,7 @@ public sealed class EMailMessage
             var colonIndex = line.IndexOf(':');
             if (colonIndex > 0)
             {
+
                 var name = line[..colonIndex].Trim();
                 var value = line[(colonIndex + 1)..].Trim();
                 message.Headers.Add(new KeyValuePair<string, string>(name, value));
@@ -87,6 +90,7 @@ public sealed class EMailMessage
                         message.MessageId = value.Trim('<', '>');
                         break;
                 }
+
             }
         }
 

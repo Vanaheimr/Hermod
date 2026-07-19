@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Text;
 
 #endregion
@@ -44,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                    String          authenticationResults)
         {
 
-            var boundary  = "arf-" + Guid.NewGuid().ToString("N");
-            var messageId = $"<{Guid.NewGuid():N}@{reportingDomain}>";
+            var boundary  = "arf-" + UUIDv7.Generate().ToString("N");
+            var messageId = $"<{UUIDv7.Generate():N}@{reportingDomain}>";
             var date      = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000",
                                                            System.Globalization.CultureInfo.InvariantCulture);
 

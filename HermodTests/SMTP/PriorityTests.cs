@@ -26,6 +26,7 @@ using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -166,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         public async Task Queue_returns_higher_priority_mail_first()
         {
 
-            var dir   = Path.Combine(Path.GetTempPath(), "hermod-prio-" + Guid.NewGuid().ToString("N"));
+            var dir   = Path.Combine(Path.GetTempPath(), "hermod-prio-" + UUIDv7.Generate().ToString("N"));
             var queue = new FileMailQueue(dir, new NullSmtpLogger());
 
             try
