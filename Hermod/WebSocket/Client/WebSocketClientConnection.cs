@@ -251,6 +251,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         /// <summary>
+        /// The negotiated "permessage-deflate" (RFC 7692) extension, or null if
+        /// message compression was not negotiated for this connection.
+        /// </summary>
+        public WebSocketPerMessageDeflate?  PerMessageDeflate         { get; internal set; }
+
+        /// <summary>
         /// The cancellation token source for closing this connection.
         /// </summary>
         public CancellationTokenSource  CancellationTokenSource       { get; }

@@ -702,6 +702,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     Rsv2,
                     Rsv3);
 
+        /// <summary>
+        /// Create a new 'Text' frame from a raw (e.g. already compressed) payload.
+        /// </summary>
+        /// <param name="Payload">The raw text frame payload.</param>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Rsv1">Reserved 1 (set for permessage-deflate compressed messages).</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
+        public static WebSocketFrame TextRaw(Byte[]?     Payload      = null,
+                                             Fin         FIN          = Fin.Final,
+                                             MaskStatus  Mask         = MaskStatus.Off,
+                                             Byte[]?     MaskingKey   = null,
+                                             Rsv         Rsv1         = Rsv.Off,
+                                             Rsv         Rsv2         = Rsv.Off,
+                                             Rsv         Rsv3         = Rsv.Off)
+
+            => new (Opcodes.Text,
+                    Payload,
+                    FIN,
+                    Mask,
+                    MaskingKey,
+                    Rsv1,
+                    Rsv2,
+                    Rsv3);
+
         #endregion
 
         #region (static) Binary       (Payload = null, ...)
@@ -919,7 +946,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         out ClosingStatusCode   SuggestedCloseCode,
                                         EventTracking_Id?       EventTrackingId   = null,
                                         UInt64?                 MaxPayloadSize    = null,
-                                        ILogger?                Logger            = null)
+                                        ILogger?                Logger            = null,
+                                        Boolean                 AllowRsv1         = false)
         {
 
             try
@@ -953,11 +981,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     return ParseResult.ProtocolViolation;
                 }
 
-                // RFC 6455 Section 5.2: RSV bits must be zero,
-                // unless an extension was negotiated!
-                if (rsv1 == Rsv.On || rsv2 == Rsv.On || rsv3 == Rsv.On)
+                // RFC 6455 Section 5.2: RSV bits must be zero, unless an extension
+                // was negotiated. RSV1 is used by permessage-deflate (RFC 7692) and
+                // is only valid on the first frame of a (data) message; RSV2 and RSV3
+                // are never valid, as no extension using them is supported.
+                if (rsv2 == Rsv.On || rsv3 == Rsv.On)
                 {
-                    ErrorResponse = "A frame has RSV bits set, but no extension was negotiated!";
+                    ErrorResponse = "A frame has RSV2 or RSV3 set, but no such extension was negotiated!";
+                    return ParseResult.ProtocolViolation;
+                }
+
+                if (rsv1 == Rsv.On &&
+                    (!AllowRsv1 || opcode == Opcodes.Continuation || opcode.IsControl()))
+                {
+                    ErrorResponse = "A frame has RSV1 set, but permessage-deflate was not negotiated or the frame is not the first frame of a data message!";
                     return ParseResult.ProtocolViolation;
                 }
 
