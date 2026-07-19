@@ -291,6 +291,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public UInt64?                                                         MaxBinaryFragmentLengthOut    { get; set; }
 
 
+        #region Handshake hardening (Slowloris / connection-flood / CSWSH)
+
+        /// <summary>
+        /// The maximum time from accepting a TCP connection until a complete WebSocket
+        /// opening-handshake request must have been received. Guards against
+        /// Slowloris-style peers that open a connection and then send the handshake
+        /// very slowly (or never). <see cref="TimeSpan.Zero"/> disables the check.
+        /// Default: 10 seconds.
+        /// </summary>
+        public TimeSpan                                                        HandshakeTimeout              { get; set; } = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The maximum size (in bytes) of the buffered HTTP opening-handshake request.
+        /// A peer sending an unterminated or oversized header block has its connection
+        /// dropped. Zero disables the check. Default: 65536 (64 KB).
+        /// </summary>
+        public UInt32                                                          MaxHandshakeRequestSize       { get; set; } = 64 * 1024;
+
+        /// <summary>
+        /// The maximum number of concurrent connections allowed from a single remote
+        /// IP address; additional connections from that address are dropped. Zero
+        /// disables the check (the default), because clients may legitimately be
+        /// aggregated behind a shared NAT/proxy address — set this only where that is
+        /// not the case.
+        /// </summary>
+        public UInt32                                                          MaxConnectionsPerIP           { get; set; }
+
+        /// <summary>
+        /// An optional allow-list of acceptable HTTP 'Origin' request-header values
+        /// (Cross-Site WebSocket Hijacking protection). When non-empty, a handshake
+        /// carrying an 'Origin' header whose value is not in this set is rejected with
+        /// '403 Forbidden'. A request WITHOUT an 'Origin' header is always accepted, as
+        /// non-browser clients (e.g. OCPP charging stations) do not send one. Empty
+        /// (the default) disables the check. Matching is case-insensitive.
+        /// </summary>
+        public HashSet<String>                                                 AllowedOrigins                { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        #endregion
+
+
         /// <summary>
         /// An additional delay between sending each byte to the networking stack.
         /// This is intended for debugging other web socket stacks.
@@ -963,12 +1003,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 var token2                      = cts2.Token;
                                                 var lastWebSocketPingTimestamp  = Timestamp.Now;
                                                 var lastActivityTimestamp       = Timestamp.Now;
+                                                var handshakeStart              = Timestamp.Now;
                                                 var sendErrors                  = 0;
 
                                                 WebSocketFrame.Opcodes? fragmentOpcode      = null;
                                                 var                     fragmentPayload     = new MemoryStream();
                                                 var                     fragmentCompressed  = false;
                                                 var                     utf8Validator       = new IncrementalUtf8Validator();
+
+                                                #endregion
+
+                                                #region Per-IP connection limit (connection-flood / Slowloris protection)
+
+                                                if (MaxConnectionsPerIP > 0)
+                                                {
+
+                                                    var remoteIP        = webSocketConnection.RemoteSocket.IPAddress;
+                                                    var sameIPConnCount = webSocketConnections.Keys.Count(socket => socket.IPAddress.Equals(remoteIP));
+
+                                                    if (sameIPConnCount >= MaxConnectionsPerIP)
+                                                    {
+                                                        Logger.LogWarning(
+                                                            "Rejecting WebSocket connection from {RemoteSocket}: per-IP connection limit ({Limit}) reached.",
+                                                            webSocketConnection.RemoteSocket,
+                                                            MaxConnectionsPerIP
+                                                        );
+                                                        await webSocketConnection.Close();
+                                                        return;
+                                                    }
+
+                                                }
 
                                                 #endregion
 
@@ -1074,7 +1138,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(token2))
                                                         {
 
-                                                            if (!DisableWebSocketPings)
+                                                            if (IsStillHTTP && HandshakeTimeout > TimeSpan.Zero)
+                                                            {
+                                                                // During the opening handshake bound the wait by the handshake
+                                                                // deadline (Slowloris protection), independent of the ping cadence.
+                                                                var untilDeadline = (handshakeStart + HandshakeTimeout) - Timestamp.Now;
+                                                                readCts.CancelAfter(untilDeadline > TimeSpan.Zero ? untilDeadline : TimeSpan.FromMilliseconds(1));
+                                                            }
+                                                            else if (!DisableWebSocketPings)
                                                             {
                                                                 var untilNextPing = (lastWebSocketPingTimestamp + WebSocketPingEvery) - Timestamp.Now;
                                                                 readCts.CancelAfter(untilNextPing > TimeSpan.Zero ? untilNextPing : TimeSpan.FromMilliseconds(1));
@@ -1100,6 +1171,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         if (readTimeout)
                                                         {
+
+                                                            // While still in the opening-handshake phase, a read timeout means
+                                                            // the handshake deadline was exceeded (Slowloris protection): drop
+                                                            // the connection. Pings are meaningless before the upgrade.
+                                                            if (IsStillHTTP)
+                                                            {
+
+                                                                if (HandshakeTimeout > TimeSpan.Zero)
+                                                                {
+                                                                    Logger.LogWarning(
+                                                                        "WebSocket opening handshake from {RemoteSocket} timed out after {Timeout}; closing connection.",
+                                                                        webSocketConnection.RemoteSocket,
+                                                                        HandshakeTimeout
+                                                                    );
+                                                                    await webSocketConnection.Close();
+                                                                    break;
+                                                                }
+
+                                                                // Handshake timeout disabled: keep waiting for the request.
+                                                                continue;
+
+                                                            }
 
                                                             // Zombie/half-open detection: if no frame (data or pong) has been
                                                             // received within MaxOutstandingPings ping intervals, the peer is
@@ -1172,6 +1265,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
 
                                                         Array.Copy(readBuffer, 0, bytes, bytesLeftOver.Length, read);
+
+                                                        // Bound the buffered opening-handshake request (a peer sending an
+                                                        // unterminated or oversized header block is dropped, Slowloris protection).
+                                                        if (IsStillHTTP &&
+                                                            MaxHandshakeRequestSize > 0 &&
+                                                            (UInt64) bytes.Length > MaxHandshakeRequestSize)
+                                                        {
+                                                            Logger.LogWarning(
+                                                                "WebSocket opening handshake from {RemoteSocket} exceeded the maximum request size of {MaxSize} bytes; closing connection.",
+                                                                webSocketConnection.RemoteSocket,
+                                                                MaxHandshakeRequestSize
+                                                            );
+                                                            await webSocketConnection.Close();
+                                                            break;
+                                                        }
 
                                                         httpMethod = IsStillHTTP && bytes.Length >= 4
                                                                          ? Encoding.UTF8.GetString(bytes, 0, 4)
@@ -1319,6 +1427,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                        Connection      = ConnectionType.Close,
                                                                                        ContentType     = HTTPContentType.Text.PLAIN,
                                                                                        Content         = $"None of the requested WebSocket subprotocols ({httpRequest.SecWebSocketProtocol.AggregateWith(", ")}) is supported; expected one of: {SecWebSocketProtocols.AggregateWith(", ")}!".ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                                // Cross-Site WebSocket Hijacking protection: if an Origin allow-list
+                                                                // is configured, reject a handshake carrying an 'Origin' header whose
+                                                                // value is not allow-listed. A request without an 'Origin' header is
+                                                                // accepted (non-browser clients such as OCPP stations do not send one).
+                                                                else if (AllowedOrigins.Count > 0 &&
+                                                                         httpRequest.GetHeaderField("Origin") is String requestOrigin &&
+                                                                        !requestOrigin.IsNullOrEmpty() &&
+                                                                        !AllowedOrigins.Contains(requestOrigin))
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode  = HTTPStatusCode.Forbidden,
+                                                                                       Server          = HTTPServiceName,
+                                                                                       Connection      = ConnectionType.Close,
+                                                                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                       Content         = $"The HTTP 'Origin' header value '{requestOrigin}' is not allowed!".ToUTF8Bytes()
                                                                                    }.AsImmutable;
                                                                 }
 

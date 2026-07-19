@@ -55,6 +55,11 @@ Implemented (both server and client, unless noted):
 - Message and fragment size limits (`MaxTextMessageSizeIn/Out`,
   `MaxBinaryMessageSizeIn/Out`), enforced *before* buffering; violations close
   with 1009 (Message Too Big).
+- Server handshake hardening: `HandshakeTimeout` (Slowloris protection, default
+  10 s), `MaxHandshakeRequestSize` (oversized/unterminated header block, default
+  64 KB), `MaxConnectionsPerIP` (connection-flood protection, opt-in), and an
+  optional `AllowedOrigins` allow-list (`403 Forbidden`, CSWSH protection; a
+  request without an `Origin` header is always accepted).
 - Fully asynchronous receive path (no busy-polling), TCP connection-loss
   detection on the client (`IsRemoteTCPConnectionClosed`), bounded write and
   close timeouts (a stalled peer can no longer block `Send()`/`Close()`
@@ -93,6 +98,12 @@ var server = new WebSocketServer(
 server.EnablePerMessageDeflate     = true;          // RFC 7692, off by default
 server.MaxTextMessageSizeIn        = 1024 * 1024;   // 1 MB
 server.RequireMatchingSubprotocol  = true;          // reject unknown subprotocols with 400
+
+// Handshake hardening (timeout + max header size are on by default):
+server.HandshakeTimeout            = TimeSpan.FromSeconds(10);
+server.MaxHandshakeRequestSize     = 64 * 1024;
+server.MaxConnectionsPerIP         = 100;           // 0 = unlimited (default)
+server.AllowedOrigins.Add("https://ui.example.com"); // empty = disabled (default)
 
 server.OnTextMessageReceived += async (timestamp, srv, connection, frame, eventTrackingId, text, ct) => {
     await server.SendTextMessage(connection, $"Echo: {text}");
