@@ -1021,20 +1021,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         sendErrors < 3)
                                                 {
 
-                                                    #region Main loop waiting for data... and sending a regular web socket ping
+                                                    #region Main loop: asynchronously waiting for data... and sending a regular web socket ping
 
                                                     if (bytes.Length == 0)
                                                     {
 
-                                                        while (webSocketConnection.DataAvailable == false &&
-                                                              !webSocketConnection.IsClosed &&
-                                                               sendErrors < 3)
+                                                        var readBuffer  = new Byte[64 * 1024];
+                                                        var read        = 0;
+                                                        var readTimeout = false;
+
+                                                        // Instead of busy-polling DataAvailable, asynchronously wait for
+                                                        // data with a timeout equal to the ping cadence. On timeout a ping
+                                                        // is sent; otherwise the received bytes are processed below.
+                                                        using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(token2))
                                                         {
 
-                                                            #region Send a regular web socket "ping"
+                                                            if (!DisableWebSocketPings)
+                                                            {
+                                                                var untilNextPing = (lastWebSocketPingTimestamp + WebSocketPingEvery) - Timestamp.Now;
+                                                                readCts.CancelAfter(untilNextPing > TimeSpan.Zero ? untilNextPing : TimeSpan.FromMilliseconds(1));
+                                                            }
 
-                                                            if (!DisableWebSocketPings &&
-                                                                Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
+                                                            try
+                                                            {
+                                                                read = await webSocketConnection.ReadAsync(readBuffer, readCts.Token);
+                                                            }
+                                                            catch (OperationCanceledException) when (!token2.IsCancellationRequested)
+                                                            {
+                                                                readTimeout = true;
+                                                            }
+                                                            catch (Exception e)
+                                                            {
+                                                                Logger.LogDebug(e, "Read error on WebSocket connection {RemoteSocket}.", webSocketConnection.RemoteSocket);
+                                                                break;
+                                                            }
+
+                                                        }
+
+                                                        #region Send a regular web socket "ping" on read timeout
+
+                                                        if (readTimeout)
+                                                        {
+
+                                                            if (!DisableWebSocketPings)
                                                             {
 
                                                                 var eventTrackingId  = EventTracking_Id.New;
@@ -1069,30 +1098,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                             }
 
-                                                            #endregion
+                                                            continue;
 
-                                                            await Task.Delay(5);
+                                                        }
 
-                                                        };
+                                                        #endregion
 
-                                                        bytes = new Byte[bytesLeftOver.Length + webSocketConnection.Available];
+                                                        // A read of zero bytes means the remote endpoint closed the TCP connection!
+                                                        if (read == 0)
+                                                            break;
+
+                                                        bytes = new Byte[bytesLeftOver.Length + read];
 
                                                         if (bytesLeftOver.Length > 0)
                                                             Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
 
-                                                        if (bytes.Length > 0)
-                                                        {
+                                                        Array.Copy(readBuffer, 0, bytes, bytesLeftOver.Length, read);
 
-                                                            var read = webSocketConnection.Read(bytes,
-                                                                                                bytesLeftOver.Length,
-                                                                                                bytes.Length - bytesLeftOver.Length);
-
-                                                            if (bytes.Length != (read + bytesLeftOver.Length))
-                                                                Array.Resize(ref bytes, (Int32) (read + bytesLeftOver.Length));
-
-                                                        }
-
-                                                        httpMethod = IsStillHTTP
+                                                        httpMethod = IsStillHTTP && bytes.Length >= 4
                                                                          ? Encoding.UTF8.GetString(bytes, 0, 4)
                                                                          : String.Empty;
 
@@ -1172,6 +1195,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             #endregion
 
                                                             #region In case of a successful request
+
+                                                            #region Validate the WebSocket upgrade handshake (RFC 6455 Section 4.2.1)
+
+                                                            if (httpResponse is null)
+                                                            {
+
+                                                                var connectionHeader  = httpRequest.GetHeaderField("Connection") ?? "";
+                                                                var upgradeHeader     = httpRequest.GetHeaderField("Upgrade")    ?? "";
+                                                                var secWebSocketKey   = httpRequest.SecWebSocketKey;
+                                                                var secWSVersion      = httpRequest.GetHeaderField("Sec-WebSocket-Version") ?? "";
+
+                                                                String? handshakeError = null;
+
+                                                                if (!upgradeHeader.Split(',').Any(v => v.Trim().Equals("websocket", StringComparison.OrdinalIgnoreCase)))
+                                                                    handshakeError = "The 'Upgrade: websocket' header is missing!";
+
+                                                                else if (!connectionHeader.Split(',').Any(v => v.Trim().Equals("Upgrade", StringComparison.OrdinalIgnoreCase)))
+                                                                    handshakeError = "The 'Connection: Upgrade' header is missing!";
+
+                                                                // The Sec-WebSocket-Key must be a base64-encoded 16 byte value.
+                                                                else if (secWebSocketKey.IsNullOrEmpty() ||
+                                                                         !TryDecodeBase64(secWebSocketKey, out var keyBytes) ||
+                                                                         keyBytes.Length != 16)
+                                                                    handshakeError = "The 'Sec-WebSocket-Key' header is missing or invalid!";
+
+                                                                if (handshakeError is not null)
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                                                       Server          = HTTPServiceName,
+                                                                                       Connection      = ConnectionType.Close,
+                                                                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                       Content         = handshakeError.ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                                // Only WebSocket version 13 is supported (RFC 6455 Section 4.4).
+                                                                else if (secWSVersion.Trim() != "13")
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode       = HTTPStatusCode.UpgradeRequired,
+                                                                                       Server               = HTTPServiceName,
+                                                                                       Connection           = ConnectionType.Close,
+                                                                                       SecWebSocketVersion  = "13",
+                                                                                       ContentType          = HTTPContentType.Text.PLAIN,
+                                                                                       Content              = $"Unsupported Sec-WebSocket-Version '{secWSVersion}', only version 13 is supported!".ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                            }
+
+                                                            #endregion
 
                                                             if (httpResponse is null)
                                                             {
@@ -1359,6 +1434,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         break;
                                                                     }
 
+                                                                    // The accumulated message size must not exceed the configured limit.
+                                                                    if (MaxTextMessageSizeIn.HasValue &&
+                                                                        (UInt64) frame.Payload.Length > MaxTextMessageSizeIn.Value)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                        break;
+                                                                    }
+
                                                                     if (frame.IsFinal)
                                                                     {
 
@@ -1418,6 +1501,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         break;
                                                                     }
 
+                                                                    // The accumulated message size must not exceed the configured limit.
+                                                                    if (MaxBinaryMessageSizeIn.HasValue &&
+                                                                        (UInt64) frame.Payload.Length > MaxBinaryMessageSizeIn.Value)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                        break;
+                                                                    }
+
                                                                     if (frame.IsFinal)
                                                                     {
 
@@ -1463,6 +1554,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                             webSocketConnection.RemoteSocket
                                                                         );
                                                                         failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                                        break;
+                                                                    }
+
+                                                                    // The accumulated message size must not exceed the configured
+                                                                    // limit. This is checked BEFORE buffering, to bound the memory
+                                                                    // used by a maliciously fragmented message (RFC 6455 Section 7.4.1, 1009)!
+                                                                    var maxFragmentedSize = fragmentOpcode == WebSocketFrame.Opcodes.Text
+                                                                                                ? MaxTextMessageSizeIn
+                                                                                                : MaxBinaryMessageSizeIn;
+
+                                                                    if (maxFragmentedSize.HasValue &&
+                                                                        (UInt64) fragmentPayload.Length + (UInt64) frame.Payload.Length > maxFragmentedSize.Value)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
                                                                         break;
                                                                     }
 
@@ -1995,6 +2100,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 {
                     await HandleErrors($"WebSocketClient: {Command}.{EventName}", e);
                 }
+            }
+        }
+
+        #endregion
+
+        #region (private static) TryDecodeBase64(Text, out Bytes)
+
+        /// <summary>
+        /// Try to decode the given base64 text into a byte array.
+        /// </summary>
+        private static Boolean TryDecodeBase64(String Text, out Byte[] Bytes)
+        {
+            try
+            {
+                Bytes = Convert.FromBase64String(Text.Trim());
+                return true;
+            }
+            catch
+            {
+                Bytes = [];
+                return false;
             }
         }
 

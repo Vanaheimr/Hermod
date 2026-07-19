@@ -511,6 +511,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        /// <summary>
+        /// Asynchronously read data from the network stream into the given buffer.
+        /// Unlike Read(...), a cancellation (e.g. a read timeout for the WebSocket
+        /// ping cadence) surfaces as an OperationCanceledException instead of being
+        /// swallowed, so the caller can distinguish a timeout from a closed connection.
+        /// </summary>
+        /// <param name="Buffer">The buffer for storing the received data.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <returns>Number of bytes read; 0 indicates that the remote endpoint closed the connection.</returns>
+        public ValueTask<Int32> ReadAsync(Memory<Byte>       Buffer,
+                                          CancellationToken  CancellationToken   = default)
+
+            => networkStream.ReadAsync(Buffer, CancellationToken);
+
         #endregion
 
         #region Close(StatusCode = NormalClosure, Reason = null, CancellationToken = default)

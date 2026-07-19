@@ -1177,9 +1177,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             do
                             {
 
-                                if (webSocketClientConnection?.DataAvailable == true)
-                                {
-
                                     buffer = [];
                                     pos    = 0;
 
@@ -1195,25 +1192,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         if (needMoreData)
                                         {
 
-                                            var buffer2 = new Byte[buffer.Length + (tcpClient?.Available ?? 0)];
+                                            // Instead of busy-polling DataAvailable, asynchronously wait for
+                                            // data with a periodic 1s wake-up to re-check the connection state.
+                                            var readBuffer   = new Byte[64 * 1024];
+                                            var readCount    = 0;
+                                            var readTimeout  = false;
 
-                                            do
+                                            using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(networkingCancellationToken))
                                             {
 
-                                                var read = webSocketClientConnection.Read(buffer2, 0, buffer2.Length);
+                                                readCts.CancelAfter(TimeSpan.FromSeconds(1));
 
-                                                if (read > 0)
+                                                try
                                                 {
-                                                    Array.Resize(ref buffer, (Int32) (pos + read));
-                                                    Array.Copy(buffer2, 0, buffer, pos, read);
-                                                    pos += read;
+                                                    readCount = await webSocketClientConnection.ReadAsync(readBuffer, readCts.Token);
+                                                }
+                                                catch (OperationCanceledException) when (!networkingCancellationToken.IsCancellationRequested)
+                                                {
+                                                    readTimeout = true;
+                                                }
+                                                catch (Exception e)
+                                                {
+                                                    Logger.LogDebug(e, "Read error on HTTP WebSocket client connection.");
+                                                    readCount = 0;
                                                 }
 
-                                                await Task.Delay(1);
+                                            }
 
-                                            } while (webSocketClientConnection.DataAvailable);
+                                            // A read of zero bytes (real EOF), or a timeout while the remote TCP
+                                            // connection is gone, means the connection was closed. A TCP FIN/RST
+                                            // is invisible to DataAvailable-polling and must be detected explicitly!
+                                            if ((!readTimeout && readCount == 0) ||
+                                                (readTimeout && pos == 0 &&
+                                                 (webSocketClientConnection.IsClosed || webSocketClientConnection.IsRemoteTCPConnectionClosed)))
+                                            {
 
-                                            Array.Resize(ref buffer, (Int32) pos);
+                                                if (!webSocketClientConnection.IsClosed)
+                                                {
+
+                                                    // This synthetic close frame (status code 1006) is only
+                                                    // used locally for the event and will never be sent!
+                                                    await LogEvent(
+                                                              OnCloseMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  WebSocketFrame.Close(WebSocketFrame.ClosingStatusCode.AbnormalClosure),
+                                                                  EventTracking_Id.New,
+                                                                  WebSocketFrame.ClosingStatusCode.AbnormalClosure,
+                                                                  "The remote TCP connection was closed unexpectedly!",
+                                                                  CancellationToken
+                                                              )
+                                                          );
+
+                                                    await webSocketClientConnection.Close();
+
+                                                    ClientCloseMessage ??= "The remote TCP connection was closed unexpectedly!";
+
+                                                }
+                                                else
+                                                    ClientCloseMessage ??= "The HTTP WebSocket connection was closed!";
+
+                                                buffer = null;
+                                                break;
+
+                                            }
+
+                                            // No data within the wake-up interval: keep waiting
+                                            // (a partial frame, if any, stays buffered).
+                                            if (readTimeout)
+                                                continue;
+
+                                            Array.Resize(ref buffer, (Int32) (pos + readCount));
+                                            Array.Copy(readBuffer, 0, buffer, (Int32) pos, readCount);
+                                            pos += (UInt32) readCount;
+
+                                            needMoreData = false;
 
                                         }
 
@@ -1244,6 +1299,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     if (fragmentOpcode is not null)
                                                     {
                                                         failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                        break;
+                                                    }
+
+                                                    // The accumulated message size must not exceed the configured limit.
+                                                    if (webSocketClientConnection.MaxTextMessageSizeIn.HasValue &&
+                                                        (UInt64) frame.Payload.Length > webSocketClientConnection.MaxTextMessageSizeIn.Value)
+                                                    {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
                                                         break;
                                                     }
 
@@ -1300,6 +1363,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         break;
                                                     }
 
+                                                    // The accumulated message size must not exceed the configured limit.
+                                                    if (webSocketClientConnection.MaxBinaryMessageSizeIn.HasValue &&
+                                                        (UInt64) frame.Payload.Length > webSocketClientConnection.MaxBinaryMessageSizeIn.Value)
+                                                    {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                        break;
+                                                    }
+
                                                     if (frame.IsFinal)
                                                     {
 
@@ -1336,6 +1407,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     {
                                                         Logger.LogWarning("Received Continuation frame without preceding Text/Binary frame.");
                                                         failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                        break;
+                                                    }
+
+                                                    // The accumulated message size must not exceed the configured
+                                                    // limit. This is checked BEFORE buffering, to bound the memory
+                                                    // used by a maliciously fragmented message (RFC 6455 Section 7.4.1, 1009)!
+                                                    var maxFragmentedSize = fragmentOpcode == WebSocketFrame.Opcodes.Text
+                                                                                ? webSocketClientConnection.MaxTextMessageSizeIn
+                                                                                : webSocketClientConnection.MaxBinaryMessageSizeIn;
+
+                                                    if (maxFragmentedSize.HasValue &&
+                                                        (UInt64) fragmentPayload.Length + (UInt64) frame.Payload.Length > maxFragmentedSize.Value)
+                                                    {
+                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
                                                         break;
                                                     }
 
@@ -1581,47 +1666,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         else
                                             needMoreData = true;
 
-                                    } while (buffer is not null);
-
-                                }
-                                else if (webSocketClientConnection is not null &&
-                                         !networkingCancellationToken.IsCancellationRequested &&
-                                         (webSocketClientConnection.IsClosed ||
-                                          webSocketClientConnection.IsRemoteTCPConnectionClosed))
-                                {
-
-                                    // A TCP FIN/RST is invisible to DataAvailable-polling,
-                                    // therefore the socket state must be checked explicitly!
-                                    if (!webSocketClientConnection.IsClosed)
-                                    {
-
-                                        // This synthetic close frame (status code 1006) is only
-                                        // used locally for the event and will never be sent!
-                                        await LogEvent(
-                                                  OnCloseMessageReceived,
-                                                  loggingDelegate => loggingDelegate.Invoke(
-                                                      Timestamp.Now,
-                                                      this,
-                                                      webSocketClientConnection,
-                                                      WebSocketFrame.Close(WebSocketFrame.ClosingStatusCode.AbnormalClosure),
-                                                      EventTracking_Id.New,
-                                                      WebSocketFrame.ClosingStatusCode.AbnormalClosure,
-                                                      "The remote TCP connection was closed unexpectedly!",
-                                                      CancellationToken
-                                                  )
-                                              );
-
-                                        await webSocketClientConnection.Close();
-
-                                        ClientCloseMessage ??= "The remote TCP connection was closed unexpectedly!";
-
-                                    }
-                                    else
-                                        ClientCloseMessage ??= "The HTTP WebSocket connection was closed!";
-
-                                }
-                                else
-                                    await Task.Delay(10);
+                                    } while (buffer is not null &&
+                                             !networkingCancellationToken.IsCancellationRequested &&
+                                             ClientCloseMessage is null);
 
                             }
                             while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
