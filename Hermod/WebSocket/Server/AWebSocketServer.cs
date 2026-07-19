@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Text;
+using System.Text.Unicode;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.Security;
@@ -929,6 +930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 WebSocketFrame.Opcodes? fragmentOpcode  = null;
                                                 var                     fragmentPayload = new MemoryStream();
+                                                var                     utf8Validator   = new IncrementalUtf8Validator();
 
                                                 #endregion
 
@@ -1295,11 +1297,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                              bytes.Length > 0)
                                                     {
 
-                                                        if (WebSocketFrame.TryParse(bytes.AsSpan(),
-                                                                                    out var frame,
-                                                                                    out var frameLength,
-                                                                                    out var errorResponse,
-                                                                                    Logger: Logger))
+                                                        var parseResult = WebSocketFrame.Parse(bytes.AsSpan(),
+                                                                                               out var frame,
+                                                                                               out var frameLength,
+                                                                                               out var errorResponse,
+                                                                                               out var suggestedCloseCode,
+                                                                                               Logger: Logger);
+
+                                                        if (parseResult == WebSocketFrame.ParseResult.Success &&
+                                                            frame is not null)
                                                         {
 
                                                             // RFC 6455 Section 5.1: Client-to-server frames MUST be masked
@@ -1336,6 +1342,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                             #endregion
 
+                                                            WebSocketFrame.ClosingStatusCode? failConnection = null;
+
                                                             switch (frame.Opcode)
                                                             {
 
@@ -1343,8 +1351,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 case WebSocketFrame.Opcodes.Text:
 
-                                                                    if (frame.IsFinal && fragmentOpcode is null)
+                                                                    // RFC 6455 Section 5.4: A new data frame within
+                                                                    // a fragmented message must fail the connection!
+                                                                    if (fragmentOpcode is not null)
                                                                     {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                                        break;
+                                                                    }
+
+                                                                    if (frame.IsFinal)
+                                                                    {
+
+                                                                        // RFC 6455 Section 8.1
+                                                                        if (!Utf8.IsValid(frame.Payload))
+                                                                        {
+                                                                            failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                            break;
+                                                                        }
 
                                                                         try
                                                                         {
@@ -1368,9 +1391,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                     }
                                                                     else
                                                                     {
+
                                                                         fragmentOpcode = WebSocketFrame.Opcodes.Text;
                                                                         fragmentPayload.SetLength(0);
                                                                         fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                                        utf8Validator.Reset();
+                                                                        if (!utf8Validator.Append(frame.Payload, false))
+                                                                            failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+
                                                                     }
 
                                                                     break;
@@ -1381,7 +1410,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 case WebSocketFrame.Opcodes.Binary:
 
-                                                                    if (frame.IsFinal && fragmentOpcode is null)
+                                                                    // RFC 6455 Section 5.4: A new data frame within
+                                                                    // a fragmented message must fail the connection!
+                                                                    if (fragmentOpcode is not null)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                                        break;
+                                                                    }
+
+                                                                    if (frame.IsFinal)
                                                                     {
 
                                                                         try
@@ -1419,63 +1456,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 case WebSocketFrame.Opcodes.Continuation:
 
-                                                                    if (fragmentOpcode is not null)
-                                                                    {
-
-                                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
-
-                                                                        if (frame.IsFinal)
-                                                                        {
-
-                                                                            var completePayload = fragmentPayload.ToArray();
-
-                                                                            try
-                                                                            {
-
-                                                                                if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
-                                                                                {
-                                                                                    await ProcessTextMessage(
-                                                                                              now,
-                                                                                              this,
-                                                                                              webSocketConnection,
-                                                                                              frame.EventTrackingId,
-                                                                                              frame,
-                                                                                              completePayload.ToUTF8String(),
-                                                                                              token2
-                                                                                          );
-                                                                                }
-                                                                                else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
-                                                                                {
-                                                                                    await ProcessBinaryMessage(
-                                                                                              now,
-                                                                                              this,
-                                                                                              webSocketConnection,
-                                                                                              frame.EventTrackingId,
-                                                                                              frame,
-                                                                                              completePayload,
-                                                                                              token2
-                                                                                          );
-                                                                                }
-
-                                                                            }
-                                                                            catch (Exception e)
-                                                                            {
-                                                                                Logger.LogError(e, "Exception while processing continuation WebSocket frame.");
-                                                                            }
-
-                                                                            fragmentOpcode = null;
-                                                                            fragmentPayload.SetLength(0);
-
-                                                                        }
-
-                                                                    }
-                                                                    else
+                                                                    if (fragmentOpcode is null)
                                                                     {
                                                                         Logger.LogWarning(
                                                                             "Received Continuation frame from {RemoteSocket} without preceding Text/Binary frame.",
                                                                             webSocketConnection.RemoteSocket
                                                                         );
-                                                                        await webSocketConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                                        break;
+                                                                    }
+
+                                                                    fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                                    // RFC 6455 Section 8.1: Fail fast on invalid UTF-8!
+                                                                    if (fragmentOpcode == WebSocketFrame.Opcodes.Text &&
+                                                                        !utf8Validator.Append(frame.Payload, frame.IsFinal))
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                        break;
+                                                                    }
+
+                                                                    if (frame.IsFinal)
+                                                                    {
+
+                                                                        var completePayload = fragmentPayload.ToArray();
+
+                                                                        try
+                                                                        {
+
+                                                                            if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
+                                                                            {
+                                                                                await ProcessTextMessage(
+                                                                                          now,
+                                                                                          this,
+                                                                                          webSocketConnection,
+                                                                                          frame.EventTrackingId,
+                                                                                          frame,
+                                                                                          completePayload.ToUTF8String(),
+                                                                                          token2
+                                                                                      );
+                                                                            }
+                                                                            else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
+                                                                            {
+                                                                                await ProcessBinaryMessage(
+                                                                                          now,
+                                                                                          this,
+                                                                                          webSocketConnection,
+                                                                                          frame.EventTrackingId,
+                                                                                          frame,
+                                                                                          completePayload,
+                                                                                          token2
+                                                                                      );
+                                                                            }
+
+                                                                        }
+                                                                        catch (Exception e)
+                                                                        {
+                                                                            Logger.LogError(e, "Exception while processing continuation WebSocket frame.");
+                                                                        }
+
+                                                                        fragmentOpcode = null;
+                                                                        fragmentPayload.SetLength(0);
+
                                                                     }
 
                                                                     break;
@@ -1572,9 +1614,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         )
                                                                     );
 
-                                                                    // The close handshake demands that we send a close frame back!
+                                                                    // The close handshake demands that we send a close frame back,
+                                                                    // echoing the received close status code (RFC 6455 Section 5.5.1)!
+                                                                    var receivedCloseCode = frame.GetClosingStatusCode();
+
                                                                     await webSocketConnection.Close(
-                                                                              WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                                              receivedCloseCode == WebSocketFrame.ClosingStatusCode.NoStatusReceived
+                                                                                  ? WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                                                  : receivedCloseCode
                                                                           );
 
                                                                     webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
@@ -1585,11 +1632,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                             }
 
-                                                            //if (frame.Opcode.IsControl())
-                                                            //{
-                                                            //    if (frame.FIN    == WebSocketFrame.Fin.More)
-                                                            //        Console.WriteLine(">>> A control frame is fragmented!");
-                                                            //}
+                                                            #region Fail the connection on protocol violations
+
+                                                            if (failConnection.HasValue)
+                                                            {
+
+                                                                Logger.LogWarning(
+                                                                    "Failing WebSocket connection to {RemoteSocket} with close code {CloseCode}.",
+                                                                    webSocketConnection.RemoteSocket,
+                                                                    failConnection.Value
+                                                                );
+
+                                                                await webSocketConnection.Close(failConnection.Value);
+
+                                                                webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+
+                                                                break;
+
+                                                            }
+
+                                                            #endregion
 
                                                             if ((UInt64) bytes.Length == frameLength)
                                                                 bytes = [];
@@ -1603,6 +1665,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             }
 
                                                             bytesLeftOver = [];
+
+                                                        }
+                                                        else if (parseResult == WebSocketFrame.ParseResult.ProtocolViolation)
+                                                        {
+
+                                                            Logger.LogWarning(
+                                                                "WebSocket protocol violation from {RemoteSocket}: {ErrorResponse}",
+                                                                webSocketConnection.RemoteSocket,
+                                                                errorResponse
+                                                            );
+
+                                                            await webSocketConnection.Close(suggestedCloseCode);
+
+                                                            webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+
+                                                            break;
 
                                                         }
                                                         else

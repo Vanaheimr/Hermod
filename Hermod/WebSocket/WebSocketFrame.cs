@@ -402,12 +402,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        #region (enum) ParseResult
+
+        /// <summary>
+        /// The result of parsing a WebSocket frame: Protocol violations must
+        /// fail the connection (RFC 6455), while incomplete data just means
+        /// that more bytes have to be read from the network.
+        /// </summary>
+        public enum ParseResult
+        {
+
+            /// <summary>
+            /// The frame was parsed successfully.
+            /// </summary>
+            Success,
+
+            /// <summary>
+            /// More data is needed to parse the frame.
+            /// </summary>
+            IncompleteData,
+
+            /// <summary>
+            /// The frame violates the WebSocket protocol and the
+            /// connection must be failed (see: SuggestedCloseCode).
+            /// </summary>
+            ProtocolViolation
+
+        }
+
+        #endregion
+
         #region Data
 
         /// <summary>
         /// The maximum allowed payload size for a single WebSocket frame (64 MB).
         /// </summary>
         public const UInt64  DefaultMaxPayloadSize   = 64 * 1024 * 1024;
+
+        #endregion
+
+        #region (static) IsValidCloseCode(Code)
+
+        /// <summary>
+        /// Whether the given close status code is valid within a received
+        /// close frame (RFC 6455 Section 7.4).
+        /// </summary>
+        /// <param name="Code">A close status code.</param>
+        public static Boolean IsValidCloseCode(UInt16 Code)
+
+            => (Code >= 1000 && Code <= 1003) ||
+               (Code >= 1007 && Code <= 1014) ||
+               (Code >= 3000 && Code <= 4999);
 
         #endregion
 
@@ -844,18 +889,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                        EventTracking_Id?                         EventTrackingId   = null,
                                        UInt64?                                   MaxPayloadSize    = null,
                                        ILogger?                                  Logger            = null)
+
+            => Parse(Bytes,
+                     out Frame,
+                     out Length,
+                     out ErrorResponse,
+                     out _,
+                     EventTrackingId,
+                     MaxPayloadSize,
+                     Logger) == ParseResult.Success;
+
+
+        /// <summary>
+        /// Parse the given byte span into a WebSocket frame, distinguishing
+        /// between incomplete data and protocol violations.
+        /// </summary>
+        /// <param name="Bytes">The byte span to parse.</param>
+        /// <param name="Frame">The parsed WebSocket frame.</param>
+        /// <param name="Length">The total length of the frame in bytes, including the header and payload.</param>
+        /// <param name="ErrorResponse">The error response if the parsing fails.</param>
+        /// <param name="SuggestedCloseCode">The close status code to fail the connection with, when the result is a protocol violation.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        /// <param name="MaxPayloadSize">The maximum allowed payload size.</param>
+        /// <param name="Logger">An optional logger for unexpected parser exceptions.</param>
+        public static ParseResult Parse(ReadOnlySpan<Byte>      Bytes,
+                                        out WebSocketFrame?     Frame,
+                                        out UInt64              Length,
+                                        out String?             ErrorResponse,
+                                        out ClosingStatusCode   SuggestedCloseCode,
+                                        EventTracking_Id?       EventTrackingId   = null,
+                                        UInt64?                 MaxPayloadSize    = null,
+                                        ILogger?                Logger            = null)
         {
 
             try
             {
 
-                Frame          = null;
-                Length         = 0;
-                ErrorResponse  = null;
+                Frame               = null;
+                Length              = 0;
+                ErrorResponse       = null;
+                SuggestedCloseCode  = ClosingStatusCode.ProtocolError;
 
                 if (Bytes.Length < 2) {
                     ErrorResponse = "Invalid byte span!";
-                    return false;
+                    return ParseResult.IncompleteData;
                 }
 
                 var fin            = (Bytes[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
@@ -864,15 +941,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 var rsv3           = (Bytes[0] & 0x10) == 0x10 ? Rsv.On    : Rsv.Off;
                 var opcode         = (Opcodes) (Byte) (Bytes[0] & 0x0f);
 
-                //if (!opcode.IsSupported ()) {
-                //    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
-                //    ErrorResponse  = "A frame has an unsupported opcode!";
-                //    return false;
-                //}
+                // RFC 6455 Section 5.2: Reserved opcodes must fail the connection!
+                if (opcode is not Opcodes.Continuation
+                           and not Opcodes.Text
+                           and not Opcodes.Binary
+                           and not Opcodes.Close
+                           and not Opcodes.Ping
+                           and not Opcodes.Pong)
+                {
+                    ErrorResponse = $"A frame has the reserved opcode 0x{(Byte) opcode:x}!";
+                    return ParseResult.ProtocolViolation;
+                }
 
-                if (!opcode.IsData() && rsv1 == Rsv.On) {
-                    ErrorResponse = "A non data frame is compressed!";
-                    return false;
+                // RFC 6455 Section 5.2: RSV bits must be zero,
+                // unless an extension was negotiated!
+                if (rsv1 == Rsv.On || rsv2 == Rsv.On || rsv3 == Rsv.On)
+                {
+                    ErrorResponse = "A frame has RSV bits set, but no extension was negotiated!";
+                    return ParseResult.ProtocolViolation;
                 }
 
                 var mask           = (Bytes[1] & 0x80) == 0x80
@@ -905,11 +991,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 var payloadLength  = (UInt64) (Bytes[1] & 0x7f);
                 var offset         = 2U;
 
+                if (opcode.IsControl() && fin == Fin.More)
+                {
+                    ErrorResponse = "Control frames must not be fragmented!";
+                    return ParseResult.ProtocolViolation;
+                }
+
+                if (opcode.IsControl() && payloadLength > 125)
+                {
+                    ErrorResponse = "Control frame payload length must not exceed 125 bytes!";
+                    return ParseResult.ProtocolViolation;
+                }
+
                 if (payloadLength == 126) {
 
                     if (Bytes.Length < 4) {
                         ErrorResponse = "Incomplete extended payload length!";
-                        return false;
+                        return ParseResult.IncompleteData;
                     }
 
                     payloadLength  = BinaryPrimitives.ReadUInt16BigEndian(Bytes.Slice(2, 2));
@@ -922,7 +1020,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     if (Bytes.Length < 10) {
                         ErrorResponse = "Incomplete extended payload length!";
-                        return false;
+                        return ParseResult.IncompleteData;
                     }
 
                     payloadLength  = BinaryPrimitives.ReadUInt64BigEndian(Bytes.Slice(2, 8));
@@ -931,29 +1029,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
-                if (opcode.IsControl() && fin == Fin.More)
-                {
-                    ErrorResponse = "Control frames must not be fragmented!";
-                    return false;
-                }
-
-                if (opcode.IsControl() && payloadLength > 125)
-                {
-                    ErrorResponse = "Control frame payload length must not exceed 125 bytes!";
-                    return false;
-                }
-
                 if (payloadLength > (UInt64) Int32.MaxValue)
                 {
-                    ErrorResponse = $"Payload length {payloadLength} exceeds maximum supported .NET array size!";
-                    return false;
+                    ErrorResponse       = $"Payload length {payloadLength} exceeds maximum supported .NET array size!";
+                    SuggestedCloseCode  = ClosingStatusCode.MessageTooBig;
+                    return ParseResult.ProtocolViolation;
                 }
 
                 var maxSize = MaxPayloadSize ?? DefaultMaxPayloadSize;
                 if (payloadLength > maxSize)
                 {
-                    ErrorResponse = $"Payload length {payloadLength} exceeds maximum allowed size of {maxSize} bytes!";
-                    return false;
+                    ErrorResponse       = $"Payload length {payloadLength} exceeds maximum allowed size of {maxSize} bytes!";
+                    SuggestedCloseCode  = ClosingStatusCode.MessageTooBig;
+                    return ParseResult.ProtocolViolation;
                 }
 
                 var payload     = new Byte[(Int32) payloadLength];
@@ -963,7 +1051,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if ((UInt64) Bytes.Length < headerSize + payloadLength)
                 {
                     ErrorResponse = "Web socket frame is shorter than advertised!";
-                    return false;
+                    return ParseResult.IncompleteData;
                 }
 
                 if (mask == MaskStatus.Off)
@@ -981,6 +1069,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
+                #region Close frame payload validation (RFC 6455 Section 5.5.1 and 7.4)
+
+                if (opcode == Opcodes.Close)
+                {
+
+                    if (payload.Length == 1)
+                    {
+                        ErrorResponse = "A close frame payload of one byte is invalid!";
+                        return ParseResult.ProtocolViolation;
+                    }
+
+                    if (payload.Length >= 2)
+                    {
+
+                        var closeCode = (UInt16) ((payload[0] << 8) | payload[1]);
+
+                        if (!IsValidCloseCode(closeCode))
+                        {
+                            ErrorResponse = $"Invalid close frame status code {closeCode}!";
+                            return ParseResult.ProtocolViolation;
+                        }
+
+                        if (!System.Text.Unicode.Utf8.IsValid(payload.AsSpan(2)))
+                        {
+                            ErrorResponse       = "The close frame reason is not valid UTF-8!";
+                            SuggestedCloseCode  = ClosingStatusCode.InvalidPayloadData;
+                            return ParseResult.ProtocolViolation;
+                        }
+
+                    }
+
+                }
+
+                #endregion
+
                 Frame = new WebSocketFrame(
                             opcode,
                             payload,
@@ -995,16 +1118,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 Length  = offset + payloadLength;
 
-                return true;
+                return ParseResult.Success;
 
             }
             catch (Exception e)
             {
                 Logger?.LogError(e, "Could not parse WebSocket frame.");
-                Frame          = null;
-                Length         = 0;
-                ErrorResponse  = "An exception occurred: " + e.Message;
-                return false;
+                Frame               = null;
+                Length              = 0;
+                ErrorResponse       = "An exception occurred: " + e.Message;
+                SuggestedCloseCode  = ClosingStatusCode.ProtocolError;
+                return ParseResult.ProtocolViolation;
             }
 
         }
