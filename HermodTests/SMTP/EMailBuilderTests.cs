@@ -617,6 +617,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
 
         [Test]
+        public void Signature_verifies_against_raw_bytes_of_a_foreign_serialization()
+        {
+
+            // A signed part whose exact wire form our own serializer would NOT reproduce: a body line
+            // with trailing whitespace. RFC 1847 signs the octets as they appear, so a real signer signs
+            // WITH the trailing spaces — but our old reconstruction path right-trimmed each line and would
+            // therefore have computed different bytes and reported Invalid. Verifying against the preserved
+            // raw bytes must accept it.
+            var signedPartLines = new[]
+            {
+                "Content-Type: text/plain; charset=utf-8",
+                "",
+                $"Hallo {Marker}   "                       // <- trailing whitespace, part of the signed octets
+            };
+            var signedBytes = String.Join("\r\n", signedPartLines);
+
+            // Alice signs the exact bytes (BinaryDocument, as our sign path does).
+            using var sigStream = new MemoryStream();
+            OpenPGP.CreateSignature(new MemoryStream(Encoding.UTF8.GetBytes(signedBytes)),
+                                    secretKeyRing.GetSecretKey(),
+                                    Passphrase).
+                    WriteTo(sigStream, ArmoredOutput: true, CloseOutputStream: false);
+
+            var armoredSigLines = Encoding.ASCII.GetString(sigStream.ToArray()).
+                                      Split(["\r\n", "\n"], StringSplitOptions.None).
+                                      ToList();
+            if (armoredSigLines.Count > 0 && armoredSigLines[^1].Length == 0)
+                armoredSigLines.RemoveAt(armoredSigLines.Count - 1);
+
+            // Assemble the multipart/signed message by hand.
+            const String boundary = "=-=-=raw-signed-boundary=-=-=";
+            var message = new List<String>
+            {
+                "From: Alice <alice@example.com>",
+                "To: Bob <bob@example.org>",
+                "Subject: Test Subject",
+                $"Content-Type: multipart/signed; micalg=\"pgp-sha512\"; protocol=\"application/pgp-signature\"; boundary=\"{boundary}\"",
+                "",
+                "--" + boundary
+            };
+            message.AddRange(signedPartLines);
+            message.Add("--" + boundary);
+            message.Add("Content-Type: application/pgp-signature");
+            message.Add("");
+            message.AddRange(armoredSigLines);
+            message.Add("--" + boundary + "--");
+
+            var mail = EMail.Parse(message);
+
+            Assert.That(mail.IsPgpSigned, Is.True);
+
+            // Sanity: our re-serialization normalizes the trailing whitespace away, so a reconstruction-based
+            // verify would have used different bytes than were signed.
+            var reconstructed = String.Join("\r\n", mail.Body.NestedBodyparts.First().ToText().Select(l => l.TrimEnd()));
+            Assert.That(reconstructed, Does.Not.Contain($"Hallo {Marker}   "), "reconstruction drops the trailing whitespace");
+
+            // ...but verifying against the preserved raw bytes succeeds.
+            var result = mail.VerifyPgpSignature(publicKeyRing);
+            Assert.That(result.IsValid, Is.True, "raw-preserved verification must accept the foreign serialization");
+
+        }
+
+        [Test]
         public void Parsed_encrypted_mail_is_flagged_and_decrypts_with_the_recipient_key()
         {
 

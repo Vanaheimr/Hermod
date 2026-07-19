@@ -44,6 +44,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public IEnumerable<EMailBodypart>  NestedBodyparts    { get; }
 
 
+        private readonly IReadOnlyList<String>?  rawContent;
+
+        /// <summary>
+        /// The verbatim lines of this body part exactly as they appeared on the wire (the raw content
+        /// between the enclosing MIME boundaries), captured only when this part was parsed from text.
+        /// This is the authoritative source for RFC 1847 / RFC 3156 signature verification, which MUST
+        /// operate on the bytes as received — not on a re-serialization of the parsed object model,
+        /// whose header order / whitespace / boundary formatting need not match the original byte-for-byte.
+        /// Null for parts that were built (not parsed).
+        /// </summary>
+        public IEnumerable<String>?        RawContent
+            => rawContent;
+
+
         /// <summary>
         /// Whether this body part is an OpenPGP/MIME signed message (multipart/signed, RFC 3156).
         /// This only reflects the MIME structure — use OpenPGP verification to check the signature itself.
@@ -148,6 +162,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                    header => header.StartsWith("content", StringComparison.CurrentCultureIgnoreCase))
 
         {
+
+            // Preserve the exact incoming bytes (as lines) so signature verification can operate on
+            // what was actually received, independent of how we would re-serialize this part.
+            this.rawContent = MailText as IReadOnlyList<String> ?? MailText.ToList();
 
             ContentType ??= MailContentType.Parse(GetEMailHeader("Content-Type"));
 

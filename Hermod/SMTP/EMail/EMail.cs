@@ -272,12 +272,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             var signedPart     = parts[0];
             var signaturePart  = parts[1];
 
-            // Reconstruct the exact bytes that were signed (RFC 3156 §5, mirrors Builder.EncodeBodyparts):
-            // the signed MIME part serialized WITH its headers, each line right-trimmed, joined with CRLF.
-            var signedData = signedPart.ToText().
-                                 Select(line => line.TrimEnd()).
-                                 Aggregate((a, b) => a + "\r\n" + b).
-                                 ToUTF8Bytes();
+            // The signature covers the first MIME part exactly as it appeared on the wire (RFC 1847 /
+            // RFC 3156). Prefer the preserved raw bytes: joining the verbatim lines with CRLF (and no
+            // trailing CRLF — the CRLF before the boundary belongs to the boundary) reproduces the
+            // signed octets byte-for-byte, regardless of header order/whitespace, which a re-serialization
+            // might not. Fall back to reconstruction only for a part that was built rather than parsed.
+            var signedData = (signedPart.RawContent is not null
+                                  ? String.Join("\r\n", signedPart.RawContent)
+                                  : signedPart.ToText().
+                                        Select(line => line.TrimEnd()).
+                                        Aggregate((a, b) => a + "\r\n" + b)
+                             ).ToUTF8Bytes();
 
             var armoredSignature = String.Join("\r\n", signaturePart.MailBody);
 
