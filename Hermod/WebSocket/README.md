@@ -46,14 +46,29 @@ Implemented (both server and client, unless noted):
 - Client nonces (`Sec-WebSocket-Key`) and all masking keys come from a
   cryptographically secure RNG (RFC 6455 Section 5.3 / 10.3).
 - Subprotocol negotiation (`Sec-WebSocket-Protocol`, e.g. `ocpp2.1`) with an
-  optional `SubprotocolSelector` delegate on the server.
+  optional `SubprotocolSelector` delegate on the server, plus an optional strict
+  mode (`RequireMatchingSubprotocol`) that rejects the handshake with
+  `400 Bad Request` when the client offers only unsupported subprotocols.
+- Client auto-reconnect after an unexpected connection loss, with exponential
+  backoff and jitter (`ReconnectPolicy`, opt-in; see below). A clean close or a
+  fatal protocol violation never triggers a reconnect.
 - Message and fragment size limits (`MaxTextMessageSizeIn/Out`,
   `MaxBinaryMessageSizeIn/Out`), enforced *before* buffering; violations close
   with 1009 (Message Too Big).
+- Server handshake hardening: `HandshakeTimeout` (Slowloris protection, default
+  10 s), `MaxHandshakeRequestSize` (oversized/unterminated header block, default
+  64 KB), `MaxConnectionsPerIP` (connection-flood protection, opt-in), and an
+  optional `AllowedOrigins` allow-list (`403 Forbidden`, CSWSH protection; a
+  request without an `Origin` header is always accepted).
 - Fully asynchronous receive path (no busy-polling), TCP connection-loss
   detection on the client (`IsRemoteTCPConnectionClosed`), bounded write and
   close timeouts (a stalled peer can no longer block `Send()`/`Close()`
   forever).
+- Send backpressure limit (`MaxBackpressure` / `BackpressureBehaviour`, the
+  uWebSockets "maxBackpressure" model, server and client): when the outgoing
+  bytes queued/in-flight to a slow peer would exceed the limit, the connection
+  is either closed (1009) or the message dropped (`SentStatus.Dropped`). The
+  current amount is exposed as `BufferedAmount`. The closing handshake is exempt.
 - Heartbeat / zombie detection: periodic pings (`WebSocketPingEvery`) plus a
   liveness deadline (`MaxOutstandingPings`, default 3). If no frame arrives
   within that many ping intervals, the half-open connection is torn down
@@ -85,8 +100,19 @@ var server = new WebSocketServer(
                  AutoStart:              true
              );
 
-server.EnablePerMessageDeflate  = true;          // RFC 7692, off by default
-server.MaxTextMessageSizeIn     = 1024 * 1024;   // 1 MB
+server.EnablePerMessageDeflate     = true;          // RFC 7692, off by default
+server.MaxTextMessageSizeIn        = 1024 * 1024;   // 1 MB
+server.RequireMatchingSubprotocol  = true;          // reject unknown subprotocols with 400
+
+// Handshake hardening (timeout + max header size are on by default):
+server.HandshakeTimeout            = TimeSpan.FromSeconds(10);
+server.MaxHandshakeRequestSize     = 64 * 1024;
+server.MaxConnectionsPerIP         = 100;           // 0 = unlimited (default)
+server.AllowedOrigins.Add("https://ui.example.com"); // empty = disabled (default)
+
+// Send backpressure (0 = disabled by default); must exceed your largest message:
+server.MaxBackpressure             = 16 * 1024 * 1024;
+server.BackpressureBehaviour       = WebSocketBackpressureBehaviour.CloseConnection;
 
 server.OnTextMessageReceived += async (timestamp, srv, connection, frame, eventTrackingId, text, ct) => {
     await server.SendTextMessage(connection, $"Echo: {text}");
@@ -102,6 +128,15 @@ var client = new WebSocketClient(
              );
 
 client.EnablePerMessageDeflate = true;           // RFC 7692, off by default
+
+// Opt-in auto-reconnect with exponential backoff + jitter (off by default):
+client.ReconnectPolicy = new WebSocketClientReconnectPolicy(
+                             InitialDelay:   TimeSpan.FromSeconds(1),
+                             MaxDelay:       TimeSpan.FromSeconds(30),
+                             BackoffFactor:  2.0,
+                             JitterRatio:    0.2,    // ±20 %
+                             MaxAttempts:    null    // unlimited
+                         );
 
 client.OnTextMessageReceived += async (timestamp, cl, connection, frame, eventTrackingId, text, ct) => {
     // ...

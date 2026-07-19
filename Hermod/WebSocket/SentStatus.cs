@@ -22,7 +22,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     {
         Success,
         Error,
-        FatalError
+        FatalError,
+
+        /// <summary>
+        /// The message was not sent because the connection's outgoing send
+        /// backpressure would have exceeded its configured limit
+        /// (see <see cref="WebSocketBackpressureBehaviour.DropMessage"/>).
+        /// </summary>
+        Dropped
     }
 
 }
