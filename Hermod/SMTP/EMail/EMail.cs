@@ -314,6 +314,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailBodypart DecryptPgp(PgpSecretKeyRingBundle RecipientKeys, String Passphrase)
         {
 
+            using var input      = new MemoryStream(ExtractPgpCiphertext().ToUTF8Bytes());
+            var       plaintext  = OpenPGP.Decrypt(input, RecipientKeys, Passphrase);
+
+            // The decrypted payload is itself a MIME body part — parse it back.
+            return new EMailBodypart(plaintext.ToUTF8String().Split(["\r\n"], StringSplitOptions.None));
+
+        }
+
+        #endregion
+
+        #region DecryptAndVerifyPgp(RecipientKey/s, Passphrase, SenderPublicKey/s)
+
+        /// <summary>
+        /// Decrypt this (multipart/encrypted) e-mail with the given recipient secret key AND verify the
+        /// embedded signature over the plaintext against the given sender public key. Since Hermod always
+        /// signs when encrypting, this recovers both the content and its authenticity in one step.
+        /// </summary>
+        /// <param name="RecipientKey">The recipient's secret key ring.</param>
+        /// <param name="Passphrase">The passphrase protecting the secret key.</param>
+        /// <param name="SenderPublicKey">The purported sender's public key ring.</param>
+        public PgpDecryptionResult DecryptAndVerifyPgp(PgpSecretKeyRing  RecipientKey,
+                                                       String            Passphrase,
+                                                       PgpPublicKeyRing  SenderPublicKey)
+
+            => DecryptAndVerifyPgp(new PgpSecretKeyRingBundle(RecipientKey.   GetEncoded()),
+                                   Passphrase,
+                                   new PgpPublicKeyRingBundle(SenderPublicKey.GetEncoded()));
+
+        /// <summary>
+        /// Decrypt this (multipart/encrypted) e-mail with whichever recipient secret key it was encrypted
+        /// to, AND verify the embedded signature over the plaintext against the given candidate sender keys.
+        /// </summary>
+        /// <param name="RecipientKeys">The recipient's secret key ring bundle.</param>
+        /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
+        /// <param name="SenderPublicKeys">Candidate sender public keys.</param>
+        public PgpDecryptionResult DecryptAndVerifyPgp(PgpSecretKeyRingBundle  RecipientKeys,
+                                                       String                  Passphrase,
+                                                       PgpPublicKeyRingBundle  SenderPublicKeys)
+        {
+
+            using var input               = new MemoryStream(ExtractPgpCiphertext().ToUTF8Bytes());
+            var (plaintext, signature)    = OpenPGP.DecryptAndVerify(input, RecipientKeys, Passphrase, SenderPublicKeys);
+
+            return new PgpDecryptionResult(
+                       new EMailBodypart(plaintext.ToUTF8String().Split(["\r\n"], StringSplitOptions.None)),
+                       signature
+                   );
+
+        }
+
+        #endregion
+
+        #region (private) ExtractPgpCiphertext()
+
+        /// <summary>
+        /// Return the armored OpenPGP message from this (multipart/encrypted) e-mail.
+        /// </summary>
+        private String ExtractPgpCiphertext()
+        {
+
             if (Body is null || !Body.IsPgpEncrypted)
                 throw new InvalidOperationException("This e-mail is not an OpenPGP/MIME encrypted message!");
 
@@ -322,13 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                      FirstOrDefault(part => part.MailBody.Any(line => line.Contains("BEGIN PGP MESSAGE")))
                                  ?? throw new InvalidOperationException("No OpenPGP message part found in the encrypted e-mail!");
 
-            var armored = String.Join("\r\n", ciphertextPart.MailBody);
-
-            using var input      = new MemoryStream(armored.ToUTF8Bytes());
-            var       plaintext  = OpenPGP.Decrypt(input, RecipientKeys, Passphrase);
-
-            // The decrypted payload is itself a MIME body part — parse it back.
-            return new EMailBodypart(plaintext.ToUTF8String().Split(["\r\n"], StringSplitOptions.None));
+            return String.Join("\r\n", ciphertextPart.MailBody);
 
         }
 

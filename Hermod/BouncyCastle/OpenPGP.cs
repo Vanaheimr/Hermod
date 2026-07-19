@@ -331,6 +331,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static Byte[] Decrypt(Stream                  ArmoredCiphertext,
                                      PgpSecretKeyRingBundle  SecretKeys,
                                      String                  Passphrase)
+
+            => DecryptAndVerify(ArmoredCiphertext, SecretKeys, Passphrase, null).Plaintext;
+
+        #endregion
+
+        #region DecryptAndVerify(ArmoredCiphertext, SecretKeys, Passphrase, SenderPublicKeys)
+
+        /// <summary>
+        /// Decrypt an OpenPGP message (as produced by <see cref="EncryptSignAndZip(Stream, UInt64, PgpSecretKey, String, IEnumerable{PgpPublicKey}, Stream, SymmetricKeyAlgorithmTag, HashAlgorithmTag, CompressionAlgorithmTag, Boolean, String, DateTimeOffset?)"/>,
+        /// which signs as well as encrypts) and, in the same pass, verify the embedded one-pass signature
+        /// against <paramref name="SenderPublicKeys"/>. Returns the recovered plaintext together with the
+        /// signature verification result.
+        /// </summary>
+        /// <param name="ArmoredCiphertext">The armored (or binary) OpenPGP message.</param>
+        /// <param name="SecretKeys">The recipient's secret key ring bundle.</param>
+        /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
+        /// <param name="SenderPublicKeys">Candidate signer public keys; null to skip signature verification.</param>
+        public static (Byte[] Plaintext, PgpSignatureVerification Signature) DecryptAndVerify(Stream                   ArmoredCiphertext,
+                                                                                              PgpSecretKeyRingBundle   SecretKeys,
+                                                                                              String                   Passphrase,
+                                                                                              PgpPublicKeyRingBundle?  SenderPublicKeys)
         {
 
             using var decoder = PgpUtilities.GetDecoderStream(ArmoredCiphertext);
@@ -374,17 +395,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
             // A one-pass signature precedes the literal data (the message is signed as well as encrypted).
-            if (message is PgpOnePassSignatureList)
+            // Initialise it for verification if the signer's public key was supplied.
+            PgpOnePassSignature?  onePass      = null;
+            Int64?                signerKeyId  = null;
+
+            if (message is PgpOnePassSignatureList onePassList && onePassList.Count > 0)
+            {
+
+                var candidate = onePassList[0];
+                signerKeyId   = candidate.KeyId;
+
+                var signerKey = SenderPublicKeys?.GetPublicKey(candidate.KeyId);
+                if (signerKey is not null)
+                {
+                    candidate.InitVerify(signerKey);
+                    onePass = candidate;
+                }
+
                 message = clearFactory.NextPgpObject();
+
+            }
 
             if (message is not PgpLiteralData literal)
                 throw new PgpException("The decrypted message did not contain literal data!");
 
             using var literalStream = literal.GetInputStream();
             using var output        = new MemoryStream();
-            literalStream.CopyTo(output);
 
-            return output.ToArray();
+            // Copy the plaintext, feeding the one-pass signature (if we are verifying) as we go.
+            var buffer = new Byte[0x10000];
+            int read;
+            while ((read = literalStream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                output.Write(buffer, 0, read);
+                onePass?.Update(buffer, 0, read);
+            }
+
+            var plaintext = output.ToArray();
+
+            // Determine the signature verification result.
+            PgpSignatureVerification signature;
+
+            if (signerKeyId is null)
+                signature = PgpSignatureVerification.NoSignature;
+
+            else if (onePass is null)
+                signature = PgpSignatureVerification.NoMatchingKey(signerKeyId.Value);
+
+            else
+            {
+
+                var signatureTrailer = clearFactory.NextPgpObject() as PgpSignatureList;
+
+                signature = signatureTrailer is null || signatureTrailer.Count == 0
+                                ? PgpSignatureVerification.NoSignature
+                                : new PgpSignatureVerification(
+                                      onePass.Verify(signatureTrailer[0])
+                                          ? PgpVerificationStatus.Valid
+                                          : PgpVerificationStatus.Invalid,
+                                      signatureTrailer[0].KeyId,
+                                      signatureTrailer[0].HashAlgorithm,
+                                      signatureTrailer[0].CreationTime
+                                  );
+
+            }
+
+            return (plaintext, signature);
 
         }
 

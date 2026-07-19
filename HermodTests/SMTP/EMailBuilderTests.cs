@@ -716,6 +716,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
         [Test]
+        public void Encrypted_signed_mail_decrypts_and_verifies_the_inner_signature()
+        {
+
+            // Hermod always signs when encrypting, so a decrypted inbound mail carries an inner signature
+            // over the plaintext. DecryptAndVerify recovers the content AND its authenticity in one pass.
+            var parsed = EMail.Parse(Build(html: false, withAttachment: false, withPgp: false, withEncryption: true).ToText());
+
+            var result = parsed.DecryptAndVerifyPgp(recipientSecretRing, Passphrase, publicKeyRing);
+
+            Assert.That(String.Join("\r\n", result.Body.ToText()), Does.Contain(Marker), "the plaintext body must be recovered");
+            Assert.That(result.IsSignatureValid,      Is.True, "the embedded signature must verify against Alice's key");
+            Assert.That(result.Signature.Status,      Is.EqualTo(PgpVerificationStatus.Valid));
+            Assert.That(result.Signature.SignerKeyId, Is.EqualTo(keyId), "the signer must be Alice");
+
+        }
+
+        [Test]
+        public void DecryptAndVerify_with_the_wrong_sender_key_still_decrypts_but_reports_no_matching_key()
+        {
+
+            // Decryption depends only on the recipient key; verifying against a ring that lacks the
+            // signer's key must still return the plaintext, but flag the signature as unverifiable.
+            var parsed = EMail.Parse(Build(html: false, withAttachment: false, withPgp: false, withEncryption: true).ToText());
+
+            // recipientPublicRing is Bob's ring; the inner signature is Alice's.
+            var result = parsed.DecryptAndVerifyPgp(recipientSecretRing, Passphrase, recipientPublicRing);
+
+            Assert.That(String.Join("\r\n", result.Body.ToText()), Does.Contain(Marker), "the plaintext must still be recovered");
+            Assert.That(result.Signature.Status,   Is.EqualTo(PgpVerificationStatus.NoMatchingKey));
+            Assert.That(result.IsSignatureValid,   Is.False);
+
+        }
+
+        [Test]
         public void Decrypting_with_a_non_recipient_key_throws()
         {
 
