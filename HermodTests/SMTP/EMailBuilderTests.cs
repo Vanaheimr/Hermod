@@ -50,14 +50,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private const String Passphrase = "s3cr3t-test-passphrase";
         private const String Marker     = "ROUNDTRIPMARKER42";     // ASCII, survives MIME encodings verbatim
 
-        private PgpSecretKeyRing  secretKeyRing  = null!;
-        private PgpPublicKeyRing  publicKeyRing  = null!;
+        private PgpSecretKeyRing  secretKeyRing        = null!;   // Alice (sender)
+        private PgpPublicKeyRing  publicKeyRing        = null!;
         private Int64             keyId;
 
-        #region OneTimeSetUp — generate an RSA OpenPGP key ring
+        private PgpSecretKeyRing  recipientSecretRing  = null!;   // Bob (recipient — needs a public key to encrypt to)
+        private PgpPublicKeyRing  recipientPublicRing  = null!;
+
+        #region OneTimeSetUp — generate two RSA OpenPGP key rings
 
         [OneTimeSetUp]
         public void GenerateTestKey()
+        {
+
+            (secretKeyRing,       publicKeyRing)        = GenerateKeyRing("Alice <alice@example.com>");
+            (recipientSecretRing, recipientPublicRing)  = GenerateKeyRing("Bob <bob@example.org>");
+
+            keyId = secretKeyRing.GetSecretKey().KeyId;
+
+        }
+
+        private static (PgpSecretKeyRing, PgpPublicKeyRing) GenerateKeyRing(String Identity)
         {
 
             var rsa = new RsaKeyPairGenerator();
@@ -68,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var gen = new PgpKeyRingGenerator(
                           PgpSignature.PositiveCertification,
                           pgpKeyPair,
-                          "Alice <alice@example.com>",
+                          Identity,
                           SymmetricKeyAlgorithmTag.Aes256,
                           Passphrase.ToCharArray(),
                           true,
@@ -76,9 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                           null,
                           new SecureRandom());
 
-            secretKeyRing  = gen.GenerateSecretKeyRing();
-            publicKeyRing  = gen.GeneratePublicKeyRing();
-            keyId          = secretKeyRing.GetSecretKey().KeyId;
+            return (gen.GenerateSecretKeyRing(), gen.GeneratePublicKeyRing());
 
         }
 
@@ -86,21 +97,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #region (helper) Build(html, withAttachment, withPgp)
 
-        private EMail Build(Boolean html, Boolean withAttachment, Boolean withPgp)
+        private EMail Build(Boolean html, Boolean withAttachment, Boolean withPgp, Boolean withEncryption = false)
         {
 
-            EMailAddress from = withPgp
+            // Signing (and, a fortiori, encrypting) needs Alice's secret+public key ring on the sender.
+            EMailAddress from = (withPgp || withEncryption)
                 ? new EMailAddress("Alice", SimpleEMailAddress.Parse("alice@example.com"), secretKeyRing, publicKeyRing)
                 : (EMailAddress) SimpleEMailAddress.Parse("alice@example.com");
+
+            // Encrypting additionally needs the recipient's public key ring.
+            EMailAddress to = withEncryption
+                ? new EMailAddress("Bob", SimpleEMailAddress.Parse("bob@example.org"), null, recipientPublicRing)
+                : (EMailAddress) SimpleEMailAddress.Parse("bob@example.org");
 
             void Configure(AbstractEMail.Builder b)
             {
                 b.From          = from;
-                b.To            = (EMailAddress) SimpleEMailAddress.Parse("bob@example.org");
+                b.To            = to;
                 b.Subject       = "Test Subject";
-                b.SecurityLevel = withPgp ? EMailSecurity.sign : EMailSecurity.none;
-                if (withPgp)         b.Passphrase = Passphrase;
-                if (withAttachment)  b.AddAttachment(Encoding.UTF8.GetBytes("%PDF-1.7 fake attachment bytes"), "doc.pdf");
+                b.SecurityLevel = withEncryption ? EMailSecurity.encrypt
+                                : withPgp         ? EMailSecurity.sign
+                                :                   EMailSecurity.none;
+                if (withPgp || withEncryption)  b.Passphrase = Passphrase;
+                if (withAttachment)             b.AddAttachment(Encoding.UTF8.GetBytes("%PDF-1.7 fake attachment bytes"), "doc.pdf");
             }
 
             if (html)
@@ -144,6 +163,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(sigList,        Is.Not.Null, "armored block must decode to a PGP signature list");
             Assert.That(sigList!.Count, Is.GreaterThan(0));
             Assert.That(sigList[0].KeyId, Is.EqualTo(keyId), "signature must be made by our in-test key");
+
+        }
+
+        #endregion
+
+        #region (helper) ExtractPgpMessage(text)
+
+        // Return the armored "-----BEGIN PGP MESSAGE----- … -----END PGP MESSAGE-----" block verbatim.
+        private static String ExtractPgpMessage(String text)
+        {
+
+            const String beginMarker = "-----BEGIN PGP MESSAGE-----";
+            const String endMarker   = "-----END PGP MESSAGE-----";
+
+            var start = text.IndexOf(beginMarker, StringComparison.Ordinal);
+            var end   = text.IndexOf(endMarker,   StringComparison.Ordinal);
+            Assert.That(start, Is.GreaterThanOrEqualTo(0), "PGP MESSAGE block must be present");
+            Assert.That(end,   Is.GreaterThan(start));
+
+            return text.Substring(start, end - start + endMarker.Length);
 
         }
 
@@ -207,6 +246,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(reText, Does.Contain(Marker), "body content must survive parse → serialize");
             if (attach) Assert.That(reText, Does.Contain("doc.pdf"),              "attachment must survive parse → serialize");
             if (pgp)    Assert.That(reText, Does.Contain("BEGIN PGP SIGNATURE"),  "signature must survive parse → serialize");
+
+        }
+
+        #endregion
+
+        #region The encrypted matrix — build, serialize, re-parse (multipart/encrypted, RFC 3156)
+
+        [TestCase(true,  false, TestName = "HTML, no attachment, PGP-encrypted")]
+        [TestCase(true,  true,  TestName = "HTML, with attachment, PGP-encrypted")]
+        [TestCase(false, false, TestName = "Text, no attachment, PGP-encrypted")]
+        [TestCase(false, true,  TestName = "Text, with attachment, PGP-encrypted")]
+        public void Encrypt_serialize_and_reparse(Boolean html, Boolean attach)
+        {
+
+            var mail = Build(html, attach, withPgp: false, withEncryption: true);
+            var text = String.Join("\r\n", mail.ToText());
+
+            // --- headers present; the plaintext body/marker must NOT be on the wire (it is encrypted) ---
+            Assert.That(text, Does.Contain("From:"));
+            Assert.That(text, Does.Contain("To:"));
+            Assert.That(text, Does.Contain("Subject:"));
+            Assert.That(text, Does.Contain("Test Subject"));
+            Assert.That(text, Does.Not.Contain(Marker), "the body must be encrypted, so the plaintext marker must not appear");
+
+            // --- MIME structure: multipart/encrypted with the two RFC 3156 control/data parts ---
+            Assert.That(text, Does.Contain("multipart/encrypted"));
+            Assert.That(text, Does.Contain("application/pgp-encrypted"));
+            Assert.That(text, Does.Contain("Version: 1"));
+            Assert.That(text, Does.Contain("BEGIN PGP MESSAGE"));
+
+            // --- round-trip: parse back and confirm it re-parses into the two nested parts ---
+            var parsed = EMail.Parse(mail.ToText());
+
+            Assert.That(parsed.Subject,                  Is.EqualTo("Test Subject"));
+            Assert.That(parsed.From?.Address.ToString(), Is.EqualTo("alice@example.com"));
+            Assert.That(parsed.To.Any(),                 Is.True);
+
+            Assert.That(parsed.Body.NestedBodyparts.Any(), Is.True,
+                        "a multipart/encrypted message must re-parse into nested body parts, not a flat body");
+            Assert.That(parsed.Body.NestedBodyparts.Count(), Is.EqualTo(2),
+                        "multipart/encrypted has exactly two parts: the pgp-encrypted control part and the octet-stream ciphertext");
+
+            var reText = String.Join("\r\n", parsed.ToText());
+            Assert.That(reText, Does.Contain("BEGIN PGP MESSAGE"), "the ciphertext must survive parse → serialize");
+            Assert.That(reText, Does.Contain("END PGP MESSAGE"),   "the ciphertext must survive parse → serialize");
+
+            // The armored ciphertext block must survive parse → serialize byte-for-byte; any corruption
+            // (dropped/added lines, altered whitespace) would make it undecryptable at the far end.
+            Assert.That(ExtractPgpMessage(reText), Is.EqualTo(ExtractPgpMessage(text)),
+                        "the OpenPGP ciphertext block must round-trip unchanged");
 
         }
 
