@@ -132,13 +132,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Payload">The compressed message payload.</param>
         /// <param name="Decompressed">The decompressed message payload.</param>
         /// <param name="ErrorResponse">An error response in case of a decompression failure or a size limit violation.</param>
+        /// <param name="ExceededSizeLimit">Whether the failure was a size limit violation (close with 1009 Message Too Big) rather than corrupt/invalid compressed data (close with 1007 Invalid Payload Data).</param>
         public Boolean TryDecompress(Byte[]                Payload,
                                      out Byte[]            Decompressed,
-                                     out String?           ErrorResponse)
+                                     out String?           ErrorResponse,
+                                     out Boolean           ExceededSizeLimit)
         {
 
-            Decompressed   = [];
-            ErrorResponse  = null;
+            Decompressed       = [];
+            ErrorResponse      = null;
+            ExceededSizeLimit  = false;
 
             try
             {
@@ -165,7 +168,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     // Guard against decompression bombs!
                     if (total > maxSize)
                     {
-                        ErrorResponse = $"The decompressed message exceeds the maximum allowed size of {maxSize} bytes!";
+                        ErrorResponse      = $"The decompressed message exceeds the maximum allowed size of {maxSize} bytes!";
+                        ExceededSizeLimit  = true;
                         return false;
                     }
 
@@ -179,6 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
+                // Corrupt or invalid DEFLATE data (RFC 7692 Section 8: close with 1007).
                 ErrorResponse = $"The compressed message could not be decompressed: {e.Message}";
                 return false;
             }
@@ -227,7 +232,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // We can only honour the maximum window (15 bits). If the client
                 // requires the *server* to use a smaller window, we cannot comply
                 // (DeflateStream does not expose the window size), so skip this offer.
-                var requiresSmallerServerWindow = false;
+                // Per RFC 7692 Section 7.1.2.1 a 'server_max_window_bits' offer MUST
+                // carry a value of 8..15; a missing or unparseable value is malformed
+                // and treated as un-honourable rather than silently ignored.
+                var canHonourOffer = true;
 
                 foreach (var parameter in parameters.Skip(1))
                 {
@@ -237,16 +245,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     var value  = kv.Length > 1 ? kv[1].Trim().Trim('"') : null;
 
                     if (name.Equals("server_max_window_bits", StringComparison.OrdinalIgnoreCase) &&
-                        value is not null &&
-                        Byte.TryParse(value, out var bits) &&
-                        bits < 15)
+                        (value is null ||
+                         !Byte.TryParse(value, out var bits) ||
+                         bits != 15))
                     {
-                        requiresSmallerServerWindow = true;
+                        canHonourOffer = false;
                     }
 
                 }
 
-                if (requiresSmallerServerWindow)
+                if (!canHonourOffer)
                     continue;
 
                 // Accept the offer, always forcing no_context_takeover in both directions.
@@ -290,10 +298,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             foreach (var extension in ResponseExtensions!.Split(','))
             {
 
-                var name = extension.Split(';')[0].Trim();
+                var parameters  = extension.Split(';').Select(p => p.Trim()).ToArray();
 
-                if (name.Equals("permessage-deflate", StringComparison.OrdinalIgnoreCase))
-                    return new WebSocketPerMessageDeflate(CompressionLevel);
+                if (parameters.Length == 0 ||
+                    !parameters[0].Equals("permessage-deflate", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // We always compress with the full 15-bit window. A response that
+                // requires a smaller *client* window (client_max_window_bits < 15)
+                // cannot be satisfied, so the extension is unusable. (A smaller
+                // *server* window is fine: our 15-bit inflater decodes it.)
+                // Note: our offer never includes 'client_max_window_bits', so a
+                // conforming server (RFC 7692 Section 7.1.2.2) will not send it;
+                // this only guards against a misbehaving server. If we decline
+                // here while the server enabled the extension, the first compressed
+                // (RSV1) frame will fail the connection cleanly.
+                var canHonour = true;
+
+                foreach (var parameter in parameters.Skip(1))
+                {
+
+                    var kv     = parameter.Split('=', 2);
+                    var name   = kv[0].Trim();
+                    var value  = kv.Length > 1 ? kv[1].Trim().Trim('"') : null;
+
+                    if (name.Equals("client_max_window_bits", StringComparison.OrdinalIgnoreCase) &&
+                        value is not null &&
+                        Byte.TryParse(value, out var bits) &&
+                        bits < 15)
+                    {
+                        canHonour = false;
+                    }
+
+                }
+
+                return canHonour
+                           ? new WebSocketPerMessageDeflate(CompressionLevel)
+                           : null;
 
             }
 

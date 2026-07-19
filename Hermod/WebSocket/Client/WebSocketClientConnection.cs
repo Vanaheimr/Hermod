@@ -571,7 +571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                   Reason,
                                   Fin.Final,
                                   MaskStatus.On,
-                                  RandomExtensions.RandomBytes(4)
+                                  RandomExtensions.SecureRandomBytes(4)
                               ),
                               closeCTS.Token
                           );

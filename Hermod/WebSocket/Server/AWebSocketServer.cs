@@ -259,6 +259,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public TimeSpan                                                        WebSocketPingEvery            { get; set; }
 
+        /// <summary>
+        /// The number of consecutive web socket ping intervals without any received
+        /// frame (data, pong or otherwise) after which the connection is considered
+        /// dead and closed locally (zombie/half-open connection detection).
+        /// Zero disables the check. Default: 3 (≈ 3 × WebSocketPingEvery of silence).
+        /// </summary>
+        public UInt32                                                          MaxOutstandingPings           { get; set; } = 3;
+
 
         public UInt64?                                                         MaxTextMessageSizeIn          { get; set; }
         public UInt64?                                                         MaxTextMessageSizeOut         { get; set; }
@@ -942,6 +950,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
                                                 var token2                      = cts2.Token;
                                                 var lastWebSocketPingTimestamp  = Timestamp.Now;
+                                                var lastActivityTimestamp       = Timestamp.Now;
                                                 var sendErrors                  = 0;
 
                                                 WebSocketFrame.Opcodes? fragmentOpcode      = null;
@@ -1080,6 +1089,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         if (readTimeout)
                                                         {
 
+                                                            // Zombie/half-open detection: if no frame (data or pong) has been
+                                                            // received within MaxOutstandingPings ping intervals, the peer is
+                                                            // gone even though Socket.Poll cannot see the half-open TCP connection.
+                                                            // Tear the connection down locally (no close frame to a dead peer;
+                                                            // 1006 is reserved and must not be sent on the wire, RFC 6455 Section 7.4.1).
+                                                            if (!DisableWebSocketPings &&
+                                                                MaxOutstandingPings > 0 &&
+                                                                Timestamp.Now - lastActivityTimestamp > TimeSpan.FromTicks(WebSocketPingEvery.Ticks * MaxOutstandingPings))
+                                                            {
+                                                                Logger.LogWarning(
+                                                                    "WebSocket connection to {RemoteSocket} timed out (no data or pong for {Silence}); closing dead connection.",
+                                                                    webSocketConnection.RemoteSocket,
+                                                                    Timestamp.Now - lastActivityTimestamp
+                                                                );
+                                                                break;
+                                                            }
+
                                                             if (!DisableWebSocketPings)
                                                             {
 
@@ -1124,6 +1150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         // A read of zero bytes means the remote endpoint closed the TCP connection!
                                                         if (read == 0)
                                                             break;
+
+                                                        // Any received bytes prove the peer is alive (liveness for zombie detection).
+                                                        lastActivityTimestamp = Timestamp.Now;
 
                                                         bytes = new Byte[bytesLeftOver.Length + read];
 
@@ -1490,9 +1519,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         // permessage-deflate (RFC 7692): decompress a compressed message.
                                                                         if (frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null)
                                                                         {
-                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(textPayload, out textPayload, out _))
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(textPayload, out textPayload, out _, out var textExceededSizeLimit))
                                                                             {
-                                                                                failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                                failConnection = textExceededSizeLimit
+                                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
                                                                                 break;
                                                                             }
                                                                         }
@@ -1574,9 +1605,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         // permessage-deflate (RFC 7692): decompress a compressed message.
                                                                         if (frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null)
                                                                         {
-                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(binaryPayload, out binaryPayload, out _))
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(binaryPayload, out binaryPayload, out _, out var binaryExceededSizeLimit))
                                                                             {
-                                                                                failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                                failConnection = binaryExceededSizeLimit
+                                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
                                                                                 break;
                                                                             }
                                                                         }
@@ -1662,9 +1695,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         // permessage-deflate (RFC 7692): decompress the reassembled message.
                                                                         if (fragmentCompressed && webSocketConnection.PerMessageDeflate is not null)
                                                                         {
-                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(completePayload, out completePayload, out _))
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(completePayload, out completePayload, out _, out var fragmentExceededSizeLimit))
                                                                             {
-                                                                                failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                                failConnection = fragmentExceededSizeLimit
+                                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
                                                                                 break;
                                                                             }
                                                                         }
