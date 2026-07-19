@@ -43,6 +43,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         public IEnumerable<EMailBodypart>  NestedBodyparts    { get; }
 
+
+        /// <summary>
+        /// Whether this body part is an OpenPGP/MIME signed message (multipart/signed, RFC 3156).
+        /// This only reflects the MIME structure — use OpenPGP verification to check the signature itself.
+        /// </summary>
+        public Boolean IsPgpSigned
+            => ContentType?.ContentType == MailContentTypes.multipart_signed;
+
+        /// <summary>
+        /// Whether this body part is an OpenPGP/MIME encrypted message (multipart/encrypted, RFC 3156).
+        /// </summary>
+        public Boolean IsPgpEncrypted
+            => ContentType?.ContentType == MailContentTypes.multipart_encrypted;
+
         #endregion
 
         #region Constructor(s)

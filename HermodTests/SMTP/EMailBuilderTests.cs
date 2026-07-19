@@ -301,6 +301,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(ExtractPgpMessage(reText), Is.EqualTo(ExtractPgpMessage(text)),
                         "the OpenPGP ciphertext block must round-trip unchanged");
 
+            // ...and, definitively, the re-parsed message must still decrypt back to the original body.
+            Assert.That(DecryptWith(ExtractPgpMessage(reText), recipientSecretRing), Does.Contain(Marker),
+                        "the re-parsed ciphertext must still decrypt to the plaintext");
+
         }
 
         #endregion
@@ -441,6 +445,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(recipientKeyIds, Does.Contain(EncryptionKeyId(recipientPublicRing)), "Bob must be a recipient");
             Assert.That(recipientKeyIds, Does.Contain(EncryptionKeyId(carolPublicRing)),     "Carol must be a recipient");
 
+            // ...and it must survive our own parser: the multipart/encrypted shape is independent of the
+            // recipient count (still exactly two MIME parts; the extra PKESK packets live inside the
+            // opaque ciphertext), so re-parsing must preserve both recipients' session-key packets.
+            var parsed = EMail.Parse(mail.ToText());
+            Assert.That(parsed.Body.NestedBodyparts.Count(), Is.EqualTo(2), "multipart/encrypted must re-parse into two parts");
+
+            var reText          = String.Join("\r\n", parsed.ToText());
+            var reRecipientKeys = SessionKeyRecipients(ExtractPgpMessage(reText));
+            Assert.That(reRecipientKeys, Is.EquivalentTo(recipientKeyIds), "both recipients' session-key packets must survive parse → serialize");
+
+        }
+
+        [Test]
+        public void Encrypted_mail_decrypts_back_to_the_plaintext_for_every_recipient()
+        {
+
+            // The whole point of encryption: each intended recipient must actually be able to recover
+            // the original plaintext with their OWN private key (end-to-end, not just structurally).
+            var b = new TextEMailBuilder { Text = $"Hallo {Marker}" };
+            b.From          = AliceWithKey;
+            b.To            = EMailAddressListBuilder.Create(BobWithKey, CarolWithKey);
+            b.Subject       = "Test Subject";
+            b.SecurityLevel = EMailSecurity.encrypt;
+            b.Passphrase    = Passphrase;
+
+            EMail mail = b;
+            var   pgp  = ExtractPgpMessage(String.Join("\r\n", mail.ToText()));
+
+            Assert.That(DecryptWith(pgp, recipientSecretRing), Does.Contain(Marker), "Bob must recover the plaintext with his own key");
+            Assert.That(DecryptWith(pgp, carolSecretRing),     Does.Contain(Marker), "Carol must recover the plaintext with her own key");
+
         }
 
         // The KeyId the builder encrypts to for a given ring: prefer the encryption (sub)key, else the primary.
@@ -463,6 +498,169 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                             Cast<PgpPublicKeyEncryptedData>().
                             Select(data => data.KeyId).
                             ToArray();
+
+        }
+
+        // Fully decrypt an armored PGP MESSAGE with the given secret key ring and return the recovered
+        // plaintext. Reverses EncryptSignAndZip: PKESK -> session key -> decompress -> (one-pass sig) ->
+        // literal data. Throws / asserts if this ring is not one of the recipients.
+        private String DecryptWith(String ArmoredPgpMessage, PgpSecretKeyRing SecretRing)
+        {
+
+            using var ms      = new MemoryStream(Encoding.ASCII.GetBytes(ArmoredPgpMessage));
+            using var decoder = PgpUtilities.GetDecoderStream(ms);
+
+            var factory = new PgpObjectFactory(decoder);
+            var encList = (PgpEncryptedDataList) factory.NextPgpObject();
+
+            // Pick the PKESK packet this ring holds the private key for.
+            PgpPublicKeyEncryptedData?  encrypted   = null;
+            PgpPrivateKey?              privateKey  = null;
+
+            foreach (PgpPublicKeyEncryptedData candidate in encList.GetEncryptedDataObjects())
+            {
+                var secretKey = SecretRing.GetSecretKey(candidate.KeyId);
+                if (secretKey is not null)
+                {
+                    privateKey  = secretKey.ExtractPrivateKey(Passphrase.ToCharArray());
+                    encrypted   = candidate;
+                    break;
+                }
+            }
+
+            Assert.That(encrypted, Is.Not.Null, "no session-key packet matched this recipient's secret key");
+
+            var       clearFactory = new PgpObjectFactory(encrypted!.GetDataStream(privateKey));
+            PgpObject message       = clearFactory.NextPgpObject();
+
+            if (message is PgpCompressedData compressed)
+            {
+                clearFactory = new PgpObjectFactory(compressed.GetDataStream());
+                message      = clearFactory.NextPgpObject();
+            }
+
+            // EncryptSignAndZip writes a one-pass signature ahead of the literal data.
+            if (message is PgpOnePassSignatureList)
+                message = clearFactory.NextPgpObject();
+
+            var literal = (PgpLiteralData) message;
+
+            using var literalStream = literal.GetInputStream();
+            using var output        = new MemoryStream();
+            literalStream.CopyTo(output);
+
+            return Encoding.UTF8.GetString(output.ToArray());
+
+        }
+
+        #endregion
+
+        #region Inbound: structure flags, signature verification & decryption
+
+        [Test]
+        public void Parsed_signed_mail_is_flagged_and_verifies_against_the_sender_key()
+        {
+
+            var parsed = EMail.Parse(Build(html: false, withAttachment: false, withPgp: true).ToText());
+
+            Assert.That(parsed.IsPgpSigned,    Is.True,  "a multipart/signed mail must be flagged as signed");
+            Assert.That(parsed.IsPgpEncrypted, Is.False);
+
+            var result = parsed.VerifyPgpSignature(publicKeyRing);
+
+            Assert.That(result.IsValid,     Is.True, "the signature must verify against Alice's public key");
+            Assert.That(result.Status,      Is.EqualTo(PgpVerificationStatus.Valid));
+            Assert.That(result.SignerKeyId, Is.EqualTo(keyId), "the signer key id must be Alice's");
+
+        }
+
+        [Test]
+        public void Tampered_signed_body_fails_verification()
+        {
+
+            // Corrupt the signed body after signing → the signature must no longer validate.
+            var lines = Build(html: false, withAttachment: false, withPgp: true).ToText().ToList();
+            var idx   = lines.FindIndex(line => line.Contains(Marker));
+            Assert.That(idx, Is.GreaterThanOrEqualTo(0));
+            lines[idx] = lines[idx].Replace(Marker, "TAMPERED-CONTENT");
+
+            var result = EMail.Parse(lines).VerifyPgpSignature(publicKeyRing);
+
+            Assert.That(result.IsValid, Is.False, "a tampered body must fail signature verification");
+            Assert.That(result.Status,  Is.EqualTo(PgpVerificationStatus.Invalid));
+
+        }
+
+        [Test]
+        public void Signature_verification_without_the_signer_key_reports_no_matching_key()
+        {
+
+            // Verify with Bob's key ring, which does not contain Alice's signing key.
+            var result = EMail.Parse(Build(html: false, withAttachment: false, withPgp: true).ToText()).
+                             VerifyPgpSignature(recipientPublicRing);
+
+            Assert.That(result.Status,  Is.EqualTo(PgpVerificationStatus.NoMatchingKey));
+            Assert.That(result.IsValid, Is.False);
+
+        }
+
+        [Test]
+        public void Unsigned_mail_reports_no_signature()
+        {
+
+            var parsed = EMail.Parse(Build(html: false, withAttachment: false, withPgp: false).ToText());
+
+            Assert.That(parsed.IsPgpSigned, Is.False);
+            Assert.That(parsed.VerifyPgpSignature(publicKeyRing).Status, Is.EqualTo(PgpVerificationStatus.NoSignature));
+
+        }
+
+
+        [Test]
+        public void Parsed_encrypted_mail_is_flagged_and_decrypts_with_the_recipient_key()
+        {
+
+            // The inbound flow: parse shows it as encrypted; supplying the key decrypts it.
+            var parsed = EMail.Parse(Build(html: false, withAttachment: false, withPgp: false, withEncryption: true).ToText());
+
+            Assert.That(parsed.IsPgpEncrypted, Is.True, "a multipart/encrypted mail must be flagged as encrypted");
+            Assert.That(parsed.IsPgpSigned,    Is.False);
+
+            var decrypted = parsed.DecryptPgp(recipientSecretRing, Passphrase);
+
+            Assert.That(String.Join("\r\n", decrypted.ToText()), Does.Contain(Marker),
+                        "decrypting with the recipient's key must recover the plaintext body");
+
+        }
+
+        [Test]
+        public void Parsed_multi_recipient_encrypted_mail_decrypts_for_each_recipient()
+        {
+
+            var b = new TextEMailBuilder { Text = $"Hallo {Marker}" };
+            b.From          = AliceWithKey;
+            b.To            = EMailAddressListBuilder.Create(BobWithKey, CarolWithKey);
+            b.Subject       = "Test Subject";
+            b.SecurityLevel = EMailSecurity.encrypt;
+            b.Passphrase    = Passphrase;
+
+            EMail mail   = b;
+            var   parsed = EMail.Parse(mail.ToText());
+
+            Assert.That(String.Join("\r\n", parsed.DecryptPgp(recipientSecretRing, Passphrase).ToText()), Does.Contain(Marker), "Bob decrypts");
+            Assert.That(String.Join("\r\n", parsed.DecryptPgp(carolSecretRing,     Passphrase).ToText()), Does.Contain(Marker), "Carol decrypts");
+
+        }
+
+        [Test]
+        public void Decrypting_with_a_non_recipient_key_throws()
+        {
+
+            // Alice (the sender) is not a recipient, so her key cannot decrypt the message.
+            var parsed = EMail.Parse(Build(html: false, withAttachment: false, withPgp: false, withEncryption: true).ToText());
+
+            Assert.That(() => parsed.DecryptPgp(secretKeyRing, Passphrase),
+                        Throws.TypeOf<Org.BouncyCastle.Bcpg.OpenPgp.PgpException>());
 
         }
 

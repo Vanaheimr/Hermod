@@ -267,6 +267,129 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region VerifyDetachedSignature(SignedData, ArmoredSignature, PublicKeys)
+
+        /// <summary>
+        /// Verify a detached OpenPGP signature (as used by multipart/signed, RFC 3156) over the given
+        /// signed data, using the signer's public key looked up from <paramref name="PublicKeys"/>.
+        /// </summary>
+        /// <param name="SignedData">The exact bytes that were signed.</param>
+        /// <param name="ArmoredSignature">The armored (or binary) detached signature stream.</param>
+        /// <param name="PublicKeys">A bundle of candidate signer public keys.</param>
+        public static PgpSignatureVerification VerifyDetachedSignature(Byte[]                  SignedData,
+                                                                       Stream                  ArmoredSignature,
+                                                                       PgpPublicKeyRingBundle  PublicKeys)
+        {
+
+            using var decoder = PgpUtilities.GetDecoderStream(ArmoredSignature);
+
+            var factory   = new PgpObjectFactory(decoder);
+            var pgpObject = factory.NextPgpObject();
+
+            // Signatures may be wrapped in a compressed-data packet.
+            if (pgpObject is PgpCompressedData compressed)
+            {
+                factory   = new PgpObjectFactory(compressed.GetDataStream());
+                pgpObject = factory.NextPgpObject();
+            }
+
+            if (pgpObject is not PgpSignatureList signatureList || signatureList.Count == 0)
+                return PgpSignatureVerification.NoSignature;
+
+            var signature = signatureList[0];
+            var publicKey = PublicKeys.GetPublicKey(signature.KeyId);
+
+            if (publicKey is null)
+                return PgpSignatureVerification.NoMatchingKey(signature.KeyId);
+
+            signature.InitVerify(publicKey);
+            signature.Update(SignedData);
+
+            return new PgpSignatureVerification(
+                       signature.Verify()
+                           ? PgpVerificationStatus.Valid
+                           : PgpVerificationStatus.Invalid,
+                       signature.KeyId,
+                       signature.HashAlgorithm,
+                       signature.CreationTime
+                   );
+
+        }
+
+        #endregion
+
+        #region Decrypt(ArmoredCiphertext, SecretKeys, Passphrase)
+
+        /// <summary>
+        /// Decrypt an OpenPGP message (as produced by <see cref="EncryptSignAndZip(Stream, UInt64, PgpSecretKey, String, IEnumerable{PgpPublicKey}, Stream, SymmetricKeyAlgorithmTag, HashAlgorithmTag, CompressionAlgorithmTag, Boolean, String, DateTimeOffset?)"/>)
+        /// using whichever recipient secret key from <paramref name="SecretKeys"/> the message was
+        /// encrypted to. Returns the recovered plaintext bytes.
+        /// </summary>
+        /// <param name="ArmoredCiphertext">The armored (or binary) OpenPGP message.</param>
+        /// <param name="SecretKeys">The recipient's secret key ring bundle.</param>
+        /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
+        public static Byte[] Decrypt(Stream                  ArmoredCiphertext,
+                                     PgpSecretKeyRingBundle  SecretKeys,
+                                     String                  Passphrase)
+        {
+
+            using var decoder = PgpUtilities.GetDecoderStream(ArmoredCiphertext);
+
+            var factory   = new PgpObjectFactory(decoder);
+            var pgpObject = factory.NextPgpObject();
+
+            // Skip a leading PGP marker packet, if any.
+            var encryptedList = pgpObject as PgpEncryptedDataList
+                                    ?? factory.NextPgpObject() as PgpEncryptedDataList;
+
+            if (encryptedList is null)
+                throw new PgpException("The message does not begin with an encrypted-data list!");
+
+            // Find the public-key encrypted session-key packet we hold a secret key for.
+            PgpPublicKeyEncryptedData?  encrypted   = null;
+            PgpPrivateKey?              privateKey  = null;
+
+            foreach (PgpPublicKeyEncryptedData candidate in encryptedList.GetEncryptedDataObjects())
+            {
+                var secretKey = SecretKeys.GetSecretKey(candidate.KeyId);
+                if (secretKey is not null)
+                {
+                    privateKey  = secretKey.ExtractPrivateKey(Passphrase.ToCharArray());
+                    encrypted   = candidate;
+                    break;
+                }
+            }
+
+            if (encrypted is null || privateKey is null)
+                throw new PgpException("No matching secret key for any of the message's recipients!");
+
+            var clearFactory = new PgpObjectFactory(encrypted.GetDataStream(privateKey));
+            var message      = clearFactory.NextPgpObject();
+
+            // The payload is compressed (EncryptSignAndZip zips it).
+            if (message is PgpCompressedData compressed)
+            {
+                clearFactory = new PgpObjectFactory(compressed.GetDataStream());
+                message      = clearFactory.NextPgpObject();
+            }
+
+            // A one-pass signature precedes the literal data (the message is signed as well as encrypted).
+            if (message is PgpOnePassSignatureList)
+                message = clearFactory.NextPgpObject();
+
+            if (message is not PgpLiteralData literal)
+                throw new PgpException("The decrypted message did not contain literal data!");
+
+            using var literalStream = literal.GetInputStream();
+            using var output        = new MemoryStream();
+            literalStream.CopyTo(output);
+
+            return output.ToArray();
+
+        }
+
+        #endregion
+
         #region WriteTo<T>(this Signature, OutputStream, ArmoredOutput = true, CloseOutputStream = true)
 
         public static T WriteTo<T>(this PgpSignature  Signature,

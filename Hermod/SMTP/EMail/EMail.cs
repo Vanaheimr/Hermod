@@ -19,6 +19,8 @@
 
 using System.Collections.Concurrent;
 
+using Org.BouncyCastle.Bcpg.OpenPgp;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -220,6 +222,112 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             return String.Empty;
 
         }
+
+        #endregion
+
+
+        #region OpenPGP (RFC 3156)
+
+        /// <summary>
+        /// Whether this e-mail is an OpenPGP/MIME signed message (multipart/signed).
+        /// Reflects the MIME structure only — call <see cref="VerifyPgpSignature(PgpPublicKeyRing)"/>
+        /// to check whether the signature is actually valid.
+        /// </summary>
+        public Boolean IsPgpSigned
+            => Body?.IsPgpSigned == true;
+
+        /// <summary>
+        /// Whether this e-mail is an OpenPGP/MIME encrypted message (multipart/encrypted).
+        /// </summary>
+        public Boolean IsPgpEncrypted
+            => Body?.IsPgpEncrypted == true;
+
+
+        #region VerifyPgpSignature(SenderPublicKey/s)
+
+        /// <summary>
+        /// Verify the OpenPGP/MIME signature of this (multipart/signed) e-mail against the given
+        /// sender public key.
+        /// </summary>
+        /// <param name="SenderPublicKey">The purported sender's public key ring.</param>
+        public PgpSignatureVerification VerifyPgpSignature(PgpPublicKeyRing SenderPublicKey)
+            => VerifyPgpSignature(new PgpPublicKeyRingBundle(SenderPublicKey.GetEncoded()));
+
+        /// <summary>
+        /// Verify the OpenPGP/MIME signature of this (multipart/signed) e-mail against the given
+        /// bundle of candidate sender public keys.
+        /// </summary>
+        /// <param name="SenderPublicKeys">Candidate sender public keys.</param>
+        public PgpSignatureVerification VerifyPgpSignature(PgpPublicKeyRingBundle SenderPublicKeys)
+        {
+
+            if (Body is null || !Body.IsPgpSigned)
+                return PgpSignatureVerification.NoSignature;
+
+            var parts = Body.NestedBodyparts.ToList();
+
+            if (parts.Count < 2)
+                return PgpSignatureVerification.NoSignature;
+
+            var signedPart     = parts[0];
+            var signaturePart  = parts[1];
+
+            // Reconstruct the exact bytes that were signed (RFC 3156 §5, mirrors Builder.EncodeBodyparts):
+            // the signed MIME part serialized WITH its headers, each line right-trimmed, joined with CRLF.
+            var signedData = signedPart.ToText().
+                                 Select(line => line.TrimEnd()).
+                                 Aggregate((a, b) => a + "\r\n" + b).
+                                 ToUTF8Bytes();
+
+            var armoredSignature = String.Join("\r\n", signaturePart.MailBody);
+
+            using var signatureStream = new MemoryStream(armoredSignature.ToUTF8Bytes());
+
+            return OpenPGP.VerifyDetachedSignature(signedData, signatureStream, SenderPublicKeys);
+
+        }
+
+        #endregion
+
+        #region DecryptPgp(RecipientKey/s, Passphrase)
+
+        /// <summary>
+        /// Decrypt this (multipart/encrypted) e-mail with the given recipient secret key and return
+        /// the recovered inner MIME body part.
+        /// </summary>
+        /// <param name="RecipientKey">The recipient's secret key ring.</param>
+        /// <param name="Passphrase">The passphrase protecting the secret key.</param>
+        public EMailBodypart DecryptPgp(PgpSecretKeyRing RecipientKey, String Passphrase)
+            => DecryptPgp(new PgpSecretKeyRingBundle(RecipientKey.GetEncoded()), Passphrase);
+
+        /// <summary>
+        /// Decrypt this (multipart/encrypted) e-mail with whichever of the given recipient secret keys
+        /// the message was encrypted to, and return the recovered inner MIME body part.
+        /// </summary>
+        /// <param name="RecipientKeys">The recipient's secret key ring bundle.</param>
+        /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
+        public EMailBodypart DecryptPgp(PgpSecretKeyRingBundle RecipientKeys, String Passphrase)
+        {
+
+            if (Body is null || !Body.IsPgpEncrypted)
+                throw new InvalidOperationException("This e-mail is not an OpenPGP/MIME encrypted message!");
+
+            // The ciphertext lives in the application/octet-stream part (RFC 3156 §4).
+            var ciphertextPart = Body.NestedBodyparts.
+                                     FirstOrDefault(part => part.MailBody.Any(line => line.Contains("BEGIN PGP MESSAGE")))
+                                 ?? throw new InvalidOperationException("No OpenPGP message part found in the encrypted e-mail!");
+
+            var armored = String.Join("\r\n", ciphertextPart.MailBody);
+
+            using var input      = new MemoryStream(armored.ToUTF8Bytes());
+            var       plaintext  = OpenPGP.Decrypt(input, RecipientKeys, Passphrase);
+
+            // The decrypted payload is itself a MIME body part — parse it back.
+            return new EMailBodypart(plaintext.ToUTF8String().Split(["\r\n"], StringSplitOptions.None));
+
+        }
+
+        #endregion
 
         #endregion
 
