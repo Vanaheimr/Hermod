@@ -92,6 +92,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public          Boolean   EnableDmarcForensic        { get; init; } = false;
 
+        /// <summary>
+        /// Automatically generate a Message Disposition Notification (read receipt, RFC 8098) when a
+        /// locally-delivered message requested one. Opt-in and privacy-sensitive: automatic MDNs confirm
+        /// a live address and can be abused (RFC 8098 §2.1). Only effective when an outbound queue exists
+        /// to send the MDN through.
+        /// </summary>
+        public          Boolean   EnableAutoMdn              { get; init; } = false;
+
         /// <summary>How often aggregate reports are generated (RFC 7489 default 86400 s).</summary>
         public          TimeSpan  DmarcReportInterval        { get; init; } = TimeSpan.FromHours(24);
 

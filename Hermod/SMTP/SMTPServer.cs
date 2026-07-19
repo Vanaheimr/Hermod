@@ -53,19 +53,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                           ILogger?          logger            = null,
                           IUserStore?       userStore         = null,
                           IMailQueue?       mailQueue         = null,
-                          RateLimitConfig?  rateLimitConfig   = null)
+                          RateLimitConfig?  rateLimitConfig   = null,
+                          IMailStorage?     mailStorage       = null)
 
         {
 
             this.serverConfig        = ServerConfig;
             this._rateLimitConfig    = rateLimitConfig ?? new RateLimitConfig();
             this._logger             = logger          ?? new ConsoleLogger();
-            this._storage            = new FileMailStorage(ServerConfig.MailStoragePath, _logger);
             this.dnsClient           = DNSClient;
             this._dnsVerifier        = new DNSVerifier(this.dnsClient, _logger);
             this._userStore          = userStore ?? new FileUserStore(Path.Combine(ServerConfig.MailStoragePath, "users.txt"));
             this._mailQueue          = mailQueue;
             this._connectionTracker  = new ConnectionTracker(_rateLimitConfig, _logger);
+
+            // Mail storage: an injected IMailStorage, or the default file store. When automatic read
+            // receipts are enabled (and there is a queue to send them through), wrap it so a stored
+            // message that requested one triggers an MDN (RFC 8098) back to the sender.
+            var baseStorage          = mailStorage ?? new FileMailStorage(ServerConfig.MailStoragePath, _logger);
+            this._storage            = ServerConfig.EnableAutoMdn && _mailQueue is not null
+                                           ? new MdnGeneratingMailStorage(baseStorage, _mailQueue, _logger)
+                                           : baseStorage;
+
+            if (ServerConfig.EnableAutoMdn && _mailQueue is not null)
+                _logger.Log(LogLevel.Info, "Automatic MDN (read receipt) generation on local delivery is enabled");
 
             if (ServerConfig.CertificatePath is not null)
             {
