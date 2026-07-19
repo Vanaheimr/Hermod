@@ -391,6 +391,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
+        #region Message Disposition Notifications (read receipts, RFC 8098)
+
+        /// <summary>
+        /// The address that requested a read receipt via the "Disposition-Notification-To" header,
+        /// or null if none was requested.
+        /// </summary>
+        public String? DispositionNotificationTo
+        {
+            get
+            {
+                var value = GetEMailHeader("Disposition-Notification-To");
+                return value.IsNotNullOrEmpty() ? value : null;
+            }
+        }
+
+        /// <summary>
+        /// Whether this e-mail requested a read receipt (RFC 8098).
+        /// </summary>
+        public Boolean IsReadReceiptRequested
+            => DispositionNotificationTo is not null;
+
+        /// <summary>
+        /// Create a Message Disposition Notification (read receipt, RFC 8098) for this e-mail, addressed
+        /// to its "Disposition-Notification-To" header. Returns null if no read receipt was requested.
+        /// A mail client calls this when the user displays (or otherwise disposes of) the message and
+        /// then sends the result like any other e-mail.
+        /// </summary>
+        /// <param name="ReportingAgent">The recipient generating the receipt (becomes the MDN's From).</param>
+        /// <param name="Disposition">What happened to the message; defaults to displayed/automatic.</param>
+        /// <param name="ReportingUAProduct">The product name for the Reporting-UA field.</param>
+        /// <param name="IncludeOriginalHeaders">Whether to append the original message headers.</param>
+        public EMail? CreateReadReceipt(EMailAddress         ReportingAgent,
+                                        MessageDisposition?  Disposition             = null,
+                                        String?              ReportingUAProduct      = null,
+                                        Boolean              IncludeOriginalHeaders  = true)
+        {
+
+            var notifyTo = DispositionNotificationTo;
+            if (notifyTo is null)
+                return null;
+
+            var disposition     = Disposition ?? MessageDisposition.DisplayedAutomatically;
+            var reporter        = ReportingAgent.Address.ToString();
+            var reporterDomain  = reporter.Contains('@') ? reporter[(reporter.IndexOf('@') + 1)..] : "localhost";
+            var product         = ReportingUAProduct.IsNotNullOrEmpty() ? ReportingUAProduct! : "Hermod";
+            var boundary        = "=_mdn_" + Guid.NewGuid().ToString("N");
+
+            var lines = new List<String>
+            {
+                $"From: {ReportingAgent}",
+                $"To: {notifyTo}",
+                $"Subject: Read receipt: {Subject}",
+                $"Date: {DateTime.UtcNow:R}",
+                $"Message-ID: <mdn.{Guid.NewGuid():N}@{reporterDomain}>",
+                "MIME-Version: 1.0",
+                "Auto-Submitted: auto-replied",   // RFC 3834 — this is an automatic reply; do not reply to it
+                "Content-Type: multipart/report; report-type=disposition-notification;",
+                $"    boundary=\"{boundary}\"",
+                "",
+
+                // Part 1 — human-readable
+                "--" + boundary,
+                "Content-Type: text/plain; charset=utf-8",
+                "",
+                $"This is a return receipt for the mail you sent to {notifyTo}.",
+                $"It was {disposition.Type.ToString().ToLowerInvariant()}.",
+                "",
+
+                // Part 2 — machine-readable disposition-notification (RFC 8098 §3.1.2)
+                "--" + boundary,
+                "Content-Type: message/disposition-notification",
+                "",
+                $"Reporting-UA: {reporterDomain}; {product}",
+                $"Final-Recipient: rfc822; {reporter}"
+            };
+
+            var originalMessageId = GetEMailHeader("Message-ID");
+            if (originalMessageId.IsNotNullOrEmpty())
+                lines.Add($"Original-Message-ID: {originalMessageId}");
+
+            lines.Add($"Disposition: {disposition}");
+            lines.Add("");
+
+            // Part 3 — original headers (optional)
+            if (IncludeOriginalHeaders)
+            {
+                lines.Add("--" + boundary);
+                lines.Add("Content-Type: text/rfc822-headers");
+                lines.Add("");
+                lines.AddRange(ToText().TakeWhile(line => line.IsNotNullOrEmpty()));
+                lines.Add("");
+            }
+
+            lines.Add("--" + boundary + "--");
+
+            return Parse(lines);
+
+        }
+
+        #endregion
+
+
         /// <summary>
         /// Return a string representation of this e-mail.
         /// </summary>

@@ -159,6 +159,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             /// </summary>
             public SimpleEMailAddress?                   ListPost                  { get; set; }
 
+            /// <summary>
+            /// Request a read receipt (message disposition notification, RFC 8098) to this address.
+            /// </summary>
+            public EMailAddress?                         DispositionNotificationTo { get; set; }
+
 
 
 
@@ -436,6 +441,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                     if (ListPost           is not null)
                         SetEMailHeader("List-Post",                  $"<mailto:{ListPost}>");
+
+                    if (DispositionNotificationTo is not null)
+                        SetEMailHeader("Disposition-Notification-To", DispositionNotificationTo.ToString());
 
 
 

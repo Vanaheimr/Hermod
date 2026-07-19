@@ -25,9 +25,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         multipart_alternative,
         multipart_signed,
         multipart_encrypted,
+        multipart_report,
 
         text_plain,
         text_html,
+        text_rfc822__headers,
+
+        message_rfc822,
+        message_delivery__status,
+        message_disposition__notification,
 
         application_octet__stream,
         application_pgp__signature,

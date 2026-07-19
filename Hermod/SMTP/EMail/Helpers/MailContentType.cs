@@ -206,8 +206,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             }
 
-            MailContentType = null;
-            return false;
+            // Unrecognized media type: keep it as 'unknown' (retaining the original text) rather than
+            // failing. Real inbound mail carries many leaf types we do not model; returning null here
+            // made the MIME parser NRE. The verbatim string is preserved in Text.
+            MailContentType = new MailContentType(
+                                  MailContentTypes.unknown,
+                                  Text: ContentTypeString
+                              );
+
+            return true;
 
         }
 
