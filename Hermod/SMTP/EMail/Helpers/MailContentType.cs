@@ -142,7 +142,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             }
 
-            if (Enum.TryParse<MailContentTypes>(splitted[0].Replace("/", "_").Replace("+", "__"), out var _mailContentType))
+            // Map the MIME type to the enum member name: '/' → '_', '-' → '__' (e.g.
+            // "application/pgp-signature" → application_pgp__signature). This must mirror
+            // MailContentType.ToString(), which does the inverse ('__' → '-', '_' → '/').
+            if (Enum.TryParse<MailContentTypes>(splitted[0].Replace("/", "_").Replace("+", "__").Replace("-", "__"), out var _mailContentType))
             {
 
                 mailContentType = _mailContentType;

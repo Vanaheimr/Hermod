@@ -197,13 +197,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(parsed.From?.Address.ToString(), Is.EqualTo("alice@example.com"));
             Assert.That(parsed.To.Any(),                Is.True);
 
-            // Structural fidelity: a multipart/mixed (attachment) message re-parses into nested
-            // body parts. NOTE: multipart/signed (PGP) currently re-parses to a *flat* body —
-            // its content and signature survive (asserted above) but the MIME tree is not yet
-            // reconstructed. That is a known limitation, tracked separately; hence attach-only here.
-            if (attach && !pgp)
+            // Structural fidelity: a multipart message — multipart/mixed (attachment) or
+            // multipart/signed (PGP) — must re-parse into nested body parts, not a flat body.
+            if (attach || pgp)
                 Assert.That(parsed.Body.NestedBodyparts.Any(), Is.True,
-                            "a multipart/mixed message should re-parse into nested body parts");
+                            "a multipart message should re-parse into nested body parts");
 
             var reText = String.Join("\r\n", parsed.ToText());
             Assert.That(reText, Does.Contain(Marker), "body content must survive parse → serialize");
