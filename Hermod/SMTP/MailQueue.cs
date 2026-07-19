@@ -38,6 +38,13 @@ public enum QueueItemStatus
 
 public sealed class QueuedMail
 {
+
+    // Constructed only inside this library (via MailSender or the internal report/relay paths);
+    // external callers must go through MailSender with a typed EMail/EMailEnvelop instead of
+    // hand-crafting a raw message string. [JsonConstructor] keeps FileMailQueue persistence working.
+    [JsonConstructor]
+    internal QueuedMail() { }
+
     public required String    Id                { get; init; }
     public required String    EnvelopeFrom      { get; init; }
     public required String[]  EnvelopeTo        { get; init; }

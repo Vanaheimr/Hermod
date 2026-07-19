@@ -137,12 +137,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
-        public async Task<SendResult> SendAsync(String             targetDomain,
-                                                String             envelopeFrom,
-                                                String[]           recipients,
-                                                String             messageContent,
-                                                Boolean            requireTls   = false,
-                                                CancellationToken  ct           = default)
+        // Raw-string send. Kept internal on purpose: external callers should compose a typed
+        // EMail/EMailEnvelop and go through MailSender (which serializes it), rather than passing
+        // an unchecked message string here. The QueueProcessor drives this for queued delivery.
+        internal async Task<SendResult> SendAsync(String             targetDomain,
+                                                  String             envelopeFrom,
+                                                  String[]           recipients,
+                                                  String             messageContent,
+                                                  Boolean            requireTls   = false,
+                                                  CancellationToken  ct           = default)
         {
 
             var startTime = DateTime.UtcNow;
