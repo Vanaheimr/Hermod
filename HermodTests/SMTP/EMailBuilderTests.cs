@@ -301,6 +301,117 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region Security-mode selection — autosign / auto (graceful degradation) & encrypt failure paths
+
+        // Address fixtures with different key material available.
+        private EMailAddress AliceWithKey => new ("Alice", SimpleEMailAddress.Parse("alice@example.com"), secretKeyRing, publicKeyRing);
+        private EMailAddress AliceNoKey   => (EMailAddress) SimpleEMailAddress.Parse("alice@example.com");
+        private EMailAddress BobWithKey   => new ("Bob",   SimpleEMailAddress.Parse("bob@example.org"),   null, recipientPublicRing);
+        private EMailAddress BobNoKey     => (EMailAddress) SimpleEMailAddress.Parse("bob@example.org");
+
+        // A minimal text builder wired with the given sender/recipient/mode (passphrase always supplied).
+        private TextEMailBuilder MakeBuilder(EMailAddress From, EMailAddress To, EMailSecurity Security)
+            => new ()
+               {
+                   Text          = $"Hallo {Marker}",
+                   From          = From,
+                   To            = To,
+                   Subject       = "Test Subject",
+                   SecurityLevel = Security,
+                   Passphrase    = Passphrase
+               };
+
+        // Assertions on the serialized wire form for each of the three possible outcomes.
+
+        private void AssertSigned(String text)
+        {
+            Assert.That(text, Does.Contain("multipart/signed"),        "expected a signed (multipart/signed) message");
+            Assert.That(text, Does.Contain("BEGIN PGP SIGNATURE"),     "expected an armored signature");
+            Assert.That(text, Does.Not.Contain("multipart/encrypted"), "must not be encrypted");
+            Assert.That(text, Does.Contain(Marker),                    "a signed (unencrypted) body keeps the plaintext on the wire");
+            AssertSignatureIsOurs(text);
+        }
+
+        private void AssertEncrypted(String text)
+        {
+            Assert.That(text, Does.Contain("multipart/encrypted"),     "expected an encrypted (multipart/encrypted) message");
+            Assert.That(text, Does.Contain("BEGIN PGP MESSAGE"),       "expected an armored ciphertext");
+            Assert.That(text, Does.Not.Contain(Marker),                "an encrypted body must not leak the plaintext marker");
+        }
+
+        private void AssertPlaintext(String text)
+        {
+            Assert.That(text, Does.Not.Contain("multipart/signed"),    "must not be signed");
+            Assert.That(text, Does.Not.Contain("multipart/encrypted"), "must not be encrypted");
+            Assert.That(text, Does.Not.Contain("BEGIN PGP"),           "must carry no OpenPGP block");
+            Assert.That(text, Does.Contain(Marker),                    "plaintext body must be on the wire");
+        }
+
+
+        [Test]
+        public void Autosign_with_a_key_signs()
+        {
+            // autosign + key available  →  sign
+            EMail mail = MakeBuilder(AliceWithKey, BobNoKey, EMailSecurity.autosign);
+            AssertSigned(String.Join("\r\n", mail.ToText()));
+        }
+
+        [Test]
+        public void Autosign_without_a_key_degrades_to_plaintext_and_does_not_throw()
+        {
+            // autosign is best-effort: no key must NOT throw, and must fall back to plaintext.
+            var b = MakeBuilder(AliceNoKey, BobNoKey, EMailSecurity.autosign);
+            EMail mail = null!;
+            Assert.That(() => { mail = b; }, Throws.Nothing, "autosign must never fail");
+            AssertPlaintext(String.Join("\r\n", mail.ToText()));
+        }
+
+        [Test]
+        public void Auto_with_sender_and_recipient_keys_encrypts()
+        {
+            // auto + can sign + recipient has a public key  →  sign+encrypt
+            EMail mail = MakeBuilder(AliceWithKey, BobWithKey, EMailSecurity.auto);
+            AssertEncrypted(String.Join("\r\n", mail.ToText()));
+        }
+
+        [Test]
+        public void Auto_with_sender_key_but_recipient_without_key_degrades_to_sign_only()
+        {
+            // auto + can sign + recipient has NO public key  →  degrade to sign-only (no throw)
+            var b = MakeBuilder(AliceWithKey, BobNoKey, EMailSecurity.auto);
+            EMail mail = null!;
+            Assert.That(() => { mail = b; }, Throws.Nothing, "auto must never fail");
+            AssertSigned(String.Join("\r\n", mail.ToText()));
+        }
+
+        [Test]
+        public void Auto_without_a_key_degrades_to_plaintext_and_does_not_throw()
+        {
+            // auto + cannot even sign  →  plaintext (no throw)
+            var b = MakeBuilder(AliceNoKey, BobWithKey, EMailSecurity.auto);
+            EMail mail = null!;
+            Assert.That(() => { mail = b; }, Throws.Nothing, "auto must never fail");
+            AssertPlaintext(String.Join("\r\n", mail.ToText()));
+        }
+
+        [Test]
+        public void Encrypt_without_a_recipient_key_throws()
+        {
+            // encrypt is mandatory: a recipient without a public key must throw, never silently downgrade.
+            var b = MakeBuilder(AliceWithKey, BobNoKey, EMailSecurity.encrypt);
+            Assert.That(() => { EMail _ = b; }, Throws.TypeOf<ApplicationException>());
+        }
+
+        [Test]
+        public void Encrypt_without_a_sender_key_throws()
+        {
+            // encrypt always signs too, so a missing sender secret key must throw.
+            var b = MakeBuilder(AliceNoKey, BobWithKey, EMailSecurity.encrypt);
+            Assert.That(() => { EMail _ = b; }, Throws.TypeOf<ApplicationException>());
+        }
+
+        #endregion
+
         #region Edge cases
 
         [Test]
