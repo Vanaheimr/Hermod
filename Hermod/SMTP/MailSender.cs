@@ -75,6 +75,7 @@ public sealed class MailSender
     /// <param name="CancellationToken">An optional cancellation token.</param>
     public async Task<IReadOnlyList<String>> SendAsync(EMailEnvelop       EMailEnvelop,
                                                        Boolean            RequireTls          = false,
+                                                       DsnParameters?     Dsn                 = null,
                                                        CancellationToken  CancellationToken   = default)
     {
 
@@ -89,6 +90,7 @@ public sealed class MailSender
         // Serialize the composed message to the RFC 5322 wire format. CRLF is forced here (never
         // Environment.NewLine); dot-stuffing is applied later by the outbound client, not now.
         var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText());
+        var dsn            = Dsn ?? DsnParameters.None;
 
         var ids = new List<String>();
 
@@ -106,7 +108,10 @@ public sealed class MailSender
                 EnvelopeTo      = to,
                 MessageContent  = messageContent,
                 TargetDomain    = domain,
-                RequireTls      = RequireTls
+                RequireTls      = RequireTls,
+                Notify          = dsn.Notify,
+                Ret             = dsn.Ret,
+                EnvId           = dsn.EnvId
             }, CancellationToken).ConfigureAwait(false);
 
             ids.Add(id);
@@ -129,9 +134,10 @@ public sealed class MailSender
     /// </summary>
     public Task<IReadOnlyList<String>> SendAsync(EMail              EMail,
                                                  Boolean            RequireTls          = false,
+                                                 DsnParameters?     Dsn                 = null,
                                                  CancellationToken  CancellationToken   = default)
 
-        => SendAsync(new EMailEnvelop(EMail), RequireTls, CancellationToken);
+        => SendAsync(new EMailEnvelop(EMail), RequireTls, Dsn, CancellationToken);
 
     #endregion
 
@@ -151,6 +157,7 @@ public sealed class MailSender
     /// <exception cref="InvalidOperationException">This sender was created without a direct-delivery client.</exception>
     public async Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMailEnvelop       EMailEnvelop,
                                                                        Boolean            RequireTls          = false,
+                                                                       DsnParameters?     Dsn                 = null,
                                                                        CancellationToken  CancellationToken   = default)
     {
 
@@ -178,7 +185,7 @@ public sealed class MailSender
             var domain = byDomain.Key.TrimEnd('.').ToLowerInvariant();
             var to     = byDomain.Select(rcpt => rcpt.Address.ToString()).ToArray();
 
-            var result = await directClient.SendAsync(domain, from, to, messageContent, RequireTls, CancellationToken)
+            var result = await directClient.SendAsync(domain, from, to, messageContent, RequireTls, Dsn ?? DsnParameters.None, CancellationToken)
                                            .ConfigureAwait(false);
 
             results.Add(new DirectSendResult(domain, to, result));
@@ -201,9 +208,10 @@ public sealed class MailSender
     /// </summary>
     public Task<IReadOnlyList<DirectSendResult>> SendDirectAsync(EMail              EMail,
                                                                  Boolean            RequireTls          = false,
+                                                                 DsnParameters?     Dsn                 = null,
                                                                  CancellationToken  CancellationToken   = default)
 
-        => SendDirectAsync(new EMailEnvelop(EMail), RequireTls, CancellationToken);
+        => SendDirectAsync(new EMailEnvelop(EMail), RequireTls, Dsn, CancellationToken);
 
     #endregion
 

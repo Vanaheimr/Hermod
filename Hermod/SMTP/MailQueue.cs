@@ -60,6 +60,12 @@ public sealed class QueuedMail
     public String?            RemoteResponse    { get; set;  }
     public Boolean            RequireTls        { get; init; } = false;  // RFC 8689
 
+    // DSN request (RFC 3461) attached by the sender; carried onto the outbound MAIL FROM / RCPT TO
+    // (if the remote advertises DSN) and used to decide whether to emit a success DSN on delivery.
+    public DsnNotify          Notify            { get; init; } = DsnNotify.Never;
+    public DsnRet             Ret               { get; init; } = DsnRet.Full;
+    public String?            EnvId             { get; init; }
+
 }
 
 #endregion

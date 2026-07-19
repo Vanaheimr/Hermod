@@ -88,6 +88,86 @@ public sealed class RecipientDsn
 
 #endregion
 
+#region DSN outbound request
+
+/// <summary>
+/// DSN parameters a sender attaches to an outgoing message (RFC 3461) to request delivery status
+/// notifications from the receiving server.
+/// </summary>
+public sealed record DsnParameters(DsnNotify   Notify   = DsnNotify.Never,
+                                   DsnRet      Ret      = DsnRet.Full,
+                                   string?     EnvId    = null)
+{
+
+    /// <summary>No DSN requested — the receiver applies its default (usually failures only).</summary>
+    public static readonly DsnParameters None = new (DsnNotify.Never);
+
+    /// <summary>Whether a DSN was actually requested (a NOTIFY other than Never, or an ENVID).</summary>
+    public bool IsRequested => Notify != DsnNotify.Never || EnvId is not null;
+
+}
+
+/// <summary>
+/// Builds RFC 3461 MAIL FROM / RCPT TO parameter strings for outbound DSN requests. Parameters are
+/// only appended when the remote server advertised the DSN extension and a request is present.
+/// </summary>
+public static class DsnCommands
+{
+
+    /// <summary>
+    /// Format a NOTIFY value per RFC 3461: NEVER, or a comma-separated list of SUCCESS/FAILURE/DELAY.
+    /// </summary>
+    public static string FormatNotify(DsnNotify notify)
+    {
+        if (notify == DsnNotify.Never)
+            return "NEVER";
+
+        var parts = new List<string>();
+        if (notify.HasFlag(DsnNotify.Success)) parts.Add("SUCCESS");
+        if (notify.HasFlag(DsnNotify.Failure)) parts.Add("FAILURE");
+        if (notify.HasFlag(DsnNotify.Delay))   parts.Add("DELAY");
+
+        return parts.Count > 0 ? string.Join(",", parts) : "NEVER";
+    }
+
+    /// <summary>
+    /// Build a MAIL FROM command, appending RET/ENVID when the remote supports DSN and one was requested.
+    /// </summary>
+    public static string MailFrom(string envelopeFrom, DsnParameters dsn, bool remoteSupportsDsn)
+    {
+        var cmd = $"MAIL FROM:<{envelopeFrom}>";
+
+        if (!remoteSupportsDsn || !dsn.IsRequested)
+            return cmd;
+
+        cmd += dsn.Ret == DsnRet.Hdrs ? " RET=HDRS" : " RET=FULL";
+
+        if (dsn.EnvId is not null)
+            cmd += $" ENVID={dsn.EnvId}";
+
+        return cmd;
+    }
+
+    /// <summary>
+    /// Build a RCPT TO command, appending NOTIFY/ORCPT when the remote supports DSN and one was requested.
+    /// </summary>
+    public static string RcptTo(string recipient, DsnParameters dsn, bool remoteSupportsDsn)
+    {
+        var cmd = $"RCPT TO:<{recipient}>";
+
+        if (!remoteSupportsDsn || dsn.Notify == DsnNotify.Never)
+            return cmd;
+
+        cmd += " NOTIFY=" + FormatNotify(dsn.Notify);
+        cmd += $" ORCPT=rfc822;{recipient}";
+
+        return cmd;
+    }
+
+}
+
+#endregion
+
 #region DSN Generator
 
 /// <summary>

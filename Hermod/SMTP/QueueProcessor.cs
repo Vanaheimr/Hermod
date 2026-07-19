@@ -277,6 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.EnvelopeTo,
                     mail.MessageContent,
                     mail.RequireTls,
+                    new DsnParameters(mail.Notify, mail.Ret, mail.EnvId),
                     ct
                 );
 
@@ -313,6 +314,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.RemoteResponse = result.ResponseText;
 
                     await mailQueue.UpdateAsync(mail, ct);
+
+                    // Positive delivery status notification (RFC 3461), if NOTIFY=SUCCESS was requested.
+                    await bounceHandler.SendDeliveryNotificationAsync(mail, ct);
                     break;
 
                 case SendStatus.TempFail:

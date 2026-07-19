@@ -145,6 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                   String[]           recipients,
                                                   String             messageContent,
                                                   Boolean            requireTls   = false,
+                                                  DsnParameters?     dsn          = null,
                                                   CancellationToken  ct           = default)
         {
 
@@ -226,6 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                enforceTls,
                                                targetDomain,
                                                mtaStsPolicy.Mode,
+                                               dsn ?? DsnParameters.None,
                                                ct
                                            );
 
@@ -273,6 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         Boolean             enforceTls,
                                                         String              policyDomain,
                                                         MtaStsMode          stsMode,
+                                                        DsnParameters       dsn,
                                                         CancellationToken   ct)
         {
 
@@ -447,20 +450,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
                 }
 
-                // MAIL FROM
-                await writer.WriteLineAsync($"MAIL FROM:<{envelopeFrom}>");
+                // DSN (RFC 3461): only request notifications if the remote advertised the extension.
+                var supportsDsn = ehloResponse.Lines.Any(l =>
+                    l.Contains("DSN", StringComparison.OrdinalIgnoreCase));
+
+                // MAIL FROM (with RET/ENVID when a DSN was requested and supported)
+                await writer.WriteLineAsync(DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn));
                 var mailResponse = await ReadResponseAsync(reader, ct);
                 if (!mailResponse.StartsWith("250"))
                 {
                     return ParseResponse(mailResponse, mxHost);
                 }
 
-                // RCPT TO for each recipient
+                // RCPT TO for each recipient (with NOTIFY/ORCPT when requested and supported)
                 var acceptedRecipients = new List<String>();
                 foreach (var recipient in recipients)
                 {
 
-                    await writer.WriteLineAsync($"RCPT TO:<{recipient}>");
+                    await writer.WriteLineAsync(DsnCommands.RcptTo(recipient, dsn, supportsDsn));
                     var rcptResponse = await ReadResponseAsync(reader, ct);
 
                     if (rcptResponse.StartsWith("250") || rcptResponse.StartsWith("251"))

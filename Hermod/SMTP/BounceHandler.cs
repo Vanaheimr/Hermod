@@ -98,6 +98,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
         /// <summary>
+        /// Generate and queue a positive delivery status notification (RFC 3461) when the sender
+        /// requested NOTIFY=SUCCESS. No-op otherwise.
+        /// </summary>
+        public async Task SendDeliveryNotificationAsync(
+            QueuedMail          mail,
+            CancellationToken   ct = default)
+        {
+            // Only if the sender asked for success notifications.
+            if (!mail.Notify.HasFlag(DsnNotify.Success))
+                return;
+
+            // Never notify a null sender, and never notify about a notification (loop prevention).
+            if (string.IsNullOrEmpty(mail.EnvelopeFrom) || mail.EnvelopeFrom == "<>" ||
+                IsBouncedMessage(mail.MessageContent))
+                return;
+
+            var dsnGenerator = new DsnGenerator(config);
+
+            foreach (var recipient in mail.EnvelopeTo)
+            {
+
+                var dsn = dsnGenerator.GenerateDeliveryDsn(
+                    originalFrom:     mail.EnvelopeFrom,
+                    recipient:        new RecipientDsn { Recipient = recipient, Notify = mail.Notify },
+                    envId:            mail.EnvId,
+                    ret:              mail.Ret,
+                    originalMessage:  mail.MessageContent);
+
+                if (dsn is null)
+                    continue;
+
+                await queue.EnqueueAsync(new QueuedMail
+                {
+                    Id              = $"dsn-{Guid.NewGuid():N}",
+                    EnvelopeFrom    = "",   // null sender (this is a report)
+                    EnvelopeTo      = [mail.EnvelopeFrom],
+                    MessageContent  = dsn,
+                    TargetDomain    = ExtractDomain(mail.EnvelopeFrom),
+                    QueuedAt        = DateTime.UtcNow,
+                    NextRetry       = DateTime.UtcNow
+                }, ct);
+
+            }
+
+            logger.Log(LogLevel.Info, $"Queued delivery DSN for {mail.EnvelopeFrom}");
+        }
+
+        /// <summary>
         /// Generate a delay notification (mail still in queue, will keep trying)
         /// </summary>
         public async Task SendDelayNotificationAsync(
