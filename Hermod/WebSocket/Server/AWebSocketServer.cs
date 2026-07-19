@@ -330,6 +330,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region Backpressure
+
+        /// <summary>
+        /// The maximum number of outgoing bytes that may be queued and in-flight per
+        /// connection (the send backpressure) before <see cref="BackpressureBehaviour"/>
+        /// is applied; guards against a slow peer making the server accumulate unbounded
+        /// memory. Zero (the default) disables the check. Applied to every new connection.
+        /// </summary>
+        public UInt64                                                          MaxBackpressure               { get; set; }
+
+        /// <summary>
+        /// What a connection does when a send would exceed <see cref="MaxBackpressure"/>.
+        /// Default: close the connection (1009 Message Too Big).
+        /// </summary>
+        public WebSocketBackpressureBehaviour                                  BackpressureBehaviour         { get; set; } = WebSocketBackpressureBehaviour.CloseConnection;
+
+        #endregion
+
 
         /// <summary>
         /// An additional delay between sending each byte to the networking stack.
@@ -1038,8 +1056,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region Config web socket connection
 
-                                                webSocketConnection.ReadTimeout  = TimeSpan.FromSeconds(20);
-                                                webSocketConnection.WriteTimeout = TimeSpan.FromSeconds(3);
+                                                webSocketConnection.ReadTimeout             = TimeSpan.FromSeconds(20);
+                                                webSocketConnection.WriteTimeout            = TimeSpan.FromSeconds(3);
+                                                webSocketConnection.MaxBackpressure         = MaxBackpressure;
+                                                webSocketConnection.BackpressureBehaviour   = BackpressureBehaviour;
 
                                                 if (!webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
                                                                                  new WeakReference<WebSocketServerConnection>(webSocketConnection)))

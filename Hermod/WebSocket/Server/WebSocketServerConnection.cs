@@ -68,12 +68,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public  volatile  Boolean                                IsClosed;
 
+        /// <summary>
+        /// Whether the closing handshake is in progress. While closing, the send
+        /// backpressure limit is bypassed so the close frame can always be sent
+        /// (otherwise a close triggered by backpressure would recurse).
+        /// </summary>
+        private volatile  Boolean                                isClosing;
+
         private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
 
         private           UInt64                                 messagesReceivedCounter;
         private           UInt64                                 messagesSentCounter;
         private           UInt64                                 framesReceivedCounter;
         private           UInt64                                 framesSentCounter;
+
+        /// <summary>
+        /// The number of outgoing bytes currently queued and in-flight (waiting for
+        /// the write semaphore or being written) — the send backpressure.
+        /// </summary>
+        private           Int64                                  pendingSendBytes;
 
         #endregion
 
@@ -157,6 +170,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public UInt64?                  MaxBinaryMessageSizeOut       { get; set; }
         public UInt64?                  MaxBinaryFragmentLengthIn     { get; set; }
         public UInt64?                  MaxBinaryFragmentLengthOut    { get; set; }
+
+
+        /// <summary>
+        /// The maximum number of outgoing bytes that may be queued and in-flight
+        /// (the send backpressure) before <see cref="BackpressureBehaviour"/> is
+        /// applied. Zero (the default) disables the check.
+        /// </summary>
+        public UInt64                   MaxBackpressure               { get; set; }
+
+        /// <summary>
+        /// What to do when a send would exceed <see cref="MaxBackpressure"/>.
+        /// Default: close the connection (1009).
+        /// </summary>
+        public WebSocketBackpressureBehaviour  BackpressureBehaviour  { get; set; } = WebSocketBackpressureBehaviour.CloseConnection;
+
+        /// <summary>
+        /// The number of outgoing bytes currently queued and in-flight but not yet
+        /// written to the network (the current send backpressure), analogous to the
+        /// "bufferedAmount" of the browser WebSocket API and uWebSockets.
+        /// </summary>
+        public UInt64                   BufferedAmount
+            => (UInt64) Interlocked.Read(ref pendingSendBytes);
 
 
         /// <summary>
@@ -330,83 +365,128 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                            CancellationToken  CancellationToken = default)
         {
 
-            // Stream.WriteTimeout only applies to SYNCHRONOUS writes, therefore
-            // WriteAsync(...) to a stalled remote endpoint would block forever,
-            // hold the write semaphore and thereby also deadlock Close()!
-            TimeSpan writeTimeout;
-            try
-            {
-                writeTimeout = networkStream.WriteTimeout > 0
-                                   ? TimeSpan.FromMilliseconds(networkStream.WriteTimeout)
-                                   : DefaultSendTimeout;
-            }
-            catch
-            {
-                writeTimeout = DefaultSendTimeout;
-            }
+            // Backpressure: account for the bytes about to be queued/written. If that
+            // would push the outstanding send bytes beyond MaxBackpressure, either close
+            // the connection (1009) or drop the message (the uWebSockets "maxBackpressure"
+            // model). The reservation is released in the finally, once the write is done.
+            var reservedBytes = 0L;
 
-            if (!await socketWriteSemaphore.WaitAsync(writeTimeout, CancellationToken))
-                return SentStatus.Error;
-
-            try
+            if (MaxBackpressure > 0 && !isClosing)
             {
 
-                if (SlowNetworkSimulationDelay.HasValue)
+                reservedBytes  = Data.LongLength;
+                var projected  = (UInt64) Interlocked.Add(ref pendingSendBytes, reservedBytes);
+
+                if (projected > MaxBackpressure)
                 {
-                    foreach (var singleByte in Data)
+
+                    Interlocked.Add(ref pendingSendBytes, -reservedBytes);
+                    reservedBytes = 0L;
+
+                    if (BackpressureBehaviour == WebSocketBackpressureBehaviour.CloseConnection)
+                    {
+                        WebSocketServer.Logger.LogWarning(
+                            "WebSocket connection to {RemoteSocket}: send backpressure limit ({Limit} bytes) exceeded; closing connection.",
+                            RemoteSocket,
+                            MaxBackpressure
+                        );
+                        await Close(ClosingStatusCode.MessageTooBig);
+                        return SentStatus.FatalError;
+                    }
+
+                    return SentStatus.Dropped;
+
+                }
+
+            }
+
+            try
+            {
+
+                // Stream.WriteTimeout only applies to SYNCHRONOUS writes, therefore
+                // WriteAsync(...) to a stalled remote endpoint would block forever,
+                // hold the write semaphore and thereby also deadlock Close()!
+                TimeSpan writeTimeout;
+                try
+                {
+                    writeTimeout = networkStream.WriteTimeout > 0
+                                       ? TimeSpan.FromMilliseconds(networkStream.WriteTimeout)
+                                       : DefaultSendTimeout;
+                }
+                catch
+                {
+                    writeTimeout = DefaultSendTimeout;
+                }
+
+                if (!await socketWriteSemaphore.WaitAsync(writeTimeout, CancellationToken))
+                    return SentStatus.Error;
+
+                try
+                {
+
+                    if (SlowNetworkSimulationDelay.HasValue)
+                    {
+                        foreach (var singleByte in Data)
+                        {
+
+                            await networkStream.WriteAsync(new[] {
+                                                               singleByte
+                                                           },
+                                                           CancellationToken);
+
+                            await networkStream.FlushAsync(CancellationToken);
+
+                            await Task.Delay(SlowNetworkSimulationDelay.Value,
+                                             CancellationToken);
+
+                        }
+                    }
+
+                    else
                     {
 
-                        await networkStream.WriteAsync(new[] {
-                                                           singleByte
-                                                       },
-                                                       CancellationToken);
+                        using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                        timeoutCTS.CancelAfter(writeTimeout);
 
-                        await networkStream.FlushAsync(CancellationToken);
+                        await networkStream.WriteAsync(Data,
+                                                       timeoutCTS.Token);
 
-                        await Task.Delay(SlowNetworkSimulationDelay.Value,
-                                         CancellationToken);
+                        await networkStream.FlushAsync(timeoutCTS.Token);
 
                     }
-                }
 
-                else
+                    return SentStatus.Success;
+
+                }
+                catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+                {
+                    // Write timeout: The stream state is undefined now,
+                    // as a frame might have been sent partially!
+                    return SentStatus.FatalError;
+                }
+                catch (Exception e)
                 {
 
-                    using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-                    timeoutCTS.CancelAfter(writeTimeout);
-
-                    await networkStream.WriteAsync(Data,
-                                                   timeoutCTS.Token);
-
-                    await networkStream.FlushAsync(timeoutCTS.Token);
+                    if (e.InnerException is SocketException socketException)
+                    {
+                        if (socketException.SocketErrorCode == SocketError.ConnectionReset)
+                            return SentStatus.FatalError;
+                    }
 
                 }
-
-                return SentStatus.Success;
-
-            }
-            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
-            {
-                // Write timeout: The stream state is undefined now,
-                // as a frame might have been sent partially!
-                return SentStatus.FatalError;
-            }
-            catch (Exception e)
-            {
-
-                if (e.InnerException is SocketException socketException)
+                finally
                 {
-                    if (socketException.SocketErrorCode == SocketError.ConnectionReset)
-                        return SentStatus.FatalError;
+                    socketWriteSemaphore.Release();
                 }
+
+                return SentStatus.Error;
 
             }
             finally
             {
-                socketWriteSemaphore.Release();
+                if (reservedBytes > 0)
+                    Interlocked.Add(ref pendingSendBytes, -reservedBytes);
             }
-
-            return SentStatus.Error;
 
         }
 
@@ -548,6 +628,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             if (IsClosed)
                 return;
+
+            // The closing handshake must never be blocked or dropped by the send
+            // backpressure limit (and must not recurse when the close was itself
+            // triggered by backpressure).
+            isClosing = true;
 
             try
             {

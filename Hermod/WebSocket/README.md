@@ -64,6 +64,11 @@ Implemented (both server and client, unless noted):
   detection on the client (`IsRemoteTCPConnectionClosed`), bounded write and
   close timeouts (a stalled peer can no longer block `Send()`/`Close()`
   forever).
+- Send backpressure limit (`MaxBackpressure` / `BackpressureBehaviour`, the
+  uWebSockets "maxBackpressure" model, server and client): when the outgoing
+  bytes queued/in-flight to a slow peer would exceed the limit, the connection
+  is either closed (1009) or the message dropped (`SentStatus.Dropped`). The
+  current amount is exposed as `BufferedAmount`. The closing handshake is exempt.
 - Heartbeat / zombie detection: periodic pings (`WebSocketPingEvery`) plus a
   liveness deadline (`MaxOutstandingPings`, default 3). If no frame arrives
   within that many ping intervals, the half-open connection is torn down
@@ -104,6 +109,10 @@ server.HandshakeTimeout            = TimeSpan.FromSeconds(10);
 server.MaxHandshakeRequestSize     = 64 * 1024;
 server.MaxConnectionsPerIP         = 100;           // 0 = unlimited (default)
 server.AllowedOrigins.Add("https://ui.example.com"); // empty = disabled (default)
+
+// Send backpressure (0 = disabled by default); must exceed your largest message:
+server.MaxBackpressure             = 16 * 1024 * 1024;
+server.BackpressureBehaviour       = WebSocketBackpressureBehaviour.CloseConnection;
 
 server.OnTextMessageReceived += async (timestamp, srv, connection, frame, eventTrackingId, text, ct) => {
     await server.SendTextMessage(connection, $"Echo: {text}");

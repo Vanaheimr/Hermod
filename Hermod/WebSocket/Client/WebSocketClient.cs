@@ -290,6 +290,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public UInt32                               ReconnectAttempts                    { get; private set; }
 
+        /// <summary>
+        /// The maximum number of outgoing bytes that may be queued and in-flight
+        /// (the send backpressure) before <see cref="BackpressureBehaviour"/> is
+        /// applied. Zero (the default) disables the check.
+        /// </summary>
+        public UInt64                               MaxBackpressure                      { get; set; }
+
+        /// <summary>
+        /// What to do when a send would exceed <see cref="MaxBackpressure"/>.
+        /// Default: close the connection (1009).
+        /// </summary>
+        public WebSocketBackpressureBehaviour       BackpressureBehaviour                { get; set; } = WebSocketBackpressureBehaviour.CloseConnection;
+
 
         public TimeSpan?                            SlowNetworkSimulationDelay           { get; set; }
 
@@ -1257,6 +1270,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             CustomData:                  null,
                                                             SlowNetworkSimulationDelay:  null
                                                         );
+
+                            webSocketClientConnection.MaxBackpressure       = MaxBackpressure;
+                            webSocketClientConnection.BackpressureBehaviour  = BackpressureBehaviour;
 
                             // permessage-deflate (RFC 7692): attach the negotiated extension, if the server accepted it.
                             if (EnablePerMessageDeflate)
