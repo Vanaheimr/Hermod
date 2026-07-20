@@ -14,7 +14,7 @@ Hermod is a .NET library for simplified advanced networking tasks...
 ## Common Application Protocols
 
 - [DNS (UDP/TCP/TLS/HTTPS) Clients / Servers](Hermod/DNS/README.md)
-- [HTTP/1.0 and HTTP/1.1 Client / Server](Hermod/HTTP/README.md)
+- [HTTP/1.0 and HTTP/1.1 Client / Server](Hermod/HTTP1/README.md)
 - [HTTP/1.1 WebSocket Client / Server](Hermod/WebSocket/README.md)
 - [HTTP/2.0 Client / Server](Hermod/HTTP2/README.md)
 - [SMTP Submission/Outbound Clients / Server](Hermod/SMTP/README.md) with OpenPGP/MIME
