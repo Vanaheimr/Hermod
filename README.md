@@ -1,12 +1,23 @@
 # Hermod
 
-Hermod is a .NET library for simplified advanced networking tasks.
+Hermod is a .NET library for simplified advanced networking tasks...
 
-- TCP server / client
-- UDP server / client
-- DNS client
-- HTTP server / client [HTTP/1.0 and HTTP/1.1 support](HTTP1_SUPPORT.md)
-- WebSocket server / client ([RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), permessage-deflate [RFC 7692](https://www.rfc-editor.org/rfc/rfc7692.html); Autobahn-testsuite verified — see [WebSocket documentation](Hermod/WebSocket/README.md))
-- ModbusTCP server / client
-- ModbusUDP server / client
-- SMTP server & client — ESMTP, STARTTLS/implicit TLS, SASL AUTH, SPF/DKIM/DMARC/ARC, MTA-STS/DANE/TLS-RPT, DSN/MDN, and OpenPGP/MIME (see [SMTP documentation](SMTP_SUPPORT.md))
+
+## Generic Networking Protocols
+
+- Ethernet
+- Generic UDP clients / servers
+- Generic TCP clients / servers
+
+
+## Common Application Protocols
+
+- [DNS (UDP/TCP/TLS/HTTPS) Clients / Servers](Hermod/DNS/README.md)
+- [HTTP/1.0 and HTTP/1.1 Client / Server](Hermod/HTTP/README.md)
+- [HTTP/1.1 WebSocket Client / Server](Hermod/WebSocket/README.md)
+- [SMTP Submission/Outbound Clients / Server](Hermod/SMTP/README.md) with OpenPGP/MIME
+
+
+## Specialized Application Protocols
+
+- ModbusTCP/TLS client / server
