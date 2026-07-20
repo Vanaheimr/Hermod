@@ -267,6 +267,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        [Test]
+        public void A_hanging_server_is_aborted_promptly_when_the_caller_cancels()
+        {
+
+            // The server accepts the connection then goes silent. With fully-async I/O the caller's
+            // CancellationToken must abort the in-flight read at once — not wait for the command timeout.
+            using var server = new FakeSmtpServer(FakeSmtpServer.Mode.HangAfterGreeting);
+            using var client = ClientFor(server);   // CommandTimeout is 2s
+
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+
+            var sw     = Stopwatch.StartNew();
+            var result = client.Send(Message("cancel me"), NumberOfRetries: 0, CancellationToken: cts.Token)
+                               .GetAwaiter().GetResult();
+            sw.Stop();
+
+            // Cancellation lands well before the 2s command timeout would have fired.
+            Assert.That(sw.Elapsed, Is.LessThan(TimeSpan.FromSeconds(1)),
+                        $"caller cancellation must abort promptly (was {sw.Elapsed.TotalSeconds:F1}s)");
+            Assert.That(result, Is.Not.EqualTo(MailSentStatus.ok));
+
+        }
+
+
         #region SendWithResult — the detailed result object
 
         [Test]

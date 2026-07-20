@@ -246,24 +246,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-        #region (protected) SendCommand(Command)
+        #region (protected) SendCommandAsync                 (Command, CancellationToken = default)
 
-        protected void SendCommand(String Command)
+        /// <summary>
+        /// Write a single SMTP command line to the server, fully asynchronously. The per-command
+        /// deadline (<see cref="commandTimeout"/>) is enforced via a linked cancellation token — a
+        /// silent/stalled server is surfaced as an <see cref="SMTPTimeoutException"/>, a dropped
+        /// connection as an <see cref="SMTPConnectionClosedException"/>, and a caller cancellation
+        /// propagates as an <see cref="OperationCanceledException"/>.
+        /// </summary>
+        protected async Task SendCommandAsync(String             Command,
+                                              CancellationToken  CancellationToken   = default)
         {
 
             var CommandBytes = Encoding.UTF8.GetBytes(Command + "\r\n");
             var stream       = ActiveStream ?? throw new SMTPConnectionClosedException("SMTP client is not connected.");
 
-            if (stream.CanTimeout)
-                stream.WriteTimeout = (Int32) commandTimeout.TotalMilliseconds;
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+            cts.CancelAfter(commandTimeout);
 
             try
             {
-                stream.Write(CommandBytes, 0, CommandBytes.Length);
-                stream.Flush();
+                await stream.WriteAsync(CommandBytes, cts.Token).ConfigureAwait(false);
+                await stream.FlushAsync(cts.Token).           ConfigureAwait(false);
             }
-            catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.TimedOut })
+            catch (OperationCanceledException) when (cts.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
             {
+                // Our per-command deadline elapsed (not a caller cancellation) → timeout.
                 throw new SMTPTimeoutException();
             }
             catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException)
@@ -280,45 +289,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region (protected) SendCommandAndWaitForResponse (Command)
+        #region (protected) SendCommandAndWaitForResponseAsync (Command, CancellationToken = default)
 
-        protected SMTPExtendedResponse SendCommandAndWaitForResponse(String Command)
+        protected async Task<SMTPExtendedResponse> SendCommandAndWaitForResponseAsync(String             Command,
+                                                                                      CancellationToken  CancellationToken   = default)
         {
 
-            SendCommand(Command);
+            await SendCommandAsync(Command, CancellationToken).ConfigureAwait(false);
 
-            return ReadSMTPResponses().First();
+            return (await ReadSMTPResponsesAsync(CancellationToken).ConfigureAwait(false)).First();
 
         }
 
         #endregion
 
-        #region (protected) SendCommandAndWaitForResponses(Command)
+        #region (protected) SendCommandAndWaitForResponsesAsync(Command, CancellationToken = default)
 
-        protected IEnumerable<SMTPExtendedResponse> SendCommandAndWaitForResponses(String Command)
+        protected async Task<IEnumerable<SMTPExtendedResponse>> SendCommandAndWaitForResponsesAsync(String             Command,
+                                                                                                   CancellationToken  CancellationToken   = default)
         {
 
-            SendCommand(Command);
+            await SendCommandAsync(Command, CancellationToken).ConfigureAwait(false);
 
-            return ReadSMTPResponses();
+            return await ReadSMTPResponsesAsync(CancellationToken).ConfigureAwait(false);
 
         }
 
         #endregion
 
 
-        #region (private)   ReadSMTPResponses()
+        #region (private)   ReadSMTPResponsesAsync              (CancellationToken = default)
 
-        private IEnumerable<SMTPExtendedResponse> ReadSMTPResponses()
+        private async Task<IEnumerable<SMTPExtendedResponse>> ReadSMTPResponsesAsync(CancellationToken CancellationToken = default)
         {
 
             var stream = ActiveStream ?? throw new SMTPConnectionClosedException("SMTP client is not connected.");
-
-            // Bound each read so a silent, non-responsive server ("mean" test) is detected within the
-            // command timeout instead of blocking. A blocking Read on a stream with a read timeout
-            // throws IOException(SocketException.TimedOut) when it elapses.
-            if (stream.CanTimeout)
-                stream.ReadTimeout = (Int32) commandTimeout.TotalMilliseconds;
 
             // A single SMTP reply may be multi-line (RFC 5321 §4.2.1): every line but the last has a
             // '-' after the status code, the final line a ' '. It may arrive split across several TCP
@@ -331,18 +336,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 Int32 nread;
 
-                try
+                // Bound each read so a silent, non-responsive server ("mean" test) is detected within
+                // the command timeout instead of blocking indefinitely. Async I/O ignores the stream's
+                // Read/WriteTimeout, so the deadline is a linked, self-cancelling token per read.
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken))
                 {
-                    nread = stream.Read(buf, 0, buf.Length);
-                }
-                catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.TimedOut })
-                {
-                    throw new SMTPTimeoutException();
-                }
-                catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException)
-                {
-                    // Connection reset / aborted / disposed mid-read → treat as an abrupt close.
-                    throw new SMTPConnectionClosedException($"The SMTP connection was lost: {e.Message}");
+
+                    cts.CancelAfter(commandTimeout);
+
+                    try
+                    {
+                        nread = await stream.ReadAsync(buf.AsMemory(0, buf.Length), cts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (cts.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
+                    {
+                        throw new SMTPTimeoutException();
+                    }
+                    catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException)
+                    {
+                        // Connection reset / aborted / disposed mid-read → treat as an abrupt close.
+                        throw new SMTPConnectionClosedException($"The SMTP connection was lost: {e.Message}");
+                    }
+
                 }
 
                 // A graceful close (FIN) surfaces as a 0-byte read → fail fast, do not spin.
@@ -395,17 +410,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-        #region (private) SendData(Lines)  — dot-stuffed message body
+        #region (private) SendDataAsync(Lines, CancellationToken = default)  — dot-stuffed message body
 
         /// <summary>
         /// Send the message content on the DATA channel with RFC 5321 §4.5.2 dot-stuffing: any line
         /// beginning with '.' gets an extra leading '.', so a bare "." line cannot terminate DATA early.
         /// The terminating "." is sent separately by the caller.
         /// </summary>
-        private void SendData(IEnumerable<String> Lines)
+        private async Task SendDataAsync(IEnumerable<String>  Lines,
+                                         CancellationToken    CancellationToken   = default)
         {
             foreach (var line in Lines)
-                SendCommand(line.StartsWith('.') ? "." + line : line);
+                await SendCommandAsync(line.StartsWith('.') ? "." + line : line, CancellationToken).ConfigureAwait(false);
         }
 
         #endregion
@@ -431,13 +447,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region (private) ScramSha256Authenticate(Login, Password)
+        #region (private) ScramSha256AuthenticateAsync(Login, Password, CancellationToken = default)
 
         /// <summary>
         /// Perform a client-side SCRAM-SHA-256 (RFC 7677 / RFC 5802) authentication exchange.
         /// Returns true on a "235 Authentication successful", and verifies the server signature.
         /// </summary>
-        private Boolean ScramSha256Authenticate(String Login, String Password)
+        private async Task<Boolean> ScramSha256AuthenticateAsync(String             Login,
+                                                                 String             Password,
+                                                                 CancellationToken  CancellationToken   = default)
         {
 
             static String B64(Byte[] b) => Convert.ToBase64String(b);
@@ -447,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var clientFirstBare  = $"n={SaslPrep(Login)},r={clientNonce}";
             var gs2Header        = "n,,";
 
-            var first = SendCommandAndWaitForResponse("AUTH SCRAM-SHA-256 " + B64((gs2Header + clientFirstBare).ToUTF8Bytes()));
+            var first = await SendCommandAndWaitForResponseAsync("AUTH SCRAM-SHA-256 " + B64((gs2Header + clientFirstBare).ToUTF8Bytes()), CancellationToken).ConfigureAwait(false);
             if (first.StatusCode != SMTPStatusCodes.AuthenticationChallenge)
                 return false;
 
@@ -471,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var clientProof             = ScramSha256Client.ClientProof(saltedPassword, authMessage);
 
-            var final = SendCommandAndWaitForResponse(B64($"{clientFinalNoProof},p={B64(clientProof)}".ToUTF8Bytes()));
+            var final = await SendCommandAndWaitForResponseAsync(B64($"{clientFinalNoProof},p={B64(clientProof)}".ToUTF8Bytes()), CancellationToken).ConfigureAwait(false);
 
             // The server may send its final message (v=…) as a 334 continuation (ack with an empty
             // line) or fold it into the 235 success.
@@ -482,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var serverFinal = Convert.FromBase64String(final.Response).ToUTF8String();
                 if (!serverFinal.Contains("v=" + expectedServerSig))
                     return false;
-                final = SendCommandAndWaitForResponse("");
+                final = await SendCommandAndWaitForResponseAsync("", CancellationToken).ConfigureAwait(false);
             }
 
             return final.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
@@ -495,38 +513,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region (private) AuthPlain / AuthLogin / AuthCramMd5
+        #region (private) AuthPlainAsync / AuthLoginAsync / AuthCramMd5Async
 
-        private Boolean AuthPlain(String Login, String Password)
-            => SendCommandAndWaitForResponse(
-                   "AUTH PLAIN " + Convert.ToBase64String([.. ByteZero, .. Login.ToUTF8Bytes(), .. ByteZero, .. Password.ToUTF8Bytes()])
-               ).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+        private async Task<Boolean> AuthPlainAsync(String Login, String Password, CancellationToken CancellationToken = default)
+            => (await SendCommandAndWaitForResponseAsync(
+                   "AUTH PLAIN " + Convert.ToBase64String([.. ByteZero, .. Login.ToUTF8Bytes(), .. ByteZero, .. Password.ToUTF8Bytes()]),
+                   CancellationToken
+               ).ConfigureAwait(false)).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
 
-        private Boolean AuthLogin(String Login, String Password)
+        private async Task<Boolean> AuthLoginAsync(String Login, String Password, CancellationToken CancellationToken = default)
         {
 
-            if (SendCommandAndWaitForResponse("AUTH LOGIN").StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+            if ((await SendCommandAndWaitForResponseAsync("AUTH LOGIN", CancellationToken).ConfigureAwait(false)).StatusCode != SMTPStatusCodes.AuthenticationChallenge)
                 return false;
 
-            if (SendCommandAndWaitForResponse(Convert.ToBase64String(Login.ToUTF8Bytes())).StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+            if ((await SendCommandAndWaitForResponseAsync(Convert.ToBase64String(Login.ToUTF8Bytes()), CancellationToken).ConfigureAwait(false)).StatusCode != SMTPStatusCodes.AuthenticationChallenge)
                 return false;
 
-            return SendCommandAndWaitForResponse(Convert.ToBase64String(Password.ToUTF8Bytes())).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+            return (await SendCommandAndWaitForResponseAsync(Convert.ToBase64String(Password.ToUTF8Bytes()), CancellationToken).ConfigureAwait(false)).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
 
         }
 
-        private Boolean AuthCramMd5(String Login, String Password)
+        private async Task<Boolean> AuthCramMd5Async(String Login, String Password, CancellationToken CancellationToken = default)
         {
 
-            var challenge = SendCommandAndWaitForResponse("AUTH CRAM-MD5");
+            var challenge = await SendCommandAndWaitForResponseAsync("AUTH CRAM-MD5", CancellationToken).ConfigureAwait(false);
             if (challenge.StatusCode != SMTPStatusCodes.AuthenticationChallenge)
                 return false;
 
-            var response = SendCommandAndWaitForResponse(
+            var response = await SendCommandAndWaitForResponseAsync(
                                Convert.ToBase64String(
                                    ISMTPClientExtensions.CRAM_MD5(Convert.FromBase64String(challenge.Response).ToUTF8String(),
                                                                   Login,
-                                                                  Password)));
+                                                                  Password)),
+                               CancellationToken).ConfigureAwait(false);
 
             return response.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
 
@@ -675,10 +695,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var authenticated      = false;
             Byte attemptsMade      = 1;
 
+            // The token that drives the actual I/O: the caller's token, plus a RequestTimeout deadline
+            // when one was given. Now that the transport is fully async, cancelling the caller's token
+            // (or the deadline elapsing) aborts an in-flight read/write instead of being ignored.
             using var requestTimeoutCancellationTokenSource = RequestTimeout.HasValue
                                                                   ? new CancellationTokenSource(RequestTimeout.Value)
                                                                   : null;
-            var cancellationToken = requestTimeoutCancellationTokenSource?.Token ?? default;
+            using var linkedCancellationTokenSource         = requestTimeoutCancellationTokenSource is not null
+                                                                  ? CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, requestTimeoutCancellationTokenSource.Token)
+                                                                  : null;
+            var cancellationToken = linkedCancellationTokenSource?.Token ?? CancellationToken;
 
             if (await sendLock.WaitAsync(
                           RequestTimeout ?? TimeSpan.FromSeconds(60),
@@ -721,7 +747,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             var supportsRequireTls  = false; // RFC 8689
 
                             // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
-                            var LoginResponse       = ReadSMTPResponses();
+                            var LoginResponse       = await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false);
 
                             switch (LoginResponse.First().StatusCode)
                             {
@@ -730,7 +756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region Send EHLO
 
-                                    var EHLOResponses = SendCommandAndWaitForResponses("EHLO " + LocalDomain);
+                                    var EHLOResponses = await SendCommandAndWaitForResponsesAsync("EHLO " + LocalDomain, cancellationToken).ConfigureAwait(false);
 
                                     // 250-mail.ahzf.de
                                     // 250-PIPELINING
@@ -765,7 +791,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         if (EHLOResponses.Any(v => v.Response == "STARTTLS"))
                                         {
 
-                                            var StartTLSResponse = SendCommandAndWaitForResponse("STARTTLS");
+                                            var StartTLSResponse = await SendCommandAndWaitForResponseAsync("STARTTLS", cancellationToken).ConfigureAwait(false);
 
                                             if (StartTLSResponse.StatusCode == SMTPStatusCodes.ServiceReady)
                                             {
@@ -781,7 +807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             throw new Exception("TLS is not supported by the SMTP server!");
 
                                         // Send EHLO again in order to get the new list of supported extensions!
-                                        EHLOResponses = SendCommandAndWaitForResponses("EHLO " + LocalDomain);
+                                        EHLOResponses = await SendCommandAndWaitForResponsesAsync("EHLO " + LocalDomain, cancellationToken).ConfigureAwait(false);
 
                                     }
 
@@ -940,10 +966,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         }
 
                                         var authOk =
-                                            authMethods.HasFlag(SMTPAuthMethods.SCRAM_SHA_256) ? ScramSha256Authenticate(Login, Password ?? "") :
-                                            authMethods.HasFlag(SMTPAuthMethods.PLAIN)         ? AuthPlain(Login, Password ?? "") :
-                                            authMethods.HasFlag(SMTPAuthMethods.LOGIN)         ? AuthLogin(Login, Password ?? "") :
-                                            authMethods.HasFlag(SMTPAuthMethods.CRAM_MD5)      ? AuthCramMd5(Login, Password ?? "") :
+                                            authMethods.HasFlag(SMTPAuthMethods.SCRAM_SHA_256) ? await ScramSha256AuthenticateAsync(Login, Password ?? "", cancellationToken).ConfigureAwait(false) :
+                                            authMethods.HasFlag(SMTPAuthMethods.PLAIN)         ? await AuthPlainAsync           (Login, Password ?? "", cancellationToken).ConfigureAwait(false) :
+                                            authMethods.HasFlag(SMTPAuthMethods.LOGIN)         ? await AuthLoginAsync           (Login, Password ?? "", cancellationToken).ConfigureAwait(false) :
+                                            authMethods.HasFlag(SMTPAuthMethods.CRAM_MD5)      ? await AuthCramMd5Async         (Login, Password ?? "", cancellationToken).ConfigureAwait(false) :
                                             throw new SMTPClientException("The SMTP server offers no supported authentication mechanism.");
 
                                         if (!authOk)
@@ -1014,7 +1040,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (EMailEnvelop.RequireTls && supportsRequireTls)
                                         mailFromCommand += " REQUIRETLS";
 
-                                    var mailFromResponse = SendCommandAndWaitForResponse(mailFromCommand);
+                                    var mailFromResponse = await SendCommandAndWaitForResponseAsync(mailFromCommand, cancellationToken).ConfigureAwait(false);
                                     if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
                                         throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
 
@@ -1025,11 +1051,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // RCPT TO:<user@example.com>  (+ NOTIFY/ORCPT when DSN was requested and supported)
                                     // 250 2.1.5 Ok
                                     var dsnSupported = Capabilities.HasFlag(SmtpCapabilities.Dsn);
-                                    EMailEnvelop.RcptTo.ForEach(rcpt => {
+                                    foreach (var rcpt in EMailEnvelop.RcptTo)
+                                    {
 
-                                        var rcptToResponse = SendCommandAndWaitForResponse(
+                                        var rcptToResponse = await SendCommandAndWaitForResponseAsync(
                                                                  "RCPT TO:<" + rcpt.Address.ToString() + ">" +
-                                                                 DsnCommands.RcptToParams(EMailEnvelop.Dsn, rcpt.Address.ToString(), dsnSupported));
+                                                                 DsnCommands.RcptToParams(EMailEnvelop.Dsn, rcpt.Address.ToString(), dsnSupported),
+                                                                 cancellationToken).ConfigureAwait(false);
 
                                         recipientResults.Add(
                                             new SMTPRecipientResult(
@@ -1061,7 +1089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         }
 
-                                    });
+                                    }
 
                                     #endregion
 
@@ -1070,7 +1098,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // The encoded MIME text lines must not be longer than 76 characters!
 
                                     // 354 End data with <CR><LF>.<CR><LF>
-                                    var dataResponse = SendCommandAndWaitForResponse("DATA");
+                                    var dataResponse = await SendCommandAndWaitForResponseAsync("DATA", cancellationToken).ConfigureAwait(false);
                                     if (dataResponse.StatusCode != SMTPStatusCodes.StartMailInput)
                                         throw new SMTPClientException("SMTP DATA command error: " + dataResponse.ToString());
 
@@ -1078,7 +1106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // canonical serialized order — NOT reconstructed from the header dictionary
                                     // (whose order is not guaranteed and would break DKIM). Dot-stuffed.
                                     if (messageLines.Length > 0)
-                                        SendData(messageLines);
+                                        await SendDataAsync(messageLines, cancellationToken).ConfigureAwait(false);
 
                                     #endregion
 
@@ -1086,7 +1114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // .
                                     // 250 2.0.0 Ok: queued as 83398728027
-                                    var _FinishedResponse = SendCommandAndWaitForResponse(".");
+                                    var _FinishedResponse = await SendCommandAndWaitForResponseAsync(".", cancellationToken).ConfigureAwait(false);
                                     if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
                                         throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
 
@@ -1099,7 +1127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // QUIT
                                     // 221 2.0.0 Bye
-                                    var _QuitResponse = SendCommandAndWaitForResponse("QUIT");
+                                    var _QuitResponse = await SendCommandAndWaitForResponseAsync("QUIT", cancellationToken).ConfigureAwait(false);
                                     if (_QuitResponse.StatusCode != SMTPStatusCodes.ServiceClosingTransmissionChannel)
                                         throw new SMTPClientException("SMTP QUIT command error: " + _QuitResponse.ToString());
 
