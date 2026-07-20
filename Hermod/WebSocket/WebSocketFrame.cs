@@ -32,22 +32,6 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public enum ByteOrder
-    {
-
-        /// <summary>
-        /// Specifies Little-endian.
-        /// </summary>
-        Little,
-
-        /// <summary>
-        /// Specifies Big-endian.
-        /// </summary>
-        Big
-
-    }
-
-
     public static class WebSocketFrameExtensions
     {
 
@@ -144,7 +128,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
     }
-
 
     /// <summary>
     /// A web socket frame.
