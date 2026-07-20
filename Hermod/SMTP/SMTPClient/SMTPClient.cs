@@ -290,48 +290,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private IEnumerable<SMTPExtendedResponse> ReadSMTPResponses()
         {
 
-            var buffer = Array.Empty<Byte>();
-
             try
             {
 
-                if (buffer.Length == 0)
+                var stream = ActiveStream ?? throw new InvalidOperationException("SMTP client is not connected.");
+
+                // A single SMTP reply may be multi-line (RFC 5321 §4.2.1): every line but the last
+                // has a '-' after the status code, the final line has a ' '. It may also arrive split
+                // across several TCP segments, so keep reading until we have a complete, well-formed
+                // reply (or a partial trailing line) rather than assuming one Read() returns it all.
+                var sb   = new StringBuilder();
+                var buf  = new Byte[64 * 1024];
+
+                while (true)
                 {
 
-                    buffer     = new Byte[64 * 1024];
+                    var nread = stream.Read(buf, 0, buf.Length);
+                    if (nread <= 0)
+                        break;
 
-                    var stream = ActiveStream ?? throw new InvalidOperationException("SMTP client is not connected.");
-                    var nread  = stream.Read(buffer, 0, buffer.Length);
+                    sb.Append(Encoding.UTF8.GetString(buf, 0, nread));
 
-                    Array.Resize(ref buffer, nread);
+                    var text = sb.ToString();
+
+                    // Complete only if the last CRLF-terminated line is a final line ("NNN " or "NNN").
+                    if (!text.EndsWith("\r\n"))
+                        continue;
+
+                    var completeLines = text.Split("\r\n").Where(l => l.Length > 0).ToArray();
+                    if (completeLines.Length > 0)
+                    {
+                        var last = completeLines[^1];
+                        // final line: 3 digits followed by a space or end-of-line (not a '-')
+                        if (last.Length >= 3 && last.Take(3).All(Char.IsDigit) &&
+                            (last.Length == 3 || last[3] == ' '))
+                            break;
+                    }
 
                 }
 
-                // 250-mail.ahzf.de
-                // 250-PIPELINING
-                // 250-SIZE 204800000
-                // 250-VRFY
-                // 250-ETRN
-                // 250-STARTTLS
-                // 250-AUTH PLAIN LOGIN CRAM-MD5 DIGEST-MD5
-                // 250-AUTH=PLAIN LOGIN CRAM-MD5 DIGEST-MD5
-                // 250-ENHANCEDSTATUSCODES
-                // 250-8BITMIME
-                // 250-DSN
-                // 250-SMTPUTF8
-                // 250 CHUNKING
-
                 var responses = new List<SMTPExtendedResponse>();
 
-                var lines     = buffer.ToUTF8String().
-                                       Split("\r\n").
-                                       Where(line => line.IsNotNullOrEmpty()).
-                                       ToArray();
-
-                foreach (var line in lines) {
+                foreach (var line in sb.ToString().Split("\r\n").Where(line => line.IsNotNullOrEmpty()))
+                {
 
                     var statusCodeChars  = line.TakeWhile(b => b != ' ' && b != '-').ToArray();
-                    var more             = line[statusCodeChars.Length] == '-';
+                    var more             = statusCodeChars.Length < line.Length && line[statusCodeChars.Length] == '-';
                     var description      = line.Skip(statusCodeChars.Length + 1).ToArray();
 
                     if (UInt16.TryParse(new String(statusCodeChars), out var statusCode))
@@ -346,14 +350,154 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             } catch (Exception e)
             {
 
-                return new SMTPExtendedResponse[] {
+                return [
                            new SMTPExtendedResponse(
                                SMTPStatusCodes.TransactionFailed,
                                e.Message
                            )
-                       };
+                       ];
 
             }
+
+        }
+
+        #endregion
+
+
+        #region (private) SendData(Lines)  — dot-stuffed message body
+
+        /// <summary>
+        /// Send the message content on the DATA channel with RFC 5321 §4.5.2 dot-stuffing: any line
+        /// beginning with '.' gets an extra leading '.', so a bare "." line cannot terminate DATA early.
+        /// The terminating "." is sent separately by the caller.
+        /// </summary>
+        private void SendData(IEnumerable<String> Lines)
+        {
+            foreach (var line in Lines)
+                SendCommand(line.StartsWith('.') ? "." + line : line);
+        }
+
+        #endregion
+
+        #region (private) NeedsSmtpUtf8(EMailEnvelop)
+
+        /// <summary>
+        /// Whether this transaction needs SMTPUTF8 (RFC 6531): any non-ASCII byte in an envelope
+        /// address or in the serialized message.
+        /// </summary>
+        private static Boolean NeedsSmtpUtf8(EMailEnvelop EMailEnvelop)
+        {
+
+            static Boolean NonAscii(String s) => s.Any(c => c > '\x7F');
+
+            if (EMailEnvelop.MailFrom.Any(a => NonAscii(a.Address.ToString())) ||
+                EMailEnvelop.RcptTo.  Any(a => NonAscii(a.Address.ToString())))
+                return true;
+
+            return EMailEnvelop.Mail is not null && EMailEnvelop.Mail.ToText().Any(NonAscii);
+
+        }
+
+        #endregion
+
+        #region (private) ScramSha256Authenticate(Login, Password)
+
+        /// <summary>
+        /// Perform a client-side SCRAM-SHA-256 (RFC 7677 / RFC 5802) authentication exchange.
+        /// Returns true on a "235 Authentication successful", and verifies the server signature.
+        /// </summary>
+        private Boolean ScramSha256Authenticate(String Login, String Password)
+        {
+
+            static String B64(Byte[] b) => Convert.ToBase64String(b);
+
+            // client-first
+            var clientNonce      = B64(RandomNumberGenerator.GetBytes(18));
+            var clientFirstBare  = $"n={SaslPrep(Login)},r={clientNonce}";
+            var gs2Header        = "n,,";
+
+            var first = SendCommandAndWaitForResponse("AUTH SCRAM-SHA-256 " + B64((gs2Header + clientFirstBare).ToUTF8Bytes()));
+            if (first.StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+                return false;
+
+            // server-first: r=<nonce>,s=<salt>,i=<iterations>
+            var serverFirst  = Convert.FromBase64String(first.Response).ToUTF8String();
+            var attrs        = serverFirst.Split(',').
+                                   Where (p => p.Length > 1 && p[1] == '=').
+                                   ToDictionary(p => p[0], p => p[2..]);
+
+            if (!attrs.TryGetValue('r', out var serverNonce) || !serverNonce.StartsWith(clientNonce) ||
+                !attrs.TryGetValue('s', out var saltB64)     ||
+                !attrs.TryGetValue('i', out var iterStr)     || !Int32.TryParse(iterStr, out var iterations))
+                return false;
+
+            var salt                    = Convert.FromBase64String(saltB64);
+            var saltedPassword          = ScramSha256Client.SaltedPassword(Password, salt, iterations);
+
+            var channelBinding          = B64(gs2Header.ToUTF8Bytes());   // "biws"
+            var clientFinalNoProof      = $"c={channelBinding},r={serverNonce}";
+            var authMessage             = $"{clientFirstBare},{serverFirst},{clientFinalNoProof}";
+
+            var clientProof             = ScramSha256Client.ClientProof(saltedPassword, authMessage);
+
+            var final = SendCommandAndWaitForResponse(B64($"{clientFinalNoProof},p={B64(clientProof)}".ToUTF8Bytes()));
+
+            // The server may send its final message (v=…) as a 334 continuation (ack with an empty
+            // line) or fold it into the 235 success.
+            var expectedServerSig = B64(ScramSha256Client.ServerSignature(saltedPassword, authMessage));
+
+            if (final.StatusCode == SMTPStatusCodes.AuthenticationChallenge)
+            {
+                var serverFinal = Convert.FromBase64String(final.Response).ToUTF8String();
+                if (!serverFinal.Contains("v=" + expectedServerSig))
+                    return false;
+                final = SendCommandAndWaitForResponse("");
+            }
+
+            return final.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+
+        }
+
+        // Minimal SASLprep: reject characters that would break the SCRAM attribute syntax.
+        private static String SaslPrep(String value)
+            => value.Replace("=", "=3D").Replace(",", "=2C");
+
+        #endregion
+
+        #region (private) AuthPlain / AuthLogin / AuthCramMd5
+
+        private Boolean AuthPlain(String Login, String Password)
+            => SendCommandAndWaitForResponse(
+                   "AUTH PLAIN " + Convert.ToBase64String([.. ByteZero, .. Login.ToUTF8Bytes(), .. ByteZero, .. Password.ToUTF8Bytes()])
+               ).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+
+        private Boolean AuthLogin(String Login, String Password)
+        {
+
+            if (SendCommandAndWaitForResponse("AUTH LOGIN").StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+                return false;
+
+            if (SendCommandAndWaitForResponse(Convert.ToBase64String(Login.ToUTF8Bytes())).StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+                return false;
+
+            return SendCommandAndWaitForResponse(Convert.ToBase64String(Password.ToUTF8Bytes())).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+
+        }
+
+        private Boolean AuthCramMd5(String Login, String Password)
+        {
+
+            var challenge = SendCommandAndWaitForResponse("AUTH CRAM-MD5");
+            if (challenge.StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+                return false;
+
+            var response = SendCommandAndWaitForResponse(
+                               Convert.ToBase64String(
+                                   ISMTPClientExtensions.CRAM_MD5(Convert.FromBase64String(challenge.Response).ToUTF8String(),
+                                                                  Login,
+                                                                  Password)));
+
+            return response.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
 
         }
 
@@ -643,9 +787,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #endregion
 
-                                        #region UTF8
+                                        #region SMTPUTF8
 
-                                        if (v.Response == "UTF8")
+                                        if (v.Response == "SMTPUTF8")
                                             Capabilities |= SmtpCapabilities.UTF8;
 
                                         #endregion
@@ -654,65 +798,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #endregion
 
-                                    #region Auth PLAIN...
+                                    #region AUTH (if credentials configured)
 
-                                    if (authMethods.HasFlag(SMTPAuthMethods.PLAIN))
+                                    if (Login is not null)
                                     {
 
-                                        var response = SendCommandAndWaitForResponse("AUTH PLAIN " +
-                                                                                     Convert.ToBase64String(ByteZero.
-                                                                                                            Concat(Login.ToUTF8Bytes()).
-                                                                                                            Concat(ByteZero).
-                                                                                                            Concat(Password.ToUTF8Bytes()).
-                                                                                                            ToArray()));
-
-                                        smtpLogger.LogTrace("SMTP AUTH PLAIN response from {RemoteSocket}: {Response}",
-                                                            RemoteSocket,
-                                                            response);
-
-                                    }
-
-                                    #endregion
-
-                                    #region ...or Auth LOGIN...
-
-                                    else if (authMethods.HasFlag(SMTPAuthMethods.LOGIN))
-                                    {
-
-                                        var response1 = SendCommandAndWaitForResponse("AUTH LOGIN");
-                                        var response2 = SendCommandAndWaitForResponse(Convert.ToBase64String(Login.   ToUTF8Bytes()));
-                                        var response3 = SendCommandAndWaitForResponse(Convert.ToBase64String(Password.ToUTF8Bytes()));
-
-                                        smtpLogger.LogTrace("SMTP AUTH LOGIN responses from {RemoteSocket}: {Response1}, {Response2}, {Response3}",
-                                                            RemoteSocket,
-                                                            response1,
-                                                            response2,
-                                                            response3);
-
-                                    }
-
-                                    #endregion
-
-                                    #region ...or AUTH CRAM-MD5
-
-                                    else if (authMethods.HasFlag(SMTPAuthMethods.CRAM_MD5))
-                                    {
-
-                                        var AuthCRAMMD5Response = SendCommandAndWaitForResponse("AUTH CRAM-MD5");
-
-                                        if (AuthCRAMMD5Response.StatusCode == SMTPStatusCodes.AuthenticationChallenge)
+                                        // RFC 8314: never send credentials over an unencrypted connection.
+                                        if (!IsTLSActive)
                                         {
+                                            smtpLogger.LogWarning("SMTP AUTH refused: connection to {RemoteHost} is not TLS-secured", RemoteHost);
+                                            result = MailSentStatus.InvalidLogin;
+                                            break;
+                                        }
 
-                                            var response = SendCommandAndWaitForResponse(
-                                                               Convert.ToBase64String(
-                                                                   ISMTPClientExtensions.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
-                                                                                                  Login,
-                                                                                                  Password)));
+                                        var authOk =
+                                            authMethods.HasFlag(SMTPAuthMethods.SCRAM_SHA_256) ? ScramSha256Authenticate(Login, Password ?? "") :
+                                            authMethods.HasFlag(SMTPAuthMethods.PLAIN)         ? AuthPlain(Login, Password ?? "") :
+                                            authMethods.HasFlag(SMTPAuthMethods.LOGIN)         ? AuthLogin(Login, Password ?? "") :
+                                            authMethods.HasFlag(SMTPAuthMethods.CRAM_MD5)      ? AuthCramMd5(Login, Password ?? "") :
+                                            throw new SMTPClientException("The SMTP server offers no supported authentication mechanism.");
 
-                                            smtpLogger.LogTrace("SMTP AUTH CRAM-MD5 response from {RemoteSocket}: {Response}",
-                                                                RemoteSocket,
-                                                                response);
-
+                                        if (!authOk)
+                                        {
+                                            smtpLogger.LogWarning("SMTP authentication at {RemoteHost} failed", RemoteHost);
+                                            result = MailSentStatus.InvalidLogin;
+                                            break;
                                         }
 
                                     }
@@ -721,22 +831,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region MAIL FROM:
 
-                                    foreach (var MailFrom in EMailEnvelop.MailFrom) {
+                                    // A transaction has exactly one MAIL FROM (RFC 5321 §3.3).
+                                    var mailFrom     = EMailEnvelop.MailFrom.FirstOrDefault();
+                                    var needsUtf8    = Capabilities.HasFlag(SmtpCapabilities.UTF8) && NeedsSmtpUtf8(EMailEnvelop);
 
-                                        // MAIL FROM:<test@example.com>
-                                        // 250 2.1.0 Ok
-                                        var mailFromCommand = "MAIL FROM: <" + MailFrom.Address.ToString() + ">";
+                                    // MAIL FROM:<test@example.com>  (no space after the colon, RFC 5321)
+                                    var mailFromCommand = "MAIL FROM:<" + (mailFrom?.Address.ToString() ?? "") + ">";
 
-                                        if (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
-                                            mailFromCommand += " BODY=8BITMIME";
-                                        else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
-                                            mailFromCommand += " BODY=BINARYMIME";
+                                    if (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
+                                        mailFromCommand += " BODY=8BITMIME";
+                                    else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
+                                        mailFromCommand += " BODY=BINARYMIME";
 
-                                        var mailFromResponse = SendCommandAndWaitForResponse(mailFromCommand);
-                                        if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
-                                            throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
+                                    if (needsUtf8)
+                                        mailFromCommand += " SMTPUTF8";
 
-                                    }
+                                    var mailFromResponse = SendCommandAndWaitForResponse(mailFromCommand);
+                                    if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
+                                        throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
 
                                     #endregion
 
@@ -746,7 +858,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // 250 2.1.5 Ok
                                     EMailEnvelop.RcptTo.ForEach(rcpt => {
 
-                                        var rcptToResponse = SendCommandAndWaitForResponse("RCPT TO: <" + rcpt.Address.ToString() + ">");
+                                        var rcptToResponse = SendCommandAndWaitForResponse("RCPT TO:<" + rcpt.Address.ToString() + ">");
 
                                         switch (rcptToResponse.StatusCode)
                                         {
@@ -782,35 +894,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (dataResponse.StatusCode != SMTPStatusCodes.StartMailInput)
                                         throw new SMTPClientException("SMTP DATA command error: " + dataResponse.ToString());
 
-                                    // Send e-mail headers...
-                                    if (EMailEnvelop.Mail is not null) {
-
-                                        EMailEnvelop.Mail.
-                                                     Headers.
-                                                     Select (header => header.Key + ": " + header.Value).
-                                                     ForEach(line   => SendCommand(line));
-
-                                        //SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId is not null
-                                        //                                    ? EMailEnvelop.Mail.MessageId.ToString()
-                                        //                                    : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
-
-                                        SendCommand("");
-
-                                        // Send e-mail body(parts)...
-                                        //if (EMailEnvelop.Mail.MailBody is not null)
-                                        //{
-                                        EMailEnvelop.Mail.Body.ToText(false).ForEach(line => SendCommand(line));
-                                        SendCommand("");
-                                        //}
-
-                                    }
-
-                                    else if (EMailEnvelop.Mail?.ToText() is not null) {
-
-                                        EMailEnvelop.Mail.ToText().ForEach(SendCommand);
-                                        SendCommand("");
-
-                                    }
+                                    // Send the complete RFC 5322 message (headers, blank line, body) in its
+                                    // canonical serialized order — NOT reconstructed from the header dictionary
+                                    // (whose order is not guaranteed and would break DKIM). Dot-stuffed.
+                                    if (EMailEnvelop.Mail is not null)
+                                        SendData(EMailEnvelop.Mail.ToText());
 
                                     #endregion
 

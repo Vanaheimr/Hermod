@@ -28,12 +28,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public enum SMTPAuthMethods
     {
 
-        None        = 0,
+        None           =  0,
 
-        LOGIN       = 1,
-        DIGEST_MD5  = 2,
-        PLAIN       = 4,
-        CRAM_MD5    = 8
+        LOGIN          =  1,
+        DIGEST_MD5     =  2,
+        PLAIN          =  4,
+        CRAM_MD5       =  8,
+        SCRAM_SHA_256  = 16   // RFC 7677
 
     }
 
