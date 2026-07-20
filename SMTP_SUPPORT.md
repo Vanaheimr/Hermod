@@ -16,8 +16,8 @@ SASL auth, rate-limiting, user/mailbox storage, inbound report ingestion) live
 in the child namespace `…SMTP.Server`; everything reusable (message model,
 SPF/DKIM/DMARC/ARC/DANE/TLS-RPT engines, the outbound client and queue) stays in
 `…SMTP`. A companion operational guide — configuration, DNS records, deployment,
-and worked API examples — is in [`docs/SMTP-Server.md`](https://github.com/Vanaheimr/SMTPServer/blob/master/docs/SMTP-Server.md)
-of the SMTPServer repository.
+and worked API examples — lives in a separate repository, the deployable server
+instance: [**Vanaheimr/SMTPServer** → `docs/SMTP-Server.md`](https://github.com/Vanaheimr/SMTPServer/blob/master/docs/SMTP-Server.md).
 
 Last verified: **2026-07-20**
 
@@ -220,5 +220,6 @@ When SMTP behavior changes:
 3. Use a raw/scriptable peer for wire-specific or "mean" behavior a high-level
    client cannot produce (abrupt drops, stalls, malformed replies).
 4. Update this document's support statements, the standards tables, the exclusions,
-   and the last verification date; keep [`docs/SMTP-Server.md`](https://github.com/Vanaheimr/SMTPServer/blob/master/docs/SMTP-Server.md)
-   (the operational guide) in sync.
+   and the last verification date. If the change is user-visible, also update the
+   operational guide in the separate [**Vanaheimr/SMTPServer**](https://github.com/Vanaheimr/SMTPServer/blob/master/docs/SMTP-Server.md)
+   repository.
