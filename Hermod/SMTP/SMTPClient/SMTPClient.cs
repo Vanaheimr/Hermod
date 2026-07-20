@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Text;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 
 using Microsoft.Extensions.Logging;
@@ -44,7 +45,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private static readonly Byte[]         ByteZero            = new Byte[1] { 0x00 };
 
-        private static readonly SemaphoreSlim  SendEMailSemaphore  = new (1, 1);
+        // Per-instance send lock (was a process-wide static that serialized every SMTPClient).
+        private readonly SemaphoreSlim         sendLock            = new (1, 1);
+
+        // Per-command read/response timeout — bounds how long a silent server can stall us.
+        private readonly TimeSpan              commandTimeout;
 
         private readonly ILogger<SMTPClient>   smtpLogger;
 
@@ -129,6 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                           TLSUsage                                                  UseTLS                       = TLSUsage.STARTTLS,
                           RemoteTLSServerCertificateValidationHandler<SMTPClient>?  RemoteCertificateValidator   = null,
                           TimeSpan?                                                 ConnectionTimeout            = null,
+                          TimeSpan?                                                 CommandTimeout               = null,
                           IDNSClient?                                               DNSClient                    = null,
                           Boolean                                                   AutoConnect                  = false,
                           CancellationToken?                                        CancellationToken            = null,
@@ -164,6 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.UnknownAuthMethods  = [];
             this.RemoteHost          = RemoteHost;
             this.UseTLS              = UseTLS;
+            this.commandTimeout      = CommandTimeout ?? TimeSpan.FromSeconds(30);
             this.smtpLogger          = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<SMTPClient>();
 
             if (AutoConnect)
@@ -245,10 +252,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             var CommandBytes = Encoding.UTF8.GetBytes(Command + "\r\n");
-            var stream       = ActiveStream ?? throw new InvalidOperationException("SMTP client is not connected.");
+            var stream       = ActiveStream ?? throw new SMTPConnectionClosedException("SMTP client is not connected.");
 
-            stream.Write(CommandBytes, 0, CommandBytes.Length);
-            stream.Flush();
+            if (stream.CanTimeout)
+                stream.WriteTimeout = (Int32) commandTimeout.TotalMilliseconds;
+
+            try
+            {
+                stream.Write(CommandBytes, 0, CommandBytes.Length);
+                stream.Flush();
+            }
+            catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.TimedOut })
+            {
+                throw new SMTPTimeoutException();
+            }
+            catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException)
+            {
+                // The server dropped the connection while we were sending (e.g. mid-DATA) → fail fast.
+                throw new SMTPConnectionClosedException($"The SMTP connection was lost while sending: {e.Message}");
+            }
 
             smtpLogger.LogTrace("SMTP command to {RemoteSocket}: {Command}",
                                 RemoteSocket,
@@ -290,74 +312,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private IEnumerable<SMTPExtendedResponse> ReadSMTPResponses()
         {
 
-            try
+            var stream = ActiveStream ?? throw new SMTPConnectionClosedException("SMTP client is not connected.");
+
+            // Bound each read so a silent, non-responsive server ("mean" test) is detected within the
+            // command timeout instead of blocking. A blocking Read on a stream with a read timeout
+            // throws IOException(SocketException.TimedOut) when it elapses.
+            if (stream.CanTimeout)
+                stream.ReadTimeout = (Int32) commandTimeout.TotalMilliseconds;
+
+            // A single SMTP reply may be multi-line (RFC 5321 §4.2.1): every line but the last has a
+            // '-' after the status code, the final line a ' '. It may arrive split across several TCP
+            // segments, so keep reading until the reply is complete.
+            var sb   = new StringBuilder();
+            var buf  = new Byte[64 * 1024];
+
+            while (true)
             {
 
-                var stream = ActiveStream ?? throw new InvalidOperationException("SMTP client is not connected.");
+                Int32 nread;
 
-                // A single SMTP reply may be multi-line (RFC 5321 §4.2.1): every line but the last
-                // has a '-' after the status code, the final line has a ' '. It may also arrive split
-                // across several TCP segments, so keep reading until we have a complete, well-formed
-                // reply (or a partial trailing line) rather than assuming one Read() returns it all.
-                var sb   = new StringBuilder();
-                var buf  = new Byte[64 * 1024];
-
-                while (true)
+                try
                 {
+                    nread = stream.Read(buf, 0, buf.Length);
+                }
+                catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.TimedOut })
+                {
+                    throw new SMTPTimeoutException();
+                }
+                catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException)
+                {
+                    // Connection reset / aborted / disposed mid-read → treat as an abrupt close.
+                    throw new SMTPConnectionClosedException($"The SMTP connection was lost: {e.Message}");
+                }
 
-                    var nread = stream.Read(buf, 0, buf.Length);
-                    if (nread <= 0)
+                // A graceful close (FIN) surfaces as a 0-byte read → fail fast, do not spin.
+                if (nread <= 0)
+                    throw new SMTPConnectionClosedException();
+
+                sb.Append(Encoding.UTF8.GetString(buf, 0, nread));
+
+                var text = sb.ToString();
+                if (!text.EndsWith("\r\n"))
+                    continue;
+
+                var completeLines = text.Split("\r\n").Where(l => l.Length > 0).ToArray();
+                if (completeLines.Length > 0)
+                {
+                    var last = completeLines[^1];
+                    // final line: 3 digits followed by a space or end-of-line (not a '-')
+                    if (last.Length >= 3 && last.Take(3).All(Char.IsDigit) &&
+                        (last.Length == 3 || last[3] == ' '))
                         break;
-
-                    sb.Append(Encoding.UTF8.GetString(buf, 0, nread));
-
-                    var text = sb.ToString();
-
-                    // Complete only if the last CRLF-terminated line is a final line ("NNN " or "NNN").
-                    if (!text.EndsWith("\r\n"))
-                        continue;
-
-                    var completeLines = text.Split("\r\n").Where(l => l.Length > 0).ToArray();
-                    if (completeLines.Length > 0)
-                    {
-                        var last = completeLines[^1];
-                        // final line: 3 digits followed by a space or end-of-line (not a '-')
-                        if (last.Length >= 3 && last.Take(3).All(Char.IsDigit) &&
-                            (last.Length == 3 || last[3] == ' '))
-                            break;
-                    }
-
                 }
-
-                var responses = new List<SMTPExtendedResponse>();
-
-                foreach (var line in sb.ToString().Split("\r\n").Where(line => line.IsNotNullOrEmpty()))
-                {
-
-                    var statusCodeChars  = line.TakeWhile(b => b != ' ' && b != '-').ToArray();
-                    var more             = statusCodeChars.Length < line.Length && line[statusCodeChars.Length] == '-';
-                    var description      = line.Skip(statusCodeChars.Length + 1).ToArray();
-
-                    if (UInt16.TryParse(new String(statusCodeChars), out var statusCode))
-                        responses.Add(new SMTPExtendedResponse((SMTPStatusCodes) statusCode,
-                                                               new String(description),
-                                                               more));
-
-                }
-
-                return responses;
-
-            } catch (Exception e)
-            {
-
-                return [
-                           new SMTPExtendedResponse(
-                               SMTPStatusCodes.TransactionFailed,
-                               e.Message
-                           )
-                       ];
 
             }
+
+            var responses = new List<SMTPExtendedResponse>();
+
+            foreach (var line in sb.ToString().Split("\r\n").Where(line => line.IsNotNullOrEmpty()))
+            {
+
+                var statusCodeChars  = line.TakeWhile(b => b != ' ' && b != '-').ToArray();
+                var more             = statusCodeChars.Length < line.Length && line[statusCodeChars.Length] == '-';
+                var description      = line.Skip(statusCodeChars.Length + 1).ToArray();
+
+                if (UInt16.TryParse(new String(statusCodeChars), out var statusCode))
+                    responses.Add(new SMTPExtendedResponse((SMTPStatusCodes) statusCode,
+                                                           new String(description),
+                                                           more));
+
+            }
+
+            // A well-formed-but-unparseable reply (e.g. garbage) must not yield an empty set that would
+            // NRE the callers' .First(); surface it as a failed transaction.
+            if (responses.Count == 0)
+                responses.Add(new SMTPExtendedResponse(SMTPStatusCodes.TransactionFailed, "Unparseable server response"));
+
+            return responses;
 
         }
 
@@ -577,7 +608,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                   : null;
             var cancellationToken = requestTimeoutCancellationTokenSource?.Token ?? default;
 
-            if (await SendEMailSemaphore.WaitAsync(
+            if (await sendLock.WaitAsync(
                           RequestTimeout ?? TimeSpan.FromSeconds(60),
                           CancellationToken))
             {
@@ -988,6 +1019,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
 
                 }
+                catch (SMTPTimeoutException e)
+                {
+                    smtpLogger.LogWarning(e, "SMTP server did not respond in time.");
+                    result = MailSentStatus.Timeout;
+                }
+                catch (SMTPConnectionClosedException e)
+                {
+                    // "Mean" case: the server dropped the TCP connection. Detected immediately.
+                    smtpLogger.LogWarning(e, "SMTP server closed the connection unexpectedly.");
+                    result = MailSentStatus.ConnectionClosed;
+                }
                 catch (Exception e)
                 {
                     smtpLogger.LogError(e, "SMTP send failed.");
@@ -995,7 +1037,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
                 finally
                 {
-                    SendEMailSemaphore.Release();
+                    sendLock.Release();
                 }
             }
 

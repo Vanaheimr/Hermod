@@ -27,6 +27,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         InvalidRemoteHost,
         NoIPAddressFound,
         MessageSizeExceeded,
+        ConnectionClosed,   // the server closed the TCP connection unexpectedly
+        Timeout,            // the server stopped responding (read/command timeout)
         UnknownError,
         ExceptionOccurred
     }
