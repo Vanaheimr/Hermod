@@ -1,4 +1,4 @@
-# HTTP/2 From Scratch (C# / .NET 10)
+# HTTP/2
 
 A from-scratch HTTP/2 stack built directly on `SslStream`, focused on the
 **binary framing layer**: frame parsing, HPACK header compression, the stream
@@ -40,22 +40,6 @@ explicitly out of scope](#explicitly-out-of-scope) are all below. See
 > clients). See `CLAUDE.md` for the full status. Still built for learning the
 > wire protocol, not for production traffic (single-process demo host, no
 > server push, etc.).
-
-## Requirements
-
-- .NET 10 SDK (`net10.0` target)
-
-## Build & run
-
-```bash
-cd src
-dotnet build HTTP2.slnx
-dotnet run --project Demo/HTTP2.Demo.csproj
-```
-
-The demo listens on `https://localhost:8443` (HTTP/2 over TLS, self-signed cert
-generated at startup) and additionally on `http://localhost:8080` (cleartext
-HTTP/2 — "h2c" — with prior knowledge, no TLS).
 
 ## Test
 
@@ -124,38 +108,6 @@ TLS via ALPN; `--http2-prior-knowledge` speaks cleartext HTTP/2 directly (no
 Upgrade, no TLS). Note: the curl bundled with Windows has no HTTP/2 support and
 silently falls back to HTTP/1.1.
 
-## Project layout
-
-Each public enum / interface / class / struct / record lives in its **own file
-named after the type**; the tree below names the primary file per concern (e.g.
-the frame enums, HPACK's two tables, the WebSocket value types, and the auth
-schemes are each their own sibling file).
-
-```
-src/  (solution HTTP2.slnx)
-├── Core/                Shared, direction-neutral library
-│   ├── HTTP2Frame.cs        Frame header + frame factories (+ HTTP2FrameType/Flags/ErrorCode/… enums, exceptions)
-│   ├── HPACKDecoder.cs      RFC 7541 header compression — decoder (+ HPACKEncoder.cs, Huffman{Decoder,Encoder}.cs)
-│   ├── HTTP2Stream.cs       Stream state machine + flow control (+ HTTP2StreamManager/OutboundQueue/Priority.cs)
-│   ├── HTTP2Settings.cs     Connection settings bag
-│   ├── HTTP2RequestHandler.cs  App-logic request-handler delegate
-│   ├── IHTTP2RequestStream.cs  Streaming seam (+ IHTTP2ResponseStream.cs; HTTP2StreamingHandler delegate)
-│   ├── IHTTP2Tunnel.cs      Transport-agnostic byte-tunnel interface
-│   ├── WebSocketConnection.cs  RFC 6455 + RFC 7692 framing over an IHTTP2Tunnel (+ WebSocketDeflate/Opcode/…)
-│   ├── HTTPSemantics.cs     RFC 9110 semantics (GET/HEAD/OPTIONS, conditional + Range, negotiation) (+ HTTPResource.cs)
-│   ├── HTTPAuthentication.cs  RFC 9110 §11 auth framework + Basic/Bearer/Digest/Token schemes (each its own file)
-│   └── HTTPCache.cs         RFC 9111 caching logic (+ HTTPCacheControl/StoredResponse/Mode/… .cs)
-├── Server/              (→ Core)
-│   ├── HTTP2Connection.cs   Preface, SETTINGS, frame dispatch, responses, CONNECT tunneling, priority-aware writer
-│   └── HTTP2Server.cs       TLS listener + ALPN negotiation (+ optional mTLS)
-├── Client/              (→ Core)
-│   ├── HTTP2ClientConnection.cs  Client-role connection (sends requests, assembles responses)
-│   ├── HTTP2Client.cs       Client dialer (TCP connect + TLS/ALPN h2)
-│   ├── HTTP2CachingClient.cs  RFC 9111 cache in front of a client connection
-│   └── HTTP2ClientPool.cs   Single-origin connection pool (failover + self-healing)
-└── Demo/                (→ Server, Client)
-    └── Program.cs           Demo host + example request/connect/resource handlers
-```
 
 ## Where application logic plugs in
 
@@ -535,9 +487,6 @@ they're common in the wild:
 
 ## Explicitly out of scope
 
-- **HTTP/3** — a separate transport (QUIC/RFC 9000-9002, QPACK/RFC 9204, H3
-  framing/RFC 9114) that shares only the HTTP *semantics* with this stack, not
-  the framing/HPACK/flow-control core. Belongs in its own project.
 - **Server push** (`PUSH_PROMISE` outbound) — deprecated; we advertise
   `ENABLE_PUSH=0` and reject inbound pushes.
 - **RFC 7540 priority** (stream dependencies/weights) — superseded by RFC 9218;
@@ -582,13 +531,3 @@ they're common in the wild:
 - RFC 8941 — Structured Field Values for HTTP
 - RFC 4647 — Matching of Language Tags
 
-## Status & roadmap
-
-This README is the reference. [`docs/BUILD_LOG.md`](docs/BUILD_LOG.md) is the full
-chronological build log — every feature, why it was built that way, and how it
-was verified. [`CLAUDE.md`](./CLAUDE.md) holds the architecture, conventions, and
-a current-state summary (the agent/working-notes file).
-
-## License
-
-TBD.
