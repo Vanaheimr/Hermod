@@ -535,6 +535,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
+        #region (private) IsTransientFailure(Status)
+
+        /// <summary>
+        /// Whether a send outcome is a transient TRANSPORT failure that is safe to retry (the message
+        /// was certainly not accepted): a dropped/stalled connection or a failed connect. Protocol
+        /// rejections, auth failures and an oversized message are terminal.
+        /// </summary>
+        private static Boolean IsTransientFailure(MailSentStatus Status)
+
+            => Status is MailSentStatus.ConnectionClosed
+                      or MailSentStatus.Timeout
+                      or MailSentStatus.NoIPAddressFound
+                      or MailSentStatus.UnknownError;
+
+        #endregion
+
         #region Send(EMail,        NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
 
         /// <summary>
@@ -614,6 +630,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             {
                 try
                 {
+                  for (var attempt = 0; ; attempt++)
+                  {
+                    try
+                    {
 
                     var connectionResult = await ReconnectAsync(cancellationToken).ConfigureAwait(false);
 
@@ -1018,22 +1038,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     }
 
-                }
-                catch (SMTPTimeoutException e)
-                {
-                    smtpLogger.LogWarning(e, "SMTP server did not respond in time.");
-                    result = MailSentStatus.Timeout;
-                }
-                catch (SMTPConnectionClosedException e)
-                {
-                    // "Mean" case: the server dropped the TCP connection. Detected immediately.
-                    smtpLogger.LogWarning(e, "SMTP server closed the connection unexpectedly.");
-                    result = MailSentStatus.ConnectionClosed;
-                }
-                catch (Exception e)
-                {
-                    smtpLogger.LogError(e, "SMTP send failed.");
-                    result = MailSentStatus.ExceptionOccurred;
+                    }
+                    catch (SMTPTimeoutException e)
+                    {
+                        smtpLogger.LogWarning(e, "SMTP server did not respond in time.");
+                        result = MailSentStatus.Timeout;
+                    }
+                    catch (SMTPConnectionClosedException e)
+                    {
+                        // "Mean" case: the server dropped the TCP connection. Detected immediately.
+                        smtpLogger.LogWarning(e, "SMTP server closed the connection unexpectedly.");
+                        result = MailSentStatus.ConnectionClosed;
+                    }
+                    catch (Exception e)
+                    {
+                        smtpLogger.LogError(e, "SMTP send failed.");
+                        result = MailSentStatus.ExceptionOccurred;
+                    }
+
+                    // Retry only transient TRANSPORT failures (a dropped/stalled connection or a failed
+                    // connect), bounded by NumberOfRetries. Protocol rejections, auth failures, an
+                    // oversized message and, conservatively, any other exception are NOT retried (the
+                    // message may already have been accepted, so a resend could duplicate it).
+                    if (!IsTransientFailure(result) || attempt >= NumberOfRetries)
+                        break;
+
+                    smtpLogger.LogInformation("SMTP send to {RemoteHost} failed transiently ({Result}); retry {Next}/{Max}",
+                                              RemoteHost, result, attempt + 1, NumberOfRetries);
+
+                    try   { await Task.Delay(TimeSpan.FromMilliseconds(500 * (attempt + 1)), CancellationToken).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { break; }
+
+                  }
                 }
                 finally
                 {

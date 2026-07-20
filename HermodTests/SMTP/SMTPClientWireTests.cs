@@ -57,70 +57,94 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             private readonly TcpListener   listener;
             private readonly Mode          mode;
+            private readonly Int32         dropFirst;   // drop this many leading connections (after greeting)
+            private Int32                  connections;
 
             public readonly List<String>  Commands  = [];   // received SMTP commands
             public readonly List<String>  DataLines = [];   // received DATA body lines (verbatim, incl. dot-stuffing)
 
-            public Int32 Port => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public Int32 Port        => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public Int32 Connections => connections;
 
-            public FakeSmtpServer(Mode Mode)
+            public FakeSmtpServer(Mode Mode, Int32 DropFirstConnections = 0)
             {
-                mode      = Mode;
-                listener  = new TcpListener(System.Net.IPAddress.Loopback, 0);
+                mode       = Mode;
+                dropFirst  = DropFirstConnections;
+                listener   = new TcpListener(System.Net.IPAddress.Loopback, 0);
                 listener.Start();
-                _ = Task.Run(HandleAsync);
+                _ = Task.Run(AcceptLoopAsync);
             }
 
-            private async Task HandleAsync()
+            // Accept connections repeatedly, so retries reconnect to us.
+            private async Task AcceptLoopAsync()
             {
                 try
                 {
-                    using var client = await listener.AcceptTcpClientAsync();
-                    using var stream = client.GetStream();
-                    using var reader = new StreamReader(stream, Encoding.ASCII);
-                    using var writer = new StreamWriter(stream, new UTF8Encoding(false)) { NewLine = "\r\n", AutoFlush = true };
+                    while (true)
+                    {
+                        var client   = await listener.AcceptTcpClientAsync();
+                        var connIndex = connections++;
+                        _ = Task.Run(() => ServeAsync(client, connIndex));
+                    }
+                }
+                catch { /* listener stopped */ }
+            }
 
-                    await writer.WriteLineAsync("220 fake.test ESMTP");
-
-                    if (mode == Mode.DropAfterGreeting) { client.Close(); return; }
-                    if (mode == Mode.HangAfterGreeting) { await Task.Delay(TimeSpan.FromSeconds(30)); return; }
-
-                    var inData = false;
-                    String? line;
-
-                    while ((line = await reader.ReadLineAsync()) is not null)
+            private async Task ServeAsync(TcpClient client, Int32 connIndex)
+            {
+                try
+                {
+                    using (client)
+                    using (var stream = client.GetStream())
+                    using (var reader = new StreamReader(stream, Encoding.ASCII))
+                    using (var writer = new StreamWriter(stream, new UTF8Encoding(false)) { NewLine = "\r\n", AutoFlush = true })
                     {
 
-                        if (inData)
-                        {
-                            if (line == ".") { await writer.WriteLineAsync("250 2.0.0 Ok: queued"); inData = false; continue; }
-                            DataLines.Add(line);
-                            if (mode == Mode.DropDuringData) { client.Close(); return; }
-                            continue;
-                        }
+                        await writer.WriteLineAsync("220 fake.test ESMTP");
 
-                        Commands.Add(line);
-                        var upper = line.ToUpperInvariant();
+                        // The first `dropFirst` connections always drop after the greeting (to drive retries).
+                        var effective = connIndex < dropFirst ? Mode.DropAfterGreeting : mode;
 
-                        if (upper.StartsWith("EHLO") || upper.StartsWith("HELO"))
-                        {
-                            await writer.WriteLineAsync("250-fake.test");
-                            await writer.WriteLineAsync("250-SIZE 10485760");
-                            await writer.WriteLineAsync("250-8BITMIME");
-                            await writer.WriteLineAsync("250-SMTPUTF8");
-                            await writer.WriteLineAsync("250-DSN");
-                            await writer.WriteLineAsync("250 ENHANCEDSTATUSCODES");
-                        }
-                        else if (upper.StartsWith("MAIL FROM"))
-                        {
-                            if (mode == Mode.DropAfterMailFrom) { client.Close(); return; }
-                            await writer.WriteLineAsync("250 2.1.0 Ok");
-                        }
-                        else if (upper.StartsWith("RCPT TO")) await writer.WriteLineAsync("250 2.1.5 Ok");
-                        else if (upper == "DATA")             { await writer.WriteLineAsync("354 End data with <CR><LF>.<CR><LF>"); inData = true; }
-                        else if (upper == "QUIT")             { await writer.WriteLineAsync("221 2.0.0 Bye"); client.Close(); return; }
-                        else                                  await writer.WriteLineAsync("250 Ok");
+                        if (effective == Mode.DropAfterGreeting) { client.Close(); return; }
+                        if (effective == Mode.HangAfterGreeting) { await Task.Delay(TimeSpan.FromSeconds(30)); return; }
 
+                        var inData = false;
+                        String? line;
+
+                        while ((line = await reader.ReadLineAsync()) is not null)
+                        {
+
+                            if (inData)
+                            {
+                                if (line == ".") { await writer.WriteLineAsync("250 2.0.0 Ok: queued"); inData = false; continue; }
+                                DataLines.Add(line);
+                                if (effective == Mode.DropDuringData) { client.Close(); return; }
+                                continue;
+                            }
+
+                            Commands.Add(line);
+                            var upper = line.ToUpperInvariant();
+
+                            if (upper.StartsWith("EHLO") || upper.StartsWith("HELO"))
+                            {
+                                await writer.WriteLineAsync("250-fake.test");
+                                await writer.WriteLineAsync("250-SIZE 10485760");
+                                await writer.WriteLineAsync("250-8BITMIME");
+                                await writer.WriteLineAsync("250-SMTPUTF8");
+                                await writer.WriteLineAsync("250-DSN");
+                                await writer.WriteLineAsync("250 ENHANCEDSTATUSCODES");
+                            }
+                            else if (upper.StartsWith("MAIL FROM"))
+                            {
+                                if (effective == Mode.DropAfterMailFrom) { client.Close(); return; }
+                                await writer.WriteLineAsync("250 2.1.0 Ok");
+                            }
+                            else if (upper.StartsWith("RCPT TO")) await writer.WriteLineAsync("250 2.1.5 Ok");
+                            else if (upper == "DATA")             { await writer.WriteLineAsync("354 End data with <CR><LF>.<CR><LF>"); inData = true; }
+                            else if (upper == "QUIT")             { await writer.WriteLineAsync("221 2.0.0 Bye"); client.Close(); return; }
+                            else                                  await writer.WriteLineAsync("250 Ok");
+
+                        }
                     }
                 }
                 catch { /* the client tore down the connection — expected in the mean cases */ }
@@ -200,13 +224,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             using var server = new FakeSmtpServer(mode);
             using var client = ClientFor(server);
 
+            // NumberOfRetries: 0 — measure the detection latency of a single attempt.
             var sw     = Stopwatch.StartNew();
-            var result = client.Send(Message("hello world")).GetAwaiter().GetResult();
+            var result = client.Send(Message("hello world"), NumberOfRetries: 0).GetAwaiter().GetResult();
             sw.Stop();
 
             Assert.That(result, Is.EqualTo(expected), $"mean server ({mode}) must be classified as {expected}");
             Assert.That(sw.Elapsed, Is.LessThan(TimeSpan.FromSeconds(10)),
                         $"detection must be fast (was {sw.Elapsed.TotalSeconds:F1}s) — never a 60s hang");
+
+        }
+
+
+        [Test]
+        public async Task Transient_drops_are_retried_until_success()
+        {
+
+            // The first two connections drop after the greeting; the third is served normally.
+            using var server = new FakeSmtpServer(FakeSmtpServer.Mode.Normal, DropFirstConnections: 2);
+            using var client = ClientFor(server);
+
+            var result = await client.Send(Message("retry me"), NumberOfRetries: 3);
+
+            Assert.That(result,             Is.EqualTo(MailSentStatus.ok), "a retry must eventually succeed");
+            Assert.That(server.Connections, Is.EqualTo(3), "two dropped attempts + one success");
+
+        }
+
+        [Test]
+        public async Task Retries_are_bounded_by_NumberOfRetries()
+        {
+
+            // Every connection drops → the client gives up after 1 + NumberOfRetries attempts.
+            using var server = new FakeSmtpServer(FakeSmtpServer.Mode.DropAfterGreeting);
+            using var client = ClientFor(server);
+
+            var result = await client.Send(Message("nope"), NumberOfRetries: 2);
+
+            Assert.That(result,             Is.EqualTo(MailSentStatus.ConnectionClosed));
+            Assert.That(server.Connections, Is.EqualTo(3), "1 initial attempt + 2 retries");
 
         }
 
