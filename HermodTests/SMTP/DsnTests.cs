@@ -141,6 +141,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(DsnCommands.FormatNotify(DsnNotify.Failure | DsnNotify.Delay), Is.EqualTo("FAILURE,DELAY"));
         }
 
+        [Test]
+        public void Param_suffixes_append_to_an_existing_command()
+        {
+            // The submission client (SMTPClient) builds MAIL FROM with BODY=/SIZE=/… and then appends
+            // just the DSN parameter suffixes via these helpers.
+            var dsn = new DsnParameters(DsnNotify.Success | DsnNotify.Failure, DsnRet.Hdrs, "e1");
+
+            Assert.That(DsnCommands.MailFromParams(dsn, remoteSupportsDsn: true),  Is.EqualTo(" RET=HDRS ENVID=e1"));
+            Assert.That(DsnCommands.MailFromParams(dsn, remoteSupportsDsn: false), Is.EqualTo(""));
+            Assert.That(DsnCommands.MailFromParams(DsnParameters.None, remoteSupportsDsn: true), Is.EqualTo(""));
+
+            Assert.That(DsnCommands.RcptToParams(dsn, "you@example.org", remoteSupportsDsn: true),
+                        Is.EqualTo(" NOTIFY=SUCCESS,FAILURE ORCPT=rfc822;you@example.org"));
+            Assert.That(DsnCommands.RcptToParams(dsn, "you@example.org", remoteSupportsDsn: false), Is.EqualTo(""));
+
+            // The full-command builders still delegate to the same suffixes.
+            Assert.That(DsnCommands.MailFrom("me@x.org", dsn, true), Is.EqualTo("MAIL FROM:<me@x.org> RET=HDRS ENVID=e1"));
+        }
+
         #endregion
 
 

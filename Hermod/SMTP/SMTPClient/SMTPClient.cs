@@ -603,6 +603,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                             var authMethods         = SMTPAuthMethods.None;
                             var unknownAuthMethods  = new HashSet<String>();
+                            var serverMaxSize       = 0UL;   // RFC 1870 SIZE limit (0 = unknown/none)
+                            var supportsMtPriority  = false; // RFC 6710
+                            var supportsRequireTls  = false; // RFC 8689
 
                             // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
                             var LoginResponse       = ReadSMTPResponses();
@@ -699,15 +702,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #region SIZE
 
-                                        else if (v.Response.StartsWith("SIZE "))
+                                        else if (v.Response.StartsWith("SIZE"))
                                         {
 
                                             Capabilities |= SmtpCapabilities.Size;
 
-                                            if (!UInt64.TryParse(v.Response.Substring(5), out UInt64 maxMailSize))
-                                                throw new Exception("Invalid SIZE capability!");
+                                            // "SIZE 10485760" — the value is optional (RFC 1870 §6.1); 0 means "no fixed limit".
+                                            var sizeArg = v.Response.Length > 5 ? v.Response[5..].Trim() : "";
+                                            if (sizeArg.Length > 0 && UInt64.TryParse(sizeArg, out var maxMailSize))
+                                                serverMaxSize = maxMailSize;
 
                                         }
+
+                                        #endregion
+
+                                        #region MT-PRIORITY (RFC 6710) / REQUIRETLS (RFC 8689)
+
+                                        if (v.Response == "MT-PRIORITY" || v.Response.StartsWith("MT-PRIORITY "))
+                                            supportsMtPriority = true;
+
+                                        if (v.Response == "REQUIRETLS")
+                                            supportsRequireTls = true;
 
                                         #endregion
 
@@ -829,6 +844,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #endregion
 
+                                    #region Pre-checks: REQUIRETLS and message SIZE
+
+                                    // REQUIRETLS (RFC 8689): if the caller demands authenticated TLS, never proceed in the clear.
+                                    if (EMailEnvelop.RequireTls && !IsTLSActive)
+                                    {
+                                        smtpLogger.LogWarning("REQUIRETLS demanded but the connection to {RemoteHost} is not TLS-secured", RemoteHost);
+                                        result = MailSentStatus.failed;
+                                        break;
+                                    }
+
+                                    // Serialize once, so we can declare/verify SIZE (RFC 1870) and send the body.
+                                    var messageLines  = EMailEnvelop.Mail?.ToText().ToArray() ?? [];
+                                    var messageBytes  = (UInt64) String.Join("\r\n", messageLines).ToUTF8Bytes().LongLength;
+
+                                    if (serverMaxSize > 0 && messageBytes > serverMaxSize)
+                                    {
+                                        smtpLogger.LogWarning("Message ({MessageBytes} B) exceeds the server SIZE limit ({ServerMaxSize} B)", messageBytes, serverMaxSize);
+                                        result = MailSentStatus.MessageSizeExceeded;
+                                        break;
+                                    }
+
+                                    #endregion
+
                                     #region MAIL FROM:
 
                                     // A transaction has exactly one MAIL FROM (RFC 5321 §3.3).
@@ -846,6 +884,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (needsUtf8)
                                         mailFromCommand += " SMTPUTF8";
 
+                                    // SIZE (RFC 1870): declare the message size so the server can reject early.
+                                    if (Capabilities.HasFlag(SmtpCapabilities.Size))
+                                        mailFromCommand += $" SIZE={messageBytes}";
+
+                                    // DSN (RFC 3461) / MT-PRIORITY (RFC 6710) / REQUIRETLS (RFC 8689) — the envelope's
+                                    // transaction parameters, emitted only when the server advertised the extension.
+                                    mailFromCommand += DsnCommands.MailFromParams(EMailEnvelop.Dsn, Capabilities.HasFlag(SmtpCapabilities.Dsn));
+                                    mailFromCommand  = MtPriority.AppendMailFromParam(mailFromCommand, EMailEnvelop.Priority, supportsMtPriority);
+
+                                    if (EMailEnvelop.RequireTls && supportsRequireTls)
+                                        mailFromCommand += " REQUIRETLS";
+
                                     var mailFromResponse = SendCommandAndWaitForResponse(mailFromCommand);
                                     if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
                                         throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
@@ -854,11 +904,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region RCPT TO(s):
 
-                                    // RCPT TO:<user@example.com>
+                                    // RCPT TO:<user@example.com>  (+ NOTIFY/ORCPT when DSN was requested and supported)
                                     // 250 2.1.5 Ok
+                                    var dsnSupported = Capabilities.HasFlag(SmtpCapabilities.Dsn);
                                     EMailEnvelop.RcptTo.ForEach(rcpt => {
 
-                                        var rcptToResponse = SendCommandAndWaitForResponse("RCPT TO:<" + rcpt.Address.ToString() + ">");
+                                        var rcptToResponse = SendCommandAndWaitForResponse(
+                                                                 "RCPT TO:<" + rcpt.Address.ToString() + ">" +
+                                                                 DsnCommands.RcptToParams(EMailEnvelop.Dsn, rcpt.Address.ToString(), dsnSupported));
 
                                         switch (rcptToResponse.StatusCode)
                                         {
@@ -897,8 +950,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // Send the complete RFC 5322 message (headers, blank line, body) in its
                                     // canonical serialized order — NOT reconstructed from the header dictionary
                                     // (whose order is not guaranteed and would break DKIM). Dot-stuffed.
-                                    if (EMailEnvelop.Mail is not null)
-                                        SendData(EMailEnvelop.Mail.ToText());
+                                    if (messageLines.Length > 0)
+                                        SendData(messageLines);
 
                                     #endregion
 

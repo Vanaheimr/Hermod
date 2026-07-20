@@ -132,38 +132,45 @@ public static class DsnCommands
     }
 
     /// <summary>
-    /// Build a MAIL FROM command, appending RET/ENVID when the remote supports DSN and one was requested.
+    /// The RET/ENVID parameter suffix for a MAIL FROM command (e.g. " RET=FULL ENVID=abc"), or "" when
+    /// the remote does not support DSN or nothing was requested. Append to an existing MAIL FROM command.
     /// </summary>
-    public static string MailFrom(string envelopeFrom, DsnParameters dsn, bool remoteSupportsDsn)
+    public static string MailFromParams(DsnParameters dsn, bool remoteSupportsDsn)
     {
-        var cmd = $"MAIL FROM:<{envelopeFrom}>";
-
         if (!remoteSupportsDsn || !dsn.IsRequested)
-            return cmd;
+            return "";
 
-        cmd += dsn.Ret == DsnRet.Hdrs ? " RET=HDRS" : " RET=FULL";
+        var s = dsn.Ret == DsnRet.Hdrs ? " RET=HDRS" : " RET=FULL";
 
         if (dsn.EnvId is not null)
-            cmd += $" ENVID={dsn.EnvId}";
+            s += $" ENVID={dsn.EnvId}";
 
-        return cmd;
+        return s;
     }
 
     /// <summary>
-    /// Build a RCPT TO command, appending NOTIFY/ORCPT when the remote supports DSN and one was requested.
+    /// The NOTIFY/ORCPT parameter suffix for a RCPT TO command, or "" when the remote does not support
+    /// DSN or nothing was requested. Append to an existing RCPT TO command.
+    /// </summary>
+    public static string RcptToParams(DsnParameters dsn, string recipient, bool remoteSupportsDsn)
+    {
+        if (!remoteSupportsDsn || dsn.Notify == DsnNotify.Never)
+            return "";
+
+        return " NOTIFY=" + FormatNotify(dsn.Notify) + $" ORCPT=rfc822;{recipient}";
+    }
+
+    /// <summary>
+    /// Build a full MAIL FROM command, appending RET/ENVID when the remote supports DSN and one was requested.
+    /// </summary>
+    public static string MailFrom(string envelopeFrom, DsnParameters dsn, bool remoteSupportsDsn)
+        => $"MAIL FROM:<{envelopeFrom}>" + MailFromParams(dsn, remoteSupportsDsn);
+
+    /// <summary>
+    /// Build a full RCPT TO command, appending NOTIFY/ORCPT when the remote supports DSN and one was requested.
     /// </summary>
     public static string RcptTo(string recipient, DsnParameters dsn, bool remoteSupportsDsn)
-    {
-        var cmd = $"RCPT TO:<{recipient}>";
-
-        if (!remoteSupportsDsn || dsn.Notify == DsnNotify.Never)
-            return cmd;
-
-        cmd += " NOTIFY=" + FormatNotify(dsn.Notify);
-        cmd += $" ORCPT=rfc822;{recipient}";
-
-        return cmd;
-    }
+        => $"RCPT TO:<{recipient}>" + RcptToParams(dsn, recipient, remoteSupportsDsn);
 
 }
 
