@@ -174,7 +174,7 @@ builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), and the submission client
 (`SMTPSubmissionClientTests`, `SMTPSubmissionClientWireTests`, `SMTPSubmissionClientTlsScramTests`). The
 SPF/DKIM/DMARC/ARC/DANE/TLS-RPT engines were validated with the dedicated
-harnesses and the `SMTPTestClient` project described above.
+harnesses listed above.
 
 Run the committed suite with:
 
