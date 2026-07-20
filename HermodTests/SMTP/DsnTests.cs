@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [Test]
         public void Param_suffixes_append_to_an_existing_command()
         {
-            // The submission client (SMTPClient) builds MAIL FROM with BODY=/SIZE=/… and then appends
+            // The submission client (SMTPSubmissionClient) builds MAIL FROM with BODY=/SIZE=/… and then appends
             // just the DSN parameter suffixes via these helpers.
             var dsn = new DsnParameters(DsnNotify.Success | DsnNotify.Failure, DsnRet.Hdrs, "e1");
 

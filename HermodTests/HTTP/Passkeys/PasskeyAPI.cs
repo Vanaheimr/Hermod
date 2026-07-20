@@ -355,7 +355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
 
                           EMailAddress?                  APIRobotEMailAddress      = null,
                           String?                        APIRobotGPGPassphrase     = null,
-                          ISMTPClient?                   SMTPClient                = null,
+                          ISMTPSubmissionClient?                   SMTPClient                = null,
 
                           HTTPPath?                      AdditionalURLPathPrefix   = null,
                           Boolean?                       LocationsAsOpenData       = null,
@@ -402,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                           //Organization_Id?                                           AdminOrganizationId              = null,
                           //EMailAddress?                                              APIRobotEMailAddress             = null,
                           //String?                                                    APIRobotGPGPassphrase            = null,
-                          //ISMTPClient?                                               SMTPClient                       = null,
+                          //ISMTPSubmissionClient?                                               SMTPClient                       = null,
 
                       //    PasswordQualityCheckDelegate?                              PasswordQualityCheck             = null,
                       //    HTTPCookieName?                                            CookieName                       = null,

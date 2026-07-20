@@ -1370,7 +1370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A SMTP client to be used by the API.
         /// </summary>
-        public ISMTPClient                    SMTPClient                         { get; }
+        public ISMTPSubmissionClient                    SMTPClient                         { get; }
 
         public HTTPCookieName                 CookieName                         { get; }
 
@@ -2274,7 +2274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Organization_Id?               AdminOrganizationId              = null,
                           EMailAddress?                  APIRobotEMailAddress             = null,
                           String?                        APIRobotGPGPassphrase            = null,
-                          ISMTPClient?                   SMTPClient                       = null,
+                          ISMTPSubmissionClient?                   SMTPClient                       = null,
 
                           PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
                           HTTPCookieName?                CookieName                       = null,
@@ -2610,7 +2610,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                       Organization_Id?                     AdminOrganizationId              = null,
         //                                       EMailAddress                         APIRobotEMailAddress             = null,
         //                                       String                               APIRobotGPGPassphrase            = null,
-        //                                       ISMTPClient                          SMTPClient                       = null,
+        //                                       ISMTPSubmissionClient                          SMTPClient                       = null,
         //                                       ISMSClient                           SMSClient                        = null,
         //                                       String                               SMSSenderName                    = null,
         //                                       String                               TelegramBotToken                 = null,

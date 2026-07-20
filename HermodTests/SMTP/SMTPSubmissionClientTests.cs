@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// server signature.
     /// </summary>
     [TestFixture]
-    public class SMTPClientTests
+    public class SMTPSubmissionClientTests
     {
 
         // A fixed SCRAM AuthMessage (client-first-bare , server-first , client-final-without-proof).

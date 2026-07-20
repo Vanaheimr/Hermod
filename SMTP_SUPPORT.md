@@ -125,7 +125,7 @@ or advertised extension applies to the roles noted here, not automatically to al
 |---|---|---|
 | Inbound server | `SMTPServer` + `SMTPSession` | Accept connections on 25/587/465, run the transaction state machine, authenticate (SASL), evaluate SPF/DKIM/DMARC/ARC, write trace + `Authentication-Results`, store or relay. |
 | Relay client (MTA→MTA) | `SMTPOutboundClient` | MX lookup, opportunistic/enforced TLS, DANE/MTA-STS, DKIM signing, delivery; driven by `MailSender` and the persistent queue. |
-| Submission client (app→MSA) | `ISMTPClient` / `SMTPClient` | Hand a typed message to one configured submission server over TLS with SASL AUTH (SCRAM-SHA-256 preferred, never cleartext); fully-async transport with fast-fail connection detection, bounded retries, and a detailed `SMTPSendResult`. |
+| Submission client (app→MSA) | `ISMTPSubmissionClient` / `SMTPSubmissionClient` | Hand a typed message to one configured submission server over TLS with SASL AUTH (SCRAM-SHA-256 preferred, never cleartext); fully-async transport with fast-fail connection detection, bounded retries, and a detailed `SMTPSendResult`. |
 | Message model | `EMail` + builders + `OpenPGP` | Compose/parse MIME and OpenPGP; DSN/MDN request and generation; importance/priority. |
 
 ## Commands and EHLO extensions
@@ -172,7 +172,7 @@ The committed SMTP regression suite (`HermodTests/SMTP/`) contains **84 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), and the submission client
-(`SMTPClientTests`, `SMTPClientWireTests`, `SMTPClientTlsScramTests`). The
+(`SMTPSubmissionClientTests`, `SMTPSubmissionClientWireTests`, `SMTPSubmissionClientTlsScramTests`). The
 SPF/DKIM/DMARC/ARC/DANE/TLS-RPT engines were validated with the dedicated
 harnesses and the `SMTPTestClient` project described above.
 

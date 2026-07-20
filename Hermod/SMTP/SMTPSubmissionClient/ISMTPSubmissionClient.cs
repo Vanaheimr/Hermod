@@ -28,13 +28,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     public delegate Task OnSendEMailRequestDelegate (DateTimeOffset     LogTimestamp,
-                                                     ISMTPClient        Sender,
+                                                     ISMTPSubmissionClient        Sender,
                                                      EventTracking_Id   EventTrackingId,
                                                      EMailEnvelop       EMailEnvelop,
                                                      TimeSpan?          RequestTimeout);
 
     public delegate Task OnSendEMailResponseDelegate(DateTimeOffset     LogTimestamp,
-                                                     ISMTPClient        Sender,
+                                                     ISMTPSubmissionClient        Sender,
                                                      EventTracking_Id   EventTrackingId,
                                                      EMailEnvelop       EMailEnvelop,
                                                      TimeSpan?          RequestTimeout,
@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                      TimeSpan           Runtime);
 
 
-    public static class ISMTPClientExtensions
+    public static class ISMTPSubmissionClientExtensions
     {
 
         #region CRAM_MD5(Token, Login, Password)
@@ -137,7 +137,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
     }
 
-    public interface ISMTPClient
+    /// <summary>
+    /// An SMTP submission client (RFC 6409): the app→MSA interface an application injects to hand a
+    /// typed message to one configured submission server and get its verdict. Implemented by
+    /// <see cref="SMTPSubmissionClient"/> (the real client) and <see cref="NullMailer"/> (a no-op that
+    /// only logs). Distinct from the MTA→MTA relay engine <c>SMTPOutboundClient</c>.
+    /// </summary>
+    public interface ISMTPSubmissionClient
     {
 
         event OnSendEMailRequestDelegate   OnSendEMailRequest;

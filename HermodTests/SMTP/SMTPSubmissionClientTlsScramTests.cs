@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// client verifies — and only then a message is sent.
     /// </summary>
     [TestFixture]
-    public class SMTPClientTlsScramTests
+    public class SMTPSubmissionClientTlsScramTests
     {
 
         private const String User     = "app";
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         #endregion
 
 
-        private static SMTPClient ClientFor(TlsScramServer server, String password)
+        private static SMTPSubmissionClient ClientFor(TlsScramServer server, String password)
             => new (DomainName.Parse("127.0.0.1"),
                     IPPort.Parse((UInt16) server.Port),
                     Login:                       User,

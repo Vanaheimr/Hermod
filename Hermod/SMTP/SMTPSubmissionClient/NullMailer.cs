@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <summary>
     /// A SMTP client for NOT sending, but logging e-mails.
     /// </summary>
-    public class NullMailer : ISMTPClient
+    public class NullMailer : ISMTPSubmissionClient
     {
 
         #region Data

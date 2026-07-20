@@ -31,10 +31,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     {
 
         public static Task<MailSentStatus> SendVia(this EMail  EMail,
-                                                   SMTPClient  SMTPClient,
+                                                   SMTPSubmissionClient  SMTPSubmissionClient,
                                                    Byte        NumberOfRetries = 3)
         {
-            return SMTPClient.Send(EMail, NumberOfRetries);
+            return SMTPSubmissionClient.Send(EMail, NumberOfRetries);
         }
 
     }

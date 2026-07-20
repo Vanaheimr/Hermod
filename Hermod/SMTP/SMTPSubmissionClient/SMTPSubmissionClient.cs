@@ -36,22 +36,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     /// <summary>
-    /// A SMTP client for sending e-mails.
+    /// An SMTP submission client (RFC 6409): an application hands a typed message to one configured
+    /// submission server (587/465, STARTTLS or implicit TLS + SASL AUTH, SCRAM-SHA-256 preferred and
+    /// never cleartext) and gets that server's verdict now. This is the app→MSA role — distinct from
+    /// <see cref="SMTPOutboundClient"/>, the MTA→MTA relay engine that does MX lookup, opportunistic
+    /// TLS/DANE/MTA-STS and DKIM signing for background/queued and direct-to-MX delivery.
     /// </summary>
-    public class SMTPClient : ATLSClient, ISMTPClient
+    public class SMTPSubmissionClient : ATLSClient, ISMTPSubmissionClient
     {
 
         #region Data
 
         private static readonly Byte[]         ByteZero            = new Byte[1] { 0x00 };
 
-        // Per-instance send lock (was a process-wide static that serialized every SMTPClient).
+        // Per-instance send lock (was a process-wide static that serialized every SMTPSubmissionClient).
         private readonly SemaphoreSlim         sendLock            = new (1, 1);
 
         // Per-command read/response timeout — bounds how long a silent server can stall us.
         private readonly TimeSpan              commandTimeout;
 
-        private readonly ILogger<SMTPClient>   smtpLogger;
+        private readonly ILogger<SMTPSubmissionClient>   smtpLogger;
 
         #endregion
 
@@ -123,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
-        public SMTPClient(DomainName                                                RemoteHost,
+        public SMTPSubmissionClient(DomainName                                                RemoteHost,
                           IPPort                                                    RemotePort,
                           String?                                                   Login                        = null,
                           String?                                                   Password                     = null,
@@ -132,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                           Boolean                                                   UseIPv6                      = false,
                           Boolean                                                   PreferIPv6                   = false,
                           TLSUsage                                                  UseTLS                       = TLSUsage.STARTTLS,
-                          RemoteTLSServerCertificateValidationHandler<SMTPClient>?  RemoteCertificateValidator   = null,
+                          RemoteTLSServerCertificateValidationHandler<SMTPSubmissionClient>?  RemoteCertificateValidator   = null,
                           TimeSpan?                                                 ConnectionTimeout            = null,
                           TimeSpan?                                                 CommandTimeout               = null,
                           IDNSClient?                                               DNSClient                    = null,
@@ -151,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                            sender,
                                                                            certificate,
                                                                            certificateChain,
-                                                                           (SMTPClient) tlsClient,
+                                                                           (SMTPSubmissionClient) tlsClient,
                                                                            policyErrors
                                                                        )
                                                    : null,
@@ -171,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.RemoteHost          = RemoteHost;
             this.UseTLS              = UseTLS;
             this.commandTimeout      = CommandTimeout ?? TimeSpan.FromSeconds(30);
-            this.smtpLogger          = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<SMTPClient>();
+            this.smtpLogger          = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<SMTPSubmissionClient>();
 
             if (AutoConnect)
                 ReconnectAsync(CancellationToken ?? default).GetAwaiter().GetResult();
@@ -543,7 +547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var response = await SendCommandAndWaitForResponseAsync(
                                Convert.ToBase64String(
-                                   ISMTPClientExtensions.CRAM_MD5(Convert.FromBase64String(challenge.Response).ToUTF8String(),
+                                   ISMTPSubmissionClientExtensions.CRAM_MD5(Convert.FromBase64String(challenge.Response).ToUTF8String(),
                                                                   Login,
                                                                   Password)),
                                CancellationToken).ConfigureAwait(false);

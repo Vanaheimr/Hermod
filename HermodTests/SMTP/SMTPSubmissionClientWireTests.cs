@@ -40,12 +40,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 {
 
     /// <summary>
-    /// End-to-end wire tests for the submission SMTPClient against a scriptable in-process fake server,
+    /// End-to-end wire tests for the SMTPSubmissionClient against a scriptable in-process fake server,
     /// including "mean" servers that abruptly drop or stall the TCP connection (à la the WebSocket
     /// Autobahn suite). The point is that these are detected cleanly and FAST — never after a 60s wait.
     /// </summary>
     [TestFixture]
-    public class SMTPClientWireTests
+    public class SMTPSubmissionClientWireTests
     {
 
         #region A scriptable fake SMTP server
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         #endregion
 
 
-        private static SMTPClient ClientFor(FakeSmtpServer server)
+        private static SMTPSubmissionClient ClientFor(FakeSmtpServer server)
             => new (DomainName.Parse("127.0.0.1"),
                     IPPort.Parse((UInt16) server.Port),
                     UseTLS:             TLSUsage.NoTLS,
