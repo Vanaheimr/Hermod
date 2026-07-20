@@ -575,7 +575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region Send(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
+        #region Send          (EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
 
         /// <summary>
         /// Send the given e-mail envelop.
@@ -588,6 +588,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                EventTracking_Id?  EventTrackingId     = null,
                                                TimeSpan?          RequestTimeout      = null,
                                                CancellationToken  CancellationToken   = default)
+
+            => (await SendWithResult(
+                          EMailEnvelop,
+                          NumberOfRetries,
+                          EventTrackingId,
+                          RequestTimeout,
+                          CancellationToken
+                      )).Status;
+
+        #endregion
+
+        #region SendWithResult(EMail,        NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
+
+        /// <summary>
+        /// Send the given e-mail and return the detailed transaction result.
+        /// </summary>
+        /// <param name="EMail">An e-mail.</param>
+        /// <param name="NumberOfRetries">The number of retries to send the given e-mail.</param>
+        /// <param name="RequestTimeout">The request timeout for sending the given e-mail.</param>
+        public Task<SMTPSendResult> SendWithResult(EMail              EMail,
+                                                   Byte               NumberOfRetries     = 3,
+                                                   EventTracking_Id?  EventTrackingId     = null,
+                                                   TimeSpan?          RequestTimeout      = null,
+                                                   CancellationToken  CancellationToken   = default)
+
+            => SendWithResult(
+                   new EMailEnvelop(EMail),
+                   NumberOfRetries,
+                   EventTrackingId,
+                   RequestTimeout,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SendWithResult(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
+
+        /// <summary>
+        /// Send the given e-mail envelop and return the detailed transaction result: the final server
+        /// reply (status code, text, enhanced status code), the per-recipient results, and the number of
+        /// attempts, TLS/authentication state and runtime.
+        /// </summary>
+        /// <param name="EMailEnvelop">An e-mail envelop.</param>
+        /// <param name="NumberOfRetries">The number of retries to send the given e-mail.</param>
+        /// <param name="RequestTimeout">The request timeout for sending the given e-mail.</param>
+        public async Task<SMTPSendResult> SendWithResult(EMailEnvelop       EMailEnvelop,
+                                                         Byte               NumberOfRetries     = 3,
+                                                         EventTracking_Id?  EventTrackingId     = null,
+                                                         TimeSpan?          RequestTimeout      = null,
+                                                         CancellationToken  CancellationToken   = default)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -618,7 +668,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             #endregion
 
 
-            var result = MailSentStatus.failed;
+            var result             = MailSentStatus.failed;
+            var recipientResults   = new List<SMTPRecipientResult>();
+            SMTPExtendedResponse?  finalResponse   = null;   // the end-of-DATA ack on success, or the failing reply
+            var tlsActive          = false;
+            var authenticated      = false;
+            Byte attemptsMade      = 1;
+
             using var requestTimeoutCancellationTokenSource = RequestTimeout.HasValue
                                                                   ? new CancellationTokenSource(RequestTimeout.Value)
                                                                   : null;
@@ -632,6 +688,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 {
                   for (var attempt = 0; ; attempt++)
                   {
+                    // Reset per-attempt observations so a retry reports only its own transaction.
+                    attemptsMade = (Byte) (attempt + 1);
+                    recipientResults.Clear();
+                    finalResponse = null;
+                    tlsActive     = false;
+                    authenticated = false;
                     try
                     {
 
@@ -891,6 +953,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             break;
                                         }
 
+                                        authenticated = true;
+
                                     }
 
                                     #endregion
@@ -919,6 +983,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     #endregion
 
                                     #region MAIL FROM:
+
+                                    // Record the transport security state at the moment we submit the message.
+                                    tlsActive        = IsTLSActive;
 
                                     // A transaction has exactly one MAIL FROM (RFC 5321 §3.3).
                                     var mailFrom     = EMailEnvelop.MailFrom.FirstOrDefault();
@@ -963,6 +1030,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         var rcptToResponse = SendCommandAndWaitForResponse(
                                                                  "RCPT TO:<" + rcpt.Address.ToString() + ">" +
                                                                  DsnCommands.RcptToParams(EMailEnvelop.Dsn, rcpt.Address.ToString(), dsnSupported));
+
+                                        recipientResults.Add(
+                                            new SMTPRecipientResult(
+                                                rcpt.Address,
+                                                rcptToResponse.StatusCode,
+                                                rcptToResponse.Response,
+                                                SMTPSendResult.ExtractEnhancedStatusCode(rcptToResponse.Response)
+                                            )
+                                        );
 
                                         switch (rcptToResponse.StatusCode)
                                         {
@@ -1013,6 +1089,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     var _FinishedResponse = SendCommandAndWaitForResponse(".");
                                     if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
                                         throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
+
+                                    // The authoritative final acknowledgement ("250 2.0.0 Ok: queued as ...").
+                                    finalResponse = _FinishedResponse;
 
                                     #endregion
 
@@ -1105,7 +1184,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             #endregion
 
-            return result;
+            return new SMTPSendResult(
+                       Status:           result,
+                       EventTrackingId:  eventTrackingId,
+                       StatusCode:       finalResponse?.StatusCode,
+                       Response:         finalResponse?.Response,
+                       Recipients:       recipientResults,
+                       Attempts:         attemptsMade,
+                       TLSActive:        tlsActive,
+                       Authenticated:    authenticated,
+                       Runtime:          endTime - startTime
+                   );
 
         }
 

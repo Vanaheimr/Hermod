@@ -150,13 +150,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region Send(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null, ...)
+        #region Send          (EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null, ...)
 
         public async Task<MailSentStatus> Send(EMailEnvelop       EMailEnvelop,
                                                Byte               NumberOfRetries     = 3,
                                                EventTracking_Id?  EventTrackingId     = null,
                                                TimeSpan?          RequestTimeout      = null,
                                                CancellationToken  CancellationToken   = default)
+
+            => (await SendWithResult(
+                          EMailEnvelop,
+                          NumberOfRetries,
+                          EventTrackingId,
+                          RequestTimeout,
+                          CancellationToken
+                      )).Status;
+
+        #endregion
+
+        #region SendWithResult(EMail,        NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null, ...)
+
+        public Task<SMTPSendResult> SendWithResult(EMail              EMail,
+                                                   Byte               NumberOfRetries   = 3,
+                                                   EventTracking_Id?  EventTrackingId   = null,
+                                                   TimeSpan?          RequestTimeout    = null,
+                                                   CancellationToken  CancellationToken = default)
+            => SendWithResult(
+                   new EMailEnvelop(EMail),
+                   NumberOfRetries,
+                   EventTrackingId,
+                   RequestTimeout,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SendWithResult(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null, ...)
+
+        public async Task<SMTPSendResult> SendWithResult(EMailEnvelop       EMailEnvelop,
+                                                         Byte               NumberOfRetries     = 3,
+                                                         EventTracking_Id?  EventTrackingId     = null,
+                                                         TimeSpan?          RequestTimeout      = null,
+                                                         CancellationToken  CancellationToken   = default)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -239,7 +274,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             #endregion
 
-            return result;
+            return new SMTPSendResult(
+                       Status:           result,
+                       EventTrackingId:  eventTrackingId,
+                       Runtime:          endTime - startTime
+                   );
 
         }
 

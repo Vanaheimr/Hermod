@@ -155,6 +155,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                   TimeSpan?          RequestTimeout      = null,
                                   CancellationToken  CancellationToken   = default);
 
+
+        Task<SMTPSendResult> SendWithResult(EMail              EMail,
+                                            Byte               NumberOfRetries     = 3,
+                                            EventTracking_Id?  EventTrackingId     = null,
+                                            TimeSpan?          RequestTimeout      = null,
+                                            CancellationToken  CancellationToken   = default);
+        Task<SMTPSendResult> SendWithResult(EMailEnvelop       EMailEnvelop,
+                                            Byte               NumberOfRetries     = 3,
+                                            EventTracking_Id?  EventTrackingId     = null,
+                                            TimeSpan?          RequestTimeout      = null,
+                                            CancellationToken  CancellationToken   = default);
+
         void Dispose();
 
     }

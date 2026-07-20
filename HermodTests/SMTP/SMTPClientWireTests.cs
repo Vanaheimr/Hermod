@@ -266,6 +266,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        #region SendWithResult — the detailed result object
+
+        [Test]
+        public async Task SendWithResult_reports_the_final_reply_and_per_recipient_results()
+        {
+
+            using var server = new FakeSmtpServer(FakeSmtpServer.Mode.Normal);
+            using var client = ClientFor(server);
+
+            var envelope = new EMailEnvelop(
+                               EMailAddressList.Parse("me@example.com"),
+                               EMailAddressList.Create(
+                                   SimpleEMailAddress.Parse("alice@example.org"),
+                                   SimpleEMailAddress.Parse("bob@example.org")
+                               ),
+                               EMail.Parse([
+                                   "From: me@example.com",
+                                   "To: alice@example.org, bob@example.org",
+                                   "Subject: Rich result",
+                                   "Content-Type: text/plain; charset=utf-8",
+                                   "",
+                                   "hello"
+                               ])
+                           );
+
+            var result = await client.SendWithResult(envelope, NumberOfRetries: 0);
+
+            Assert.That(result.IsSuccess,          Is.True);
+            Assert.That(result.Status,             Is.EqualTo(MailSentStatus.ok));
+
+            // The final acknowledgement is the end-of-DATA "250 2.0.0 Ok: queued".
+            Assert.That(result.StatusCode,         Is.EqualTo(SMTPStatusCodes.Ok));
+            Assert.That(result.EnhancedStatusCode, Is.EqualTo("2.0.0"), "the RFC 3463 enhanced code must be parsed");
+            Assert.That(result.Response,           Does.Contain("queued"));
+
+            // One per-recipient result each, both accepted with their own enhanced code.
+            Assert.That(result.Recipients,         Has.Count.EqualTo(2));
+            Assert.That(result.Recipients.All(r => r.Accepted), Is.True);
+            Assert.That(result.Recipients.Select(r => r.Address.ToString()),
+                        Is.EquivalentTo(new[] { "alice@example.org", "bob@example.org" }));
+            Assert.That(result.Recipients.First(r => r.Address.ToString() == "alice@example.org").EnhancedStatusCode,
+                        Is.EqualTo("2.1.5"));
+
+            Assert.That(result.Attempts,           Is.EqualTo(1));
+
+            // The result implicitly reduces to the coarse status for legacy call sites.
+            MailSentStatus coarse = result;
+            Assert.That(coarse,                    Is.EqualTo(MailSentStatus.ok));
+
+        }
+
+        [Test]
+        public async Task SendWithResult_counts_attempts_across_retries()
+        {
+
+            // Two dropped connections, then success on the third.
+            using var server = new FakeSmtpServer(FakeSmtpServer.Mode.Normal, DropFirstConnections: 2);
+            using var client = ClientFor(server);
+
+            var result = await client.SendWithResult(Message("retry me"), NumberOfRetries: 3);
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Attempts,  Is.EqualTo(3), "two dropped attempts + one success");
+
+        }
+
+        [Test]
+        public async Task SendWithResult_on_a_dropped_connection_has_no_final_reply()
+        {
+
+            using var server = new FakeSmtpServer(FakeSmtpServer.Mode.DropAfterGreeting);
+            using var client = ClientFor(server);
+
+            var result = await client.SendWithResult(Message("nope"), NumberOfRetries: 0);
+
+            Assert.That(result.Status,        Is.EqualTo(MailSentStatus.ConnectionClosed));
+            Assert.That(result.IsSuccess,     Is.False);
+            Assert.That(result.StatusCode,    Is.Null, "there was no server reply to record");
+            Assert.That(result.Recipients,    Is.Empty, "the transaction never reached RCPT TO");
+
+        }
+
+        #endregion
+
     }
 
 }
