@@ -5,7 +5,8 @@ Hermod is a .NET library for simplified advanced networking tasks...
 
 ## Generic Networking Protocols
 
-- Ethernet
+- Ethernet frames
+- IPv4 and IPv6 packets
 - Generic UDP clients / servers
 - Generic TCP clients / servers
 
@@ -18,6 +19,11 @@ Hermod is a .NET library for simplified advanced networking tasks...
 - [SMTP Submission/Outbound Clients / Server](Hermod/SMTP/README.md) with OpenPGP/MIME
 
 
-## Specialized Application Protocols
+## Specialized Application Protocols or Extensions
 
 - ModbusTCP/TLS client / server
+- HTTP SOAP client / server
+- HTTP Passkeys
+- HTTP TOTP Authentication
+- Argus
+- Warden
