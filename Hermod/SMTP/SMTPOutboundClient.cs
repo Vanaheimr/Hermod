@@ -31,91 +31,6 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    #region Send Result
-
-    public enum SendStatus
-    {
-        Success,
-        TempFail,   // 4xx - retry later
-        PermFail    // 5xx - permanent failure, don't retry
-    }
-
-    public sealed record SendResult(SendStatus  Status,
-                                    Int32       ResponseCode,
-                                    String      ResponseText,
-                                    String?     RemoteMx = null,
-                                    TimeSpan?   Duration = null)
-    {
-
-        /// <summary>
-        /// Whether the receiving server advertised the DSN extension. When true, any requested
-        /// success notification is that server's responsibility, so we must not also issue a
-        /// "relayed" DSN (RFC 3461 §5.3.1) — avoiding a duplicate.
-        /// </summary>
-        public Boolean RemoteSupportsDsn { get; init; }
-
-        public static SendResult Success(String response, String mx, TimeSpan duration) =>
-            new (SendStatus.Success, 250, response, mx, duration);
-
-        public static SendResult TempFail(Int32 code, String response, String? mx = null) =>
-            new (SendStatus.TempFail, code, response, mx);
-
-        public static SendResult PermFail(Int32 code, String response, String? mx = null) =>
-            new (SendStatus.PermFail, code, response, mx);
-
-        public static SendResult TempFail(String error) =>
-            new (SendStatus.TempFail, 0, error);
-
-        public static SendResult PermFail(String error) =>
-            new (SendStatus.PermFail, 0, error);
-
-    }
-
-    #endregion
-
-    #region MX Record
-
-    public sealed record MxRecord(String Host, int Priority);
-
-    #endregion
-
-    #region Outbound Client Configuration
-
-    public sealed record SmtpOutboundConfig
-    {
-        public required String   LocalHostname        { get; init; }
-        public          UInt32   ConnectTimeoutMs     { get; init; } = 30_000;
-        public          UInt32   ReadTimeoutMs        { get; init; } = 60_000;
-        public          UInt32   WriteTimeoutMs       { get; init; } = 60_000;
-        public          Boolean  RequireStartTls      { get; init; } = false;
-        public          Boolean  PreferStartTls       { get; init; } = true;
-
-        /// <summary>
-        /// Require a valid server certificate for EVERY TLS delivery (not just enforced ones).
-        /// Default false = opportunistic TLS (RFC 7435): encrypt even with a bad certificate.
-        /// Certificates are always validated strictly when TLS is enforced (MTA-STS enforce,
-        /// REQUIRETLS, or RequireStartTls), regardless of this flag.
-        /// </summary>
-        public          Boolean  RequireValidCertificate { get; init; } = false;
-
-        /// <summary>
-        /// Enable DANE (RFC 7672): look up DNSSEC-validated TLSA records for the target MX and,
-        /// when present, enforce STARTTLS and authenticate the server certificate against them.
-        /// Requires a DNSSEC-aware resolver path (the DNS client's DO bit is enabled automatically).
-        /// Default false.
-        /// </summary>
-        public          Boolean  EnableDane           { get; init; } = false;
-
-        public          String?  SmartHost            { get; init; }  // Optional relay host
-        public          UInt16   SmartHostPort        { get; init; } = 25;
-        public          String?  SmartHostUsername    { get; init; }
-        public          String?  SmartHostPassword    { get; init; }
-    }
-
-    #endregion
-
-    #region SMTP Outbound Client
-
     public sealed class SMTPOutboundClient
     {
 
@@ -741,7 +656,5 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
     }
-
-    #endregion
 
 }

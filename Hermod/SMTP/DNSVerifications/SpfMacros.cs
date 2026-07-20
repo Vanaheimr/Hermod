@@ -26,12 +26,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     /// <summary>
-    /// Values available to SPF macro expansion (RFC 7208 §7.2). The current &lt;domain&gt;
-    /// (%{d}) is passed separately because it changes across include/redirect recursion.
-    /// </summary>
-    public readonly record struct SpfMacroContext(String Sender, String LocalPart, String SenderDomain, String HeloDomain);
-
-    /// <summary>
     /// SPF macro expansion (RFC 7208 §7).
     /// </summary>
     public static class SpfMacros

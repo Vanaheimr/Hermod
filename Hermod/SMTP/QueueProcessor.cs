@@ -26,22 +26,6 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    #region Queue Processor Configuration
-
-    public sealed record QueueProcessorConfig
-    {
-        public UInt32    MaxConcurrentDeliveries    { get; init; } = 10;
-        public UInt32    MaxDeliveriesPerDomain     { get; init; } = 5;
-        public UInt32    DomainCooldownSeconds      { get; init; } = 60;
-        public Boolean   SendDelayNotifications     { get; init; } = true;
-        public TimeSpan  DelayNotificationAfter     { get; init; } = TimeSpan.FromHours(4);
-
-    }
-
-    #endregion
-
-    #region Queue Processor
-
     /// <summary>
     /// Event-based queue processor using Channel&lt;T&gt; for zero-latency delivery.
     /// No polling - reacts immediately when new mail is queued.
@@ -428,40 +412,5 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             _deliverySemaphore.Dispose();
         }
     }
-
-    #endregion
-
-    #region Queue Statistics
-
-    public sealed record QueueStatistics(
-        int     PendingCount,
-        int     ProcessingCount,
-        int     DeferredCount,
-        int     FailedCount,
-        int     DeliveredCount,
-        int     TotalCount
-    );
-
-    public static class QueueStatisticsExtensions
-    {
-        public static async Task<QueueStatistics> GetStatisticsAsync(this IMailQueue queue, CancellationToken ct = default)
-        {
-
-            var pending =  await queue.GetQueueLengthAsync(ct);
-            var failed  = (await queue.GetFailedAsync(1000, ct)).Count;
-
-            return new QueueStatistics(
-                PendingCount: pending,
-                ProcessingCount: 0,
-                DeferredCount: 0,
-                FailedCount: failed,
-                DeliveredCount: 0,
-                TotalCount: pending + failed
-            );
-
-        }
-    }
-
-    #endregion
 
 }

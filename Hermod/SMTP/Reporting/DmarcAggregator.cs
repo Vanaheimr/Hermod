@@ -25,38 +25,6 @@ using System.Text.Json.Serialization;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    #region Snapshot types (immutable, consumed by the XML builder)
-
-    /// <summary>One aggregated &lt;record&gt; row of a DMARC aggregate report.</summary>
-    public sealed record DmarcReportRow(
-        String   SourceIp,
-        Int64    Count,
-        String   Disposition,   // none|quarantine|reject
-        String   DkimAligned,   // pass|fail  (policy_evaluated/dkim)
-        String   SpfAligned,    // pass|fail  (policy_evaluated/spf)
-        String   HeaderFrom,
-        String?  DkimAuthDomain,
-        String   DkimAuthResult,
-        String?  SpfAuthDomain,
-        String   SpfAuthResult
-    );
-
-    /// <summary>A per-domain aggregate report ready for XML serialization + delivery.</summary>
-    public sealed record DmarcDomainReport(
-        String            PolicyDomain,
-        String            Rua,
-        String            RequestedPolicy,
-        String?           SubdomainPolicy,
-        Int32             Percent,
-        String            Adkim,          // r|s
-        String            Aspf,           // r|s
-        DateTimeOffset    WindowBegin,
-        DateTimeOffset    WindowEnd,
-        IReadOnlyList<DmarcReportRow> Rows
-    );
-
-    #endregion
-
     /// <summary>
     /// Accumulates per-message DMARC evaluation results into aggregate counts, grouped by the
     /// policy (From/organizational) domain and, within a domain, by source IP + authentication

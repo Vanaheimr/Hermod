@@ -27,63 +27,6 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
-#region MTA-STS Policy
-
-public enum MtaStsMode
-{
-    None,       // No policy or failed to fetch
-    Testing,    // Report failures but don't enforce
-    Enforce     // Require valid TLS
-}
-
-public sealed partial record MtaStsPolicy
-{
-    public MtaStsMode      Mode        { get; init; } = MtaStsMode.None;
-    public List<String>    MxPatterns  { get; init; } = [];
-    public TimeSpan        MaxAge      { get; init; } = TimeSpan.Zero;
-    public DateTimeOffset  FetchedAt   { get; init; } = Timestamp.Now;
-    public String?         PolicyId    { get; init; }
-    public Boolean         IsValid
-        => Mode != MtaStsMode.None &&
-           Timestamp.Now - FetchedAt < MaxAge;
-
-
-    /// <summary>
-    /// Check if an MX host matches the policy
-    /// </summary>
-    public bool MatchesMx(string mxHost)
-    {
-        foreach (var pattern in MxPatterns)
-        {
-            if (pattern.StartsWith("*."))
-            {
-                // Wildcard match: *.example.com matches mail.example.com
-                var suffix = pattern[1..]; // .example.com
-                if (mxHost.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) ||
-                    mxHost.Equals(pattern[2..], StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                // Exact match
-                if (mxHost.Equals(pattern, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public static MtaStsPolicy None => new() { Mode = MtaStsMode.None };
-}
-
-#endregion
-
-#region MTA-STS Resolver
-
 /// <summary>
 /// Resolves and caches MTA-STS policies for domains.
 /// MTA-STS requires:
@@ -274,8 +217,6 @@ public sealed partial class MtaStsResolver : IDisposable
         _fetchLock.Dispose();
     }
 }
-
-#endregion
 
 // SMTP TLS Reporting (TLS-RPT, RFC 8460) lives in Reporting/TlsRptReporting.cs
 // (TlsRptResolver / TlsRptAggregator / TlsRptReportJson / TlsRptReportService).

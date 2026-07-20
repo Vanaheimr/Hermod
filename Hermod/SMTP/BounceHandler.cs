@@ -25,27 +25,6 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    #region Bounce Types
-
-    public enum BounceType
-    {
-        Hard,       // Permanent failure (5xx) - mailbox doesn't exist, etc.
-        Soft,       // Temporary failure (4xx) - try again later
-        Delayed     // Message delayed but still trying
-    }
-
-    public sealed record BounceInfo(
-        BounceType      Type,
-        string          OriginalRecipient,
-        string          DiagnosticCode,
-        string          RemoteMta,
-        DateTimeOffset  FailureTime
-    );
-
-    #endregion
-
-    #region Bounce Handler
-
     public sealed class BounceHandler(SMTPServerConfig config, IMailQueue queue, ILogger logger)
     {
         /// <summary>
@@ -429,7 +408,5 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
     }
-
-    #endregion
 
 }

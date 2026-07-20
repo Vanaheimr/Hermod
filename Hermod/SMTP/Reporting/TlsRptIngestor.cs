@@ -27,39 +27,6 @@ using System.Text.RegularExpressions;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 
-#region Parsed inbound report types
-
-/// <summary>One failure-details entry of a received TLS-RPT report (RFC 8460 §4.4).</summary>
-public sealed record TlsRptReceivedFailure(String   ResultType,
-                                           String?  SendingMtaIp,
-                                           String?  ReceivingMxHostname,
-                                           String?  ReceivingIp,
-                                           Int64    FailedSessionCount);
-
-/// <summary>One policy block of a received TLS-RPT report (RFC 8460 §4).</summary>
-public sealed record TlsRptReceivedPolicy(String                                PolicyType,
-                                          String?                               PolicyDomain,
-                                          IReadOnlyList<String>                 MxHosts,
-                                          Int64                                 SuccessCount,
-                                          Int64                                 FailureCount,
-                                          IReadOnlyList<TlsRptReceivedFailure>  Failures);
-
-/// <summary>A parsed inbound TLS-RPT aggregate report (RFC 8460 §4).</summary>
-public sealed record TlsRptReceivedReport(String?                              OrganizationName,
-                                          String?                              ReportId,
-                                          String?                              ContactInfo,
-                                          DateTimeOffset?                      StartDateTime,
-                                          DateTimeOffset?                      EndDateTime,
-                                          IReadOnlyList<TlsRptReceivedPolicy>  Policies)
-{
-    public Int64 TotalSuccess => Policies.Sum(p => p.SuccessCount);
-    public Int64 TotalFailure => Policies.Sum(p => p.FailureCount);
-}
-
-#endregion
-
-#region TLS-RPT ingestor
-
 /// <summary>
 /// Detects and ingests inbound SMTP TLS Reporting (TLS-RPT, RFC 8460) aggregate reports —
 /// the reports other sending MTAs deliver to the <c>rua</c> mailbox of a domain that publishes
@@ -388,5 +355,3 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
     #endregion
 
 }
-
-#endregion

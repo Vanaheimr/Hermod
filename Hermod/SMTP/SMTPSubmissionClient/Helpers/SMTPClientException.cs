@@ -50,27 +50,4 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
     }
 
-
-    /// <summary>
-    /// The remote server closed the TCP connection unexpectedly (a graceful FIN or an abrupt reset)
-    /// while the client was awaiting or reading a reply. Detected immediately, without waiting for a
-    /// command timeout.
-    /// </summary>
-    public sealed class SMTPConnectionClosedException : SMTPClientException
-    {
-        public SMTPConnectionClosedException(String Message = "The SMTP server closed the connection unexpectedly.")
-            : base(Message)
-        { }
-    }
-
-    /// <summary>
-    /// The remote server stopped responding — no (complete) reply arrived within the command timeout.
-    /// </summary>
-    public sealed class SMTPTimeoutException : SMTPClientException
-    {
-        public SMTPTimeoutException(String Message = "The SMTP server did not respond in time.")
-            : base(Message)
-        { }
-    }
-
 }

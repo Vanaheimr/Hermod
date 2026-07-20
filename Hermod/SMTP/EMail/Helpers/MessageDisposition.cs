@@ -19,44 +19,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     /// <summary>
-    /// How the disposition of a message came about (RFC 8098 §3.2.6.1, "action-mode").
-    /// </summary>
-    public enum DispositionActionMode
-    {
-        /// <summary>The user explicitly triggered the disposition.</summary>
-        ManualAction,
-        /// <summary>The disposition happened without explicit user action.</summary>
-        AutomaticAction
-    }
-
-    /// <summary>
-    /// How the MDN itself was sent (RFC 8098 §3.2.6.1, "sending-mode").
-    /// </summary>
-    public enum DispositionSendingMode
-    {
-        /// <summary>The MDN was sent because the user chose to send it.</summary>
-        SentManually,
-        /// <summary>The MDN was sent automatically.</summary>
-        SentAutomatically
-    }
-
-    /// <summary>
-    /// What happened to the message (RFC 8098 §3.2.6.2, "disposition-type").
-    /// </summary>
-    public enum MessageDispositionType
-    {
-        /// <summary>The message was displayed to the user (a classic "read receipt").</summary>
-        Displayed,
-        /// <summary>The message was deleted without being displayed.</summary>
-        Deleted,
-        /// <summary>The message was forwarded/redirected without the user necessarily seeing it.</summary>
-        Dispatched,
-        /// <summary>The message was processed by some automatic agent without being displayed.</summary>
-        Processed
-    }
-
-
-    /// <summary>
     /// A full message disposition as it appears in the "Disposition:" field of an MDN
     /// (RFC 8098 §3.2.6): action-mode/sending-mode; disposition-type.
     /// </summary>

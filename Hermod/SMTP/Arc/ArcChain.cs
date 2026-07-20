@@ -24,21 +24,6 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    /// <summary>The Authenticated Received Chain validation status (RFC 8617 §2, the cv= value).</summary>
-    public enum ArcResult {
-        None,   // no ARC header sets present
-        Pass,   // the chain is intact and validates
-        Fail    // ARC present but the chain is broken/invalid
-    }
-
-    /// <summary>One ARC set (RFC 8617 §4.1): the three header fields sharing an instance number.</summary>
-    public sealed record ArcSet(
-        Int32            Instance,
-        DkimHeaderField  Seal,               // ARC-Seal
-        DkimHeaderField  MessageSignature,   // ARC-Message-Signature
-        DkimHeaderField  AuthResults         // ARC-Authentication-Results
-    );
-
     /// <summary>
     /// The ordered set of ARC header sets found in a message (RFC 8617). Provides parsing from
     /// the raw header fields and construction of the ARC-Seal signing input, shared by the

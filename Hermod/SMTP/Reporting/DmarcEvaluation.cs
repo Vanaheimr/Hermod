@@ -19,16 +19,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     /// <summary>
-    /// The disposition a receiver applied to a message under a DMARC policy
-    /// (RFC 7489 §6.3, the &lt;disposition&gt; of a report row).
-    /// </summary>
-    public enum DmarcDisposition {
-        None,
-        Quarantine,
-        Reject
-    }
-
-    /// <summary>
     /// The full outcome of a DMARC evaluation for one inbound message — everything needed
     /// both to enforce policy and to populate an aggregate/forensic report (RFC 7489 §7).
     /// Produced by <c>DNSVerifier.VerifyDmarcAsync</c> when a DMARC record was found.

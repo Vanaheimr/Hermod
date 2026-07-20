@@ -25,22 +25,6 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    #region DKIM Configuration
-
-    public sealed record DkimConfig
-    {
-        public required string  Domain          { get; init; }
-        public required string  Selector        { get; init; }
-        public required string  PrivateKeyPem   { get; init; }
-        public          string  Canonicalization{ get; init; } = "relaxed/relaxed";
-        public          string  SignedHeaders   { get; init; } = "from:to:subject:date:message-id:mime-version:content-type";
-        public          int     BodyLengthLimit { get; init; } = 0;  // 0 = no limit
-    }
-
-    #endregion
-
-    #region DKIM Signer
-
     public sealed class DkimSigner
     {
 
@@ -147,51 +131,5 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
     }
-
-    #endregion
-
-    #region DKIM Key Generator
-
-    public static class DkimKeyGenerator
-    {
-        public static (string PrivateKeyPem, string PublicKeyPem, string DnsRecord) GenerateKeyPair(
-            string domain,
-            string selector,
-            int keySize = 2048)
-        {
-            using var rsa = RSA.Create(keySize);
-
-            var privateKeyPem = rsa.ExportRSAPrivateKeyPem();
-            var publicKeyPem  = rsa.ExportRSAPublicKeyPem();
-
-            // Extract public key for DNS record
-            var publicKeyBytes = rsa.ExportSubjectPublicKeyInfo();
-            var publicKeyBase64 = Convert.ToBase64String(publicKeyBytes);
-
-            // DNS TXT record format
-            var dnsRecord = $"{selector}._domainkey.{domain}. IN TXT \"v=DKIM1; k=rsa; p={publicKeyBase64}\"";
-
-            return (privateKeyPem, publicKeyPem, dnsRecord);
-        }
-
-        public static void SaveKeyPair(string basePath, string domain, string selector)
-        {
-            var (privateKey, publicKey, dnsRecord) = GenerateKeyPair(domain, selector);
-
-            var privateKeyPath = Path.Combine(basePath, $"dkim_{selector}.private.pem");
-            var publicKeyPath  = Path.Combine(basePath, $"dkim_{selector}.public.pem");
-            var dnsRecordPath  = Path.Combine(basePath, $"dkim_{selector}.dns.txt");
-
-            Directory.CreateDirectory(basePath);
-
-            File.WriteAllText(privateKeyPath, privateKey);
-            File.WriteAllText(publicKeyPath, publicKey);
-            File.WriteAllText(dnsRecordPath, dnsRecord);
-
-        }
-
-    }
-
-    #endregion
 
 }

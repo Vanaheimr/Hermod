@@ -25,14 +25,6 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public sealed record ArcConfig
-    {
-        public required String  Domain        { get; init; }
-        public required String  Selector      { get; init; }
-        public required String  PrivateKeyPem { get; init; }
-        public          String  SignedHeaders { get; init; } = "from:to:subject:date:message-id:mime-version:content-type";
-    }
-
     /// <summary>
     /// Adds a new ARC set (ARC-Authentication-Results, ARC-Message-Signature, ARC-Seal) to a
     /// message, extending or starting the Authenticated Received Chain (RFC 8617 §5.1). Used by

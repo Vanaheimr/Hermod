@@ -30,16 +30,6 @@ using System.Text.RegularExpressions;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 {
 
-
-    public enum SMTPSessionState {
-        Connected,
-        Greeted,
-        MailFrom,
-        RcptTo,
-        Data,
-        Quit
-    }
-
     public sealed class SMTPSession(TcpClient           client,
                                     SMTPServerConfig    config,
                                     IMailStorage        storage,

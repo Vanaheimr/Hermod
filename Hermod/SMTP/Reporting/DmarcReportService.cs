@@ -26,16 +26,6 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    /// <summary>Static options for <see cref="DmarcReportService"/>.</summary>
-    public sealed record DmarcReportingOptions(
-        String    OrgName,
-        String    ReportFromDisplay,   // e.g. "DMARC Reports <dmarc-reports@mx.example>"
-        String    ReportFromAddress,   // bare address used as envelope sender
-        String    ReportingDomain,     // domain of the report sender (report filenames / message-ids)
-        TimeSpan  Interval,
-        Boolean   EnableForensic
-    );
-
     /// <summary>
     /// Generates and sends DMARC aggregate (RUA) and forensic (RUF) reports (RFC 7489 §7).
     /// Inbound evaluations are fed in via <see cref="RecordInbound"/>; a background loop

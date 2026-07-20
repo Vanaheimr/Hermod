@@ -26,16 +26,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     /// <summary>
-    /// A single header field parsed from a raw message header block, keeping the original
-    /// bytes (folding, whitespace, case) so both "simple" and "relaxed" canonicalization
-    /// can be reproduced exactly.
-    /// </summary>
-    /// <param name="Name">The field name (e.g. "From").</param>
-    /// <param name="RawValue">Everything after the first colon, unmodified (may span folded lines).</param>
-    /// <param name="RawField">The whole field "Name:value" incl. folded continuation lines.</param>
-    public sealed record DkimHeaderField(String Name, String RawValue, String RawField);
-
-    /// <summary>
     /// RFC 6376 canonicalization shared by the DKIM signer and verifier so both produce
     /// byte-identical hash input. Everything operates on the raw message text; callers hash
     /// the result as UTF-8 (which reconstructs the original wire octets for UTF-8 messages).
