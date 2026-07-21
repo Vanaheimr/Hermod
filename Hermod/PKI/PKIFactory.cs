@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
         public static BCx509.X509Certificate
 
             SignServerCertificate(String                           ServerName,
-                                  IEnumerable<GeneralName>         SubjectAltNames,                   // e.g. DNS/IP for server certs
+                                  IEnumerable<GeneralName>?        SubjectAltNames,                   // e.g. DNS/IP for server certs (null -> mirror CN as DNS)
                                   AsymmetricKeyParameter           ServerPublicKey,
                                   AsymmetricKeyParameter           IssuerPrivateKey,
                                   BCx509.X509Certificate?          IssuerCertificate        = null,
@@ -757,7 +757,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
         public static BCx509.X509Certificate
 
             SelfSignServerCertificate(String                           ServerName,
-                                      IEnumerable<GeneralName>         SubjectAltNames,                   // e.g. DNS/IP for server certs
+                                      IEnumerable<GeneralName>?        SubjectAltNames,                   // e.g. DNS/IP for server certs (null -> mirror CN as DNS)
                                       AsymmetricCipherKeyPair          ServerKeyPair,
                                       TimeSpan?                        LifeTime                 = null,
                                       IEnumerable<URL>?                CRL_DistributionPoints   = null,

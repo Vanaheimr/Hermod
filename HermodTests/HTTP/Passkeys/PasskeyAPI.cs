@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <summary>
         /// The HTTP root for embedded resources.
         /// </summary>
-        public new const            String                     HTTPRoot                           = "org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys.HTTPRoot.";
+        public     const            String                     HTTPRoot                           = "org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys.HTTPRoot.";
 
         /// <summary>
         /// The name of the main chain log file.
@@ -1010,7 +1010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
                         clientDataJSON = JObject.Parse(clientDataText.FromBASE64().ToUTF8String());
 
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         return new HTTPResponse.Builder(request) {
                                        HTTPStatusCode  = HTTPStatusCode.BadRequest,

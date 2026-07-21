@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                     var name = distributionPoint.DistributionPointName;
                     Assert.That(name?.Type, Is.EqualTo(DistributionPointName.FullName));
 
-                    foreach (var gn in GeneralNames.GetInstance(name.Name).GetNames())
+                    foreach (var gn in GeneralNames.GetInstance(name!.Name).GetNames())
                         Assert.That(gn.TagNo, Is.EqualTo(GeneralName.UniformResourceIdentifier), "CRL DistributionPoints must be an Uniform Resource Identifier!");
 
                 }

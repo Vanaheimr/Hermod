@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               "AHTTPSServerTests Root CA",
                                               rootCA_RSAKeyPair
                                           );
-            rootCA                      = rootCA_X509v3.ToDotNet();
+            rootCA                      = rootCA_X509v3.ToDotNet()!;
 
 
 
@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               rootCA_RSAKeyPair.Private,
                                               rootCA_X509v3
                                           );
-            serverCA                    = serverCA_X509v3.ToDotNet();
+            serverCA                    = serverCA_X509v3.ToDotNet()!;
 
             serverRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
             serverCertificate           = PKIFactory.SignServerCertificate(
@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               serverRSAKeyPair.Public,
                                               serverCA_RSAKeyPair.Private,
                                               serverCA_X509v3
-                                          ).ToDotNet(serverRSAKeyPair.Private);
+                                          ).ToDotNet(serverRSAKeyPair.Private)!;
 
 
 
@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               rootCA_RSAKeyPair.Private,
                                               rootCA_X509v3
                                           );
-            clientCA                    = clientCA_X509v3.ToDotNet();
+            clientCA                    = clientCA_X509v3.ToDotNet()!;
 
             clientRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
             clientCertificate           = PKIFactory.SignServerCertificate(
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               clientRSAKeyPair.Public,
                                               clientCA_RSAKeyPair.Private,
                                               clientCA_X509v3
-                                          ).ToDotNet(clientRSAKeyPair.Private);
+                                          ).ToDotNet(clientRSAKeyPair.Private)!;
 
 
             // HTTPS server configuration

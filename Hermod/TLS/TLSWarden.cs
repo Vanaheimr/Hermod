@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     // logger?.LogError(ex, "Error in RepeatCheckAllAsync background task.");
                 }
@@ -324,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     }
 
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // logger.LogError(ex, "Error processing task.");
                     continue;

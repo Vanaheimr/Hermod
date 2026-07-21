@@ -11606,7 +11606,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 });
 
             }
-            catch (FileNotFoundException fe)
+            catch (FileNotFoundException)
             { }
             catch (Exception e)
             {
@@ -13295,7 +13295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             } while (retry < maxRetries);
 
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             //ToDo: Handle WriteToLogfileAndNotify(...Write to logfile...) exceptions!
                         }
@@ -13309,7 +13309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //ToDo: Handle WriteToLogfileAndNotify(...) exceptions!
                 }
@@ -13379,7 +13379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             } while (retry < maxRetries);
 
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             //ToDo: Handle WriteToLogfileAndNotify(...Write to logfile...) exceptions!
                         }
@@ -13391,7 +13391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //ToDo: Handle WriteToLogfileAndNotify(...) exceptions!
                 }
@@ -13449,7 +13449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     } while (retry < maxRetries);
 
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //ToDo: Handle WriteToCustomLogfile(...) exceptions!
                 }
@@ -17626,7 +17626,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  );
 
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
 
                     return false;

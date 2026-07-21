@@ -278,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
             }
 
-            catch (Exception e)
+            catch (Exception)
             {
 
                 //if (OnError is not null)

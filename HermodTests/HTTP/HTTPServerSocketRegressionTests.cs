@@ -1921,7 +1921,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                        serverKeyPair.Public,
                        rootCAKeyPair.Private,
                        rootCACertificate
-                   ).ToDotNet(serverKeyPair.Private);
+                   ).ToDotNet(serverKeyPair.Private)!;
 
         }
 

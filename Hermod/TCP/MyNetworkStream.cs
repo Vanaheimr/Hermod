@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
                 base.Dispose(Disposing);
             }
-            catch (Exception e)
+            catch (Exception)
             {
 
             }

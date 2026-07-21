@@ -409,7 +409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             DebugX.Log("Invalid tag found: " + item);
                         }

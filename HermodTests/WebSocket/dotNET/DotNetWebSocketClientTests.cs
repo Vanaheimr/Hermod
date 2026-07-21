@@ -1360,7 +1360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 else
                 {
                     return Task.FromResult<HTTPResponse?>(
-                               new HTTPResponse.Builder(connection.HTTPRequest) {
+                               new HTTPResponse.Builder(connection.HTTPRequest!) {
                                    HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                                    WWWAuthenticate  = WWWAuthenticate.Basic("Access to the WebSocket server"),
                                    Connection       = ConnectionType.Close
@@ -1648,7 +1648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 else
                 {
                     return Task.FromResult<HTTPResponse?>(
-                               new HTTPResponse.Builder(connection.HTTPRequest) {
+                               new HTTPResponse.Builder(connection.HTTPRequest!) {
                                    HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                                    Server           = "GraphDefined HTTP WebSocket Service v2.0",
                                    WWWAuthenticate  = WWWAuthenticate.Basic("Access to the WebSocket server"),
