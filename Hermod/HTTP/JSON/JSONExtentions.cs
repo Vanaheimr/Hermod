@@ -1083,7 +1083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                String                    PropertyDescription,
                                                String                    DefaultServerName,
                                                TryParser<T>              Parser,
-                                               out T                     Value,
+                                               out T?                    Value,
                                                HTTPRequest               HTTPRequest,
                                                out HTTPResponse.Builder  HTTPResponse)
         {

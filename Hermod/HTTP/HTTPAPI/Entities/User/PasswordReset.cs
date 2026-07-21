@@ -313,7 +313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (JSONObject.ParseOptional("eventTrackingId",
                                              "event tracking identification",
                                              EventTracking_Id.TryParse,
-                                             out EventTracking_Id EventTrackingId,
+                                             out EventTracking_Id? EventTrackingId,
                                              out ErrorResponse))
                 {
                     if (ErrorResponse is not null)

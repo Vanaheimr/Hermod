@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(Text), "The given text representation of a password must not be null or empty!");
 
             if (PasswordQualityCheck is not null && PasswordQualityCheck(Text) < 1.0)
-                throw new ArgumentException("The given password '{Text}' does not match the password quality criteria!", nameof(Text));
+                throw new ArgumentException("The given password does not match the password quality criteria!", nameof(Text));
 
             #endregion
 
