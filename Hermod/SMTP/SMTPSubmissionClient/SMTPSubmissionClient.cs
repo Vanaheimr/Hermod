@@ -777,11 +777,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCodes.Ok))
                                     {
 
-                                        var Error = EHLOResponses.Where(v => v.StatusCode != SMTPStatusCodes.Ok).
-                                                                    FirstOrDefault();
+                                        var error = EHLOResponses.Where(smtpExtendedResponse => smtpExtendedResponse.StatusCode != SMTPStatusCodes.Ok).
+                                                                  FirstOrDefault();
 
-                                        if (Error.StatusCode != SMTPStatusCodes.Ok)
-                                            throw new SMTPClientException("SMTP EHLO command error: " + Error.ToString());
+                                        if (error != null && error.StatusCode != SMTPStatusCodes.Ok)
+                                            throw new SMTPClientException("SMTP EHLO command error: " + error.ToString());
 
                                     }
 
@@ -831,27 +831,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // 250-8BITMIME
                                     // 250 DSN
 
-                                    var MailServerName = EHLOResponses.FirstOrDefault();
+                                    var mailServerName = EHLOResponses.FirstOrDefault();
 
-                                    EHLOResponses.Skip(1).ForEach(v =>
+                                    EHLOResponses.Skip(1).ForEach(smtpExtendedResponse =>
                                     {
 
                                         #region PIPELINING
 
-                                        if (v.Response == "PIPELINING")
+                                        if (smtpExtendedResponse.Response == "PIPELINING")
                                             Capabilities |= SmtpCapabilities.Pipelining;
 
                                         #endregion
 
                                         #region SIZE
 
-                                        else if (v.Response.StartsWith("SIZE"))
+                                        else if (smtpExtendedResponse.Response.StartsWith("SIZE"))
                                         {
 
                                             Capabilities |= SmtpCapabilities.Size;
 
                                             // "SIZE 10485760" — the value is optional (RFC 1870 §6.1); 0 means "no fixed limit".
-                                            var sizeArg = v.Response.Length > 5 ? v.Response[5..].Trim() : "";
+                                            var sizeArg = smtpExtendedResponse.Response.Length > 5 ? smtpExtendedResponse.Response[5..].Trim() : "";
                                             if (sizeArg.Length > 0 && UInt64.TryParse(sizeArg, out var maxMailSize))
                                                 serverMaxSize = maxMailSize;
 
@@ -861,10 +861,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #region MT-PRIORITY (RFC 6710) / REQUIRETLS (RFC 8689)
 
-                                        if (v.Response == "MT-PRIORITY" || v.Response.StartsWith("MT-PRIORITY "))
+                                        if (smtpExtendedResponse.Response == "MT-PRIORITY" || smtpExtendedResponse.Response.StartsWith("MT-PRIORITY "))
                                             supportsMtPriority = true;
 
-                                        if (v.Response == "REQUIRETLS")
+                                        if (smtpExtendedResponse.Response == "REQUIRETLS")
                                             supportsRequireTls = true;
 
                                         #endregion
@@ -877,33 +877,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #region STARTTLS
 
-                                        if (v.Response == "STARTTLS")
+                                        if (smtpExtendedResponse.Response == "STARTTLS")
                                             Capabilities |= SmtpCapabilities.StartTLS;
 
                                         #endregion
 
                                         #region AUTH
 
-                                        else if (v.Response.StartsWith("AUTH "))
+                                        else if (smtpExtendedResponse.Response.StartsWith("AUTH "))
                                         {
 
                                             Capabilities |= SmtpCapabilities.Authentication;
 
-                                            var AuthType            = v.Response.Substring(4, 1);
-                                            var AuthMethods         = v.Response.Substring(5).
-                                                                                 Split    (new Char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).
-                                                                                 Select   (method => method?.Trim());
+                                            var authType          = smtpExtendedResponse.Response.Substring(4, 1);
+                                            var foundAuthMethods  = smtpExtendedResponse.Response[5..].
+                                                                        Split ([' '], StringSplitOptions.RemoveEmptyEntries).
+                                                                        Select(method => method.Trim());
 
                                             // GMail: "AUTH LOGIN PLAIN XOAUTH XOAUTH2 PLAIN-CLIENTTOKEN"
-                                            foreach (var authMethod in AuthMethods)
+                                            foreach (var authMethod in foundAuthMethods)
                                             {
                                                 if (Enum.TryParse(authMethod.Replace('-', '_'), true, out SMTPAuthMethods parsedAuthMethod))
                                                 {
-                                                    if (AuthType == " ")
+                                                    if (authType == " ")
                                                         authMethods |= parsedAuthMethod;
                                                 }
                                                 else
-                                                    unknownAuthMethods.Add(authMethod?.Trim());
+                                                    unknownAuthMethods.Add(authMethod.Trim());
                                             }
 
                                         }
@@ -912,42 +912,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #region ENHANCEDSTATUSCODES
 
-                                        if (v.Response == "ENHANCEDSTATUSCODES")
+                                        if (smtpExtendedResponse.Response == "ENHANCEDSTATUSCODES")
                                             Capabilities |= SmtpCapabilities.EnhancedStatusCodes;
 
                                         #endregion
 
                                         #region 8BITMIME
 
-                                        if (v.Response == "8BITMIME")
+                                        if (smtpExtendedResponse.Response == "8BITMIME")
                                             Capabilities |= SmtpCapabilities.EightBitMime;
 
                                         #endregion
 
                                         #region DSN
 
-                                        if (v.Response == "DSN")
+                                        if (smtpExtendedResponse.Response == "DSN")
                                             Capabilities |= SmtpCapabilities.Dsn;
 
                                         #endregion
 
                                         #region BINARYMIME
 
-                                        if (v.Response == "BINARYMIME")
+                                        if (smtpExtendedResponse.Response == "BINARYMIME")
                                             Capabilities |= SmtpCapabilities.BinaryMime;
 
                                         #endregion
 
                                         #region CHUNKING
 
-                                        if (v.Response == "CHUNKING")
+                                        if (smtpExtendedResponse.Response == "CHUNKING")
                                             Capabilities |= SmtpCapabilities.Chunking;
 
                                         #endregion
 
                                         #region SMTPUTF8
 
-                                        if (v.Response == "SMTPUTF8")
+                                        if (smtpExtendedResponse.Response == "SMTPUTF8")
                                             Capabilities |= SmtpCapabilities.UTF8;
 
                                         #endregion

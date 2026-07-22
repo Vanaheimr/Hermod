@@ -44,16 +44,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
     public class ProcessUDPPacketArrow<TIn, TOut> : MapArrow<UDPPacket<TIn>, UDPPacket<TOut>>
     {
 
-        public ProcessUDPPacketArrow(Func<TIn, TOut> MessageProcessor,
-                                     Func<Exception, Exception>? OnError = null,
-                                     IArrowSender<UDPPacket<TIn>>? In = null)
+        public ProcessUDPPacketArrow(Func<TIn, TOut>                MessageProcessor,
+                                     Func<Exception, Exception>?    OnError   = null,
+                                     IArrowSender<UDPPacket<TIn>>?  In        = null)
 
             : base(PacketIn => new UDPPacket<TOut>(
                                    null,
                                    PacketIn.ServerTimestamp,
                                    PacketIn.LocalSocket,
                                    PacketIn.RemoteSocket,
-                                   MessageProcessor(PacketIn.Payload)),
+                                   MessageProcessor(PacketIn.Payload
+                               )),
                    OnError)
 
         {

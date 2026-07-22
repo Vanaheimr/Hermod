@@ -58,10 +58,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
 
             : base(Messages => Messages.Payload.
                                         Select(Message => new UDPPacket<T>(null,
-                                                                             Messages.ServerTimestamp,
-                                                                             Messages.LocalSocket,
-                                                                             Messages.RemoteSocket,
-                                                                             Message)))
+                                                                           Messages.ServerTimestamp,
+                                                                           Messages.LocalSocket,
+                                                                           Messages.RemoteSocket,
+                                                                           Message)))
 
         {
 

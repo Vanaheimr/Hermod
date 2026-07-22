@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             {
                 MD5.TransformBlock     (ipad, 0, ipad.Length, null, 0);
                 MD5.TransformFinalBlock(token, startIndex, length);
-                digest = MD5.Hash;
+                digest = MD5.Hash ?? [];
             }
 
             #endregion
@@ -119,17 +119,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             {
                 MD5.TransformBlock     (opad, 0, opad.Length, null, 0);
                 MD5.TransformFinalBlock(digest, 0, digest.Length);
-                digest = MD5.Hash;
+                digest = MD5.Hash ?? [];
             }
 
             #endregion
 
 
             // result := login[space]digest
-            return Login.ToUTF8Bytes().
-                   Concat(new Byte[1] { 0x20 }).
-                   Concat(digest.ToHexString().ToUTF8Bytes()).
-                   ToArray();
+            return [ .. Login.ToUTF8Bytes(),
+                     .. " "u8.ToArray(),
+                     .. digest.ToHexString().ToUTF8Bytes() ];
 
         }
 

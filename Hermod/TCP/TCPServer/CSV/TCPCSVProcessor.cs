@@ -181,16 +181,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
                                     #region Check CSV separation
 
-                                    String[] CSVArray = null;
+                                    String[] CSVArray = [];
 
                                     try
                                     {
 
-                                        CSVArray = CSVLine.Trim().
+                                        CSVArray = [.. CSVLine.Trim().
                                                             Split(SplitCharacters,
                                                                   StringSplitOptions.None).
-                                                            Select(v => v.Trim()).
-                                                            ToArray();
+                                                            Select(v => v.Trim())];
 
                                     }
                                     catch
@@ -202,14 +201,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
                                     #region Call OnNotification delegate
 
-                                    TCPResult<String> Result = null;
+                                    //TCPResult<String>? Result = null;
 
                                     var OnNotificationLocal = OnNotification;
                                     if (OnNotificationLocal is not null)
                                     {
 
                                         TCPConnection.WriteLineToResponseStream(OnNotificationLocal(TCPConnection,
-                                                                                                    Illias.Timestamp.Now,
+                                                                                                    Timestamp.Now,
                                                                                                     CSVArray));
 
                                     }

@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static Boolean TryParse(String Text, out NotificationMessage_Id NotificationMessageId)
         {
 
-            Text = Text?.Trim();
+            Text = Text.Trim();
 
             if (Text.IsNotNullOrEmpty())
             {
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
 
             => Object is NotificationMessage_Id notificationMessageId
                    ? CompareTo(notificationMessageId)
@@ -328,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
 
             => Object is NotificationMessage_Id notificationMessageId &&
                    Equals(notificationMessageId);
