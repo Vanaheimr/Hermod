@@ -103,8 +103,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
             this.Content = Content ?? throw new ArgumentNullException(nameof(Headers), "The given content must not be null or empty!");
 
 
-            if (Headers.TryGetValue("Content-Type", out Object Value) &&
-                HTTPContentType.TryParse(Value as String, out HTTPContentType ContentType))
+            if (Headers.TryGetValue("Content-Type", out Object? Value) &&
+                HTTPContentType.TryParse(Value as String, out HTTPContentType? ContentType))
             {
                 Headers["Content-Type"] = ContentType;
                 this.ContentType = ContentType;
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
 
                 }
 
-                if (Parts.TryGetValue("name",     out String Text))
+                if (Parts.TryGetValue("name",     out String? Text))
                     this.Name     = Text.Substring(1, Text.Length - 2);
 
                 if (Parts.TryGetValue("filename", out Text))

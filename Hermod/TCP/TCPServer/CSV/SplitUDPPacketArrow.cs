@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
     public class SplitUDPPacketArrow<T> : MapArrow<UDPPacket<IEnumerable<T>>, IEnumerable<UDPPacket<T>>>
     {
 
-        public SplitUDPPacketArrow(IArrowSender<UDPPacket<IEnumerable<T>>> In = null)
+        public SplitUDPPacketArrow(IArrowSender<UDPPacket<IEnumerable<T>>>? In = null)
 
             : base(Messages => Messages.Payload.
                                         Select(Message => new UDPPacket<T>(null,

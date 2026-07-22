@@ -65,7 +65,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                          IPSocket            RemoteSocket,
                          TData               Payload)
 
-            : base(LocalSocket, RemoteSocket)
+            : base(LocalSocket,
+                   RemoteSocket)
 
         {
 
@@ -83,13 +84,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
 
-            return "UDP packet received at " + ServerTimestamp +
-                                    " from " + RemoteSocket.ToString() +
-                                    " to " + LocalSocket.ToString();
-
-        }
+            => $"UDP packet received at {ServerTimestamp} from {RemoteSocket} to {LocalSocket}";
 
         #endregion
 

@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         public static ProcessUDPPacketArrow<TIn, TOut> ProcessUDPPacket<TIn, TOut>(this IArrowSender<UDPPacket<TIn>> In,
                                                                                    Func<TIn, TOut> MessageProcessor,
-                                                                                   Func<Exception, Exception> OnError = null)
+                                                                                   Func<Exception, Exception>? OnError = null)
         {
             return new ProcessUDPPacketArrow<TIn, TOut>(MessageProcessor, OnError, In);
         }
@@ -45,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
     {
 
         public ProcessUDPPacketArrow(Func<TIn, TOut> MessageProcessor,
-                                     Func<Exception, Exception> OnError = null,
-                                     IArrowSender<UDPPacket<TIn>> In = null)
+                                     Func<Exception, Exception>? OnError = null,
+                                     IArrowSender<UDPPacket<TIn>>? In = null)
 
             : base(PacketIn => new UDPPacket<TOut>(
                                    null,

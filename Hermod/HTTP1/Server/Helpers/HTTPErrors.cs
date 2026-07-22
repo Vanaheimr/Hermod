@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="StatusCode">An HTTP status code.</param>
         /// <param name="Reasons">Optional application side reasons for this error.</param>
-        public static HTTPResponse HTTPErrorResponse_old(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reasons = null)
+        public static HTTPResponse HTTPErrorResponse_old(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String? Reasons = null)
         {
 
             #region Initial checks

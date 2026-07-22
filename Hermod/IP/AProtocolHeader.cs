@@ -2,6 +2,7 @@
 
 public abstract class AProtocolHeader
 {
+
     /// <summary>
     /// This abstracted method returns a byte array that is the protocol
     /// header and the payload. This is used by the BuildPacket method

@@ -22789,7 +22789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            if (notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage OldNotificationMessage))
+            if (notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage? OldNotificationMessage))
             {
                 notificationMessages.Remove(OldNotificationMessage.Id);
                 NotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
@@ -22940,7 +22940,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
-            if (!notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage OldNotificationMessage))
+            if (!notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage? OldNotificationMessage))
                 throw new ArgumentException    ("The given notification message '" + NotificationMessage.Id + "' does not exists in this API!",
                                                 nameof(NotificationMessage));
 
@@ -23052,7 +23052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(UpdateDelegate),
                                                 "The given update delegate must not be null!");
 
-            if (!notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage OldNotificationMessage))
+            if (!notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage? OldNotificationMessage))
                 throw new ArgumentException    ("The given notification message '" + NotificationMessageId + "' does not exists in this API!",
                                                 nameof(NotificationMessageId));
 
@@ -23242,7 +23242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(NotificationMessage),
                                                 "The given notification message must not be null!");
 
-            if (NotificationMessage.API != this || !notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage NotificationMessageToBeRemoved))
+            if (NotificationMessage.API != this || !notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage? NotificationMessageToBeRemoved))
                 throw new ArgumentException    ("The given notification message '" + NotificationMessage.Id + "' does not exists in this API!",
                                                 nameof(NotificationMessage));
 
@@ -23445,7 +23445,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected Boolean _TryGetNotificationMessage(NotificationMessage_Id NotificationMessageId, out NotificationMessage NotificationMessage)
         {
 
-            if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage notificationMessage))
+            if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage? notificationMessage))
             {
                 NotificationMessage = notificationMessage;
                 return true;
@@ -27064,7 +27064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected internal OrganizationGroup _GetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId)
         {
 
-            if (!OrganizationGroupId.IsNullOrEmpty && organizationGroups.TryGetValue(OrganizationGroupId, out OrganizationGroup organizationGroup))
+            if (!OrganizationGroupId.IsNullOrEmpty && organizationGroups.TryGetValue(OrganizationGroupId, out OrganizationGroup? organizationGroup))
                 return organizationGroup;
 
             return null;
@@ -27114,7 +27114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected internal Boolean _TryGetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId, out OrganizationGroup OrganizationGroup)
         {
 
-            if (!OrganizationGroupId.IsNullOrEmpty && organizationGroups.TryGetValue(OrganizationGroupId, out OrganizationGroup organizationGroup))
+            if (!OrganizationGroupId.IsNullOrEmpty && organizationGroups.TryGetValue(OrganizationGroupId, out OrganizationGroup? organizationGroup))
             {
                 OrganizationGroup = organizationGroup;
                 return true;

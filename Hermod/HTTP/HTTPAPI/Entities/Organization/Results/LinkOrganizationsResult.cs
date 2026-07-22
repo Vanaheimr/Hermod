@@ -42,8 +42,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IOrganization                        OrganizationIn,
                                        EventTracking_Id                    EventTrackingId,
                                        Boolean                             IsSuccess,
-                                       String                              Argument           = null,
-                                       I18NString                          ErrorDescription   = null)
+                                       String?                              Argument           = null,
+                                       I18NString?                          ErrorDescription   = null)
 
             : base(OrganizationOut,
                    OrganizationIn,

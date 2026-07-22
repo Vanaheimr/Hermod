@@ -19,36 +19,39 @@
 
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.IPv4;
-using System;
 
 #endregion
 
 public class UdpHeader : AProtocolHeader
 {
 
-    private ushort srcPort;
-    private ushort destPort;
-    private ushort udpLength;
-    private ushort udpChecksum;
+    public UInt16 srcPort       { get; private set; }
+    public UInt16 destPort      { get; private set; }
+    public UInt16 udpLength     { get; private set; }
+    public UInt16 udpChecksum   { get; private set; }
 
-    public Ipv6Header ipv6PacketHeader;
-    public IPv4Packet ipv4PacketHeader;
+    public Ipv6Header? ipv6PacketHeader;
+    public IPv4Packet? ipv4PacketHeader;
 
-    static public int UdpHeaderLength = 8;
+    public static readonly Int32 UDPHeaderLength = 8;
 
     /// <summary>
     /// Simple constructor for the UDP header.
     /// </summary>
-    public UdpHeader()
-        : base()
+    public UdpHeader(UInt16 srcPort       = 0,
+                     UInt16 destPort      = 0,
+                     UInt16 udpLength     = 0,
+                     UInt16 udpChecksum   = 0)
     {
-        srcPort = 0;
-        destPort = 0;
-        udpLength = 0;
-        udpChecksum = 0;
 
-        ipv6PacketHeader = null;
-        ipv4PacketHeader = null;
+        this.srcPort           = srcPort;
+        this.destPort          = destPort;
+        this.udpLength         = udpLength;
+        this.udpChecksum       = udpChecksum;
+
+        this.ipv6PacketHeader  = null;
+        this.ipv4PacketHeader  = null;
+
     }
 
     /// <summary>
@@ -58,11 +61,11 @@ public class UdpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort) NetworkingHelpers.NetworkToHostOrder((short)srcPort);
+            return (ushort) NetworkingHelpers.NetworkToHostOrder((short) srcPort);
         }
         set
         {
-            srcPort = (ushort) NetworkingHelpers.HostToNetworkOrder((short)value);
+            srcPort = (ushort) NetworkingHelpers.HostToNetworkOrder((short) value);
         }
     }
 
@@ -117,18 +120,16 @@ public class UdpHeader : AProtocolHeader
     /// </summary>
     /// <param name="udpData"></param>
     /// <param name="bytesCopied"></param>
-    /// <returns></returns>
-    static public UdpHeader Create(byte[] udpData, ref int bytesCopied)
-    {
-        UdpHeader udpPacketHeader = new UdpHeader();
+    static public UdpHeader Create(Byte[]     udpData,
+                                   ref Int32  bytesCopied)
 
-        udpPacketHeader.srcPort = BitConverter.ToUInt16(udpData, 0);
-        udpPacketHeader.destPort = BitConverter.ToUInt16(udpData, 2);
-        udpPacketHeader.udpLength = BitConverter.ToUInt16(udpData, 4);
-        udpPacketHeader.udpChecksum = BitConverter.ToUInt16(udpData, 6);
+        => new (
+               srcPort:      BitConverter.ToUInt16(udpData, 0),
+               destPort:     BitConverter.ToUInt16(udpData, 2),
+               udpLength:    BitConverter.ToUInt16(udpData, 4),
+               udpChecksum:  BitConverter.ToUInt16(udpData, 6)
+           );
 
-        return udpPacketHeader;
-    }
 
     /// <summary>
     /// This method builds the byte array representation of the UDP header as it would appear
@@ -162,10 +163,13 @@ public class UdpHeader : AProtocolHeader
     /// </summary>
     /// <param name="payLoad">Payload that follows the UDP header</param>
     /// <returns></returns>
-    public override byte[] GetProtocolPacketBytes(byte[] payLoad)
+    public override Byte[] GetProtocolPacketBytes(Byte[] payLoad)
     {
-        byte[] udpPacket = new byte[UdpHeaderLength + payLoad.Length], pseudoHeader = null, byteValue = null;
-        int offset = 0;
+
+        Byte[]  udpPacket     = new Byte[UDPHeaderLength + payLoad.Length];
+        Byte[]  pseudoHeader  = [];
+        Byte[]  byteValue     = [];
+        Int32   offset        = 0;
 
         // Build the UDP packet first
         byteValue = BitConverter.GetBytes(srcPort);
@@ -188,7 +192,8 @@ public class UdpHeader : AProtocolHeader
 
         if (ipv4PacketHeader is not null)
         {
-            pseudoHeader = new byte[UdpHeaderLength + 12 + payLoad.Length];
+
+            pseudoHeader = new Byte[UDPHeaderLength + 12 + payLoad.Length];
 
             // Build the IPv4 pseudo header
             offset = 0;
@@ -218,9 +223,10 @@ public class UdpHeader : AProtocolHeader
 
         else if (ipv6PacketHeader is not null)
         {
+
             uint ipv6PayloadLength;
 
-            pseudoHeader = new byte[UdpHeaderLength + 40 + payLoad.Length];
+            pseudoHeader = new byte[UDPHeaderLength + 40 + payLoad.Length];
 
             // Build the IPv6 pseudo header
             offset = 0;
@@ -235,7 +241,7 @@ public class UdpHeader : AProtocolHeader
             Array.Copy(byteValue, 0, pseudoHeader, offset, byteValue.Length);
             offset += byteValue.Length;
 
-            ipv6PayloadLength = (uint)NetworkingHelpers.HostToNetworkOrder((int)(payLoad.Length + UdpHeaderLength));
+            ipv6PayloadLength = (uint)NetworkingHelpers.HostToNetworkOrder((int)(payLoad.Length + UDPHeaderLength));
 
             // Packet payload: ICMPv6 headers plus payload
             byteValue = BitConverter.GetBytes(ipv6PayloadLength);

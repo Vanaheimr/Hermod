@@ -316,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new collection of tags.
         /// </summary>
         /// <param name="Tags">An enumeration of tags.</param>
-        public Tags(IEnumerable<KeyValuePair<Tag, TagEdge>> Tags = null)
+        public Tags(IEnumerable<KeyValuePair<Tag, TagEdge>>? Tags = null)
         {
 
             _Tags = new Dictionary<Tag, TagEdge>();
@@ -481,7 +481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new tag builder.
             /// </summary>
-            public Builder(IEnumerable<KeyValuePair<Tag, TagEdge>> Tags = null)
+            public Builder(IEnumerable<KeyValuePair<Tag, TagEdge>>? Tags = null)
             {
 
                 _Tags = new Dictionary<Tag, TagEdge>();

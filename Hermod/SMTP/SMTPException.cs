@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public class SMTPException : ApplicationException
     {
 
-        public SMTPException(String Message, Exception InnerException = null)
+        public SMTPException(String Message, Exception? InnerException = null)
             : base(Message, InnerException)
         { }
 

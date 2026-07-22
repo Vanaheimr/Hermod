@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     public class EMailSecurityException : EMailException
     {
 
-        public EMailSecurityException(String Message, Exception InnerException = null)
+        public EMailSecurityException(String Message, Exception? InnerException = null)
             : base(Message, InnerException)
         { }
 

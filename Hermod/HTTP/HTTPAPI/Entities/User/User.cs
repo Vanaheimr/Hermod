@@ -2387,7 +2387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (internal) AddNotification(Notification,                           OnUpdate = null)
 
             internal T AddNotification<T>(T          Notification,
-                                          Action<T>  OnUpdate  = null)
+                                          Action<T>?  OnUpdate  = null)
 
                 where T : ANotification
 
@@ -2400,7 +2400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             internal T AddNotification<T>(T                        Notification,
                                           NotificationMessageType  NotificationMessageType,
-                                          Action<T>                OnUpdate  = null)
+                                          Action<T>?                OnUpdate  = null)
 
                 where T : ANotification
 
@@ -2414,7 +2414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             internal T AddNotification<T>(T                                     Notification,
                                           IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                                          Action<T>                             OnUpdate  = null)
+                                          Action<T>?                             OnUpdate  = null)
 
                 where T : ANotification
 
@@ -2530,7 +2530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (internal) RemoveNotification(NotificationType,                           OnRemoval = null)
 
             internal Task RemoveNotification<T>(T          NotificationType,
-                                                Action<T>  OnRemoval  = null)
+                                                Action<T>?  OnRemoval  = null)
 
                 where T : ANotification
 

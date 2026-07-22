@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #region Add     (NotificationMessageType,  OnAdded   = null)
 
         internal void Add(NotificationMessageType  NotificationMessageType,
-                          Action                   OnAdded  = null)
+                          Action?                   OnAdded  = null)
         {
             lock (_NotificationMessageTypes)
             {
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #region Add     (NotificationMessageTypes, OnAdded   = null)
 
         internal void Add(IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                          Action                                OnAdded  = null)
+                          Action?                                OnAdded  = null)
         {
             lock (_NotificationMessageTypes)
             {
@@ -178,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #region Remove  (NotificationMessageType,  OnRemoved = null)
 
         internal void Remove(NotificationMessageType  NotificationMessageType,
-                             Action                   OnRemoved  = null)
+                             Action?                   OnRemoved  = null)
         {
             lock (_NotificationMessageTypes)
             {
@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #region Remove  (NotificationMessageTypes, OnRemoved = null)
 
         internal void Remove(IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                             Action                                OnRemoved  = null)
+                             Action?                                OnRemoved  = null)
         {
             lock (_NotificationMessageTypes)
             {

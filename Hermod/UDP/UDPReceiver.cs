@@ -728,11 +728,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort                           Port,
                            String                           ServiceBanner                = DefaultServiceBanner,
-                           MapperDelegate                   Mapper                       = null,
+                           MapperDelegate?                   Mapper                       = null,
                            String                           ReceiverThreadName           = "UDP receiver thread",
                            ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
                            Boolean                          ReceiverThreadIsBackground   = true,
-                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
+                           Func<UDPPacket<Byte[]>, String>?  PacketThreadsNameCreator     = null,
                            ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                          PacketThreadsAreBackground   = true,
                            Boolean                          AutoStart                    = false)
@@ -769,11 +769,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPSocket                         IPSocket,
                            String                           ServiceBanner                = DefaultServiceBanner,
-                           MapperDelegate                   Mapper                       = null,
+                           MapperDelegate?                   Mapper                       = null,
                            String                           ReceiverThreadName           = "UDP receiver thread",
                            ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
                            Boolean                          ReceiverThreadIsBackground   = true,
-                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
+                           Func<UDPPacket<Byte[]>, String>?  PacketThreadsNameCreator     = null,
                            ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                          PacketThreadsAreBackground   = true,
                            Boolean                          AutoStart                    = false)
@@ -813,11 +813,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         public UDPReceiver(IIPAddress                       IPAddress,
                            IPPort                           Port,
                            String                           ServiceBanner                = DefaultServiceBanner,
-                           MapperDelegate                   Mapper                       = null,
+                           MapperDelegate?                   Mapper                       = null,
                            String                           ReceiverThreadName           = "UDP receiver thread",
                            ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
                            Boolean                          ReceiverThreadIsBackground   = true,
-                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
+                           Func<UDPPacket<Byte[]>, String>?  PacketThreadsNameCreator     = null,
                            ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                          PacketThreadsAreBackground   = true,
                            Boolean                          AutoStart                    = false)

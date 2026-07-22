@@ -55,11 +55,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         IEnumerable<User2UserGroupEdge> Edges(User2UserGroupEdgeLabel EdgeLabel, IUser User);
         //bool Equals(object Object);
         //bool Equals(UserGroup UserGroup);
-        IEnumerable<UserGroup> GetAllChilds(Func<UserGroup, bool> Include = null);
-        IEnumerable<UserGroup> GetAllParents(Func<UserGroup, bool> Include = null);
+        IEnumerable<UserGroup> GetAllChilds(Func<UserGroup, bool>? Include = null);
+        IEnumerable<UserGroup> GetAllParents(Func<UserGroup, bool>? Include = null);
         //int GetHashCode();
-        IEnumerable<UserGroup> GetMeAndAllMyChilds(Func<UserGroup, bool> Include = null);
-        IEnumerable<UserGroup> GetMeAndAllMyParents(Func<UserGroup, bool> Include = null);
+        IEnumerable<UserGroup> GetMeAndAllMyChilds(Func<UserGroup, bool>? Include = null);
+        IEnumerable<UserGroup> GetMeAndAllMyParents(Func<UserGroup, bool>? Include = null);
         bool HasEdge(User2UserGroupEdgeLabel EdgeLabel, IUser User);
         bool RemoveInEdge(UserGroup2UserGroupEdge Edge);
         void RemoveInEdges(UserGroup2UserGroupEdgeLabel EdgeLabel, UserGroup SourceUserGroup);

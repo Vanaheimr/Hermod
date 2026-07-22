@@ -449,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) NotificationMessageId1 is null) || ((Object) NotificationMessageId2 is null))
+            if (((Object?) NotificationMessageId1 is null) || ((Object?) NotificationMessageId2 is null))
                 return false;
 
             return NotificationMessageId1.Equals(NotificationMessageId2);
@@ -482,7 +482,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static Boolean operator < (NotificationMessage NotificationMessageId1, NotificationMessage NotificationMessageId2)
         {
 
-            if ((Object) NotificationMessageId1 is null)
+            if ((Object?) NotificationMessageId1 is null)
                 throw new ArgumentNullException(nameof(NotificationMessageId1), "The given NotificationMessageId1 must not be null!");
 
             return NotificationMessageId1.CompareTo(NotificationMessageId2) < 0;
@@ -515,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static Boolean operator > (NotificationMessage NotificationMessageId1, NotificationMessage NotificationMessageId2)
         {
 
-            if ((Object) NotificationMessageId1 is null)
+            if ((Object?) NotificationMessageId1 is null)
                 throw new ArgumentNullException(nameof(NotificationMessageId1), "The given NotificationMessageId1 must not be null!");
 
             return NotificationMessageId1.CompareTo(NotificationMessageId2) > 0;
@@ -554,7 +554,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
             var NotificationMessage = Object as NotificationMessage;
-            if ((Object) NotificationMessage is null)
+            if ((Object?) NotificationMessage is null)
                 throw new ArgumentException("The given object is not an NotificationMessage!");
 
             return CompareTo(NotificationMessage);
@@ -572,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public override Int32 CompareTo(NotificationMessage NotificationMessage)
         {
 
-            if ((Object) NotificationMessage is null)
+            if ((Object?) NotificationMessage is null)
                 throw new ArgumentNullException("The given NotificationMessage must not be null!");
 
             return Id.CompareTo(NotificationMessage.Id);
@@ -617,7 +617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public override Boolean Equals(NotificationMessage NotificationMessage)
         {
 
-            if ((Object) NotificationMessage is null)
+            if ((Object?) NotificationMessage is null)
                 return false;
 
             return Id.Equals(NotificationMessage.Id);

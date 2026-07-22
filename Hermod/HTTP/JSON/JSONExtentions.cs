@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  String                    DefaultServerName,
                                                  out String                Text,
                                                  HTTPRequest               HTTPRequest,
-                                                 out HTTPResponse.Builder  HTTPResponse)
+                                                 [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatoryText(PropertyName,
@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 TryParser<T>              TryParser,
                                                 out T                     Value,
                                                 HTTPRequest               HTTPRequest,
-                                                out HTTPResponse.Builder  HTTPResponse)
+                                                [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     TryJObjectParser2a<T>  TryParser,
                                                     out T?               Value,
                                                     HTTPRequest          HTTPRequest,
-                                                    out HTTPResponse     HTTPResponse)
+                                                    [NotNullWhen(false)] out HTTPResponse?  HTTPResponse)
 
             where T : struct
 
@@ -333,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         String                    DefaultServerName,
                                                         out TEnum                 EnumValue,
                                                         HTTPRequest               HTTPRequest,
-                                                        out HTTPResponse.Builder  HTTPResponse)
+                                                        [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
 
              where TEnum : struct
 
@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out Boolean               BooleanValue,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -417,7 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out Single                SingleValue,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -457,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out Double                DoubleValue,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -497,7 +497,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out Decimal               DecimalValue,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -537,7 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out Byte                  ByteValue,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -577,7 +577,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out SByte                 SByteValue,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -617,7 +617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out Int32                 Int32Value,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -657,7 +657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out Int64                 Int64Value,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -780,7 +780,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out I18NString            I18NText,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
 
         {
 
@@ -821,7 +821,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out JObject               JObject,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -861,7 +861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out JArray                JArray,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -901,7 +901,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    DefaultServerName,
                                              out IEnumerable<String>   StringArray,
                                              HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -951,7 +951,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                Func<String, T>           Mapper,
                                                out T                     Value,
                                                HTTPRequest               HTTPRequest,
-                                               out HTTPResponse.Builder  HTTPResponse)
+                                               [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1085,7 +1085,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                TryParser<T>              Parser,
                                                out T?                    Value,
                                                HTTPRequest               HTTPRequest,
-                                               out HTTPResponse.Builder  HTTPResponse)
+                                               [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1198,7 +1198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             String                    DefaultServerName,
                                             out I18NString            I18NText,
                                             HTTPRequest               HTTPRequest,
-                                            out HTTPResponse.Builder  HTTPResponse)
+                                            [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1234,7 +1234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    String                    DefaultServerName,
                                                    out TEnum?                EnumValue,
                                                    HTTPRequest               HTTPRequest,
-                                                   out HTTPResponse.Builder  HTTPResponse)
+                                                   [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
 
             where TEnum : struct
 
@@ -1273,7 +1273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             String                    DefaultServerName,
                                             out DateTime?             Timestamp,
                                             HTTPRequest               HTTPRequest,
-                                            out HTTPResponse.Builder  HTTPResponse)
+                                            [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1309,7 +1309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             String                    DefaultServerName,
                                             out TimeSpan?             TimeSpan,
                                             HTTPRequest               HTTPRequest,
-                                            out HTTPResponse.Builder  HTTPResponse)
+                                            [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1364,7 +1364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
             }
 
-            if (JSON.TryGetValue(PropertyName, out JToken JSONToken))
+            if (JSON.TryGetValue(PropertyName, out JToken? JSONToken))
             {
 
                 // "properyKey": null -> will be ignored!
@@ -1383,7 +1383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        if (!Parser(item.ToString(), out T Value))
+                        if (!Parser(item.ToString(), out T? Value))
                         {
                             ErrorResponse = "Could not parse item '" + item + "' within the " + PropertyDescription + " array!";
                             Values = new T[0];
@@ -1419,7 +1419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             String                    DefaultServerName,
                                             out JObject               JSONObject,
                                             HTTPRequest               HTTPRequest,
-                                            out HTTPResponse.Builder  HTTPResponse)
+                                            [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1455,7 +1455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             String                    DefaultServerName,
                                             out JArray                JSONArray,
                                             HTTPRequest               HTTPRequest,
-                                            out HTTPResponse.Builder  HTTPResponse)
+                                            [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1492,7 +1492,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       TryParser<T>              Parser,
                                                       out HashSet<T>            HashSet,
                                                       HTTPRequest               HTTPRequest,
-                                                      out HTTPResponse.Builder  HTTPResponse)
+                                                      [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
 
             var result = JSON.ParseOptionalHashSet(PropertyName,

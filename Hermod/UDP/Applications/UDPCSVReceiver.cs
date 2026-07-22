@@ -87,11 +87,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IPPort                                        Port,
                               String                                        ServiceBanner               = DefaultServiceBanner,
-                              IEnumerable<String>                           Splitter                    = null,
+                              IEnumerable<String>?                           Splitter                    = null,
                               String                                        ReceiverThreadName          = "UDP receiver thread",
                               ThreadPriority                                ReceiverThreadPriority      = ThreadPriority.AboveNormal,
                               Boolean                                       ReceiverThreadIsBackground  = true,
-                              Func<UDPPacket<IEnumerable<String>>, String>  PacketThreadsNameCreator    = null,
+                              Func<UDPPacket<IEnumerable<String>>, String>?  PacketThreadsNameCreator    = null,
                               ThreadPriority                                PacketThreadsPriority       = ThreadPriority.AboveNormal,
                               Boolean                                       PacketThreadsAreBackground  = true,
                               Boolean                                       AutoStart                   = false)
@@ -131,11 +131,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
         public UDPCSVReceiver(IIPAddress                                    IPAddress,
                               IPPort                                        Port,
                               String                                        ServiceBanner               = DefaultServiceBanner,
-                              IEnumerable<String>                           Splitter                    = null,
+                              IEnumerable<String>?                           Splitter                    = null,
                               String                                        ReceiverThreadName          = "UDP receiver thread",
                               ThreadPriority                                ReceiverThreadPriority      = ThreadPriority.AboveNormal,
                               Boolean                                       ReceiverThreadIsBackground  = true,
-                              Func<UDPPacket<IEnumerable<String>>, String>  PacketThreadsNameCreator    = null,
+                              Func<UDPPacket<IEnumerable<String>>, String>?  PacketThreadsNameCreator    = null,
                               ThreadPriority                                PacketThreadsPriority       = ThreadPriority.AboveNormal,
                               Boolean                                       PacketThreadsAreBackground  = true,
                               Boolean                                       AutoStart                   = false)
@@ -190,11 +190,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IPSocket                                      IPSocket,
                               String                                        ServiceBanner               = DefaultServiceBanner,
-                              IEnumerable<String>                           Splitter                    = null,
+                              IEnumerable<String>?                           Splitter                    = null,
                               String                                        ReceiverThreadName          = "UDP receiver thread",
                               ThreadPriority                                ReceiverThreadPriority      = ThreadPriority.AboveNormal,
                               Boolean                                       ReceiverThreadIsBackground  = true,
-                              Func<UDPPacket<IEnumerable<String>>, String>  PacketThreadsNameCreator    = null,
+                              Func<UDPPacket<IEnumerable<String>>, String>?  PacketThreadsNameCreator    = null,
                               ThreadPriority                                PacketThreadsPriority       = ThreadPriority.AboveNormal,
                               Boolean                                       PacketThreadsAreBackground  = true,
                               Boolean                                       AutoStart                   = false)

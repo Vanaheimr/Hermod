@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetAllParents(Filter = null)
 
-        public IEnumerable<UserGroup> GetAllParents(Func<UserGroup, Boolean> Include = null)
+        public IEnumerable<UserGroup> GetAllParents(Func<UserGroup, Boolean>? Include = null)
         {
 
             var parents = new HashSet<UserGroup>();
@@ -301,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetMeAndAllMyParents(Filter = null)
 
-        public IEnumerable<UserGroup> GetMeAndAllMyParents(Func<UserGroup, Boolean> Include = null)
+        public IEnumerable<UserGroup> GetMeAndAllMyParents(Func<UserGroup, Boolean>? Include = null)
         {
 
             var parentsAndMe = new HashSet<UserGroup>();
@@ -351,7 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetAllChilds(Filter = null)
 
-        public IEnumerable<UserGroup> GetAllChilds(Func<UserGroup, Boolean> Include = null)
+        public IEnumerable<UserGroup> GetAllChilds(Func<UserGroup, Boolean>? Include = null)
         {
 
             var childs = new HashSet<UserGroup>();
@@ -367,7 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetMeAndAllMyChilds(Filter = null)
 
-        public IEnumerable<UserGroup> GetMeAndAllMyChilds(Func<UserGroup, Boolean> Include = null)
+        public IEnumerable<UserGroup> GetMeAndAllMyChilds(Func<UserGroup, Boolean>? Include = null)
         {
 
             var childAndMe = new HashSet<UserGroup>();

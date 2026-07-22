@@ -358,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) EMailAddress1 is null) || ((Object) EMailAddress2 is null))
+            if (((Object?) EMailAddress1 is null) || ((Object?) EMailAddress2 is null))
                 return false;
 
             return EMailAddress1.Equals(EMailAddress2);
@@ -466,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Int32 CompareTo(EMailAddress EMailAddress)
         {
 
-            if ((Object) EMailAddress is null)
+            if ((Object?) EMailAddress is null)
                 throw new ArgumentNullException();
 
             return String.Compare(ToString(), EMailAddress.ToString(), StringComparison.Ordinal);
@@ -511,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Boolean Equals(EMailAddress EMailAddress)
         {
 
-            if ((Object) EMailAddress is null)
+            if ((Object?) EMailAddress is null)
                 return false;
 
             return ToString().Equals(EMailAddress.ToString());

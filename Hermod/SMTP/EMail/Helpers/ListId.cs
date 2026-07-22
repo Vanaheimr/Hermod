@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) ListId1 is null) || ((Object) ListId2 is null))
+            if (((Object?) ListId1 is null) || ((Object?) ListId2 is null))
                 return false;
 
             return ListId1.Equals(ListId2);

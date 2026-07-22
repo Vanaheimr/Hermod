@@ -1488,7 +1488,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
         public static Builder OK(HTTPRequest      Request,
-                                 Action<Builder>  Configurator = null)
+                                 Action<Builder>?  Configurator = null)
 
             => Builder.OK(Request, Configurator);
 
@@ -1550,7 +1550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
         public static Builder ServiceUnavailable(HTTPRequest      Request,
-                                                 Action<Builder>  Configurator = null)
+                                                 Action<Builder>?  Configurator = null)
 
             => Builder.ServiceUnavailable(Request, Configurator);
 
@@ -1575,7 +1575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
         public static Builder FailedDependency(HTTPRequest      Request,
-                                               Action<Builder>  Configurator  = null)
+                                               Action<Builder>?  Configurator  = null)
 
             => Builder.ServiceUnavailable(Request, Configurator);
 
@@ -1599,7 +1599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
         public static Builder GatewayTimeout(HTTPRequest      Request,
-                                             Action<Builder>  Configurator = null)
+                                             Action<Builder>?  Configurator = null)
 
             => Builder.GatewayTimeout(Request, Configurator);
 
@@ -1624,7 +1624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
         public static Builder ClientError(HTTPRequest      Request,
-                                          Action<Builder>  Configurator = null)
+                                          Action<Builder>?  Configurator = null)
 
             => Builder.ClientError(Request, Configurator);
 

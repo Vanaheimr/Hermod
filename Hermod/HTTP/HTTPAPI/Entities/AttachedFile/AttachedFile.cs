@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public JObject ToJSON(Boolean                                       Embedded                       = false,
                               InfoStatus                                    IncludeSignatures              = InfoStatus.Hidden,
                               Boolean                                       IncludeCryptoHash              = true,
-                              CustomJObjectSerializerDelegate<AttachedFile> CustomAttachedFileSerializer   = null)
+                              CustomJObjectSerializerDelegate<AttachedFile>? CustomAttachedFileSerializer   = null)
         {
 
             var JSON = JSONObject.Create(

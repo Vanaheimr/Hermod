@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
             var EVSE_Operator = Object as Tag;
-            if ((Object) EVSE_Operator is null)
+            if ((Object?) EVSE_Operator is null)
                 throw new ArgumentException("The given object is not a tag!");
 
             return CompareTo(EVSE_Operator);
@@ -271,7 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Tag Tag)
         {
 
-            if ((Object) Tag is null)
+            if ((Object?) Tag is null)
                 throw new ArgumentNullException(nameof(Tag), "The given tag must not be null!");
 
             return Id.CompareTo(Tag.Id);
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
 
             var Tag = Object as Tag;
-            if ((Object) Tag is null)
+            if ((Object?) Tag is null)
                 return false;
 
             return Equals(Tag);
@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(Tag Tag)
         {
 
-            if ((Object) Tag is null)
+            if ((Object?) Tag is null)
                 return false;
 
             return Id.Equals(Tag.Id);
@@ -394,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="Id">The unique identification of the user tag.</param>
             /// <param name="Description">An optional (multi-language) description of the user tag.</param>
             public Builder(Tag_Id      Id,
-                           I18NString  Description  = null)
+                           I18NString?  Description  = null)
             {
 
                 this.Id           = Id;
