@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out RequestLogHandler2 requestLogHandler2))
+                                                       out RequestLogHandler2? requestLogHandler2))
                 {
                     SubscribeToEventDelegate(requestLogHandler2);
                     _SubscriptionStatus.Add(LogTarget);

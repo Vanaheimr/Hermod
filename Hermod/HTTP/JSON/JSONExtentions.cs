@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatoryText(PropertyName,
                                                   PropertyDescription,
                                                   out Text,
-                                                  out String ErrorResponse);
+                                                  out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               PropertyDescription,
                                               TryParser,
                                               out Value,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   PropertyDescription,
                                                   TryParser,
                                                   out Value,
-                                                  out String ErrorResponse);
+                                                  out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -342,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatoryEnum(PropertyName,
                                                   PropertyDescription,
                                                   out EnumValue,
-                                                  out String ErrorResponse);
+                                                  out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out BooleanValue,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -423,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out SingleValue,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -463,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out DoubleValue,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -503,7 +503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out DecimalValue,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -543,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out ByteValue,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -583,7 +583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out SByteValue,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -623,7 +623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out Int32Value,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -663,7 +663,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out Int64Value,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -787,7 +787,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out I18NText,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -827,7 +827,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out JObject,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -867,7 +867,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out JArray,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -907,7 +907,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var success = JSON.ParseMandatory(PropertyName,
                                               PropertyDescription,
                                               out StringArray,
-                                              out String ErrorResponse);
+                                              out String? ErrorResponse);
 
             if (ErrorResponse is not null)
             {
@@ -1092,7 +1092,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             PropertyDescription,
                                             Parser,
                                             out Value,
-                                            out String ErrorResponse);
+                                            out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
@@ -1204,7 +1204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var result = JSON.ParseOptional(PropertyName,
                                             PropertyDescription,
                                             out I18NText,
-                                            out String ErrorResponse);
+                                            out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
@@ -1243,7 +1243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var result = JSON.ParseOptionalEnum(PropertyName,
                                             PropertyDescription,
                                             out EnumValue,
-                                            out String ErrorResponse);
+                                            out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
@@ -1279,7 +1279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var result = JSON.ParseOptional(PropertyName,
                                             PropertyDescription,
                                             out Timestamp,
-                                            out String ErrorResponse);
+                                            out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
@@ -1315,7 +1315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var result = JSON.ParseOptional(PropertyName,
                                             PropertyDescription,
                                             out TimeSpan,
-                                            out String ErrorResponse);
+                                            out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
@@ -1425,7 +1425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var result = JSON.ParseOptional(PropertyName,
                                             PropertyDescription,
                                             out JSONObject,
-                                            out String ErrorResponse);
+                                            out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
@@ -1461,7 +1461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var result = JSON.ParseOptional(PropertyName,
                                             PropertyDescription,
                                             out JSONArray,
-                                            out String ErrorResponse);
+                                            out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;
@@ -1499,7 +1499,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    PropertyDescription,
                                                    Parser,
                                                    out HashSet,
-                                                   out String ErrorResponse);
+                                                   out String? ErrorResponse);
 
             if (ErrorResponse is null)
                 HTTPResponse = null;

@@ -1050,7 +1050,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("description",
                                              "description",
-                                             out I18NString Description,
+                                             out I18NString? Description,
                                              out ErrorResponse))
                 {
 
@@ -1065,7 +1065,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("website",
                                              "website",
-                                             out String Website,
+                                             out String? Website,
                                              out ErrorResponse))
                 {
 
@@ -1127,7 +1127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (JSONObject.ParseOptionalJSON("address",
                                                  "address",
                                                  org.GraphDefined.Vanaheimr.Illias.Address.TryParse,
-                                                 out Address Address,
+                                                 out Address? Address,
                                                  out ErrorResponse))
                 {
 

@@ -305,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 if (!JSONObject.ParseMandatory("name",
                                                "NotificationMessagename",
-                                               out JObject Data,
+                                               out JObject? Data,
                                                out ErrorResponse))
                 {
                     return false;
@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 if (!JSONObject.ParseMandatory("ownerIds",
                                                "owner identifications",
-                                               out JArray OwnersJSON,
+                                               out JArray? OwnersJSON,
                                                out ErrorResponse))
                 {
                     return false;

@@ -1248,7 +1248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (JSONObject.ParseOptionalJSON("address",
                                              "address",
                                              org.GraphDefined.Vanaheimr.Illias.Address.TryParse,
-                                             out Address Address,
+                                             out Address? Address,
                                              out ErrorResponse))
                 {
                     if (ErrorResponse is not null)

@@ -254,8 +254,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             if (JSON["@context"]?.Value<String>() == JSONLDContext &&
                 JSON["email"] is JObject EMailJSON &&
                 EMailAddress.TryParseJSON(EMailJSON,
-                                          out EMailAddress EMail,
-                                          out String       ErrorResponse,
+                                          out EMailAddress? EMail,
+                                          out String?       ErrorResponse,
                                           true))
             {
 

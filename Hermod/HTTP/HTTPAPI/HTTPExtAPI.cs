@@ -9127,7 +9127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   if (!json.ParseMandatory("admins",
                                                            "organization admins",
-                                                           out JArray AdminsJSON,
+                                                           out JArray? AdminsJSON,
                                                            out errorResponse))
                                   {
 

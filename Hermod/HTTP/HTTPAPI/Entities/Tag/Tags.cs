@@ -393,7 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 var TagObject = item[0] as JObject;
 
                                 if (TagObject is not null && Tag.TryParseJSON(item[0] as JObject,
-                                                                          out Tag Tag2,
+                                                                          out Tag? Tag2,
                                                                           out ErrorResponse))
                                 {
                                     _tags.Add(Tag2,

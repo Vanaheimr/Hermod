@@ -319,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("description",
                                              "description",
-                                             out I18NString Description,
+                                             out I18NString? Description,
                                              out ErrorResponse))
                 {
 

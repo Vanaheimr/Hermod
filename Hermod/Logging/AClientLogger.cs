@@ -234,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out APIClientRequestLogHandler clientRequestLogHandler))
+                                                       out APIClientRequestLogHandler? clientRequestLogHandler))
                 {
                     SubscribeToEventDelegate(clientRequestLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
@@ -273,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out APIClientRequestLogHandler clientRequestLogHandler))
+                                                       out APIClientRequestLogHandler? clientRequestLogHandler))
                 {
                     UnsubscribeFromEventDelegate(clientRequestLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);
@@ -422,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out APIClientResponseLogHandler clientResponseLogHandler))
+                                                       out APIClientResponseLogHandler? clientResponseLogHandler))
                 {
                     SubscribeToEventDelegate(clientResponseLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out APIClientResponseLogHandler clientResponseLogHandler))
+                                                       out APIClientResponseLogHandler? clientResponseLogHandler))
                 {
                     UnsubscribeFromEventDelegate(clientResponseLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);

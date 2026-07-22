@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (!JSONObject.ParseMandatoryText("@context",
                                                    "JSON-LD context",
-                                                   out String Context,
+                                                   out String? Context,
                                                    out ErrorResponse))
                 {
                     ErrorResponse = @"The JSON-LD ""@context"" information is missing!";
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("description",
                                              "description",
-                                             out I18NString Description,
+                                             out I18NString? Description,
                                              out ErrorResponse))
                 {
 

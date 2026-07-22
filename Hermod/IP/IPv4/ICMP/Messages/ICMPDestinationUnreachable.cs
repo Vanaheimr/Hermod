@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                 var data = new Byte[Packet.PayloadBytes.Length - 4];
                 Buffer.BlockCopy(Packet.PayloadBytes, 4, data, 0, data.Length);
 
-                if (IPv4Packet.TryParse(data, out IPv4Packet ipv4Packet))
+                if (IPv4Packet.TryParse(data, out IPv4Packet? ipv4Packet))
                 {
 
                     ICMPDestinationUnreachable = new ICMPDestinationUnreachable((CodeEnum) Packet.Code,

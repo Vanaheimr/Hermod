@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                     if (JSONObject.ParseOptional("@context",
                                                  "JSON-LinkedData context information",
-                                                 out String Context1,
+                                                 out String? Context1,
                                                  out ErrorResponse))
                     {
                         if (Context1 != JSONLDContext)
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 {
                     if (!JSONObject.ParseMandatoryText("@context",
                                                        "JSON-LinkedData context information",
-                                                       out String Context,
+                                                       out String? Context,
                                                        out ErrorResponse))
                     {
                         ErrorResponse = @"The JSON-LD ""@context"" information is missing!";
@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 if (!JSONObject.ParseMandatoryText("ownerName",
                                                    "owner name",
-                                                   out String OwnerName,
+                                                   out String? OwnerName,
                                                    out ErrorResponse))
                 {
                     return false;
