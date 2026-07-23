@@ -180,8 +180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                      loggingPath,
                                                                                                      context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : String.Empty,
                                                                                                      logfileName.Replace(".log", ""), "_",
-                                                                                                     DateTime.Now.Year, "-",
-                                                                                                     DateTime.Now.Month.ToString("D2"),
+                                                                                                     Timestamp.Now.Year, "-",
+                                                                                                     Timestamp.Now.Month.ToString("D2"),
                                                                                                      ".log"
                                                                                                  ));
 

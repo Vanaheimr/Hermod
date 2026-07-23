@@ -291,9 +291,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Last-Modified: Tue, 15 Nov 1994 12:45:26 GMT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPResponseHeaderField<DateTime> LastModified = new ("Last-Modified",
+        public static readonly HTTPResponseHeaderField<DateTimeOffset> LastModified = new ("Last-Modified",
                                                                                      RequestPathSemantic.EndToEnd,
-                                                                                     StringParser:     DateTime.TryParse,
+                                                                                     StringParser:     DateTimeOffset.TryParse,
                                                                                      ValueSerializer:  dateTime => dateTime.ToISO8601());
 
         #endregion

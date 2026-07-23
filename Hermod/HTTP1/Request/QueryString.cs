@@ -41,10 +41,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Parse optional from-timestamp filter...
         /// </summary>
         /// <param name="QueryString">An HTTP query string.</param>
-        public static DateTime? ParseFromTimestampFilter(this QueryString QueryString)
+        public static DateTimeOffset? ParseFromTimestampFilter(this QueryString QueryString)
         {
 
-            if (QueryString.TryGetDateTime("from", out DateTime Timestamp))
+            if (QueryString.TryGetDateTime("from", out DateTimeOffset Timestamp))
                 return Timestamp;
 
             return null;
@@ -59,10 +59,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Parse optional to-timestamp filter...
         /// </summary>
         /// <param name="QueryString">An HTTP query string.</param>
-        public static DateTime? ParseToTimestampFilter(this QueryString  QueryString)
+        public static DateTimeOffset? ParseToTimestampFilter(this QueryString  QueryString)
         {
 
-            if (QueryString.TryGetDateTime("to", out DateTime Timestamp))
+            if (QueryString.TryGetDateTime("to", out DateTimeOffset Timestamp))
                 return Timestamp;
 
             return null;
@@ -80,8 +80,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FromTimestamp">The optional 'from' query parameter.</param>
         /// <param name="ToTimestamp">The optional 'to' query parameter.</param>
         public static void ParseFromToTimestampFilters(this QueryString  QueryString,
-                                                       out  DateTime?    FromTimestamp,
-                                                       out  DateTime?    ToTimestamp)
+                                                       out  DateTimeOffset?  FromTimestamp,
+                                                       out  DateTimeOffset?  ToTimestamp)
         {
 
             FromTimestamp = QueryString.ParseFromTimestampFilter();
@@ -1182,14 +1182,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="ParameterName">The name of the query parameter.</param>
         /// <param name="DefaultValue">An optional default timestamp.</param>
-        public DateTime? GetDateTime(String     ParameterName,
-                                     DateTime?  DefaultValue   = null)
+        public DateTimeOffset? GetDateTime(String           ParameterName,
+                                           DateTimeOffset?  DefaultValue   = null)
         {
 
             if (TryGetString(ParameterName, out var value) &&
-                DateTime.TryParse(value, out var timestamp))
+                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
             {
-                return DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+                return timestamp;
             }
 
             return DefaultValue;
@@ -1204,13 +1204,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Try to get a timestamp from a HTTP query parameter.
         /// </summary>
         /// <param name="ParameterName">The name of the query parameter.</param>
-        public DateTime? TryGetDateTime(String ParameterName)
+        public DateTimeOffset? TryGetDateTime(String ParameterName)
         {
 
             if (TryGetString(ParameterName, out var value) &&
-                DateTime.TryParse(value, out var timestamp))
+                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
             {
-                return DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+                return timestamp;
             }
 
             return null;
@@ -1226,14 +1226,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="ParameterName">The name of the query parameter.</param>
         /// <param name="Timestamp">The parsed timestamp.</param>
-        public Boolean TryGetDateTime(String        ParameterName,
-                                      out DateTime  Timestamp)
+        public Boolean TryGetDateTime(String              ParameterName,
+                                      out DateTimeOffset  Timestamp)
         {
 
             if (TryGetString(ParameterName, out var value) &&
-                DateTime.TryParse(value, out var timestamp))
+                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
             {
-                Timestamp = DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+                Timestamp = timestamp;
                 return true;
             }
 
@@ -1253,14 +1253,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ParameterName">The name of the query parameter.</param>
         /// <param name="FilterDelegate">A filter delegate.</param>
         public Func<T, Boolean> CreateDateTimeFilter<T>(String                      ParameterName,
-                                                        Func<T, DateTime, Boolean>  FilterDelegate)
+                                                        Func<T, DateTimeOffset, Boolean>  FilterDelegate)
         {
 
             if (FilterDelegate is not null &&
                 TryGetString(ParameterName, out var value) &&
-                DateTime.TryParse(value, out var timestamp))
+                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
             {
-                return item => FilterDelegate(item, DateTime.SpecifyKind(timestamp, DateTimeKind.Utc));
+                return item => FilterDelegate(item, timestamp);
             }
 
             return _ => true;

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
@@ -42,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var oldColor = Console.ForegroundColor;
             Console.ForegroundColor = color;
-            Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {prefix} {message}");
+            Console.WriteLine($"{Timestamp.Now:HH:mm:ss.fff} {prefix} {message}");
             Console.ForegroundColor = oldColor;
         }
 

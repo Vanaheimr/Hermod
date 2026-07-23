@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log cancellation to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop on cancellation
                     }
@@ -267,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log channel closure to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop if channel is closed
                     }
@@ -275,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log other unexpected exceptions to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
                             cancellationTokenSource.Token);
 
                         // Log to console for visibility
@@ -343,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log cancellation to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop on cancellation
                     }
@@ -351,7 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log channel closure to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop if channel is closed
                     }
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log other unexpected exceptions to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
                             cancellationTokenSource.Token);
 
                         // Log to console for visibility
@@ -463,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log cancellation to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop on cancellation
                     }
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log channel closure to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop if channel is closed
                     }
@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log other unexpected exceptions to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
                             cancellationTokenSource.Token);
 
                         // Log to console for visibility
@@ -579,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log cancellation to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel consumer was canceled.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop on cancellation
                     }
@@ -587,7 +587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log channel closure to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Channel was closed unexpectedly.\n",
                             cancellationTokenSource.Token);
                         break; // Exit the loop if channel is closed
                     }
@@ -595,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         // Log other unexpected exceptions to file
                         await File.AppendAllTextAsync(logfilePath,
-                            $"[{DateTime.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
+                            $"[{Timestamp.Now:dd.MM.yyyy HH:mm:ss zzz}] Error in channel consumer: {ex.Message}\n{ex.StackTrace}\n",
                             cancellationTokenSource.Token);
 
                         // Log to console for visibility

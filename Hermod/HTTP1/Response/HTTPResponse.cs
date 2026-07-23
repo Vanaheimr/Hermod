@@ -21,6 +21,8 @@ using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
 
+using System.Globalization;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -395,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// LastModified
         /// </summary>
-        public DateTime? LastModified
+        public DateTimeOffset? LastModified
 
             => GetHeaderField(HTTPResponseHeaderField.LastModified);
 
@@ -1092,10 +1094,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              var year   = fileName.Substring  (c + 1, b - c - 1);
                                                              var month  = fileName.Substring  (b + 1, a - b - 1);
 
-                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}")              < FromTimestamp.Value)
+                                                             if (FromTimestamp is not null && DateTimeOffset.Parse($"{year}-{month}", null, DateTimeStyles.AssumeUniversal)              < FromTimestamp.Value)
                                                                  return false;
 
-                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}").AddMonths(1) > ToTimestamp.  Value)
+                                                             if (ToTimestamp   is not null && DateTimeOffset.Parse($"{year}-{month}", null, DateTimeStyles.AssumeUniversal).AddMonths(1) > ToTimestamp.  Value)
                                                                  return false;
 
                                                          }
@@ -1114,10 +1116,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              var month  = fileName.Substring  (c + 1, b - c - 1);
                                                              var day    = fileName.Substring  (b + 1, a - b - 1);
 
-                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}-{day}")            < FromTimestamp.Value)
+                                                             if (FromTimestamp is not null && DateTimeOffset.Parse($"{year}-{month}-{day}", null, DateTimeStyles.AssumeUniversal)            < FromTimestamp.Value)
                                                                  return false;
 
-                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}-{day}").AddDays(1) > ToTimestamp.  Value)
+                                                             if (ToTimestamp   is not null && DateTimeOffset.Parse($"{year}-{month}-{day}", null, DateTimeStyles.AssumeUniversal).AddDays(1) > ToTimestamp.  Value)
                                                                  return false;
 
                                                          }
@@ -1206,10 +1208,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       : new HTTPSource(IPSocket.Parse(line));
 
                         else if (relativelinenumber == 2 && copy == "request")
-                            requestTimestamp    = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
+                            requestTimestamp    = DateTimeOffset.Parse(line, null, DateTimeStyles.AssumeUniversal);
 
                         else if (relativelinenumber == 1 && copy == "response")
-                            responseTimestamp   = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);//.Substring(0, line.IndexOf(" ")));
+                            responseTimestamp   = DateTimeOffset.Parse(line, null, DateTimeStyles.AssumeUniversal);//.Substring(0, line.IndexOf(" ")));
 
                         else if (line == RequestMarker)//">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
@@ -1398,10 +1400,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              var year   = fileName.Substring  (c + 1, b - c - 1);
                                                              var month  = fileName.Substring  (b + 1, a - b - 1);
 
-                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}")              < FromTimestamp.Value)
+                                                             if (FromTimestamp is not null && DateTimeOffset.Parse($"{year}-{month}", null, DateTimeStyles.AssumeUniversal)              < FromTimestamp.Value)
                                                                  return false;
 
-                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}").AddMonths(1) > ToTimestamp.  Value)
+                                                             if (ToTimestamp   is not null && DateTimeOffset.Parse($"{year}-{month}", null, DateTimeStyles.AssumeUniversal).AddMonths(1) > ToTimestamp.  Value)
                                                                  return false;
 
                                                          }
@@ -1420,10 +1422,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              var month  = fileName.Substring  (c + 1, b - c - 1);
                                                              var day    = fileName.Substring  (b + 1, a - b - 1);
 
-                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}-{day}")            < FromTimestamp.Value)
+                                                             if (FromTimestamp is not null && DateTimeOffset.Parse($"{year}-{month}-{day}", null, DateTimeStyles.AssumeUniversal)            < FromTimestamp.Value)
                                                                  return false;
 
-                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}-{day}").AddDays(1) > ToTimestamp.  Value)
+                                                             if (ToTimestamp   is not null && DateTimeOffset.Parse($"{year}-{month}-{day}", null, DateTimeStyles.AssumeUniversal).AddDays(1) > ToTimestamp.  Value)
                                                                  return false;
 
                                                          }

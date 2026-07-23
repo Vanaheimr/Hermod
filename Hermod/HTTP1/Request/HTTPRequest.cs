@@ -25,6 +25,8 @@ using System.Text;
 
 using Newtonsoft.Json.Linq;
 
+using System.Globalization;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.MIME;
 
@@ -2755,7 +2757,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        Stream               Body,
                                        out HTTPRequest?     Request,
 
-                                       DateTime?            Timestamp           = null,
+                                       DateTimeOffset?      Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,
                                        IPSocket?            LocalSocket         = null,
                                        IPSocket?            RemoteSocket        = null,
@@ -2980,7 +2982,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        Stream                                Body,
                                        [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?                             Timestamp           = null,
+                                       DateTimeOffset?                       Timestamp           = null,
                                        HTTPSource?                           HTTPSource          = null,
                                        IPSocket?                             LocalSocket         = null,
                                        IPSocket?                             RemoteSocket        = null,
@@ -3197,8 +3199,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static IEnumerable<HTTPRequest> LoadHTTPRequestLogfiles_old(String     FilePath,
                                                                            String     FilePattern,
-                                                                           DateTime?  FromTimestamp  = null,
-                                                                           DateTime?  ToTimestamp    = null)
+                                                                           DateTimeOffset?  FromTimestamp  = null,
+                                                                           DateTimeOffset?  ToTimestamp    = null)
         {
 
             var requests = new ConcurrentBag<HTTPRequest>();
@@ -3222,7 +3224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         if      (relativelinenumber == 1 && copy == "request")
-                            RequestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
+                            RequestTimestamp  = DateTimeOffset.Parse(line, null, DateTimeStyles.AssumeUniversal);
 
                         else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {

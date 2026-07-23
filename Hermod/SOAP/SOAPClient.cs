@@ -258,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
                     var OnSOAPFaultLocal = OnSOAPFault;
                     if (OnSOAPFaultLocal != null)
-                        return OnSOAPFaultLocal(DateTime.UtcNow, this, new HTTPResponse<XElement>(HttpResponse, SOAPXML));
+                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(HttpResponse, SOAPXML));
 
                     return new HTTPResponse<XElement>(HttpResponse,
                                                       new XElement("SOAPFault"),
@@ -268,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                 } catch (Exception e)
                 {
 
-                    OnException?.Invoke(DateTime.UtcNow, this, e);
+                    OnException?.Invoke(Timestamp.Now, this, e);
 
                     //var OnFaultLocal = OnSOAPFault;
                     //if (OnFaultLocal != null)
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
                 var OnHTTPErrorLocal = OnHTTPError;
                 if (OnHTTPErrorLocal != null)
-                    return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponse);
+                    return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponse);
 
                 return new HTTPResponse<XElement>(HttpResponse,
                                                   new XElement("HTTPError"),
@@ -524,7 +524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
                     var OnSOAPFaultLocal = OnSOAPFault;
                     if (OnSOAPFaultLocal != null)
-                        return OnSOAPFaultLocal(DateTime.UtcNow, this, new HTTPResponse<XElement>(HttpResponse, SOAPXML));
+                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(HttpResponse, SOAPXML));
 
                     return new HTTPResponse<XElement>(HttpResponse,
                                                       new XElement("SOAPFault"),
@@ -534,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                 } catch (Exception e)
                 {
 
-                    OnException?.Invoke(DateTime.UtcNow, this, e);
+                    OnException?.Invoke(Timestamp.Now, this, e);
 
                     //var OnFaultLocal = OnSOAPFault;
                     //if (OnFaultLocal != null)
@@ -553,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
                 var OnHTTPErrorLocal = OnHTTPError;
                 if (OnHTTPErrorLocal != null)
-                    return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponse);
+                    return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponse);
 
                 return new HTTPResponse<XElement>(HttpResponse,
                                                   new XElement("HTTPError"),

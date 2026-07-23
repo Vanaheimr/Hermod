@@ -22,6 +22,8 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
@@ -121,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     for (var i = 0; i < chain.ChainElements.Count; i++)
                     {
 
-                        var daysUntilExpiry  = (UInt32)Math.Floor((chain.ChainElements[i].Certificate.NotAfter - DateTime.Now).TotalDays);
+                        var daysUntilExpiry  = (UInt32)Math.Floor(((DateTimeOffset) chain.ChainElements[i].Certificate.NotAfter - Timestamp.Now).TotalDays);
 
                         var certificateInfo  = new CertificateInfo(
                                                    Certificate:      chain.ChainElements[i].Certificate,

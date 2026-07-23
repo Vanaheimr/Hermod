@@ -11968,7 +11968,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DatabaseFileName">The optional database file name.</param>
         protected async Task<(IEnumerable<JObject>, UInt64, String)>
 
-            LoadChangeSetsFromDisc(DateTime?               Since              = null,
+            LoadChangeSetsFromDisc(DateTimeOffset?         Since              = null,
                                    String?                 SkipUntil          = null,
                                    Func<String, Boolean>?  MatchFilter        = null,
                                    UInt64?                 Skip               = null,
@@ -12020,7 +12020,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     if (Since is not null)
                                     {
 
-                                        var timestamp = jsonLine["timestamp"]?.Value<DateTime>();
+                                        var timestamp = jsonLine["timestamp"]?.Value<DateTimeOffset>();
 
                                         if (timestamp is not null)
                                         {
