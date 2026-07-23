@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #endregion
 
 
-        public DateTime LatestNotificationTimestamp { get; private set; }
+        public DateTimeOffset LatestNotificationTimestamp { get; private set; }
 
         /// <summary>
         /// The attached DNS service.
@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                                     sendNotificationsEvery
                                                 );
 
-            this.LatestNotificationTimestamp  = DateTime.MinValue;
+            this.LatestNotificationTimestamp  = DateTimeOffset.MinValue;
             this.DNSClient                    = DNSClient ?? new DNSClient();
 
         }

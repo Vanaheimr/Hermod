@@ -47,7 +47,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly Func<string, CancellationToken, Task<string?>> lookupPassword;
         private readonly string   realm;
         private readonly string   algorithm;      // advertised in the challenge (default SHA-256)
-        private readonly TimeSpan nonceMaxAge;
+        private readonly TimeSpan     nonceMaxAge;
+        private readonly TimeProvider timeProvider;
         private readonly byte[]   nonceSecret = RandomNumberGenerator.GetBytes(32);
 
         /// <param name="Realm">The protection space; folded into HA1, so it must match what the client used.</param>
@@ -58,12 +59,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             string                                        Realm,
             Func<string, CancellationToken, Task<string?>> LookupPassword,
             string                                        Algorithm   = "SHA-256",
-            TimeSpan?                                     NonceMaxAge = null)
+            TimeSpan?                                     NonceMaxAge  = null,
+            TimeProvider?                                 TimeProvider = null)
         {
             realm          = Realm;
             lookupPassword = LookupPassword;
             algorithm      = Algorithm;
-            nonceMaxAge    = NonceMaxAge ?? TimeSpan.FromMinutes(5);
+            nonceMaxAge    = NonceMaxAge  ?? TimeSpan.FromMinutes(5);
+            timeProvider   = TimeProvider ?? global::System.TimeProvider.System;
         }
 
         public string SchemeName => "Digest";
@@ -165,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>A stateless nonce: <c>base64(ticks ":" base64(HMAC-SHA256(secret, ticks)))</c>.</summary>
         private string CreateNonce()
         {
-            var ticks = DateTimeOffset.UtcNow.UtcTicks.ToString();
+            var ticks = timeProvider.GetUtcNow().UtcTicks.ToString();
             var mac   = HMACSHA256.HashData(nonceSecret, Encoding.ASCII.GetBytes(ticks));
             return Convert.ToBase64String(Encoding.ASCII.GetBytes($"{ticks}:{Convert.ToBase64String(mac)}"));
         }
@@ -189,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (!CryptographicOperations.FixedTimeEquals(expectedMac, providedMac))
                     return false;
 
-                var age = DateTimeOffset.UtcNow.UtcTicks - ticks;
+                var age = timeProvider.GetUtcNow().UtcTicks - ticks;
                 return age >= 0 && age <= nonceMaxAge.Ticks;
             }
             catch

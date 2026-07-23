@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
     /// <param name="Timestamp">The timestamp of the outgoing Modbus/TCP request.</param>
     /// <param name="ModbusClient">The Modbus/TCP client sending the Modbus/TCP request.</param>
     /// <param name="Request">The outgoing Modbus/TCP request.</param>
-    public delegate Task ClientRequestLogHandler(DateTime         Timestamp,
+    public delegate Task ClientRequestLogHandler(DateTimeOffset         Timestamp,
                                                  ModbusTCPClient  ModbusClient,
                                                  ModbusTCPRequest    Request);
 
@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
     /// <param name="ModbusClient">The Modbus/TCP client receiving the Modbus/TCP request.</param>
     /// <param name="Request">The outgoing Modbus/TCP request.</param>
     /// <param name="Response">The incoming HTTP response.</param>
-    public delegate Task ClientResponseLogHandler(DateTime         Timestamp,
+    public delegate Task ClientResponseLogHandler(DateTimeOffset         Timestamp,
                                                   ModbusTCPClient  ModbusClient,
                                                   ModbusTCPRequest    Request,
                                                   ModbusTCPResponse   Response);

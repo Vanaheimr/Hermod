@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
     /// <param name="LocalSocket">The local TCP/IP socket.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     public delegate String          ConnectionThreadsNameBuilder(Object    Sender,
-                                                                 DateTime  Timestamp,
+                                                                 DateTimeOffset  Timestamp,
                                                                  IPSocket  LocalSocket,
                                                                  IPSocket  RemoteSocket);
 
@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
     /// <param name="LocalSocket">The local TCP/IP socket.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     public delegate ThreadPriority  ConnectionThreadsPriorityDelegate(Object    Sender,
-                                                                      DateTime  Timestamp,
+                                                                      DateTimeOffset  Timestamp,
                                                                       IPSocket  LocalSocket,
                                                                       IPSocket  RemoteSocket);
 

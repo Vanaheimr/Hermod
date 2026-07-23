@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        UserGroup2UserGroupEdgeLabel  EdgeLabel,
                                        UserGroup                     GroupB,
                                        PrivacyLevel                  PrivacyLevel  = PrivacyLevel.Private,
-                                       DateTime?                     Created       = null)
+                                       DateTimeOffset?                     Created       = null)
 
             : base(GroupA ?? throw new ArgumentNullException(nameof(GroupA), "The given user group must not be null!"),
                    EdgeLabel,

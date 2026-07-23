@@ -1111,27 +1111,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region TryReadDateTime32(StartingAddress, out Value)
 
-        public Boolean TryReadDateTime32(UInt16 StartingAddress, out DateTime Value)
+        public Boolean TryReadDateTime32(UInt16 StartingAddress, out DateTimeOffset Value)
         {
-            return TryRead(StartingAddress, 2, out Value, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTime.MinValue);
+            return TryRead(StartingAddress, 2, out Value, array => DateTimeOffset.UnixEpoch.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTimeOffset.MinValue);
         }
 
         #endregion
 
         #region ReadDateTime32(StartingAddress)
 
-        public DateTime ReadDateTime32(UInt16 StartingAddress)
+        public DateTimeOffset ReadDateTime32(UInt16 StartingAddress)
         {
-            return Read<DateTime>(StartingAddress, 2, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTime.MinValue);
+            return Read<DateTimeOffset>(StartingAddress, 2, array => DateTimeOffset.UnixEpoch.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTimeOffset.MinValue);
         }
 
         #endregion
 
         #region ReadDateTime64(StartingAddress, out Value)
 
-        public Boolean ReadDateTime64(UInt16 StartingAddress, out DateTime Value)
+        public Boolean ReadDateTime64(UInt16 StartingAddress, out DateTimeOffset Value)
         {
-            return TryRead(StartingAddress, 4, out Value, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt64(array.Reverse(3, 8), 0)), OnError: DateTime.MinValue);
+            return TryRead(StartingAddress, 4, out Value, array => DateTimeOffset.UnixEpoch.AddSeconds(BitConverter.ToInt64(array.Reverse(3, 8), 0)), OnError: DateTimeOffset.MinValue);
         }
 
         #endregion

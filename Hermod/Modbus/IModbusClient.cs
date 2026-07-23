@@ -49,9 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         Single ReadSingle(UInt16 StartingAddress);
         Boolean TryReadSingles(UInt16 StartingAddress, Int32 Num, out Single[] Values);
         Single[] ReadSingles(UInt16 StartingAddress, Int32 Num);
-        Boolean TryReadDateTime32(UInt16 StartingAddress, out DateTime Value);
-        DateTime ReadDateTime32(UInt16 StartingAddress);
-        Boolean ReadDateTime64(UInt16 StartingAddress, out DateTime Value);
+        Boolean TryReadDateTime32(UInt16 StartingAddress, out DateTimeOffset Value);
+        DateTimeOffset ReadDateTime32(UInt16 StartingAddress);
+        Boolean ReadDateTime64(UInt16 StartingAddress, out DateTimeOffset Value);
         Boolean TryReadString(UInt16       StartingAddress,
                               UInt16       NumberOfRegisters,
                               out String?  Text);

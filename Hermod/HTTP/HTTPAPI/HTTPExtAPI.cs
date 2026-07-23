@@ -611,7 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     Boolean             SkipDefaultNotifications   = false,
                                                     Boolean             SkipNewUserEMail           = false,
                                                     Boolean             SkipNewUserNotifications   = false,
-                                                    DateTime?           AcceptedEULA               = null,
+                                                    DateTimeOffset?           AcceptedEULA               = null,
                                                     Boolean             IsAuthenticated            = false,
                                                     Boolean             IsDisabled                 = false,
 
@@ -738,7 +738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     Boolean                     SkipDefaultNotifications   = false,
                                                     Boolean                     SkipNewUserEMail           = false,
                                                     Boolean                     SkipNewUserNotifications   = false,
-                                                    DateTime?                   AcceptedEULA               = null,
+                                                    DateTimeOffset?                   AcceptedEULA               = null,
                                                     Boolean                     IsAuthenticated            = false,
                                                     Boolean                     IsDisabled                 = false,
 
@@ -864,7 +864,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                Boolean             SkipDefaultNotifications   = false,
                                                                Boolean             SkipNewUserEMail           = false,
                                                                Boolean             SkipNewUserNotifications   = false,
-                                                               DateTime?           AcceptedEULA               = null,
+                                                               DateTimeOffset?           AcceptedEULA               = null,
                                                                Boolean             IsAuthenticated            = false,
                                                                Boolean             IsDisabled                 = false,
 
@@ -991,7 +991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                Boolean                     SkipDefaultNotifications   = false,
                                                                Boolean                     SkipNewUserEMail           = false,
                                                                Boolean                     SkipNewUserNotifications   = false,
-                                                               DateTime?                   AcceptedEULA               = null,
+                                                               DateTimeOffset?                   AcceptedEULA               = null,
                                                                Boolean                     IsAuthenticated            = false,
                                                                Boolean                     IsDisabled                 = false,
 
@@ -1491,7 +1491,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public delegate Task OnSendSMSDelegate (DateTime           LogTimestamp,
+        public delegate Task OnSendSMSDelegate (DateTimeOffset     LogTimestamp,
                                                 HTTPExtAPI        HTTPAPI,
                                                 EventTracking_Id   EventTrackingId,
                                                 String             Command,
@@ -11632,7 +11632,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         var securityTokenId  = SecurityToken_Id.Parse(elements[0]);
                         var userId           = User_Id.         Parse(elements[1]);
-                        var expires          = DateTime.        Parse(elements[2]);
+                        var expires          = DateTimeOffset.  Parse(elements[2]);
                         var superUserId      = elements.Length == 4
                                                    ? new User_Id?(User_Id.Parse(elements[3]))
                                                    : null;

@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     case "bcc":        this.Bcc        = EMailAddressList.Parse(kvp.Value); break;
                     case "replyto":    this.ReplyTo    = EMailAddressList.Parse(kvp.Value); break;
                     case "subject":    this.Subject    =                        kvp.Value ; break;
-                    case "date":       this.Date       = DateTime.        Parse(kvp.Value); break;
+                    case "date":       this.Date       = DateTimeOffset.  Parse(kvp.Value); break;
                     case "message-id": this.MessageId  = Message_Id.      Parse(kvp.Value); break;
 
                 }

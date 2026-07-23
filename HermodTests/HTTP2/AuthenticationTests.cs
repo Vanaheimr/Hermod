@@ -316,6 +316,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
+        #region DigestNonceExpiry_FakeClock()
+
+        // The Digest scheme issues nonces stamped with its injected TimeProvider
+        // and rejects them once they are older than NonceMaxAge. With a fake
+        // clock this is deterministic: no Task.Delay, no real waiting.
+        [Test]
+        public async Task DigestNonceExpiry_FakeClock()
+        {
+
+            var clock   = new FakeClock(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero));
+            var scheme  = new DigestAuthenticationScheme(
+                              "demo",
+                              (user, ct) => Task.FromResult<String?>(user == "alice" ? "secret" : null),
+                              NonceMaxAge:  TimeSpan.FromMinutes(5),
+                              TimeProvider: clock);
+
+            var challenge = scheme.BuildChallenge("demo");
+            var auth      = BuildAuth(challenge, "alice", "secret", "GET", "/digest")["Digest ".Length..];
+
+            // Fresh nonce -> authenticated.
+            var fresh = await scheme.AuthenticateAsync(auth, "GET", "/digest", CancellationToken.None);
+            Assert.That(fresh?.Name, Is.EqualTo("alice"), "fresh nonce -> authenticated");
+
+            // Just inside NonceMaxAge -> still valid (the nonce itself is stateless).
+            clock.UtcNow += TimeSpan.FromMinutes(4) + TimeSpan.FromSeconds(59);
+            Assert.That(await scheme.AuthenticateAsync(auth, "GET", "/digest", CancellationToken.None),
+                        Is.Not.Null, "4:59 old nonce -> still valid");
+
+            // Beyond NonceMaxAge -> stale, rejected.
+            clock.UtcNow += TimeSpan.FromSeconds(2);
+            Assert.That(await scheme.AuthenticateAsync(auth, "GET", "/digest", CancellationToken.None),
+                        Is.Null, "expired nonce -> rejected");
+
+        }
+
+        /// <summary>
+        /// A minimal manually-advanced clock: only GetUtcNow() is overridden,
+        /// which is all the Digest scheme consumes.
+        /// </summary>
+        private sealed class FakeClock(DateTimeOffset InitialTime) : TimeProvider
+        {
+
+            public DateTimeOffset UtcNow { get; set; } = InitialTime;
+
+            public override DateTimeOffset GetUtcNow()
+                => UtcNow;
+
+        }
+
+        #endregion
+
         #region (helpers) hand-rolled Digest response computation
 
         private static String HH(String alg, String s)

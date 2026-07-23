@@ -185,6 +185,7 @@ var conn = await HTTP2Client.ConnectAsync("localhost", 8443,
     Options: new HTTP2ClientOptions {
         MaxRefusedStreamRetries = 2,
         KeepAliveInterval       = TimeSpan.FromSeconds(30),   // 0 = disabled
+        TimeProvider            = TimeProvider.System,        // inject a test clock here
     });
 ```
 
@@ -356,6 +357,21 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - TLS-handshake, preface, SETTINGS-ACK, idle, and in-progress (partial
   frame/header-block) timeouts (`HTTP2Timeouts`) — reclaiming a peer that sends
   *too little*, complementing the flood defenses against *too much*.
+
+### Testable time (TimeProvider)
+
+- Every time source in the stack is injectable via the BCL
+  `System.TimeProvider`: `HTTP2ClientOptions.TimeProvider` drives the client's
+  keepalive pacing, liveness tracking, PING-ACK timeout and pool back-off;
+  `HTTP2Timeouts.TimeProvider` schedules all server timeouts (frame-read
+  timeouts run on a `CreateTimer` that cancels the read's linked CTS);
+  `HTTP2CachingClient` and `DigestAuthenticationScheme` take an optional
+  `TimeProvider` for RFC 9111 age math and nonce issue/expiry.
+- The default is `TimeProvider.System` everywhere — without injection the
+  behavior is unchanged. With a fake clock, clock-dependent behavior becomes
+  deterministic: `DigestNonceExpiry_FakeClock` proves a five-minute nonce
+  lifetime in ~40 ms, using a minimal hand-rolled `TimeProvider` subclass
+  (only `GetUtcNow()` overridden — no test-clock package needed).
 
 ### Prioritization (RFC 9218)
 

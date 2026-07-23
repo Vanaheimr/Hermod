@@ -1274,7 +1274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("acceptedEULA",
                                              "accepted EULA",
-                                             out DateTime? AcceptedEULA,
+                                             out DateTimeOffset? AcceptedEULA,
                                              out ErrorResponse))
                 {
                     if (ErrorResponse is not null)

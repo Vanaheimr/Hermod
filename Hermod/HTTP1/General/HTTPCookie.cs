@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public String?         SameSite    { get; }
 
-        public DateTime?       Expires     { get; }
+        public DateTimeOffset? Expires     { get; }
 
         #endregion
 
@@ -103,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Secure    = parts.ContainsKey("Secure");
             this.HTTPOnly  = parts.ContainsKey("HTTPOnly");
             this.SameSite  = parts.ContainsKey("SameSite") ? parts["SameSite"]                                  : null;
-            this.Expires   = parts.ContainsKey("Expires")  ? DateTime.Parse(parts["Expires"]).ToUniversalTime() : null;
+            this.Expires   = parts.ContainsKey("Expires")  ? DateTimeOffset.Parse(parts["Expires"]).ToUniversalTime() : null;
 
         }
 

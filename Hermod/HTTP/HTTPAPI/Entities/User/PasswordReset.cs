@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (!JSONObject.ParseMandatory("timestamp",
                                                "timestamp",
-                                               out DateTime Timestamp,
+                                               out DateTimeOffset Timestamp,
                                                out ErrorResponse))
                 {
                     return false;

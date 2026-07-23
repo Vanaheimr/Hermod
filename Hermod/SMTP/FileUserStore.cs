@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly string _usersFilePath;
         private readonly Dictionary<string, UserCredentials> _users = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, UserCredentials> _certThumbprints = new(StringComparer.OrdinalIgnoreCase);
-        private DateTime _lastLoad;
+        private DateTimeOffset _lastLoad;
 
         public FileUserStore(string usersFilePath)
         {

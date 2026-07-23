@@ -55,6 +55,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public TimeSpan InProgress { get; init; } = TimeSpan.FromSeconds(10);
 
+        /// <summary>
+        /// The time provider used to schedule all of the timeouts above.
+        /// Inject a test clock for deterministic timeout tests.
+        /// </summary>
+        public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
+
         /// <summary>The default timeout set.</summary>
         public static readonly HTTP2Timeouts Default = new();
 

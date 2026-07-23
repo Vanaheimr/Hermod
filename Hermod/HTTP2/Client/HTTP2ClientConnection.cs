@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private TaskCompletionSource streamSlotFreed = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Keepalive / liveness state.
-        private volatile int             lastActivityTicks;    // Environment.TickCount at last inbound frame
+        private long                     lastActivityTimestamp;    // options.TimeProvider.GetTimestamp() at last inbound frame
         private readonly object          pingLock = new();
         private TaskCompletionSource?    pendingPingAck;
         private byte[]                   pendingPingPayload = [];
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.options           = Options ?? HTTP2ClientOptions.Default;
             this.connectionCts     = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             this.cancellationToken = connectionCts.Token;
-            this.lastActivityTicks = Environment.TickCount;
+            this.lastActivityTimestamp = this.options.TimeProvider.GetTimestamp();
         }
 
 
@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     var frame = await ReadFrameAsync();
 
                     // Liveness: any inbound frame counts as the connection being alive.
-                    lastActivityTicks = Environment.TickCount;
+                    Interlocked.Exchange(ref lastActivityTimestamp, options.TimeProvider.GetTimestamp());
 
                     if (continuationStreamId.HasValue && frame.Type != HTTP2FrameType.CONTINUATION)
                         throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR, "Expected CONTINUATION frame");
@@ -1160,10 +1160,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    await Task.Delay(options.KeepAliveInterval, cancellationToken);
+                    await Task.Delay(options.KeepAliveInterval, options.TimeProvider, cancellationToken);
 
                     // Skip the probe if we've seen inbound traffic recently.
-                    if (Environment.TickCount - lastActivityTicks < options.KeepAliveInterval.TotalMilliseconds)
+                    if (options.TimeProvider.GetElapsedTime(Interlocked.Read(ref lastActivityTimestamp)) < options.KeepAliveInterval)
                         continue;
 
                     var payload = new byte[8];
@@ -1176,7 +1176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     try
                     {
-                        await ackTcs.Task.WaitAsync(options.KeepAliveTimeout, cancellationToken);
+                        await ackTcs.Task.WaitAsync(options.KeepAliveTimeout, options.TimeProvider, cancellationToken);
                     }
                     catch (TimeoutException)
                     {

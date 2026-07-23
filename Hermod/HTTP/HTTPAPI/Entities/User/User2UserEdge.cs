@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              User2UserEdgeTypes  EdgeLabel,
                              IUser               UserB,
                              PrivacyLevel        PrivacyLevel  = PrivacyLevel.Private,
-                             DateTime?           Created       = null)
+                             DateTimeOffset?           Created       = null)
 
             : base(UserA ?? throw new ArgumentNullException(nameof(UserA), "The given user must not be null!"),
                    EdgeLabel,

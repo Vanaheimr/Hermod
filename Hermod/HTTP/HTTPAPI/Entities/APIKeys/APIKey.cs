@@ -334,7 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (!JSON.ParseMandatory("created",
                                          "creation timestamp",
-                                         out DateTime Created,
+                                         out DateTimeOffset Created,
                                          out ErrorResponse))
                 {
                     return false;
@@ -346,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSON.ParseOptional("NotBefore",
                                              "'not-valid-before'-timestamp",
-                                             out DateTime? NotBefore,
+                                             out DateTimeOffset? NotBefore,
                                              out ErrorResponse))
                 {
                     if (ErrorResponse is not null)
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSON.ParseOptional("NotAfter",
                                              "'not-valid-after'-timestamp",
-                                             out DateTime? NotAfter,
+                                             out DateTimeOffset? NotAfter,
                                              out ErrorResponse))
                 {
                     if (ErrorResponse is not null)

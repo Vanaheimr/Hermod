@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="ResponseBytes">The array of bytes to be parsed.</param>
         public ReadCoilsResponse(ReadCoilsRequest  Request,
                                  Byte[]            ResponseBytes,
-                                 DateTime?         ResponseTimestamp   = null)
+                                 DateTimeOffset?         ResponseTimestamp   = null)
 
             : base(Request,
                    ResponseTimestamp,
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                  IEnumerable<Boolean>  Coils,
                                  UInt16                ProtocolId          = 0,
                                  Byte                  UnitIdentifier      = 0,
-                                 DateTime?             ResponseTimestamp   = null)
+                                 DateTimeOffset?             ResponseTimestamp   = null)
 
             : base(Request,
                    ResponseTimestamp,

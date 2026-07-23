@@ -37,6 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     {
 
         private readonly HTTP2ClientConnection connection;
+        private readonly TimeProvider          timeProvider;
         private readonly string                scheme;
         private readonly string                authority;
         private readonly HTTPCacheMode         mode;
@@ -57,12 +58,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTP2ClientConnection Connection,
             string                Scheme,
             string                Authority,
-            HTTPCacheMode         Mode = HTTPCacheMode.Private)
+            HTTPCacheMode         Mode         = HTTPCacheMode.Private,
+            TimeProvider?         TimeProvider = null)
         {
-            connection = Connection;
-            scheme     = Scheme;
-            authority  = Authority;
-            mode       = Mode;
+            connection   = Connection;
+            scheme       = Scheme;
+            authority    = Authority;
+            mode         = Mode;
+            timeProvider = TimeProvider ?? global::System.TimeProvider.System;
         }
 
 
@@ -108,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (stored is not null)
             {
 
-                var decision = HTTPCache.Evaluate(stored, requestCC, mode, DateTimeOffset.UtcNow);
+                var decision = HTTPCache.Evaluate(stored, requestCC, mode, timeProvider.GetUtcNow());
 
                 switch (decision.Usability)
                 {
@@ -147,9 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTPCacheControl RequestCC, bool HasAuth, bool store, CancellationToken CancellationToken)
         {
 
-            var requestTime = DateTimeOffset.UtcNow;
+            var requestTime = timeProvider.GetUtcNow();
             var response    = await connection.SendRequestAsync(Method, scheme, authority, Path, ExtraHeaders, Body, CancellationToken: CancellationToken);
-            var responseTime = DateTimeOffset.UtcNow;
+            var responseTime = timeProvider.GetUtcNow();
 
             Misses++;
 
@@ -170,16 +173,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var conditional = new List<(string Name, string Value)>(ExtraHeaders);
             conditional.AddRange(HTTPCache.ConditionalHeaders(Stored));
 
-            var requestTime  = DateTimeOffset.UtcNow;
+            var requestTime  = timeProvider.GetUtcNow();
             var response     = await connection.SendRequestAsync(Method, scheme, authority, Path, conditional, null, CancellationToken: CancellationToken);
-            var responseTime = DateTimeOffset.UtcNow;
+            var responseTime = timeProvider.GetUtcNow();
 
             if (response.Status == 304)
             {
                 // Still valid — refresh the stored entry and serve it.
                 lock (storeLock)
                     HTTPCache.UpdateFrom304(Stored, response.Headers, requestTime, responseTime);
-                return Serve(Stored, HTTPCache.CurrentAge(Stored, DateTimeOffset.UtcNow));
+                return Serve(Stored, HTTPCache.CurrentAge(Stored, timeProvider.GetUtcNow()));
             }
 
             // Changed — replace the stored entry with the new response.

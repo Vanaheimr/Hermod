@@ -140,8 +140,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // https://example.com/photos/photo.jpg?expiry=1717614500&token=abcdef
                 var expiry      = Request.QueryString.GetInt64("expiry");
                 var expiryDate  = expiry.HasValue
-                                      ? DateTimeExtensions.FromUnixTimestamp(expiry.Value)
-                                      : new DateTime?();
+                                      ? DateTimeOffset.FromUnixTimeSeconds(expiry.Value)
+                                      : new DateTimeOffset?();
                 var token       = Request.QueryString.GetString("token")?.URLDecode();
 
 

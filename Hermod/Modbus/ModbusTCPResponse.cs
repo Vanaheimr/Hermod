@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #region Constructor(s)
 
         public ModbusTCPResponse(ModbusTCPRequest?  Request,
-                                 DateTime?          ResponseTimestamp,
+                                 DateTimeOffset?    ResponseTimestamp,
                                  Byte[]             PDU)
         {
 
@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #region Constructor(s)
 
         public ModbusTCPResponse(TRequest?  Request,
-                                 DateTime?  ResponseTimestamp,
+                                 DateTimeOffset?  ResponseTimestamp,
                                  Byte[]     PDU)
 
             : base(Request,
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         }
 
         public ModbusTCPResponse(TRequest?     Request,
-                                 DateTime?     ResponseTimestamp,
+                                 DateTimeOffset?     ResponseTimestamp,
                                  UInt16        TransactionId,
                                  UInt16        ProtocolId,
                                  UInt16        Length,

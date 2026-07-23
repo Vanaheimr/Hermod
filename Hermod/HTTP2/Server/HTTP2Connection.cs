@@ -394,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             try
             {
-                await settingsAckReceived.Task.WaitAsync(timeouts.SettingsAck, cancellationToken);
+                await settingsAckReceived.Task.WaitAsync(timeouts.SettingsAck, timeouts.TimeProvider, cancellationToken);
             }
             catch (TimeoutException)
             {
@@ -467,8 +467,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private async Task ReadExactAsync(byte[] Buffer, TimeSpan Timeout, HTTP2ErrorCode TimeoutCode, string What)
         {
 
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(Timeout);
+            using var timeoutCts   = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using var timeoutTimer = timeouts.TimeProvider.CreateTimer(
+                                         static state => ((CancellationTokenSource) state!).Cancel(),
+                                         timeoutCts,
+                                         Timeout,
+                                         System.Threading.Timeout.InfiniteTimeSpan);
 
             var offset = 0;
 

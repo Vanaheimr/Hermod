@@ -64,6 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly RemoteCertificateValidationCallback? validateServerCertificate;
         private readonly X509Certificate2?                    clientCertificate;
         private readonly HTTP2ClientOptions?                  options;
+        private readonly TimeProvider                         timeProvider;
         private readonly bool                                 cleartext;
         private readonly int                                  maxConnections;
         private readonly int                                  maxFailoverRetries;
@@ -121,6 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             validateServerCertificate = ValidateServerCertificate;
             clientCertificate         = ClientCertificate;
             options                   = Options;
+            timeProvider              = Options?.TimeProvider ?? global::System.TimeProvider.System;
             cleartext                 = Cleartext;
             maxConnections            = MaxConnections;
             maxFailoverRetries        = MaxFailoverRetries;
@@ -276,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // Nothing usable: the survivors all died at once and maintenance is
                 // reconnecting. Nudge it and wait for a connection to come back.
                 _ = ReplenishAsync();
-                await Task.Delay(25, CancellationToken);
+                await Task.Delay(TimeSpan.FromMilliseconds(25), timeProvider, CancellationToken);
             }
 
         }
@@ -373,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     {
                         // Origin momentarily unreachable — back off; the maintenance
                         // loop (or the next death) will try again.
-                        try { await Task.Delay(reconnectBackoff, poolCts.Token); } catch { return; }
+                        try { await Task.Delay(reconnectBackoff, timeProvider, poolCts.Token); } catch { return; }
                         return;
                     }
                 }
@@ -396,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             {
                 await ReplenishAsync();
 
-                try   { await Task.Delay(TimeSpan.FromSeconds(2), poolCts.Token); }
+                try   { await Task.Delay(TimeSpan.FromSeconds(2), timeProvider, poolCts.Token); }
                 catch { return; }
             }
         }

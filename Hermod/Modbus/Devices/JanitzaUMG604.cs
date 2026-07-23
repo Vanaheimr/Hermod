@@ -75,14 +75,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region RealTime
 
-        public DateTime RealTime
+        public DateTimeOffset RealTime
         {
             get
             {
 
                 var response = ModbusClient.ReadHoldingRegisters(Addr.REALTIME, 4).Result;
 
-                return ByteExtensions.UNIXTime.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt64(response.EntirePDU, 9)));
+                return DateTimeOffset.UnixEpoch.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt64(response.EntirePDU, 9)));
 
 
 
@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                 Debug.Print("Could not read SysTime!");
 
-                return DateTime.MinValue;
+                return DateTimeOffset.MinValue;
 
             }
         }
@@ -100,14 +100,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region SysTime
 
-        public DateTime SysTime
+        public DateTimeOffset SysTime
         {
             get
             {
 
                 var response = ModbusClient.ReadHoldingRegisters(Addr.SYSTIME, 2).Result;
 
-                return ByteExtensions.UNIXTime.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(response.EntirePDU, 9)));
+                return DateTimeOffset.UnixEpoch.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(response.EntirePDU, 9)));
 
 
 
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                 Debug.Print("Could not read SysTime!");
 
-                return DateTime.MinValue;
+                return DateTimeOffset.MinValue;
 
             }
         }
@@ -1067,9 +1067,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region ReadDateTime32(StartingAddress)
 
-        public DateTime ReadDateTime32(UInt16 StartingAddress)
+        public DateTimeOffset ReadDateTime32(UInt16 StartingAddress)
         {
-            return ModbusClient.Read<DateTime>(StartingAddress, 2, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTime.MinValue);
+            return ModbusClient.Read<DateTimeOffset>(StartingAddress, 2, array => DateTimeOffset.UnixEpoch.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTimeOffset.MinValue);
         }
 
         #endregion

@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             try
             {
-                await Task.WhenAll(notifications).WaitAsync(TimeSpan.FromSeconds(2));
+                await Task.WhenAll(notifications).WaitAsync(TimeSpan.FromSeconds(2), timeouts.TimeProvider);
             }
             catch
             {
@@ -243,7 +243,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         // connection slot indefinitely (Slowloris at the TLS layer).
                         using (var handshakeCts = CancellationTokenSource.CreateLinkedTokenSource(Token))
                         {
-                            handshakeCts.CancelAfter(timeouts.Handshake);
+                            using var handshakeTimer = timeouts.TimeProvider.CreateTimer(
+                                                           static state => ((CancellationTokenSource) state!).Cancel(),
+                                                           handshakeCts,
+                                                           timeouts.Handshake,
+                                                           Timeout.InfiniteTimeSpan);
                             try
                             {
                                 await sslStream.AuthenticateAsServerAsync(sslOptions, handshakeCts.Token);

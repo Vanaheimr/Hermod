@@ -47,6 +47,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public TimeSpan KeepAliveTimeout        { get; init; } = TimeSpan.FromSeconds(10);
 
         /// <summary>
+        /// The time provider used for keep-alive pacing, liveness tracking and
+        /// cache-age calculations. Inject a test clock for deterministic tests.
+        /// </summary>
+        public TimeProvider TimeProvider        { get; init; } = TimeProvider.System;
+
+        /// <summary>
         /// Cap on CONTINUATION frames per response header block. A server flooding
         /// the client with CONTINUATION frames is the same CVE-2024-27316 class the
         /// server guards against inbound — mirrored here.

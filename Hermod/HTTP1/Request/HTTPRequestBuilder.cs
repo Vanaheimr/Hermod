@@ -1089,7 +1089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Date header field.
             /// </summary>
             /// <param name="Date">DateTime.</param>
-            public Builder SetDate(DateTime Date)
+            public Builder SetDate(DateTimeOffset Date)
             {
                 this.Date = Date;
                 return this;

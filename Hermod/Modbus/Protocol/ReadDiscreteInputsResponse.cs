@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="ResponseBytes">The array of bytes to be parsed.</param>
         public ReadDiscreteInputsResponse(ReadDiscreteInputsRequest  Request,
                                           Byte[]                     ResponseBytes,
-                                          DateTime?                  ResponseTimestamp   = null)
+                                          DateTimeOffset?                  ResponseTimestamp   = null)
 
             : base(Request,
                    ResponseTimestamp,
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                           IEnumerable<Boolean>       DiscreteInputs,
                                           UInt16                     ProtocolId          = 0,
                                           Byte                       UnitIdentifier      = 0,
-                                          DateTime?                  ResponseTimestamp   = null)
+                                          DateTimeOffset?                  ResponseTimestamp   = null)
 
             : base(Request,
                    ResponseTimestamp,
