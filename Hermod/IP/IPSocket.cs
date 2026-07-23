@@ -36,23 +36,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Convert this IP socket into an .NET IPEndPoint.
         /// </summary>
         public static IPEndPoint ToIPEndPoint(this IPSocket IPSocket)
-        {
 
-            if (IPSocket.IPAddress.IsAny)
-                return new IPEndPoint(
-                           System.Net.IPAddress.Any,
-                           IPSocket.Port.ToUInt16()
-                       );
-
-            return new (
-                       System.Net.IPAddress.Parse(
-                           IPSocket.IPAddress.ToString()
-                       ),
-                       IPSocket.Port.ToUInt16()
-                   );
-
-
-        }
+            // ToDotNet() preserves the address family for every case — including IPv6 "any" (::) and
+            // IPv6 loopback (::1). (A previous IsAny shortcut wrongly returned the IPv4 "any" 0.0.0.0
+            // even for an IPv6 socket, which broke dual-stack binding.)
+            => new (IPSocket.IPAddress.ToDotNet(),
+                    IPSocket.Port.ToUInt16());
 
     }
 
