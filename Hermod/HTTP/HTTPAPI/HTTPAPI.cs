@@ -602,15 +602,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             lock (routeRegistrationLock)
             {
+
                 if (Segment.StartsWith('{') && Segment.EndsWith('}') &&
                     !Siblings.ContainsKey(Segment))
                 {
+
                     var existingParameter = Siblings.FirstOrDefault(entry => entry.Value.ParameterName is not null);
 
                     if (existingParameter.Value is not null)
                     {
-                        var requestedCatchRest = Segment.EndsWith("..}", StringComparison.Ordinal);
-                        var requestedName      = Segment[1..^1];
+
+                        var requestedCatchRest  = Segment.EndsWith("..}", StringComparison.Ordinal);
+                        var requestedName       = Segment[1..^1];
 
                         if (requestedCatchRest)
                             requestedName = requestedName[..^2];
@@ -629,10 +632,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   $"Ambiguous parameter route template '{URLTemplate}': " +
                                   $"the sibling parameter route '{existingParameter.Value.FullPath}' already matches the same path segment."
                               );
+
                     }
                 }
 
-                return Siblings.GetOrAdd(Segment, Factory);
+                return Siblings.GetOrAdd(
+                           Segment,
+                           Factory
+                       );
+
             }
 
         }
