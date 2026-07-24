@@ -51,6 +51,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP2RequestHandler  requestHandler;
         private readonly HTTP2ConnectHandler? connectHandler;
         private readonly bool                 requireClientCertificate;
+        private readonly Func<TlsCipherSuite, bool> isBlocklistedCipherSuite;
+        private readonly Func<string, bool>?       isAuthorityServed;
+        private readonly string[]?                originSet;
         private readonly RemoteCertificateValidationCallback? validateClientCertificate;
         private readonly HTTP2Timeouts         timeouts;
         private readonly HTTP2StreamingHandler? streamingHandler;
@@ -90,6 +93,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// useful behind a TLS-terminating proxy or for local testing. When true,
         /// <paramref name="Certificate"/> may be null and mTLS is unavailable.
         /// </param>
+        /// <param name="IsBlocklistedCipherSuite">
+        /// Decides whether a negotiated TLS 1.2 cipher suite is unacceptable for
+        /// HTTP/2, in which case the connection is turned down with a GOAWAY of type
+        /// INADEQUATE_SECURITY (RFC 9113, Section 9.2.2). Null (the default) applies
+        /// the RFC's own rule, <see cref="HTTP2CipherSuites.IsBlocklisted(TlsCipherSuite)"/>.
+        /// Because Section 9.2.2 states the rejection as a MAY, deployments differ:
+        /// pass <c>_ => false</c> to interoperate with a peer stuck on a legacy
+        /// suite, or a stricter predicate of your own. Only consulted for TLS 1.2 —
+        /// every TLS 1.3 suite qualifies, and h2c has no TLS at all.
+        /// </param>
+        /// <param name="IsAuthorityServed">
+        /// Decides whether this server is authoritative for the origin a request
+        /// names in <c>:authority</c>; requests for any other origin are answered
+        /// with 421 (Misdirected Request), which tells the client to retry on a
+        /// connection of its own instead of trusting our answer (RFC 9113, Section
+        /// 9.1.1 / RFC 9110, Section 15.5.20). Null (the default) derives the set
+        /// from <paramref name="Certificate"/> — exactly the origins a client is
+        /// entitled to coalesce onto this connection — and checks nothing at all in
+        /// cleartext mode, where there is no certificate to derive it from. Pass
+        /// <c>_ => true</c> to answer for every origin regardless.
+        /// </param>
+        /// <param name="OriginSet">
+        /// Origins to announce in an ORIGIN frame right after the connection preface
+        /// (RFC 8336), in RFC 6454 serialization ("https://example.com:8443") — the
+        /// server stating what it is authoritative for, instead of leaving the client
+        /// to infer it from the certificate. Null (the default) sends no ORIGIN frame
+        /// at all; note that announcing an *empty* set would assert the opposite —
+        /// that this connection is authoritative for nothing. When given, it also
+        /// becomes the default answer for <paramref name="IsAuthorityServed"/>.
+        /// </param>
         public HTTP2Server(
             IPAddress            Address,
             int                  Port,
@@ -101,7 +134,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTP2Timeouts?       Timeouts = null,
             HTTP2StreamingHandler? StreamingHandler = null,
             bool                 Cleartext = false,
-            long                 MaxRequestBodySize = DefaultMaxRequestBodySize)
+            long                 MaxRequestBodySize = DefaultMaxRequestBodySize,
+            Func<TlsCipherSuite, bool>? IsBlocklistedCipherSuite = null,
+            Func<string, bool>?  IsAuthorityServed = null,
+            IEnumerable<string>? OriginSet = null)
         {
 
             if (!Cleartext && Certificate is null)
@@ -114,6 +150,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.requestHandler            = RequestHandler;
             this.connectHandler            = ConnectHandler;
             this.requireClientCertificate  = RequireClientCertificate;
+            this.isBlocklistedCipherSuite  = IsBlocklistedCipherSuite ?? HTTP2CipherSuites.IsBlocklisted;
+
+            this.originSet                 = OriginSet?.ToArray();
+
+            // Three sources, most specific first. An announced Origin Set (RFC 8336)
+            // outranks the certificate: having told the client exactly what we serve,
+            // answering for something else would contradict our own announcement.
+            // Failing that, the certificate's identities *are* the set of origins a
+            // client may legitimately coalesce onto this listener. Cleartext h2c has
+            // neither, and therefore nothing to check against.
+            this.isAuthorityServed         = IsAuthorityServed                                     ??
+                                             (this.originSet is not null && this.originSet.Length > 0
+                                                  ? HTTPAuthority.ServedByOrigins(this.originSet)
+                                                  : null)                                          ??
+                                             (Certificate is not null
+                                                  ? HTTPAuthority.ServedByCertificate(Certificate)
+                                                  : null);
             this.validateClientCertificate = ValidateClientCertificate;
             this.timeouts                  = Timeouts ?? HTTP2Timeouts.Default;
             this.streamingHandler          = StreamingHandler;
@@ -226,6 +279,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             ClientCertificateRequired  = requireClientCertificate,   // mTLS
                             EnabledSslProtocols        = SslProtocols.Tls12 | SslProtocols.Tls13,
 
+                            // RFC 9113, Section 9.2.1: an HTTP/2 deployment over
+                            // TLS 1.2 MUST disable renegotiation. (TLS 1.3 removed
+                            // the mechanism entirely; TLS compression, also
+                            // forbidden there, is never offered by .NET.)
+                            AllowRenegotiation         = false,
+
                             // ALPN: Advertise "h2" (HTTP/2 over TLS)
                             // If the client also supports h2, it will be selected.
                             ApplicationProtocols       = [
@@ -266,6 +325,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         {
 
                             Console.WriteLine($"[HTTP/2] ALPN negotiated h2 with {remoteEP}");
+
+                            // RFC 9113, Section 9.2.2: HTTP/2 over TLS 1.2 must not
+                            // use a cipher suite from Appendix A — no forward secrecy
+                            // or no AEAD. Detection has to happen here, after the
+                            // handshake: CipherSuitesPolicy (which would prevent
+                            // rather than detect) is not supported on Windows.
+                            if (sslStream.SslProtocol == SslProtocols.Tls12 &&
+                                isBlocklistedCipherSuite(sslStream.NegotiatedCipherSuite))
+                            {
+
+                                Console.Error.WriteLine($"[HTTP/2] Rejecting {remoteEP}: cipher suite {sslStream.NegotiatedCipherSuite} is blocklisted for HTTP/2 (RFC 9113, Appendix A)");
+
+                                await RejectInadequateSecurityAsync(sslStream, sslStream.NegotiatedCipherSuite, Token);
+                                return;
+
+                            }
 
                             // mTLS: the validated client certificate, if one was presented.
                             var clientCertificate = sslStream.RemoteCertificate as X509Certificate2;
@@ -314,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private async Task RunConnectionAsync(Stream Transport, X509Certificate2? clientCertificate, CancellationToken Token)
         {
 
-            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize);
+            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize, isAuthorityServed, originSet);
             activeConnections.TryAdd(connection, 0);
 
             try
@@ -324,6 +399,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             finally
             {
                 activeConnections.TryRemove(connection, out _);
+            }
+
+        }
+
+
+        /// <summary>
+        /// Turn down a connection whose TLS 1.2 cipher suite is blocklisted for
+        /// HTTP/2 (RFC 9113, Section 9.2.2) with a connection error of type
+        /// INADEQUATE_SECURITY.
+        ///
+        /// The server connection preface — a (here empty) SETTINGS frame — MUST be
+        /// the first frame the server sends (Section 3.4), so it precedes the
+        /// GOAWAY even though the connection ends immediately: a peer that reads a
+        /// well-formed preface can attribute the failure to the cipher suite
+        /// instead of to a broken HTTP/2 implementation. Best-effort — a peer that
+        /// has already gone away just makes the write fail, which is fine.
+        ///
+        /// The drain afterwards is not optional: by now the client has already sent
+        /// its own preface and SETTINGS, and closing a socket with unread data in
+        /// the receive buffer makes TCP send an RST, which discards the GOAWAY we
+        /// just wrote — the peer would see a broken connection instead of the
+        /// reason. Same hazard, and same bounded remedy, as
+        /// <c>HTTP2Connection.DrainForCloseAsync</c>.
+        /// </summary>
+        private static async Task RejectInadequateSecurityAsync(Stream            Transport,
+                                                                TlsCipherSuite    CipherSuite,
+                                                                CancellationToken Token)
+        {
+
+            try
+            {
+
+                await Transport.WriteAsync(HTTP2Frame.CreateSettings().Serialize(), Token);
+
+                await Transport.WriteAsync(
+                          HTTP2Frame.CreateGoAway(
+                              0,
+                              HTTP2ErrorCode.INADEQUATE_SECURITY,
+                              $"Cipher suite {CipherSuite} must not be used for HTTP/2 (RFC 9113, Appendix A)"
+                          ).Serialize(),
+                          Token
+                      );
+
+                await Transport.FlushAsync(Token);
+
+            }
+            catch
+            {
+                // Best-effort: the peer is being dropped either way.
+            }
+
+            try
+            {
+
+                using var drainCts = CancellationTokenSource.CreateLinkedTokenSource(Token);
+                drainCts.CancelAfter(TimeSpan.FromMilliseconds(250));
+
+                var buffer  = new byte[8192];
+                var drained = 0;
+
+                while (drained < 256 * 1024)
+                {
+                    var read = await Transport.ReadAsync(buffer, drainCts.Token);
+                    if (read == 0)
+                        break;
+                    drained += read;
+                }
+
+            }
+            catch
+            {
+                // Timeout, cancellation, or an already-closed socket — best effort.
             }
 
         }

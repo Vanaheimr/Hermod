@@ -95,6 +95,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
                     $"Server did not negotiate HTTP/2 over ALPN (got '{ssl.NegotiatedApplicationProtocol}')");
 
+            // RFC 9113, Section 9.2.2: HTTP/2 over TLS 1.2 must not use a cipher
+            // suite from Appendix A. The requirement is on "a deployment", so it
+            // binds both roles — a client that notices is entitled to refuse. We
+            // bail out before sending the preface: there is no point starting a
+            // connection we would immediately tear down.
+            if (ssl.SslProtocol == SslProtocols.Tls12 &&
+                (Options?.IsBlocklistedCipherSuite ?? HTTP2CipherSuites.IsBlocklisted)(ssl.NegotiatedCipherSuite))
+            {
+
+                await ssl.DisposeAsync();
+                tcp.Dispose();
+
+                throw new HTTP2ConnectionException(HTTP2ErrorCode.INADEQUATE_SECURITY,
+                    $"Server negotiated cipher suite {ssl.NegotiatedCipherSuite}, which must not be used for HTTP/2 (RFC 9113, Appendix A)");
+
+            }
+
             var connection = new HTTP2ClientConnection(ssl, CancellationToken, Options);
             await connection.StartAsync();
 

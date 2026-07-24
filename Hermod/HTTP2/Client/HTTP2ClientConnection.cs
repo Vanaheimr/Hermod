@@ -66,6 +66,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly CancellationTokenSource connectionCts;
         private readonly CancellationToken       cancellationToken;
 
+        /// <summary>
+        /// Whether the transport is an authenticated TLS stream — false for
+        /// cleartext h2c. Statements a server makes about its own identity (the
+        /// RFC 8336 Origin Set) are only meaningful when it has one.
+        /// </summary>
+        private readonly bool                    isSecure;
+
         private readonly object flowLock = new();
         private TaskCompletionSource windowChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -130,6 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTP2ClientOptions? Options           = null)
         {
             this.transportStream   = TransportStream;
+            this.isSecure          = TransportStream is System.Net.Security.SslStream { IsAuthenticated: true };
             this.options           = Options ?? HTTP2ClientOptions.Default;
             this.connectionCts     = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             this.cancellationToken = connectionCts.Token;
@@ -205,6 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         case HTTP2FrameType.PING:            await HandlePingAsync(frame);     break;
                         case HTTP2FrameType.RST_STREAM:      HandleRstStream(frame);          break;
                         case HTTP2FrameType.GOAWAY:          HandleGoAway(frame);             break;
+                        case HTTP2FrameType.ORIGIN:          HandleOrigin(frame);             break;
                         case HTTP2FrameType.PUSH_PROMISE:
                             // We advertised ENABLE_PUSH=0; a server that pushes anyway is in error.
                             throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR, "Server push not enabled");
@@ -1276,6 +1285,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     new HTTP2RequestNotProcessedException(code,
                         $"Server sent GOAWAY (lastStreamId={lastStreamId}, {code}) — request not processed"));
             }
+        }
+
+        /// <summary>
+        /// RFC 8336, Section 2: the server's Origin Set — the origins it claims this
+        /// connection is authoritative for. Purely informational here: this client
+        /// pools per origin (see <see cref="HTTP2ClientPool"/>) and so never
+        /// coalesces requests for a second origin onto an existing connection. It is
+        /// surfaced because it is the input such a decision would need.
+        ///
+        /// Null until (and unless) an ORIGIN frame arrives; the RFC's default is
+        /// "the Origin Set is unbounded", which is a different statement from an
+        /// announced empty set.
+        /// </summary>
+        public IReadOnlyList<String>? OriginSet { get; private set; }
+
+        private void HandleOrigin(HTTP2Frame Frame)
+        {
+
+            // RFC 8336, Section 2.1: an ORIGIN frame on any stream other than 0 is
+            // invalid and MUST be ignored — pointedly not a connection error.
+            if (Frame.StreamId != 0)
+                return;
+
+            // Section 2.4: the Origin Set only means anything if the connection is
+            // authenticated, and h2c authenticates nothing. Learning it over
+            // cleartext would let anyone on the path claim any origin.
+            if (!isSecure)
+                return;
+
+            // Section 2.3: each frame *replaces* nothing — origins accumulate over
+            // the life of the connection.
+            OriginSet = [.. OriginSet ?? [], .. HTTP2Frame.ParseOrigins(Frame.Payload ?? [])];
+
         }
 
         /// <summary>Fail an exchange, routing to the streaming vehicles or the buffered Completion as appropriate.</summary>

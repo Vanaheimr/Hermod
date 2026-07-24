@@ -157,6 +157,28 @@ so no credential store is baked in. Mutual TLS is a
 separate, transport-layer option on `HTTP2Server` (`RequireClientCertificate`)
 and `HTTP2Client` (`ClientCertificate`).
 
+Which origins the listener answers for is a server-level question, decided
+before any handler runs — by default the identities in its own certificate, or
+an explicitly announced Origin Set:
+
+```csharp
+var server = new HTTP2Server(IPAddress.Any, 8443, certificate, MyRequestHandler,
+
+    // RFC 8336: state the origins this connection is authoritative for, instead
+    // of leaving the client to infer them from the certificate. Also becomes the
+    // yardstick for the 421 check below.
+    OriginSet: ["https://example.com", "https://www.example.com"],
+
+    // ... which is otherwise derived from the certificate. Requests naming
+    // anything else are answered 421 (Misdirected Request). Pass `_ => true` to
+    // answer for every origin, as the server did before this existed.
+    IsAuthorityServed: null,
+
+    // RFC 9113 §9.2.2: null applies the Appendix A rule. `_ => false` reaches a
+    // peer stuck on a legacy TLS 1.2 cipher suite.
+    IsBlocklistedCipherSuite: null);
+```
+
 ## Using the client
 
 `HTTP2Client` dials a server, negotiates TLS + ALPN `h2`, and returns a
@@ -186,7 +208,12 @@ var conn = await HTTP2Client.ConnectAsync("localhost", 8443,
         MaxRefusedStreamRetries = 2,
         KeepAliveInterval       = TimeSpan.FromSeconds(30),   // 0 = disabled
         TimeProvider            = TimeProvider.System,        // inject a test clock here
+        IsBlocklistedCipherSuite = null,                      // null = the RFC 9113 §9.2.2 rule
     });
+
+// If the server announced one, its Origin Set (RFC 8336) is here — null until an
+// ORIGIN frame arrives, and never populated over cleartext h2c.
+Console.WriteLine(conn.OriginSet is null ? "no ORIGIN frame" : String.Join(", ", conn.OriginSet));
 ```
 
 Concurrent requests beyond the server's `MAX_CONCURRENT_STREAMS` queue (rather
@@ -269,11 +296,12 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 
 | RFC | Title | Status | Notes |
 |---|---|---|---|
-| **9113** | HTTP/2 | ✅ Complete | Framing, streams, flow control, settings, GOAWAY. h2spec 146/146. |
+| **9113** | HTTP/2 | ✅ Complete | Framing, streams, flow control, settings, GOAWAY, §9.2 TLS profile, §9.1.1 authority checking. h2spec 146/146. |
 | **7541** | HPACK: Header Compression | ✅ Complete | Full decoder **and** encoder (static + dynamic table + Huffman both ways). |
 | **7301** | TLS ALPN | ✅ | `h2` negotiation in the TLS handshake. |
 | **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer. Both roles emit + the server acts on it. |
 | **8441** | Bootstrapping WebSockets with HTTP/2 | ✅ | Extended CONNECT, `:protocol`, `SETTINGS_ENABLE_CONNECT_PROTOCOL`. |
+| **8336** | The ORIGIN HTTP/2 Frame | ✅ | Server announces its Origin Set; client parses it (ignored on stream ≠ 0 and over h2c). |
 | **6455** | The WebSocket Protocol | ✅ Complete | Framing, masking, fragmentation, close handshake, UTF-8 validation. Autobahn 517/517. Server **and** client roles. |
 | **7692** | Compression Extensions for WebSocket (permessage-deflate) | ✅ | No-context-takeover mode, negotiated on both HTTP/1.1-Upgrade and HTTP/2-CONNECT handshakes. |
 | **9110** | HTTP Semantics | ✅ | Methods, conditional requests, Range (single + multi), content negotiation, the §11 auth framework. |
@@ -299,7 +327,7 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 
 - 9-byte frame header parse/serialize; all frame types
   (DATA, HEADERS, PRIORITY, RST_STREAM, SETTINGS, PUSH_PROMISE, PING, GOAWAY,
-  WINDOW_UPDATE, CONTINUATION, PRIORITY_UPDATE).
+  WINDOW_UPDATE, CONTINUATION, ORIGIN, PRIORITY_UPDATE).
 - Connection preface + SETTINGS handshake (server-preface-first ordering,
   SETTINGS ACK).
 - Decoupled read/write loops with **true multiplexing** — application handlers
@@ -357,6 +385,49 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - TLS-handshake, preface, SETTINGS-ACK, idle, and in-progress (partial
   frame/header-block) timeouts (`HTTP2Timeouts`) — reclaiming a peer that sends
   *too little*, complementing the flood defenses against *too much*.
+
+### TLS profile (RFC 9113, Section 9.2)
+
+- HTTP/2 over TLS 1.2 must not use a cipher suite from Appendix A, and an
+  endpoint may answer one with `INADEQUATE_SECURITY` (§9.2.2). Both roles check
+  the negotiated suite after the handshake — the server turns the connection
+  down with its SETTINGS preface followed by `GOAWAY(INADEQUATE_SECURITY)`, the
+  client refuses before sending its preface at all. (Detection rather than
+  prevention: `CipherSuitesPolicy` would prevent it, but throws
+  `PlatformNotSupportedException` on Windows.)
+- `HTTP2CipherSuites` tests the two structural properties Appendix A enumerates
+  — *ephemeral* key exchange and an *AEAD* cipher — instead of transcribing the
+  ~300-entry table. Same verdict for every listed suite, and it cannot go stale.
+  A suite the runtime cannot even name counts as permitted: Appendix A is a
+  closed list, so anything registered after RFC 9113 is not on it.
+- Overridable per role (`IsBlocklistedCipherSuite` on the server,
+  `HTTP2ClientOptions.IsBlocklistedCipherSuite`) — §9.2.2 states the rejection as
+  a MAY, so both a laxer and a stricter policy are legitimate.
+- §9.2.1: renegotiation is disabled explicitly (`AllowRenegotiation = false`);
+  TLS compression is never offered by .NET.
+
+### Authoritative origins (421 + ORIGIN)
+
+- A client may reuse an existing connection for *any* origin our certificate
+  covers (§9.1.1, "connection coalescing"), so `:authority` is not necessarily
+  the name the peer dialed. Requests naming an origin we are not authoritative
+  for are answered **421 (Misdirected Request)** — a stream-level answer, so the
+  connection stays usable for the origins we do serve.
+- The default origin set is derived from the server certificate (SAN dNSNames
+  with RFC 6125 wildcard matching, plus iPAddress SANs; the common name only for
+  certificates carrying no SAN at all). Cleartext h2c has no certificate and so
+  no basis to judge — it checks nothing unless given a predicate.
+- Plain CONNECT is exempt: there `:authority` is the *tunnel target*, not the
+  origin being addressed. Extended CONNECT (RFC 8441) is not exempt — there it
+  means exactly what it means in an ordinary request.
+- **ORIGIN frame** (RFC 8336): a server can state the set instead of leaving the
+  client to infer it (`OriginSet` on `HTTP2Server`, sent right after the
+  preface). An announced set also becomes the yardstick for the 421 check —
+  having told the client what we serve, answering for something else would
+  contradict our own announcement. The client exposes what it received as
+  `HTTP2ClientConnection.OriginSet`, and ignores the frame on a non-zero stream
+  (§2.1) or over h2c, where an unauthenticated peer's claim about its own
+  identity is worth nothing (§2.4).
 
 ### Testable time (TimeProvider)
 
@@ -499,6 +570,8 @@ they're common in the wild:
 | Stream-ID exhaustion | Proactive GOAWAY + `REFUSED_STREAM` |
 | Oversized header lists | Inbound + outbound `MAX_HEADER_LIST_SIZE` |
 | Range amplification | `MaxRanges` cap on a byte-range set |
+| Weak TLS 1.2 cipher suites | RFC 9113 Appendix A check → `GOAWAY INADEQUATE_SECURITY` |
+| Answering for a foreign origin | `:authority` checked against the certificate / Origin Set → 421 |
 | Credential timing oracles | Constant-time compare in Digest (`FixedTimeEquals`) |
 
 ## Explicitly out of scope
@@ -509,6 +582,8 @@ they're common in the wild:
   parsed-and-ignored (only structural self-dependency is validated).
 - **RFC 7540 `Upgrade: h2c`** — removed in RFC 9113 §3.1; only prior-knowledge
   h2c is implemented.
+- **ALTSVC (RFC 7838)** — not implemented (yet); it is the one remaining live
+  extension frame, and the natural bridge to an HTTP/3 endpoint.
 - **`Accept-Charset`** — deprecated in RFC 9110 §12.5.2.
 - **Multi-origin connection pooling** — the pool is single-origin by design.
 
@@ -534,6 +609,8 @@ they're common in the wild:
 - RFC 7301 — TLS Application-Layer Protocol Negotiation (ALPN)
 - RFC 9218 — Extensible Prioritization Scheme for HTTP
 - RFC 8441 — Bootstrapping WebSockets with HTTP/2
+- RFC 8336 — The ORIGIN HTTP/2 Frame
+- RFC 6125 — Representation and Verification of Domain-Based Application Service Identity
 - RFC 6455 — The WebSocket Protocol
 - RFC 7692 — Compression Extensions for WebSocket (permessage-deflate)
 - RFC 9110 — HTTP Semantics

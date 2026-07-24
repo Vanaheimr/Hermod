@@ -50,6 +50,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP2RequestHandler  requestHandler;
         private readonly HTTP2ConnectHandler? connectHandler;
         private readonly HTTP2StreamingHandler? streamingHandler;
+
+        /// <summary>
+        /// Whether this server is authoritative for a given request
+        /// <c>:authority</c> — null means "answer for anything", which is the only
+        /// possible answer without a certificate to derive the origin set from
+        /// (see <see cref="HTTPAuthority.ServedByCertificate"/> and RFC 9110,
+        /// Section 15.5.20).
+        /// </summary>
+        private readonly Func<string, bool>?  isAuthorityServed;
+
+        /// <summary>
+        /// The origins announced to the client in an ORIGIN frame (RFC 8336), or
+        /// null to announce nothing and leave the client to infer authority from
+        /// the certificate as it always has.
+        /// </summary>
+        private readonly string[]?           originSet;
         private readonly HTTP2Settings        localSettings  = new();
         private readonly HTTP2Settings        remoteSettings = new();
         private readonly HTTP2StreamManager   streamManager  = new();
@@ -225,8 +241,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             System.Security.Cryptography.X509Certificates.X509Certificate2? ClientCertificate = null,
             HTTP2Timeouts?       Timeouts           = null,
             HTTP2StreamingHandler? StreamingHandler = null,
-            long                 MaxRequestBodySize = DefaultMaxRequestBodySize)
+            long                 MaxRequestBodySize = DefaultMaxRequestBodySize,
+            Func<string, bool>?  IsAuthorityServed  = null,
+            string[]?            OriginSet          = null)
         {
+            this.isAuthorityServed  = IsAuthorityServed;
+            this.originSet          = OriginSet;
             this.transportStream    = TransportStream;
             this.requestHandler     = RequestHandler;
             this.connectHandler     = ConnectHandler;
@@ -365,6 +385,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 await SendFrameAsync(HTTP2Frame.CreateWindowUpdate(0, (UInt32) connectionBump));
                 streamManager.ConnectionRecvWindow += connectionBump;
             }
+
+            // RFC 8336, Section 2.3: state the Origin Set as early as possible, so
+            // the client knows what this connection is authoritative for before it
+            // decides what to send over it. Only when the application actually
+            // configured one — an ORIGIN frame listing nothing would assert that we
+            // serve *no* origin, which is the opposite of saying nothing.
+            if (originSet is not null && originSet.Length > 0)
+                await SendFrameAsync(HTTP2Frame.CreateOrigin(originSet));
 
             // We've sent our SETTINGS — start the clock on the peer ACKing them
             // (RFC 9113 §6.5.3). Runs concurrently with the frame loop.
@@ -597,6 +625,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         case HTTP2FrameType.GOAWAY:          HandleGoAway(frame);                   break;
                         case HTTP2FrameType.PRIORITY:        HandlePriority(frame);                 break;
                         case HTTP2FrameType.PRIORITY_UPDATE: HandlePriorityUpdate(frame);           break;
+                        case HTTP2FrameType.ORIGIN:
+                            // RFC 8336, Section 2.1: ORIGIN is server-to-client
+                            // only, and servers MUST ignore it — not a protocol
+                            // error, just nothing to do. Listed explicitly because
+                            // we do know this frame type; falling into the
+                            // unknown-type default below would read as an oversight.
+                            break;
+
                         case HTTP2FrameType.PUSH_PROMISE:
                             // RFC 9113, Section 8.4 / 6.6: only a server sends
                             // PUSH_PROMISE. A client (our peer) sending one to us is
@@ -1064,7 +1100,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     Stream.IsStreamingRequest = true;
                     Stream.RequestBodyChannel = Channel.CreateUnbounded<byte[]>();
-                    StartStreamingHandler(Stream);
+
+                    // The 421 check (see DispatchRequestAsync) has to happen on this
+                    // path too — a streaming handler is dispatched here, at
+                    // HEADERS-complete, and would otherwise never pass through it.
+                    // The stream bookkeeping above stays exactly as it is either way,
+                    // so inbound DATA keeps being flow-control-accounted normally;
+                    // only the task we start differs. The peer's own send window
+                    // bounds what it can push into a body nobody reads.
+                    if (isAuthorityServed is not null && !IsAuthoritativeFor(decoded))
+                        StartMisdirectedRequestResponse(Stream);
+                    else
+                        StartStreamingHandler(Stream);
                 }
 
                 // Reached on the initial HEADERS (if END_STREAM: a bodyless request)
@@ -2242,6 +2289,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
+        /// Whether <see cref="isAuthorityServed"/> accepts the origin this request
+        /// names. The origin is <c>:authority</c>, falling back to <c>host</c> for a
+        /// request translated from HTTP/1.1 (RFC 9113, Section 8.3.1). A request
+        /// that names no origin at all cannot be misdirected, so it passes.
+        /// </summary>
+        /// <summary>
+        /// Answer 421 (Misdirected Request): we are not authoritative for the origin
+        /// this stream named, and the client should try a connection of its own.
+        /// </summary>
+        private Task SendMisdirectedRequestAsync(HTTP2Stream Stream)
+
+            => SendResponseAsync(
+                   Stream,
+                   [(":status", "421"), ("content-type", "text/plain")],
+                   Encoding.UTF8.GetBytes("Misdirected Request")
+               );
+
+        /// <summary>
+        /// The fire-and-forget form, for the streaming path where the decision is
+        /// made inside the frame read loop: the read loop must not block on a
+        /// response's flow control.
+        /// </summary>
+        private void StartMisdirectedRequestResponse(HTTP2Stream Stream)
+
+            => _ = Task.Run(async () => {
+                       try
+                       {
+                           await SendMisdirectedRequestAsync(Stream);
+                       }
+                       catch
+                       {
+                           // The stream may have been reset, or the connection torn
+                           // down, while we were declining it — nothing left to say.
+                       }
+                   }, CancellationToken.None);
+
+        private bool IsAuthoritativeFor(List<(string Name, string Value)> RequestHeaders)
+        {
+
+            var authority = RequestHeaders.FirstOrDefault(header => header.Name == ":authority").Value ??
+                            RequestHeaders.FirstOrDefault(header => header.Name == "host").      Value;
+
+            return string.IsNullOrEmpty(authority) ||
+                   isAuthorityServed!(authority);
+
+        }
+
+        /// <summary>
         /// Invoke the application-level request handler and send back the HTTP/2 response.
         /// </summary>
         private async Task DispatchRequestAsync(HTTP2Stream Stream)
@@ -2249,6 +2344,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             if (Stream.RequestHeaders is null)
                 return;
+
+            // RFC 9113, Section 9.1.1 / RFC 9110, Section 15.5.20: the origin this
+            // request names need not be the one the client dialed — a client may
+            // reuse ("coalesce") this connection for any origin our certificate
+            // covers. If we are not authoritative for it, decline with 421 so the
+            // client retries on a connection to the right server, rather than
+            // receiving an answer from the wrong one.
+            //
+            // A stream-level answer, not a connection error: other streams on this
+            // connection may well name an origin we do serve.
+            if (isAuthorityServed is not null && !IsAuthoritativeFor(Stream.RequestHeaders))
+            {
+                await SendMisdirectedRequestAsync(Stream);
+                return;
+            }
 
             var body = Stream.RequestBody is not null
                            ? Stream.RequestBody.ToArray()
@@ -2549,6 +2659,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             if (Stream.RequestHeaders is null)
                 return;
+
+            // The 421 check applies to extended CONNECT (RFC 8441) but not to plain
+            // CONNECT: they spell :authority the same way and mean opposite things.
+            // On an extended CONNECT it names the origin being addressed, exactly as
+            // in an ordinary request; on a plain CONNECT it names the *tunnel
+            // target*, a host somewhere out there that we are being asked to reach —
+            // being "authoritative" for it is not the question.
+            if (isAuthorityServed is not null &&
+                Stream.RequestHeaders.Any(header => header.Name == ":protocol") &&
+                !IsAuthoritativeFor(Stream.RequestHeaders))
+            {
+                await SendConnectResponseAsync(Stream, 421, null);
+                return;
+            }
 
             if (connectHandler is null)
             {

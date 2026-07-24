@@ -18,6 +18,9 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
+    using System.Net.Security;
+
+
     /// <summary>
     /// Robustness knobs for an <see cref="HTTP2ClientConnection"/>: how hard to try
     /// on the client's behalf before surfacing a failure, and how to detect a dead
@@ -58,6 +61,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// server guards against inbound — mirrored here.
         /// </summary>
         public int      MaxContinuationFrames   { get; init; } = 64;
+
+        /// <summary>
+        /// Decides whether a TLS 1.2 cipher suite the server negotiated is
+        /// unacceptable for HTTP/2, in which case the connection is refused instead
+        /// of used (RFC 9113, Section 9.2.2 — the requirement is on "a deployment",
+        /// so it binds the client too). Null (the default) applies the RFC's own
+        /// rule, <see cref="HTTP2CipherSuites.IsBlocklisted(TlsCipherSuite)"/>; pass
+        /// <c>_ => false</c> to reach a server stuck on a legacy suite, or a
+        /// stricter predicate of your own. Only consulted for TLS 1.2 — every
+        /// TLS 1.3 suite qualifies, and h2c has no TLS at all.
+        /// </summary>
+        public Func<TlsCipherSuite, Boolean>? IsBlocklistedCipherSuite { get; init; }
 
         /// <summary>The default options.</summary>
         public static readonly HTTP2ClientOptions Default = new();

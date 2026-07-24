@@ -35,6 +35,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         CONTINUATION  = 0x09,
 
         /// <summary>
+        /// RFC 8336 (The ORIGIN HTTP/2 Frame), Section 2: a connection-level frame
+        /// (Stream Identifier always 0) in which a server states the set of origins
+        /// it considers this connection authoritative for, so a client need not
+        /// infer it from the certificate alone. Server-to-client only.
+        /// </summary>
+        ORIGIN        = 0x0C,
+
+        /// <summary>
         /// RFC 9218 (Extensible Prioritization Scheme for HTTP), Section 7.1: a
         /// connection-level frame (its own Stream Identifier is always 0) that
         /// reprioritizes another stream, named by a "Prioritized Stream ID" in

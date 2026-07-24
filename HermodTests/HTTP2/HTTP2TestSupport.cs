@@ -20,6 +20,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Text;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
@@ -208,7 +209,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             RemoteCertificateValidationCallback? ValidateClientCertificate = null,
             HTTP2Timeouts?         Timeouts                  = null,
             Boolean                Cleartext                 = false,
-            Int64                  MaxRequestBodySize        = HTTP2Server.DefaultMaxRequestBodySize)
+            Int64                  MaxRequestBodySize        = HTTP2Server.DefaultMaxRequestBodySize,
+            Func<TlsCipherSuite, Boolean>? IsBlocklistedCipherSuite = null,
+            Func<String, Boolean>? IsAuthorityServed = null,
+            IEnumerable<String>?   OriginSet         = null)
         {
 
             var port   = H2.FreePort();
@@ -216,7 +220,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var server = new HTTP2Server(System.Net.IPAddress.Loopback, port, cert, Handler,
                                          ConnectHandler, RequireClientCertificate, ValidateClientCertificate,
-                                         Timeouts, StreamingHandler, Cleartext, MaxRequestBodySize);
+                                         Timeouts, StreamingHandler, Cleartext, MaxRequestBodySize,
+                                         IsBlocklistedCipherSuite, IsAuthorityServed, OriginSet);
 
             var runTask = server.RunAsync();
             await H2.WaitUntilListeningAsync(port);
@@ -250,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// TCP-connect to a loopback port and complete the TLS handshake (with
         /// ALPN <c>h2</c> unless disabled). Nothing HTTP/2 is sent yet.
         /// </summary>
-        public static async Task<SslStream> ConnectTlsAsync(Int32 Port, String Host = "localhost", Boolean Alpn = true, CancellationToken CancellationToken = default)
+        public static async Task<SslStream> ConnectTlsAsync(Int32 Port, String Host = "localhost", Boolean Alpn = true, SslProtocols? Protocols = null, CancellationToken CancellationToken = default)
         {
 
             var tcp = new TcpClient();
@@ -260,6 +265,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var opts = new SslClientAuthenticationOptions { TargetHost = Host };
             if (Alpn)
                 opts.ApplicationProtocols = [SslApplicationProtocol.Http2];
+
+            // Pin the TLS version when a test needs a specific one (the RFC 9113
+            // §9.2.2 cipher-suite rule only applies to TLS 1.2).
+            if (Protocols.HasValue)
+                opts.EnabledSslProtocols = Protocols.Value;
 
             await ssl.AuthenticateAsClientAsync(opts, CancellationToken);
             return ssl;

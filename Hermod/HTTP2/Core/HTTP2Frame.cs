@@ -280,6 +280,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
+        /// <summary>
+        /// RFC 8336, Section 2: a connection-level ORIGIN frame (Stream Identifier
+        /// always 0) listing the origins this server considers the connection
+        /// authoritative for. The payload is a sequence of 16-bit-length-prefixed
+        /// ASCII origins ("https://example.com:8443", the RFC 6454 serialization).
+        ///
+        /// Note that an ORIGIN frame with *no* origins is not a no-op: it empties
+        /// the peer's Origin Set, telling the client this connection is authoritative
+        /// for nothing. Callers that mean "say nothing" must not send the frame.
+        /// </summary>
+        public static HTTP2Frame CreateOrigin(params string[] Origins)
+        {
+
+            var encoded = Origins.Select(System.Text.Encoding.ASCII.GetBytes).ToArray();
+            var payload = new byte[encoded.Sum(origin => 2 + origin.Length)];
+            var offset  = 0;
+
+            foreach (var origin in encoded)
+            {
+
+                if (origin.Length > UInt16.MaxValue)
+                    throw new ArgumentException($"Origin longer than {UInt16.MaxValue} bytes", nameof(Origins));
+
+                BinaryPrimitives.WriteUInt16BigEndian(payload.AsSpan(offset), (UInt16) origin.Length);
+                origin.CopyTo(payload, offset + 2);
+                offset += 2 + origin.Length;
+
+            }
+
+            return new HTTP2Frame {
+                Type     = HTTP2FrameType.ORIGIN,
+                Flags    = HTTP2FrameFlags.NONE,
+                StreamId = 0,
+                Length   = (UInt32) payload.Length,
+                Payload  = payload
+            };
+
+        }
+
+        /// <summary>
+        /// Read back an ORIGIN frame's payload (RFC 8336, Section 2.2). A truncated
+        /// entry ends the enumeration rather than raising: the RFC gives receivers no
+        /// error code for a malformed ORIGIN — the frame is advisory, and the correct
+        /// response to nonsense in it is to learn nothing from it.
+        /// </summary>
+        public static IEnumerable<string> ParseOrigins(byte[] Payload)
+        {
+
+            var offset = 0;
+
+            while (offset + 2 <= Payload.Length)
+            {
+
+                var length = BinaryPrimitives.ReadUInt16BigEndian(Payload.AsSpan(offset));
+                offset += 2;
+
+                if (offset + length > Payload.Length)
+                    yield break;
+
+                yield return System.Text.Encoding.ASCII.GetString(Payload, offset, length);
+                offset += length;
+
+            }
+
+        }
+
         #endregion
 
 
