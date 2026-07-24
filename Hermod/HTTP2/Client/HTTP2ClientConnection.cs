@@ -299,6 +299,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// multiple requests may be in flight concurrently on the same connection
         /// (real client-side multiplexing). Pass Priority to signal an RFC 9218
         /// urgency/incremental hint via the <c>priority</c> request header.
+        ///
+        /// With <see cref="HTTP2ClientOptions.MaxRedirects"/> above zero, a
+        /// redirection is followed automatically (RFC 9110, Section 15.4) as long as
+        /// it stays on *this* origin — see <see cref="FollowRedirectsAsync"/> for why
+        /// the origin boundary is where following stops. Each hop is answered by the
+        /// same 401 logic, so a redirect into an authenticated area still works.
         /// </summary>
         public async Task<HTTP2Response> SendRequestAsync(
             string                             Method,
@@ -309,6 +315,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             byte[]?                            Body         = null,
             HTTP2Priority?                     Priority     = null,
             CancellationToken                  CancellationToken = default)
+
+            => options.MaxRedirects > 0
+                   ? await FollowRedirectsAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken)
+                   : await SendWithAuthenticationAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
+
+        /// <summary>
+        /// Follow <c>Location</c> for as many hops as
+        /// <see cref="HTTP2ClientOptions.MaxRedirects"/> allows, rewriting method and
+        /// body per RFC 9110, Section 15.4 (see <see cref="HTTPRedirect"/>).
+        ///
+        /// Following stops at the origin boundary, and that is a deliberate
+        /// architectural line rather than a shortcut: a connection speaks to the
+        /// origin it dialed, and this stack's pooling is single-origin *by design*
+        /// (see the README). Dialing a second origin from inside a connection would
+        /// quietly turn <see cref="HTTP2ClientConnection"/> into a multi-origin
+        /// client. A cross-origin redirect is therefore returned to the caller
+        /// unfollowed — the 3xx and its <c>Location</c> intact, so a layer that does
+        /// own connection creation can act on it.
+        ///
+        /// The same boundary keeps credentials safe for free: since every followed
+        /// hop is same-origin, an <c>Authorization</c> header can never travel to an
+        /// origin that did not ask for it.
+        /// </summary>
+        private async Task<HTTP2Response> FollowRedirectsAsync(
+            string                             Method,
+            string                             Scheme,
+            string                             Authority,
+            string                             Path,
+            List<(string Name, string Value)>? ExtraHeaders,
+            byte[]?                            Body,
+            HTTP2Priority?                     Priority,
+            CancellationToken                  CancellationToken)
+        {
+
+            var method    = Method;
+            var scheme    = Scheme;
+            var authority = Authority;
+            var path      = Path;
+            var body      = Body;
+            var extra     = ExtraHeaders;
+
+            List<string>? chain = null;
+
+            for (var hop = 0; ; hop++)
+            {
+
+                var response = await SendWithAuthenticationAsync(method, scheme, authority, path, extra, body, Priority, CancellationToken);
+
+                if (chain is not null)
+                    response.RedirectChain = chain;
+
+                if (hop >= options.MaxRedirects ||
+                    !HTTPRedirect.TryResolve(response.Status, response.HeaderValue("location"),
+                                             scheme, authority, path, method, out var target) ||
+                    !target!.SameOrigin)
+                    return response;
+
+                (chain ??= []).Add(target.ToString());
+
+                method    = target.Method;
+                scheme    = target.Scheme;
+                authority = target.Authority;
+                path      = target.Path;
+
+                if (!target.KeepBody)
+                {
+
+                    body = null;
+
+                    // A follow-up without a body must not keep describing one — a GET
+                    // still carrying the original content-length would be malformed.
+                    if (extra is not null)
+                        extra = [.. extra.Where(header => header.Name is not ("content-length" or "content-type"))];
+
+                }
+
+            }
+
+        }
+
+        /// <summary>
+        /// One request, answering a 401 challenge once if we hold credentials for it.
+        /// </summary>
+        private async Task<HTTP2Response> SendWithAuthenticationAsync(
+            string                             Method,
+            string                             Scheme,
+            string                             Authority,
+            string                             Path,
+            List<(string Name, string Value)>? ExtraHeaders,
+            byte[]?                            Body,
+            HTTP2Priority?                     Priority,
+            CancellationToken                  CancellationToken)
         {
             var handle   = await StartRequestAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
             var response = await handle.Response;

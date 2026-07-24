@@ -444,7 +444,27 @@ catching up. What it has so far:
   since ranges over a compressed representation would mean splicing compressed
   fragments and decoding the seam.
 
-Still open on the client: redirect following and a cookie jar.
+- **Redirect following** (§15.4) — `MaxRedirects` above zero follows `Location`,
+  resolving a relative reference against the request URI (RFC 3986 §5) and
+  applying the asymmetric rewriting rules: **301/302** turn a POST into a GET,
+  **303** turns everything except HEAD into a GET, **307/308** preserve method
+  *and* body — which is the whole reason those two exist. A dropped body also
+  drops the `content-length` that described it. 300 and 304 are not followable.
+  `HTTP2Response.RedirectChain` records where the response actually came from.
+  Following stops at the **origin boundary** — see below.
+
+Still open on the client: a cookie jar.
+
+**Why redirect following stops at the origin.** A connection speaks to the origin
+it dialed, and pooling here is single-origin *by design*. Dialing a second origin
+from inside `HTTP2ClientConnection` would quietly make it a multi-origin client,
+contradicting that decision — so a cross-origin `Location` is handed back
+unfollowed, 3xx and `Location` intact, for a layer that does own connection
+creation. The same boundary is what makes automatic following safe alongside
+`Credentials`: every followed hop is same-origin, so an `Authorization` header can
+never travel to an origin that did not ask for it. Cross-origin following stays
+open, and deliberately so: it is the multi-origin question, not a redirect
+question.
 
 `HTTPValidators` and `HTTPContentRange` are the direction-neutral primitives this
 required — lifted out of `HTTPSemantics`, which the server still uses through

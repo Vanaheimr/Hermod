@@ -47,6 +47,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public          string?                           DecodedContentEncoding { get; init; }
 
+        /// <summary>
+        /// The redirect targets that were followed to reach this response, in order
+        /// (RFC 9110, Section 15.4) — empty when the first request answered directly,
+        /// which is always the case unless
+        /// <see cref="HTTP2ClientOptions.MaxRedirects"/> is set. The last entry is
+        /// where this response actually came from, which is not necessarily the URI
+        /// the caller asked for.
+        /// </summary>
+        public          IReadOnlyList<string>             RedirectChain { get; internal set; } = [];
+
         public string? HeaderValue(string Name)
             => Headers.FirstOrDefault(h => h.Name == Name).Value;
     }
