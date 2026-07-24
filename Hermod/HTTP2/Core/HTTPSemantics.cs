@@ -880,31 +880,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Parse an If-Match / If-None-Match field value's comma-separated
         /// entity-tag list ("*" is handled by the caller before reaching here).
+        /// Shared with the client side, which builds the same lists.
         /// </summary>
         private static List<(string Tag, bool Weak)> ParseETagList(string Value)
-        {
-
-            var result = new List<(string, bool)>();
-
-            foreach (var raw in Value.Split(','))
-            {
-
-                var token = raw.Trim();
-                if (token.Length == 0)
-                    continue;
-
-                var weak = token.StartsWith("W/", StringComparison.Ordinal);
-                if (weak)
-                    token = token[2..];
-
-                if (token.Length >= 2 && token[0] == '"' && token[^1] == '"')
-                    result.Add((token, weak));
-
-            }
-
-            return result;
-
-        }
+            => HTTPValidators.ParseETagList(Value);
 
         /// <summary>
         /// HTTP-date (RFC 9110, Section 5.6.7 — IMF-fixdate, e.g.
@@ -914,15 +893,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// clients that send a slightly different (but still valid) format.
         /// </summary>
         private static bool TryParseHttpDate(string Value, out DateTimeOffset Result)
-            => DateTimeOffset.TryParseExact(Value, "r", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out Result)
-            || DateTimeOffset.TryParse(Value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out Result);
+            => HTTPValidators.TryParseDate(Value, out Result);
 
         /// <summary>HTTP-date has no sub-second precision — compare at 1-second granularity.</summary>
         private static DateTimeOffset Truncate(DateTimeOffset Value)
-            => new(Value.Year, Value.Month, Value.Day, Value.Hour, Value.Minute, Value.Second, Value.Offset);
+            => HTTPValidators.Truncate(Value);
 
         private static string ComputeETag(byte[] Body)
-            => $"\"{Convert.ToHexString(SHA256.HashData(Body))[..32].ToLowerInvariant()}\"";
+            => HTTPValidators.ComputeETag(Body);
 
         #endregion
 
@@ -1006,7 +984,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             {
                 (":status",       "206"),
                 ("content-type",  Resource.ContentType),
-                ("content-range", $"bytes {Start}-{End}/{Length}"),
+                ("content-range", new HTTPContentRange(Start, End, Length).ToHeaderValue()),
                 ("content-length", slice.Length.ToString()),
                 ("accept-ranges", "bytes"),
                 ("etag",          ETag)

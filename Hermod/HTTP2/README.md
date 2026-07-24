@@ -424,8 +424,33 @@ catching up. What it has so far:
   per-connection state because RFC 7616 requires the nonce count to increase
   while a nonce is reused.
 
-Still open on the client: conditional requests and `Range` (download resume),
-redirect following, and a cookie jar.
+- **Conditional requests** (§13) — `HTTP2ResponseHead` exposes the validators
+  (`ETag`, `LastModified`, `Validator`, `AcceptsByteRanges`, `ContentRange`), and
+  `HTTPValidators` builds and compares them: HTTP-date in both directions,
+  entity-tag lists, and the strong/weak comparison rules. A client-built
+  `if-none-match` / `if-modified-since` round-trips to a 304 from our own server.
+- **Resumable download** (§14 + §13.1.5) — `DownloadAsync` writes a
+  representation into a `Stream` and continues an interrupted transfer with
+  `Range: bytes=<n>-` plus `If-Range`, so the *server* decides whether the two
+  halves belong to the same representation: 206 to splice, 200 to start over
+  (the stale prefix is truncated away). Built on the streaming response path
+  deliberately — the buffered API discards a partial body, and you cannot resume
+  a download whose received prefix you threw away. A **weak** entity-tag does not
+  qualify as a resume guard: "semantically equivalent" is not enough to
+  concatenate what may be different bytes. With no validator at all the failure
+  propagates rather than returning a silently truncated file, and a 416 whose
+  `Content-Range` says the resource is exactly as long as what we hold counts as
+  complete. Content codings are kept out of it (`accept-encoding: identity`),
+  since ranges over a compressed representation would mean splicing compressed
+  fragments and decoding the seam.
+
+Still open on the client: redirect following and a cookie jar.
+
+`HTTPValidators` and `HTTPContentRange` are the direction-neutral primitives this
+required — lifted out of `HTTPSemantics`, which the server still uses through
+them, so precondition evaluation and precondition construction cannot drift
+apart. `HTTPContentRange` also adds the parse direction the stack never had: the
+server only ever formatted `Content-Range`.
 
 ### TLS profile (RFC 9113, Section 9.2)
 

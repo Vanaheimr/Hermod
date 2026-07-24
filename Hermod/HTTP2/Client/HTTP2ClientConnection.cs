@@ -413,6 +413,171 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
+        /// GET a representation into <paramref name="Destination"/>, resuming with a
+        /// <c>Range</c> request if the transfer is interrupted (RFC 9110, Sections 14
+        /// and 13.1.5).
+        ///
+        /// This is the client-side counterpart of the server's Range support, and it
+        /// is built on the *streaming* response path for a reason: the buffered
+        /// <see cref="SendRequestAsync"/> discards a partial body when the stream
+        /// dies, and you cannot resume a download whose received prefix you have
+        /// thrown away.
+        ///
+        /// A resume is only attempted when the server offered a validator we can
+        /// guard it with — a *strong* entity-tag, or failing that a
+        /// <c>Last-Modified</c> date. Every continuation carries <c>If-Range</c>, so
+        /// the server itself decides whether the two halves belong to the same
+        /// representation: it answers 206 to splice, or 200 to make us start over.
+        /// A weak entity-tag deliberately does not qualify — "semantically
+        /// equivalent" is not enough to concatenate what may be different bytes.
+        ///
+        /// Content codings are out of the picture: the request asks for
+        /// <c>identity</c> unless the caller says otherwise, because byte ranges over
+        /// a compressed representation would mean splicing compressed fragments and
+        /// then decoding the seam. (Without an explicit <c>Accept-Encoding</c> a
+        /// server is free to compress — RFC 9110, Section 12.5.3 — so saying nothing
+        /// would not be safe here.)
+        /// </summary>
+        /// <param name="Destination">Where the body is written. Must be seekable to survive a restart.</param>
+        /// <param name="MaxAttempts">Total requests allowed, the first one included.</param>
+        /// <exception cref="InvalidOperationException">A restart is required but the destination cannot seek.</exception>
+        public async Task<HTTP2DownloadResult> DownloadAsync(
+            string                             Scheme,
+            string                             Authority,
+            string                             Path,
+            Stream                             Destination,
+            List<(string Name, string Value)>? ExtraHeaders = null,
+            int                                MaxAttempts  = 3,
+            CancellationToken                  CancellationToken = default)
+        {
+
+            var startPosition = Destination.CanSeek ? Destination.Position : 0L;
+
+            long    written   = 0;
+            int     attempts  = 0,
+                    resumes   = 0,
+                    restarts  = 0;
+            string? validator = null;
+            int     status    = 0;
+
+            List<(string Name, string Value)>? firstHeaders = null;
+
+            while (true)
+            {
+
+                attempts++;
+
+                var resuming = written > 0 && validator is not null;
+                var headers  = ExtraHeaders is null ? [] : new List<(string Name, string Value)>(ExtraHeaders);
+
+                if (!headers.Any(header => header.Name == "accept-encoding"))
+                    headers.Add(("accept-encoding", "identity"));
+
+                if (resuming)
+                {
+                    headers.Add(("range",    HTTPContentRange.RequestFrom(written)));
+                    headers.Add(("if-range", validator!));
+                    resumes++;
+                }
+
+                var stream = await StartStreamingRequestAsync("GET", Scheme, Authority, Path, headers, null, CancellationToken);
+                await stream.CompleteRequestAsync(CancellationToken);
+
+                var head = await stream.GetResponseAsync(CancellationToken);
+                status   = head.Status;
+
+                firstHeaders ??= head.Headers;
+
+                // Anything other than a body-bearing success is the caller's to
+                // interpret — and must not be written into the destination, where an
+                // error page would masquerade as the representation.
+                if (status is not (200 or 206))
+                {
+
+                    // 416 during a resume is not necessarily a failure: if the
+                    // representation is exactly as long as what we already hold, the
+                    // download is simply finished (RFC 9110, Section 14.4).
+                    if (status == 416 && resuming && head.ContentRange?.CompleteLength == written)
+                        return new HTTP2DownloadResult(200, firstHeaders, written, attempts, resumes, restarts, validator);
+
+                    return new HTTP2DownloadResult(status, head.Headers, written, attempts, resumes, restarts, validator);
+
+                }
+
+                // Where does this response actually start? A resume that came back
+                // 200, or a 206 whose Content-Range does not begin where we stopped,
+                // means the bytes we hold are no longer part of this representation.
+                var restarting = false;
+
+                if (resuming)
+                {
+                    if (status == 200)
+                        restarting = true;
+                    else if (head.ContentRange?.Start != written)
+                        restarting = true;
+                }
+
+                if (restarting)
+                {
+
+                    if (!Destination.CanSeek)
+                        throw new InvalidOperationException(
+                            "The representation changed and the download must restart, but the destination stream cannot seek.");
+
+                    Destination.Position = startPosition;
+                    Destination.SetLength(startPosition);
+                    written   = 0;
+                    restarts++;
+                    firstHeaders = head.Headers;
+
+                }
+
+                // Only trust a validator we could actually guard a resume with.
+                validator = SelectResumeValidator(head) ?? validator;
+
+                try
+                {
+
+                    byte[]? chunk;
+
+                    while ((chunk = await stream.ReadAsync(CancellationToken)) is not null)
+                    {
+                        await Destination.WriteAsync(chunk, CancellationToken);
+                        written += chunk.Length;
+                    }
+
+                    return new HTTP2DownloadResult(status, firstHeaders, written, attempts, resumes, restarts, validator);
+
+                }
+                catch (Exception) when (attempts < MaxAttempts && written > 0 && validator is not null)
+                {
+                    // Interrupted mid-body, with something to resume from and a
+                    // validator to make the resume safe: go round again. Anything
+                    // else propagates — silently returning a truncated file would be
+                    // far worse than a failed download.
+                }
+
+            }
+
+        }
+
+        /// <summary>
+        /// The validator a resume may be guarded by (RFC 9110, Section 13.1.5): a
+        /// strong entity-tag, or a <c>Last-Modified</c> date when there is no strong
+        /// tag. A *weak* tag yields null — it promises equivalence, not identity, and
+        /// concatenating byte ranges needs identity.
+        /// </summary>
+        private static string? SelectResumeValidator(HTTP2ResponseHead Head)
+        {
+
+            if (Head.ETag is string etag && !HTTPValidators.SplitETag(etag).Weak)
+                return etag;
+
+            return Head.HeaderValue("last-modified");
+
+        }
+
+        /// <summary>
         /// Begin a bidirectional streaming request: send the HEADERS (keeping the
         /// request side open) and return an <see cref="HTTP2ClientStream"/> the caller
         /// drives — writing request-body chunks over time and reading the response
