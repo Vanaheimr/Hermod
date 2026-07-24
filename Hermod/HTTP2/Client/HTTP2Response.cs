@@ -37,6 +37,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public          List<(int Status, List<(string Name, string Value)> Headers)> InformationalResponses { get; init; } = [];
 
+        /// <summary>
+        /// The <c>content-encoding</c> that was undone before <see cref="Body"/> was
+        /// handed over (RFC 9110, Section 8.4), or null if the body arrived as the
+        /// identity representation — which is also the case whenever
+        /// <see cref="HTTP2ClientOptions.AutomaticDecompression"/> is off, since then
+        /// the encoded bytes and the <c>content-encoding</c> header are both left
+        /// exactly as received.
+        /// </summary>
+        public          string?                           DecodedContentEncoding { get; init; }
+
         public string? HeaderValue(string Name)
             => Headers.FirstOrDefault(h => h.Name == Name).Value;
     }

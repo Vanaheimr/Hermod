@@ -73,6 +73,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly bool                    isSecure;
 
+        /// <summary>
+        /// Answers 401 challenges (RFC 9110, Section 11). One per connection, since
+        /// it carries the Digest nonce counter; created lazily so a connection
+        /// without credentials never allocates one.
+        /// </summary>
+        private readonly Lazy<HTTPClientAuthenticator> authenticator;
+
         private readonly object flowLock = new();
         private TaskCompletionSource windowChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -142,6 +149,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.connectionCts     = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             this.cancellationToken = connectionCts.Token;
             this.lastActivityTimestamp = this.options.TimeProvider.GetTimestamp();
+            this.authenticator     = new Lazy<HTTPClientAuthenticator>(
+                                         () => new HTTPClientAuthenticator(this.options.Credentials!),
+                                         LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
 
@@ -300,8 +310,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTP2Priority?                     Priority     = null,
             CancellationToken                  CancellationToken = default)
         {
-            var handle = await StartRequestAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
-            return await handle.Response;
+            var handle   = await StartRequestAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
+            var response = await handle.Response;
+
+            // RFC 9110 Section 11.6.1: a 401 names the schemes the server will
+            // accept. If we hold credentials for one of them, answer the challenge
+            // and re-issue — exactly once. A second 401 means the credentials are
+            // wrong, and repeating the request would only earn a third.
+            //
+            // Re-issuing the *same* request is also what keeps this safe: the
+            // authority cannot change between the challenge and the answer, so
+            // credentials can never leak to an origin that did not ask for them.
+            if (response.Status == 401 &&
+                options.Credentials is not null &&
+                (ExtraHeaders is null || !ExtraHeaders.Any(header => header.Name == "authorization")))
+            {
+
+                var challenges = response.Headers.
+                                     Where (header => header.Name == "www-authenticate").
+                                     Select(header => header.Value).
+                                     ToList();
+
+                var authorization = challenges.Count > 0
+                                        ? authenticator.Value.Answer(challenges, Method, Path)
+                                        : null;
+
+                if (authorization is not null)
+                {
+
+                    List<(string Name, string Value)> retryHeaders = ExtraHeaders is null ? [] : [.. ExtraHeaders];
+                    retryHeaders.Add(("authorization", authorization));
+
+                    var retry = await StartRequestAsync(Method, Scheme, Authority, Path, retryHeaders, Body, Priority, CancellationToken);
+                    return await retry.Response;
+
+                }
+
+            }
+
+            return response;
+
         }
 
         /// <summary>
@@ -336,6 +384,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // one in ExtraHeaders explicitly.
             if (Priority is not null && (ExtraHeaders is null || !ExtraHeaders.Any(h => h.Name == "priority")))
                 headers.Add(("priority", Priority.Value.ToHeaderValue()));
+
+            // RFC 9110 Section 12.5.3: ask for the codings we can undo — but never
+            // over a caller's own accept-encoding, which may be deliberately
+            // narrower (or an explicit "identity" to switch compression off for
+            // one request).
+            if (options.AutomaticDecompression &&
+                (ExtraHeaders is null || !ExtraHeaders.Any(h => h.Name == "accept-encoding")))
+                headers.Add(("accept-encoding", HTTPContentCoding.AcceptEncoding));
 
             if (ExtraHeaders is not null)
                 headers.AddRange(ExtraHeaders);
@@ -1461,12 +1517,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 return;
             }
 
+            var headers = Exchange.Headers!;
+            var body    = Exchange.Body.ToArray();
+            String? decodedContentEncoding = null;
+
+            // RFC 9110 Section 8.4: undo the content coding we asked for, so the
+            // caller sees the identity representation. A body we cannot decode —
+            // an unknown coding, or one that blows past MaxDecodedBodySize — must
+            // not be passed off as identity, so the failure surfaces on the
+            // response task rather than being swallowed.
+            if (options.AutomaticDecompression)
+            {
+                try
+                {
+                    (body, decodedContentEncoding) = HTTPContentCoding.DecodeBody(headers, body, options.MaxDecodedBodySize);
+                }
+                catch (Exception ex)
+                {
+                    Exchange.Completion.TrySetException(ex);
+                    return;
+                }
+            }
+
             Exchange.Completion.TrySetResult(new HTTP2Response {
                 Status                 = status,
-                Headers                = Exchange.Headers!,
-                Body                   = Exchange.Body.ToArray(),
+                Headers                = headers,
+                Body                   = body,
                 Trailers               = Exchange.Trailers,
-                InformationalResponses = Exchange.Interim
+                InformationalResponses = Exchange.Interim,
+                DecodedContentEncoding = decodedContentEncoding
             });
 
         }

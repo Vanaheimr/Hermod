@@ -74,6 +74,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public Func<TlsCipherSuite, Boolean>? IsBlocklistedCipherSuite { get; init; }
 
+        /// <summary>
+        /// Advertise <c>accept-encoding: br, gzip, deflate</c> on requests that do
+        /// not already carry one, and transparently decode the
+        /// <c>content-encoding</c> of the responses that come back (RFC 9110,
+        /// Section 8.4). Off by default: it changes what goes out on the wire and
+        /// what the caller gets back, so it is the caller's decision, not ours.
+        /// </summary>
+        public bool     AutomaticDecompression  { get; init; }
+
+        /// <summary>
+        /// Ceiling on a decoded response body, enforced *during* decompression.
+        /// A few kilobytes of gzip can expand to gigabytes, so a client that
+        /// decodes automatically needs a bound just as much as a server that
+        /// buffers request bodies — this is the client-side counterpart of the
+        /// server's <c>MaxRequestBodySize</c>, and shares its 16 MiB default.
+        /// </summary>
+        public long     MaxDecodedBodySize      { get; init; } = 16 * 1024 * 1024;
+
+        /// <summary>
+        /// Credentials to answer a <c>401 Unauthorized</c> with (RFC 9110, Section
+        /// 11): the request is re-issued once, carrying an <c>Authorization</c>
+        /// field built from the server's <c>WWW-Authenticate</c> challenge — Digest
+        /// preferred, then Bearer, then Token, then Basic. Null (the default)
+        /// leaves the 401 to the caller.
+        ///
+        /// Nothing is ever sent preemptively: credentials go out only in answer to
+        /// a challenge, and only to the origin that issued it (the retry re-sends
+        /// the very same request, so the authority cannot change underneath it).
+        /// </summary>
+        public HTTPClientCredentials? Credentials { get; init; }
+
         /// <summary>The default options.</summary>
         public static readonly HTTP2ClientOptions Default = new();
 

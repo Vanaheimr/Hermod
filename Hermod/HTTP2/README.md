@@ -209,6 +209,13 @@ var conn = await HTTP2Client.ConnectAsync("localhost", 8443,
         KeepAliveInterval       = TimeSpan.FromSeconds(30),   // 0 = disabled
         TimeProvider            = TimeProvider.System,        // inject a test clock here
         IsBlocklistedCipherSuite = null,                      // null = the RFC 9113 §9.2.2 rule
+
+        // RFC 9110 §8.4 / §11 — the client half of the semantics the server has
+        // had all along. Both off by default: they change what goes out on the
+        // wire and what comes back, so the caller opts in.
+        AutomaticDecompression   = true,                      // ask for br/gzip/deflate, decode transparently
+        MaxDecodedBodySize       = 16 * 1024 * 1024,          // and refuse a decompression bomb
+        Credentials              = HTTPClientCredentials.UserNameAndPassword("alice", "secret"),
     });
 
 // If the server announced one, its Origin Set (RFC 8336) is here — null until an
@@ -304,7 +311,7 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 | **8336** | The ORIGIN HTTP/2 Frame | ✅ | Server announces its Origin Set; client parses it (ignored on stream ≠ 0 and over h2c). |
 | **6455** | The WebSocket Protocol | ✅ Complete | Framing, masking, fragmentation, close handshake, UTF-8 validation. Autobahn 517/517. Server **and** client roles. |
 | **7692** | Compression Extensions for WebSocket (permessage-deflate) | ✅ | No-context-takeover mode, negotiated on both HTTP/1.1-Upgrade and HTTP/2-CONNECT handshakes. |
-| **9110** | HTTP Semantics | ✅ | Methods, conditional requests, Range (single + multi), content negotiation, the §11 auth framework. |
+| **9110** | HTTP Semantics | ✅ | Methods, conditional requests, Range (single + multi), content negotiation, the §11 auth framework. Client-side: content-coding decode + answering a 401; conditional/Range/redirects still server-only. |
 | **9111** | HTTP Caching | ✅ | Client-side cache with shared/private semantics. |
 | **7617** | Basic Authentication | ✅ | |
 | **6750** | Bearer Token Usage | ✅ | |
@@ -385,6 +392,40 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - TLS-handshake, preface, SETTINGS-ACK, idle, and in-progress (partial
   frame/header-block) timeouts (`HTTP2Timeouts`) — reclaiming a peer that sends
   *too little*, complementing the flood defenses against *too much*.
+
+### Client-side HTTP semantics (RFC 9110)
+
+The server has carried the RFC 9110 semantics from the start; the client is
+catching up. What it has so far:
+
+- **Content coding, decode direction** (§8.4) — with `AutomaticDecompression`
+  the client advertises `accept-encoding: br, gzip, deflate` and hands the
+  caller the identity representation, reporting what it undid in
+  `HTTP2Response.DecodedContentEncoding`. A caller's own `accept-encoding` is
+  never widened behind their back (`identity` switches compression off for one
+  request). Chained codings are undone right to left; an unknown coding leaves
+  the message exactly as received rather than passing undecodable bytes off as
+  identity. `HTTPContentCoding` holds both directions, so the codings we can
+  produce and the codings we can consume cannot drift apart — and "deflate"
+  reads both the zlib-wrapped (RFC 1950) and raw (RFC 1951) flavours the wire
+  disagrees about.
+- **Decompression-bomb bound** — `MaxDecodedBodySize` (16 MiB default) is
+  enforced *during* decompression, not after: checking the output size
+  afterwards would mean the bomb had already gone off. The client-side
+  counterpart of the server's `MaxRequestBodySize`.
+- **Answering a 401** (§11) — with `Credentials` set, the client parses the
+  `WWW-Authenticate` challenge, picks the strongest scheme it can answer
+  (Digest > Bearer > Token > Basic — Basic last, since it hands the password
+  over) and re-issues the request **once**. Nothing is sent preemptively, and
+  because the retry re-sends the very same request, credentials cannot leak to
+  an origin that did not ask for them. `HTTPClientAuthenticator` is the mirror
+  of the `Auth/` schemes: they validate, it computes — one algorithm, one place,
+  which matters most for Digest, where both ends must agree exactly. It is
+  per-connection state because RFC 7616 requires the nonce count to increase
+  while a nonce is reused.
+
+Still open on the client: conditional requests and `Range` (download resume),
+redirect following, and a cookie jar.
 
 ### TLS profile (RFC 9113, Section 9.2)
 
@@ -571,6 +612,8 @@ they're common in the wild:
 | Oversized header lists | Inbound + outbound `MAX_HEADER_LIST_SIZE` |
 | Range amplification | `MaxRanges` cap on a byte-range set |
 | Weak TLS 1.2 cipher suites | RFC 9113 Appendix A check → `GOAWAY INADEQUATE_SECURITY` |
+| Decompression bombs | `MaxDecodedBodySize`, enforced *during* decode |
+| Credential leakage on retry | 401 answered only to the origin that challenged, once, never preemptively |
 | Answering for a foreign origin | `:authority` checked against the certificate / Origin Set → 421 |
 | Credential timing oracles | Constant-time compare in Digest (`FixedTimeEquals`) |
 

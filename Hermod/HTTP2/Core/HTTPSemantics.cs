@@ -611,8 +611,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region On-the-fly content coding (RFC 9110, Section 8.4)
 
-        /// <summary>Codings we can produce, in server preference order (best first).</summary>
-        private static readonly string[] SupportedCodings = ["br", "gzip", "deflate"];
+        /// <summary>
+        /// Codings we can produce, in server preference order (best first) — the
+        /// same set we can consume, hence shared with the decode direction.
+        /// </summary>
+        private static readonly string[] SupportedCodings = HTTPContentCoding.Supported;
 
         /// <summary>Bodies smaller than this aren't worth the compression overhead.</summary>
         private const int MinCompressSize = 256;
@@ -733,22 +736,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         private static byte[] Compress(byte[] Data, string Coding)
-        {
 
-            using var output = new MemoryStream();
-
-            using (Stream compressor = Coding switch
-            {
-                "br"      => new BrotliStream (output, CompressionLevel.Optimal, leaveOpen: true),
-                "gzip"    => new GZipStream   (output, CompressionLevel.Optimal, leaveOpen: true),
-                "deflate" => new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true),
-                _         => throw new InvalidOperationException($"Unsupported coding '{Coding}'")
-            })
-                compressor.Write(Data, 0, Data.Length);
-
-            return output.ToArray();
-
-        }
+            => HTTPContentCoding.Encode(Data, Coding);
 
         private static void WeakenETag(List<(string Name, string Value)> Headers)
         {
