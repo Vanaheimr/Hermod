@@ -29,7 +29,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         reserved  = 0,
         RSA       = 1,
         DSS       = 2,
-        ECDSA     = 3
+        ECDSA     = 3,
+        Ed25519   = 4,   // RFC 7479
+        Ed448     = 6    // RFC 8709
     }
 
     #endregion
@@ -158,11 +160,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
                                          };
 
-            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
-                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
+            // The fingerprint is compared in BYTES, not in hex characters: SHA-1 is 20, SHA-256 is 32.
+            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 20)
+                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (20)!");
 
-            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
-                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
+            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 32)
+                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (32)!");
 
         }
 
@@ -196,11 +199,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
                                          };
 
-            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
-                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
+            // The fingerprint is compared in BYTES, not in hex characters: SHA-1 is 20, SHA-256 is 32.
+            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 20)
+                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (20)!");
 
-            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
-                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
+            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 32)
+                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (32)!");
 
         }
 
@@ -228,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TypeId,
                    Class,
                    TimeToLive,
-                   $"{Fingerprint} ({Algorithm}, {Type})")
+                   $"{Convert.ToHexString(Fingerprint).ToLowerInvariant()} ({Algorithm}, {Type})")
 
         {
 
@@ -239,10 +243,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.Fingerprint           = Fingerprint;
 
             if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 20)
-                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
+                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (20)!");
 
             if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 32)
-                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
+                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (32)!");
 
         }
 
