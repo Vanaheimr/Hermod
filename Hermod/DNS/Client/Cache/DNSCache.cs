@@ -211,26 +211,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             DNSInfo         DNSInformation)
         {
 
-            #region Negative caching (NXDOMAIN, Refused, etc.)
+            #region Negative caching (NXDOMAIN, NODATA, Refused)
 
             if (!DNSInformation.Answers.Any())
             {
 
-                if (DNSInformation.ResponseCode is DNSResponseCodes.NameError or
-                                                   DNSResponseCodes.Refused)
-                {
+                // RFC 2308 §2.1 (NXDOMAIN) and §2.2 (NODATA — NOERROR with an empty
+                // answer section) are both negative answers and both cacheable.
+                //
+                // NODATA additionally requires an SOA in the authority section. That
+                // is what distinguishes it from a referral, which also has no answers
+                // but carries NS records instead: caching a referral here would
+                // record "this type does not exist" for a name whose data simply
+                // lives elsewhere.
+                var isNegative = DNSInformation.ResponseCode is DNSResponseCodes.NameError or
+                                                                DNSResponseCodes.Refused ||
 
-                    var negativeTTL = DNSInformation.Authorities.
-                                          OfType<SOA>().
-                                          Select(soa => soa.TimeToLive).
-                                          FirstOrDefault(DefaultNegativeCacheTTL);
+                                 (DNSInformation.ResponseCode == DNSResponseCodes.NoError &&
+                                  DNSInformation.Authorities.OfType<SOA>().Any());
 
+                if (isNegative)
                     dnsCache[DomainName] = new DNSCacheEntry(
-                                               Timestamp.Now + negativeTTL,
+                                               Timestamp.Now + ComputeNegativeCacheTTL(DNSInformation),
                                                DNSInformation
                                            );
-
-                }
 
                 return this;
 
@@ -442,6 +446,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (dnsCache.TryGetValue(DomainName, out var dnsCacheEntry))
             {
 
+                // A negative entry has no answer records whose TTLs could be
+                // filtered, so its lifetime lives on the entry itself. Without this
+                // check the entry is returned until the cleanup timer happens to
+                // sweep it — however short a life RFC 2308 §4 gave it.
+                if (!dnsCacheEntry.DNSInfo.Answers.Any() &&
+                     dnsCacheEntry.EndOfLife <= Timestamp.Now)
+                {
+                    dnsCache.TryRemove(DomainName, out _);
+                    DNSInfo = null;
+                    return false;
+                }
+
                 var filtered = FilterExpiredRecords(dnsCacheEntry.DNSInfo);
 
                 if (filtered is not null)
@@ -517,6 +533,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+        #region ComputeNegativeCacheTTL(Response)
+
+        /// <summary>
+        /// How long a negative answer may be cached.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2308 §4: the TTL of a negative answer is "the minimum of the MINIMUM
+        /// field of the SOA record and the TTL of the SOA itself". Both bounds
+        /// matter — MINIMUM is the value the zone operator set aside for exactly
+        /// this purpose, and the SOA's own TTL caps how long the record that
+        /// carried it may be held. Using only the record TTL, as this did before,
+        /// ignores the field RFC 2308 repurposed for the job.
+        ///
+        /// Falls back to <see cref="DefaultNegativeCacheTTL"/> when the responder
+        /// sent no SOA: without one nothing authorizes caching the answer for any
+        /// particular length of time.
+        /// </remarks>
+        /// <param name="Response">The negative response.</param>
+        public static TimeSpan ComputeNegativeCacheTTL(DNSInfo Response)
+        {
+
+            var soa = Response.Authorities.OfType<SOA>().FirstOrDefault();
+
+            if (soa is null)
+                return DefaultNegativeCacheTTL;
+
+            return soa.Minimum < soa.TimeToLive
+                       ? soa.Minimum
+                       : soa.TimeToLive;
+
+        }
+
+        #endregion
 
         #region AddNoData    (DomainName, RecordType, TTL)
 
