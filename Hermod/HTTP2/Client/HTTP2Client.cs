@@ -68,6 +68,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
 
             var tcp = new TcpClient();
+
+            // See the matching comment in HTTP2Server: Nagle's algorithm and HTTP/2's
+            // many small control frames interact badly, adding a fixed per-exchange
+            // stall that concurrency cannot hide.
+            tcp.NoDelay = true;
+
             await tcp.ConnectAsync(Host, Port, CancellationToken);
 
             // h2c: skip TLS/ALPN entirely and speak HTTP/2 over the raw socket.

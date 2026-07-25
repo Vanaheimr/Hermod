@@ -195,6 +195,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 {
 
                     var tcpClient = await listener.AcceptTcpClientAsync(token);
+
+                    // Disable Nagle. HTTP/2 is unusually exposed to it: the protocol
+                    // deliberately emits small control frames (SETTINGS ACK,
+                    // WINDOW_UPDATE, PING, RST_STREAM, and the HEADERS of a small
+                    // response), and Nagle holds each small write until the previous
+                    // segment is acknowledged. Paired with the peer's delayed ACK
+                    // that adds a fixed stall to every exchange — measured here as a
+                    // ~1 ms floor per request that no amount of concurrency could
+                    // work around, because it is latency, not throughput.
+                    tcpClient.NoDelay = true;
                     var remoteEP  = tcpClient.Client.RemoteEndPoint;
 
                     Console.WriteLine($"[HTTP/2] Accepted TCP connection from {remoteEP}");
