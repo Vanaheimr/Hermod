@@ -30,7 +30,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         NameError       = 3, // NXDOMAIN
         NotImplemented  = 4,
         Refused         = 5,
-        Reserved        = 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
+        Reserved        = 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15,
+
+        /// <summary>
+        /// Bad EDNS version (RFC 6891 §9). An extended RCODE: the low 4 bits
+        /// travel in the message header, the upper 8 in the OPT record's TTL
+        /// field, so this value only reaches the wire when an OPT is present.
+        /// </summary>
+        BadVersion      = 16
 
     }
 

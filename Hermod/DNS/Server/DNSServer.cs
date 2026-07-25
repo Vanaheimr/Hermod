@@ -151,6 +151,174 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (private static) BuildFormatErrorResponse(RequestBytes)
+
+        /// <summary>
+        /// Build a minimal FORMERR reply for a request that could not be parsed,
+        /// or null when even that is not possible.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1035 §4.1.1 defines RCODE 1 as "the name server was unable to
+        /// interpret the query". Only the 12-byte header is needed: the
+        /// transaction id is echoed from the first two octets, which stay
+        /// readable however mangled the rest of the message is. Answering lets a
+        /// client tell "malformed request" from "server unreachable" instead of
+        /// retrying blindly.
+        /// </remarks>
+        private static Byte[]? BuildFormatErrorResponse(Byte[] RequestBytes)
+        {
+
+            // Too short to even echo a transaction id — stay silent.
+            if (RequestBytes.Length < 12)
+                return null;
+
+            // Never answer something that is itself a response: two servers
+            // exchanging error replies would loop.
+            if ((RequestBytes[2] & 0x80) != 0)
+                return null;
+
+            var opcode = (Byte) ((RequestBytes[2] >> 3) & 0x0F);
+
+            return [
+
+                       RequestBytes[0],                          // transaction id, echoed
+                       RequestBytes[1],
+
+                       (Byte) (0x80 |                            // QR = 1
+                               (opcode << 3) |                   // opcode, echoed
+                               (RequestBytes[2] & 0x01)),        // RD, echoed
+
+                       (Byte) DNSResponseCodes.FormatError,      // RCODE = 1
+
+                       // The question could not be parsed, so no section is echoed.
+                       0, 0,                                     // QDCOUNT
+                       0, 0,                                     // ANCOUNT
+                       0, 0,                                     // NSCOUNT
+                       0, 0                                      // ARCOUNT
+
+                   ];
+
+        }
+
+        #endregion
+
+        #region (private) Serialize               (Response)
+
+        private Byte[] Serialize(DNSPacket Response)
+        {
+
+            var memoryStream = new MemoryStream();
+
+            Response.Serialize(
+                memoryStream,
+                UseCompression:      Options.UseCompression,
+                CompressionOffsets:  []
+            );
+
+            return memoryStream.ToArray();
+
+        }
+
+        #endregion
+
+        #region (private) SerializeForUDP         (Response, Request)
+
+        /// <summary>
+        /// Serialize a response for transmission over UDP, truncating it when it
+        /// does not fit into the requestor's buffer.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1035 §4.2.1: "Messages carried by UDP are restricted to 512 bytes.
+        /// Longer messages are truncated and the TC bit is set in the header."
+        /// RFC 6891 §6.2.3 raises that ceiling to whatever the requestor advertises
+        /// in its OPT record (values below 512 are treated as 512), and §6.2.5
+        /// forbids exceeding it. Answer records are shed until the message fits;
+        /// the OPT record is kept so the response stays EDNS-conformant.
+        /// </remarks>
+        private Byte[] SerializeForUDP(DNSResponse  Response,
+                                       DNSPacket    Request)
+        {
+
+            var full = Serialize(Response);
+
+            var requestOPT  = Request.AdditionalRRs.OfType<OPT>().FirstOrDefault();
+
+            var limit       = requestOPT is not null
+                                  ? Math.Min(Math.Max(requestOPT.UDPPayloadSize, (UInt16) 512), Options.MaxUDPResponseSize)
+                                  : 512;
+
+            if (full.Length <= limit)
+                return full;
+
+            var answers      = Response.AnswerRRs.ToArray();
+            var responseOPT  = Response.AdditionalRRs.OfType<OPT>().Cast<IDNSResourceRecord>().ToArray();
+
+            // Drop answer records from the end until the message fits. Authority
+            // and additional sections go entirely, except for the OPT record.
+            for (var count = answers.Length - 1; count >= 0; count--)
+            {
+
+                var truncated = new DNSResponse(
+                                    Request:               Request,
+                                    TransactionId:         Response.TransactionId,
+                                    QueryOrResponse:       DNSQueryResponse.Response,
+                                    Opcode:                Response.Opcode,
+                                    AuthoritativeAnswer:   Response.AuthoritativeAnswer,
+                                    Truncation:            true,
+                                    RecursionDesired:      Response.RecursionDesired,
+                                    RecursionAvailable:    Response.RecursionAvailable,
+                                    ResponseCode:          Response.ResponseCode,
+                                    Questions:             Response.Questions,
+                                    AnswerRRs:             answers.Take(count).ToArray(),
+                                    AuthorityRRs:          [],
+                                    AdditionalRRs:         responseOPT
+                                );
+
+                var bytes = Serialize(truncated);
+
+                if (bytes.Length <= limit)
+                {
+
+                    logger.LogDebug(
+                        "Truncating a {FullLength}-byte UDP response to {TruncatedLength} bytes ({KeptAnswers} of {TotalAnswers} answers, limit {Limit})",
+                        full.Length,
+                        bytes.Length,
+                        count,
+                        answers.Length,
+                        limit
+                    );
+
+                    return bytes;
+
+                }
+
+            }
+
+            // Even the bare header + question exceeds the limit: send it anyway,
+            // flagged truncated, so the client knows to retry over TCP.
+            return Serialize(
+                       new DNSResponse(
+                           Request:               Request,
+                           TransactionId:         Response.TransactionId,
+                           QueryOrResponse:       DNSQueryResponse.Response,
+                           Opcode:                Response.Opcode,
+                           AuthoritativeAnswer:   Response.AuthoritativeAnswer,
+                           Truncation:            true,
+                           RecursionDesired:      Response.RecursionDesired,
+                           RecursionAvailable:    Response.RecursionAvailable,
+                           ResponseCode:          Response.ResponseCode,
+                           Questions:             Response.Questions,
+                           AnswerRRs:             [],
+                           AuthorityRRs:          [],
+                           AdditionalRRs:         []
+                       )
+                   );
+
+        }
+
+        #endregion
+
+
         // ToDo: To well-known problems when listing on localhost IPv4+IPv6,
         //       we might need separate listeners for IPv4 and IPv6!
 
@@ -180,13 +348,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 try
                 {
 
-                    var dnsPacket   = await udpUnicastListener.ReceiveAsync(CancellationToken);
+                    var dnsPacket = await udpUnicastListener.ReceiveAsync(CancellationToken);
 
-                    var dnsRequest  = DNSPacket.Parse(
-                                          ActiveUDPUnicastSocket ?? localSocket,
-                                          IPSocket.FromIPEndPoint(dnsPacket.RemoteEndPoint),
-                                          new MemoryStream(dnsPacket.Buffer)
-                                      );
+                    DNSPacket dnsRequest;
+
+                    try
+                    {
+                        dnsRequest = DNSPacket.Parse(
+                                         ActiveUDPUnicastSocket ?? localSocket,
+                                         IPSocket.FromIPEndPoint(dnsPacket.RemoteEndPoint),
+                                         new MemoryStream(dnsPacket.Buffer)
+                                     );
+                    }
+                    catch (Exception parseException)
+                    {
+
+                        logger.LogDebug(
+                            parseException,
+                            "Could not parse a DNS request from {RemoteEndPoint}; answering FORMERR",
+                            dnsPacket.RemoteEndPoint
+                        );
+
+                        var formatError = BuildFormatErrorResponse(dnsPacket.Buffer);
+
+                        if (formatError is not null)
+                            await udpUnicastListener.SendAsync(
+                                      new ReadOnlyMemory<Byte>(formatError),
+                                      dnsPacket.RemoteEndPoint,
+                                      CancellationToken
+                                  );
+
+                        continue;
+
+                    }
 
                     await LogEvent(
                         OnDNSRequestReceived,
@@ -205,16 +399,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (dnsResponse is not null)
                     {
 
-                        var memoryStream = new MemoryStream();
-
-                        dnsResponse.Serialize(
-                            memoryStream,
-                            UseCompression:      Options.UseCompression,
-                            CompressionOffsets:  []
-                        );
-
                         await udpUnicastListener.SendAsync(
-                                  new ReadOnlyMemory<Byte>(memoryStream.ToArray()),
+                                  new ReadOnlyMemory<Byte>(SerializeForUDP(dnsResponse, dnsRequest)),
                                   dnsResponse.RemoteSocket.ToIPEndPoint(),
                                   CancellationToken
                               );
@@ -307,17 +493,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (dnsResponse is not null)
                     {
 
-                        var memoryStream = new MemoryStream();
-
-                        dnsResponse.Serialize(
-                            memoryStream,
-                            UseCompression:      Options.UseCompression,
-                            CompressionOffsets:  []
-                        );
-
                         // Multicast response via unicast back to the sender!
                         await udpMulticastListener.SendAsync(
-                                  new ReadOnlyMemory<Byte>(memoryStream.ToArray()),
+                                  new ReadOnlyMemory<Byte>(SerializeForUDP(dnsResponse, dnsRequest)),
                                   dnsResponse.RemoteSocket.ToIPEndPoint(),
                                   CancellationToken
                               );

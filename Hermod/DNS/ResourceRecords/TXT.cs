@@ -109,7 +109,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var rdLength = Stream.ReadUInt16BE();
 
-            this.Text = DNSTools.ExtractCharacterString(Stream);
+            // RFC 1035 §3.3.14: TXT-DATA is "one or more <character-string>s";
+            // RFC 7208 §3.3 requires them to be concatenated without separators.
+            this.Text = String.Concat(DNSTools.ExtractCharacterStrings(Stream, rdLength));
 
         }
 
@@ -133,7 +135,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var rdLength = Stream.ReadUInt16BE();
 
-            this.Text = DNSTools.ExtractCharacterString(Stream);
+            // RFC 1035 §3.3.14: TXT-DATA is "one or more <character-string>s";
+            // RFC 7208 §3.3 requires them to be concatenated without separators.
+            this.Text = String.Concat(DNSTools.ExtractCharacterStrings(Stream, rdLength));
 
         }
 
