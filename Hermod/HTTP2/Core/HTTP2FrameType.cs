@@ -35,6 +35,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         CONTINUATION  = 0x09,
 
         /// <summary>
+        /// RFC 7838 (HTTP Alternative Services), Section 4: a server advertising
+        /// that this origin is also reachable over another protocol, host or port —
+        /// most usefully an HTTP/3 endpoint. Sent either on stream 0 (naming the
+        /// origin explicitly) or on a request stream (implying that stream's origin).
+        /// Server-to-client only.
+        /// </summary>
+        ALTSVC        = 0x0A,
+
+        /// <summary>
         /// RFC 8336 (The ORIGIN HTTP/2 Frame), Section 2: a connection-level frame
         /// (Stream Identifier always 0) in which a server states the set of origins
         /// it considers this connection authoritative for, so a client need not

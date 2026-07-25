@@ -54,6 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly Func<TlsCipherSuite, bool> isBlocklistedCipherSuite;
         private readonly Func<string, bool>?       isAuthorityServed;
         private readonly string[]?                originSet;
+        private readonly (string Origin, string FieldValue)[]? alternativeServices;
         private readonly RemoteCertificateValidationCallback? validateClientCertificate;
         private readonly HTTP2Timeouts         timeouts;
         private readonly HTTP2StreamingHandler? streamingHandler;
@@ -137,7 +138,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             long                 MaxRequestBodySize = DefaultMaxRequestBodySize,
             Func<TlsCipherSuite, bool>? IsBlocklistedCipherSuite = null,
             Func<string, bool>?  IsAuthorityServed = null,
-            IEnumerable<string>? OriginSet = null)
+            IEnumerable<string>? OriginSet = null,
+            IEnumerable<(string Origin, string FieldValue)>? AlternativeServices = null)
         {
 
             if (!Cleartext && Certificate is null)
@@ -153,6 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.isBlocklistedCipherSuite  = IsBlocklistedCipherSuite ?? HTTP2CipherSuites.IsBlocklisted;
 
             this.originSet                 = OriginSet?.ToArray();
+            this.alternativeServices       = AlternativeServices?.ToArray();
 
             // Three sources, most specific first. An announced Origin Set (RFC 8336)
             // outranks the certificate: having told the client exactly what we serve,
@@ -399,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private async Task RunConnectionAsync(Stream Transport, X509Certificate2? clientCertificate, CancellationToken Token)
         {
 
-            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize, isAuthorityServed, originSet);
+            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize, isAuthorityServed, originSet, alternativeServices);
             activeConnections.TryAdd(connection, 0);
 
             try

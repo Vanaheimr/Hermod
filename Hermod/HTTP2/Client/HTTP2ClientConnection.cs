@@ -224,6 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         case HTTP2FrameType.RST_STREAM:      HandleRstStream(frame);          break;
                         case HTTP2FrameType.GOAWAY:          HandleGoAway(frame);             break;
                         case HTTP2FrameType.ORIGIN:          HandleOrigin(frame);             break;
+                        case HTTP2FrameType.ALTSVC:          HandleAltSvc(frame);             break;
                         case HTTP2FrameType.PUSH_PROMISE:
                             // We advertised ENABLE_PUSH=0; a server that pushes anyway is in error.
                             throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR, "Server push not enabled");
@@ -1636,6 +1637,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // Section 2.3: each frame *replaces* nothing — origins accumulate over
             // the life of the connection.
             OriginSet = [.. OriginSet ?? [], .. HTTP2Frame.ParseOrigins(Frame.Payload ?? [])];
+
+        }
+
+        /// <summary>
+        /// RFC 7838: alternative services the server has advertised, keyed by the
+        /// origin they apply to. Like <see cref="OriginSet"/> this is informational
+        /// — acting on an alternative means dialling a different protocol or port,
+        /// which this single-origin, HTTP/2-only client does not do. It is surfaced
+        /// because it is the input such a decision would need, and because the
+        /// obvious future use (an HTTP/3 endpoint) is exactly what RFC 7838 exists
+        /// for.
+        /// </summary>
+        public IReadOnlyDictionary<String, IReadOnlyList<HTTPAlternativeService>> AlternativeServices
+            => alternativeServices;
+
+        private readonly Dictionary<String, IReadOnlyList<HTTPAlternativeService>> alternativeServices =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        private void HandleAltSvc(HTTP2Frame Frame)
+        {
+
+            if (!HTTP2Frame.TryParseAltSvc(Frame.Payload ?? [], out var origin, out var fieldValue))
+                return;
+
+            // RFC 7838, Section 4: on stream 0 the origin must be present, on any
+            // other stream it must be absent. Either mismatch makes the frame
+            // invalid, and the remedy the RFC gives is to ignore it — there is no
+            // error code for a bad ALTSVC, because it is advisory.
+            if (Frame.StreamId == 0)
+            {
+                if (origin.Length == 0)
+                    return;
+            }
+            else
+            {
+                if (origin.Length != 0)
+                    return;
+
+                // The origin is the one the stream's request named.
+                lock (exchangesLock)
+                {
+                    if (!exchanges.TryGetValue(Frame.StreamId, out var exchange))
+                        return;
+
+                    var scheme    = exchange.RequestHeaders.FirstOrDefault(h => h.Name == ":scheme").Value;
+                    var authority = exchange.RequestHeaders.FirstOrDefault(h => h.Name == ":authority").Value;
+
+                    if (scheme is null || authority is null)
+                        return;
+
+                    origin = $"{scheme}://{authority}";
+                }
+            }
+
+            var parsed = HTTPAlternativeService.Parse(fieldValue, out var clear);
+
+            lock (alternativeServices)
+            {
+                // "clear" is an instruction to forget, not an empty list to store.
+                if (clear)
+                    alternativeServices.Remove(origin);
+                else if (parsed.Count > 0)
+                    alternativeServices[origin] = parsed;
+            }
 
         }
 

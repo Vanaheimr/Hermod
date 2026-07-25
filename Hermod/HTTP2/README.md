@@ -309,6 +309,7 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 | **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer. Both roles emit + the server acts on it. |
 | **8441** | Bootstrapping WebSockets with HTTP/2 | ✅ | Extended CONNECT, `:protocol`, `SETTINGS_ENABLE_CONNECT_PROTOCOL`. |
 | **8336** | The ORIGIN HTTP/2 Frame | ✅ | Server announces its Origin Set; client parses it (ignored on stream ≠ 0 and over h2c). |
+| **7838** | HTTP Alternative Services | ✅ | ALTSVC frame both directions + the `Alt-Svc` field-value grammar; client records alternatives, does not act on them (no HTTP/3 endpoint to act on yet). |
 | **6455** | The WebSocket Protocol | ✅ Complete | Framing, masking, fragmentation, close handshake, UTF-8 validation. Autobahn 517/517. Server **and** client roles. |
 | **7692** | Compression Extensions for WebSocket (permessage-deflate) | ✅ | No-context-takeover mode, negotiated on both HTTP/1.1-Upgrade and HTTP/2-CONNECT handshakes. |
 | **9110** | HTTP Semantics | ✅ | Methods, conditional requests, Range (single + multi), content negotiation, the §11 auth framework. Client-side: content-coding decode + answering a 401; conditional/Range/redirects still server-only. |
@@ -334,7 +335,8 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 
 - 9-byte frame header parse/serialize; all frame types
   (DATA, HEADERS, PRIORITY, RST_STREAM, SETTINGS, PUSH_PROMISE, PING, GOAWAY,
-  WINDOW_UPDATE, CONTINUATION, ORIGIN, PRIORITY_UPDATE).
+  WINDOW_UPDATE, CONTINUATION, ALTSVC, ORIGIN, PRIORITY_UPDATE) — every frame
+  type that is not deprecated.
 - Connection preface + SETTINGS handshake (server-preface-first ordering,
   SETTINGS ACK).
 - Decoupled read/write loops with **true multiplexing** — application handlers
@@ -530,6 +532,18 @@ server only ever formatted `Content-Range`.
 - Plain CONNECT is exempt: there `:authority` is the *tunnel target*, not the
   origin being addressed. Extended CONNECT (RFC 8441) is not exempt — there it
   means exactly what it means in an ordinary request.
+- **ALTSVC frame** (RFC 7838): the neighbouring question — not "which origins do
+  you serve" but "where else is this origin reachable". An alternative is *not* a
+  redirect: it names another protocol/host/port for the **same** origin, so the
+  authority in requests never changes and the 421 check above is unaffected. The
+  server advertises via `AlternativeServices`; the client parses the `Alt-Svc`
+  grammar (`h3=":443"; ma=3600; persist=1`, percent-encoded ALPN names, quoted
+  alt-authorities, `clear` as a distinct "forget everything" signal) into
+  `HTTP2ClientConnection.AlternativeServices`. §4's two shapes are enforced on
+  receipt — an origin is required on stream 0 and forbidden on a request stream,
+  and either mismatch means *ignore the frame*, since the RFC defines no error
+  code for a bad ALTSVC. Recorded but not acted on: acting means dialling HTTP/3,
+  which is exactly what this stack does not implement yet.
 - **ORIGIN frame** (RFC 8336): a server can state the set instead of leaving the
   client to infer it (`OriginSet` on `HTTP2Server`, sent right after the
   preface). An announced set also becomes the yardstick for the 421 check —
@@ -695,8 +709,6 @@ they're common in the wild:
   parsed-and-ignored (only structural self-dependency is validated).
 - **RFC 7540 `Upgrade: h2c`** — removed in RFC 9113 §3.1; only prior-knowledge
   h2c is implemented.
-- **ALTSVC (RFC 7838)** — not implemented (yet); it is the one remaining live
-  extension frame, and the natural bridge to an HTTP/3 endpoint.
 - **`Accept-Charset`** — deprecated in RFC 9110 §12.5.2.
 - **Multi-origin connection pooling** — the pool is single-origin by design.
 

@@ -346,6 +346,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
+        /// <summary>
+        /// RFC 7838, Section 4: an ALTSVC frame. Two shapes, and which one is legal
+        /// depends on the stream it travels on — on stream 0 the origin must be
+        /// stated explicitly, on a request stream it must be omitted because the
+        /// stream already implies it. Sending the wrong combination is not an error
+        /// the peer reports; it simply ignores the frame, so getting it right here
+        /// is the only chance to be heard.
+        /// </summary>
+        /// <param name="Origin">The origin the alternatives apply to (empty on a request stream).</param>
+        /// <param name="AltSvcFieldValue">The <c>Alt-Svc</c> field value, e.g. <c>h3=":443"; ma=3600</c>.</param>
+        /// <param name="StreamId">0 with an origin, or the request stream whose origin is implied.</param>
+        public static HTTP2Frame CreateAltSvc(string Origin, string AltSvcFieldValue, UInt32 StreamId = 0)
+        {
+
+            var originBytes = System.Text.Encoding.ASCII.GetBytes(Origin);
+            var valueBytes  = System.Text.Encoding.ASCII.GetBytes(AltSvcFieldValue);
+
+            if (originBytes.Length > UInt16.MaxValue)
+                throw new ArgumentException($"Origin longer than {UInt16.MaxValue} bytes", nameof(Origin));
+
+            var payload = new byte[2 + originBytes.Length + valueBytes.Length];
+
+            BinaryPrimitives.WriteUInt16BigEndian(payload.AsSpan(0), (UInt16) originBytes.Length);
+            originBytes.CopyTo(payload, 2);
+            valueBytes. CopyTo(payload, 2 + originBytes.Length);
+
+            return new HTTP2Frame {
+                Type     = HTTP2FrameType.ALTSVC,
+                Flags    = HTTP2FrameFlags.NONE,
+                StreamId = StreamId,
+                Length   = (UInt32) payload.Length,
+                Payload  = payload
+            };
+
+        }
+
+        /// <summary>
+        /// Read back an ALTSVC payload (RFC 7838, Section 4). False for a payload
+        /// too short to carry its own origin length, or one whose stated origin
+        /// length runs past the end — a truncated frame tells us nothing, and the
+        /// RFC's remedy for anything wrong with an ALTSVC is to ignore it.
+        /// </summary>
+        public static bool TryParseAltSvc(byte[] Payload, out string Origin, out string AltSvcFieldValue)
+        {
+
+            Origin           = "";
+            AltSvcFieldValue = "";
+
+            if (Payload.Length < 2)
+                return false;
+
+            var originLength = BinaryPrimitives.ReadUInt16BigEndian(Payload.AsSpan(0));
+
+            if (2 + originLength > Payload.Length)
+                return false;
+
+            Origin           = System.Text.Encoding.ASCII.GetString(Payload, 2, originLength);
+            AltSvcFieldValue = System.Text.Encoding.ASCII.GetString(Payload, 2 + originLength,
+                                                                    Payload.Length - 2 - originLength);
+
+            return true;
+
+        }
+
         #endregion
 
 

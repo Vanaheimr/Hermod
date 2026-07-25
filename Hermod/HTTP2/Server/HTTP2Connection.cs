@@ -66,6 +66,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the certificate as it always has.
         /// </summary>
         private readonly string[]?           originSet;
+
+        /// <summary>
+        /// Alternative services announced to the client in an ALTSVC frame (RFC
+        /// 7838) — (origin, Alt-Svc field value) pairs — or null to announce none.
+        /// </summary>
+        private readonly (string Origin, string FieldValue)[]? alternativeServices;
         private readonly HTTP2Settings        localSettings  = new();
         private readonly HTTP2Settings        remoteSettings = new();
         private readonly HTTP2StreamManager   streamManager  = new();
@@ -243,10 +249,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTP2StreamingHandler? StreamingHandler = null,
             long                 MaxRequestBodySize = DefaultMaxRequestBodySize,
             Func<string, bool>?  IsAuthorityServed  = null,
-            string[]?            OriginSet          = null)
+            string[]?            OriginSet          = null,
+            (string Origin, string FieldValue)[]? AlternativeServices = null)
         {
-            this.isAuthorityServed  = IsAuthorityServed;
-            this.originSet          = OriginSet;
+            this.isAuthorityServed   = IsAuthorityServed;
+            this.originSet           = OriginSet;
+            this.alternativeServices = AlternativeServices;
             this.transportStream    = TransportStream;
             this.requestHandler     = RequestHandler;
             this.connectHandler     = ConnectHandler;
@@ -393,6 +401,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // serve *no* origin, which is the opposite of saying nothing.
             if (originSet is not null && originSet.Length > 0)
                 await SendFrameAsync(HTTP2Frame.CreateOrigin(originSet));
+
+            // RFC 7838, Section 4: alternatives are advertised on stream 0 with the
+            // origin named explicitly. Sent right after the preface for the same
+            // reason as ORIGIN — a client that is going to act on this should learn
+            // it before it decides what to do with the connection.
+            if (alternativeServices is not null)
+                foreach (var (origin, fieldValue) in alternativeServices)
+                    await SendFrameAsync(HTTP2Frame.CreateAltSvc(origin, fieldValue));
 
             // We've sent our SETTINGS — start the clock on the peer ACKing them
             // (RFC 9113 §6.5.3). Runs concurrently with the frame loop.
@@ -631,6 +647,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             // error, just nothing to do. Listed explicitly because
                             // we do know this frame type; falling into the
                             // unknown-type default below would read as an oversight.
+                            break;
+
+                        case HTTP2FrameType.ALTSVC:
+                            // RFC 7838, Section 4: likewise server-to-client only —
+                            // "an ALTSVC frame ... received by a server MUST be
+                            // ignored". A client advertising alternatives to us is
+                            // meaningless, not hostile.
                             break;
 
                         case HTTP2FrameType.PUSH_PROMISE:
