@@ -182,9 +182,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return false;
             }
 
-            if (Text != ".")
+            // RFC 4592 §2.1.1: a leading single asterisk makes this a wildcard domain
+            // name. This type is what resource records read from the wire are parsed
+            // into, and the NSEC and RRSIG records that prove a wildcard match carry
+            // such an owner name — see DomainName.TryParse for why only the leftmost
+            // position is accepted.
+            var textToValidate = Text.StartsWith("*.")
+                                     ? Text[2..]
+                                     : Text;
+
+            if (textToValidate != ".")
             {
-                if (!DNSServiceNameRegExpr.IsMatch(Text))
+                if (!DNSServiceNameRegExpr.IsMatch(textToValidate))
                 {
                     ErrorResponse = "The given DNS service does not match the required format!";
                     return false;

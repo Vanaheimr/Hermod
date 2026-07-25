@@ -243,16 +243,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region ParseLenient(Text)
 
         /// <summary>
-        /// Parse the given text as a domain name, additionally tolerating underscore ('_')
-        /// labels. Intended for resource record owner names read from a DNS response, which
-        /// may legitimately be underscore names (e.g. "_dmarc.example.com").
+        /// Parse the given text as a resource record owner name read from a DNS
+        /// response, tolerating the two label forms a hostname never has: underscore
+        /// labels (e.g. "_dmarc.example.com") and a leading wildcard
+        /// (e.g. "*.example.com").
         /// </summary>
         /// <param name="Text">The text representation of a domain name.</param>
         public static DomainName ParseLenient(String Text)
         {
 
-            if (TryParse(Text, out var domainName, out var errorResponse, AllowUnderscoreLabels: true))
+            if (TryParse(Text,
+                         out var domainName,
+                         out var errorResponse,
+                         AllowUnderscoreLabels:  true,
+                         AllowWildcardLabel:     true))
+            {
                 return domainName;
+            }
 
             throw new ArgumentException($"Invalid text representation of a domain name: '{Text}': {errorResponse}",
                                         nameof(Text));
@@ -294,7 +301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => TryParse(Text,
                         out DomainName,
                         out ErrorResponse,
-                        false);
+                        AllowUnderscoreLabels:  false,
+                        AllowWildcardLabel:     false);
 
         #endregion
 
@@ -308,10 +316,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The parsed domain name.</param>
         /// <param name="ErrorResponse">An optional error response in case the parsing fails.</param>
         /// <param name="AllowUnderscoreLabels">Whether to tolerate underscore ('_') labels.</param>
+        /// <param name="AllowWildcardLabel">Whether to tolerate a leading wildcard ('*') label.</param>
         private static Boolean TryParse(String                                Text,
                                         [NotNullWhen(true)]  out DomainName?  DomainName,
                                         [NotNullWhen(false)] out String?      ErrorResponse,
-                                        Boolean                               AllowUnderscoreLabels)
+                                        Boolean                               AllowUnderscoreLabels,
+                                        Boolean                               AllowWildcardLabel)
         {
 
             DomainName     = null;
@@ -339,13 +349,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return false;
             }
 
-            if (Text != ".")
+            // RFC 4592 §2.1.1: a wildcard domain name is one whose leftmost label is a
+            // single asterisk. It is an ordinary label as far as the wire format is
+            // concerned, and it does reach a client — the NSEC and RRSIG records that
+            // prove a wildcard match carry one — so an owner name read from a response
+            // has to be able to hold it.
+            //
+            // Only the leftmost position is accepted. An asterisk anywhere else does
+            // not make a wildcard (§2.1.1 again); such a name is legal on the wire but
+            // has no business being produced by this API, so it is left rejected. The
+            // asterisk is validated here and removed before the regex, which describes
+            // hostname labels and would otherwise have to be duplicated a third time.
+            var textToValidate = Text;
+
+            if (AllowWildcardLabel && textToValidate.StartsWith("*."))
+                textToValidate = textToValidate[2..];
+
+            if (textToValidate != ".")
             {
                 var regExpr = AllowUnderscoreLabels
                                   ? DomainNameWithUnderscoresRegExpr
                                   : DomainNameRegExpr;
 
-                if (!regExpr.IsMatch(Text))
+                if (!regExpr.IsMatch(textToValidate))
                 {
                     ErrorResponse = "The given domain name does not match the required format!";
                     return false;
