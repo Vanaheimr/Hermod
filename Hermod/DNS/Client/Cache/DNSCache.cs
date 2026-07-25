@@ -39,7 +39,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Data
 
         private readonly ConcurrentDictionary<DNSServiceName, DNSCacheEntry>  dnsCache       = [];
-        private readonly ConcurrentDictionary<String, DateTimeOffset>        noDataCache    = [];
+        // Keyed by "<name>|<type>". Case-insensitive because names now keep the case they
+        // arrived in (RFC 1035 §2.3.3) while still being the same name (RFC 4343) — an
+        // ordinal comparer would file "EXAMPLE.com" and "example.com" as separate entries.
+        private readonly ConcurrentDictionary<String, DateTimeOffset>        noDataCache    = new(StringComparer.OrdinalIgnoreCase);
         private readonly Timer                                                cleanUpTimer;
         private readonly Object                                               cleanUpLock    = new();
 

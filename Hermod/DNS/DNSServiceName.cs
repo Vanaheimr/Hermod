@@ -163,7 +163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             DNSService     = null;
             ErrorResponse  = null;
 
-            Text = Text?.Trim().ToLowerInvariant() ?? "";
+            // RFC 1035 §2.3.3: preserve the case of a received name. Comparisons are
+            // case-insensitive instead (RFC 4343) — see Equals/CompareTo/GetHashCode.
+            Text = Text?.Trim() ?? "";
 
             if (Text.IsNullOrEmpty())
             {
@@ -243,6 +245,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             Offsets ??= [];
 
+            // Case-folded compression key — see DomainName.Serialize (RFC 4343).
+            var compressionKey = FullName.ToLowerInvariant();
+
             // Root domain. A name parsed from "." (or "") is represented as a single empty
             // label; it must serialize to just the terminating zero byte. Emitting a zero-length
             // label followed by the terminator would put two 0x00 bytes on the wire and corrupt
@@ -254,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             // Check for compression
-            if (UseCompression && Offsets.TryGetValue(FullName, out var pointerOffset))
+            if (UseCompression && Offsets.TryGetValue(compressionKey, out var pointerOffset))
             {
                 // Pointer: 0xC0 | (offset >> 8), then low byte
                 var pointer = (UInt16) (0xC000 | pointerOffset);
@@ -263,23 +268,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return;
             }
 
-            // Add offset for this name
-            Offsets[FullName] = CurrentOffset;
+            // Record where each suffix of this name starts — see DomainName.Serialize.
+            var offset = CurrentOffset;
 
-            foreach (var label in Labels)
+            for (var i = 0; i < labels.Length; i++)
             {
 
-                var labelBytes = Encoding.ASCII.GetBytes(label);
+                var labelBytes = Encoding.ASCII.GetBytes(labels[i]);
                 if (labelBytes.Length > 63)
                     throw new ArgumentException("Label too long");
+
+                // RFC 1035 §4.1.4: pointers carry a 14-bit offset; never record one that
+                // cannot be represented.
+                var suffixKey = String.Join('.', labels.Skip(i)).ToLowerInvariant() + ".";
+                if (offset <= 0x3FFF && !Offsets.ContainsKey(suffixKey))
+                    Offsets[suffixKey] = offset;
 
                 Stream.WriteByte((Byte) labelBytes.Length);
                 Stream.Write    (labelBytes, 0, labelBytes.Length);
 
-                // Update offset for suffixes
-                var suffix = String.Join(".", labels.AsEnumerable().Skip(Array.IndexOf(labels, label) + 1));
-                if (!String.IsNullOrEmpty(suffix) && !Offsets.ContainsKey(suffix))
-                    Offsets[suffix] = CurrentOffset + 1 + labelBytes.Length;
+                offset += 1 + labelBytes.Length;
 
             }
 
@@ -443,7 +451,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (DNSService is null)
                 throw new ArgumentNullException(nameof(DNSService), "The given DNS service must not be null!");
 
-            return FullName.CompareTo(DNSService.FullName);
+            return String.Compare(FullName,
+                                  DNSService.FullName,
+                                  StringComparison.OrdinalIgnoreCase);
 
         }
 
@@ -476,9 +486,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => DNSService is not null &&
 
+               // RFC 4343: names are case-insensitive. Must agree with GetHashCode(),
+               // which hashes case-insensitively — InMemoryDNSZone keys a dictionary
+               // on this type, so a mismatch here silently loses records.
                String.Equals(FullName,
                              DNSService.FullName,
-                             StringComparison.Ordinal);
+                             StringComparison.OrdinalIgnoreCase);
 
         #endregion
 

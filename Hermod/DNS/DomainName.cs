@@ -317,7 +317,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             DomainName     = null;
             ErrorResponse  = null;
 
-            Text = Text?.Trim().ToLowerInvariant() ?? "";
+            // RFC 1035 §2.3.3: "When you receive a domain name or label, you should
+            // preserve its case." The case of a name is therefore carried through
+            // unchanged; every comparison below (and in Equals/CompareTo/GetHashCode)
+            // is case-insensitive instead, per RFC 4343. Normalizing here would also
+            // make dns-0x20 query randomization impossible to build on top of this type.
+            Text = Text?.Trim() ?? "";
 
             if (Text.IsNullOrEmpty())
             {
@@ -407,6 +412,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             Offsets ??= [];
 
+            // Compression keys are case-folded, because RFC 4343 makes names that differ
+            // only in case the same name: "MiXeD.example." may legitimately be compressed
+            // against an earlier "mixed.example.". Folding the key here rather than relying
+            // on the dictionary's comparer keeps this correct no matter how the caller
+            // constructed it. Only the key is folded — the labels written below keep their
+            // original case, which is what preserves it on the wire (RFC 1035 §2.3.3).
+            var compressionKey = FullName.ToLowerInvariant();
+
             // Root domain. A name parsed from "." (or "") has no real labels; depending on the
             // parse path it is represented either as an empty label set or as a single empty
             // label. Both must serialize to just the terminating zero byte — emitting a zero-length
@@ -419,7 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             // Check for compression
-            if (UseCompression && Offsets.TryGetValue(FullName, out var pointerOffset))
+            if (UseCompression && Offsets.TryGetValue(compressionKey, out var pointerOffset))
             {
                 // Pointer: 0xC0 | (offset >> 8), then low byte
                 UInt16 pointer = (UInt16)(0xC000 | pointerOffset);
@@ -428,23 +441,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return;
             }
 
-            // Add offset for this name
-            Offsets[FullName] = CurrentOffset;
+            // Every suffix of this name is itself a name, so record where each one starts:
+            // a later "example.com." can then point at the tail of an earlier
+            // "www.example.com.". The running offset must advance label by label — measuring
+            // every suffix from CurrentOffset only happens to be right for the first one.
+            var offset = CurrentOffset;
 
-            foreach (var label in Labels)
+            for (var i = 0; i < labels.Length; i++)
             {
 
-                var labelBytes = Encoding.ASCII.GetBytes(label);
+                var labelBytes = Encoding.ASCII.GetBytes(labels[i]);
                 if (labelBytes.Length > 63)
                     throw new ArgumentException("Label too long");
+
+                // RFC 1035 §4.1.4: a pointer carries a 14-bit offset, so anything at or
+                // beyond 16384 can never be pointed at. Recording it would emit a pointer
+                // with the high bits silently truncated, corrupting the message.
+                var suffixKey = String.Join('.', labels.Skip(i)).ToLowerInvariant() + ".";
+                if (offset <= 0x3FFF && !Offsets.ContainsKey(suffixKey))
+                    Offsets[suffixKey] = offset;
 
                 Stream.WriteByte((Byte) labelBytes.Length);
                 Stream.Write    (labelBytes, 0, labelBytes.Length);
 
-                // Update offset for suffixes
-                var suffix = String.Join(".", labels.AsEnumerable().Skip(Array.IndexOf(labels, label) + 1));
-                if (!String.IsNullOrEmpty(suffix) && !Offsets.ContainsKey(suffix))
-                    Offsets[suffix] = CurrentOffset + 1 + labelBytes.Length;
+                offset += 1 + labelBytes.Length;
 
             }
 
@@ -482,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator == (DomainName DomainName1,
                                            String     DomainName2)
 
-            => DomainName1.FullName.Equals(DomainName2);
+            => DomainName1.FullName.Equals(DomainName2, StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -512,7 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator != (DomainName DomainName1,
                                            String     DomainName2)
 
-            => !DomainName1.FullName.Equals(DomainName2);
+            => !DomainName1.FullName.Equals(DomainName2, StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -607,7 +627,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (DomainName is null)
                 throw new ArgumentNullException(nameof(DomainName), "The given domain name must not be null!");
 
-            return FullName.CompareTo(DomainName.FullName);
+            // RFC 4343: domain names compare without regard to case.
+            return String.Compare(FullName,
+                                  DomainName.FullName,
+                                  StringComparison.OrdinalIgnoreCase);
 
         }
 
@@ -640,9 +663,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => DomainName is not null &&
 
+               // RFC 4343: "example.com" and "EXAMPLE.COM" are the same name. This must
+               // agree with GetHashCode(), which has always hashed case-insensitively.
                String.Equals(FullName,
                              DomainName.FullName,
-                             StringComparison.Ordinal);
+                             StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
