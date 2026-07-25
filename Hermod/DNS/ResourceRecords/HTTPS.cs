@@ -122,47 +122,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Priority    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.TargetName  = DNSTools.ExtractDomainName(Stream);
+            var rdLength       = Stream.ReadUInt16BE();
+            var rdataStart     = Stream.Position;
 
-            var svcParams    = new List<SVCParameter>();
+            this.Priority      = Stream.ReadUInt16BE();
+            this.TargetName    = DNSTools.ExtractDomainName(Stream);
 
-            while (true)
-            {
-
-                var b1 = Stream.ReadByte();
-
-                if (b1 == -1)
-                    break;
-
-                var b2 = Stream.ReadByte();
-
-                if (b2 == -1)
-                    break;
-
-                var key = (UInt16) ((b1 << 8) | b2);
-                b1 = Stream.ReadByte();
-                b2 = Stream.ReadByte();
-
-                if (b2 == -1)
-                    break;
-
-                var len   = (UInt16) ((b1 << 8) | b2);
-                var value = new Byte[len];
-
-                if (Stream.Read(value, 0, len) != len)
-                    break;
-
-                svcParams.Add(
-                    new SVCParameter(
-                        key,
-                        value
-                    )
-                );
-
-            }
-
-            this.SVCParameters = svcParams.AsReadOnly();
+            this.SVCParameters = SVCB.ParseSVCParameters(
+                                     Stream,
+                                     rdLength - (Int32) (Stream.Position - rdataStart)
+                                 ).AsReadOnly();
 
         }
 
@@ -184,49 +153,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            var rdLength = Stream.ReadUInt16BE();
+            var rdLength       = Stream.ReadUInt16BE();
+            var rdataStart     = Stream.Position;
 
-            this.Priority    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.TargetName  = DNSTools.ExtractDomainName(Stream);
+            this.Priority      = Stream.ReadUInt16BE();
+            this.TargetName    = DNSTools.ExtractDomainName(Stream);
 
-            var svcParams    = new List<SVCParameter>();
-
-            while (true)
-            {
-
-                var b1 = Stream.ReadByte();
-
-                if (b1 == -1)
-                    break;
-
-                var b2 = Stream.ReadByte();
-
-                if (b2 == -1)
-                    break;
-
-                var key = (UInt16) ((b1 << 8) | b2);
-                b1 = Stream.ReadByte();
-                b2 = Stream.ReadByte();
-
-                if (b2 == -1)
-                    break;
-
-                var len   = (UInt16) ((b1 << 8) | b2);
-                var value = new Byte[len];
-
-                if (Stream.Read(value, 0, len) != len)
-                    break;
-
-                svcParams.Add(
-                    new SVCParameter(
-                        key,
-                        value
-                    )
-                );
-
-            }
-
-            this.SVCParameters = svcParams.AsReadOnly();
+            this.SVCParameters = SVCB.ParseSVCParameters(
+                                     Stream,
+                                     rdLength - (Int32) (Stream.Position - rdataStart)
+                                 ).AsReadOnly();
 
         }
 

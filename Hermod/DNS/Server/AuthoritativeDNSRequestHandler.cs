@@ -29,15 +29,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public Boolean  RecursionAvailable  { get; }
 
+        /// <summary>
+        /// The UDP payload size this server advertises in its own OPT record
+        /// (RFC 6891 §6.2.4). The default of 1232 bytes follows the DNS Flag Day
+        /// 2020 recommendation: it stays below common path-MTU limits, so
+        /// responses do not fragment.
+        /// </summary>
+        public UInt16   UDPPayloadSize      { get; }
+
 
         public AuthoritativeDNSRequestHandler(IDNSZoneStore  ZoneStore,
-                                              Boolean        RecursionAvailable = false)
+                                              Boolean        RecursionAvailable   = false,
+                                              UInt16         UDPPayloadSize       = 1232)
         {
 
             this.zoneStore           = ZoneStore;
             this.RecursionAvailable  = RecursionAvailable;
+            this.UDPPayloadSize      = UDPPayloadSize;
 
         }
+
+
+        #region (private) BuildResponseOPT(Request, ResponseCode)
+
+        /// <summary>
+        /// Build the OPT record for a response, or null when the request had none.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6891 §6.1.1: a responder that implements EDNS "MUST include an OPT
+        /// record in their respective responses" — an EDNS query is answered with
+        /// an EDNS response. The OPT advertises this server's own payload size
+        /// (§6.2.4) and carries the upper 8 bits of an extended RCODE (§6.1.3).
+        /// Options are deliberately not echoed: unknown options MUST be ignored
+        /// (§6.1.2), and reflecting them would make the server an amplifier.
+        /// </remarks>
+        private OPT? BuildResponseOPT(DNSPacket         Request,
+                                      DNSResponseCodes  ResponseCode)
+        {
+
+            if (!Request.AdditionalRRs.OfType<OPT>().Any())
+                return null;
+
+            return new OPT(
+                       UDPPayloadSize:  UDPPayloadSize,
+                       ExtendedRCODE:   (Byte) ((Int32) ResponseCode >> 4),
+                       Version:         0,
+                       Flags:           0
+                   );
+
+        }
+
+        #endregion
 
 
         public async Task<DNSResponse?> ProcessDNSRequest(DNSPacket          Request,
@@ -47,32 +89,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (Request.QueryOrResponse != DNSQueryResponse.Query)
                 return null;
 
-            if (Request.Opcode != 0)
+            DNSResponse Error(DNSResponseCodes ResponseCode)
+            {
+
+                var opt = BuildResponseOPT(Request, ResponseCode);
+
                 return Request.CreateResponse(
                            Opcode:               Request.Opcode,
                            AuthoritativeAnswer:  false,
                            Truncation:           false,
                            RecursionDesired:     Request.RecursionDesired,
                            RecursionAvailable:   RecursionAvailable,
-                           ResponseCode:         DNSResponseCodes.NotImplemented,
+                           ResponseCode:         ResponseCode,
                            AnswerRRs:            [],
                            AuthorityRRs:         [],
-                           AdditionalRRs:        []
+                           AdditionalRRs:        opt is not null ? [ opt ] : []
                        );
+
+            }
+
+            // RFC 6891 §6.1.3: "If a responder does not implement the VERSION
+            // level of the request, then it MUST respond with RCODE=BADVERS."
+            // Only EDNS version 0 is defined today.
+            var requestOPT = Request.AdditionalRRs.OfType<OPT>().FirstOrDefault();
+
+            if (requestOPT is not null && requestOPT.Version > 0)
+                return Error(DNSResponseCodes.BadVersion);
+
+            if (Request.Opcode != 0)
+                return Error(DNSResponseCodes.NotImplemented);
 
             var questions = Request.Questions.ToArray();
             if (questions.Length == 0)
-                return Request.CreateResponse(
-                           Opcode:               Request.Opcode,
-                           AuthoritativeAnswer:  false,
-                           Truncation:           false,
-                           RecursionDesired:     Request.RecursionDesired,
-                           RecursionAvailable:   RecursionAvailable,
-                           ResponseCode:         DNSResponseCodes.FormatError,
-                           AnswerRRs:            [],
-                           AuthorityRRs:         [],
-                           AdditionalRRs:        []
-                       );
+                return Error(DNSResponseCodes.FormatError);
 
             var answers            = new List<IDNSResourceRecord>();
             var authorities        = new List<IDNSResourceRecord>();
@@ -103,6 +152,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (!foundName)
                 responseCode = DNSResponseCodes.NameError;
+
+            // RFC 6891 §6.1.1: mirror EDNS by carrying an OPT in the response.
+            var responseOPT = BuildResponseOPT(Request, responseCode);
+
+            if (responseOPT is not null)
+                additionalRecords.Add(responseOPT);
 
             return Request.CreateResponse(
                        Opcode:               Request.Opcode,

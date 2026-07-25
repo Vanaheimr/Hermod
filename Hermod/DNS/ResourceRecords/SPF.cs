@@ -109,7 +109,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Rules = DNSTools.ExtractName(Stream);
+            var rdLength = Stream.ReadUInt16BE();
+
+            // RFC 7208 §3.1: SPF shares the TXT RDATA format — one or more
+            // <character-string>s, concatenated. It is not a domain name.
+            this.Rules = String.Concat(DNSTools.ExtractCharacterStrings(Stream, rdLength));
 
         }
 
@@ -133,7 +137,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var rdLength = Stream.ReadUInt16BE();
 
-            this.Rules = DNSTools.ExtractName(Stream);
+            // RFC 7208 §3.1: SPF shares the TXT RDATA format — one or more
+            // <character-string>s, concatenated. It is not a domain name.
+            this.Rules = String.Concat(DNSTools.ExtractCharacterStrings(Stream, rdLength));
 
         }
 

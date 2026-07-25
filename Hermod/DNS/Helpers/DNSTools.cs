@@ -150,6 +150,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region ExtractCharacterStrings(Stream, RDLength)
+
+        /// <summary>
+        /// Read exactly RDLength octets of RDATA as a sequence of
+        /// &lt;character-string&gt;s (RFC 1035 §3.3).
+        /// </summary>
+        /// <remarks>
+        /// RDLENGTH delimits the RDATA (RFC 1035 §4.1.3), so the count of
+        /// character-strings follows from it — there is no terminator. Reading
+        /// beyond it would consume the following resource record; stopping
+        /// short would leave the stream misaligned for it.
+        /// </remarks>
+        /// <param name="Stream">A stream positioned at the start of the RDATA.</param>
+        /// <param name="RDLength">The RDATA length in octets, as read from the RDLENGTH field.</param>
+        public static IEnumerable<String> ExtractCharacterStrings(Stream  Stream,
+                                                                  Int32   RDLength)
+        {
+
+            var strings    = new List<String>();
+            var remaining  = RDLength;
+
+            while (remaining > 0)
+            {
+
+                var length = Stream.ReadByte();
+
+                if (length < 0)
+                    throw new EndOfStreamException("Unexpected end of stream while reading a character-string!");
+
+                remaining--;
+
+                if (length > remaining)
+                    throw new InvalidDataException($"character-string of {length} bytes exceeds the {remaining} bytes remaining within RDLENGTH!");
+
+                var buffer = new Byte[length];
+                Stream.ReadExactly(buffer, 0, length);
+
+                strings.Add(Encoding.ASCII.GetString(buffer));
+                remaining -= length;
+
+            }
+
+            return strings;
+
+        }
+
+        #endregion
+
         #region ExtractCharacterStrings(Stream)
 
         public static IEnumerable<String> ExtractCharacterStrings(Stream Stream)

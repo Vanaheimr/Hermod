@@ -66,6 +66,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public Boolean   UseCompression         { get; init; } = false;
 
+        /// <summary>
+        /// The largest UDP response this server will emit, even when a requestor
+        /// advertises a bigger EDNS0 buffer. The default of 1232 bytes follows the
+        /// DNS Flag Day 2020 recommendation and keeps responses below common path
+        /// MTUs, so they do not fragment. Larger answers are truncated with TC=1,
+        /// which tells the client to retry over TCP (RFC 1035 §4.2.1).
+        /// </summary>
+        public UInt16    MaxUDPResponseSize     { get; init; } = 1232;
+
     }
 
 }

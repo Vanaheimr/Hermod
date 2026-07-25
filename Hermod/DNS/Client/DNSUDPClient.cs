@@ -274,37 +274,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 await socket.SendToAsync(ms.ToArray(), SocketFlags.None, remoteEndPoint, timeoutCTS.Token).
                              ConfigureAwait(false);
 
-                var data      = new Byte[Math.Max(4096, (Int32) UDPPayloadSize)];
-                var received  = await socket.ReceiveAsync(data, SocketFlags.None, timeoutCTS.Token).
-                                             ConfigureAwait(false);
+                var data = new Byte[Math.Max(4096, (Int32) UDPPayloadSize)];
 
-                var response = DNSInfo.ReadResponse(
-                                  new DNSServerConfig(
-                                      RemoteIPAddress!,
-                                      RemotePort ?? IPPort.DNS,
-                                      DNSTransport.UDP,
-                                      effectiveTimeout
-                                  ),
-                                  dnsQuery.TransactionId,
-                                  new MemoryStream(data, 0, received),
-                                  effectiveTimeout,
-                                  stopwatch.Elapsed
-                              );
-
-                // RFC 5966: If the UDP response is truncated, retry via TCP
-                if (response.IsTruncated)
+                while (true)
                 {
-                    logger.LogDebug(
-                        "DNS UDP response from {RemoteIPAddress}:{RemotePort} was truncated; retrying via TCP",
-                        RemoteIPAddress,
-                        RemotePort
-                    );
 
-                    return await QueryViaTCPFallbackAsync(dnsQuery, effectiveTimeout, timeoutCTS.Token).
-                                     ConfigureAwait(false);
+                    var received = await socket.ReceiveAsync(data, SocketFlags.None, timeoutCTS.Token).
+                                                ConfigureAwait(false);
+
+                    // RFC 5452 §4.2: a resolver MUST ignore responses that do not
+                    // match the outstanding query. "Ignore" means keep waiting for
+                    // the genuine reply — treating the first datagram as final would
+                    // let any off-path attacker cancel a lookup with one forged
+                    // packet. The overall timeout still bounds the wait.
+                    if (received < 2 ||
+                        ((data[0] << 8) | data[1]) != dnsQuery.TransactionId)
+                    {
+
+                        logger.LogDebug(
+                            "Ignoring a DNS UDP datagram from {RemoteIPAddress}:{RemotePort} that does not match transaction id {TransactionId}",
+                            RemoteIPAddress,
+                            RemotePort,
+                            dnsQuery.TransactionId
+                        );
+
+                        continue;
+
+                    }
+
+                    var response = DNSInfo.ReadResponse(
+                                      new DNSServerConfig(
+                                          RemoteIPAddress!,
+                                          RemotePort ?? IPPort.DNS,
+                                          DNSTransport.UDP,
+                                          effectiveTimeout
+                                      ),
+                                      dnsQuery.TransactionId,
+                                      new MemoryStream(data, 0, received),
+                                      effectiveTimeout,
+                                      stopwatch.Elapsed
+                                  );
+
+                    // RFC 5966: If the UDP response is truncated, retry via TCP
+                    if (response.IsTruncated)
+                    {
+                        logger.LogDebug(
+                            "DNS UDP response from {RemoteIPAddress}:{RemotePort} was truncated; retrying via TCP",
+                            RemoteIPAddress,
+                            RemotePort
+                        );
+
+                        return await QueryViaTCPFallbackAsync(dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                                         ConfigureAwait(false);
+                    }
+
+                    return response;
+
                 }
-
-                return response;
 
             }
             catch (SocketException se) when (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)

@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Text;
+
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -124,9 +126,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = URL.Parse(DNSTools.ExtractName(Stream));
+            var rdLength   = Stream.ReadUInt16BE();
+
+            this.Priority  = Stream.ReadUInt16BE();
+            this.Weight    = Stream.ReadUInt16BE();
+
+            // RFC 7553 §4.5: the Target is the remaining octets of the RDATA.
+            this.Target    = URL.Parse(ReadTarget(Stream, rdLength));
 
         }
 
@@ -148,11 +154,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            var rdLength = Stream.ReadUInt16BE();
+            var rdLength   = Stream.ReadUInt16BE();
 
-            this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = URL.Parse(DNSTools.ExtractName(Stream));
+            this.Priority  = Stream.ReadUInt16BE();
+            this.Weight    = Stream.ReadUInt16BE();
+
+            // RFC 7553 §4.5: the Target is the remaining octets of the RDATA.
+            this.Target    = URL.Parse(ReadTarget(Stream, rdLength));
 
         }
 
@@ -195,6 +203,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+
+        #region (private static) ReadTarget(Stream, RDLength)
+
+        /// <summary>
+        /// Read the URI Target: the RDATA octets remaining after the 2-byte
+        /// Priority and 2-byte Weight fields (RFC 7553 §4.5).
+        /// </summary>
+        private static String ReadTarget(Stream  Stream,
+                                         UInt16  RDLength)
+        {
+
+            if (RDLength < 4)
+                throw new InvalidDataException($"URI RDATA of {RDLength} bytes is too short for Priority and Weight!");
+
+            var buffer = new Byte[RDLength - 4];
+            Stream.ReadExactly(buffer, 0, buffer.Length);
+
+            return Encoding.ASCII.GetString(buffer);
+
+        }
+
+        #endregion
 
         #region (static) TryParseFromJSON(Name, TimeToLive, Data)
 
@@ -242,29 +272,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                 Dictionary<String, Int32>?  CompressionOffsets   = null)
         {
 
-            var tempStream = new MemoryStream();
+            // RFC 7553 §4.5: the Target is "the remaining octets of the RDATA"
+            // — plain octets, NOT a domain name and NOT a character-string, so
+            // it carries neither a length prefix nor label encoding, and name
+            // compression MUST NOT be applied to it.
+            var target   = Encoding.ASCII.GetBytes(Target.ToString());
 
-            tempStream.WriteUInt16BE(Priority);
-            tempStream.WriteUInt16BE(Weight);
+            var dataLen  = 2 + 2 + target.Length;
 
-            // TARGET domain-name (variable, with compression)
-            var targetOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
-            Target.ToString().Serialize(
-                tempStream,
-                targetOffset,
-                UseCompression,
-                CompressionOffsets
-            );
-
-            if (tempStream.Length > UInt16.MaxValue)
+            if (dataLen > UInt16.MaxValue)
                 throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
 
-            // RDLENGTH: Variable, when compression is used!
-            Stream.WriteUInt16BE(tempStream.Length);
+            Stream.WriteUInt16BE(dataLen);
 
-            // Copy RDATA to main stream
-            tempStream.Position = 0;
-            tempStream.CopyTo(Stream);
+            Stream.WriteUInt16BE(Priority);
+            Stream.WriteUInt16BE(Weight);
+            Stream.Write(target, 0, target.Length);
 
         }
 
