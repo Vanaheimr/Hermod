@@ -664,7 +664,8 @@ down to `StartRequestAsync` to observe the refusal at all.
   receipt — an origin is required on stream 0 and forbidden on a request stream,
   and either mismatch means *ignore the frame*, since the RFC defines no error
   code for a bad ALTSVC. Recorded but not acted on: acting means dialling HTTP/3,
-  which is exactly what this stack does not implement yet.
+  which is a different transport and a different project (see "Explicitly out of
+  scope").
 - **ORIGIN frame** (RFC 8336): a server can state the set instead of leaving the
   client to infer it (`OriginSet` on `HTTP2Server`, sent right after the
   preface). An announced set also becomes the yardstick for the 421 check —
@@ -900,6 +901,10 @@ they're common in the wild:
   h2c is implemented.
 - **`Accept-Charset`** — deprecated in RFC 9110 §12.5.2.
 - **Multi-origin connection pooling** — the pool is single-origin by design.
+- **HTTP/3** — a different transport (QUIC + QPACK + H3 framing) sharing only the
+  version-independent HTTP semantics with this stack, which is precisely why
+  `Core` was cut the way it is. It is not a future track here: it lives in the
+  sibling project **`HTTP3FromScratch`**.
 
 ---
 
