@@ -643,12 +643,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                 // NODATA: NoError but zero answers — cache per (domain, type)
                                 // so that a NODATA for AAAA does not suppress valid A records.
-                                // Uses the SOA minimum TTL from the authority section (RFC 2308),
-                                // falling back to the configured negative cache TTL.
-                                var noDataTTL = firstResponse.Authorities.
-                                                    OfType<SOA>().
-                                                    Select(soa => soa.TimeToLive).
-                                                    FirstOrDefault(DNSCache.DefaultNegativeCacheTTL);
+                                // RFC 2308 §4 sets the lifetime from min(SOA MINIMUM, SOA TTL);
+                                // reading only the record's TTL ignores the MINIMUM field that
+                                // RFC 2308 repurposed for precisely this.
+                                var noDataTTL = DNSCache.ComputeNegativeCacheTTL(firstResponse);
 
                                 foreach (var recordType in resourceRecordTypes)
                                 {
