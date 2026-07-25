@@ -412,11 +412,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
             using var activity = HTTP2Diagnostics.StartRequest(Method, Scheme, Authority, Path, 0, "client");
 
-            var handle   = await StartRequestAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
+            // One issue of the request, repeated once if the origin answers 425.
+            async Task<HTTP2Response> IssueAsync(List<(string Name, string Value)>? Headers)
+            {
 
-            activity?.SetTag("http2.stream_id", handle.StreamId);
+                var handle = await StartRequestAsync(Method, Scheme, Authority, Path, Headers, Body, Priority, CancellationToken);
+                activity?.SetTag("http2.stream_id", handle.StreamId);
 
-            var response = await handle.Response;
+                var result = await handle.Response;
+
+                // RFC 8470, Section 5.2: 425 (Too Early) says an intermediary
+                // forwarded this out of *its* early data and the origin would not
+                // risk a replay. It also says the request was not processed, so one
+                // repeat is safe — and this connection's own handshake completed
+                // long ago, which is precisely the condition the status asks us to
+                // wait for. Exactly once: a second 425 is an answer, not a hint.
+                //
+                // The repeat drops any Early-Data field the caller attached, since
+                // it is no longer true of this attempt — leaving it on would earn
+                // the same refusal for the same stated reason.
+                if (result.Status == 425)
+                {
+
+                    var retryHeaders = Headers?.Where(header => header.Name != "early-data").ToList();
+
+                    var again = await StartRequestAsync(Method, Scheme, Authority, Path, retryHeaders, Body, Priority, CancellationToken);
+                    activity?.SetTag("http2.stream_id", again.StreamId);
+
+                    result = await again.Response;
+
+                }
+
+                return result;
+
+            }
+
+            var response = await IssueAsync(ExtraHeaders);
 
             HTTP2Diagnostics.Complete(activity, response.Status);
 
@@ -448,8 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     List<(string Name, string Value)> retryHeaders = ExtraHeaders is null ? [] : [.. ExtraHeaders];
                     retryHeaders.Add(("authorization", authorization));
 
-                    var retry = await StartRequestAsync(Method, Scheme, Authority, Path, retryHeaders, Body, Priority, CancellationToken);
-                    return await retry.Response;
+                    return await IssueAsync(retryHeaders);
 
                 }
 

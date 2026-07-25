@@ -323,6 +323,7 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 | **9110** | HTTP Semantics | ✅ | Methods, conditional requests, Range (single + multi), content negotiation, the §11 auth framework — all mirrored on the client (decode, 401 answering, conditional/Range download resume, redirects). |
 | **9111** | HTTP Caching | ✅ | Client-side cache with shared/private semantics. |
 | **9530** | Digest Fields | ✅ | `Content-Digest` / `Repr-Digest` + the two `Want-…` fields, both directions, sha-256 and sha-512. Opt-in on either role. |
+| **8470** | Using Early Data in HTTP | ◑ Partial | The reachable half: the server judges an intermediary's `Early-Data: 1` and answers **425 (Too Early)**; the client repeats a 425 once, without the field. We terminate no 0-RTT ourselves — `SslStream` has no early-data API — so there is nothing else to implement. |
 | **7617** | Basic Authentication | ✅ | |
 | **6750** | Bearer Token Usage | ✅ | |
 | **7616** | Digest Access Authentication | ✅ | Challenge-response, SHA-256 (+ MD5 interop), stateless nonce, `qop=auth`. |
@@ -569,6 +570,48 @@ Everything else is reported rather than thrown, and
 nothing was checked. Collapsing "there was no digest" into a boolean `true` would
 quietly turn an unverified body into a verified one, which is the one failure
 this feature exists to prevent.
+
+### Early data and 425 (RFC 8470)
+
+TLS 1.3 lets a client put application data in its first flight, before the
+handshake completes. Those octets carry no proof of freshness: an attacker who
+captured them can send them again, and the server cannot tell the copy from the
+original. Everything here follows from that one hazard — **replay**, not
+eavesdropping.
+
+**This stack terminates no early data.** `SslStream` exposes no 0-RTT API at all
+— nothing to offer it with, nothing to accept it with, and no way to ask whether
+bytes arrived that way. (Checked, not assumed: the type has `AllowTlsResume` for
+session resumption and nothing whatsoever for early data.) On a connection we
+terminate there is therefore no replay window, and the honest thing is to say so
+rather than to implement a defence against a condition that cannot arise.
+
+What *can* reach us is the other case the RFC defines: an intermediary. A CDN or
+reverse proxy that accepted early data and forwarded the request onward must mark
+it `Early-Data: 1` (§5.1). The origin behind it holds the risk without having
+seen the handshake, and the field exists precisely so it can decide. Ignoring the
+field is not neutral — it is silently accepting a replay the peer went out of its
+way to warn about, which is what this stack used to do.
+
+- **Server.** A flagged request is judged by `AcceptEarlyData`, defaulting to
+  `HTTP2EarlyData.IsSafeToProcess`: safe methods pass, everything else is
+  declined with **425 (Too Early)** and `Cache-Control: no-store`, so a refusal
+  cannot outlive the reason for it. Safety, not idempotence, is the bar —
+  replaying a `PUT` *after* a later request changed the resource undoes that
+  change, so the idempotence guarantee (which is about repetition) does not cover
+  reordering. Pass `_ => true` to accept the risk deliberately. Checked on the
+  buffered *and* the streaming dispatch path; the latter never passes through the
+  former, which is the same trap 421 fell into once.
+- **Client.** A 425 says the request was not processed and should be repeated
+  once the handshake has completed — which, on a connection we already own, it
+  long since has. `SendRequestAsync` therefore repeats it exactly once, **dropping
+  any `Early-Data` field**, since leaving it on would restate the very thing the
+  origin refused. A second 425 is an answer, not a hint, and is handed back.
+
+Put together, the two halves recover silently: our server declines the flagged
+POST, our client repeats it clean, and the caller sees a 200. That is the
+mechanism working — and it is also why the server-side tests have to go one layer
+down to `StartRequestAsync` to observe the refusal at all.
 
 ### TLS profile (RFC 9113, Section 9.2)
 
@@ -881,6 +924,7 @@ they're common in the wild:
 - RFC 9110 — HTTP Semantics
 - RFC 9111 — HTTP Caching
 - RFC 9530 — Digest Fields
+- RFC 8470 — Using Early Data in HTTP
 - RFC 7617 — The 'Basic' HTTP Authentication Scheme
 - RFC 6750 — OAuth 2.0 Bearer Token Usage
 - RFC 7616 — HTTP Digest Access Authentication

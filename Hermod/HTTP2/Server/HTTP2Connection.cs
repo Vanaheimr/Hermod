@@ -72,6 +72,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// 7838) — (origin, Alt-Svc field value) pairs — or null to announce none.
         /// </summary>
         private readonly (string Origin, string FieldValue)[]? alternativeServices;
+
+        /// <summary>
+        /// Whether a request an intermediary flagged <c>Early-Data: 1</c> (RFC 8470)
+        /// may be processed anyway, or must be declined with <c>425</c>. Null uses
+        /// <see cref="HTTP2EarlyData.IsSafeToProcess"/> — safe methods only — which
+        /// is the whole point of the field; pass <c>_ =&gt; true</c> to accept the
+        /// replay risk deliberately.
+        /// </summary>
+        private readonly Func<List<(string Name, string Value)>, bool> acceptEarlyData;
         private readonly HTTP2Settings        localSettings  = new();
         private readonly HTTP2Settings        remoteSettings = new();
         private readonly HTTP2StreamManager   streamManager  = new();
@@ -250,11 +259,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             long                 MaxRequestBodySize = DefaultMaxRequestBodySize,
             Func<string, bool>?  IsAuthorityServed  = null,
             string[]?            OriginSet          = null,
-            (string Origin, string FieldValue)[]? AlternativeServices = null)
+            (string Origin, string FieldValue)[]? AlternativeServices = null,
+            Func<List<(string Name, string Value)>, bool>? AcceptEarlyData = null)
         {
             this.isAuthorityServed   = IsAuthorityServed;
             this.originSet           = OriginSet;
             this.alternativeServices = AlternativeServices;
+            this.acceptEarlyData     = AcceptEarlyData ?? HTTP2EarlyData.IsSafeToProcess;
             this.transportStream    = TransportStream;
             this.requestHandler     = RequestHandler;
             this.connectHandler     = ConnectHandler;
@@ -1139,8 +1150,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     // so inbound DATA keeps being flow-control-accounted normally;
                     // only the task we start differs. The peer's own send window
                     // bounds what it can push into a body nobody reads.
+                    // Both pre-dispatch refusals (421 and RFC 8470's 425) have to be
+                    // repeated here for the same reason: a streaming handler is
+                    // dispatched at HEADERS-complete and never passes through
+                    // DispatchRequestAsync, where the buffered path checks them.
                     if (isAuthorityServed is not null && !IsAuthoritativeFor(decoded))
                         StartMisdirectedRequestResponse(Stream);
+                    else if (IsTooEarly(decoded))
+                        StartTooEarlyResponse(Stream);
                     else
                         StartStreamingHandler(Stream);
                 }
@@ -2356,6 +2373,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                        }
                    }, CancellationToken.None);
 
+        /// <summary>
+        /// Whether this request must be declined with <c>425</c> (RFC 8470): it
+        /// carries <c>Early-Data: 1</c> and the policy will not take the replay risk.
+        /// A request without the field is not early data as far as we can tell, and
+        /// is never refused on these grounds — we terminate no early data ourselves
+        /// (<see cref="HTTP2EarlyData"/>), so the field is the only evidence there is.
+        /// </summary>
+        private bool IsTooEarly(List<(string Name, string Value)> RequestHeaders)
+
+            => HTTP2EarlyData.IsFlagged(RequestHeaders) &&
+               !acceptEarlyData(RequestHeaders);
+
+        /// <summary>
+        /// Answer 425 (Too Early): we will not risk processing a request that might
+        /// be a replay. RFC 8470, Section 5.2 — the client may repeat it once the
+        /// handshake has completed, and the response is not cacheable, so a stale
+        /// refusal cannot outlive the reason for it.
+        /// </summary>
+        private Task SendTooEarlyAsync(HTTP2Stream Stream)
+
+            => SendResponseAsync(
+                   Stream,
+                   [(":status", "425"), ("content-type", "text/plain"), ("cache-control", "no-store")],
+                   Encoding.UTF8.GetBytes("Too Early")
+               );
+
+        /// <summary>
+        /// The fire-and-forget form, for the streaming path — the frame read loop
+        /// must not block on a response's flow control.
+        /// </summary>
+        private void StartTooEarlyResponse(HTTP2Stream Stream)
+
+            => _ = Task.Run(async () => {
+                       try
+                       {
+                           await SendTooEarlyAsync(Stream);
+                       }
+                       catch
+                       {
+                           // The stream may have been reset, or the connection torn
+                           // down, while we were declining it — nothing left to say.
+                       }
+                   }, CancellationToken.None);
+
         private bool IsAuthoritativeFor(List<(string Name, string Value)> RequestHeaders)
         {
 
@@ -2388,6 +2449,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (isAuthorityServed is not null && !IsAuthoritativeFor(Stream.RequestHeaders))
             {
                 await SendMisdirectedRequestAsync(Stream);
+                return;
+            }
+
+            // RFC 8470, Section 5.2: an intermediary told us this request came out of
+            // its early data, so it may be a replay of one we have already run. Unless
+            // the policy says it is harmless to repeat, decline it — the client can
+            // send it again once the handshake in front of us has completed.
+            if (IsTooEarly(Stream.RequestHeaders))
+            {
+                await SendTooEarlyAsync(Stream);
                 return;
             }
 

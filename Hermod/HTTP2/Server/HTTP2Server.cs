@@ -71,6 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly Func<string, bool>?       isAuthorityServed;
         private readonly string[]?                originSet;
         private readonly (string Origin, string FieldValue)[]? alternativeServices;
+        private readonly Func<List<(string Name, string Value)>, bool>? acceptEarlyData;
         private readonly RemoteCertificateValidationCallback? validateClientCertificate;
         private readonly HTTP2Timeouts         timeouts;
         private readonly HTTP2StreamingHandler? streamingHandler;
@@ -147,6 +148,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// that this connection is authoritative for nothing. When given, it also
         /// becomes the default answer for <paramref name="IsAuthorityServed"/>.
         /// </param>
+        /// <param name="AcceptEarlyData">
+        /// Decides whether a request an intermediary flagged <c>Early-Data: 1</c>
+        /// (RFC 8470) may be processed, or must be declined with 425 (Too Early)
+        /// because it might be a replay. Null (the default) accepts only safe
+        /// methods, <see cref="HTTP2EarlyData.IsSafeToProcess"/>; pass
+        /// <c>_ => true</c> to take the replay risk deliberately, restoring the
+        /// behaviour of simply ignoring the field. Requests without the field are
+        /// unaffected — this stack terminates no early data of its own, so the field
+        /// is the only evidence there is.
+        /// </param>
         /// <param name="HTTP11Fallback">
         /// An HTTP/1.1 pipeline to hand connections to when ALPN does not select
         /// <c>h2</c>. Supplying one is what makes this listener *advertise*
@@ -171,7 +182,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             Func<string, bool>?  IsAuthorityServed = null,
             IEnumerable<string>? OriginSet = null,
             IEnumerable<(string Origin, string FieldValue)>? AlternativeServices = null,
-            HTTP11FallbackHandler? HTTP11Fallback = null)
+            HTTP11FallbackHandler? HTTP11Fallback = null,
+            Func<List<(string Name, string Value)>, bool>? AcceptEarlyData = null)
         {
 
             if (!Cleartext && Certificate is null)
@@ -189,6 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.originSet                 = OriginSet?.ToArray();
             this.alternativeServices       = AlternativeServices?.ToArray();
             this.http11Fallback            = HTTP11Fallback;
+            this.acceptEarlyData           = AcceptEarlyData;
 
             // Three sources, most specific first. An announced Origin Set (RFC 8336)
             // outranks the certificate: having told the client exactly what we serve,
@@ -458,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private async Task RunConnectionAsync(Stream Transport, X509Certificate2? clientCertificate, CancellationToken Token)
         {
 
-            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize, isAuthorityServed, originSet, alternativeServices);
+            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize, isAuthorityServed, originSet, alternativeServices, acceptEarlyData);
             activeConnections.TryAdd(connection, 0);
 
             try

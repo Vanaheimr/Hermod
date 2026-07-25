@@ -214,7 +214,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Func<String, Boolean>? IsAuthorityServed = null,
             IEnumerable<String>?   OriginSet         = null,
             IEnumerable<(String Origin, String FieldValue)>? AlternativeServices = null,
-            HTTP11FallbackHandler? HTTP11Fallback = null)
+            HTTP11FallbackHandler? HTTP11Fallback = null,
+            Func<List<(String Name, String Value)>, Boolean>? AcceptEarlyData = null)
         {
 
             var port   = H2.FreePort();
@@ -224,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                          ConnectHandler, RequireClientCertificate, ValidateClientCertificate,
                                          Timeouts, StreamingHandler, Cleartext, MaxRequestBodySize,
                                          IsBlocklistedCipherSuite, IsAuthorityServed, OriginSet, AlternativeServices,
-                                         HTTP11Fallback);
+                                         HTTP11Fallback, AcceptEarlyData);
 
             var runTask = server.RunAsync();
             await H2.WaitUntilListeningAsync(port);
