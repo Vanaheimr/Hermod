@@ -355,7 +355,9 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 
 - Full decoder: static + dynamic table, integer/string coding, **Huffman decode
   via a bit-level trie**, dynamic-table-size-update bounds (§4.2 / §6.3),
-  truncated-block → `COMPRESSION_ERROR`.
+  truncated-block → `COMPRESSION_ERROR`. Integers accumulate in 64 bits and are
+  bounds-checked (§5.1): a five-octet encoding that would wrap a 32-bit
+  accumulator is a decoding error, not a negative length handed to a slice.
 - Full encoder: 61-entry static table, per-connection dynamic table (with a
   volatile-value denylist and *never-indexed* for sensitive fields §7.1.3),
   **Huffman encode**, table-size signaling from the peer's
@@ -386,6 +388,28 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement.
 - Per-stream `RST_STREAM` cancellation (a `CancellationToken` into the handler).
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
+
+### Parser fuzzing
+
+- `ParserFuzzTests` fuzzes the two parsers a peer reaches before any
+  authentication or application code runs: the frame header (§4.1) and the HPACK
+  decoder (RFC 7541). Random blocks, and — for far deeper coverage — *mutations
+  of a valid block* (bit flips, truncation, garbage runs, appended noise), which
+  actually reach string literals, Huffman runs and dynamic-table updates instead
+  of being rejected on the first octet.
+- The invariant is not "it parses" but "it fails in the protocol's own
+  vocabulary": a typed `HTTP2ConnectionException` / `HTTP2StreamException`, never
+  an `IndexOutOfRangeException`, `ArgumentException` or `OverflowException`. On
+  the wire that distinction is the difference between the correct GOAWAY code and
+  an INTERNAL_ERROR with a logged surprise.
+- Seeds are deterministic and a failure reports the seed plus the input as hex,
+  so any finding replays exactly. The gate runs 20 000 iterations per case; set
+  `HERMOD_FUZZ_ITERATIONS` to soak (500 000 per case ≈ 20 s).
+- Alongside the random cases, the RFC 7541 §5–§6 MUST-errors are pinned
+  explicitly: integer overflow and unterminated integers (§5.1), an explicitly
+  encoded EOS and bad Huffman padding (§5.2), a zero index (§6.1), and an
+  oversized dynamic-table update (§6.3) — including that *exactly* the limit is
+  still legal.
 
 ### Slowloris / timeout hardening
 
@@ -659,6 +683,7 @@ they're common in the wild:
 | Weak TLS 1.2 cipher suites | RFC 9113 Appendix A check → `GOAWAY INADEQUATE_SECURITY` |
 | Decompression bombs | `MaxDecodedBodySize`, enforced *during* decode |
 | Credential leakage on retry | 401 answered only to the origin that challenged, once, never preemptively |
+| Malformed input reaching unhandled code | Parser fuzzing: every rejection must be a typed protocol error |
 | Answering for a foreign origin | `:authority` checked against the certificate / Origin Set → 421 |
 | Credential timing oracles | Constant-time compare in Digest (`FixedTimeEquals`) |
 

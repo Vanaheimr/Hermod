@@ -190,33 +190,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.COMPRESSION_ERROR,
                                                    "HPACK truncated integer");
 
-            var maxPrefix  = (1 << PrefixBits) - 1;
-            var value      = Data[Offset] & maxPrefix;
+            var maxPrefix = (1 << PrefixBits) - 1;
+            var value     = (long) (Data[Offset] & maxPrefix);
             Offset++;
 
             if (value < maxPrefix)
-                return value;
+                return (int) value;
 
-            // Multi-byte encoding
-            int m = 0;
+            // Multi-byte encoding. The accumulator is deliberately 64-bit: five
+            // continuation octets overflow 32 bits, and an overflow that silently
+            // wraps would hand back a *negative* length, which the callers then use
+            // to slice — turning a decoding error into an ArgumentOutOfRangeException
+            // (or worse). RFC 7541, Section 5.1 requires a value that exceeds what we
+            // can represent to be a decoding error, so we detect it instead of
+            // wrapping into it.
+            var m         = 0;
+            var terminated = false;
 
             while (Offset < Data.Length)
             {
 
                 var b = Data[Offset++];
-                value += (b & 0x7F) << m;
+
+                value += (long) (b & 0x7F) << m;
                 m     += 7;
 
-                if ((b & 0x80) == 0)
-                    break;
-
-                if (m > 28)
+                if (value > Int32.MaxValue || m > 35)
                     throw new HTTP2ConnectionException(HTTP2ErrorCode.COMPRESSION_ERROR,
                                                        "HPACK integer overflow");
 
+                if ((b & 0x80) == 0)
+                {
+                    terminated = true;
+                    break;
+                }
+
             }
 
-            return value;
+            // Running out of octets with the continuation bit still set is a
+            // truncated encoding, not "the value so far" — returning the partial
+            // value would silently invent a number the peer never sent.
+            if (!terminated)
+                throw new HTTP2ConnectionException(HTTP2ErrorCode.COMPRESSION_ERROR,
+                                                   "HPACK truncated integer");
+
+            return (int) value;
 
         }
 
