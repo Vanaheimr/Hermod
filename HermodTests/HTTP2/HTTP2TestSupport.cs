@@ -213,7 +213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Func<TlsCipherSuite, Boolean>? IsBlocklistedCipherSuite = null,
             Func<String, Boolean>? IsAuthorityServed = null,
             IEnumerable<String>?   OriginSet         = null,
-            IEnumerable<(String Origin, String FieldValue)>? AlternativeServices = null)
+            IEnumerable<(String Origin, String FieldValue)>? AlternativeServices = null,
+            HTTP11FallbackHandler? HTTP11Fallback = null)
         {
 
             var port   = H2.FreePort();
@@ -222,7 +223,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var server = new HTTP2Server(System.Net.IPAddress.Loopback, port, cert, Handler,
                                          ConnectHandler, RequireClientCertificate, ValidateClientCertificate,
                                          Timeouts, StreamingHandler, Cleartext, MaxRequestBodySize,
-                                         IsBlocklistedCipherSuite, IsAuthorityServed, OriginSet, AlternativeServices);
+                                         IsBlocklistedCipherSuite, IsAuthorityServed, OriginSet, AlternativeServices,
+                                         HTTP11Fallback);
 
             var runTask = server.RunAsync();
             await H2.WaitUntilListeningAsync(port);

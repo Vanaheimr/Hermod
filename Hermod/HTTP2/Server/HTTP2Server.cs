@@ -28,6 +28,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
 
     /// <summary>
+    /// Serve a connection whose ALPN negotiation did not land on <c>h2</c> — either
+    /// the peer chose <c>http/1.1</c>, or it offered no ALPN at all, which over TLS
+    /// means the same thing (RFC 9113, Section 3.2 requires ALPN for h2).
+    ///
+    /// The stream is an authenticated <see cref="SslStream"/> positioned at the
+    /// first application byte, so an existing HTTP/1.1 pipeline can take it as-is.
+    /// Supplying one is also what makes this listener advertise <c>http/1.1</c>:
+    /// without a handler the endpoint is h2-only and says so during the handshake,
+    /// rather than promising a protocol it cannot serve.
+    /// </summary>
+    /// <param name="Stream">The negotiated TLS stream, ready for HTTP/1.1 bytes.</param>
+    /// <param name="CancellationToken">Cancelled when the server is shutting down.</param>
+    public delegate Task HTTP11FallbackHandler(Stream Stream, CancellationToken CancellationToken);
+
+
+    /// <summary>
     /// A minimal HTTP/2 server that accepts TLS connections with ALPN "h2" negotiation,
     /// then hands each connection off to an HTTP2Connection for frame-level processing.
     /// 
@@ -59,6 +75,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP2Timeouts         timeouts;
         private readonly HTTP2StreamingHandler? streamingHandler;
         private readonly long                  maxRequestBodySize;
+
+        /// <summary>
+        /// The HTTP/1.1 pipeline this listener falls back to, or null for an
+        /// h2-only endpoint — in which case <c>http/1.1</c> is never advertised in
+        /// the first place.
+        /// </summary>
+        private readonly HTTP11FallbackHandler? http11Fallback;
         private readonly CancellationTokenSource cts = new();
 
         /// <summary>Default buffered-request-body cap handed to each connection: 16 MiB.</summary>
@@ -124,6 +147,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// that this connection is authoritative for nothing. When given, it also
         /// becomes the default answer for <paramref name="IsAuthorityServed"/>.
         /// </param>
+        /// <param name="HTTP11Fallback">
+        /// An HTTP/1.1 pipeline to hand connections to when ALPN does not select
+        /// <c>h2</c>. Supplying one is what makes this listener *advertise*
+        /// <c>http/1.1</c> at all: with no handler the endpoint is h2-only and an
+        /// http/1.1-only client fails ALPN negotiation, which is honest — offering a
+        /// protocol and then not serving it is worse than not offering it, since a
+        /// client that could have spoken h2 may pick http/1.1 and get nothing.
+        /// </param>
         public HTTP2Server(
             IPAddress            Address,
             int                  Port,
@@ -139,7 +170,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             Func<TlsCipherSuite, bool>? IsBlocklistedCipherSuite = null,
             Func<string, bool>?  IsAuthorityServed = null,
             IEnumerable<string>? OriginSet = null,
-            IEnumerable<(string Origin, string FieldValue)>? AlternativeServices = null)
+            IEnumerable<(string Origin, string FieldValue)>? AlternativeServices = null,
+            HTTP11FallbackHandler? HTTP11Fallback = null)
         {
 
             if (!Cleartext && Certificate is null)
@@ -156,6 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             this.originSet                 = OriginSet?.ToArray();
             this.alternativeServices       = AlternativeServices?.ToArray();
+            this.http11Fallback            = HTTP11Fallback;
 
             // Three sources, most specific first. An announced Origin Set (RFC 8336)
             // outranks the certificate: having told the client exactly what we serve,
@@ -298,12 +331,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             // forbidden there, is never offered by .NET.)
                             AllowRenegotiation         = false,
 
-                            // ALPN: Advertise "h2" (HTTP/2 over TLS)
-                            // If the client also supports h2, it will be selected.
-                            ApplicationProtocols       = [
-                                new SslApplicationProtocol("h2"),
-                                new SslApplicationProtocol("http/1.1")
-                            ]
+                            // ALPN (RFC 7301). "http/1.1" is offered only when an
+                            // application actually supplied a handler for it —
+                            // advertising a protocol we cannot serve is a promise
+                            // made in the handshake and broken immediately after,
+                            // and it is worse than not offering it: a client that
+                            // could have spoken h2 may pick http/1.1 and then get
+                            // nothing. With no handler this is an h2-only endpoint,
+                            // and an http/1.1-only client fails ALPN negotiation
+                            // outright — which is the honest answer.
+                            ApplicationProtocols       = http11Fallback is null
+                                                             ? [SslApplicationProtocol.Http2]
+                                                             : [SslApplicationProtocol.Http2,
+                                                                SslApplicationProtocol.Http11]
 
                         };
 
@@ -365,16 +405,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             await RunConnectionAsync(sslStream, clientCertificate, Token);
 
                         }
-                        else if (negotiatedProtocol == SslApplicationProtocol.Http11)
+                        else if (http11Fallback is not null)
                         {
-                            HTTP2EventSource.Log.AlpnNegotiated(remoteEP?.ToString() ?? "?", "http/1.1");
-                            // Here you would hand off to your existing HTTP/1.1 handler.
-                            // For this demo, we just close the connection.
-                            await HandleHTTP11FallbackAsync(sslStream);
+
+                            // Either the peer chose http/1.1, or it sent no ALPN at
+                            // all — which over TLS means it is not speaking h2
+                            // (RFC 9113, Section 3.2 requires ALPN for that), so it
+                            // belongs to the fallback just as much as an explicit
+                            // http/1.1 does.
+                            HTTP2EventSource.Log.AlpnNegotiated(
+                                remoteEP?.ToString() ?? "?",
+                                negotiatedProtocol.Protocol.Length == 0 ? "(none)" : negotiatedProtocol.ToString());
+
+                            await http11Fallback(sslStream, Token);
+
                         }
                         else
                         {
-                            HTTP2EventSource.Log.AlpnNegotiated(remoteEP?.ToString() ?? "?", negotiatedProtocol.ToString());
+                            // No handler, so nothing was advertised beyond h2 either;
+                            // reaching here means a client offered no ALPN at all.
+                            HTTP2EventSource.Log.ConnectionRejected(
+                                remoteEP?.ToString() ?? "?",
+                                "no ALPN protocol offered; this endpoint serves h2 only");
                         }
 
                     }
@@ -492,27 +544,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-
-        /// <summary>
-        /// Placeholder for HTTP/1.1 fallback — in a real server, you'd hand off to your
-        /// existing HTTP/1.1 pipeline here.
-        /// </summary>
-        private static async Task HandleHTTP11FallbackAsync(SslStream Stream)
-        {
-
-            // Simple HTTP/1.1 response for demonstration
-            var response = "HTTP/1.1 200 OK\r\n" +
-                           "Content-Type: text/plain\r\n" +
-                           "Content-Length: 39\r\n" +
-                           "Connection: close\r\n" +
-                           "\r\n" +
-                           "HTTP/1.1 fallback — upgrade to HTTP/2!";
-
-            var bytes = Encoding.ASCII.GetBytes(response);
-            await Stream.WriteAsync(bytes);
-            await Stream.FlushAsync();
-
-        }
 
     }
 

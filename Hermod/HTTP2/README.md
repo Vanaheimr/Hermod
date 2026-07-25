@@ -553,6 +553,26 @@ server only ever formatted `Content-Range`.
   (§2.1) or over h2c, where an unauthenticated peer's claim about its own
   identity is worth nothing (§2.4).
 
+### ALPN: advertise only what you serve
+
+`h2` is always offered. `http/1.1` is offered **only** when the application
+supplied an `HTTP11Fallback` handler — otherwise this is an h2-only endpoint and
+an http/1.1-only client fails ALPN negotiation outright.
+
+That is the honest answer, and the previous behaviour was the worst of both:
+`http/1.1` was advertised and then handed to a stub that wrote a fixed response
+and closed. Offering a protocol you cannot serve is worse than not offering it,
+because a client that *could* have spoken h2 may pick http/1.1 on the strength of
+the offer and get nothing. (The stub also declared `Content-Length: 39` for a
+38-byte body, so a client waited for a byte that only ever arrived as EOF.)
+
+With a handler registered, the fallback receives the authenticated `SslStream`
+positioned at the first application byte — an existing HTTP/1.1 pipeline takes it
+as-is. A peer that offers **no** ALPN at all is routed there too: over TLS that
+means it is not speaking h2 (RFC 9113 §3.2 requires ALPN for that), so it belongs
+to the same handler. With neither ALPN nor a handler, the connection is closed
+rather than left hanging.
+
 ### Observability (events + tracing)
 
 The stack writes **nothing** to the console. It emits structured events through
