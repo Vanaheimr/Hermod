@@ -26,6 +26,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private readonly IDNSZoneStore zoneStore;
 
+        /// <summary>
+        /// How many CNAMEs will be followed before giving up. RFC 1034 §4.3.2 sets
+        /// no limit but warns that a chain can loop; this bounds the work even when
+        /// the loop detection below cannot (for instance a chain that grows through
+        /// a store which synthesizes names).
+        /// </summary>
+        private const Int32 MaxCanonicalNameChainLength = 16;
+
 
         public Boolean  RecursionAvailable  { get; }
 
@@ -76,6 +84,105 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        Version:         0,
                        Flags:           0
                    );
+
+        }
+
+        #endregion
+
+
+        #region (private) FollowCanonicalNames(Question, Answers, CancellationToken)
+
+        /// <summary>
+        /// Apply the CNAME rule: if the queried node holds a CNAME and QTYPE is not
+        /// CNAME, copy the CNAME into the answer section and restart the query at
+        /// the canonical name.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1034 §4.3.2 step 3a. A CNAME answers a query of *any* type at that
+        /// name — the rule is about the node, not about which types it happens to
+        /// hold. Without it an alias answers only QTYPE=CNAME and everything else
+        /// returns NOERROR with an empty answer section, which a resolver reads as
+        /// "this name definitively has no such record" and caches. The alias then
+        /// silently stops working for every client that does not already know it is
+        /// one.
+        ///
+        /// The chase stops at the zone edge: when the canonical name is not held
+        /// here, the CNAMEs gathered so far are returned and the resolver continues
+        /// from them, which is what RFC 1034 expects of an authoritative server.
+        /// </remarks>
+        /// <param name="Question">The original question.</param>
+        /// <param name="Answers">The answer section being assembled.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        private async Task FollowCanonicalNames(DNSQuestion               Question,
+                                                List<IDNSResourceRecord>  Answers,
+                                                CancellationToken         CancellationToken)
+        {
+
+            // A CNAME query is answered directly by the store, and ANY already
+            // returns the CNAME alongside everything else at the node, so neither
+            // needs a restart.
+            if (Question.QueryType == DNSResourceRecordTypes.CNAME ||
+                Question.QueryType == DNSResourceRecordTypes.Any)
+            {
+                return;
+            }
+
+            var currentName = Question.DomainName;
+
+            // RFC 1034 §4.3.2 warns that a chain may loop. Track the names already
+            // visited rather than relying on the depth limit alone — a two-element
+            // cycle would otherwise be walked sixteen times before stopping, and the
+            // same CNAME would be added to the answer section on every pass.
+            var visited     = new HashSet<DNSServiceName> { currentName };
+
+            for (var depth = 0; depth < MaxCanonicalNameChainLength; depth++)
+            {
+
+                var aliasResult = await zoneStore.Lookup(
+                                            new DNSQuestion(
+                                                currentName,
+                                                DNSResourceRecordTypes.CNAME,
+                                                Question.QueryClass
+                                            ),
+                                            CancellationToken
+                                        ).ConfigureAwait(false);
+
+                if (aliasResult.Status != DNSZoneLookupStatus.Found)
+                    return;
+
+                var alias = aliasResult.AnswerRRs.OfType<CNAME>().FirstOrDefault();
+
+                if (alias is null)
+                    return;
+
+                Answers.Add(alias);
+
+                var target = DNSServiceName.Parse(alias.CName.FullName);
+
+                if (!visited.Add(target))
+                    return;
+
+                // Restart the original query at the canonical name.
+                var targetResult = await zoneStore.Lookup(
+                                             new DNSQuestion(
+                                                 target,
+                                                 Question.QueryType,
+                                                 Question.QueryClass
+                                             ),
+                                             CancellationToken
+                                         ).ConfigureAwait(false);
+
+                if (targetResult.Status == DNSZoneLookupStatus.Found)
+                {
+                    Answers.AddRange(targetResult.AnswerRRs);
+                    return;
+                }
+
+                // NoData at the target means it may itself be an alias; NameError
+                // means the chain leaves this zone and the next pass will stop.
+                currentName = target;
+
+            }
 
         }
 
@@ -145,7 +252,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
                 else if (lookupResult.Status == DNSZoneLookupStatus.NoData)
                 {
+
                     foundName = true;
+
+                    // The name exists but holds nothing of the requested type. That is
+                    // NODATA — unless the node is an alias, in which case RFC 1034
+                    // §4.3.2 requires the CNAME to be returned instead.
+                    await FollowCanonicalNames(
+                              question,
+                              answers,
+                              CancellationToken
+                          ).ConfigureAwait(false);
+
                 }
 
             }
