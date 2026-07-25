@@ -48,6 +48,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public          string?                           DecodedContentEncoding { get; init; }
 
         /// <summary>
+        /// What became of the response's <c>Content-Digest</c> (RFC 9530), when
+        /// <see cref="HTTP2ClientOptions.VerifyDigests"/> is on — checked against the
+        /// octets as they arrived, before any decoding.
+        ///
+        /// <see cref="HTTPDigestVerification.Mismatch"/> never appears here: a
+        /// disagreement fails the response instead. The value that matters is the
+        /// difference between <see cref="HTTPDigestVerification.Match"/> and
+        /// <see cref="HTTPDigestVerification.NotPresent"/> — a caller that requires
+        /// integrity has to reject the latter too, and cannot do that unless it can
+        /// see it. Always <see cref="HTTPDigestVerification.NotPresent"/> while
+        /// verification is switched off, since then nothing was looked at.
+        /// </summary>
+        public          HTTPDigestVerification            DigestVerification { get; init; }
+
+        /// <summary>
         /// The redirect targets that were followed to reach this response, in order
         /// (RFC 9110, Section 15.4) — empty when the first request answered directly,
         /// which is always the case unless

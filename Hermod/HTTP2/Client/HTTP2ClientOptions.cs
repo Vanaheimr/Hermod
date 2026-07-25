@@ -93,6 +93,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public long     MaxDecodedBodySize      { get; init; } = 16 * 1024 * 1024;
 
         /// <summary>
+        /// Ask for an RFC 9530 digest on every request (<c>want-content-digest</c>)
+        /// and check the <c>Content-Digest</c> of the responses that carry one — a
+        /// content-integrity check on the bytes themselves, which TLS does not give
+        /// you: it protects the hop, not the object, and says nothing about what a
+        /// gateway, a cache, or a disk did to the representation in between.
+        ///
+        /// The check runs on the octets as they arrived, before any
+        /// <see cref="AutomaticDecompression"/> — that is what the digest describes.
+        /// A disagreement fails the response with an
+        /// <see cref="HTTPDigestMismatchException"/> rather than handing back bytes
+        /// the caller explicitly asked to have verified; everything else is reported
+        /// on <see cref="HTTP2Response.DigestVerification"/>, where "there was no
+        /// digest" stays distinguishable from "it matched".
+        ///
+        /// Off by default: it puts a field on the wire and can turn a delivered
+        /// response into an exception, so it is the caller's decision.
+        /// </summary>
+        public bool     VerifyDigests           { get; init; }
+
+        /// <summary>
         /// Credentials to answer a <c>401 Unauthorized</c> with (RFC 9110, Section
         /// 11): the request is re-issued once, carrying an <c>Authorization</c>
         /// field built from the server's <c>WWW-Authenticate</c> challenge — Digest

@@ -130,7 +130,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Its presence also adds <c>QUERY</c> to the <c>Allow</c> header of OPTIONS
         /// and 405 responses.
         /// </param>
-        public static HTTP2RequestHandler Wrap(HTTPVariantHandler VariantHandler, bool CompressResponses = false, HTTPQueryHandler? QueryHandler = null)
+        /// <param name="ContentDigests">
+        /// When true, RFC 9530 digest fields are used in both directions: every
+        /// response that carries content gets a <c>Content-Digest</c> (plus a
+        /// <c>Repr-Digest</c> on a 206, where the two differ), honouring the
+        /// request's <c>Want-Content-Digest</c> / <c>Want-Repr-Digest</c> when
+        /// choosing the algorithm; and a <c>Content-Digest</c> arriving on a QUERY
+        /// request is checked against the request content, which is answered
+        /// <c>400</c> if it disagrees. Off by default, like every other field this
+        /// wrapper would otherwise add on its own initiative.
+        /// </param>
+        public static HTTP2RequestHandler Wrap(HTTPVariantHandler VariantHandler, bool CompressResponses = false, HTTPQueryHandler? QueryHandler = null, bool ContentDigests = false)
             => async (StreamId, RequestHeaders, RequestBody, CancellationToken) =>
             {
 
@@ -157,6 +167,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     if (RequestBody is { Length: > 0 } && contentType is null)
                         return BadRequest("QUERY request content requires a Content-Type (RFC 10008, Section 4)");
 
+                    // RFC 9530, Section 2: the sender asserted a digest for the very
+                    // bytes we just read. QUERY is the one method this wrapper handles
+                    // that carries content, so it is the one place the assertion can be
+                    // checked — and a query we would answer from corrupted input is a
+                    // bad request, not a server error.
+                    if (ContentDigests && RequestBody is { Length: > 0 } &&
+                        HTTPDigest.Verify(RequestHeaders.FirstOrDefault(h => h.Name == "content-digest").Value, RequestBody)
+                            == HTTPDigestVerification.Mismatch)
+                        return BadRequest("The request content does not match its Content-Digest (RFC 9530)");
+
                     var queryResult = await QueryHandler(path, RequestHeaders, RequestBody, contentType, CancellationToken);
 
                     // The result runs through the identical representation pipeline as
@@ -164,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     return RunRepresentationPipeline(
                                RequestHeaders, method,
                                queryResult is null ? [] : [queryResult],
-                               CompressResponses);
+                               CompressResponses, ContentDigests);
 
                 }
 
@@ -177,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 var variants = await VariantHandler(path, RequestHeaders, CancellationToken);
 
-                return RunRepresentationPipeline(RequestHeaders, method, variants, CompressResponses);
+                return RunRepresentationPipeline(RequestHeaders, method, variants, CompressResponses, ContentDigests);
 
             };
 
@@ -192,7 +212,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             List<(string Name, string Value)>  RequestHeaders,
             string                              Method,
             IReadOnlyList<HTTPResource>         Variants,
-            bool                                CompressResponses)
+            bool                                CompressResponses,
+            bool                                ContentDigests)
         {
 
             if (Variants.Count == 0)
@@ -212,7 +233,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var result    = BuildRepresentationResult(RequestHeaders, Method, resource, etag);
             var decorated = Decorate(result, resource, negotiation.Vary);
 
-            return CompressResponses ? ApplyContentCoding(RequestHeaders, decorated) : decorated;
+            var encoded   = CompressResponses ? ApplyContentCoding(RequestHeaders, decorated) : decorated;
+
+            // Digests come last, over the bytes as they will actually be sent —
+            // content coding included (RFC 9530, Section 3).
+            return ContentDigests ? ApplyDigests(RequestHeaders, encoded, resource) : encoded;
 
         }
 
@@ -223,12 +248,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// (404), a resource becomes a one-element list (which the negotiator
         /// resolves trivially, emitting no Vary since there's nothing to vary on).
         /// </summary>
-        public static HTTP2RequestHandler Wrap(HTTPResourceHandler ResourceHandler, bool CompressResponses = false, HTTPQueryHandler? QueryHandler = null)
+        public static HTTP2RequestHandler Wrap(HTTPResourceHandler ResourceHandler, bool CompressResponses = false, HTTPQueryHandler? QueryHandler = null, bool ContentDigests = false)
             => Wrap(async (path, headers, ct) =>
             {
                 var resource = await ResourceHandler(path, headers, ct);
                 return resource is null ? [] : (IReadOnlyList<HTTPResource>) [resource];
-            }, CompressResponses, QueryHandler);
+            }, CompressResponses, QueryHandler, ContentDigests);
 
         /// <summary>
         /// The representation-processing pipeline shared by every request that has
@@ -760,6 +785,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var present = Headers[idx].Value.Split(',').Select(s => s.Trim());
             if (!present.Any(e => e.Equals(Field, StringComparison.OrdinalIgnoreCase)))
                 Headers[idx] = ("vary", Headers[idx].Value + ", " + Field);
+
+        }
+
+        #endregion
+
+
+        #region Digest fields (RFC 9530)
+
+        /// <summary>
+        /// Attach RFC 9530 digest fields to a produced response.
+        ///
+        /// <c>Content-Digest</c> goes on anything that carries content, and is
+        /// computed over the body as it will leave — after
+        /// <see cref="ApplyContentCoding"/>, since representation data is defined to
+        /// be in its content coding. <c>Repr-Digest</c> is added only to a 206,
+        /// which is the one case where it says something the content digest cannot:
+        /// the digest of the *whole* representation, which is exactly what lets a
+        /// receiver verify a download it spliced together out of several ranges.
+        /// On a full 200 the two would be identical, and a second field asserting
+        /// the same thing is just bytes.
+        ///
+        /// Bodiless responses (HEAD, 304, 412, 416) get neither, deliberately. There
+        /// *is* a representation we could describe there, but with content coding in
+        /// play we would have to guess which encoding the corresponding 200 would
+        /// have carried — and a digest of the representation we did not send is a
+        /// claim we cannot stand behind.
+        /// </summary>
+        private static (List<(string Name, string Value)> Headers, byte[]? Body) ApplyDigests(
+            List<(string Name, string Value)>                         RequestHeaders,
+            (List<(string Name, string Value)> Headers, byte[]? Body) Result,
+            HTTPResource                                              Resource)
+        {
+
+            var headers = Result.Headers;
+            var body    = Result.Body;
+
+            if (body is null)
+                return Result;
+
+            var contentAlgorithm = HTTPDigest.SelectAlgorithm(
+                                       RequestHeaders.FirstOrDefault(h => h.Name == "want-content-digest").Value);
+
+            if (contentAlgorithm is not null && !headers.Any(h => h.Name == "content-digest"))
+                headers.Add(("content-digest", HTTPDigest.FieldValue(body, contentAlgorithm)));
+
+            if (headers.First(h => h.Name == ":status").Value == "206")
+            {
+
+                var reprAlgorithm = HTTPDigest.SelectAlgorithm(
+                                        RequestHeaders.FirstOrDefault(h => h.Name == "want-repr-digest").Value);
+
+                if (reprAlgorithm is not null && !headers.Any(h => h.Name == "repr-digest"))
+                    headers.Add(("repr-digest", HTTPDigest.FieldValue(Resource.Body, reprAlgorithm)));
+
+            }
+
+            return (headers, body);
 
         }
 

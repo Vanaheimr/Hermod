@@ -19,6 +19,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
     using System.Buffers.Binary;
     using System.Net.Security;
+    using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Channels;
 
@@ -499,6 +500,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 (ExtraHeaders is null || !ExtraHeaders.Any(h => h.Name == "accept-encoding")))
                 headers.Add(("accept-encoding", HTTPContentCoding.AcceptEncoding));
 
+            // RFC 9530 Section 4: nothing obliges a server to digest what it sends,
+            // so a client that intends to check has to ask. Same deference to a
+            // caller's own field as above.
+            if (options.VerifyDigests &&
+                (ExtraHeaders is null || !ExtraHeaders.Any(h => h.Name == "want-content-digest")))
+                headers.Add(("want-content-digest", HTTPDigest.Want));
+
             if (ExtraHeaders is not null)
                 headers.AddRange(ExtraHeaders);
 
@@ -568,102 +576,187 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             List<(string Name, string Value)>? firstHeaders = null;
 
-            while (true)
+            // RFC 9530 Section 3: the representation digest, and the running hash of
+            // what we have written so far to check it against at the end.
+            IncrementalHash?       representationHash      = null;
+            string?                representationAlgorithm = null;
+            byte[]?                expectedDigest          = null;
+            HTTPDigestVerification digestVerification      = HTTPDigestVerification.NotPresent;
+
+            try
             {
 
-                attempts++;
-
-                var resuming = written > 0 && validator is not null;
-                var headers  = ExtraHeaders is null ? [] : new List<(string Name, string Value)>(ExtraHeaders);
-
-                if (!headers.Any(header => header.Name == "accept-encoding"))
-                    headers.Add(("accept-encoding", "identity"));
-
-                if (resuming)
-                {
-                    headers.Add(("range",    HTTPContentRange.RequestFrom(written)));
-                    headers.Add(("if-range", validator!));
-                    resumes++;
-                }
-
-                var stream = await StartStreamingRequestAsync("GET", Scheme, Authority, Path, headers, null, CancellationToken);
-                await stream.CompleteRequestAsync(CancellationToken);
-
-                var head = await stream.GetResponseAsync(CancellationToken);
-                status   = head.Status;
-
-                firstHeaders ??= head.Headers;
-
-                // Anything other than a body-bearing success is the caller's to
-                // interpret — and must not be written into the destination, where an
-                // error page would masquerade as the representation.
-                if (status is not (200 or 206))
+                while (true)
                 {
 
-                    // 416 during a resume is not necessarily a failure: if the
-                    // representation is exactly as long as what we already hold, the
-                    // download is simply finished (RFC 9110, Section 14.4).
-                    if (status == 416 && resuming && head.ContentRange?.CompleteLength == written)
-                        return new HTTP2DownloadResult(200, firstHeaders, written, attempts, resumes, restarts, validator);
+                    attempts++;
 
-                    return new HTTP2DownloadResult(status, head.Headers, written, attempts, resumes, restarts, validator);
+                    var resuming = written > 0 && validator is not null;
+                    var headers  = ExtraHeaders is null ? [] : new List<(string Name, string Value)>(ExtraHeaders);
 
-                }
+                    if (!headers.Any(header => header.Name == "accept-encoding"))
+                        headers.Add(("accept-encoding", "identity"));
 
-                // Where does this response actually start? A resume that came back
-                // 200, or a 206 whose Content-Range does not begin where we stopped,
-                // means the bytes we hold are no longer part of this representation.
-                var restarting = false;
+                    // Ask for the one digest a spliced download can actually be checked
+                    // against — no single range response's content digest says anything
+                    // about the file they add up to.
+                    if (options.VerifyDigests && !headers.Any(header => header.Name == "want-repr-digest"))
+                        headers.Add(("want-repr-digest", HTTPDigest.Want));
 
-                if (resuming)
-                {
-                    if (status == 200)
-                        restarting = true;
-                    else if (head.ContentRange?.Start != written)
-                        restarting = true;
-                }
-
-                if (restarting)
-                {
-
-                    if (!Destination.CanSeek)
-                        throw new InvalidOperationException(
-                            "The representation changed and the download must restart, but the destination stream cannot seek.");
-
-                    Destination.Position = startPosition;
-                    Destination.SetLength(startPosition);
-                    written   = 0;
-                    restarts++;
-                    firstHeaders = head.Headers;
-
-                }
-
-                // Only trust a validator we could actually guard a resume with.
-                validator = SelectResumeValidator(head) ?? validator;
-
-                try
-                {
-
-                    byte[]? chunk;
-
-                    while ((chunk = await stream.ReadAsync(CancellationToken)) is not null)
+                    if (resuming)
                     {
-                        await Destination.WriteAsync(chunk, CancellationToken);
-                        written += chunk.Length;
+                        headers.Add(("range",    HTTPContentRange.RequestFrom(written)));
+                        headers.Add(("if-range", validator!));
+                        resumes++;
                     }
 
-                    return new HTTP2DownloadResult(status, firstHeaders, written, attempts, resumes, restarts, validator);
+                    var stream = await StartStreamingRequestAsync("GET", Scheme, Authority, Path, headers, null, CancellationToken);
+                    await stream.CompleteRequestAsync(CancellationToken);
 
-                }
-                catch (Exception) when (attempts < MaxAttempts && written > 0 && validator is not null)
-                {
-                    // Interrupted mid-body, with something to resume from and a
-                    // validator to make the resume safe: go round again. Anything
-                    // else propagates — silently returning a truncated file would be
-                    // far worse than a failed download.
+                    var head = await stream.GetResponseAsync(CancellationToken);
+                    status   = head.Status;
+
+                    firstHeaders ??= head.Headers;
+
+                    // Anything other than a body-bearing success is the caller's to
+                    // interpret — and must not be written into the destination, where an
+                    // error page would masquerade as the representation.
+                    if (status is not (200 or 206))
+                    {
+
+                        // 416 during a resume is not necessarily a failure: if the
+                        // representation is exactly as long as what we already hold, the
+                        // download is simply finished (RFC 9110, Section 14.4).
+                        if (status == 416 && resuming && head.ContentRange?.CompleteLength == written)
+                            return new HTTP2DownloadResult(200, firstHeaders, written, attempts, resumes, restarts, validator,
+                                                           VerifyRepresentation(representationHash, expectedDigest, digestVerification));
+
+                        return new HTTP2DownloadResult(status, head.Headers, written, attempts, resumes, restarts, validator,
+                                                       digestVerification);
+
+                    }
+
+                    // Where does this response actually start? A resume that came back
+                    // 200, or a 206 whose Content-Range does not begin where we stopped,
+                    // means the bytes we hold are no longer part of this representation.
+                    var restarting = false;
+
+                    if (resuming)
+                    {
+                        if (status == 200)
+                            restarting = true;
+                        else if (head.ContentRange?.Start != written)
+                            restarting = true;
+                    }
+
+                    if (restarting)
+                    {
+
+                        if (!Destination.CanSeek)
+                            throw new InvalidOperationException(
+                                "The representation changed and the download must restart, but the destination stream cannot seek.");
+
+                        Destination.Position = startPosition;
+                        Destination.SetLength(startPosition);
+                        written   = 0;
+                        restarts++;
+                        firstHeaders = head.Headers;
+
+                        // A different representation is a different digest — the bytes
+                        // hashed so far belonged to the one that just went away.
+                        representationHash?.Dispose();
+                        representationHash      = null;
+                        representationAlgorithm = null;
+                        expectedDigest          = null;
+
+                    }
+
+                    // Pick the representation digest up from whichever response first
+                    // offers one, but only while nothing has been written yet: a hash
+                    // started mid-file could never match, and claiming it did would be
+                    // the one failure mode this whole feature exists to prevent.
+                    if (options.VerifyDigests && representationAlgorithm is null && written == 0 &&
+                        head.HeaderValue("repr-digest") is string offered)
+                    {
+
+                        var digests = HTTPDigest.Parse(offered);
+
+                        representationAlgorithm = Array.Find(HTTPDigest.Supported, digests.ContainsKey);
+
+                        if (representationAlgorithm is not null)
+                        {
+                            expectedDigest     = digests[representationAlgorithm];
+                            representationHash = HTTPDigest.CreateIncremental(representationAlgorithm);
+                        }
+                        else
+                            digestVerification = HTTPDigestVerification.Unsupported;
+
+                    }
+
+                    // Only trust a validator we could actually guard a resume with.
+                    validator = SelectResumeValidator(head) ?? validator;
+
+                    try
+                    {
+
+                        byte[]? chunk;
+
+                        while ((chunk = await stream.ReadAsync(CancellationToken)) is not null)
+                        {
+                            await Destination.WriteAsync(chunk, CancellationToken);
+                            representationHash?.AppendData(chunk);
+                            written += chunk.Length;
+                        }
+
+                        return new HTTP2DownloadResult(status, firstHeaders, written, attempts, resumes, restarts, validator,
+                                                       VerifyRepresentation(representationHash, expectedDigest, digestVerification));
+
+                    }
+                    catch (Exception exception) when (exception is not HTTPDigestMismatchException &&
+                                                      attempts < MaxAttempts && written > 0 && validator is not null)
+                    {
+                        // Interrupted mid-body, with something to resume from and a
+                        // validator to make the resume safe: go round again. Anything
+                        // else propagates — silently returning a truncated file would be
+                        // far worse than a failed download.
+                        //
+                        // A digest mismatch is explicitly not an interruption: the whole
+                        // representation arrived and was wrong. Retrying it would only
+                        // fetch the same wrong bytes again — and, since the verdict is
+                        // reached on the very statement that returns the result, would
+                        // quietly turn a detected corruption back into a success.
+                    }
+
                 }
 
             }
+            finally
+            {
+                representationHash?.Dispose();
+            }
+
+        }
+
+        /// <summary>
+        /// Compare the running hash of everything written against the
+        /// <c>Repr-Digest</c> the server promised (RFC 9530, Section 3), once the
+        /// last byte is in. A disagreement throws: the destination now holds a file
+        /// that is not the representation it was supposed to be, and returning a
+        /// success result for it would be the wrong kind of quiet.
+        /// </summary>
+        private static HTTPDigestVerification VerifyRepresentation(IncrementalHash?       Hash,
+                                                                   Byte[]?                Expected,
+                                                                   HTTPDigestVerification Fallback)
+        {
+
+            if (Hash is null || Expected is null)
+                return Fallback;
+
+            if (!Expected.AsSpan().SequenceEqual(Hash.GetCurrentHash()))
+                throw new HTTPDigestMismatchException("repr-digest",
+                    "The downloaded representation does not match the Repr-Digest the server sent (RFC 9530)");
+
+            return HTTPDigestVerification.Match;
 
         }
 
@@ -1855,6 +1948,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var headers = Exchange.Headers!;
             var body    = Exchange.Body.ToArray();
             String? decodedContentEncoding = null;
+            var     digestVerification     = HTTPDigestVerification.NotPresent;
+
+            // RFC 9530 Section 2: the digest describes the content as transferred, so
+            // it has to be checked here — before the decoding below rewrites the very
+            // bytes it covers. Corrupt content is surfaced rather than returned: a
+            // caller who switched verification on did so to not be handed this.
+            if (options.VerifyDigests)
+            {
+
+                digestVerification = HTTPDigest.Verify(
+                                         headers.FirstOrDefault(h => h.Name == "content-digest").Value,
+                                         body);
+
+                if (digestVerification == HTTPDigestVerification.Mismatch)
+                {
+                    Exchange.Completion.TrySetException(
+                        new HTTPDigestMismatchException("content-digest",
+                            $"The {body.Length}-byte response content does not match its Content-Digest (RFC 9530)"));
+                    return;
+                }
+
+            }
 
             // RFC 9110 Section 8.4: undo the content coding we asked for, so the
             // caller sees the identity representation. A body we cannot decode —
@@ -1880,7 +1995,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 Body                   = body,
                 Trailers               = Exchange.Trailers,
                 InformationalResponses = Exchange.Interim,
-                DecodedContentEncoding = decodedContentEncoding
+                DecodedContentEncoding = decodedContentEncoding,
+                DigestVerification     = digestVerification
             });
 
         }

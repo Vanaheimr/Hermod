@@ -50,7 +50,7 @@ suite (builds, starts the demo host, drives every harness) with:
 powershell -ExecutionPolicy Bypass -File tests/run-tests.ps1
 ```
 
-Current status: **70/70 harness runs pass**, and the stack scores **146/146 on
+Current status: **48/48 harness runs pass**, and the stack scores **146/146 on
 [h2spec](https://github.com/summerwind/h2spec)** (the canonical HTTP/2
 conformance suite) over *both* the TLS and cleartext-h2c listeners. Reproduce
 the h2spec run with a single command —
@@ -83,6 +83,10 @@ curl --http2 -k -I https://localhost:8443/files/resource.txt          # HEAD
 curl --http2 -k -X OPTIONS https://localhost:8443/files/resource.txt  # -> 204 + Allow
 curl --http2 -k -H 'Range: bytes=0-9' https://localhost:8443/files/resource.txt
 curl --http2 -k -H 'If-None-Match: "<etag from a prior response>"' https://localhost:8443/files/resource.txt
+
+# RFC 9530 digest fields — a 206 is the one response carrying both:
+curl --http2 -k -i -H 'Range: bytes=0-31' https://localhost:8443/files/resource.txt   # Content-Digest (slice) + Repr-Digest (whole)
+curl --http2 -k -i -H 'Want-Content-Digest: sha-512=10' https://localhost:8443/files/resource.txt
 
 # RFC 10008 — the HTTP QUERY method (a safe, body-carrying read). /search:
 curl --http2 -k https://localhost:8443/search                 # GET -> whole corpus
@@ -312,8 +316,9 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 | **7838** | HTTP Alternative Services | ✅ | ALTSVC frame both directions + the `Alt-Svc` field-value grammar; client records alternatives, does not act on them (no HTTP/3 endpoint to act on yet). |
 | **6455** | The WebSocket Protocol | ✅ Complete | Framing, masking, fragmentation, close handshake, UTF-8 validation. Autobahn 517/517. Server **and** client roles. |
 | **7692** | Compression Extensions for WebSocket (permessage-deflate) | ✅ | No-context-takeover mode, negotiated on both HTTP/1.1-Upgrade and HTTP/2-CONNECT handshakes. |
-| **9110** | HTTP Semantics | ✅ | Methods, conditional requests, Range (single + multi), content negotiation, the §11 auth framework. Client-side: content-coding decode + answering a 401; conditional/Range/redirects still server-only. |
+| **9110** | HTTP Semantics | ✅ | Methods, conditional requests, Range (single + multi), content negotiation, the §11 auth framework — all mirrored on the client (decode, 401 answering, conditional/Range download resume, redirects). |
 | **9111** | HTTP Caching | ✅ | Client-side cache with shared/private semantics. |
+| **9530** | Digest Fields | ✅ | `Content-Digest` / `Repr-Digest` + the two `Want-…` fields, both directions, sha-256 and sha-512. Opt-in on either role. |
 | **7617** | Basic Authentication | ✅ | |
 | **6750** | Bearer Token Usage | ✅ | |
 | **7616** | Digest Access Authentication | ✅ | Challenge-response, SHA-256 (+ MD5 interop), stateless nonce, `qop=auth`. |
@@ -479,6 +484,11 @@ catching up. What it has so far:
   `HTTP2Response.RedirectChain` records where the response actually came from.
   Following stops at the **origin boundary** — see below.
 
+- **Content integrity** (RFC 9530) — `VerifyDigests` asks every request for a
+  digest and checks the ones that come back. See the section below; the client
+  half is `HTTP2Response.DigestVerification` and, for a spliced download,
+  `HTTP2DownloadResult.DigestVerification`.
+
 Still open on the client: a cookie jar.
 
 **Why redirect following stops at the origin.** A connection speaks to the origin
@@ -497,6 +507,64 @@ required — lifted out of `HTTPSemantics`, which the server still uses through
 them, so precondition evaluation and precondition construction cannot drift
 apart. `HTTPContentRange` also adds the parse direction the stack never had: the
 server only ever formatted `Content-Range`.
+
+### Digest fields (RFC 9530)
+
+TLS protects the hop, not the object: it says nothing about what a gateway, a
+cache, or a disk did to a representation along the way. `Content-Digest` and
+`Repr-Digest` close that gap, and `HTTPDigest` implements both directions for
+both roles.
+
+The two fields answer different questions, which is why there are two:
+
+- **`Content-Digest`** covers the octets *this message* carries. On a `206` that
+  is the slice, not the resource.
+- **`Repr-Digest`** covers the *selected representation* (RFC 9110 §8.1) —
+  unaffected by `Content-Range`. It is the only thing that can verify a download
+  assembled out of several range responses, because no single one of them
+  carries a digest of the whole.
+
+Both are computed **after** content coding, since representation data is defined
+to be in its `Content-Encoding`. That fixes an ordering the client cannot get
+wrong quietly: verification runs on the bytes as they arrived, *before*
+`AutomaticDecompression` rewrites them. A test exists for nothing but that order.
+
+Only `sha-256` and `sha-512` are computed. The registry's other entries (`md5`,
+`sha`, `unixsum`, `unixcksum`, `adler`, `crc32c`) are deprecated or were never
+collision-resistant, and a digest field is an integrity claim — honouring a
+broken algorithm would make it a false one. `Want-Content-Digest` /
+`Want-Repr-Digest` select among the two by preference (0 = unacceptable); a peer
+that rules both out gets no digest rather than one it declined.
+
+**Server** (`HTTPSemantics.Wrap(…, ContentDigests: true)`): every response that
+carries content gets a `Content-Digest`; a `206` additionally gets the
+`Repr-Digest` that makes the splice checkable. Bodiless responses (HEAD, 304,
+412, 416) get neither, deliberately — with content coding in play we would have
+to guess which encoding the corresponding 200 would have carried, and a digest of
+the representation we did not send is a claim we cannot stand behind. In the
+request direction, a `Content-Digest` on a QUERY is checked against the request
+content and answered `400` if it disagrees.
+
+**Client** (`HTTP2ClientOptions.VerifyDigests`): sends `Want-Content-Digest`,
+verifies what comes back, and reports the outcome on
+`HTTP2Response.DigestVerification`. `DownloadAsync` asks for `Want-Repr-Digest`
+instead and hashes incrementally as it writes, so a resumed download is verified
+end to end without re-reading the file — and a restart discards the hash along
+with the bytes it belonged to.
+
+A mismatch **throws** (`HTTPDigestMismatchException`) rather than being returned
+as a flag: a caller who switched verification on did so precisely to not be
+handed those bytes. Notably, that also means a mismatch is *not* a retryable
+interruption — `DownloadAsync` excludes it from its resume filter, since the
+whole representation arrived and was wrong, and retrying would only fetch the
+same wrong bytes while masking the detection.
+
+Everything else is reported rather than thrown, and
+`HTTPDigestVerification` keeps the outcomes apart on purpose:
+`NotPresent` / `Unsupported` / `Match` / `Mismatch`. Three of those four mean
+nothing was checked. Collapsing "there was no digest" into a boolean `true` would
+quietly turn an unverified body into a verified one, which is the one failure
+this feature exists to prevent.
 
 ### TLS profile (RFC 9113, Section 9.2)
 
@@ -795,6 +863,7 @@ they're common in the wild:
 - RFC 7692 — Compression Extensions for WebSocket (permessage-deflate)
 - RFC 9110 — HTTP Semantics
 - RFC 9111 — HTTP Caching
+- RFC 9530 — Digest Fields
 - RFC 7617 — The 'Basic' HTTP Authentication Scheme
 - RFC 6750 — OAuth 2.0 Bearer Token Usage
 - RFC 7616 — HTTP Digest Access Authentication
