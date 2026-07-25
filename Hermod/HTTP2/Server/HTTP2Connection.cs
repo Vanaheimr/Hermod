@@ -2694,10 +2694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         internal void EnforceOutboundHeaderListSize(UInt32 StreamId, List<(string Name, string Value)> Headers)
         {
 
-            long uncompressedSize = 0;
-
-            foreach (var (name, value) in Headers)
-                uncompressedSize += name.Length + value.Length + 32;
+            var uncompressedSize = HTTP2HeaderList.UncompressedSize(Headers);
 
             if (uncompressedSize > remoteSettings.MaxHeaderListSize)
                 throw new HTTP2StreamException(HTTP2ErrorCode.INTERNAL_ERROR, StreamId,

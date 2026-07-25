@@ -397,7 +397,13 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   accumulation + a per-block CONTINUATION cap (server **and** client).
 - PING/SETTINGS/PRIORITY_UPDATE flood counting.
 - Stream-ID exhaustion handling (proactive GOAWAY + `REFUSED_STREAM`).
-- Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement.
+- Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement, on **both** roles: the
+  limit is advisory in the RFC's words but refusing early is strictly better than
+  spending a round trip on headers that come back as a stream reset. Measured on
+  the *uncompressed* list (`HTTP2HeaderList.UncompressedSize`, name + value + 32
+  per field), since the compressed size depends on whichever connection's dynamic
+  table the block travels on. The client refuses a request before allocating its
+  stream, so nothing declined consumes a stream ID.
 - Per-stream `RST_STREAM` cancellation (a `CancellationToken` into the handler).
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
 
@@ -875,7 +881,7 @@ they're common in the wild:
 | Slowloris (trickle / withhold) | Handshake / preface / idle / in-progress / SETTINGS-ACK timeouts |
 | Memory exhaustion by fast producer | Consumption-driven backpressure + bounded buffered body |
 | Stream-ID exhaustion | Proactive GOAWAY + `REFUSED_STREAM` |
-| Oversized header lists | Inbound + outbound `MAX_HEADER_LIST_SIZE` |
+| Oversized header lists | Inbound + outbound `MAX_HEADER_LIST_SIZE`, both roles |
 | Range amplification | `MaxRanges` cap on a byte-range set |
 | Weak TLS 1.2 cipher suites | RFC 9113 Appendix A check → `GOAWAY INADEQUATE_SECURITY` |
 | Decompression bombs | `MaxDecodedBodySize`, enforced *during* decode |

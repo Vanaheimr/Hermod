@@ -875,6 +875,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private async Task<UInt32> IssueOnNewStreamAsync(ClientExchange Exchange)
         {
 
+            // RFC 9113 Section 6.5.2: the peer has told us how large a header list it
+            // is prepared to accept. Refusing here costs nothing; sending anyway costs
+            // a round trip and comes back as a stream reset whose cause is invisible
+            // from the call site that caused it.
+            //
+            // Before the lock, and therefore before a stream is allocated: a request
+            // we are not going to send should not consume a stream ID or leave a gap
+            // in the sequence. This also covers the REFUSED_STREAM retry path, whose
+            // caller turns the throw into a failed response task.
+            if (ExceedsPeerHeaderListSize(Exchange.RequestHeaders, out var headerListSize))
+                throw new InvalidOperationException(
+                    $"The request header list ({headerListSize} bytes uncompressed) exceeds the peer's " +
+                    $"advertised MAX_HEADER_LIST_SIZE ({remoteSettings.MaxHeaderListSize} bytes)");
+
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Exchange.RequestToken);
 
             await requestStartLock.WaitAsync(linked.Token);
@@ -912,6 +926,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 _ = SendBodyThenCloseAsync(Exchange);
 
             return Exchange.Stream!.StreamId;
+
+        }
+
+        /// <summary>
+        /// Whether a header list is larger than the peer's advertised
+        /// <c>SETTINGS_MAX_HEADER_LIST_SIZE</c> (RFC 9113, Section 6.5.2) — the
+        /// client-side mirror of the server's
+        /// <c>EnforceOutboundHeaderListSize</c>, sharing its accounting through
+        /// <see cref="HTTP2HeaderList.UncompressedSize"/>.
+        ///
+        /// Before the peer's SETTINGS arrive this compares against our default rather
+        /// than their real limit, which is unavoidable — the first request may leave
+        /// before they have said anything — and harmless: the check is advisory in
+        /// both directions, and the inbound half at the peer remains the real
+        /// enforcement.
+        /// </summary>
+        private Boolean ExceedsPeerHeaderListSize(List<(string Name, string Value)> Headers, out Int64 Size)
+        {
+
+            Size = HTTP2HeaderList.UncompressedSize(Headers);
+
+            return Size > remoteSettings.MaxHeaderListSize;
 
         }
 
@@ -1174,6 +1210,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
 
             HTTP2Trailers.Validate(Stream.StreamId, Trailers);
+
+            // Same limit as the request headers, but the stream exists by now, so this
+            // is a stream-level failure like its sibling above rather than "you cannot
+            // start this request".
+            if (ExceedsPeerHeaderListSize(Trailers, out var trailerListSize))
+                throw new HTTP2StreamException(HTTP2ErrorCode.INTERNAL_ERROR, Stream.StreamId,
+                    $"The request trailer list ({trailerListSize} bytes uncompressed) exceeds the peer's " +
+                    $"advertised MAX_HEADER_LIST_SIZE ({remoteSettings.MaxHeaderListSize} bytes)");
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, CancellationToken);
 
