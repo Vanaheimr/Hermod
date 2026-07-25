@@ -277,6 +277,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             Task? writerTask = null;
 
+            // The outer span: every request span below nests inside it, which is what
+            // makes "this one slow request was on a connection that had 40 others"
+            // visible in a trace. Null unless something is listening.
+            using var connectionActivity = HTTP2Diagnostics.StartConnection(
+                                               (transportStream as System.Net.Sockets.NetworkStream)?.Socket.RemoteEndPoint?.ToString(),
+                                               "server"
+                                           );
+
             try
             {
 
@@ -295,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             catch (HTTP2ConnectionException ex)
             {
-                Console.Error.WriteLine($"[HTTP/2] Connection error: {ex.ErrorCode} — {ex.Message}");
+                HTTP2EventSource.Log.ConnectionError(ex.ErrorCode.ToString(), ex.Message);
                 await SendGoAwayAsync(ex.ErrorCode, ex.Message);
             }
             catch (IOException)
@@ -308,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[HTTP/2] Unexpected error: {ex}");
+                HTTP2EventSource.Log.ConnectionError(HTTP2ErrorCode.INTERNAL_ERROR.ToString(), ex.ToString());
                 await SendGoAwayAsync(HTTP2ErrorCode.INTERNAL_ERROR, "Internal server error");
             }
             finally
@@ -324,7 +332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     // silently discarding it, consistent with every other error path
                     // in this class.
                     try { await writerTask; }
-                    catch (Exception ex) { Console.Error.WriteLine($"[HTTP/2] Writer loop error: {ex}"); }
+                    catch (Exception ex) { HTTP2EventSource.Log.ConnectionError("WRITER_LOOP", ex.ToString()); }
                 }
             }
 
@@ -671,7 +679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 catch (HTTP2StreamException ex)
                 {
-                    Console.Error.WriteLine($"[HTTP/2] Stream {ex.StreamId} error: {ex.ErrorCode} — {ex.Message}");
+                    HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
                     await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode));
 
                     var stream = streamManager.TryGetStream(ex.StreamId);
@@ -2137,7 +2145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             if (stream is not null)
             {
-                Console.Error.WriteLine($"[HTTP/2] Stream {Frame.StreamId} reset by peer: {errorCode}");
+                HTTP2EventSource.Log.StreamResetByPeer((int) Frame.StreamId, errorCode.ToString());
                 stream.Reset();
 
                 // Wake a response task possibly waiting for window space on this
@@ -2196,7 +2204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var errorCode    = (HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload.AsSpan(4, 4));
             var debugData    = Frame.Length > 8 ? Encoding.UTF8.GetString(Frame.Payload.AsSpan(8)) : "";
 
-            Console.Error.WriteLine($"[HTTP/2] GOAWAY received: lastStream={lastStreamId} error={errorCode} debug=\"{debugData}\"");
+            HTTP2EventSource.Log.GoAwayReceived((int) lastStreamId, errorCode.ToString(), debugData);
 
             goawaySent = true;  // Stop processing new streams
 
@@ -2228,17 +2236,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     // Either the peer RST_STREAM'd this specific stream (see
                     // HTTP2Stream.CancellationToken) or the whole connection is
                     // shutting down — either way, no response is expected.
-                    Console.WriteLine($"[HTTP/2] Stream {Stream.StreamId} handler cancelled");
+                    HTTP2EventSource.Log.HandlerCancelled((int) Stream.StreamId, "request");
                 }
                 catch (HTTP2StreamException ex)
                 {
-                    Console.Error.WriteLine($"[HTTP/2] Stream {ex.StreamId} error: {ex.ErrorCode} — {ex.Message}");
+                    HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode)); } catch { }
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"[HTTP/2] Response error on stream {Stream.StreamId}: {ex.Message}");
+                    HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "response", ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR)); } catch { }
                 }
@@ -2277,17 +2285,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 catch (OperationCanceledException)
                 {
-                    Console.WriteLine($"[HTTP/2] Streaming handler on stream {Stream.StreamId} cancelled");
+                    HTTP2EventSource.Log.HandlerCancelled((int) Stream.StreamId, "streaming");
                 }
                 catch (HTTP2StreamException ex)
                 {
-                    Console.Error.WriteLine($"[HTTP/2] Stream {ex.StreamId} error: {ex.ErrorCode} — {ex.Message}");
+                    HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode)); } catch { }
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"[HTTP/2] Streaming handler error on stream {Stream.StreamId}: {ex.Message}");
+                    HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "streaming", ex.Message);
 
                     // Only send a 500 if nothing has gone out yet — once headers (or
                     // body) are on the wire, the only honest signal left is RST_STREAM.
@@ -2397,6 +2405,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                      ? Stream.RequestHeaders
                                      : [.. Stream.RequestHeaders, ("x-client-cert-subject", clientCertificate.Subject)];
 
+            // One span per request, nested inside the connection's. Null unless
+            // something is listening, and disposed on every path out of here.
+            var method = requestHeaders.FirstOrDefault(header => header.Name == ":method").Value;
+            var path   = requestHeaders.FirstOrDefault(header => header.Name == ":path").  Value;
+
+            using var activity = HTTP2Diagnostics.StartRequest(
+                                     method,
+                                     requestHeaders.FirstOrDefault(header => header.Name == ":scheme").   Value,
+                                     requestHeaders.FirstOrDefault(header => header.Name == ":authority").Value,
+                                     path,
+                                     Stream.StreamId,
+                                     "server"
+                                 );
+
             try
             {
 
@@ -2408,6 +2430,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 );
 
                 await SendResponseAsync(Stream, responseHeaders, responseBody);
+
+                var status = Int32.TryParse(responseHeaders.FirstOrDefault(header => header.Name == ":status").Value, out var parsed)
+                                 ? parsed
+                                 : 0;
+
+                HTTP2Diagnostics.Complete(activity, status);
+                HTTP2EventSource.Log.RequestHandled((int) Stream.StreamId, method ?? "?", path ?? "?", status);
 
             }
             catch (OperationCanceledException)
@@ -2421,7 +2450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[HTTP/2] Handler error on stream {Stream.StreamId}: {ex.Message}");
+                HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "request", ex.Message);
 
                 // Send a 500 Internal Server Error
                 var errorHeaders = new List<(string, string)>
@@ -2647,17 +2676,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 catch (OperationCanceledException)
                 {
-                    Console.WriteLine($"[HTTP/2] Stream {Stream.StreamId} CONNECT tunnel cancelled");
+                    HTTP2EventSource.Log.HandlerCancelled((int) Stream.StreamId, "CONNECT");
                 }
                 catch (HTTP2StreamException ex)
                 {
-                    Console.Error.WriteLine($"[HTTP/2] Stream {ex.StreamId} error: {ex.ErrorCode} — {ex.Message}");
+                    HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode)); } catch { }
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"[HTTP/2] CONNECT tunnel error on stream {Stream.StreamId}: {ex.Message}");
+                    HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "CONNECT", ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR)); } catch { }
                 }

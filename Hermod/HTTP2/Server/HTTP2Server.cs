@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var listener = new TcpListener(endpoint);
             listener.Start();
 
-            Console.WriteLine($"[HTTP/2] Listening on {endpoint}");
+            HTTP2EventSource.Log.ServerListening(endpoint.ToString());
 
             try
             {
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     tcpClient.NoDelay = true;
                     var remoteEP  = tcpClient.Client.RemoteEndPoint;
 
-                    Console.WriteLine($"[HTTP/2] Accepted TCP connection from {remoteEP}");
+                    HTTP2EventSource.Log.ConnectionAccepted(remoteEP?.ToString() ?? "?", cleartext ? "h2c" : "tls");
 
                     // Handle each connection concurrently
                     _ = Task.Run(() => HandleConnectionAsync(tcpClient, token), token);
@@ -275,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     // connection unchanged. mTLS is unavailable here (no TLS layer).
                     if (cleartext)
                     {
-                        Console.WriteLine($"[HTTP/2] h2c (cleartext) connection from {remoteEP}");
+                        HTTP2EventSource.Log.AlpnNegotiated(remoteEP?.ToString() ?? "?", "h2c");
                         await RunConnectionAsync(networkStream, clientCertificate: null, Token);
                         return;
                     }
@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             }
                             catch (OperationCanceledException) when (!Token.IsCancellationRequested)
                             {
-                                Console.Error.WriteLine($"[HTTP/2] TLS handshake timed out with {remoteEP}");
+                                HTTP2EventSource.Log.ConnectionRejected(remoteEP?.ToString() ?? "?", "TLS handshake timed out");
                                 return;
                             }
                         }
@@ -337,7 +337,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         if (negotiatedProtocol == SslApplicationProtocol.Http2)
                         {
 
-                            Console.WriteLine($"[HTTP/2] ALPN negotiated h2 with {remoteEP}");
+                            HTTP2EventSource.Log.ConnectionEstablished(remoteEP?.ToString() ?? "?",
+                                                                       "h2",
+                                                                       sslStream.SslProtocol.ToString(),
+                                                                       sslStream.NegotiatedCipherSuite.ToString());
 
                             // RFC 9113, Section 9.2.2: HTTP/2 over TLS 1.2 must not
                             // use a cipher suite from Appendix A — no forward secrecy
@@ -348,7 +351,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                 isBlocklistedCipherSuite(sslStream.NegotiatedCipherSuite))
                             {
 
-                                Console.Error.WriteLine($"[HTTP/2] Rejecting {remoteEP}: cipher suite {sslStream.NegotiatedCipherSuite} is blocklisted for HTTP/2 (RFC 9113, Appendix A)");
+                                HTTP2EventSource.Log.ConnectionRejected(remoteEP?.ToString() ?? "?",
+                                                    $"cipher suite {sslStream.NegotiatedCipherSuite} is blocklisted for HTTP/2 (RFC 9113, Appendix A)");
 
                                 await RejectInadequateSecurityAsync(sslStream, sslStream.NegotiatedCipherSuite, Token);
                                 return;
@@ -363,14 +367,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         }
                         else if (negotiatedProtocol == SslApplicationProtocol.Http11)
                         {
-                            Console.WriteLine($"[HTTP/2] ALPN negotiated http/1.1 with {remoteEP} — falling back");
+                            HTTP2EventSource.Log.AlpnNegotiated(remoteEP?.ToString() ?? "?", "http/1.1");
                             // Here you would hand off to your existing HTTP/1.1 handler.
                             // For this demo, we just close the connection.
                             await HandleHTTP11FallbackAsync(sslStream);
                         }
                         else
                         {
-                            Console.WriteLine($"[HTTP/2] Unknown ALPN protocol '{negotiatedProtocol}' from {remoteEP}");
+                            HTTP2EventSource.Log.AlpnNegotiated(remoteEP?.ToString() ?? "?", negotiatedProtocol.ToString());
                         }
 
                     }
@@ -380,15 +384,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             catch (AuthenticationException ex)
             {
-                Console.Error.WriteLine($"[HTTP/2] TLS handshake failed with {remoteEP}: {ex.Message}");
+                HTTP2EventSource.Log.ConnectionFailed(remoteEP?.ToString() ?? "?", $"TLS handshake failed: {ex.Message}");
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[HTTP/2] Connection error with {remoteEP}: {ex.Message}");
+                HTTP2EventSource.Log.ConnectionFailed(remoteEP?.ToString() ?? "?", ex.Message);
             }
             finally
             {
-                Console.WriteLine($"[HTTP/2] Connection closed: {remoteEP}");
+                HTTP2EventSource.Log.ConnectionClosed(remoteEP?.ToString() ?? "?");
             }
 
         }

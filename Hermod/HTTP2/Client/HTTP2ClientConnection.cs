@@ -409,8 +409,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTP2Priority?                     Priority,
             CancellationToken                  CancellationToken)
         {
+            using var activity = HTTP2Diagnostics.StartRequest(Method, Scheme, Authority, Path, 0, "client");
+
             var handle   = await StartRequestAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
+
+            activity?.SetTag("http2.stream_id", handle.StreamId);
+
             var response = await handle.Response;
+
+            HTTP2Diagnostics.Complete(activity, response.Status);
 
             // RFC 9110 Section 11.6.1: a 401 names the schemes the server will
             // accept. If we hold credentials for one of them, answer the challenge

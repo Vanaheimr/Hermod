@@ -553,6 +553,41 @@ server only ever formatted `Content-Range`.
   (§2.1) or over h2c, where an unauthenticated peer's claim about its own
   identity is worth nothing (§2.4).
 
+### Observability (events + tracing)
+
+The stack writes **nothing** to the console. It emits structured events through
+`HTTP2EventSource` and spans through `HTTP2Diagnostics.ActivitySource`, and a
+consumer decides what to do with them — both APIs are BCL, so this costs no
+dependency, which matters when the alternative (a logging abstraction) would
+have been the first thing to break the no-NuGet rule.
+
+- **Events** (`EventSource` named `Vanaheimr-Hermod-HTTP2`): connection lifecycle
+  including the negotiated ALPN, TLS version and cipher suite — parameters that
+  were otherwise invisible after the handshake — plus connection/stream errors,
+  peer resets, GOAWAY with its code, handler failures, and per-request
+  method/path/status. Attach an `EventListener`, ETW, or an OpenTelemetry
+  exporter.
+- **Counters** (`dotnet-counters monitor --counters Vanaheimr-Hermod-HTTP2`):
+  connections started, requests handled, streams reset, connection errors, and
+  abuse defences fired. Created on first subscription, not at construction — an
+  unobserved counter still costs a timer.
+- **Spans** (`AddSource("Vanaheimr.Hermod.HTTP2")`): one per connection with a
+  request span nested inside it, tagged per the OpenTelemetry semantic
+  conventions (`http.request.method`, `url.path`, `http.response.status_code`,
+  `network.protocol.version`), so an exporter needs no translation layer. The
+  nesting is the point: it makes "this slow request shared a connection with
+  forty others" visible.
+- **The abuse defences finally report.** Rapid Reset, CONTINUATION floods,
+  unproductive-frame floods and timeout kills previously detected their
+  conditions and then told nobody but stdout — unobservable in exactly the
+  situations they exist for.
+- **Unobserved, it costs nothing**, and that is asserted rather than claimed:
+  `StartActivity` returns null with no listener, and the `EventSource` reports
+  itself disabled so payloads are never built. There is a test for both.
+
+The `Demo` shows the seam from the consumer's side — a ~30-line `EventListener`
+that prints, which is roughly what the library used to hardcode.
+
 ### Testable time (TimeProvider)
 
 - Every time source in the stack is injectable via the BCL
