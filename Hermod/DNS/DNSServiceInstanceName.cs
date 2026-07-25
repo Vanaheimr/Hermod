@@ -146,7 +146,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             DNSServiceInstance     = null;
             ErrorResponse  = null;
 
-            Text = Text?.Trim().ToLowerInvariant() ?? "";
+            // RFC 1035 §2.3.3: preserve the case of a received name; comparisons are
+            // case-insensitive instead (RFC 4343). This matters twice over here — an
+            // RFC 6763 service instance carries a human-readable Instance label whose
+            // capitalization is meant to be shown to users.
+            Text = Text?.Trim() ?? "";
 
             if (Text.IsNullOrEmpty())
             {
@@ -299,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator == (DNSServiceInstanceName DNSServiceInstance1,
                                            String     DNSServiceInstance2)
 
-            => DNSServiceInstance1.FullName.Equals(DNSServiceInstance2);
+            => DNSServiceInstance1.FullName.Equals(DNSServiceInstance2, StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -329,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator != (DNSServiceInstanceName DNSServiceInstance1,
                                            String     DNSServiceInstance2)
 
-            => !DNSServiceInstance1.FullName.Equals(DNSServiceInstance2);
+            => !DNSServiceInstance1.FullName.Equals(DNSServiceInstance2, StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -424,7 +428,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (DNSServiceInstance is null)
                 throw new ArgumentNullException(nameof(DNSServiceInstance), "The given DNS service instance must not be null!");
 
-            return FullName.CompareTo(DNSServiceInstance.FullName);
+            return String.Compare(FullName,
+                                  DNSServiceInstance.FullName,
+                                  StringComparison.OrdinalIgnoreCase);
 
         }
 
@@ -457,9 +463,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => DNSServiceInstance is not null &&
 
+               // RFC 4343: case-insensitive, and must agree with GetHashCode().
                String.Equals(FullName,
                              DNSServiceInstance.FullName,
-                             StringComparison.Ordinal);
+                             StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
