@@ -145,6 +145,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// A new trust anchor must be continuously seen for this duration
         /// before it is accepted.
         /// </summary>
+        /// <summary>
+        /// The DNSKEY REVOKE flag (RFC 5011 §2.1). Note that it lives in the Flags
+        /// field, which is part of the RDATA the key tag is computed over — so a
+        /// revoked key does not have the same key tag as the key it revokes.
+        /// </summary>
+        private const UInt16 RevokeFlag = 0x0080;
+
         public static readonly TimeSpan AddHoldDownTime = TimeSpan.FromDays(30);
 
         /// <summary>
@@ -191,25 +198,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var keyTag    = ComputeKeyTag(key);
                     var keyId     = (keyTag, key.Algorithm);
                     var isSEP     = (key.Flags & 0x0001) == 1;   // Secure Entry Point (KSK)
-                    var isRevoked = (key.Flags & 0x0080) != 0;    // REVOKE flag (RFC 5011 Section 2.1)
+                    var isRevoked = (key.Flags & RevokeFlag) != 0;   // RFC 5011 §2.1
 
                     // Process revocations
                     if (isRevoked && isSEP)
                     {
 
+                        // RFC 5011 §2.1: this anchor was stored while the REVOKE bit was
+                        // clear. The key tag is a checksum over the whole DNSKEY RDATA,
+                        // Flags included, so setting REVOKE changes it — matching on the
+                        // revoked key's current tag can never find the stored anchor, and
+                        // the revocation would be silently ignored while the compromised
+                        // key stayed trusted. Compare against the tag the key had before
+                        // it was revoked.
+                        var liveKeyTag = ComputeKeyTag(
+                                             (UInt16) (key.Flags & ~RevokeFlag),
+                                             key.Protocol,
+                                             key.Algorithm,
+                                             key.PublicKey
+                                         );
+
+                        var liveKeyId  = (liveKeyTag, key.Algorithm);
+
                         // Remove from active trust anchors
                         var removed = trustAnchors.RemoveAll(
-                                          a => a.KeyTag    == keyTag &&
-                                               a.Algorithm == key.Algorithm
+                                          a => (a.KeyTag == liveKeyTag || a.KeyTag == keyTag) &&
+                                                a.Algorithm == key.Algorithm
                                       );
 
                         if (removed > 0)
-                        {
-                            revokedAnchors.Add(keyId);
                             modified = true;
-                        }
+
+                        // Remember it under both identities, so the key cannot be
+                        // re-admitted when it is next published without the REVOKE bit.
+                        revokedAnchors.Add(liveKeyId);
+                        revokedAnchors.Add(keyId);
 
                         // Also remove from pending
+                        pendingAnchors.Remove(liveKeyId);
                         pendingAnchors.Remove(keyId);
 
                         continue;
@@ -527,16 +553,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="Key">The DNSKEY record.</param>
         public static UInt16 ComputeKeyTag(DNSKEY Key)
+
+            => ComputeKeyTag(Key.Flags,
+                             Key.Protocol,
+                             Key.Algorithm,
+                             Key.PublicKey);
+
+
+        /// <summary>
+        /// Compute the Key Tag from the DNSKEY RDATA fields (RFC 4034 Appendix B).
+        /// </summary>
+        /// <remarks>
+        /// Taking the fields rather than the record makes it possible to ask what
+        /// the tag *would* be under different flags — which RFC 5011 revocation
+        /// handling needs, because setting the REVOKE bit changes the tag.
+        /// </remarks>
+        private static UInt16 ComputeKeyTag(UInt16  Flags,
+                                            Byte    Protocol,
+                                            Byte    Algorithm,
+                                            Byte[]  PublicKey)
         {
 
             // DNSKEY RDATA: Flags (2 bytes) + Protocol (1 byte) + Algorithm (1 byte) + PublicKey
-            var rdataLength = 4 + Key.PublicKey.Length;
+            var rdataLength = 4 + PublicKey.Length;
             var rdata       = new Byte[rdataLength];
 
-            BinaryPrimitives.WriteUInt16BigEndian(rdata.AsSpan(0), Key.Flags);
-            rdata[2] = Key.Protocol;
-            rdata[3] = Key.Algorithm;
-            Array.Copy(Key.PublicKey, 0, rdata, 4, Key.PublicKey.Length);
+            BinaryPrimitives.WriteUInt16BigEndian(rdata.AsSpan(0), Flags);
+            rdata[2] = Protocol;
+            rdata[3] = Algorithm;
+            Array.Copy(PublicKey, 0, rdata, 4, PublicKey.Length);
 
             // RFC 4034 Appendix B algorithm
             UInt32 ac = 0;
@@ -728,8 +773,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 using var rrStream = new MemoryStream();
 
-                // Owner name in canonical wire format
-                var ownerWire = SerializeCanonicalName(rr.DomainName.FullName);
+                // Owner name in canonical wire format, reconstructed as the wildcard
+                // if the server expanded one (RFC 4035 §5.3.2).
+                var ownerWire = SerializeCanonicalName(
+                                    SignedOwnerName(rr.DomainName.FullName, Signature.Labels)
+                                );
                 rrStream.Write(ownerWire, 0, ownerWire.Length);
 
                 // Type (2 bytes)
@@ -1013,6 +1061,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+        #region (private static) SignedOwnerName(OwnerName, Labels)
+
+        /// <summary>
+        /// The owner name a signature was actually made over.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4034 §3.1.3 defines the RRSIG Labels field as the number of labels in
+        /// the owner name, excluding the root label and any leading wildcard label.
+        /// RFC 4035 §5.3.2 turns that into a rule for validators: if Labels is less
+        /// than the number of labels the RRset's owner name actually has, the server
+        /// synthesized this RRset from a wildcard, and the name that was signed is
+        /// "*." followed by the rightmost Labels labels — not the expanded name.
+        ///
+        /// Building the signed data from the expanded name instead hashes something
+        /// no signer ever produced, which makes every correctly-signed wildcard
+        /// answer Bogus.
+        /// </remarks>
+        /// <param name="OwnerName">The owner name as it appears in the response.</param>
+        /// <param name="Labels">The RRSIG's Labels field.</param>
+        private static String SignedOwnerName(String  OwnerName,
+                                              Byte    Labels)
+        {
+
+            var labels = OwnerName.TrimEnd('.').Split('.');
+
+            // The root name splits into a single empty label; there is nothing to
+            // reconstruct, and treating it as one real label would be wrong.
+            if (labels.Length == 1 && labels[0].Length == 0)
+                return OwnerName;
+
+            // Not a wildcard expansion: the owner name is what was signed. Labels
+            // greater than the actual count means the RRSIG disagrees with the
+            // record it covers; leaving the name alone lets the signature check
+            // fail on its own rather than inventing a name here.
+            if (Labels >= labels.Length)
+                return OwnerName;
+
+            // A wildcard directly at the root would carry Labels = 0.
+            if (Labels == 0)
+                return "*.";
+
+            return String.Concat("*.", String.Join('.', labels[(labels.Length - Labels)..]), ".");
+
+        }
+
+        #endregion
 
         #region (private static) SerializeCanonicalName(Name)
 
