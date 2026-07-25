@@ -611,7 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     }
 
                     var stream = await StartStreamingRequestAsync("GET", Scheme, Authority, Path, headers, null, CancellationToken);
-                    await stream.CompleteRequestAsync(CancellationToken);
+                    await stream.CompleteRequestAsync(CancellationToken: CancellationToken);
 
                     var head = await stream.GetResponseAsync(CancellationToken);
                     status   = head.Status;
@@ -1118,6 +1118,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             catch { /* best-effort */ }
 
             CloseLocalIfOpen(Stream);
+        }
+
+        /// <summary>
+        /// End the request with a trailing HEADERS block instead of an empty DATA
+        /// frame (RFC 9113, Section 8.1) — the client-side mirror of the server's
+        /// response trailers, and what a client-streaming gRPC call needs to say
+        /// anything after its last message.
+        ///
+        /// The encode happens under <c>requestStartLock</c>, not merely under the
+        /// write lock, and that is load-bearing: the HPACK encoder's dynamic table is
+        /// stateful, so blocks must reach the wire in the order they were encoded.
+        /// Request HEADERS are encoded under that same lock, so taking only the write
+        /// lock here would let a trailer block be encoded *between* another request's
+        /// encode and its write — a desynchronized decoder at the peer, and one that
+        /// would only show up under concurrency.
+        ///
+        /// Unlike <see cref="EndTunnelAsync"/> this is not best-effort: a caller that
+        /// asked to send trailers and got no exception is entitled to assume they
+        /// went out.
+        /// </summary>
+        internal async Task EndRequestWithTrailersAsync(HTTP2Stream                       Stream,
+                                                        List<(string Name, string Value)> Trailers,
+                                                        CancellationToken                 CancellationToken)
+        {
+
+            HTTP2Trailers.Validate(Stream.StreamId, Trailers);
+
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, CancellationToken);
+
+            await requestStartLock.WaitAsync(linked.Token);
+            try
+            {
+                var headerBlock = hpackEncoder.EncodeHeaderBlock(Trailers);
+                await SendHeaderBlockAsync(Stream.StreamId, headerBlock, EndStream: true);
+            }
+            finally
+            {
+                requestStartLock.Release();
+            }
+
+            CloseLocalIfOpen(Stream);
+
         }
 
         #endregion

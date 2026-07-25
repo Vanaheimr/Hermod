@@ -67,9 +67,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default)
             => connection.SendStreamDataAsync(stream, Data, CancellationToken);
 
-        /// <summary>Finish the request body: a zero-length END_STREAM DATA frame, half-closing our side.</summary>
-        public Task CompleteRequestAsync(CancellationToken CancellationToken = default)
-            => connection.EndTunnelAsync(stream);
+        /// <summary>
+        /// Finish the request, half-closing our side: a zero-length END_STREAM DATA
+        /// frame, or — when <paramref name="Trailers"/> are supplied — a trailing
+        /// HEADERS block carrying END_STREAM instead (RFC 9113, Section 8.1). The
+        /// mirror of the server's <c>IHTTP2ResponseStream.CompleteAsync</c>, and what
+        /// lets a client-streaming call say something after its last message.
+        ///
+        /// Trailers must carry no pseudo-header fields and their names must be
+        /// lowercase; a list that breaks either rule throws rather than reaching the
+        /// wire, since the peer would be entitled to reset the stream over it.
+        /// </summary>
+        public Task CompleteRequestAsync(IEnumerable<(string Name, string Value)>? Trailers = null,
+                                         CancellationToken                          CancellationToken = default)
+        {
+
+            var trailerList = Trailers?.ToList();
+
+            return trailerList is { Count: > 0 }
+                       ? connection.EndRequestWithTrailersAsync(stream, trailerList, CancellationToken)
+                       : connection.EndTunnelAsync(stream);
+
+        }
 
         /// <summary>Await the response head (status + headers) — completes when the response HEADERS arrive.</summary>
         public Task<HTTP2ResponseHead> GetResponseAsync(CancellationToken CancellationToken = default)

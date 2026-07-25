@@ -277,6 +277,10 @@ await s.WriteAsync(frame);                              // send a request-body c
 byte[]? chunk = await s.ReadAsync();                    // read a response-body chunk (null at end)
 await s.CompleteRequestAsync();                         // half-close the request side
 var trailers = await s.GetTrailersAsync();              // e.g. grpc-status
+
+// …or half-close with request trailers of our own (RFC 9113 §8.1), the mirror of
+// the server's IHTTP2ResponseStream.CompleteAsync(Trailers):
+await s.CompleteRequestAsync([("x-checksum", "deadbeef")]);
 ```
 
 `HTTP2CachingClient` wraps a connection with an RFC 9111 cache — it serves fresh
@@ -763,8 +767,21 @@ that prints, which is roughly what the library used to hardcode.
 ### Streaming, trailers & gRPC
 
 - A streaming seam alongside the buffered handler: incremental request-body read
-  + response-body write + **response trailers** (RFC 9113 §8.1) — server and
-  client (`HTTP2ClientStream`).
+  + response-body write + **trailers in both directions** (RFC 9113 §8.1) —
+  server and client (`HTTP2ClientStream`).
+- **Trailers, symmetrically.** The server sends response trailers through
+  `IHTTP2ResponseStream.CompleteAsync(Trailers)` and surfaces inbound request
+  trailers on `IHTTP2RequestStream.Trailers`; the client is now the exact mirror
+  — `HTTP2ClientStream.CompleteRequestAsync(Trailers)` ends the request with a
+  trailing HEADERS block instead of an empty END_STREAM DATA frame, and reads
+  response trailers off `GetTrailersAsync()` (or `HTTP2Response.Trailers` on the
+  buffered path). The validation rules — no pseudo-header fields, lowercase names
+  — live in `Core` as `HTTP2Trailers`, so the two directions cannot drift apart,
+  and a bad list throws at the call that made it rather than earning a remote
+  stream reset. A trailer-only request (no DATA at all) is legal and works.
+  Encoding happens under the same lock that orders request HEADERS: the HPACK
+  dynamic table is stateful, so a trailer block encoded between another request's
+  encode and its write would desynchronize the peer's decoder.
 - **gRPC** runs over the stack (unary, server-streaming, client-streaming, bidi)
   with `grpc-status` in trailers — verified against the real `Grpc.Net.Client`,
   with **zero gRPC-specific production code**.

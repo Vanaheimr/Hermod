@@ -2636,23 +2636,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Validate outbound trailer fields (RFC 9113, Section 8.1): no
-        /// pseudo-header fields, and field names must be lowercase.
+        /// Validate outbound trailer fields (RFC 9113, Section 8.1). The rules are
+        /// direction-neutral — the client sends request trailers under exactly the
+        /// same constraints — so they live in <see cref="HTTP2Trailers"/>; this stays
+        /// as the server-side name its call sites already use.
         /// </summary>
         internal static void ValidateOutboundTrailers(UInt32 StreamId, List<(string Name, string Value)> Trailers)
-        {
-            foreach (var (name, _) in Trailers)
-            {
-                if (name.Length == 0 || name[0] == ':')
-                    throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
-                        "Trailers must not contain pseudo-header fields");
-
-                foreach (var c in name)
-                    if (c is >= 'A' and <= 'Z')
-                        throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
-                            $"Trailer field name '{name}' must be lowercase");
-            }
-        }
+            => HTTP2Trailers.Validate(StreamId, Trailers);
 
         #endregion
 
