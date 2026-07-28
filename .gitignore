@@ -22,3 +22,12 @@
 
 !Hermod/Hermod/HTTP/HTTPAPI/HTTPRoot/js/
 !Hermod/Hermod/HTTP/HTTPAPI/HTTPRoot/js/**
+
+
+# QUIC/TLS debug output and secrets (Hermod/QUIC). None of these are confined to
+# bin/: --qlog=<dir>, SSLKEYLOGFILE and a caller-chosen secret path all write
+# wherever they are told to, and a TLS key log deanonymises a whole capture.
+*.qlog
+*.sqlog
+sslkeylog.txt
+stateless-reset-secret.bin
