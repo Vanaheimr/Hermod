@@ -19,8 +19,6 @@
 
 using System.Net.NetworkInformation;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Ethernet;
 
 #endregion

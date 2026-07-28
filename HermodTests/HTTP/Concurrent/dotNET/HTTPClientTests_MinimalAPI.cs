@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP;
@@ -48,7 +46,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
         { }
 
         #endregion
-
 
         #region HTTPClientTest_Concurrent_001()
 
@@ -92,7 +89,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
         }
 
         #endregion
-
 
     }
 

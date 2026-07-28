@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -20,8 +20,6 @@
 using System.Net;
 using System.Text;
 using System.Globalization;
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Net.Http.Headers;
@@ -59,7 +57,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Setup()
 
         [OneTimeSetUp]
@@ -87,7 +84,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region AssertResponseStartHeader(HttpResponse)
 
@@ -141,7 +137,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Test_001()
 
         [Test]
@@ -160,7 +155,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_ConnectionClose_Reconnects_Before_The_Next_Request()
 
@@ -184,7 +178,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_KeepAlive_Reuses_Connection()
 
         [Test]
@@ -206,7 +199,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region HEAD_Root_Has_No_Body()
 
@@ -259,7 +251,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_ResetContent_Has_No_Body()
 
         [Test]
@@ -275,7 +266,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region PUT_Root_Is_MethodNotAllowed()
 
@@ -441,7 +431,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region QUERY_TestString_in_HTTPBody()
 
         [Test]
@@ -469,7 +458,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region QUERY_ChunkedTestString_in_HTTPBody()
 
         [Test]
@@ -493,7 +481,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region POST_ChunkedMirrorTestString_in_HTTPBody()
 
@@ -539,7 +526,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_AutomaticallyChunkedResponse_Trailers_Are_Available()
 
         [Test]
@@ -557,7 +543,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_ChunkedLiveResponse_Trailers_Are_Available()
 
@@ -579,7 +564,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_ChunkedLiveResponse_Extensions_Are_Interoperable()
 
         [Test]
@@ -595,7 +579,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_EventStream_With_Multiple_Data_Lines()
 
@@ -613,7 +596,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_EventStream()
 
@@ -664,7 +646,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_LiveEventStreamWorker_Supports_Parallel_Clients()
 
         [Test]
@@ -682,7 +663,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_EventStream_Reconnects_From_Last_Event_Id()
 
@@ -708,7 +688,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_ChunkedResponse()
 
         [Test]
@@ -725,7 +704,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region POST_MirrorRandomString_in_QueryString()
 
@@ -805,7 +783,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_NotForEveryone_RequiresBasicAuthorization()
 
@@ -928,7 +905,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
     }
 

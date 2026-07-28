@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 

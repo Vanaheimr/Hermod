@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -18,8 +18,6 @@
 #region Usings
 
 using System.Security.Cryptography.X509Certificates;
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -49,7 +47,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         { }
 
         #endregion
-
 
         #region Test_001()
 
@@ -103,8 +100,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             var httpsResponse  = await httpsClient.GET(HTTPPath.Root).
                                                    ConfigureAwait(false);
 
-
-
             var request       = httpsResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -114,8 +109,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             Assert.That(request.Contains("Date:"),            Is.False, request);
             Assert.That(request.Contains("GET / HTTP/1.1"),   Is.True,  request);
             Assert.That(request.Contains("Host: 127.0.0.1"),  Is.True,  request);
-
-
 
             var response      = httpsResponse.EntirePDU;
             var httpsBody     = httpsResponse.HTTPBodyAsUTF8String;
@@ -142,7 +135,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         }
 
         #endregion
-
 
     }
 

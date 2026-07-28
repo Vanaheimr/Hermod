@@ -22,8 +22,6 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -69,7 +67,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region WithoutAHandler_Http11IsNotAdvertised()
 

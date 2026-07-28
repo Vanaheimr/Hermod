@@ -23,8 +23,6 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
-using NUnit.Framework;
-
 using Org.BouncyCastle.Crypto;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -165,7 +163,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Invalid HTTP message framing is rejected
 
         [TestCase("Content-Length: 4\r\nContent-Length: 4\r\n\r\ntest")]
@@ -298,7 +295,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Server-wide OPTIONS is bodyless
 
         [Test]
@@ -330,7 +326,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Segmented raw request and framed response
 
@@ -374,7 +369,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Raw pipelined requests receive separately framed responses
 
@@ -421,7 +415,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Pipelined chunked requests are delimited before the following request
 
         [Test]
@@ -467,7 +460,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Invalid leading pipeline request closes the connection
 
         [Test]
@@ -498,7 +490,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Method not allowed responses advertise allowed methods
 
@@ -531,7 +522,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Invalid Host and header syntax is rejected
 
         [TestCase("GET / HTTP/1.1\r\nConnection: close\r\n\r\n")]
@@ -563,7 +553,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Invalid request-target forms are rejected
 
@@ -609,7 +598,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Configured request header limits are enforced
 
         [Test]
@@ -639,7 +627,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task Request_Header_Field_Line_Exceeding_Configured_Limit_Is_Rejected()
         {
@@ -668,7 +655,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task Request_Exceeding_Configured_Header_Count_Is_Rejected()
         {
@@ -695,7 +681,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
 
         }
-
 
         [Test]
         public async Task Request_Target_Exceeding_Configured_Limit_Is_Rejected()
@@ -726,7 +711,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Invalid Content-Length syntax is rejected
 
@@ -761,7 +745,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Configured request read timeouts are enforced
 
@@ -801,7 +784,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task Incomplete_ContentLength_Request_Body_Returns_RequestTimeout()
         {
@@ -832,7 +814,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Configured request body and chunk metadata limits are enforced
 
         [Test]
@@ -861,7 +842,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
 
         }
-
 
         [Test]
         public async Task Truncated_ContentLength_Request_Body_Is_Rejected()
@@ -898,7 +878,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task Truncated_Chunked_Request_Body_Is_Rejected()
         {
@@ -934,7 +913,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task Chunked_Request_Body_Exceeding_Configured_Limit_Is_Rejected()
         {
@@ -961,7 +939,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
 
         }
-
 
         [TestCase("chunk-size-line")]
         [TestCase("trailer-line")]
@@ -1009,7 +986,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region HTTP/1.0 Content-Length request bodies are supported
 
         [Test]
@@ -1040,7 +1016,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region HTTP/1.0 chunked requests are rejected
 
         [Test]
@@ -1069,7 +1044,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region HTTP/1.0 automatically chunked responses fall back to close-delimited bodies
 
@@ -1124,7 +1098,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region HTTP/1.0 manually chunked responses are rejected
 
@@ -1181,7 +1154,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region HTTP/1.0 bodyless responses preserve status and framing semantics
 
         [TestCase("HEAD / HTTP/1.0\r\n\r\n", 200)]
@@ -1211,7 +1183,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region HTTP/1.0 requests are supported
 
@@ -1316,7 +1287,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Connection close overrides keep-alive
 
         [Test]
@@ -1348,7 +1318,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Non-canonical HTTP-version syntax is rejected
 
@@ -1411,7 +1380,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Forbidden outgoing trailer fields are rejected before the terminal chunk
 
         [Test]
@@ -1434,7 +1402,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Invalid chunk extensions are rejected
 
@@ -1528,7 +1495,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Chunked request bodies are decoded before routing
 
         [Test]
@@ -1619,7 +1585,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region HEAD responses do not contain a response body
 
@@ -1758,7 +1723,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region HTTP activeClients cleanup
 
         [Test]
@@ -1798,7 +1762,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Helpers
 

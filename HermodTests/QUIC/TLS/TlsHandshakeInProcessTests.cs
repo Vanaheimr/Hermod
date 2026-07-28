@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Crypto;

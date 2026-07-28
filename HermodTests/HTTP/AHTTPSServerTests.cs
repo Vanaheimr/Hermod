@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -18,8 +18,6 @@
 #region Usings
 
 using System.Security.Cryptography.X509Certificates;
-
-using NUnit.Framework;
 
 using Org.BouncyCastle.Crypto;
 
@@ -76,8 +74,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                           );
             rootCA                      = rootCA_X509v3.ToDotNet()!;
 
-
-
             // Server CA
             serverCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
             serverCA_X509v3             = PKIFactory.CreateIntermediateCA(
@@ -97,8 +93,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               serverCA_X509v3
                                           ).ToDotNet(serverRSAKeyPair.Private)!;
 
-
-
             // Client CA
             clientCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
             clientCA_X509v3             = PKIFactory.CreateIntermediateCA(
@@ -117,7 +111,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               clientCA_RSAKeyPair.Private,
                                               clientCA_X509v3
                                           ).ToDotNet(clientRSAKeyPair.Private)!;
-
 
             // HTTPS server configuration
             httpsServer                 = new HTTPServer(
@@ -139,7 +132,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         }
 
         #endregion
-
 
         #region Init_HTTPSServer()
 
@@ -245,7 +237,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
             #endregion
 
-
             #region POST    /mirror/queryString
 
             httpsAPI.AddHandler(HTTPPath.Root + "mirror" + "queryString",
@@ -299,7 +290,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                                                         }.AsImmutable));
 
             #endregion
-
 
             #region GET     /chunked
 
@@ -371,7 +361,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
             #endregion
 
-
             #region POST    /mirrorBody2
 
             httpsAPI.AddHandler(HTTPPath.Root + "mirrorBody2",
@@ -411,7 +400,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         }
 
         #endregion
-
 
     }
 

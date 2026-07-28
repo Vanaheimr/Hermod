@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Asn1.X509;
@@ -68,11 +66,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             // Verify with the subject/issuer (self-signed) public key
             RootCACertificate.Verify(publicKey);
 
-
             // Extensions: Criticality Sets
             var criticalOids    = new HashSet<String>(RootCACertificate.GetCriticalExtensionOids());
             var nonCriticalOids = new HashSet<String>(RootCACertificate.GetNonCriticalExtensionOids());
-
 
             // Extensions: BasicConstraints (CA = true, optional pathLen)
             var basicConstraints        = PKIFactory.ParseBasicConstraints(RootCACertificate);
@@ -112,13 +108,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             Assert.That(akiKid,                                                             Is.Not.Null,                                                           "AuthorityKeyIdentifier.keyIdentifier must not be null for a rootCA!");
             Assert.That(subjectKeyIdentifier.GetKeyIdentifier().ToHexString(),              Is.EqualTo(akiKid!.ToHexString()),                                     "Root SKI.keyIdentifier and AKI.keyIdentifier must match!");
 
-
             // No EKU / SAN on root (policy choice). If present: fail!
             Assert.That(RootCACertificate.GetExtensionValue(X509Extensions.ExtendedKeyUsage),         Is.Null, "ExtendedKeyUsage should be absent on a rootCA!");
             Assert.That(RootCACertificate.GetExtensionValue(X509Extensions.SubjectAlternativeName),   Is.Null, "SubjectAlternativeNames should be absent on a rootCA!");
-
-
-
 
             // AIA/CRLDP: if present, must be non-critical and URI-based
             var crldpExt = RootCACertificate.GetExtensionValue(X509Extensions.CrlDistributionPoints);
@@ -161,9 +153,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                 }
             }
 
-
-
-
             // --- DER RoundTrip
             var derBytes                = RootCACertificate.GetEncoded();
             var parsedCertificate       = new X509CertificateParser().ReadCertificate(derBytes);
@@ -175,7 +164,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_ECC_RootCA_Test()
 
@@ -200,7 +188,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var spki               = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(ecPublicKey);
             Assert.That(spki.Algorithm.Algorithm.Id,                       Is.EqualTo("1.2.840.10045.2.1"),     "SPKI must advertise 'ecPublicKey'!");
 
-
             var rootCACertificate  = PKIFactory.CreateRootCACertificate(
                                          RootKeyPair:              rootCAKeyPair,
                                          SubjectName:             "Hermod RootCA",
@@ -216,7 +203,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                      );
 
             ValidateRootCACertificate(rootCACertificate);
-
 
             // ECDSA-specific certificate checks
             Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("ECDSA"),               "Expect ECDSA signature!");
@@ -253,7 +239,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var spki               = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(ecPublicKey);
             Assert.That(spki.Algorithm.Algorithm.Id,                       Is.EqualTo("1.2.840.10045.2.1"),     "SPKI must advertise 'ecPublicKey'!");
 
-
             var rootCACertificate  = PKIFactory.CreateRootCACertificate(
                                          RootKeyPair:              rootCAKeyPair,
                                          SubjectName:             "Hermod RootCA",
@@ -270,7 +255,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             ValidateRootCACertificate(rootCACertificate);
 
-
             // ECDSA-specific certificate checks
             Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("ECDSA"),               "Expect ECDSA signature!");
             Assert.That(rootCACertificate.SigAlgOid,                       Is.EqualTo("1.2.840.10045.4.3.4"),   "ecdsa-with-SHA512 expected!");
@@ -282,7 +266,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_Ed25519_RootCA_Test()
 
@@ -306,7 +289,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var spki               = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(ed25519PublicKey);
             Assert.That(spki.Algorithm.Algorithm.Id,                       Is.EqualTo("1.3.101.112"),   "SPKI must advertise 'id-Ed25519'!");
 
-
             var rootCACertificate  = PKIFactory.CreateRootCACertificate(
                                          RootKeyPair:              rootCAKeyPair,
                                          SubjectName:             "Hermod RootCA",
@@ -322,7 +304,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                      );
 
             ValidateRootCACertificate(rootCACertificate);
-
 
             // ED25519-specific certificate checks
             Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("ED25519"),     "Expect ED25519 signature!");
@@ -358,7 +339,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var spki               = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(ed448PublicKey);
             Assert.That(spki.Algorithm.Algorithm.Id,                       Is.EqualTo("1.3.101.113"),   "SPKI must advertise 'id-Ed448'!");
 
-
             var rootCACertificate  = PKIFactory.CreateRootCACertificate(
                                          RootKeyPair:              rootCAKeyPair,
                                          SubjectName:             "Hermod RootCA",
@@ -375,7 +355,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             ValidateRootCACertificate(rootCACertificate);
 
-
             // ED448-specific certificate checks
             Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("ED448"),       "Expect ED448 signature!");
             Assert.That(rootCACertificate.SigAlgOid,                       Is.EqualTo("1.3.101.113"),   "id-Ed448 expected!");
@@ -387,7 +366,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_MLDSA_RootCA_Test()
 
@@ -414,7 +392,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var spki               = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(mlDSAPublicKey);
             Assert.That(spki.Algorithm.Algorithm.Id,                       Is.EqualTo("2.16.840.1.101.3.4.3.18"),   "SPKI must advertise 'id-ml-dsa-65'!");
 
-
             var rootCACertificate  = PKIFactory.CreateRootCACertificate(
                                          RootKeyPair:              rootCAKeyPair,
                                          SubjectName:             "Hermod RootCA",
@@ -430,7 +407,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                      );
 
             ValidateRootCACertificate(rootCACertificate);
-
 
             // ML-DSA-specific certificate checks
             Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("ML-DSA-65"),               "Expect ML-DSA-65 signature!");
@@ -471,7 +447,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var spki               = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(mlKEMPublicKey);
             Assert.That(spki.Algorithm.Algorithm.Id,           Is.EqualTo("2.16.840.1.101.3.4.4.2"),   "SPKI must advertise 'kems'!");
 
-
             Assert.Throws<NotSupportedException>(() => PKIFactory.CreateRootCACertificate(
                                                            RootKeyPair:              rootCAKeyPair,
                                                            SubjectName:             "Hermod RootCA",
@@ -489,7 +464,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_RSA_RootCA_Test()
 
@@ -533,7 +507,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             ValidateRootCACertificate(rootCACertificate);
 
-
             // RSA-specific certificate checks
             Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("RSA"),                      "Root should be signed with an RSA algorithm (PKCS#1 v1.5 or RSASSA-PSS)!");
 
@@ -549,7 +522,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          "1.2.840.113549.1.1.13"  // sha512WithRSAEncryption
                                      };
             Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                                 $"Unexpected signature algorithm OID: {sigOid}!");
-
 
             // Verification of the rootCA signature with a different key must fail
             var wrongKeyPair       = PKIFactory.GenerateRSAKeyPair();
@@ -585,7 +557,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var spki               = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(rsaPublicKey);
             Assert.That(spki.Algorithm.Algorithm.Id,                       Is.EqualTo("1.2.840.113549.1.1.1"),   "SPKI must advertise 'rsaEncryption'!");
 
-
             var rootCACertificate  = PKIFactory.CreateRootCACertificate(
                                          RootKeyPair:              rootCAKeyPair,
                                          SubjectName:             "Hermod RootCA",
@@ -602,7 +573,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             ValidateRootCACertificate(rootCACertificate);
 
-
             // RSA-specific certificate checks
             Assert.That(rootCACertificate.SigAlgName.ToUpperInvariant(),   Does.Contain("RSA"),                      "Root should be signed with an RSA algorithm (PKCS#1 v1.5 or RSASSA-PSS)!");
 
@@ -618,7 +588,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                          "1.2.840.113549.1.1.13"  // sha512WithRSAEncryption
                                      };
             Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                                 $"Unexpected signature algorithm OID: {sigOid}!");
-
 
             // Verification of the rootCA signature with a different key must fail
             var wrongKeyPair       = PKIFactory.GenerateRSAKeyPair();

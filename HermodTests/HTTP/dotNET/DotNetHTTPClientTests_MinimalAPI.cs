@@ -22,8 +22,6 @@ using System.Text;
 using System.Globalization;
 using System.Net.Http.Headers;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -58,7 +56,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Setup()
 
         [OneTimeSetUp]
@@ -84,7 +81,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region AssertResponseStartHeader(HttpResponse)
 
@@ -136,7 +132,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Test_001()
 
         [Test]
@@ -155,7 +150,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region POST_MirrorTestString_in_QueryString()
 
@@ -252,7 +246,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region POST_MirrorRandomString_in_QueryString()
 
         [Test]
@@ -331,7 +324,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_NotForEveryone_RequiresBasicAuthorization()
 
@@ -454,7 +446,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
     }
 

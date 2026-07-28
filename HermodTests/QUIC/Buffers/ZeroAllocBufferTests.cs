@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Core.Buffers;
 
 #endregion

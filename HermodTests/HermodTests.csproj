@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Styx\StyxTests\StyxTests.csproj" />
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
     <ProjectReference Include="..\Hermod\Hermod.csproj" />

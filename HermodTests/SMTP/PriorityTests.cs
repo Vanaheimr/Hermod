@@ -22,8 +22,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 using org.GraphDefined.Vanaheimr.Illias;
@@ -48,7 +46,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             b.Subject = "test";
             return b;
         }
-
 
         [Test]
         public void High_importance_emits_the_expected_headers()
@@ -76,7 +73,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(text, Does.Not.Contain("X-Priority:"));
         }
 
-
         [TestCase(MailImportance.High)]
         [TestCase(MailImportance.Normal)]
         [TestCase(MailImportance.Low)]
@@ -85,7 +81,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var parsed = EMail.Parse(Build(importance).ToText());
             Assert.That(parsed.Importance, Is.EqualTo(importance));
         }
-
 
         [Test]
         public void Importance_is_parsed_from_X_Priority_alone()
@@ -127,7 +122,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             });
             Assert.That(mail.Importance, Is.EqualTo(MailImportance.Normal));
         }
-
 
         #region MT-PRIORITY (RFC 6710) transport priority
 

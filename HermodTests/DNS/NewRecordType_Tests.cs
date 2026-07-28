@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -47,7 +45,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         {
             client?.Dispose();
         }
-
 
         // ───────────────── CAA (RFC 8659) ─────────────────
 
@@ -87,7 +84,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── DNSKEY (RFC 4034) ─────────────────
 
@@ -132,7 +128,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-
         // ───────────────── DS (RFC 4034) ─────────────────
 
         #region Test_cloudflare_com__DS()
@@ -167,7 +162,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── TLSA (RFC 6698 / DANE) ─────────────────
 
@@ -204,7 +198,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── SSHFP (RFC 4255) ─────────────────
 
@@ -376,9 +369,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-
-
-
         // ───────────────── HINFO (RFC 1035) ─────────────────
 
         #region Test_hinfo_query_roundtrip()
@@ -411,7 +401,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-
         // ───────────────── LOC (RFC 1876) ─────────────────
 
         #region Test_loc_query_roundtrip()
@@ -434,7 +423,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── NSEC (RFC 4034) ─────────────────
 
@@ -486,7 +474,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-
         // ───────────────── RRSIG (RFC 4034) ─────────────────
 
         #region Test_cloudflare_com__RRSIG_with_DNSKEY()
@@ -532,7 +519,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-
         // ───────────────── DNSKEY Key Tag computation ─────────────────
 
         #region Test_DNSKEY_KeyTag_computation()
@@ -571,7 +557,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── DS ↔ DNSKEY verification ─────────────────
 
@@ -636,7 +621,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── ToZoneFileString() ─────────────────
 
@@ -763,7 +747,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
     }
 
-
     /// <summary>
     /// The same tests but via Google DNS-over-HTTPS (JSON) to test JSON parsing of new types.
     /// </summary>
@@ -792,7 +775,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
             client?.Dispose();
         }
 
-
         // ───────────────── CAA via JSON ─────────────────
 
         #region Test_cloudflare_com__CAA__JSON()
@@ -818,7 +800,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── DNSKEY via JSON ─────────────────
 
@@ -849,7 +830,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-
         // ───────────────── DS via JSON ─────────────────
 
         #region Test_cloudflare_com__DS__JSON()
@@ -878,7 +858,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         // ───────────────── HINFO via JSON ─────────────────
 

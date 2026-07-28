@@ -19,8 +19,6 @@
 
 using System.Text.Json;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Argus;
 
 #endregion
@@ -36,7 +34,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.JSON.Canonical
     {
 
         private record TimestampProbe(DateTimeOffset Timestamp);
-
 
         #region Serializes_DateTimeOffset_As_Argus_ISO8601_UTC()
 

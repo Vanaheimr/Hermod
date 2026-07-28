@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -41,7 +39,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         private readonly UInt16            port  = 18402;
 
         #endregion
-
 
         #region SetupEachTest()
 
@@ -70,7 +67,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         }
 
         #endregion
-
 
         #region SendTwoTextFrames_Fast_Test()
 
@@ -154,7 +150,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpResponses.Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
-
             // Send messages
             await webSocketClient.SendTextMessage("1234");
             await webSocketClient.SendTextMessage("ABCD");
@@ -164,7 +159,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 Is.True,
                 "Timed out waiting for WebSocket frames."
             );
-
 
             // Validate message delivery
             Assert.That(messageRequests. Count, Is.EqualTo(2));
@@ -265,7 +259,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpResponses.Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
-
             // Send messages
             await webSocketClient.SendTextMessage("1234");
 
@@ -283,7 +276,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 "Timed out waiting for the second WebSocket frame."
             );
 
-
             // Validate message delivery
             Assert.That(messageRequests. Count, Is.EqualTo(2));
             Assert.That(messageRequests.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
@@ -300,7 +292,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         }
 
         #endregion
-
 
     }
 

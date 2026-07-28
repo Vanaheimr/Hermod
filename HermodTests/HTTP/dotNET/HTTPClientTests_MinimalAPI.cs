@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -48,7 +46,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Test_001()
 
         [Test]
@@ -59,8 +56,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpResponse  = await httpClient.GET(HTTPPath.Root).
                                                  ConfigureAwait(false);
 
-
-
             var request = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -70,8 +65,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Date:"), Is.False, request);
             Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
-
-
 
             var response = httpResponse.EntirePDU;
             var httpBody = httpResponse.HTTPBodyAsUTF8String;
@@ -120,7 +113,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Raw_Pipelined_Requests_Are_Processed_In_Order()
 
         [Test]
@@ -152,7 +144,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_KeepAlive_Reuses_Connection()
 
         [Test]
@@ -173,7 +164,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region HEAD_Root_Has_No_Body()
 
@@ -229,7 +219,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_ResetContent_Has_No_Body()
 
         [Test]
@@ -246,7 +235,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region PUT_Root_Is_MethodNotAllowed()
 
@@ -279,8 +267,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                      }).
                                                  ConfigureAwait(false);
 
-
-
             var request = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -290,8 +276,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Date:"), Is.False, request);
             Assert.That(request.Contains("GET / HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: localhost"), Is.True, request);
-
-
 
             var response = httpResponse.EntirePDU;
             var httpBody = httpResponse.HTTPBodyAsUTF8String;
@@ -303,7 +287,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Server:          Kestrel Test Server
             // 
             // Hello World!
-
 
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
@@ -321,7 +304,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Test_NotForEveryone_MissingBasicAuth()
 
         [Test]
@@ -332,8 +314,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone").
                                                  ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -343,8 +323,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Date:"), Is.False, request);
             Assert.That(request.Contains("GET /NotForEveryone HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
-
-
 
             var response      = httpResponse.EntirePDU;
             var httpBody      = httpResponse.HTTPBodyAsUTF8String;
@@ -379,8 +357,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                      Authentication:  HTTPBasicAuthentication.Create("testUser1", "testPassword1")).
                                                  ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -390,8 +366,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Date:"), Is.False, request);
             Assert.That(request.Contains("GET /NotForEveryone HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
-
-
 
             var response      = httpResponse.EntirePDU;
             var httpBody      = httpResponse.HTTPBodyAsUTF8String;
@@ -426,8 +400,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                      Authentication:  HTTPBasicAuthentication.Create("testUser2", "testPassword2")).
                                                  ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -437,8 +409,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Date:"), Is.False, request);
             Assert.That(request.Contains("GET /NotForEveryone HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
-
-
 
             var response      = httpResponse.EntirePDU;
             var httpBody      = httpResponse.HTTPBodyAsUTF8String;
@@ -461,8 +431,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
-
 
         #region POST_MirrorRandomString_in_QueryString()
 
@@ -490,8 +458,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
             // 'Content-Length: 0' is a recommended header for HTTP/1.1 POST requests without a body!
             Assert.That(request.Contains("Content-Length: 0"), Is.True, request);
-
-
 
             var mirroredString  = randomString.Reverse();
             var response        = httpResponse.EntirePDU;
@@ -530,8 +496,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                           HTTPContentType.Text.PLAIN
                                       ).ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // POST /mirror/httpBody HTTP/1.1
@@ -546,8 +510,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("POST /mirror/httpBody HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
             Assert.That(request.Contains($"Content-Length: {randomString.Length}"), Is.True, request);
-
-
 
             var mirroredString  = randomString.Reverse();
             var response        = httpResponse.EntirePDU;
@@ -610,8 +572,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                           HTTPContentType.Text.PLAIN
                                       ).ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // POST /mirror/httpBody HTTP/1.1
@@ -626,8 +586,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("MIRROR /mirror/httpBody HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
             Assert.That(request.Contains($"Content-Length: {randomString.Length}"), Is.True, request);
-
-
 
             var mirroredString  = randomString.Reverse();
             var response        = httpResponse.EntirePDU;
@@ -656,8 +614,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
-
         #region QUERY_RandomString_in_HTTPBody()
 
         [Test]
@@ -682,7 +638,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region QUERY_ChunkedRandomString_in_HTTPBody()
 
@@ -713,7 +668,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region QUERY_ChunkedRequestTrailer_RandomString_in_HTTPBody()
 
         [Test]
@@ -741,7 +695,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region POST_ChunkedMirrorRandomString_in_HTTPBody()
 
@@ -771,7 +724,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_EventStream_Parses_Multiple_Data_Lines()
 
         [Test]
@@ -792,7 +744,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_EventStream()
 
         [Test]
@@ -808,11 +759,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(events.Any(httpEvent => httpEvent.Subevent == "status" &&
                                                 httpEvent.Data["message"]?.ToString() == "from minimal API"), Is.True);
 
-
         }
 
         #endregion
-
 
         #region GET_EventStream_Reconnects_Automatically()
 
@@ -836,7 +785,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region GET_EventStream_Reconnects_From_Last_Event_Id()
 
@@ -864,7 +812,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region GET_EventStream_Parsing_Honors_Cancellation()
 
         [Test]
@@ -888,7 +835,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Test_ChunkedEncoding_chunked()
 
@@ -926,8 +872,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunked").
                                                  ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -937,8 +881,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Date:"), Is.False, request);
             Assert.That(request.Contains("GET /chunked HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
-
-
 
             var response      = httpResponse.EntirePDU;
             var httpBody      = httpResponse.HTTPBodyAsUTF8String;
@@ -957,7 +899,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(httpBody, Is.EqualTo("Hello World!"));
 
             Assert.That(httpResponse.Server, Is.EqualTo("Kestrel Test Server"));
-
 
         }
 
@@ -999,8 +940,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunkedSlow").
                                                  ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -1010,8 +949,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("Date:"), Is.False, request);
             Assert.That(request.Contains("GET /chunkedSlow HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
-
-
 
             var response      = httpResponse.EntirePDU;
             var httpBody      = httpResponse.HTTPBodyAsUTF8String;
@@ -1030,7 +967,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(httpBody, Is.EqualTo("Hello World!"));
 
             Assert.That(httpResponse.Server, Is.EqualTo("Kestrel Test Server"));
-
 
         }
 
@@ -1074,8 +1010,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                          RequestBuilder: requestBuilder => requestBuilder.TE = "trailers"
                                      ).ConfigureAwait(false);
 
-
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -1086,8 +1020,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(request.Contains("GET /chunkedSlowTrailerHeaders HTTP/1.1"), Is.True, request);
             Assert.That(request.Contains("Host: 127.0.0.1"), Is.True, request);
             Assert.That(request, Does.Contain("TE: trailers"));
-
-
 
             var response      = httpResponse.EntirePDU;
             var httpBody      = httpResponse.HTTPBodyAsUTF8String;
@@ -1107,11 +1039,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(httpResponse.Server, Is.EqualTo("Kestrel Test Server"));
 
-
         }
 
         #endregion
-
 
     }
 

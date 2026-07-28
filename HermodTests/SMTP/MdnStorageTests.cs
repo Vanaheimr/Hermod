@@ -24,8 +24,6 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
@@ -74,7 +72,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
-
         private static String RawMessage(Boolean requestReceipt)
         {
             var b = new TextEMailBuilder { Text = "Please read this." };
@@ -86,7 +83,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             EMail mail = b;
             return String.Join("\r\n", mail.ToText());
         }
-
 
         [Test]
         public async Task Storing_a_message_that_requested_a_receipt_queues_an_MDN()

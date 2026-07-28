@@ -22,8 +22,6 @@ using System.Net.Sockets;
 
 using Microsoft.Extensions.Logging;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -39,7 +37,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         private sealed record LogEntry(String Category, LogLevel LogLevel, String Message, Exception? Exception);
 
-
         private sealed class TestLoggerFactory : ILoggerFactory
         {
 
@@ -47,21 +44,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             public List<LogEntry> Entries { get; } = [];
 
-
             public ILogger CreateLogger(String categoryName)
 
                 => new TestLogger(categoryName, Entries, entryLock);
 
-
             public void AddProvider(ILoggerProvider provider)
             { }
-
 
             public void Dispose()
             { }
 
         }
-
 
         private sealed class TestLogger(String Category,
                                         List<LogEntry> Entries,
@@ -73,11 +66,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
                 => NullScope.Instance;
 
-
             public Boolean IsEnabled(LogLevel logLevel)
 
                 => true;
-
 
             public void Log<TState>(LogLevel                         logLevel,
                                     EventId                          eventId,
@@ -88,7 +79,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                 lock (EntryLock)
                     Entries.Add(new LogEntry(Category, logLevel, formatter(state, exception), exception));
             }
-
 
             private sealed class NullScope : IDisposable
             {
@@ -103,7 +93,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
         #region (private static) CreateSilentUDPServer(out UDPPort)
 
@@ -126,7 +115,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
         #region Query_Logs_Orchestrator_And_Transport_Events()
 

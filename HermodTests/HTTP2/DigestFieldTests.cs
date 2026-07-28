@@ -19,8 +19,6 @@
 
 using System.Text;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -83,7 +81,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                    Text));
 
         #endregion
-
 
         #region Digest_MatchesTheRFCsOwnExample()
 
@@ -230,7 +227,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-
         #region Server_AttachesAContentDigest()
 
         [Test]
@@ -345,7 +341,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region Client_AsksForAndVerifiesTheDigest()
 
@@ -553,7 +548,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region (private) Streaming origin for the download tests
 

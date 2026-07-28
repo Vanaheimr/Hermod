@@ -1,4 +1,4 @@
-﻿///*
+///*
 // * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
 // * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
 // *
@@ -16,8 +16,6 @@
 // */
 
 //#region Usings
-
-//using NUnit.Framework;
 
 //using org.GraphDefined.Vanaheimr.Illias;
 //using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -234,12 +232,9 @@
 
 //                #endregion
 
-
 //            }
 
-
 //        }
-
 
 //        #region Start/Stop TEChunkedAPI
 
@@ -260,7 +255,6 @@
 //        }
 
 //        #endregion
-
 
 //        #region ChunkedTest_01()
 
@@ -353,7 +347,6 @@
 //                                                        requestBuilder.Accept.Add(HTTPContentType.Text.PLAIN);
 //                                                        requestBuilder.Connection = ConnectionType.Close;
 //                                                    });
-
 
 //            Assert.That(response?.HTTPStatusCode.Code, Is.EqualTo(200));
 //            Assert.That(response?.HTTPBodyAsUTF8String, Is.EqualTo("MozillaDeveloperNetwork"));
@@ -535,7 +528,6 @@
 //        }
 
 //        #endregion
-
 
 //    }
 

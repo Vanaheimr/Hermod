@@ -24,8 +24,6 @@ using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 using org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.PKI;
 
@@ -168,7 +166,6 @@ public class SunSpecModbusTLSTests
     }
 
     #endregion
-
 
     private static Int32 GetFreeTcpPort()
     {

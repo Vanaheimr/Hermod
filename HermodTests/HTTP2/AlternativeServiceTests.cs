@@ -19,8 +19,6 @@
 
 using System.Text;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -50,7 +48,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                    ([(":status", "200")], Encoding.UTF8.GetBytes("ok")));
 
         #endregion
-
 
         #region FieldValue_Parses()
 
@@ -189,7 +186,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region Server_AnnouncesAlternatives_ClientRecordsThem()
 

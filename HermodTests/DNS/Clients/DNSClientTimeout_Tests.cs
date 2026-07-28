@@ -21,8 +21,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -58,7 +56,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
         #region Query_Uses_PerCall_Timeout()
 
@@ -123,7 +120,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
     }
 

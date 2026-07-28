@@ -22,8 +22,6 @@ using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
@@ -48,7 +46,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                        )
                    );
 
-
         private static A CreateARecord(String     DomainNameText,
                                        String     IPv4AddressText,
                                        TimeSpan?  TimeToLive   = null)
@@ -59,7 +56,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                    TimeToLive ?? TimeSpan.FromMinutes(5),
                    IPv4Address.Parse(IPv4AddressText)
                );
-
 
         private static X509Certificate2 CreateSelfSignedServerCertificate()
         {
@@ -116,7 +112,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
         }
 
-
         private sealed class TestLogger<T> : ILogger<T>
         {
 
@@ -124,17 +119,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
             public List<(LogLevel LogLevel, String Message, Exception? Exception)> Entries { get; } = [];
 
-
             public IDisposable? BeginScope<TState>(TState state)
                 where TState : notnull
 
                 => NullScope.Instance;
 
-
             public Boolean IsEnabled(LogLevel logLevel)
 
                 => true;
-
 
             public void Log<TState>(LogLevel                         logLevel,
                                     EventId                          eventId,
@@ -145,7 +137,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                 lock (entryLock)
                     Entries.Add((logLevel, formatter(state, exception), exception));
             }
-
 
             private sealed class NullScope : IDisposable
             {
@@ -158,7 +149,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
 
         }
-
 
         #region AuthoritativeHandler_Returns_Matching_Record()
 

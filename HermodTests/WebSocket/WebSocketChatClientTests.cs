@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -42,7 +40,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         { }
 
         #endregion
-
 
         #region Test_ChatClients()
 
@@ -186,7 +183,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
@@ -201,7 +197,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpRequests.          Count, Is.EqualTo(numberOfClients));
             Assert.That(httpResponses.         Count, Is.EqualTo(numberOfClients));
             Assert.That(webSocketChatServer.WebSocketConnections.Count(), Is.EqualTo(numberOfClients));
-
 
             //var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -241,7 +236,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClients.ElementAt(0).SendTextMessage("chat::Hello world!");
@@ -252,7 +246,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             }
             while (textMessageLogs.Any(list => list.Count != 2));
 
-
             await webSocketClients.ElementAt(1).SendTextMessage("chat::What has happend?");
 
             do
@@ -260,7 +253,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 await Task.Delay(10);
             }
             while (textMessageLogs.Any(list => list.Count != 3));
-
 
             await webSocketClients.ElementAt(2).SendTextMessage("chat::Have a nice day!");
 
@@ -271,7 +263,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (textMessageLogs.Any(list => list.Count != 4));
 
             #endregion
-
 
             startTimestamp = Timestamp.Now;
             var exceptions2 = new List<Exception>();
@@ -299,7 +290,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         }
 
         #endregion
-
 
     }
 

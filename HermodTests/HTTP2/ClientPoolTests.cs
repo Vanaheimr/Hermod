@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,8 +19,6 @@
 
 using System.Net.Security;
 using System.Collections.Concurrent;
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
@@ -47,7 +45,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                    ([(":status", "200"), ("content-length", "2")], "ok"u8.ToArray()));
 
         #endregion
-
 
         #region WarmPool_HappyPath()
 

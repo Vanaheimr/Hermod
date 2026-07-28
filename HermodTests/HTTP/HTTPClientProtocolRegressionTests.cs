@@ -21,8 +21,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -74,7 +72,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task GET_Rejects_Invalid_Informational_Response_Header()
         {
@@ -104,7 +101,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
         }
-
 
         [TestCase(false)]
         [TestCase(true)]
@@ -140,7 +136,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task GET_Does_Not_Reuse_Connection_When_Close_And_KeepAlive_Are_Both_Present()
         {
@@ -172,7 +167,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
         }
-
 
         [Test]
         public async Task GET_Rejects_Truncated_ContentLength_Response()
@@ -207,7 +201,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task GET_Rejects_Truncated_Chunked_Response()
         {
@@ -241,7 +234,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task GET_Rejects_Chunked_Response_With_Forbidden_Trailer_Field()
         {
@@ -274,7 +266,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
         }
-
 
         [Test]
         public async Task GET_EventStream_Ignores_Comments_And_Unknown_Fields_And_Reports_Retry()
@@ -319,7 +310,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [TestCase(204, "No Content")]
         [TestCase(205, "Reset Content")]
         [TestCase(304, "Not Modified")]
@@ -357,7 +347,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task GET_Closes_KeepAlive_Connection_After_Bodyless_Response_With_Body()
         {
@@ -389,7 +378,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
         }
-
 
         [TestCase("Content-Length: 2\r\nContent-Length: 3\r\n", "OK")]
         [TestCase("Content-Length: 2\r\nTransfer-Encoding: chunked\r\n", "2\r\nOK\r\n0\r\n\r\n")]
@@ -426,7 +414,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [TestCase("X-Test: value\u0001injected\r\n")]
         [TestCase("X-Test: value\u007Finjected\r\n")]
         public async Task GET_Rejects_Response_Header_Values_With_Control_Characters(String responseHeader)
@@ -457,7 +444,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [TestCase("HTP/1.1 200 OK")]
         [TestCase("HTTP/1.1 20 OK")]
         [TestCase("HTTP/1.1 600 Out of range")]
@@ -487,7 +473,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-
         [Test]
         public async Task POST_Does_Not_Send_Body_After_Expectation_Failed()
         {
@@ -515,7 +500,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                         "The request body was sent although the server rejected the expectation.");
 
         }
-
 
         private static async Task SendHeaderlessInformationalResponse(TcpListener  listener,
                                                                         String       informationalResponse,
@@ -561,7 +545,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             await Task.Delay(500);
 
         }
-
 
         private static async Task<Boolean> RejectExpectationAndCheckForRequestBody(TcpListener Listener)
         {
@@ -615,7 +598,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
 
         }
-
 
         private static async Task SendResponseAndClose(TcpListener  listener,
                                                         String       responseHeader,

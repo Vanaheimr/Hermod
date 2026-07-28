@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -57,7 +55,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region Init_HTTPServer()
 
@@ -99,7 +96,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region GET     /keepalive
 
             httpAPI.AddHandler(HTTPPath.Root + "keepalive",
@@ -114,7 +110,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                         }.AsImmutable));
 
             #endregion
-
 
             #region HEAD    /
 
@@ -165,7 +160,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region GET     /resetcontent
 
             httpAPI.AddHandler(HTTPPath.Root + "resetcontent",
@@ -181,7 +175,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                          }.AsImmutable));
 
             #endregion
-
 
             httpAPI.AddHandler(HTTPPath.Root + "NotForEveryone",
                                HTTPMethod:   HTTPMethod.GET,
@@ -260,7 +253,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region POST    /mirror/queryString
 
             httpAPI.AddHandler(HTTPPath.Root + "mirror" + "queryString",
@@ -315,7 +307,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region QUERY   /query
 
             httpAPI.AddHandler(HTTPPath.Root + "query",
@@ -333,7 +324,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                          }.AsImmutable));
 
             #endregion
-
 
             #region GET     /chunked
 
@@ -407,7 +397,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region GET     /chunkedAutomaticTrailerHeaders
 
             httpAPI.AddHandler(HTTPPath.Root + "chunkedAutomaticTrailerHeaders",
@@ -429,7 +418,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                        }.AsImmutable));
 
             #endregion
-
 
             #region GET     /chunkedLiveTrailerHeaders
 
@@ -464,7 +452,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                        }.AsImmutable));
 
             #endregion
-
 
             #region GET     /chunkedLiveExtensions
 
@@ -506,7 +493,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region QUERY   /query/extensions
 
             httpAPI.AddHandler(HTTPPath.Root + "query" + "extensions",
@@ -530,7 +516,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                               });
 
             #endregion
-
 
             #region QUERY   /query/trailer
 
@@ -558,7 +543,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              });
 
             #endregion
-
 
             #region POST    /mirrorBody2
 
@@ -604,7 +588,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region GET     /events/reconnect
 
             httpAPI.AddHandler(HTTPPath.Root + "events" + "reconnect",
@@ -632,7 +615,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             httpAPI.AddHandler(HTTPPath.Root + "events",
                                HTTPMethod:   HTTPMethod.GET,
                                HTTPDelegate: request => Task.FromResult(
@@ -645,7 +627,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                        }.AsImmutable));
 
             #endregion
-
 
             #region GET     /events/live
 
@@ -680,7 +661,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
     }
 

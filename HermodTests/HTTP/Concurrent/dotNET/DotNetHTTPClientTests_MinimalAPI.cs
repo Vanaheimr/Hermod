@@ -20,7 +20,6 @@
 using System.Net;
 using System.Text;
 
-using NUnit.Framework;
 using org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -50,7 +49,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
 
         #endregion
 
-
         private async Task<Tuple<HttpResponseMessage?, TimeSpan>> POST_Timestamped(string URL,
                                                                                    string HTTPBody)
         {
@@ -78,7 +76,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
                 return new Tuple<HttpResponseMessage?, TimeSpan>(null,
                                                                  Timestamp.Now - startTime);
             }
-
 
             //     System.Net.Http.HttpRequestException : Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte. (127.0.0.1:82)
             //   ----> System.Net.Sockets.SocketException : Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte.
@@ -116,8 +113,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
 
         }
 
-
-
         #region HTTPClientTest_Concurrent_001()
 
         [Test]
@@ -154,7 +149,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
         }
 
         #endregion
-
 
     }
 

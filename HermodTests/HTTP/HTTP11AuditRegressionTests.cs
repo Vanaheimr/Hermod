@@ -3,8 +3,6 @@ using System.Reflection;
 using System.Text;
 using System.Collections;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;

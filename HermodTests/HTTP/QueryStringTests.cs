@@ -1,4 +1,4 @@
-﻿///*
+///*
 // * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
 // * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
 // *
@@ -21,8 +21,6 @@
 //using System.Linq;
 
 //using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-
-//using NUnit.Framework;
 
 //#endregion
 
@@ -87,7 +85,6 @@
 
 //        #endregion
 
-
 //        #region ParseQueryString_004()
 
 //        [Test]
@@ -109,7 +106,6 @@
 //        }
 
 //        #endregion
-
 
 //        #region ParseQueryString_006()
 

@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using System.Text.Json;
 
 using org.GraphDefined.Vanaheimr.Hermod.Quic;

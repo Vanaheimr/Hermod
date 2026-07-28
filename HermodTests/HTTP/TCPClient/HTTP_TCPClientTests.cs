@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -100,7 +98,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             => new ("localhost", httpServer?.TCPPort.ToInt32() ?? throw new InvalidOperationException("HTTP server was not initialized!"));
 
         #endregion
-
 
         #region HTTP_TCPClientTest_HTTP1_1()
 

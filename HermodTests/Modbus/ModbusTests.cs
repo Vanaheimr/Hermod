@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,8 +19,6 @@
 
 using System.Net.Sockets;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Modbus;
 
 #endregion
@@ -38,7 +36,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         //private NetworkStream     TCPStream;
 
         #endregion
-
 
         #region SetupEachTest()
 
@@ -65,7 +62,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         }
 
         #endregion
-
 
         #region RAWTest1()
 
@@ -164,7 +160,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 
             await tcpStream.FlushAsync();
 
-
             //await Task.Delay(1000);
 
             var buffer    = new Byte[5000];
@@ -181,7 +176,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         }
 
         #endregion
-
 
         #region ReadHoldingRegisters_Test1()
 
@@ -208,7 +202,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 
             };
 
-
             var client = new ModbusTCPClient(IPv4Address.Localhost,
                                              IPPort.Parse(24694),
                                              StartingAddressOffset: 0);
@@ -226,7 +219,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         }
 
         #endregion
-
 
     }
 

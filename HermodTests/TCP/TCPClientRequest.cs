@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -26,7 +26,6 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod;
 
-using NUnit.Framework;
 using System.IO;
 
 #endregion
@@ -106,7 +105,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
             }
         }
-
 
         public void Close()
         {

@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using System.Threading;
 using org.GraphDefined.Vanaheimr.Hermod.Quic;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Connection;

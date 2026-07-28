@@ -19,8 +19,6 @@
 
 using System.Text;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -137,7 +135,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-
         #region ContentRange_ParsesAndFormats()
 
         [Test]
@@ -225,7 +222,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region Download_Uninterrupted()
 

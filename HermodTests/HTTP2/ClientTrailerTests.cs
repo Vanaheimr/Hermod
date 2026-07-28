@@ -22,8 +22,6 @@ using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -98,7 +96,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region OurServer_ReceivesRequestTrailers()
 

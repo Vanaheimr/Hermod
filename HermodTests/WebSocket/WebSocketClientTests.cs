@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -42,7 +40,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         { }
 
         #endregion
-
 
         #region Test_AnonymousAccess()
 
@@ -132,7 +129,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Client setup and connect
 
             var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
@@ -197,7 +193,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpResponses.         Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -236,7 +231,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClient.SendTextMessage("1234");
@@ -263,7 +257,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
             Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
             Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
@@ -274,7 +267,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(binaryMessageResponses.Count, Is.EqualTo(1));
             Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageLog.        Count, Is.EqualTo(1));
             Assert.That(textMessageLog.        ElementAt(0), Is.EqualTo("4321"));
             Assert.That(binaryMessageLog.      Count, Is.EqualTo(1));
@@ -282,13 +274,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             await webSocketClient.Close();
 
         }
 
         #endregion
-
 
         #region Test_UnknownSubprotocol()
 
@@ -378,7 +368,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             var webSocketClient  = new WebSocketClient(
                                        URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
                                        SecWebSocketProtocols: ["ocpp1.6"]
@@ -386,7 +375,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
-
 
             #region Check HTTP request
 
@@ -402,7 +390,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpRequests.          Count, Is.EqualTo(1));
             Assert.That(httpResponses.         Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
-
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -444,7 +431,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClient.SendTextMessage("1234");
@@ -471,7 +457,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
             Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
             Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
@@ -483,7 +468,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
-
 
             await webSocketClient.Close();
 
@@ -581,7 +565,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             var webSocketClient  = new WebSocketClient(
                                        URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
                                        SecWebSocketProtocols: ["ocpp1.6"]
@@ -589,7 +572,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
-
 
             #region Check HTTP request
 
@@ -605,7 +587,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpRequests.          Count, Is.EqualTo(1));
             Assert.That(httpResponses.         Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
-
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -649,7 +630,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClient.SendTextMessage("1234");
@@ -676,7 +656,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
             Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
             Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
@@ -688,7 +667,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
-
 
             await webSocketClient.Close();
 
@@ -786,7 +764,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             var webSocketClient  = new WebSocketClient(
                                        URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
                                        SecWebSocketProtocols: ["ocpp1.6"]
@@ -794,7 +771,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
-
 
             #region Check HTTP request
 
@@ -810,7 +786,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpRequests.          Count, Is.EqualTo(1));
             Assert.That(httpResponses.         Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
-
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -854,7 +829,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClient.SendTextMessage("1234");
@@ -881,7 +855,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
             Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
             Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
@@ -894,13 +867,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             await webSocketClient.Close();
 
         }
 
         #endregion
-
 
         #region Test_BasicAuth_Optional()
 
@@ -990,7 +961,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             var webSocketClient  = new WebSocketClient(
                                        URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
                                        HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
@@ -998,7 +968,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
-
 
             #region Check HTTP request
 
@@ -1014,7 +983,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpRequests.          Count, Is.EqualTo(1));
             Assert.That(httpResponses.         Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
-
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -1057,7 +1025,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClient.SendTextMessage("1234");
@@ -1084,7 +1051,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
             Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
             Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
@@ -1096,7 +1062,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
-
 
             await webSocketClient.Close();
 
@@ -1210,7 +1175,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             var webSocketClient  = new WebSocketClient(
                                        URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
                                        HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
@@ -1218,7 +1182,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
-
 
             #region Check HTTP request
 
@@ -1234,7 +1197,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpRequests.          Count,                   Is.EqualTo(1));
             Assert.That(httpResponses.         Count,                   Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(),   Is.EqualTo(1));
-
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -1277,7 +1239,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClient.SendTextMessage("1234");
@@ -1304,7 +1265,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
             Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
             Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
@@ -1316,7 +1276,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
-
 
             await webSocketClient.Close();
 
@@ -1431,7 +1390,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             var webSocketClient  = new WebSocketClient(
                                        URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
                                        HTTPAuthentication:  HTTPBasicAuthentication.Create("nameOfUser", "passphrase")
@@ -1439,7 +1397,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
-
 
             #region Check HTTP request
 
@@ -1461,7 +1418,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 Is.True,
                 "Timed out waiting for the rejected WebSocket connection to close."
             );
-
 
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -1501,13 +1457,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             await webSocketClient.Close();
 
         }
 
         #endregion
-
 
     }
 

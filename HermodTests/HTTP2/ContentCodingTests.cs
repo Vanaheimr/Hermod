@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -21,8 +21,6 @@ using System.Net;
 using System.Net.Security;
 using System.IO.Compression;
 using System.Text;
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
@@ -96,7 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region OurClient_Gzip()
 

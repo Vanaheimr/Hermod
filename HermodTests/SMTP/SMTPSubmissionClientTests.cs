@@ -21,8 +21,6 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 
@@ -59,7 +57,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             return Convert.ToBase64String(SHA256.HashData(recoveredClientKey)) == storedKeyBase64;
         }
-
 
         [Test]
         public void Scram_client_proof_is_accepted_by_the_server_credentials()

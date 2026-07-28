@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -96,7 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
-
         #region Add_And_Retrieve()
 
         [Test]
@@ -166,7 +163,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
-
         #region Negative_Cache_NXDOMAIN()
 
         [Test]
@@ -235,7 +231,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
         #region Merge_Adds_New_RecordTypes_To_Existing_Entry()
 
@@ -369,7 +364,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
-
         #region Remove_By_DomainName()
 
         [Test]
@@ -501,7 +495,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
         #region Eviction_Removes_Expired_Entries()
 

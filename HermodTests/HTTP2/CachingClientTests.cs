@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,8 +19,6 @@
 
 using System.Text;
 using System.Collections.Concurrent;
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
@@ -105,7 +103,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             => originHits.TryGetValue(path, out var c) ? c : 0;
 
         #endregion
-
 
         #region Freshness_MaxAge_MissThenHit()
 

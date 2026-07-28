@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -20,8 +20,6 @@
 using System.Net.Security;
 using System.Text;
 using System.Diagnostics;
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 

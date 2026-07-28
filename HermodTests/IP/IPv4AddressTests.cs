@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -14,12 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#region Usings
-
-using NUnit.Framework;
-
-#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 {
@@ -114,7 +108,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
         #endregion
 
-
         #region ParseIPv4ByteArray_001()
 
         /// <summary>
@@ -153,7 +146,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         }
 
         #endregion
-
 
         #region IPv4AddressesAreEqual()
 
@@ -197,7 +189,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
         #endregion
 
-
         #region CompareIPv4Addresses()
 
         /// <summary>
@@ -215,7 +206,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         }
 
         #endregion
-
 
         #region TryParseIPv4String_RejectsMalformedInput()
 

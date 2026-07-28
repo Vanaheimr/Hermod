@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Frames;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 

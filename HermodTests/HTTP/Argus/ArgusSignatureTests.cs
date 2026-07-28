@@ -23,8 +23,6 @@ using System.Security.Cryptography;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-using NUnit.Framework;
-
 using Org.BouncyCastle.Security;
 
 using org.GraphDefined.Vanaheimr.Illias;

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
@@ -38,7 +36,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
-
         #region Teardown
 
         [OneTimeTearDown]
@@ -48,7 +45,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
         #region Test_charging_cloud__A()
 
@@ -212,7 +208,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
-
         #region Test_open_charging_cloud__A()
 
         [Test]
@@ -346,7 +341,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
-
         #region Test__ocpp_tcp_api_charging_cloud__SRV()
 
         [Test]
@@ -408,7 +402,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         }
 
         #endregion
-
 
     }
 

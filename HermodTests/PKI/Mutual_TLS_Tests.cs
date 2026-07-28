@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,8 +19,6 @@
 
 using dotSec  = System.Net.Security;
 using dotX509 = System.Security.Cryptography.X509Certificates;
-
-using NUnit.Framework;
 
 using Org.BouncyCastle.Asn1.X509;
 
@@ -339,7 +337,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             await httpServer.Start();
 
             #endregion
-
 
             var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
@@ -683,7 +680,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             await httpServer.Start();
 
             #endregion
-
 
             var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
@@ -1033,7 +1029,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             await httpServer.Start();
 
             #endregion
-
 
             var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
@@ -1388,7 +1383,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-
             var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
@@ -1428,7 +1422,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Mutual_TLS_ECC__5_WithoutAnyClientCert_WillFail_Test()
 
@@ -1730,7 +1723,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             await httpServer.Start();
 
             #endregion
-
 
             var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
@@ -2070,7 +2062,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-
             var httpClient1  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
                                    RemoteCertificateValidator:   (sender,
@@ -2102,8 +2093,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var data1        = response1.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
 
             Assert.That(data1,  Is.EqualTo("Hello, 'anonymous'!"));
-
-
 
             var httpClient2  = new HTTPClient(
                                    URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
@@ -2141,7 +2130,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
     }
 

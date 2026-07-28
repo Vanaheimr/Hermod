@@ -24,8 +24,6 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
@@ -50,7 +48,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         private static readonly ILogger Logger = new NullSmtpLogger();
 
-
         // The QueuedMail constructor is internal; build one the supported way (through MailSender)
         // and capture what it enqueued.
         private static async Task<QueuedMail> QueueOneAsync(DsnNotify notify)
@@ -69,7 +66,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             return queue.Enqueued[0];
 
         }
-
 
         #region A minimal capturing mail queue
 
@@ -98,7 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
         #endregion
-
 
         #region DsnCommands — MAIL FROM / RCPT TO construction (RFC 3461)
 
@@ -161,7 +156,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
         #endregion
-
 
         #region Sender facade threads the DSN request into the queue
 
@@ -237,7 +231,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
         #endregion
-
 
         #region Success DSN — relay ("relayed") and local acceptance ("delivered")
 

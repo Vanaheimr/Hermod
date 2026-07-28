@@ -27,8 +27,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
@@ -54,7 +52,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         private const String User     = "app";
         private const String Password = "correct horse battery staple";
-
 
         #region A STARTTLS + SCRAM-SHA-256 fake server
 
@@ -209,7 +206,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
-
         private static SMTPSubmissionClient ClientFor(TlsScramServer server, String password)
             => new (DomainName.Parse("127.0.0.1"),
                     IPPort.Parse((UInt16) server.Port),
@@ -229,7 +225,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         "",
                         "Sent over STARTTLS with SCRAM-SHA-256."
                     ]));
-
 
         [Test]
         public async Task Full_STARTTLS_and_SCRAM_SHA_256_send_succeeds()

@@ -19,8 +19,6 @@
 
 using System.Text;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -132,7 +130,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-
         #region Resolve_AppliesTheRewritingRules()
 
         [Test]
@@ -220,7 +217,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region Follows_SameOriginRedirect()
 

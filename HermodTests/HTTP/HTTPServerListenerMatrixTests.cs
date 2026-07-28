@@ -1,7 +1,5 @@
 using System.Net.Sockets;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -122,7 +120,6 @@ public sealed class HTTPServerListenerMatrixTests
         }
     }
 
-
     private static HTTPServer CreateServer(IIPAddress ipAddress,
                                            Int32      port)
 
@@ -131,7 +128,6 @@ public sealed class HTTPServerListenerMatrixTests
                TCPPort:   IPPort.Parse(port),
                AutoStart: false
            );
-
 
     private static async Task AssertAccepts(HTTPServer    server,
                                             AddressFamily addressFamily)
@@ -147,7 +143,6 @@ public sealed class HTTPServerListenerMatrixTests
         Assert.That(client.Connected, Is.True);
     }
 
-
     private static Int32 ReserveIPv4Port()
     {
         var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
@@ -162,7 +157,6 @@ public sealed class HTTPServerListenerMatrixTests
             listener.Stop();
         }
     }
-
 
     private static Int32 ReserveDualStackPort()
     {
@@ -182,7 +176,6 @@ public sealed class HTTPServerListenerMatrixTests
             listener.Stop();
         }
     }
-
 
     private static async Task StopIgnoringServerTaskFailure(HTTPServer server)
     {

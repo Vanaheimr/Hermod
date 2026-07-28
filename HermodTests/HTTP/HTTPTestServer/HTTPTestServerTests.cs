@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -18,8 +18,6 @@
 #region Usings
 
 using System.Reflection;
-
-using NUnit.Framework;
 
 using Newtonsoft.Json.Linq;
 
@@ -80,7 +78,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region Paths_01()
 
         [Test]
@@ -125,7 +122,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region PathsAndVariables_01()
 
@@ -290,7 +286,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region PathsAndVariables_Override_Allowed_01()
 
@@ -604,7 +599,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region SamePath_MultipleMethods_KeepAlives_01()
 
         [Test]
@@ -674,9 +668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-
             var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
-
 
             var getResponse   = await httpClient.Item1!.SendRequest(
                                     httpClient.Item1.CreateRequest(
@@ -686,7 +678,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                 );
 
             Assert.That(getResponse.HTTPBodyAsUTF8String,   Is.EqualTo("GET: 'test3.txt'!"));
-
 
             var postResponse  = await httpClient.Item1.SendRequest(
                                     httpClient.Item1.CreateRequest(
@@ -760,16 +751,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-
             //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
-
 
             var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
-
 
             var d1 = await httpClient.Item1!.SendRequest(
                                httpClient.Item1.CreateRequest(
@@ -781,7 +769,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(d1, Is.Not.Null);
 
             var httpBody1 = d1.HTTPBodyAsUTF8String ?? "";
-
 
             var d2 = await httpClient.Item1.SendRequest(
                                httpClient.Item1.CreateRequest(
@@ -870,9 +857,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-
             var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
-
 
             var getResponse   = await httpClient.Item1!.SendRequest(
                                     httpClient.Item1.CreateRequest(
@@ -883,7 +868,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                 );
 
             Assert.That(getResponse. HTTPBodyAsUTF8String,  Is.EqualTo("GET HTML: 'test3.txt'!"));
-
 
             var postResponse  = await httpClient.Item1.SendRequest(
                                     httpClient.Item1.CreateRequest(
@@ -898,7 +882,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region MultipleRequests_ExplicitKeepAlives_01()
 
@@ -980,14 +963,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                             });
 
-
             //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
-
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
-
 
             var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
@@ -1094,14 +1074,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                             });
 
-
             //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
-
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
-
 
             var httpClient = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
@@ -1121,7 +1098,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region ClientServer_HTTPServerSentEvents_Test01()
 
@@ -1161,7 +1137,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                               );
             Assert.That(mappedSSE,  Is.True);
 
-
             await sse1.SubmitEvent(
                       "sub1",
                       new JObject(
@@ -1185,9 +1160,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                       ),
                       CancellationToken.None
                   );
-
-
-
 
             var httpClient  = await HTTPClient.ConnectNew(
                                         IPv4Address.Localhost,
@@ -1263,7 +1235,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                               );
             Assert.That(mappedSSE,  Is.True);
 
-
             await sse1.SubmitEvent(
                       "sub1",
                       new JObject(
@@ -1287,7 +1258,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                       ),
                       CancellationToken.None
                   );
-
 
             var httpClient1  = await HTTPClient.ConnectNew(
                                          IPv4Address.Localhost,
@@ -1319,7 +1289,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(eventList.Count,  Is.EqualTo(3));
 
             }
-
 
             var httpClient2  = await HTTPClient.ConnectNew(
                                          IPv4Address.Localhost,
@@ -1393,7 +1362,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                               );
             Assert.That(mappedSSE,  Is.True);
 
-
             await sse1.SubmitEvent(
                       "sub1",
                       new JObject(
@@ -1417,8 +1385,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                       ),
                       CancellationToken.None
                   );
-
-
 
             var httpClientTask1 = Task.Run(async () => {
 
@@ -1564,8 +1530,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             });
 
-
-
             var lateSEEsTask = Task.Run(async () => {
 
                 await Task.Delay(TimeSpan.FromSeconds(1));
@@ -1621,7 +1585,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region ClientServer_ChunkedEncoding_Test01()
 
@@ -1719,10 +1682,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-
             //var client = new HTTPTestClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
-
 
             var httpClient    = await HTTPClient.ConnectNew(
                                           IPv4Address.Localhost,
@@ -1731,7 +1692,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
-
 
             if (httpClient.Item1 is null)
                 Assert.Fail("httpClient.Item1 is null!");
@@ -1767,7 +1727,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region DNSSRV_Tests_01()
 
@@ -1856,7 +1815,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
-
             // Might not work on Windows, but you can try:
             // netsh interface ipv4 add address "Loopback Pseudo-Interface 1" 127.0.0.2 255.0.0.0
             // netsh interface ipv4 add address "Loopback Pseudo-Interface 1" 127.0.0.3 255.0.0.0
@@ -1902,8 +1860,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(srv1!.Port,      Is.Not.EqualTo(srv2!.Port));
             Assert.That(srv2!.Port,      Is.Not.EqualTo(srv3!.Port));
 
-
-
             var httpClient1 = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer1.TCPPort);
 
             var response1a   = await httpClient1.Item1!.SendRequest(httpClient1.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
@@ -1913,18 +1869,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(httpBody1a,  Is.EqualTo("Hello World (api1): 'test1.txt'!"));
 
-
             var response1b   = await httpClient1.Item1.SendRequest(httpClient1.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test2.txt")));
             Assert.That(response1b, Is.Not.Null);
 
             var httpBody1b = response1b.HTTPBodyAsUTF8String ?? "";
 
             Assert.That(httpBody1b,  Is.EqualTo("Hello World (api1): 'test2.txt'!"));
-
-
-
-
-
 
             var httpClient2 = await HTTPClient.ConnectNew(IPv4Address.Parse("127.0.0.1"), httpServer2.TCPPort);
 
@@ -1935,9 +1885,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(httpBody2,  Is.EqualTo("Hello World (api2): 'test1.txt'!"));
 
-
-
-
             var httpClient3 = await HTTPClient.ConnectNew(IPv4Address.Parse("127.0.0.1"), httpServer3.TCPPort);
 
             var response3 = await httpClient3.Item1!.SendRequest(httpClient3.Item1.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
@@ -1946,9 +1893,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpBody3 = response3.HTTPBodyAsUTF8String ?? "";
 
             Assert.That(httpBody3, Is.EqualTo("Hello World (api3): 'test1.txt'!"));
-
-
-
 
             var httpClientSRV = await HTTPClient.ConnectNew(DomainName.Parse("api.example.local"), SRV_Spec.TCP("ocpp"), DNSClient: dnsClient);
 
@@ -1963,7 +1907,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
     }
 

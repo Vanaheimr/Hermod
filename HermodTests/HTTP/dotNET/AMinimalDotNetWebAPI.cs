@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -33,8 +33,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -181,7 +179,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
     #endregion
 
-
     /// <summary>
     /// .NET Kestrel HTTP server tests endpoints.
     /// </summary>
@@ -223,7 +220,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             app.UseAuthentication();
             app.UseAuthorization();
 
-
             #region GET     /
 
             app.MapGet("/",
@@ -255,7 +251,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region GET     /keepalive
 
             app.MapGet("/keepalive",
@@ -267,7 +262,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             );
 
             #endregion
-
 
             #region HEAD    /
 
@@ -302,14 +296,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region GET     /resetcontent
 
             app.MapGet("/resetcontent",
                        () => Results.StatusCode(StatusCodes.Status205ResetContent));
 
             #endregion
-
 
             app.MapGet("/NotForEveryone",
                        [Authorize(AuthenticationSchemes = BasicAuthenticationHandler.AuthenticationScheme)]
@@ -409,7 +401,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             #region GET     /events
 
             #region GET     /events/multiline
@@ -428,7 +419,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             });
 
             #endregion
-
 
             #region GET     /events/reconnect
 
@@ -457,7 +447,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
-
             app.MapGet("/events", (HttpResponse httpResponse) => {
 
                 httpResponse.Headers.Connection = "close";
@@ -471,7 +460,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             });
 
             #endregion
-
 
             #region GET     /chunked
 
@@ -555,7 +543,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-
         #region WriteTextAsync(HTTPResponse, Text, ...)
 
         private static Task WriteTextAsync(HttpResponse  HTTPResponse,
@@ -573,7 +560,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region StartWebAPI()
 
@@ -595,7 +581,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region StopWebAPI()
 
@@ -619,7 +604,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
     }
 

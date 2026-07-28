@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -42,7 +40,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         { }
 
         #endregion
-
 
         #region Test_ManyClients()
 
@@ -137,7 +134,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             var startTimestamp          = Timestamp.Now;
             var webSocketClients        = new List<WebSocketClient>();
             var httpResponses1          = new List<HTTPResponse>();
@@ -163,7 +159,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var runTime1          = Timestamp.Now - startTimestamp;
 
-
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
@@ -178,7 +173,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(httpRequests.          Count, Is.EqualTo(numberOfClients));
             Assert.That(httpResponses.         Count, Is.EqualTo(numberOfClients));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(numberOfClients));
-
 
             //var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
@@ -218,7 +212,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             //await webSocketClient.SendText("1234");
@@ -245,7 +238,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //Assert.That(messageResponses.ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             //Assert.That(messageResponses.ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             //Assert.That(textMessageRequests.   Count, Is.EqualTo(1));
             //Assert.That(textMessageRequests.   ElementAt(0), Is.EqualTo("1234"));
             //Assert.That(binaryMessageRequests. Count, Is.EqualTo(1));
@@ -257,7 +249,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //Assert.That(binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
             #endregion
-
 
             startTimestamp = Timestamp.Now;
             var exceptions2 = new List<Exception>();
@@ -285,7 +276,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         }
 
         #endregion
-
 
     }
 

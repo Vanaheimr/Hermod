@@ -20,8 +20,6 @@
 using System;
 using System.Linq;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 
 #endregion
@@ -64,7 +62,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         private static EMailAddress Bob
             => new ("Bob", SimpleEMailAddress.Parse("bob@example.org"));
-
 
         [Test]
         public void No_read_receipt_requested_returns_null()

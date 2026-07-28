@@ -22,8 +22,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using NUnit.Framework;
-
 using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Crypto.Generators;
@@ -192,7 +190,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
-
         #region The 2×2×2 matrix — build, serialize, re-parse
 
         [TestCase(true,  false, false, TestName = "HTML, no attachment, no PGP")]
@@ -355,7 +352,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(text, Does.Not.Contain("BEGIN PGP"),           "must carry no OpenPGP block");
             Assert.That(text, Does.Contain(Marker),                    "plaintext body must be on the wire");
         }
-
 
         [Test]
         public void Autosign_with_a_key_signs()
@@ -614,7 +610,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(parsed.VerifyPgpSignature(publicKeyRing).Status, Is.EqualTo(PgpVerificationStatus.NoSignature));
 
         }
-
 
         [Test]
         public void Signature_verifies_against_raw_bytes_of_a_foreign_serialization()

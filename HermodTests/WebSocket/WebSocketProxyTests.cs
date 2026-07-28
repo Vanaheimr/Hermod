@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -45,7 +43,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         { }
 
         #endregion
-
 
         #region Test_Proxy()
 
@@ -217,7 +214,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Client setup and connect
 
             var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPortProxy}"));
@@ -284,7 +280,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(proxy_httpResponses.         Count, Is.EqualTo(1));
             Assert.That(webSocketServer.WebSocketConnections.Count(), Is.EqualTo(1));
 
-
             var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
@@ -323,7 +318,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             #region Send messages
 
             await webSocketClient.SendTextMessage("1234");
@@ -356,7 +350,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(server_messageRequests.       ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("1234"));
             Assert.That(server_messageRequests.       ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("ABCD"));
 
-
             Assert.That(proxy_messageResponses.       Count, Is.EqualTo(2));
             Assert.That(proxy_messageResponses.       ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(proxy_messageResponses.       ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
@@ -365,13 +358,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(server_messageResponses.      ElementAt(0).Payload.ToUTF8String(), Is.EqualTo("4321"));
             Assert.That(server_messageResponses.      ElementAt(1).Payload.ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(proxy_textMessageRequests.    Count, Is.EqualTo(0));
             Assert.That(proxy_binaryMessageRequests.  Count, Is.EqualTo(0));
 
             Assert.That(server_textMessageRequests.   Count, Is.EqualTo(0));
             Assert.That(server_binaryMessageRequests. Count, Is.EqualTo(0));
-
 
             Assert.That(proxy_textMessageResponses.   Count, Is.EqualTo(1));
             Assert.That(proxy_textMessageResponses.   ElementAt(0), Is.EqualTo("4321"));
@@ -383,7 +374,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(server_binaryMessageResponses.Count, Is.EqualTo(1));
             Assert.That(server_binaryMessageResponses.ElementAt(0).ToUTF8String(), Is.EqualTo("DCBA"));
 
-
             Assert.That(textMessageLog.               Count, Is.EqualTo(1));
             Assert.That(textMessageLog.               ElementAt(0), Is.EqualTo("4321"));
             Assert.That(binaryMessageLog.             Count, Is.EqualTo(1));
@@ -391,14 +381,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-
             await webSocketClient.Close();
-
 
         }
 
         #endregion
-
 
     }
 

@@ -27,8 +27,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
@@ -159,7 +157,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
-
         private static SMTPSubmissionClient ClientFor(FakeSmtpServer server)
             => new (DomainName.Parse("127.0.0.1"),
                     IPPort.Parse((UInt16) server.Port),
@@ -176,7 +173,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         "",
                         .. body.Split("\n")
                     ]));
-
 
         [Test]
         public async Task Normal_send_completes_and_dot_stuffs_the_body()
@@ -217,7 +213,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         public void Server_that_hangs_times_out_fast_and_clean()
             => AssertFastClean(FakeSmtpServer.Mode.HangAfterGreeting, MailSentStatus.Timeout);
 
-
         private static void AssertFastClean(FakeSmtpServer.Mode mode, MailSentStatus expected)
         {
 
@@ -234,7 +229,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         $"detection must be fast (was {sw.Elapsed.TotalSeconds:F1}s) — never a 60s hang");
 
         }
-
 
         [Test]
         public async Task Transient_drops_are_retried_until_success()
@@ -266,7 +260,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
-
         [Test]
         public void A_hanging_server_is_aborted_promptly_when_the_caller_cancels()
         {
@@ -289,7 +282,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(result, Is.Not.EqualTo(MailSentStatus.ok));
 
         }
-
 
         #region SendWithResult — the detailed result object
 

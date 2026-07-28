@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -16,8 +16,6 @@
  */
 
 #region Usings
-
-using NUnit.Framework;
 
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
@@ -75,11 +73,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             // Verify with the issuer public key
             ServerCertificate.Verify(IssuerCertificate.GetPublicKey());
 
-
             // Extensions: Criticality Sets
             var criticalOids    = new HashSet<String>(ServerCertificate.GetCriticalExtensionOids());
             var nonCriticalOids = new HashSet<String>(ServerCertificate.GetNonCriticalExtensionOids());
-
 
             // Extensions: BasicConstraints (CA = false, no pathLen)
             var basicConstraints        = PKIFactory.ParseBasicConstraints(ServerCertificate);
@@ -87,7 +83,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             Assert.That(basicConstraints!.IsCA(),                                           Is.False,                                                              "Server certificates must have CA=false!");
             Assert.That(basicConstraints.PathLenConstraint,                                 Is.Null,                                                               "Server certificates must not have a path length constraint!");
             Assert.That(criticalOids.Contains(X509Extensions.BasicConstraints.Id),          Is.True,                                                               "BasicConstraints must be critical!");
-
 
             // Extensions: KeyUsage (DigitalSignature? + KeyEncipherment?)
             var keyUsage                = PKIFactory.ParseKeyUsage(ServerCertificate);
@@ -119,13 +114,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             Assert.That(keyUsage!.HasFlag(KeyUsage.EncipherOnly),                           Is.False,                                                              "Server certificates must not allow encipher only!");
             Assert.That(keyUsage!.HasFlag(KeyUsage.DecipherOnly),                           Is.False,                                                              "Server certificates must not allow decipher only!");
 
-
             // Extensions: Subject Key Identifier (SKI) present (20 bytes) & non-critical
             var subjectKeyIdentifier    = PKIFactory.ParseSubjectKeyIdentifier  (ServerCertificate);
             Assert.That(subjectKeyIdentifier,                                               Is.Not.Null,                                                           "SubjectKeyIdentifier should be present!");
             Assert.That(nonCriticalOids.Contains(X509Extensions.SubjectKeyIdentifier.Id),   Is.True,                                                               "SubjectKeyIdentifier should be non-critical!");
             Assert.That(subjectKeyIdentifier!.GetKeyIdentifier().Length,                    Is.EqualTo(20),                                                        "SubjectKeyIdentifier should be 20 bytes (SHA-1 keyIdentifier)!");
-
 
             // Extensions: Authority Key Identifier
             var authorityKeyIdentifier  = PKIFactory.ParseAuthorityKeyIdentifier(ServerCertificate);
@@ -134,7 +127,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var issuerKeyIdentifier     = PKIFactory.ParseSubjectKeyIdentifier(IssuerCertificate);
             Assert.That(authorityKeyIdentifier!.GetKeyIdentifier().ToHexString(),           Is.EqualTo(issuerKeyIdentifier!.GetKeyIdentifier().ToHexString()),     "AKI.keyIdentifier must match the rootCA SKI.keyIdentifier!");
-
 
             // Extended Key Usage
             var ekuOctets    = ServerCertificate.GetExtensionValue(X509Extensions.ExtendedKeyUsage);
@@ -152,13 +144,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             foreach (var kpid in eku.GetAllUsages())
                 Assert.That(allowedEKUs.Contains(kpid), $"Unexpected Extended Key Usage '{kpid.Id}' on server certificate!");
 
-
-
             // Subject Alternative Names
             //Assert.That(RootCACertificate.GetExtensionValue(X509Extensions.SubjectAlternativeName),   Is.Null, "SubjectAlternativeNames should be absent on a rootCA!");
-
-
-
 
             //// AIA/CRLDP: if present, must be non-critical and URI-based
             //var crldpExt = ServerCertificate.GetExtensionValue(X509Extensions.CrlDistributionPoints);
@@ -181,7 +168,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             //}
 
-
             //var aiaExt = ServerCertificate.GetExtensionValue(X509Extensions.AuthorityInfoAccess);
             //if (aiaExt is not null)
             //{
@@ -202,9 +188,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             //    }
             //}
 
-
-
-
             // --- DER RoundTrip
             var derBytes                = ServerCertificate.GetEncoded();
             var parsedCertificate       = new X509CertificateParser().ReadCertificate(derBytes);
@@ -216,7 +199,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_ECC_secp521r1_ServerCertificate_Intermediate_Test()
 
@@ -287,12 +269,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                      ]
                                        );
 
-
             ValidateServerCertificate(
                 IssuerCertificate:  serverCACertificate,
                 ServerCertificate:  serverCertificate
             );
-
 
             var certBytes          = serverCertificate.GetEncoded().ToHexString();
             var sd                 = serverCertificate.ToPEM();
@@ -376,12 +356,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                      ]
                                        );
 
-
             ValidateServerCertificate(
                 IssuerCertificate:  serverCACertificate,
                 ServerCertificate:  serverCertificate
             );
-
 
             var certBytes          = serverCertificate.GetEncoded().ToHexString();
             var sd                 = serverCertificate.ToPEM();
@@ -395,7 +373,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_Ed25519_ServerCertificate_Intermediate_Test()
 
@@ -466,12 +443,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                      ]
                                        );
 
-
             ValidateServerCertificate(
                 IssuerCertificate:  serverCACertificate,
                 ServerCertificate:  serverCertificate
             );
-
 
             var certBytes          = serverCertificate.GetEncoded().ToHexString();
             var sd                 = serverCertificate.ToPEM();
@@ -555,12 +530,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                      ]
                                        );
 
-
             ValidateServerCertificate(
                 IssuerCertificate:  serverCACertificate,
                 ServerCertificate:  serverCertificate
             );
-
 
             var certBytes          = serverCertificate.GetEncoded().ToHexString();
             var sd                 = serverCertificate.ToPEM();
@@ -574,7 +547,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_MLDSA_ServerCertificate_Intermediate_Test()
 
@@ -645,12 +617,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                      ]
                                        );
 
-
             ValidateServerCertificate(
                 IssuerCertificate:  serverCACertificate,
                 ServerCertificate:  serverCertificate
             );
-
 
             var certBytes          = serverCertificate.GetEncoded().ToHexString();
             var sd                 = serverCertificate.ToPEM();
@@ -664,7 +634,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         }
 
         #endregion
-
 
         #region Generate_RSA_ServerCertificate_Intermediate_Test()
 
@@ -735,12 +704,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                      ]
                                        );
 
-
             ValidateServerCertificate(
                 IssuerCertificate:  serverCACertificate,
                 ServerCertificate:  serverCertificate
             );
-
 
             var certBytes          = serverCertificate.GetEncoded().ToHexString();
             var sd                 = serverCertificate.ToPEM();
@@ -836,12 +803,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                      ]
                                        );
 
-
             ValidateServerCertificate(
                 IssuerCertificate:  serverCACertificate,
                 ServerCertificate:  serverCertificate
             );
-
 
             var certBytes          = serverCertificate.GetEncoded().ToHexString();
             var sd                 = serverCertificate.ToPEM();

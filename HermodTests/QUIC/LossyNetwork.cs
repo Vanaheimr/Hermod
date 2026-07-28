@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using NUnit.Framework;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.QUIC;
 
 /// <summary>

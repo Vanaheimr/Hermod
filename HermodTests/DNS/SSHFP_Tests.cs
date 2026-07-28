@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -101,7 +99,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         }
 
         #endregion
-
 
         #region Algorithm numbers
 

@@ -17,8 +17,6 @@
 
 #region Usings
 
-using NUnit.Framework;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -96,7 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-
         #region FrameHeader_SurvivesArbitraryBytes()
 
         // Any nine bytes are a syntactically valid frame header, so the parser must
@@ -172,7 +169,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-
         #region HPACK_RandomBlocks_FailInTheProtocolsVocabulary()
 
         [Test]
@@ -246,7 +242,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         #endregion
-
 
         #region HPACK_IntegerOverflow_IsADecodingError()
 
