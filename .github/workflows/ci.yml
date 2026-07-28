@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    # windows-latest, not ubuntu: this is the platform the suite is verified on.
+    # Hermod pulls in System.Diagnostics.PerformanceCounter, System.IO.Ports and
+    # System.Drawing.Common, and certificate chain building differs between the
+    # Windows and OpenSSL backends — we hit that difference with Ed25519 already.
+    # Linux would be cheaper and is worth adding as a second matrix entry, but
+    # not before someone has actually seen it pass there.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        run: dotnet build HermodTests/HermodTests.csproj --configuration Release
+
+      # QUIC and HTTP/2 — 511 tests, none of them touching the network. Both are
+      # in-process against our own servers, so a failure means our code broke,
+      # not that a resolver was slow.
+      #
+      # Deliberately NOT the whole suite: 207 DNS tests query Cloudflare and
+      # Google for real. They belong in a nightly run, not in a gate that has to
+      # be trustworthy enough that a red mark stops a merge.
+      - name: Test (QUIC + HTTP/2)
+        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Hermod.Tests.QUIC|FullyQualifiedName~Hermod.Tests.HTTP2" --logger "console;verbosity=normal"
