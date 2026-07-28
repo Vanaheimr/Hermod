@@ -901,10 +901,15 @@ they're common in the wild:
   h2c is implemented.
 - **`Accept-Charset`** — deprecated in RFC 9110 §12.5.2.
 - **Multi-origin connection pooling** — the pool is single-origin by design.
-- **HTTP/3** — a different transport (QUIC + QPACK + H3 framing) sharing only the
+- **HTTP/3** (QPACK + H3 framing) — a different transport sharing only the
   version-independent HTTP semantics with this stack, which is precisely why
   `Core` was cut the way it is. It is not a future track here: it lives in the
   sibling project **`HTTP3FromScratch`**.
+  Its transport does now live in this repository, though: QUIC and the TLS 1.3
+  handshake it needs (RFC 9000/9001/9002, RFC 8446) sit under `Hermod/QUIC`, with
+  their tests under `HermodTests/QUIC`, and `HTTP3FromScratch` consumes them from
+  here. So the line is between *transport* and *HTTP mapping*, not between the two
+  repositories — nothing of HTTP/3 itself is implemented here.
 
 ---
 

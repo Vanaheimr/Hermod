@@ -9,6 +9,9 @@ Hermod is a .NET library for simplified advanced networking tasks...
 - IPv4 and IPv6 packets
 - Generic UDP clients / servers
 - Generic TCP clients / servers
+- QUIC clients / servers (RFC 9000/9001/9002) incl. the TLS 1.3 handshake it
+  carries — the transport under HTTP/3, which itself lives in the sibling project
+  `HTTP3FromScratch`
 
 
 ## Common Application Protocols
