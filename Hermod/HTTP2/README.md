@@ -14,8 +14,7 @@ HTTP/2 server for the client).
 📋 This README doubles as the **complete reference** — the [RFC compliance
 matrix](#rfc-compliance-matrix), a [feature-by-feature breakdown](#feature-detail),
 the [security-hardening summary](#security-hardening-summary), and [what's
-explicitly out of scope](#explicitly-out-of-scope) are all below. See
-[`docs/BUILD_LOG.md`](docs/BUILD_LOG.md) for the full chronological build history.
+explicitly out of scope](#explicitly-out-of-scope) are all below.
 
 > ⚠️ **Reference implementation.** Requests, responses, flow control, real
 > stream multiplexing, CONTINUATION-flood/Rapid-Reset/stream-ID-exhaustion
@@ -43,32 +42,26 @@ explicitly out of scope](#explicitly-out-of-scope) are all below. See
 
 ## Test
 
-The interop + attack harnesses live under [`tests/`](tests/). Run the whole
-suite (builds, starts the demo host, drives every harness) with:
+The tests live under [`HermodTests/HTTP2`](../../HermodTests/HTTP2) — 212 NUnit
+tests, including the raw frame-level attack clients and the gRPC interop against
+`Grpc.Net.Client`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tests/run-tests.ps1
+dotnet test HermodTests/HermodTests.csproj --filter "FullyQualifiedName~Hermod.Tests.HTTP2"
 ```
 
-Current status: **48/48 harness runs pass**, and the stack scores **146/146 on
-[h2spec](https://github.com/summerwind/h2spec)** (the canonical HTTP/2
-conformance suite) over *both* the TLS and cleartext-h2c listeners. Reproduce
-the h2spec run with a single command —
+Two external conformance results were reached while this stack was still its own
+project: **146/146 on [h2spec](https://github.com/summerwind/h2spec)** (the
+canonical HTTP/2 conformance suite) over *both* the TLS and cleartext-h2c
+listeners, and **517/517** on the
+[Autobahn TestSuite](https://github.com/crossbario/autobahn-testsuite) for the
+WebSocket framing (RFC 6455) — the full suite, including `permessage-deflate`
+(RFC 7692) compression.
 
-```powershell
-pwsh tests/h2spec.ps1   # builds, starts the demo, runs h2spec on both transports
-```
-
-— see [`tests/TestingAgainst_h2spec.md`](tests/TestingAgainst_h2spec.md) for the
-full h2spec walkthrough, [`tests/README.md`](tests/README.md) for the harness
-layout, and [`docs/BUILD_LOG.md`](docs/BUILD_LOG.md) for the conformance breakdown.
-
-The WebSocket framing (RFC 6455) likewise passes **517/517** cases of the
-canonical [Autobahn TestSuite](https://github.com/crossbario/autobahn-testsuite)
-— the full suite, including `permessage-deflate` (RFC 7692) compression —
-`pwsh tests/autobahn.ps1` / `tests/autobahn.sh` (Docker), with the critical
-cases also pinned in the committed `h2wsconformance` harness (no Docker needed);
-see [`tests/TestingAgainst_Autobahn.md`](tests/TestingAgainst_Autobahn.md).
+The PowerShell/Docker harnesses that produced those two numbers did not come
+across when the stack was vendored into Hermod. They stand as results that were
+achieved, not as something this repository can currently reproduce; re-running
+either means pointing h2spec or Autobahn at a demo host yourself.
 
 Ad-hoc `curl` checks against the demo host:
 
@@ -145,10 +138,10 @@ arrives; read request `Trailers` once the body ends) and an
 then `WriteAsync` body chunks, then `CompleteAsync(trailers)` — e.g. gRPC's
 `grpc-status`). The handler is invoked as soon as the request headers arrive, so
 both directions flow at once. `Expect: 100-continue` is handled automatically by
-the server. This seam is enough to serve real **gRPC**: the
-[`grpc`](tests/grpc/Program.cs) harness runs a Greeter service (unary +
-server-streaming, length-prefixed messages, `grpc-status` in trailers) over the
-stack and interop-tests it against the real `Grpc.Net.Client`.
+the server. This seam is enough to serve real **gRPC**:
+[`GrpcInteropTests`](../../HermodTests/HTTP2/GrpcInteropTests.cs) runs a Greeter
+service (unary + server-streaming, length-prefixed messages, `grpc-status` in
+trailers) over the stack and interop-tests it against the real `Grpc.Net.Client`.
 
 For authentication, `HTTPAuthentication.RequireAuthentication` wraps a handler
 with the RFC 9110 §11 challenge/response flow (401 + `WWW-Authenticate` when
