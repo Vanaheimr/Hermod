@@ -24,8 +24,9 @@ curves .NET does not expose: X25519, X448, Ed25519, Ed448.
 > See [what is not here](#not-here-yet).
 
 **HTTP/3 is not in this repository.** QPACK and the H3 framing/mapping live in the
-sibling project `HTTP3FromScratch`, which consumes this transport. The line runs
-between transport and HTTP mapping.
+sibling project
+[HTTP3FromScratch](https://github.com/Vanaheimr/HTTP3ConformanceTests), which
+consumes this transport. The line runs between transport and HTTP mapping.
 
 ---
 
