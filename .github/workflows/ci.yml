@@ -20,15 +20,30 @@ jobs:
     # not before someone has actually seen it pass there.
     runs-on: windows-latest
     steps:
+      # This repository cannot be built on its own: Hermod.csproj and
+      # HermodTests.csproj reference ..\..\Styx\... — a SIBLING directory — and
+      # there is no submodule for it. So both repositories are checked out side
+      # by side, which reproduces the layout those relative paths assume.
+      #
+      # Note what this does not do: pin Styx. The HTTP/3 repository pins it
+      # through a submodule; here we build against Styx master, so a breaking
+      # change there turns this red without anything in Hermod having moved.
+      # That is arguably the honest signal, but it is a choice, not an accident.
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          path: Hermod
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Vanaheimr/Styx
+          path: Styx
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
       - name: Build
+        working-directory: Hermod
         run: dotnet build HermodTests/HermodTests.csproj --configuration Release
 
       # QUIC and HTTP/2 — 511 tests, none of them touching the network. Both are
@@ -39,4 +54,5 @@ jobs:
       # Google for real. They belong in a nightly run, not in a gate that has to
       # be trustworthy enough that a red mark stops a merge.
       - name: Test (QUIC + HTTP/2)
+        working-directory: Hermod
         run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Hermod.Tests.QUIC|FullyQualifiedName~Hermod.Tests.HTTP2" --logger "console;verbosity=normal"
