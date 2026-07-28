@@ -523,9 +523,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                      };
             Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                                 $"Unexpected signature algorithm OID: {sigOid}!");
 
-            // Verification of the rootCA signature with a different key must fail
+            // Verification of the rootCA signature with a different key must fail.
+            //
+            // Which exception carries that message is not fixed for RSA: if the signature integer
+            // happens to be smaller than the wrong modulus, the RSA operation runs and the padding
+            // check rejects it (InvalidKeyException); if it happens to be larger, BouncyCastle
+            // refuses up front with DataLengthException ("input too large for RSA cipher"). Both
+            // outcomes depend on random key material, which is why pinning one of them made this
+            // test fail every so often. ECC and EdDSA have no such comparison, so they still pin
+            // InvalidKeyException above.
             var wrongKeyPair       = PKIFactory.GenerateRSAKeyPair();
-            Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),                 "Verification of the rootCA signature with a different key must fail!");
+            var caughtException    = Assert.Catch<Exception>(() => rootCACertificate.Verify(wrongKeyPair.Public), "Verification of the rootCA signature with a different key must fail!");
+            Assert.That(caughtException, Is.InstanceOf<InvalidKeyException>().Or.InstanceOf<Org.BouncyCastle.Crypto.DataLengthException>());
 
         }
 
@@ -589,9 +598,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                      };
             Assert.That(allowedRsa.Contains(sigOid),                       Is.True,                                 $"Unexpected signature algorithm OID: {sigOid}!");
 
-            // Verification of the rootCA signature with a different key must fail
+            // Verification of the rootCA signature with a different key must fail.
+            //
+            // Which exception carries that message is not fixed for RSA: if the signature integer
+            // happens to be smaller than the wrong modulus, the RSA operation runs and the padding
+            // check rejects it (InvalidKeyException); if it happens to be larger, BouncyCastle
+            // refuses up front with DataLengthException ("input too large for RSA cipher"). Both
+            // outcomes depend on random key material, which is why pinning one of them made this
+            // test fail every so often. ECC and EdDSA have no such comparison, so they still pin
+            // InvalidKeyException above.
             var wrongKeyPair       = PKIFactory.GenerateRSAKeyPair();
-            Assert.Throws<InvalidKeyException>(() => rootCACertificate.Verify(wrongKeyPair.Public),                 "Verification of the rootCA signature with a different key must fail!");
+            var caughtException    = Assert.Catch<Exception>(() => rootCACertificate.Verify(wrongKeyPair.Public), "Verification of the rootCA signature with a different key must fail!");
+            Assert.That(caughtException, Is.InstanceOf<InvalidKeyException>().Or.InstanceOf<Org.BouncyCastle.Crypto.DataLengthException>());
 
         }
 
