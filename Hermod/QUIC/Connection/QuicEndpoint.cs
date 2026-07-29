@@ -253,12 +253,18 @@ public abstract class QuicEndpoint : IDisposable
     /// frame after receiving at least two ack-eliciting packets") instead of going out for every
     /// packet. Default <c>false</c>.
     /// <para>
-    /// Acknowledging everything at once is fully compliant — §13.2.2 is a SHOULD, and the cost is
-    /// return-path traffic, not correctness. Delaying is switched off by default because it is not
-    /// yet trusted here: enabling it stalls the WebSocket-over-HTTP/3 echo path, and that has not
-    /// been explained. Everything else this option touches — the measured ack_delay, the
-    /// ack_delay_exponent, the peer's max_ack_delay in the probe timeout, immediate acknowledgment
-    /// on reordering and ECN-CE — is always on, because none of it depends on delaying anything.
+    /// Still off by default, but no longer for the original reason. The WebSocket-over-HTTP/3 stall
+    /// that kept it off was never an acknowledgment problem: the HTTP/3 client drained its tunnel
+    /// send queue only when a datagram came in, so an application writing into a quiet connection
+    /// had its data sit there — frequent acknowledgments had merely been hiding it by keeping
+    /// traffic flowing in both directions. That is fixed.
+    /// </para>
+    /// <para>
+    /// What still stands in the way of switching it on is smaller and different: the idle timeout
+    /// then fires late. Measured on the in-process pair with a negotiated 300 ms, it lands somewhere
+    /// between 600 ms and 2.6 s instead — it does fire, but the effective floor has moved, and that
+    /// has not been explained. Acknowledging everything at once remains fully compliant (§13.2.2 is
+    /// a SHOULD) and costs return-path traffic, not correctness.
     /// </para>
     /// </summary>
     public bool DelayedAcknowledgments { get; set; }
@@ -948,11 +954,19 @@ public abstract class QuicEndpoint : IDisposable
             _pingPending = false;
         }
         // Application space: acknowledge after two ack-eliciting packets, on reordering or an ECN-CE
-        // mark, or once max_ack_delay has elapsed (§13.2.1/§13.2.2). An ACK also rides along free of
-        // charge whenever this pass is sending something anyway — §13.2.1: "An endpoint SHOULD send
-        // an ACK frame with other frames when there are new ack-eliciting packets to acknowledge."
+        // mark, or once max_ack_delay has elapsed (§13.2.1/§13.2.2).
+        //
+        // Above all, an ACK rides along whenever this pass is going to send SOMETHING — §13.2.1:
+        // "An endpoint SHOULD send an ACK frame with other frames when there are new ack-eliciting
+        // packets to acknowledge." That has to include the stream data and datagrams appended
+        // further down, not just the control frames collected so far: a request/response exchange
+        // sends exactly one ack-eliciting packet per side per turn, so the two-packet rule never
+        // fires and the acknowledgment would sit out the full max_ack_delay on every single turn.
+        bool sendingAnyway = control.Count > 0 ||
+                             _outgoingDatagrams.Count > 0 ||
+                             StreamMap.Values.Any(s => s.Send.HasPending);
         if ((Spaces[i].IsAckDue(NowTicks, LocalMaxAckDelay, immediateSpace: !DelayedAcknowledgments) ||
-             (Spaces[i].AckPending && control.Count > 0)) &&
+             (Spaces[i].AckPending && sendingAnyway)) &&
             BuildAckFor(i) is { } ack)
             control.Add(ack);
         CollectFlowControlFrames(control);
