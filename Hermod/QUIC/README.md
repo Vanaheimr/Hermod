@@ -198,7 +198,7 @@ TLS with a client certificate from an OpenSSL CA.
 
 ## Test
 
-344 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
+358 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
 folder layout.
 
 ```powershell
@@ -262,4 +262,5 @@ still reference a finished stream, so there is no close to count down.
 
 - **Receive-side GRO and per-connection parallelism** — send-side GSO exists;
   the receive path is still one loop.
-- **ACK frequency** and ACK delay.
+- **Delayed acknowledgments** are implemented but off by default
+  (`DelayedAcknowledgments`), and the **draft ACK-frequency extension** is not here.

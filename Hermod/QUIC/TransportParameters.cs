@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -44,6 +44,8 @@ public sealed class TransportParameters
     private const ulong InitialMaxStreamDataUni = 0x07;
     private const ulong InitialMaxStreamsBidi = 0x08;
     private const ulong InitialMaxStreamsUni = 0x09;
+    private const ulong AckDelayExponent = 0x0a;
+    private const ulong MaxAckDelay = 0x0b;
     private const ulong ActiveConnectionIdLimit = 0x0e;
     private const ulong InitialSourceConnectionId = 0x0f;
     private const ulong MaxDatagramFrameSize = 0x20; // RFC 9221 §3
@@ -63,6 +65,21 @@ public sealed class TransportParameters
     public ulong InitialMaxStreamDataUniValue { get; set; } = 262_144;
     public ulong InitialMaxStreamsBidiValue { get; set; } = 100;
     public ulong InitialMaxStreamsUniValue { get; set; } = 100;
+    /// <summary>
+    /// Exponent used to decode the ACK Delay field of an ACK frame (RFC 9000 §18.2, parameter 0x0a):
+    /// the field carries microseconds divided by 2^exponent. "If this value is absent, a default
+    /// value of 3 is assumed (indicating a multiplier of 8). Values above 20 are invalid."
+    /// </summary>
+    public ulong AckDelayExponentValue { get; set; } = 3;
+
+    /// <summary>
+    /// The most this endpoint will ever intentionally delay an acknowledgment, in milliseconds
+    /// (RFC 9000 §18.2, parameter 0x0b). §13.2.1 calls it "an explicit contract"; the peer folds it
+    /// into its probe timeout, so exceeding it costs the peer spurious retransmissions. Default 25,
+    /// values of 2^14 or greater are invalid.
+    /// </summary>
+    public ulong MaxAckDelayMs { get; set; } = 25;
+
     public ulong ActiveConnectionIdLimitValue { get; set; } = 2;
 
     /// <summary>
@@ -145,6 +162,8 @@ public sealed class TransportParameters
             WriteInteger(ref writer, InitialMaxStreamDataUni, InitialMaxStreamDataUniValue);
             WriteInteger(ref writer, InitialMaxStreamsBidi, InitialMaxStreamsBidiValue);
             WriteInteger(ref writer, InitialMaxStreamsUni, InitialMaxStreamsUniValue);
+            WriteInteger(ref writer, AckDelayExponent, AckDelayExponentValue);
+            WriteInteger(ref writer, MaxAckDelay, MaxAckDelayMs);
             WriteInteger(ref writer, ActiveConnectionIdLimit, ActiveConnectionIdLimitValue);
             if (MaxDatagramFrameSizeValue > 0)
                 WriteInteger(ref writer, MaxDatagramFrameSize, MaxDatagramFrameSizeValue); // RFC 9221 §3
@@ -229,6 +248,16 @@ public sealed class TransportParameters
                     result.InitialMaxStreamsUniValue = ReadVarIntValue(value);
                     if (result.InitialMaxStreamsUniValue > 1UL << 60)
                         return false;
+                    break;
+                case AckDelayExponent:
+                    result.AckDelayExponentValue = ReadVarIntValue(value);
+                    if (result.AckDelayExponentValue > 20)
+                        return false; // §18.2: "Values above 20 are invalid."
+                    break;
+                case MaxAckDelay:
+                    result.MaxAckDelayMs = ReadVarIntValue(value);
+                    if (result.MaxAckDelayMs >= 1 << 14)
+                        return false; // §18.2: "Values of 2^14 or greater are invalid."
                     break;
                 case ActiveConnectionIdLimit:
                     result.ActiveConnectionIdLimitValue = ReadVarIntValue(value);

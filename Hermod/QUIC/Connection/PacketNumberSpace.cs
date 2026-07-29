@@ -111,7 +111,7 @@ public sealed class PacketNumberSpace
     /// <summary>
     /// Records a successfully unprotected, received packet number along with its ECN codepoint.
     /// </summary>
-    public void RecordReceived(ulong packetNumber, EcnCodepoint ecn = EcnCodepoint.NotEct)
+    public void RecordReceived(ulong packetNumber, EcnCodepoint ecn = EcnCodepoint.NotEct, long nowTicks = 0)
     {
         if ((long)packetNumber > _largestReceived)
             _largestReceived = (long)packetNumber;
@@ -123,6 +123,16 @@ public sealed class PacketNumberSpace
 
         _received.Add(packetNumber);
         AckPending = true;
+
+        // §13.2.5 measures the delay from the arrival of the LARGEST-numbered packet to the moment
+        // the ACK goes out, so only that arrival time matters.
+        if ((long)packetNumber >= _largestReceived)
+            _largestReceivedTicks = nowTicks;
+
+        // §13.2.1: "packets marked with the ECN Congestion Experienced (CE) codepoint … SHOULD be
+        // acknowledged immediately, to reduce the peer's response time to congestion events."
+        if (ecn == EcnCodepoint.Ce)
+            ImmediateAckNeeded = true;
         switch (ecn)
         {
             case EcnCodepoint.Ect0: _ect0Count++; break;
@@ -201,6 +211,9 @@ public sealed class PacketNumberSpace
         if (_received.Count == 0)
             return null;
         AckPending = false;
+        AckElicitingSinceLastAck = 0;
+        ImmediateAckNeeded = false;
+        _firstUnackedElicitingTicks = -1;
 
         // Once ECN-marked packets have been received, every ACK MUST carry the cumulative counters
         // (type 0x03, RFC 9000 §13.4.2). Without ECN marks, the simple ACK (0x02) remains.
@@ -217,4 +230,83 @@ public sealed class PacketNumberSpace
     /// (e.g. deferred by the anti-amplification budget), so the next send builds a fresh one.
     /// </summary>
     public void MarkAckPending() => AckPending = _received.Count > 0;
+
+    // ---- Acknowledgment timing (RFC 9000 §13.2) ------------------------------------------------
+
+    private long _largestReceivedTicks;      // arrival of the largest-numbered packet (§13.2.5)
+    private long _firstUnackedElicitingTicks = -1;
+    private long _largestAckEliciting = -1;
+
+    /// <summary>
+    /// Ack-eliciting packets received since the last ACK went out. §13.2.2: "A receiver SHOULD send
+    /// an ACK frame after receiving at least two ack-eliciting packets."
+    /// </summary>
+    public int AckElicitingSinceLastAck { get; private set; }
+
+    /// <summary>
+    /// An ACK must go out now rather than on the timer — §13.2.1 asks for this on reordering (which
+    /// helps the peer's loss detection) and on an ECN-CE mark.
+    /// </summary>
+    public bool ImmediateAckNeeded { get; private set; }
+
+    /// <summary>
+    /// Reports that a received packet carried at least one ack-eliciting frame. Only these start the
+    /// acknowledgment clock: §13.2.1 forbids answering a non-ack-eliciting packet with another one,
+    /// "to avoid an infinite feedback loop of acknowledgments".
+    /// </summary>
+    public void OnAckElicitingReceived(ulong packetNumber, long nowTicks)
+    {
+        AckElicitingSinceLastAck++;
+        if (_firstUnackedElicitingTicks < 0)
+            _firstUnackedElicitingTicks = nowTicks;
+
+        // §13.2.1, the two cases that call for an immediate ACK: a packet number below one already
+        // received, or one above the highest with a gap in between. Both mean the peer is looking at
+        // a hole and would otherwise wait out its loss timer.
+        if (_largestAckEliciting >= 0 &&
+            ((long)packetNumber < _largestAckEliciting || (long)packetNumber > _largestAckEliciting + 1))
+            ImmediateAckNeeded = true;
+
+        if ((long)packetNumber > _largestAckEliciting)
+            _largestAckEliciting = (long)packetNumber;
+    }
+
+    /// <summary>
+    /// Whether an ACK is due (RFC 9000 §13.2.1/§13.2.2). <paramref name="immediateSpace"/> is set for
+    /// Initial and Handshake, which "MUST" be acknowledged immediately; the application space may
+    /// wait for a second ack-eliciting packet or for <paramref name="maxAckDelay"/> to elapse.
+    /// </summary>
+    public bool IsAckDue(long nowTicks, TimeSpan maxAckDelay, bool immediateSpace)
+    {
+        if (!AckPending)
+            return false;
+        if (immediateSpace || ImmediateAckNeeded)
+            return true;
+        if (AckElicitingSinceLastAck >= 2)
+            return true;
+        return _firstUnackedElicitingTicks >= 0 &&
+               nowTicks - _firstUnackedElicitingTicks >= maxAckDelay.Ticks;
+    }
+
+    /// <summary>
+    /// When the pending ACK is due at the latest, or -1 when nothing is waiting. Drives the timer
+    /// that keeps the max_ack_delay promise of §13.2.1.
+    /// </summary>
+    public long AckDeadlineTicks(TimeSpan maxAckDelay)
+        => AckPending && _firstUnackedElicitingTicks >= 0
+               ? _firstUnackedElicitingTicks + maxAckDelay.Ticks
+               : -1;
+
+    /// <summary>
+    /// The delay to report in the ACK Delay field: the time between the arrival of the largest
+    /// packet and now (§13.2.5), encoded as microseconds divided by 2^<paramref name="exponent"/>.
+    /// </summary>
+    public ulong EncodeAckDelay(long nowTicks, ulong exponent)
+    {
+        long delayTicks = nowTicks - _largestReceivedTicks;
+        if (delayTicks <= 0)
+            return 0;
+        ulong microseconds = (ulong)(delayTicks / (TimeSpan.TicksPerMillisecond / 1000));
+        return microseconds >> (int)Math.Min(exponent, 62);
+    }
 }

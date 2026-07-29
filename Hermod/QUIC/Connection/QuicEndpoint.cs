@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -234,6 +234,50 @@ public abstract class QuicEndpoint : IDisposable
     public ConnectionId SourceConnectionId => Scid;
     public IReadOnlyDictionary<ulong, QuicStream> Streams => StreamMap;
     public TransportParameters? PeerTransportParameters => PeerParams;
+
+    /// <summary>
+    /// The exponent to decode ACK Delay fields the PEER sends (RFC 9000 §19.3/§18.2). Until its
+    /// transport parameters arrive the default of 3 applies — which is also why nothing here may be
+    /// carried over from a resumed connection: §7.4.1 forbids remembering this value for 0-RTT.
+    /// </summary>
+    protected ulong PeerAckDelayExponent => PeerParams?.AckDelayExponentValue ?? 3;
+
+    /// <summary>
+    /// The promise we made to the peer about how long we may sit on an acknowledgment
+    /// (RFC 9000 §13.2.1). Exceeding it inflates the peer's RTT estimate.
+    /// </summary>
+    protected TimeSpan LocalMaxAckDelay => TimeSpan.FromMilliseconds(LocalParams.MaxAckDelayMs);
+
+    /// <summary>
+    /// Whether acknowledgments may be held back per RFC 9000 §13.2.2 ("A receiver SHOULD send an ACK
+    /// frame after receiving at least two ack-eliciting packets") instead of going out for every
+    /// packet. Default <c>false</c>.
+    /// <para>
+    /// Acknowledging everything at once is fully compliant — §13.2.2 is a SHOULD, and the cost is
+    /// return-path traffic, not correctness. Delaying is switched off by default because it is not
+    /// yet trusted here: enabling it stalls the WebSocket-over-HTTP/3 echo path, and that has not
+    /// been explained. Everything else this option touches — the measured ack_delay, the
+    /// ack_delay_exponent, the peer's max_ack_delay in the probe timeout, immediate acknowledgment
+    /// on reordering and ECN-CE — is always on, because none of it depends on delaying anything.
+    /// </para>
+    /// </summary>
+    public bool DelayedAcknowledgments { get; set; }
+
+    /// <summary>
+    /// How often an otherwise ACK-only packet gets a PING so the peer acknowledges it and our ACK
+    /// state can be released (RFC 9000 §13.2.1/§13.2.4). Every packet would be a feedback loop.
+    /// </summary>
+    private const int AckElicitingAckInterval = 4;
+
+    private int _consecutiveAckOnlyPackets;
+
+    /// <summary>
+    /// Builds the pending ACK of a space with the delay actually measured since the largest packet
+    /// arrived (§13.2.5), encoded with OUR ack_delay_exponent — the peer decodes it with the value
+    /// we advertised, not with its own.
+    /// </summary>
+    private AckFrame? BuildAckFor(int space)
+        => Spaces[space].BuildAck(Spaces[space].EncodeAckDelay(NowTicks, LocalParams.AckDelayExponentValue));
 
     /// <summary>
     /// Current congestion window in bytes (RFC 9002 §7). Diagnostics.
@@ -776,7 +820,9 @@ public abstract class QuicEndpoint : IDisposable
         // Control frames of this pass, collected once and then spread across packets.
         var control = new List<Frame>();
         DrainRetransmitQueue(i, control);
-        if (Spaces[i].AckPending && Spaces[i].BuildAck() is { } ack)
+        // Initial and Handshake: §13.2.1 "An endpoint MUST acknowledge all ack-eliciting Initial and
+        // Handshake packets immediately" — no delay policy applies here.
+        if (Spaces[i].IsAckDue(NowTicks, LocalMaxAckDelay, immediateSpace: true) && BuildAckFor(i) is { } ack)
             control.Add(ack);
         int controlCursor = 0;
 
@@ -901,10 +947,31 @@ public abstract class QuicEndpoint : IDisposable
             control.Add(PingFrame.Instance); // keep-alive (RFC 9000 §10.1.2)
             _pingPending = false;
         }
-        if (Spaces[i].AckPending && Spaces[i].BuildAck() is { } ack)
+        // Application space: acknowledge after two ack-eliciting packets, on reordering or an ECN-CE
+        // mark, or once max_ack_delay has elapsed (§13.2.1/§13.2.2). An ACK also rides along free of
+        // charge whenever this pass is sending something anyway — §13.2.1: "An endpoint SHOULD send
+        // an ACK frame with other frames when there are new ack-eliciting packets to acknowledge."
+        if ((Spaces[i].IsAckDue(NowTicks, LocalMaxAckDelay, immediateSpace: !DelayedAcknowledgments) ||
+             (Spaces[i].AckPending && control.Count > 0)) &&
+            BuildAckFor(i) is { } ack)
             control.Add(ack);
         CollectFlowControlFrames(control);
         CollectStreamCancellationFrames(control); // RESET_STREAM / STOP_SENDING (RFC 9000 §2.4)
+
+        // An endpoint that only ever sends ACK frames never gets acknowledged itself — its packets
+        // are not ack-eliciting — so its own ACK state can never be released (§13.2.4). §13.2.1
+        // names the way out: "An endpoint that is only sending non-ack-eliciting packets might
+        // choose to occasionally add an ack-eliciting frame to those packets to ensure that it
+        // receives an acknowledgment … In that case, an endpoint MUST NOT send an ack-eliciting
+        // frame in all packets", hence every fourth rather than every one.
+        if (DelayedAcknowledgments && control.Count > 0 && control.TrueForAll(f => f is AckFrame) &&
+            !StreamMap.Values.Any(s => s.Send.HasPending) && _outgoingDatagrams.Count == 0)
+        {
+            if (++_consecutiveAckOnlyPackets % AckElicitingAckInterval == 0)
+                control.Add(PingFrame.Instance);
+        }
+        else
+            _consecutiveAckOnlyPackets = 0;
 
         // Post-handshake CRYPTO at application level (e.g. NewSessionTicket, RFC 8446 §4.6.1).
         int appCryptoChunk = Math.Min(_outgoingCrypto[i].Count, MaxCryptoDataPerPacket);
@@ -1566,7 +1633,7 @@ public abstract class QuicEndpoint : IDisposable
     {
         _idle.OnPacketReceived(NowTicks); // RFC 9000 §10.1
         _anyPacketProcessed = true;
-        Spaces[(int)EncryptionLevel.Application].RecordReceived(packetNumber, ecn);
+        Spaces[(int)EncryptionLevel.Application].RecordReceived(packetNumber, ecn, NowTicks);
         // Only when the qlog is on: parse the frames a second time purely for the log.
         if (Qlog is { } qlog && FrameParser.TryParseAll(plaintext.AsSpan(0, length), out List<Frame> loggedFrames) == FrameParseResult.Ok)
             qlog.PacketReceived(QlogTimeMs, "1RTT", packetNumber, packetLength, loggedFrames);
@@ -1584,7 +1651,7 @@ public abstract class QuicEndpoint : IDisposable
             MaybeDiscardServerZeroRttKeysIfComplete();
         }
 
-        DeliverFrames(EncryptionLevel.Application, plaintext.AsSpan(0, length));
+        DeliverFrames(EncryptionLevel.Application, plaintext.AsSpan(0, length), packetNumber);
     }
 
     private void DecryptAndHandle(PacketProtection keys, EncryptionLevel level, byte[] packet, int pnOffset, bool longHeader, EcnCodepoint ecn)
@@ -1606,7 +1673,7 @@ public abstract class QuicEndpoint : IDisposable
             _addressValidated = true;
             _handshakePacketReceived = true; // server: later triggers discarding the Initial keys (RFC 9001 §4.9.1)
         }
-        Spaces[i].RecordReceived(pn, ecn);
+        Spaces[i].RecordReceived(pn, ecn, NowTicks);
         // Only when the qlog is on: parse the frames a second time purely for the log — that keeps
         // the hot path (DeliverFrames below) completely untouched.
         if (Qlog is { } qlog && FrameParser.TryParseAll(plaintext.AsSpan(0, len), out List<Frame> loggedFrames) == FrameParseResult.Ok)
@@ -1615,20 +1682,20 @@ public abstract class QuicEndpoint : IDisposable
         // only AFTER the first 1-RTT packet and closes the last PN gap, all 0-RTT packets are present ⇒ keys gone (§4.9.3).
         if (level == EncryptionLevel.Application)
             MaybeDiscardServerZeroRttKeysIfComplete();
-        DeliverFrames(level, plaintext.AsSpan(0, len));
+        DeliverFrames(level, plaintext.AsSpan(0, len), pn);
     }
 
     /// <summary>
     /// Parses a packet's frames; an encoding/unknown error is FRAME_ENCODING_ERROR (RFC 9000 §12.4).
     /// </summary>
-    private void DeliverFrames(EncryptionLevel level, ReadOnlySpan<byte> plaintext)
+    private void DeliverFrames(EncryptionLevel level, ReadOnlySpan<byte> plaintext, ulong packetNumber = 0)
     {
         if (FrameParser.TryParseAll(plaintext, out List<Frame> frames) != FrameParseResult.Ok)
         {
             CloseWithTransportError(TransportError.FrameEncodingError, "malformed or unknown frame");
             return;
         }
-        HandleFrames(level, frames);
+        HandleFrames(level, frames, packetNumber);
     }
 
     /// <summary>
@@ -1650,8 +1717,14 @@ public abstract class QuicEndpoint : IDisposable
     /// </summary>
     public ulong? LocalCloseErrorCode { get; private set; }
 
-    private void HandleFrames(EncryptionLevel level, List<Frame> frames)
+    private void HandleFrames(EncryptionLevel level, List<Frame> frames, ulong packetNumber = 0)
     {
+        // RFC 9000 §13.2.1: only an ack-eliciting packet may start the acknowledgment clock — "An
+        // endpoint MUST NOT send a non-ack-eliciting packet in response to a non-ack-eliciting
+        // packet … This avoids an infinite feedback loop of acknowledgments."
+        if (frames.Exists(f => f is not AckFrame and not PaddingFrame and not ConnectionCloseFrame))
+            Spaces[(int)level].OnAckElicitingReceived(packetNumber, NowTicks);
+
         foreach (Frame frame in frames)
         {
             if (_state != ConnectionState.Active)
@@ -1669,7 +1742,11 @@ public abstract class QuicEndpoint : IDisposable
                     // ⇒ the §6.2.2.1 special case for the PTO no longer applies.
                     if (level == EncryptionLevel.Handshake && !IsServer)
                         _recovery.PeerCompletedAddressValidation = true;
-                    var ackDelay = TimeSpan.FromMicroseconds(ack.AckDelay * 8);
+                    // §19.3: the field is "decoded by multiplying the value in the field by 2 to
+                    // the power of the ack_delay_exponent transport parameter sent by the SENDER of
+                    // the ACK frame". Before the peer's parameters arrive the default of 3 applies,
+                    // which is what PeerAckDelayExponent falls back to.
+                    var ackDelay = TimeSpan.FromMicroseconds(ack.AckDelay * (1UL << (int)PeerAckDelayExponent));
                     _retransmitQueue[(int)level].AddRange(
                         _recovery.OnAckReceived((int)level, ack, ackDelay, NowTicks));
                     QlogRecoveryMetrics();
@@ -2338,6 +2415,9 @@ public abstract class QuicEndpoint : IDisposable
 
         PeerParams = p;
         _connSendLimit = p.InitialMaxDataValue;
+        // RFC 9002 §6.2: the PTO includes the PEER's max_ack_delay — it is the delay the peer told
+        // us it may add, so budgeting our own value here would make us probe too early.
+        _recovery.MaxAckDelay = TimeSpan.FromMilliseconds(p.MaxAckDelayMs);
         _idle.Negotiate(LocalParams.MaxIdleTimeoutMs, p.MaxIdleTimeoutMs); // effective idle timeout (RFC 9000 §10.1)
         ApplyPeerStatelessResetToken();
 
