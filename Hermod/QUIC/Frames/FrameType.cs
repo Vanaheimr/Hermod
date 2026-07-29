@@ -67,5 +67,15 @@ public static class FrameType
     /// </summary>
     public const ulong ResetStreamAt = 0x24;
 
+    /// <summary>
+    /// IMMEDIATE_ACK (draft-ietf-quic-ack-frequency §5): asks the receiver to acknowledge at once.
+    /// </summary>
+    public const ulong ImmediateAck = 0x1f;
+
+    /// <summary>
+    /// ACK_FREQUENCY (draft-ietf-quic-ack-frequency §4): tells the peer how often to acknowledge.
+    /// </summary>
+    public const ulong AckFrequency = 0xaf;
+
     public static bool IsStream(ulong type) => type is >= StreamBase and <= 0x0f;
 }

@@ -244,9 +244,68 @@ public abstract class QuicEndpoint : IDisposable
 
     /// <summary>
     /// The promise we made to the peer about how long we may sit on an acknowledgment
-    /// (RFC 9000 §13.2.1). Exceeding it inflates the peer's RTT estimate.
+    /// (RFC 9000 §13.2.1). Exceeding it inflates the peer's RTT estimate. A received ACK_FREQUENCY
+    /// frame (draft-ietf-quic-ack-frequency §4) may override the transport-parameter value with the
+    /// peer's Requested Max Ack Delay.
     /// </summary>
-    protected TimeSpan LocalMaxAckDelay => TimeSpan.FromMilliseconds(LocalParams.MaxAckDelayMs);
+    protected TimeSpan LocalMaxAckDelay => _localMaxAckDelayOverride ?? TimeSpan.FromMilliseconds(LocalParams.MaxAckDelayMs);
+
+    // Set by a received ACK_FREQUENCY frame (Requested Max Ack Delay); null = the transport-parameter value stands.
+    private TimeSpan? _localMaxAckDelayOverride;
+
+    // Largest ACK_FREQUENCY Sequence Number processed (draft §4); -1 = none yet. Obsolete frames are ignored.
+    private long _ackFrequencySeqReceived = -1;
+
+    // Sender side (draft §7): the next Sequence Number to send, the packet carrying the latest
+    // ACK_FREQUENCY still in flight (-1 = none) and the max_ack_delay it requested (microseconds).
+    private ulong _ackFrequencySeqSent;
+    private long _ackFrequencyPacketInFlight = -1;
+    private ulong _ackFrequencyRequestedUs;
+
+    /// <summary>
+    /// Sends an ACK_FREQUENCY frame (draft-ietf-quic-ack-frequency §4) asking the peer how to pace its
+    /// acknowledgments: send an ACK after more than <paramref name="ackElicitingThreshold"/> ack-eliciting
+    /// packets (0 = acknowledge every packet, 1 = the default), delay at most
+    /// <paramref name="requestedMaxAckDelay"/>, and treat a packet-number gap of
+    /// <paramref name="reorderingThreshold"/> as cause for an immediate ACK (0 = never, 1 = the default).
+    /// The frame is queued on the 1-RTT path. Returns <c>false</c> — sending nothing — when the peer never
+    /// advertised min_ack_delay (the extension is unavailable) or the requested delay lies outside the
+    /// range the peer would accept (§4), in which case the caller should pick a value the peer allows.
+    /// </summary>
+    public bool TrySendAckFrequency(ulong ackElicitingThreshold, TimeSpan requestedMaxAckDelay, ulong reorderingThreshold = 1)
+    {
+        if (PeerParams?.PeerMinAckDelayUs is not { } peerMinUs)
+            return false; // §3: only permitted once the peer advertised support
+
+        ulong requestedUs = (ulong)Math.Max(0, requestedMaxAckDelay.TotalMicroseconds);
+        const ulong maxValidUs = (1UL << 14) * 1000; // 2^14 milliseconds, in microseconds
+        if (requestedUs < peerMinUs || requestedUs >= maxValidUs)
+            return false; // §4: the peer would answer with PROTOCOL_VIOLATION
+
+        _pendingControlFrames.Add(new AckFrequencyFrame(_ackFrequencySeqSent++, ackElicitingThreshold,
+                                                         requestedUs, reorderingThreshold));
+        _ackFrequencyRequestedUs = requestedUs;
+
+        // §7: cover the value now in flight so a decrease cannot cause a spurious PTO; the PTO drops
+        // to exactly the requested value once the carrying packet is acknowledged (see the ACK path).
+        var requested = TimeSpan.FromMicroseconds(requestedUs);
+        if (requested > _recovery.MaxAckDelay)
+            _recovery.MaxAckDelay = requested;
+        return true;
+    }
+
+    /// <summary>
+    /// Sends an IMMEDIATE_ACK frame (draft §5) asking the peer to acknowledge at once — e.g. for a
+    /// prompt RTT sample or a liveness check. Returns <c>false</c> when the peer did not advertise
+    /// support, sending nothing.
+    /// </summary>
+    public bool TrySendImmediateAck()
+    {
+        if (PeerParams?.PeerMinAckDelayUs is null)
+            return false;
+        _pendingControlFrames.Add(ImmediateAckFrame.Instance);
+        return true;
+    }
 
     /// <summary>
     /// Whether acknowledgments may be held back per RFC 9000 §13.2.2 ("A receiver SHOULD send an ACK
@@ -307,6 +366,22 @@ public abstract class QuicEndpoint : IDisposable
     /// no matter how many packets have flowed.
     /// </summary>
     public int ApplicationTrackedReceivedCount => Spaces[(int)EncryptionLevel.Application].TrackedReceivedCount;
+
+    /// <summary>
+    /// Ack-eliciting threshold currently in force in the application space, i.e. the value a received
+    /// ACK_FREQUENCY frame set (draft-ietf-quic-ack-frequency §4). Diagnostics/test.
+    /// </summary>
+    public ulong ApplicationAckElicitingThresholdForTest => Spaces[(int)EncryptionLevel.Application].AckElicitingThreshold;
+
+    /// <summary>
+    /// Reordering threshold currently in force in the application space (draft §6.2). Diagnostics/test.
+    /// </summary>
+    public ulong ApplicationReorderingThresholdForTest => Spaces[(int)EncryptionLevel.Application].ReorderingThreshold;
+
+    /// <summary>
+    /// The effective max_ack_delay after any ACK_FREQUENCY override (draft §4). Diagnostics/test.
+    /// </summary>
+    public TimeSpan LocalMaxAckDelayForTest => LocalMaxAckDelay;
 
     /// <summary>
     /// Optional qlog for this connection; <c>null</c> = off (then no event is built at all).
@@ -1385,9 +1460,16 @@ public abstract class QuicEndpoint : IDisposable
         // is lost, the client never learns that the handshake is confirmed and, once the server has
         // discarded its Handshake keys, cannot be reached by a Handshake-level probe either ⇒ deadlock.
         List<Frame> retransmittable = frames.Where(f => f is CryptoFrame or StreamFrame or ResetStreamFrame
-                                                          or ResetStreamAtFrame or StopSendingFrame or HandshakeDoneFrame).ToList();
+                                                          or ResetStreamAtFrame or StopSendingFrame or HandshakeDoneFrame
+                                                          or AckFrequencyFrame).ToList();
         if (retransmittable.Any(f => f is HandshakeDoneFrame))
             HandshakeDoneSentCountForTest++;
+        // draft-ietf-quic-ack-frequency §7: remember which packet carried the ACK_FREQUENCY so its
+        // acknowledgment can lower our PTO max_ack_delay to the requested value (retransmits update
+        // this to the newest carrier). §4 allows retransmitting the exact frame — the peer dedupes it
+        // by Sequence Number — which is why it sits in the retransmittable set above.
+        if (frames.Any(f => f is AckFrequencyFrame))
+            _ackFrequencyPacketInFlight = (long)packetNumber;
         _recovery.OnPacketSent(level, new SentPacket
         {
             PacketNumber = packetNumber,
@@ -1765,6 +1847,15 @@ public abstract class QuicEndpoint : IDisposable
                     _retransmitQueue[(int)level].AddRange(
                         _recovery.OnAckReceived((int)level, ack, ackDelay, NowTicks));
                     QlogRecoveryMetrics();
+                    // draft-ietf-quic-ack-frequency §7: once the packet carrying our ACK_FREQUENCY is
+                    // acknowledged the peer has adopted the requested max_ack_delay, so the PTO may
+                    // drop from the max(old, requested) it held while the frame was in flight.
+                    if (level == EncryptionLevel.Application && _ackFrequencyPacketInFlight >= 0 &&
+                        ack.Covers((ulong)_ackFrequencyPacketInFlight))
+                    {
+                        _recovery.MaxAckDelay = TimeSpan.FromMicroseconds(_ackFrequencyRequestedUs);
+                        _ackFrequencyPacketInFlight = -1;
+                    }
                     // When one of our 1-RTT packets is acknowledged, the client MAY regard the handshake
                     // as confirmed (RFC 9001 §4.1.2) – even without a (possibly lost) HANDSHAKE_DONE.
                     if (level == EncryptionLevel.Application &&
@@ -1827,6 +1918,25 @@ public abstract class QuicEndpoint : IDisposable
                     }
                     OnNewTokenReceived(newToken.Token);
                     break;
+                case AckFrequencyFrame af:
+                    // draft-ietf-quic-ack-frequency §3: the peer may only send these once we have
+                    // advertised min_ack_delay, and never before 1-RTT (the parameter is not
+                    // remembered for 0-RTT). Either violation is a PROTOCOL_VIOLATION.
+                    if (level != EncryptionLevel.Application || LocalParams.MinAckDelayUs is null)
+                    {
+                        CloseWithTransportError(TransportError.ProtocolViolation, "unexpected ACK_FREQUENCY frame");
+                        return;
+                    }
+                    HandleAckFrequency(af);
+                    break;
+                case ImmediateAckFrame:
+                    if (level != EncryptionLevel.Application || LocalParams.MinAckDelayUs is null)
+                    {
+                        CloseWithTransportError(TransportError.ProtocolViolation, "unexpected IMMEDIATE_ACK frame");
+                        return;
+                    }
+                    Spaces[(int)EncryptionLevel.Application].RequestImmediateAck(); // draft §5
+                    break;
                 case NewConnectionIdFrame ncid:
                     HandleNewConnectionId(ncid);
                     break;
@@ -1872,6 +1982,36 @@ public abstract class QuicEndpoint : IDisposable
             Dcid = newDcid; // the previous DCID was retired via "Retire Prior To"
         foreach (RetireConnectionIdFrame retire in retires)
             _pendingControlFrames.Add(retire);
+    }
+
+    /// <summary>
+    /// Applies a received ACK_FREQUENCY frame (draft-ietf-quic-ack-frequency §4). Obsolete frames
+    /// (non-increasing Sequence Number) are ignored; an out-of-range Requested Max Ack Delay is a
+    /// PROTOCOL_VIOLATION. On success the application space adopts the new thresholds and our
+    /// max_ack_delay is overridden with the requested value.
+    /// </summary>
+    private void HandleAckFrequency(AckFrequencyFrame frame)
+    {
+        // §4: "A receiving endpoint MUST ignore a received ACK_FREQUENCY frame unless the Sequence
+        // Number value in the frame is greater than the largest processed value."
+        if ((long)frame.SequenceNumber <= _ackFrequencySeqReceived)
+            return;
+
+        // §4: Requested Max Ack Delay is in microseconds. Values of 2^14 ms or greater are invalid
+        // for max_ack_delay, and a value below the min_ack_delay we advertised is invalid too.
+        const ulong maxValidUs = (1UL << 14) * 1000; // 2^14 milliseconds, in microseconds
+        if (frame.RequestedMaxAckDelayUs >= maxValidUs ||
+            frame.RequestedMaxAckDelayUs < (LocalParams.MinAckDelayUs ?? 0))
+        {
+            CloseWithTransportError(TransportError.ProtocolViolation, "invalid ACK_FREQUENCY Requested Max Ack Delay");
+            return;
+        }
+
+        _ackFrequencySeqReceived = (long)frame.SequenceNumber;
+        _localMaxAckDelayOverride = TimeSpan.FromMicroseconds(frame.RequestedMaxAckDelayUs);
+        PacketNumberSpace app = Spaces[(int)EncryptionLevel.Application];
+        app.AckElicitingThreshold = frame.AckElicitingThreshold;
+        app.ReorderingThreshold   = frame.ReorderingThreshold;
     }
 
     /// <summary>

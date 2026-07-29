@@ -124,6 +124,16 @@ public static class FrameParser
                     frames.Add(resetStreamAt!);
                     break;
 
+                case FrameType.ImmediateAck: // draft-ietf-quic-ack-frequency §5
+                    frames.Add(ImmediateAckFrame.Instance);
+                    break;
+
+                case FrameType.AckFrequency: // draft-ietf-quic-ack-frequency §4
+                    if (!AckFrequencyFrame.TryReadBody(ref reader, out AckFrequencyFrame? ackFrequency))
+                        return FrameParseResult.EncodingError;
+                    frames.Add(ackFrequency!);
+                    break;
+
                 case FrameType.DatagramNoLength:
                 case FrameType.DatagramWithLength: // RFC 9221 §4
                     if (!DatagramFrame.TryReadBody(ref reader, hasLength: type == FrameType.DatagramWithLength, out DatagramFrame? datagram))

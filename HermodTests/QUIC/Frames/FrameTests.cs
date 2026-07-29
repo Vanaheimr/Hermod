@@ -177,8 +177,8 @@ public class FrameTests
     [Test]
     public void Parse_UnknownFrameType_ReportsError()
     {
-        // 0x40 as a 1-byte VarInt is type 0 (padding); use 0x1f (reserved/unknown here).
-        byte[] bytes = [0x1f];
+        // 0x40 as a 1-byte VarInt is type 0 (padding); use 0x22, which no frame type maps to.
+        byte[] bytes = [0x22];
         Assert.That(FrameParser.TryParseAll(bytes, out _), Is.EqualTo(FrameParseResult.UnknownFrameType));
     }
 

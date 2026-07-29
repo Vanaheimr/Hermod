@@ -130,9 +130,13 @@ public sealed class PacketNumberSpace
             _largestReceivedTicks = nowTicks;
 
         // §13.2.1: "packets marked with the ECN Congestion Experienced (CE) codepoint … SHOULD be
-        // acknowledged immediately, to reduce the peer's response time to congestion events."
-        if (ecn == EcnCodepoint.Ce)
+        // acknowledged immediately". The ack-frequency extension (draft §6.3) refines this once the
+        // Ack-Eliciting Threshold is above 1: only the transition from a non-CE to a CE mark forces an
+        // immediate ACK, not every CE packet. With the default threshold of 0 or 1 the RFC 9000 rule
+        // (acknowledge every CE) stands.
+        if (ecn == EcnCodepoint.Ce && (AckElicitingThreshold <= 1 || !_previousPacketWasCe))
             ImmediateAckNeeded = true;
+        _previousPacketWasCe = ecn == EcnCodepoint.Ce;
         switch (ecn)
         {
             case EcnCodepoint.Ect0: _ect0Count++; break;
@@ -140,6 +144,9 @@ public sealed class PacketNumberSpace
             case EcnCodepoint.Ce: _ceCount++; break;
         }
     }
+
+    // draft §6.3: only a non-CE → CE transition forces an immediate ACK once the threshold is raised.
+    private bool _previousPacketWasCe;
 
     /// <summary>
     /// Processes a received ACK frame (updates the largest acknowledged number).
@@ -184,6 +191,8 @@ public sealed class PacketNumberSpace
         _ackFramesSent.Add((packetNumber, largestAcknowledged));
         if (_ackFramesSent.Count > MaxTrackedAckFrames)
             _ackFramesSent.RemoveAt(0);
+        if ((long)largestAcknowledged > _largestAckedSent)
+            _largestAckedSent = (long)largestAcknowledged; // "Largest Acked" for the §6.2 reordering test
     }
 
     /// <summary>
@@ -236,6 +245,21 @@ public sealed class PacketNumberSpace
     private long _largestReceivedTicks;      // arrival of the largest-numbered packet (§13.2.5)
     private long _firstUnackedElicitingTicks = -1;
     private long _largestAckEliciting = -1;
+    private long _largestAckedSent = -1;     // Largest Acknowledged we last put in an ACK (draft §6.2)
+
+    /// <summary>
+    /// Ack-frequency extension (draft-ietf-quic-ack-frequency §4): the maximum number of ack-eliciting
+    /// packets we may take in without acknowledging. 1 = the RFC 9000 §13.2.2 default (ACK every other
+    /// packet); 0 = acknowledge every ack-eliciting packet. Raised by a received ACK_FREQUENCY frame.
+    /// </summary>
+    public ulong AckElicitingThreshold { get; set; } = 1;
+
+    /// <summary>
+    /// Ack-frequency extension (draft §4/§6.2): the minimum packet reordering that triggers an
+    /// immediate ACK. 1 = the RFC 9000 §13.2.1 default (any gap acknowledges at once); 0 = reordering
+    /// never forces an immediate ACK; larger values delay it per §6.2. Set by a received ACK_FREQUENCY.
+    /// </summary>
+    public ulong ReorderingThreshold { get; set; } = 1;
 
     /// <summary>
     /// Ack-eliciting packets received since the last ACK went out. §13.2.2: "A receiver SHOULD send
@@ -250,6 +274,11 @@ public sealed class PacketNumberSpace
     public bool ImmediateAckNeeded { get; private set; }
 
     /// <summary>
+    /// The peer sent an IMMEDIATE_ACK frame (draft-ietf-quic-ack-frequency §5): acknowledge at once.
+    /// </summary>
+    public void RequestImmediateAck() => ImmediateAckNeeded = true;
+
+    /// <summary>
     /// Reports that a received packet carried at least one ack-eliciting frame. Only these start the
     /// acknowledgment clock: §13.2.1 forbids answering a non-ack-eliciting packet with another one,
     /// "to avoid an infinite feedback loop of acknowledgments".
@@ -260,15 +289,52 @@ public sealed class PacketNumberSpace
         if (_firstUnackedElicitingTicks < 0)
             _firstUnackedElicitingTicks = nowTicks;
 
-        // §13.2.1, the two cases that call for an immediate ACK: a packet number below one already
-        // received, or one above the highest with a gap in between. Both mean the peer is looking at
-        // a hole and would otherwise wait out its loss timer.
-        if (_largestAckEliciting >= 0 &&
-            ((long)packetNumber < _largestAckEliciting || (long)packetNumber > _largestAckEliciting + 1))
-            ImmediateAckNeeded = true;
-
+        long previousLargest = _largestAckEliciting;
         if ((long)packetNumber > _largestAckEliciting)
             _largestAckEliciting = (long)packetNumber;
+
+        if (ReorderingThreshold == 1)
+        {
+            // §13.2.1, the two cases that call for an immediate ACK (draft §6.2, reordering threshold
+            // 1): a packet number below one already received, or one above the highest with a gap in
+            // between. Both mean the peer is looking at a hole and would otherwise wait out its loss
+            // timer.
+            if (previousLargest >= 0 &&
+                ((long)packetNumber < previousLargest || (long)packetNumber > previousLargest + 1))
+                ImmediateAckNeeded = true;
+        }
+        else if (ReorderingThreshold >= 2 && ReorderingThresholdTriggersAck(packetNumber))
+            ImmediateAckNeeded = true;
+        // ReorderingThreshold == 0 (draft §6.2): out-of-order packets never force an immediate ACK.
+    }
+
+    /// <summary>
+    /// The out-of-order acknowledgment test of draft-ietf-quic-ack-frequency §6.2 for a Reordering
+    /// Threshold of 2 or more. Sends an immediate ACK when a gap has grown to the threshold (so the
+    /// peer is about to declare a packet lost) or when a packet arrives that the peer likely already
+    /// declared lost (so it can detect the spurious loss).
+    /// </summary>
+    private bool ReorderingThresholdTriggersAck(ulong packetNumber)
+    {
+        long threshold = (long)ReorderingThreshold;
+
+        // Second condition first: a late packet at or below Largest Acked - Reordering Threshold
+        // (the "Largest Reported Missing") was likely already declared lost by the peer.
+        if (_largestAckedSent >= 0 && (long)packetNumber <= _largestAckedSent - threshold)
+            return true;
+
+        // First condition: the smallest still-missing packet above Largest Reported Missing is at
+        // least the threshold below Largest Unacked, i.e. the peer can now declare it lost.
+        long largestUnacked = _largestAckEliciting;
+        long searchFrom = _largestAckedSent >= 0 ? _largestAckedSent - threshold + 1 : 0;
+        if (searchFrom < (long)_prunedBelow)
+            searchFrom = (long)_prunedBelow; // pruned numbers count as received (already acknowledged)
+
+        for (long candidate = searchFrom; candidate < largestUnacked; candidate++)
+            if (!_received.Contains((ulong)candidate))
+                return largestUnacked - candidate >= threshold; // smallest Unreported Missing found
+
+        return false; // no gap in the window ⇒ nothing to acknowledge early
     }
 
     /// <summary>
@@ -282,7 +348,10 @@ public sealed class PacketNumberSpace
             return false;
         if (immediateSpace || ImmediateAckNeeded)
             return true;
-        if (AckElicitingSinceLastAck >= 2)
+        // §13.2.2 acknowledges after two ack-eliciting packets; the ack-frequency extension replaces
+        // the constant 2 with "more than the Ack-Eliciting Threshold" (draft §6), which for the
+        // default threshold of 1 is exactly the same test.
+        if ((ulong)AckElicitingSinceLastAck > AckElicitingThreshold)
             return true;
         return _firstUnackedElicitingTicks >= 0 &&
                nowTicks - _firstUnackedElicitingTicks >= maxAckDelay.Ticks;

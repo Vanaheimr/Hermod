@@ -172,6 +172,7 @@ application. Clients pass their own credential as `clientCertificate:`.
 | **FIPS 204 / draft-ietf-tls-mldsa** | ML-DSA certificates | ✅ BCL-native; a fully post-quantum handshake runs end-to-end |
 | **draft-ietf-tls-hybrid-design** | X25519MLKEM768 hybrid key exchange | ✅ |
 | **draft-ietf-quic-reliable-stream-reset** | RESET_STREAM_AT | ✅ `reset_stream_at` transport parameter + frame 0x24 |
+| **draft-ietf-quic-ack-frequency** | ACK Frequency | ✅ `min_ack_delay` transport parameter + ACK_FREQUENCY (0xaf) / IMMEDIATE_ACK (0x1f); receiver honours the negotiated thresholds incl. the §6.2 reordering window, sender API is opt-in |
 | **draft-ietf-quic-qlog-\*** | qlog main schema 14 / QUIC events 13 | ✅ JSON-SEQ traces, qvis-ready |
 | **9369** | QUIC Version 2 | ◑ Recognised for version negotiation; v1 is what we speak |
 | **8899** | Datagram PLPMTUD | ⬜ Not implemented — see below |
@@ -262,6 +263,8 @@ still reference a finished stream, so there is no close to count down.
 
 - **Receive-side GRO and per-connection parallelism** — send-side GSO exists;
   the receive path is still one loop.
-- The **draft ACK-frequency extension** (`ACK_FREQUENCY`, `IMMEDIATE_ACK`,
-  `min_ack_delay`) is not here. Delayed acknowledgments per RFC 9000 §13.2.2 are,
-  and are on by default (`DelayedAcknowledgments`).
+- Delayed acknowledgments per RFC 9000 §13.2.2 are on by default
+  (`DelayedAcknowledgments`). The **draft ACK-frequency extension** on top of them
+  is implemented: we advertise `min_ack_delay` and honour a peer's ACK_FREQUENCY /
+  IMMEDIATE_ACK, while sending them ourselves is an opt-in call
+  (`TrySendAckFrequency` / `TrySendImmediateAck`) rather than an automatic policy.

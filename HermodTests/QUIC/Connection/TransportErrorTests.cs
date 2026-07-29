@@ -41,7 +41,7 @@ public class TransportErrorTests
     [Test]
     public void FrameParser_UnknownFrameType_IsAnError()
     {
-        Assert.That(FrameParser.TryParseAll([0x1f], out _), Is.EqualTo(FrameParseResult.UnknownFrameType));
+        Assert.That(FrameParser.TryParseAll([0x22], out _), Is.EqualTo(FrameParseResult.UnknownFrameType));
     }
 
     [Test]

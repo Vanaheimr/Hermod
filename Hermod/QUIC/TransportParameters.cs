@@ -52,6 +52,7 @@ public sealed class TransportParameters
     private const ulong RetrySourceConnectionId = 0x10;
     private const ulong PreferredAddress = 0x0d;
     private const ulong ResetStreamAt = 0x1d; // draft-ietf-quic-reliable-stream-reset §3 (provisional)
+    private const ulong MinAckDelay = 0xff04de1b; // draft-ietf-quic-ack-frequency §3 (provisional)
 
     /// <summary>
     /// Idle timeout in milliseconds (0 = disabled).
@@ -125,6 +126,22 @@ public sealed class TransportParameters
     public bool PeerSupportsResetStreamAt { get; private set; }
 
     /// <summary>
+    /// min_ack_delay (draft-ietf-quic-ack-frequency §3), in MICROSECONDS: the least time we are ever
+    /// willing to delay an acknowledgment. Sending it is the unilateral opt-in that lets the peer send
+    /// us ACK_FREQUENCY/IMMEDIATE_ACK frames. <c>null</c> disables the extension. §3: it MUST NOT be
+    /// greater than max_ack_delay (which is in milliseconds). Default 1000 µs (= 1 ms, our timer
+    /// granularity, RFC 9002 kGranularity).
+    /// </summary>
+    public ulong? MinAckDelayUs { get; set; } = 1000;
+
+    /// <summary>
+    /// The peer sent min_ack_delay (in microseconds) ⇒ we MAY send it ACK_FREQUENCY/IMMEDIATE_ACK
+    /// frames, and any Requested Max Ack Delay we send must not be smaller than this. <c>null</c> =
+    /// the peer did not advertise the extension. Set while parsing the peer parameters.
+    /// </summary>
+    public ulong? PeerMinAckDelayUs { get; private set; }
+
+    /// <summary>
     /// Set during parsing: the peer sent initial_source_connection_id. Its ABSENCE is a connection
     /// error (RFC 9000 §7.3) — and since the empty CID is also a valid value, this flag is needed
     /// in addition to the value.
@@ -169,6 +186,8 @@ public sealed class TransportParameters
                 WriteInteger(ref writer, MaxDatagramFrameSize, MaxDatagramFrameSizeValue); // RFC 9221 §3
             if (ResetStreamAtSupported)
                 WriteBytes(ref writer, ResetStreamAt, []); // draft §3: an empty value signals receive readiness
+            if (MinAckDelayUs is { } minAck)
+                WriteInteger(ref writer, MinAckDelay, minAck); // ack-frequency draft §3, microseconds
             WriteBytes(ref writer, InitialSourceConnectionId, InitialSourceConnectionIdValue.Span);
             if (OriginalDestinationConnectionIdValue is { } odcid)
                 WriteBytes(ref writer, OriginalDestinationConnectionId, odcid.Span);
@@ -270,6 +289,9 @@ public sealed class TransportParameters
                         return false; // draft §3: non-empty value ⇒ TRANSPORT_PARAMETER_ERROR
                     result.PeerSupportsResetStreamAt = true;
                     break;
+                case MinAckDelay:
+                    result.PeerMinAckDelayUs = ReadVarIntValue(value); // ack-frequency draft §3, microseconds
+                    break;
                 case InitialSourceConnectionId:
                     result.InitialSourceConnectionIdValue = new ConnectionId(value);
                     result.SawInitialSourceConnectionId = true;
@@ -285,6 +307,12 @@ public sealed class TransportParameters
                 default: break; // unknown/grease -> ignore
             }
         }
+
+        // ack-frequency draft §3: "An endpoint's min_ack_delay MUST NOT be greater than its
+        // max_ack_delay." min_ack_delay is in microseconds, max_ack_delay in milliseconds. Checked
+        // here rather than in the case above because the two parameters may arrive in either order.
+        if (result.PeerMinAckDelayUs is { } minAckUs && minAckUs > result.MaxAckDelayMs * 1000)
+            return false; // ⇒ TRANSPORT_PARAMETER_ERROR
 
         parameters = result;
         return true;
