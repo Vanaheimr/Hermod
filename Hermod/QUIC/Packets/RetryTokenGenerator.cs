@@ -63,7 +63,7 @@ public sealed class RetryTokenGenerator
         /// <summary>Issued in a Retry packet; usable immediately and only for this attempt.</summary>
         Retry = 0x01,
 
-        /// <summary>Issued in a NEW_TOKEN frame (§8.1.3). Reserved — not issued yet.</summary>
+        /// <summary>Issued in a NEW_TOKEN frame (§8.1.3), for a <i>later</i> connection.</summary>
         NewToken = 0x02,
     }
 
@@ -91,8 +91,10 @@ public sealed class RetryTokenGenerator
     /// <paramref name="secret"/> = the server secret (a random one is generated when omitted; it
     /// then only survives for this process, which is fine for tokens that live seconds).
     /// </summary>
-    public RetryTokenGenerator(byte[]? secret = null, TimeSpan? lifetime = null, TimeProvider? timeProvider = null)
+    public RetryTokenGenerator(byte[]? secret = null, TimeSpan? lifetime = null, TimeProvider? timeProvider = null,
+                               TimeSpan? newTokenLifetime = null)
     {
+        NewTokenLifetime = newTokenLifetime ?? DefaultNewTokenLifetime;
         byte[] material = secret is { Length: > 0 } ? secret : RandomNumberGenerator.GetBytes(32);
         // Derive rather than use the secret directly, so one secret can key several purposes
         // (stateless reset, Retry, NEW_TOKEN) without ever sharing a key between them.
@@ -102,9 +104,20 @@ public sealed class RetryTokenGenerator
     }
 
     /// <summary>
-    /// How long an issued token stays valid.
+    /// Default validity of a NEW_TOKEN token. §8.1.4: those "need to be valid for longer" than Retry
+    /// tokens, because the client keeps them until it next connects — which may be minutes or hours.
+    /// </summary>
+    public static readonly TimeSpan DefaultNewTokenLifetime = TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// How long an issued Retry token stays valid.
     /// </summary>
     public TimeSpan Lifetime { get; }
+
+    /// <summary>
+    /// How long an issued NEW_TOKEN token stays valid.
+    /// </summary>
+    public TimeSpan NewTokenLifetime { get; }
 
     /// <summary>
     /// Number of spent tokens currently remembered (diagnostics/test).
@@ -154,26 +167,8 @@ public sealed class RetryTokenGenerator
         originalDestinationConnectionId = ConnectionId.Empty;
         retrySourceConnectionId = ConnectionId.Empty;
 
-        if (token.Length < NonceLength + TagLength + 1)
+        if (!TryOpen(token, AssociatedData(client), out byte[]? plaintext) || plaintext is null)
             return false;
-
-        int plaintextLength = token.Length - NonceLength - TagLength;
-        byte[] plaintext = new byte[plaintextLength];
-        try
-        {
-            using var aead = new AesGcm(_key, TagLength);
-            // Fails for a forged, modified or foreign-address token — this is the integrity
-            // protection §8.1.4 requires, and the address binding in one step.
-            aead.Decrypt(token[..NonceLength],
-                         token.Slice(NonceLength, plaintextLength),
-                         token[^TagLength..],
-                         plaintext,
-                         AssociatedData(client));
-        }
-        catch (CryptographicException)
-        {
-            return false;
-        }
 
         var reader = new BufferReader(plaintext);
         if (!reader.TryReadByte(out byte kind) || kind != (byte)TokenKind.Retry)
@@ -192,6 +187,89 @@ public sealed class RetryTokenGenerator
     }
 
     /// <summary>
+    /// Issues a token for a <b>future</b> connection, to be sent in a NEW_TOKEN frame (RFC 9000
+    /// §8.1.3). Unlike a Retry token this one carries no connection IDs: §8.1.3 forbids anything that
+    /// would let an observer link the token to the connection it was issued on, and nothing about
+    /// that connection is needed to validate it later.
+    /// <para>
+    /// The associated data is the client's IP address <b>without the port</b> — deliberately, and
+    /// this is the one place where a NEW_TOKEN token must differ from a Retry token. §8.1.3: "It is
+    /// unlikely that the client port number is the same on two different connections; validating the
+    /// port is therefore unlikely to be successful." Binding the port here would produce a token that
+    /// almost never validates. §8.1.4 still requires the address itself to be bound.
+    /// </para>
+    /// <para>
+    /// §8.1.3 also requires every issued NEW_TOKEN to be unique across all clients; the random nonce
+    /// provides that.
+    /// </para>
+    /// </summary>
+    public byte[] IssueNewToken(System.Net.IPAddress client)
+    {
+        using var plain = new BufferWriter(16);
+        plain.WriteByte((byte)TokenKind.NewToken);
+        plain.WriteUInt64((ulong)_timeProvider.GetUtcNow().ToUnixTimeMilliseconds());
+
+        ReadOnlySpan<byte> plaintext = plain.WrittenSpan;
+        byte[] token = new byte[NonceLength + plaintext.Length + TagLength];
+        RandomNumberGenerator.Fill(token.AsSpan(0, NonceLength));
+
+        using var aead = new AesGcm(_key, TagLength);
+        aead.Encrypt(token.AsSpan(0, NonceLength),
+                     plaintext,
+                     token.AsSpan(NonceLength, plaintext.Length),
+                     token.AsSpan(NonceLength + plaintext.Length, TagLength),
+                     AssociatedData(client));
+        return token;
+    }
+
+    /// <summary>
+    /// Validates a token a client presented in the Initial of a new connection: authentic, of kind
+    /// <see cref="TokenKind.NewToken"/>, issued for this IP address and not older than
+    /// <see cref="NewTokenLifetime"/>. Does <em>not</em> consume it — see
+    /// <see cref="TryConsumeNewToken"/>.
+    /// </summary>
+    public bool TryValidateNewToken(ReadOnlySpan<byte> token, System.Net.IPAddress client)
+    {
+        if (!TryOpen(token, AssociatedData(client), out byte[]? plaintext) || plaintext is null)
+            return false;
+
+        var reader = new BufferReader(plaintext);
+        if (!reader.TryReadByte(out byte kind) || kind != (byte)TokenKind.NewToken)
+            return false;
+        if (!reader.TryReadUInt64(out ulong issuedMs))
+            return false;
+
+        long ageMs = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds() - (long)issuedMs;
+        return ageMs >= 0 && ageMs <= (long)NewTokenLifetime.TotalMilliseconds;
+    }
+
+    /// <summary>
+    /// Reports which mechanism issued a token, if it is ours at all. The listener needs this to pick
+    /// the right answer to a token it could not validate: §8.1.2 wants an INVALID_TOKEN close for a
+    /// bad <i>Retry</i> token, while §8.1.3 wants a bad NEW_TOKEN token treated as an unvalidated
+    /// address — which means a Retry, not a refusal.
+    /// </summary>
+    public bool TryReadKind(ReadOnlySpan<byte> token, IPEndPoint client, out TokenKind kind)
+    {
+        kind = default;
+        // Two different AADs, so the kind cannot be read without trying both.
+        if (!TryOpen(token, AssociatedData(client), out byte[]? plaintext) &&
+            !TryOpen(token, AssociatedData(client.Address), out plaintext))
+            return false;
+        if (plaintext is null || plaintext.Length == 0)
+            return false;
+
+        kind = (TokenKind)plaintext[0];
+        return kind is TokenKind.Retry or TokenKind.NewToken;
+    }
+
+    /// <summary>
+    /// Marks a validated NEW_TOKEN token as spent. §8.1.4: those "SHOULD NOT be accepted multiple
+    /// times", and the spent entry has to outlive the token itself, hence the longer expiry.
+    /// </summary>
+    public bool TryConsumeNewToken(ReadOnlySpan<byte> token) => Consume(token, NewTokenLifetime);
+
+    /// <summary>
     /// Marks a validated token as spent (RFC 9000 §8.1.4: "Servers are encouraged to allow tokens to
     /// be used only once"). Returns <c>false</c> if it was already used — the packet is then a
     /// replay and must not create a second connection.
@@ -200,7 +278,9 @@ public sealed class RetryTokenGenerator
     /// first one and is therefore routed to the connection that already exists.
     /// </para>
     /// </summary>
-    public bool TryConsume(ReadOnlySpan<byte> token)
+    public bool TryConsume(ReadOnlySpan<byte> token) => Consume(token, Lifetime);
+
+    private bool Consume(ReadOnlySpan<byte> token, TimeSpan lifetime)
     {
         ulong fingerprint = Fingerprint(token);
         long nowMs = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds();
@@ -213,7 +293,7 @@ public sealed class RetryTokenGenerator
             if (_spent.Count >= MaxTrackedTokens)
                 Prune(nowMs);
 
-            _spent[fingerprint] = nowMs + (long)Lifetime.TotalMilliseconds;
+            _spent[fingerprint] = nowMs + (long)lifetime.TotalMilliseconds;
             return true;
         }
     }
@@ -244,6 +324,49 @@ public sealed class RetryTokenGenerator
         Span<byte> hash = stackalloc byte[32];
         SHA256.HashData(token, hash);
         return BitConverter.ToUInt64(hash[..8]);
+    }
+
+    /// <summary>
+    /// Opens a token under the given associated data. Failure means forged, modified, expired-key or
+    /// simply issued for a different client — the integrity protection §8.1.4 requires and the
+    /// address binding, in one step.
+    /// </summary>
+    private bool TryOpen(ReadOnlySpan<byte> token, byte[] associatedData, out byte[]? plaintext)
+    {
+        plaintext = null;
+        if (token.Length < NonceLength + TagLength + 1)
+            return false;
+
+        int plaintextLength = token.Length - NonceLength - TagLength;
+        byte[] opened = new byte[plaintextLength];
+        try
+        {
+            using var aead = new AesGcm(_key, TagLength);
+            aead.Decrypt(token[..NonceLength],
+                         token.Slice(NonceLength, plaintextLength),
+                         token[^TagLength..],
+                         opened,
+                         associatedData);
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
+
+        plaintext = opened;
+        return true;
+    }
+
+    /// <summary>
+    /// Associated data for a NEW_TOKEN token: the IP address alone. See <see cref="IssueNewToken"/>
+    /// for why the port is left out.
+    /// </summary>
+    private static byte[] AssociatedData(System.Net.IPAddress client)
+    {
+        Span<byte> address = stackalloc byte[16];
+        if (!client.TryWriteBytes(address, out int written))
+            written = 0;
+        return address[..written].ToArray();
     }
 
     /// <summary>

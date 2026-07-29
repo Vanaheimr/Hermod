@@ -254,12 +254,37 @@ public sealed class QuicServerConnection : QuicEndpoint
     /// </summary>
     internal bool SuppressHandshakeDoneForTest { get; set; }
 
+    /// <summary>
+    /// A token for the client's NEXT connection (RFC 9000 §8.1.3), handed in by whoever knows the
+    /// client's address — this class is deliberately address-free, exactly like the stateless Retry
+    /// path. Sent once, after the handshake is complete; <c>null</c> means "issue none".
+    /// </summary>
+    public byte[]? NewTokenToSend { get; set; }
+
+    /// <summary>
+    /// Records that the client address was proven outside this object — by a valid NEW_TOKEN token
+    /// (RFC 9000 §8.1.3), which the listener checks because only it knows the address. Unlike a
+    /// Retry this leaves the connection IDs alone: no Retry happened, so there is no
+    /// <c>original_destination_connection_id</c> to override.
+    /// </summary>
+    public void MarkClientAddressValidated() => MarkAddressValidated();
+
+    private bool _newTokenSent;
+
     protected override void AddApplicationControlFrames(List<Frame> frames)
     {
         if (HandshakeComplete && !_handshakeDoneSent && !SuppressHandshakeDoneForTest)
         {
             frames.Add(HandshakeDoneFrame.Instance);
             _handshakeDoneSent = true;
+        }
+
+        // Only after the handshake: before that the address is not proven, and a token handed to an
+        // unvalidated address would be exactly the amplification lever §8.1 exists to remove.
+        if (HandshakeComplete && !_newTokenSent && NewTokenToSend is { Length: > 0 } token)
+        {
+            frames.Add(new NewTokenFrame(token));
+            _newTokenSent = true;
         }
     }
 

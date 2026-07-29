@@ -60,10 +60,17 @@ public sealed class QuicClientConnection : QuicEndpoint
         TimeProvider? timeProvider = null,
         KeyLog? keyLog = null,
         QlogWriter? qlog = null,
-        ServerCertificate? clientCertificate = null)
+        ServerCertificate? clientCertificate = null,
+        byte[]? addressValidationToken = null)
         : base(transportParameters, version, timeProvider, qlog)
     {
         LocalParams.InitialSourceConnectionIdValue = Scid;
+
+        // A token kept from an earlier connection to this server (RFC 9000 §8.1.3). It rides in every
+        // Initial we send — "The client MUST include the token in all Initial packets it sends,
+        // unless a Retry replaces the token with a newer one", and ApplyRetry does exactly that.
+        if (addressValidationToken is { Length: > 0 })
+            InitialToken = addressValidationToken;
 
         // The random DCID of the first client Initial derives the Initial keys.
         _originalDcid = new ConnectionId(RandomNumberGenerator.GetBytes(8));
@@ -100,6 +107,34 @@ public sealed class QuicClientConnection : QuicEndpoint
     /// <c>true</c> once a server HANDSHAKE_DONE has been received.
     /// </summary>
     public bool HandshakeConfirmed { get; private set; }
+
+    private readonly List<byte[]> _newTokens = [];
+
+    /// <summary>
+    /// Address-validation tokens the server issued for FUTURE connections (RFC 9000 §8.1.3), oldest
+    /// first. §8.1.3: "sending the most recent unused token is most likely to be effective", so a
+    /// caller that keeps these should take the last one.
+    /// <para>
+    /// Explicitly NOT the token of a Retry: §8.1.3 forbids using that one for future connections, and
+    /// it never reaches this list because it arrives in a Retry packet rather than a NEW_TOKEN frame.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<byte[]> NewTokens => _newTokens;
+
+    /// <summary>
+    /// Collects a NEW_TOKEN. §19.7: a lost packet can make the server repeat a frame, and "Clients
+    /// are responsible for discarding duplicate values, which might be used to link connection
+    /// attempts" — so an identical token is dropped rather than stored twice.
+    /// </summary>
+    protected override void OnNewTokenReceived(ReadOnlyMemory<byte> token)
+    {
+        ReadOnlySpan<byte> incoming = token.Span;
+        foreach (byte[] known in _newTokens)
+            if (known.AsSpan().SequenceEqual(incoming))
+                return;
+
+        _newTokens.Add(incoming.ToArray());
+    }
 
     /// <summary>
     /// <c>true</c> when the server Finished MAC was verified and matched.

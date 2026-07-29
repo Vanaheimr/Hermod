@@ -302,6 +302,12 @@ public abstract class QuicEndpoint : IDisposable
     internal int HandshakeDoneSentCountForTest { get; private set; }
 
     /// <summary>
+    /// Test hook: queues an application-space control frame, so a peer's reaction to a frame we
+    /// would never send ourselves can be observed.
+    /// </summary>
+    internal void SendApplicationFrameForTest(Frame frame) => _pendingControlFrames.Add(frame);
+
+    /// <summary>
     /// <c>true</c> once the connection was closed silently due to the idle timeout (RFC 9000 §10.1).
     /// </summary>
     public bool IsIdleTimedOut => _idleTimedOut;
@@ -521,6 +527,11 @@ public abstract class QuicEndpoint : IDisposable
     /// A 1-RTT frame was processed (client: collect for inspection).
     /// </summary>
     protected virtual void OnApplicationFrameHandled(Frame frame) { }
+
+    /// <summary>
+    /// A NEW_TOKEN frame arrived (RFC 9000 §8.1.3) — only the client acts on this.
+    /// </summary>
+    protected virtual void OnNewTokenReceived(ReadOnlyMemory<byte> token) { }
 
     /// <summary>
     /// A stream was (possibly newly) supplied (server: track new request streams).
@@ -1626,6 +1637,24 @@ public abstract class QuicEndpoint : IDisposable
                     break;
                 case HandshakeDoneFrame:
                     OnHandshakeDoneReceived();
+                    break;
+                case NewTokenFrame newToken:
+                    // §19.7: "Clients MUST NOT send NEW_TOKEN frames. A server MUST treat receipt of
+                    // a NEW_TOKEN frame as a connection error of type PROTOCOL_VIOLATION."
+                    if (IsServer)
+                    {
+                        CloseWithTransportError(TransportError.ProtocolViolation, "client sent NEW_TOKEN");
+                        return;
+                    }
+                    // §19.7: "The token MUST NOT be empty. A client MUST treat receipt of a NEW_TOKEN
+                    // frame with an empty Token field as a connection error of type
+                    // FRAME_ENCODING_ERROR."
+                    if (newToken.Token.Length == 0)
+                    {
+                        CloseWithTransportError(TransportError.FrameEncodingError, "empty NEW_TOKEN");
+                        return;
+                    }
+                    OnNewTokenReceived(newToken.Token);
                     break;
                 case NewConnectionIdFrame ncid:
                     HandleNewConnectionId(ncid);

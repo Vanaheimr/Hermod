@@ -172,7 +172,7 @@ TLS with a client certificate from an OpenSSL CA.
 
 ## Test
 
-307 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
+320 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
 folder layout.
 
 ```powershell
@@ -238,6 +238,4 @@ still reference a finished stream, so there is no close to count down.
   roughly 20 % of throughput goes unused on a 1500-MTU path.
 - **Receive-side GRO and per-connection parallelism** — send-side GSO exists;
   the receive path is still one loop.
-- **NEW_TOKEN** (§8.1.3) — the token machinery exists (see `RetryTokenGenerator`);
-  the frame and the client-side replay do not.
 - **preferred_address** (§9.6) and **ACK frequency**.
