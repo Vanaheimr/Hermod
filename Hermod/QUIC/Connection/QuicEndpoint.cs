@@ -22,6 +22,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Quic.Core.Buffers;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Crypto;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Frames;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Packets;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Diagnostics;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Qlog;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
@@ -182,12 +183,32 @@ public abstract class QuicEndpoint : IDisposable
         // ACK or handshake completion — until then it must keep a PTO armed even with nothing in flight.
         _recovery.PeerCompletedAddressValidation = IsServer;
         Qlog = qlog;
-        if (qlog is not null)
-            _recovery.OnPacketLost = (space, packetNumber, trigger) =>
-                qlog.PacketLost(QlogTimeMs, QlogPacketType(space), packetNumber, trigger);
+        // One hook for both consumers: qlog only when it is configured, the metrics/EventSource
+        // always — those cost nothing while nobody listens.
+        _recovery.OnPacketLost = (space, packetNumber, trigger) =>
+        {
+            qlog?.PacketLost(QlogTimeMs, QlogPacketType(space), packetNumber, trigger);
+            if (QuicMetrics.PacketsLost.Enabled)
+                QuicMetrics.PacketsLost.Add(1, QuicMetrics.RoleTag(IsServer));
+            QuicEventSource.Log.PacketLost(RoleName, space, (long)packetNumber, trigger);
+        };
         _idle.Negotiate(LocalParams.MaxIdleTimeoutMs, peerMs: 0); // the peer value follows after the handshake
         _idle.Start(NowTicks);
+
+        QuicMetrics.ActiveConnections.Add(1, QuicMetrics.RoleTag(IsServer));
+        QuicEventSource.Log.ConnectionStarted(RoleName, Convert.ToHexString(Scid.Span));
     }
+
+    /// <summary>
+    /// Role as it appears in events and metric tags.
+    /// </summary>
+    private String RoleName => IsServer ? "server" : "client";
+
+    /// <summary>
+    /// Guards the paired <see cref="QuicMetrics.ActiveConnections"/> decrement: disposal is allowed
+    /// to happen more than once, the gauge is not.
+    /// </summary>
+    private Boolean _connectionCounted = true;
 
     /// <summary>
     /// The clock this connection runs on (RFC 9002 timers, idle timeout, pacing). Exposed so the
@@ -257,14 +278,22 @@ public abstract class QuicEndpoint : IDisposable
     /// qvis draws as the congestion diagram.
     /// </summary>
     private void QlogRecoveryMetrics()
-        => Qlog?.RecoveryMetricsUpdated(QlogTimeMs,
-               _recovery.Rtt.SmoothedRtt.TotalMilliseconds,
-               _recovery.Rtt.LatestRtt.TotalMilliseconds,
-               _recovery.Rtt.MinRtt.TotalMilliseconds,
-               _recovery.Rtt.RttVar.TotalMilliseconds,
-               _recovery.PtoCount,
-               _recovery.Congestion.CongestionWindow,
-               _recovery.Congestion.BytesInFlight);
+    {
+        Qlog?.RecoveryMetricsUpdated(QlogTimeMs,
+            _recovery.Rtt.SmoothedRtt.TotalMilliseconds,
+            _recovery.Rtt.LatestRtt.TotalMilliseconds,
+            _recovery.Rtt.MinRtt.TotalMilliseconds,
+            _recovery.Rtt.RttVar.TotalMilliseconds,
+            _recovery.PtoCount,
+            _recovery.Congestion.CongestionWindow,
+            _recovery.Congestion.BytesInFlight);
+
+        // Same moment, different audience: this runs on every ACK, so both are gated.
+        if (QuicMetrics.SmoothedRtt.Enabled)
+            QuicMetrics.SmoothedRtt.Record(_recovery.Rtt.SmoothedRtt.TotalMilliseconds, QuicMetrics.RoleTag(IsServer));
+        if (QuicMetrics.CongestionWindow.Enabled)
+            QuicMetrics.CongestionWindow.Record(_recovery.Congestion.CongestionWindow, QuicMetrics.RoleTag(IsServer));
+    }
 
     /// <summary>
     /// Test seam: how often a HANDSHAKE_DONE frame went onto the wire. RFC 9000 §13.3 requires
@@ -415,6 +444,11 @@ public abstract class QuicEndpoint : IDisposable
 
         if (_state != ConnectionState.Active)
             return;
+
+        // After the state check, so a repeated Close() does not report a second closure.
+        QuicEventSource.Log.ConnectionClosed(RoleName, Convert.ToHexString(Scid.Span),
+                                             "local", (long)closeFrame.ErrorCode, closeFrame.ReasonPhrase);
+
         LocalCloseErrorCode = closeFrame.ErrorCode;
         _closeFrame = closeFrame;
         _state = ConnectionState.Closing;
@@ -560,6 +594,8 @@ public abstract class QuicEndpoint : IDisposable
         if (receiveWindow > 0)
             stream.Receive.WindowTuner = new ReceiveWindowTuner(receiveWindow, MaxStreamReceiveWindow); // auto-tuning (phase 9)
         StreamMap[id.Value] = stream;
+        if (QuicMetrics.StreamsOpened.Enabled)
+            QuicMetrics.StreamsOpened.Add(1, QuicMetrics.RoleTag(IsServer));
         return stream;
     }
 
@@ -590,6 +626,22 @@ public abstract class QuicEndpoint : IDisposable
     /// Produces the datagrams currently to send (CRYPTO, ACKs, stream data, flow control).
     /// </summary>
     public IReadOnlyList<byte[]> GetDatagramsToSend()
+    {
+        IReadOnlyList<byte[]> datagrams = BuildDatagramsToSend();
+
+        // Counted here rather than at any of the many return points below, so nothing can be added
+        // later that quietly escapes the accounting.
+        if (QuicMetrics.BytesSent.Enabled && datagrams.Count > 0)
+        {
+            long total = 0;
+            for (int i = 0; i < datagrams.Count; i++)
+                total += datagrams[i].Length;
+            QuicMetrics.BytesSent.Add(total, QuicMetrics.RoleTag(IsServer));
+        }
+        return datagrams;
+    }
+
+    private IReadOnlyList<byte[]> BuildDatagramsToSend()
     {
         var datagrams = new List<byte[]>();
         MaybeTransitionToClosed();
@@ -1114,6 +1166,7 @@ public abstract class QuicEndpoint : IDisposable
     {
         if (_retransmitQueue[level].Count == 0)
             return;
+        int before = frames.Count;
         foreach (Frame frame in _retransmitQueue[level])
         {
             // RFC 9000 §19.4: after a RESET_STREAM, no longer (re)transmit STREAM frames of that
@@ -1128,11 +1181,18 @@ public abstract class QuicEndpoint : IDisposable
             frames.Add(frame);
         }
         _retransmitQueue[level].Clear();
+
+        // Counted where the frames actually leave, not where they were queued: the filters above
+        // drop frames of streams that have since been reset, and those never went out again.
+        if (QuicMetrics.FramesRetransmitted.Enabled && frames.Count > before)
+            QuicMetrics.FramesRetransmitted.Add(frames.Count - before, QuicMetrics.RoleTag(IsServer));
     }
 
     private void RecordSent(int level, ulong packetNumber, int size, List<Frame> frames)
     {
         Qlog?.PacketSent(QlogTimeMs, QlogPacketType(level), packetNumber, size, frames);
+        if (QuicMetrics.PacketsSent.Enabled)
+            QuicMetrics.PacketsSent.Add(1, QuicMetrics.RoleTag(IsServer));
 
         // RFC 9000 §13.2.4: remember which Largest Acknowledged we reported in which packet — its
         // acknowledgment later releases the ACK state. Must happen for pure ACK packets too (the peer
@@ -1254,6 +1314,9 @@ public abstract class QuicEndpoint : IDisposable
         MaybeTransitionToClosed();
         if (_idleTimedOut || datagram.IsEmpty || _state is ConnectionState.Draining or ConnectionState.Closed)
             return; // silently closed, draining or empty
+
+        if (QuicMetrics.BytesReceived.Enabled)
+            QuicMetrics.BytesReceived.Add(datagram.Length, QuicMetrics.RoleTag(IsServer));
 
         // Anti-amplification (RFC 9000 §8.1): received bytes raise the send budget (until validation).
         if (!_addressValidated)
@@ -1583,6 +1646,8 @@ public abstract class QuicEndpoint : IDisposable
                     break;
                 case ConnectionCloseFrame close:
                     PeerCloseFrame = close;
+                    QuicEventSource.Log.ConnectionClosed(RoleName, Convert.ToHexString(Scid.Span),
+                                                         "remote", (long)close.ErrorCode, close.ReasonPhrase);
                     EnterDraining(); // RFC 9000 §10.2.2: drain on receipt of a CONNECTION_CLOSE
                     return;          // process no further frames of this packet
             }
@@ -2055,6 +2120,14 @@ public abstract class QuicEndpoint : IDisposable
         ApplyPeerStatelessResetToken();
         _appKeysInstalled = true;
 
+        // The 1-RTT keys are the honest "handshake done" mark for both roles: from here application
+        // data flows. Reported once — this method installs the keys exactly once per connection.
+        double handshakeMs = NowTicks / (double)TimeSpan.TicksPerMillisecond;
+        QuicMetrics.Handshakes.Add(1, QuicMetrics.RoleTag(IsServer));
+        if (QuicMetrics.HandshakeDuration.Enabled)
+            QuicMetrics.HandshakeDuration.Record(handshakeMs, QuicMetrics.RoleTag(IsServer));
+        QuicEventSource.Log.HandshakeCompleted(RoleName, Convert.ToHexString(Scid.Span), handshakeMs);
+
         // RFC 9001 §4.9.3: the client SHOULD discard its 0-RTT keys once the 1-RTT keys are in place –
         // "as they have no use after that moment": it sends no more 0-RTT packets after the first
         // 1-RTT packet (§5.6) and NEVER receives any itself (0-RTT is client→server), so it has no
@@ -2183,6 +2256,12 @@ public abstract class QuicEndpoint : IDisposable
 
     public virtual void Dispose()
     {
+        if (_connectionCounted)
+        {
+            _connectionCounted = false;
+            QuicMetrics.ActiveConnections.Add(-1, QuicMetrics.RoleTag(IsServer));
+        }
+
         TlsHandshake?.Dispose();
         foreach (PacketProtection? k in WriteKeys)
             k?.Dispose();

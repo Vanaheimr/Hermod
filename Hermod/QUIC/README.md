@@ -43,6 +43,7 @@ which consumes this transport. The line runs between transport and HTTP mapping.
 | `Recovery/` | RTT estimation, loss detection, PTO, NewReno, pacing |
 | `TLS/` | The TLS 1.3 handshake engine: `Messages/`, `Crypto/` (key schedule, key exchange), `Handshake/` (client + server, certificate validation) |
 | `Qlog/` | qlog trace writer (JSON-SEQ, qvis-ready) |
+| `Diagnostics/` | EventSource events + `System.Diagnostics.Metrics` counters for a running process |
 
 The core is **deterministic and socket-free**: it consumes datagrams and produces
 datagrams. Nothing in here opens a socket, sleeps, or awaits — which is what makes
@@ -171,7 +172,7 @@ TLS with a client certificate from an OpenSSL CA.
 
 ## Test
 
-299 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
+307 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
 folder layout.
 
 ```powershell
@@ -192,6 +193,45 @@ Three things about them are worth knowing:
 - **Debugging is built in.** `KeyLog` writes NSS key-log files so Wireshark can
   decrypt a capture; `QlogWriter` emits qlog traces you can drop into qvis.
 
+## Observability
+
+qlog answers *what happened on this one connection* and writes a file per
+connection. For *what is this process doing right now*, `Diagnostics/` publishes
+metrics and events that cost nothing while nobody listens — every hot path is
+guarded by `Instrument.Enabled` or `EventSource.IsEnabled()`.
+
+Meter **`Vanaheimr.Hermod.Quic`**:
+
+| Instrument | Kind | Meaning |
+|---|---|---|
+| `quic.connections.active` | UpDownCounter | Connections currently alive |
+| `quic.handshakes` | Counter | Handshakes that reached the 1-RTT keys |
+| `quic.handshake.duration` | Histogram (ms) | Connection object → 1-RTT keys |
+| `quic.streams.opened` | Counter | Streams opened, locally or by the peer |
+| `quic.bytes.received` / `quic.bytes.sent` | Counter (bytes) | UDP payload |
+| `quic.packets.sent` / `quic.packets.lost` | Counter | Protected packets |
+| `quic.frames.retransmitted` | Counter | Frames re-queued after loss or PTO |
+| `quic.rtt.smoothed` | Histogram (ms) | Smoothed RTT per acknowledgment |
+| `quic.congestion_window` | Histogram (bytes) | Congestion window per acknowledgment |
+
+All of them carry a `role` tag of `client` or `server`.
+
+```powershell
+dotnet-counters monitor --process-id <pid> --counters Vanaheimr.Hermod.Quic
+```
+
+EventSource **`Vanaheimr-Hermod-Quic`** adds the lifecycle: `ConnectionStarted`,
+`HandshakeCompleted`, `ConnectionClosed` (informational) and `PacketLost`
+(verbose).
+
+```powershell
+dotnet-trace collect --process-id <pid> --providers Vanaheimr-Hermod-Quic
+```
+
+Note that `quic.streams.opened` is a counter and not a gauge of live streams:
+QUIC stream state stays for the lifetime of the connection, because a peer may
+still reference a finished stream, so there is no close to count down.
+
 ## Not here yet
 
 - **DPLPMTUD** (RFC 8899) — datagrams are pinned near the 1200-byte floor, so
@@ -201,7 +241,3 @@ Three things about them are worth knowing:
 - **NEW_TOKEN** (§8.1.3) — the token machinery exists (see `RetryTokenGenerator`);
   the frame and the client-side replay do not.
 - **preferred_address** (§9.6) and **ACK frequency**.
-- **ClientHello random after a HelloRetryRequest** (RFC 8446 §4.1.2) — CH2
-  currently gets a fresh random, which the allowed-changes list does not permit.
-- **Observability** — no EventSource or metrics; qlog covers debugging, not
-  production monitoring.
