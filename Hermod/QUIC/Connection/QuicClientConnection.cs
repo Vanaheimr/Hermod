@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -20,6 +20,7 @@
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Frames;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Packets;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Qlog;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
@@ -61,8 +62,10 @@ public sealed class QuicClientConnection : QuicEndpoint
         KeyLog? keyLog = null,
         QlogWriter? qlog = null,
         ServerCertificate? clientCertificate = null,
-        byte[]? addressValidationToken = null)
-        : base(transportParameters, version, timeProvider, qlog)
+        byte[]? addressValidationToken = null,
+        int maxDatagramSizeCeiling = PathMtuDiscovery.DefaultSearchCeiling)
+        : base(transportParameters, version, timeProvider, qlog,
+               maxDatagramSizeCeiling: maxDatagramSizeCeiling)
     {
         LocalParams.InitialSourceConnectionIdValue = Scid;
 

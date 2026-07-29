@@ -167,8 +167,13 @@ public abstract class QuicEndpoint : IDisposable
     /// DCID from then on (RFC 9000 §7.2), so the connection created afterwards has to adopt it.
     /// </param>
     protected QuicEndpoint(TransportParameters? transportParameters, uint version, TimeProvider? timeProvider = null,
-                           QlogWriter? qlog = null, ConnectionId? sourceConnectionId = null)
+                           QlogWriter? qlog = null, ConnectionId? sourceConnectionId = null,
+                           int maxDatagramSizeCeiling = PathMtuDiscovery.DefaultSearchCeiling)
     {
+        _pmtu = new PathMtuDiscovery(maxDatagramSizeCeiling);
+        _recovery.OnPmtuProbeAcked = _pmtu.OnProbeAcknowledged;
+        _recovery.OnPmtuProbeLost  = _pmtu.OnProbeLost;
+
         _timeProvider = timeProvider ?? TimeProvider.System;
         _startTimestamp = _timeProvider.GetTimestamp();
         Version = version;
@@ -700,6 +705,7 @@ public abstract class QuicEndpoint : IDisposable
         AppendLevelPackets(EncryptionLevel.Handshake, datagrams, ref amplificationBudget);
         BuildZeroRttPackets(datagrams);     // client: early-queued application data as 0-RTT (before 1-RTT keys)
         BuildApplicationPackets(datagrams); // 1-RTT only after the handshake ⇒ the address is validated by then
+        MaybeSendPmtuProbe(datagrams);      // last: an oversized probe must not displace real data
 
         // After the just-built flight, discard the keys no longer needed (RFC 9001 §4.9):
         // Initial once the client sent its Handshake packet; Handshake once the handshake is confirmed.
@@ -716,7 +722,14 @@ public abstract class QuicEndpoint : IDisposable
     /// Everything that does not fit — large ClientHellos (PQ hybrid), certificate chains, but equally
     /// a long run of control frames — is spread across several packets.
     /// </summary>
-    private const int MaxPayloadPerPacket = 1000;
+    /// <summary>
+    /// Room reserved above the payload for the packet header, the packet number and the AEAD tag.
+    /// The original constants encoded exactly this: 1200 − 1000. Keeping it explicit is what lets
+    /// the payload budget follow a discovered MTU instead of being frozen at the floor.
+    /// </summary>
+    private const int PacketOverheadHeadroom = 200;
+
+    private int MaxPayloadPerPacket => CurrentMaxDatagramSize - PacketOverheadHeadroom;
 
     /// <summary>
     /// Size no datagram we emit exceeds. RFC 9000 §14.1 guarantees exactly 1200 bytes on every path;
@@ -724,12 +737,28 @@ public abstract class QuicEndpoint : IDisposable
     /// pacing also reckon with this value. <see cref="MaxPayloadPerPacket"/> is chosen so that
     /// payload + header + AEAD tag stay below it in every packet form.
     /// </summary>
-    public const int MaxDatagramSize = 1200;
+    public const int MaxDatagramSize = PathMtuDiscovery.BasePlpmtu;
 
     /// <summary>
-    /// CRYPTO payload per Initial/Handshake packet (see <see cref="MaxPayloadPerPacket"/>).
+    /// Largest datagram this connection currently emits. Starts at the guaranteed floor and rises
+    /// only once DPLPMTUD has proof the path carries more (RFC 9000 §14.3) — an acknowledged probe.
     /// </summary>
-    private const int MaxCryptoDataPerPacket = MaxPayloadPerPacket;
+    public int CurrentMaxDatagramSize => _pmtu.MaxDatagramSize;
+
+    /// <summary>
+    /// Path MTU discovery for this connection (RFC 9000 §14.3).
+    /// </summary>
+    public PathMtuDiscovery PathMtu => _pmtu;
+
+    private readonly PathMtuDiscovery _pmtu;
+
+    /// <summary>
+    /// CRYPTO payload per Initial/Handshake packet. Deliberately fixed at the floor rather than
+    /// following the discovered MTU: RFC 9000 §14.3.1 lets DPLPMTUD start only once the handshake is
+    /// complete, so during the handshake nothing larger than the guaranteed 1200 bytes is known to
+    /// get through.
+    /// </summary>
+    private const int MaxCryptoDataPerPacket = PathMtuDiscovery.BasePlpmtu - PacketOverheadHeadroom;
 
     /// <summary>
     /// Emits the packets of an encryption level (RFC 9000 §12.2/§13). Control frames (retransmits,
@@ -833,9 +862,11 @@ public abstract class QuicEndpoint : IDisposable
     }
 
     /// <summary>
-    /// Payload budget for stream data per 1-RTT packet, so a datagram stays within the MTU (~1200).
+    /// Payload budget for stream data per 1-RTT packet, so a datagram stays within the current MTU.
+    /// Unlike the CRYPTO budget this one follows what DPLPMTUD has proven, which is where the extra
+    /// throughput actually comes from.
     /// </summary>
-    private const int MaxStreamDataPerPacket = MaxPayloadPerPacket;
+    private int MaxStreamDataPerPacket => MaxPayloadPerPacket;
 
     /// <summary>
     /// Emits the 1-RTT datagrams: the control frames of this pass (retransmits, HANDSHAKE_DONE,
@@ -954,6 +985,53 @@ public abstract class QuicEndpoint : IDisposable
             writer.Dispose();
         }
     }
+
+    /// <summary>
+    /// Emits one PMTU probe when the discovery wants one (RFC 9000 §14.3/§14.4). The probe is an
+    /// ordinary ack-eliciting 1-RTT packet carrying nothing but PING and PADDING — §14.4 recommends
+    /// exactly that, because a packet larger than the current maximum is the one most likely to be
+    /// dropped and there is no point risking real data on it. An acknowledgment proves the size; a
+    /// loss is attributed to the path, not to congestion.
+    /// </summary>
+    private void MaybeSendPmtuProbe(List<byte[]> datagrams)
+    {
+        int i = (int)EncryptionLevel.Application;
+        if (WriteKeys[i] is not { } keys)
+            return;
+
+        // §14.3.1: the search may start once the handshake is complete — before that the path is not
+        // even validated. The peer's max_udp_payload_size is only known from its transport
+        // parameters, and §14 makes it an additional limit on what is worth discovering.
+        if (HandshakeIsConfirmed && PeerParams is { } peer)
+            _pmtu.Start(peer.MaxUdpPayloadSizeValue);
+
+        int probeSize = _pmtu.NextProbeSize();
+        if (probeSize <= 0)
+            return;
+
+        ulong pn = Spaces[i].NextPacketNumber();
+        int pnLength = PacketNumber.EncodeLength(pn, Spaces[i].LargestAckedByPeer);
+
+        // Short header: type byte + DCID + packet number, plus the AEAD tag the protection appends.
+        int overhead = 1 + Dcid.Length + pnLength + AeadTagLength;
+        int payloadLength = probeSize - overhead;
+        if (payloadLength < 1)
+            return; // cannot build a probe this small — nothing to discover
+
+        // PING makes it ack-eliciting; the rest is PADDING, which is a run of zero bytes (§19.1).
+        byte[] payload = new byte[payloadLength];
+        payload[0] = (byte)FrameType.Ping;
+
+        byte[] packet = ShortHeader.Build(keys, Dcid, pn, pnLength, payload, keyPhase: _sendKeyPhase);
+        RecordSent(i, pn, packet.Length, [PingFrame.Instance], isPmtuProbe: true);
+        _pmtu.OnProbeSent();
+        datagrams.Add(packet);
+    }
+
+    /// <summary>
+    /// Length of the AEAD authentication tag every protected packet carries (RFC 9001 §5.3).
+    /// </summary>
+    private const int AeadTagLength = 16;
 
     /// <summary>
     /// Worst-case frame overhead beyond the pure payload: type + stream/offset/length varints
@@ -1199,7 +1277,7 @@ public abstract class QuicEndpoint : IDisposable
             QuicMetrics.FramesRetransmitted.Add(frames.Count - before, QuicMetrics.RoleTag(IsServer));
     }
 
-    private void RecordSent(int level, ulong packetNumber, int size, List<Frame> frames)
+    private void RecordSent(int level, ulong packetNumber, int size, List<Frame> frames, bool isPmtuProbe = false)
     {
         Qlog?.PacketSent(QlogTimeMs, QlogPacketType(level), packetNumber, size, frames);
         if (QuicMetrics.PacketsSent.Enabled)
@@ -1235,6 +1313,7 @@ public abstract class QuicEndpoint : IDisposable
             AckEliciting = true,
             Size = size,
             RetransmittableFrames = retransmittable,
+            IsPmtuProbe = isPmtuProbe,
         });
     }
 

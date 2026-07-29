@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Frames;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Packets;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Qlog;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
@@ -91,9 +92,11 @@ public sealed class QuicServerConnection : QuicEndpoint
         KeyLog? keyLog = null,
         QlogWriter? qlog = null,
         ValidatedRetry? validatedRetry = null,
-        ClientCertificateOptions? clientCertificate = null)
+        ClientCertificateOptions? clientCertificate = null,
+        int maxDatagramSizeCeiling = PathMtuDiscovery.DefaultSearchCeiling)
         : base(transportParameters, version, timeProvider, qlog,
-               sourceConnectionId: validatedRetry?.RetrySourceConnectionId)
+               sourceConnectionId: validatedRetry?.RetrySourceConnectionId,
+               maxDatagramSizeCeiling: maxDatagramSizeCeiling)
     {
         _keyLog = keyLog;
         _certificate = certificate;

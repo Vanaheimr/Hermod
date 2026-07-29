@@ -1,4 +1,4 @@
-# QUIC
+﻿# QUIC
 
 A from-scratch QUIC stack — transport (RFC 9000), the TLS 1.3 handshake it carries
 (RFC 9001 + RFC 8446), and loss detection / congestion control (RFC 9002) — built
@@ -20,7 +20,7 @@ curves .NET does not expose: X25519, X448, Ed25519, Ed448.
 > ML-DSA certificates) all work end-to-end and are verified against **eight
 > independent foreign QUIC stacks** plus `curl --http3` in both directions.
 > It is still built for learning the wire protocol, not for production traffic:
-> the receive path is single-loop, there is no DPLPMTUD, and there are no metrics.
+> the receive path is still a single loop.
 > See [what is not here](#not-here-yet).
 
 **HTTP/3 is not in this repository.** QPACK and the H3 framing/mapping live in the
@@ -40,7 +40,7 @@ which consumes this transport. The line runs between transport and HTTP mapping.
 | `Crypto/` | Initial secrets, packet + header protection, ChaCha20, Retry integrity |
 | `Connection/` | `QuicEndpoint` (shared transport core), `QuicClientConnection`, `QuicServerConnection`, packet number spaces, connection-ID management, idle timeout |
 | `Streams/` | Stream state, send/receive buffers, flow control, receive-window auto-tuning |
-| `Recovery/` | RTT estimation, loss detection, PTO, NewReno, pacing |
+| `Recovery/` | RTT estimation, loss detection, PTO, NewReno, pacing, path MTU discovery |
 | `TLS/` | The TLS 1.3 handshake engine: `Messages/`, `Crypto/` (key schedule, key exchange), `Handshake/` (client + server, certificate validation) |
 | `Qlog/` | qlog trace writer (JSON-SEQ, qvis-ready) |
 | `Diagnostics/` | EventSource events + `System.Diagnostics.Metrics` counters for a running process |
@@ -117,6 +117,32 @@ The token binds client address **and** port (§8.1.4), expires after 10 seconds,
 and is single-use. `StatelessClose` answers an unusable one with `INVALID_TOKEN`
 in an Initial packet — also without state, as §8.1.2 requires.
 
+### Path MTU discovery (RFC 9000 §14.3)
+
+RFC 9000 guarantees only 1200 bytes on every path, so without discovery every
+datagram is sized for the worst case — on an ordinary 1500-byte path that leaves
+about 18 % of each packet unused. DPLPMTUD sends deliberately oversized probes
+(PING + PADDING) and raises the datagram size for each one that is acknowledged;
+a lost probe says something about the path, not about congestion, so it never
+reaches the congestion controller (§14.4).
+
+It runs by default up to 1452 bytes and needs no configuration. The ceiling is
+settable on both roles — upwards for a datacentre path known to carry jumbo
+frames, or down to the floor to switch discovery off entirely:
+
+```csharp
+// LAN/datacentre: look for jumbo frames.
+var client = new QuicClientConnection("example.org", maxDatagramSizeCeiling: 9000);
+
+// Off: never send anything larger than the guaranteed floor.
+var server = new QuicServerConnection(certificate,
+                 maxDatagramSizeCeiling: QuicEndpoint.MaxDatagramSize);
+```
+
+Probing above the real path MTU is not harmful — those probes are simply lost and
+the search backs off — but it costs probes and time, which is why the default
+stays at the common Ethernet size instead of reaching for 9000 everywhere.
+
 ### Mutual TLS (RFC 8446 §4.3.2)
 
 ```csharp
@@ -172,7 +198,7 @@ TLS with a client certificate from an OpenSSL CA.
 
 ## Test
 
-320 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
+332 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
 folder layout.
 
 ```powershell
@@ -234,8 +260,6 @@ still reference a finished stream, so there is no close to count down.
 
 ## Not here yet
 
-- **DPLPMTUD** (RFC 8899) — datagrams are pinned near the 1200-byte floor, so
-  roughly 20 % of throughput goes unused on a 1500-MTU path.
 - **Receive-side GRO and per-connection parallelism** — send-side GSO exists;
   the receive path is still one loop.
 - **preferred_address** (§9.6) and **ACK frequency**.

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -139,11 +139,15 @@ public class PacketSizeTests
 
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var client = new QuicClientConnection("localhost", certificateValidation: validation);
+        // PMTU discovery off (ceiling = the floor): this test is about splitting frames so no
+        // datagram exceeds the MTU, and a PMTU probe is BY DEFINITION larger than the current
+        // maximum (RFC 9000 §14.2) — it would fail the assertion below while being correct.
+        using var client = new QuicClientConnection("localhost", certificateValidation: validation,
+                                                    maxDatagramSizeCeiling: QuicEndpoint.MaxDatagramSize);
         using var server = new QuicServerConnection(cert, new TransportParameters
         {
             InitialMaxStreamsBidiValue = 1000,
-        });
+        }, maxDatagramSizeCeiling: QuicEndpoint.MaxDatagramSize);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
             Pump(client, server);
@@ -192,8 +196,13 @@ public class PacketSizeTests
         // chain) — plus ACKs and retransmits on top of them.
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var client = new QuicClientConnection("localhost", certificateValidation: validation);
-        using var server = new QuicServerConnection(cert);
+        // PMTU discovery off (ceiling = the floor): this test is about splitting frames so no
+        // datagram exceeds the MTU, and a PMTU probe is BY DEFINITION larger than the current
+        // maximum (RFC 9000 §14.2) — it would fail the assertion below while being correct.
+        using var client = new QuicClientConnection("localhost", certificateValidation: validation,
+                                                    maxDatagramSizeCeiling: QuicEndpoint.MaxDatagramSize);
+        using var server = new QuicServerConnection(cert,
+                                                    maxDatagramSizeCeiling: QuicEndpoint.MaxDatagramSize);
         client.Start();
 
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)

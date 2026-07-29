@@ -37,6 +37,12 @@ public sealed class SentPacket
     /// Frames to resend on loss (CRYPTO, STREAM). ACK/flow control are re-derived.
     /// </summary>
     public required IReadOnlyList<Frame> RetransmittableFrames { get; init; }
+
+    /// <summary>
+    /// This packet is a PMTU probe (RFC 9000 §14.4): deliberately larger than the current maximum
+    /// datagram size, so its loss says something about the path MTU rather than about congestion.
+    /// </summary>
+    public bool IsPmtuProbe { get; init; }
 }
 
 /// <summary>
@@ -105,6 +111,17 @@ public sealed class LossRecovery
     public Action<int, ulong, string>? OnPacketLost { get; set; }
 
     /// <summary>
+    /// A PMTU probe of this datagram size was acknowledged — the path carries it (RFC 9000 §14.3).
+    /// </summary>
+    public Action<int>? OnPmtuProbeAcked { get; set; }
+
+    /// <summary>
+    /// A PMTU probe of this datagram size was declared lost. Says nothing about congestion, only
+    /// about the path (§14.4).
+    /// </summary>
+    public Action<int>? OnPmtuProbeLost { get; set; }
+
+    /// <summary>
     /// Discards the entire loss-recovery state of a packet-number space (RFC 9002 §6.4) when its
     /// protection keys are discarded (Initial/Handshake after the handshake): the not-yet-acknowledged
     /// packets no longer count, their bytes are removed from <c>bytes_in_flight</c>.
@@ -151,6 +168,8 @@ public sealed class LossRecovery
                 if (!st.Sent.Remove(pn, out SentPacket? sp))
                     continue;
                 Congestion.OnPacketAcked(sp.Size, sp.TimeSentTicks);
+                if (sp.IsPmtuProbe)
+                    OnPmtuProbeAcked?.Invoke(sp.Size); // the path carries a datagram of this size
                 if (largestNewlyAcked is null || sp.PacketNumber > largestNewlyAcked.PacketNumber)
                     largestNewlyAcked = sp;
             }
@@ -203,6 +222,22 @@ public sealed class LossRecovery
                 OnPacketLost?.Invoke(space, sp.PacketNumber,
                                      lostByThreshold ? "reordering_threshold" : "time_threshold");
                 st.Sent.Remove(sp.PacketNumber);
+
+                if (sp.IsPmtuProbe)
+                {
+                    // RFC 9000 §14.4: a probe is deliberately too big, so "Loss of a QUIC packet that
+                    // is carried in a PMTU probe is therefore not a reliable indication of congestion
+                    // and SHOULD NOT trigger a congestion control reaction". The bytes still have to
+                    // leave the in-flight count — they consumed window on the way out — which is what
+                    // OnPacketDiscarded does WITHOUT the congestion event OnPacketsLost would raise.
+                    // Its PING/PADDING are not requeued either: the discovery decides whether to
+                    // probe again, and at which size.
+                    if (sp.AckEliciting)
+                        Congestion.OnPacketDiscarded(sp.Size);
+                    OnPmtuProbeLost?.Invoke(sp.Size);
+                    continue;
+                }
+
                 lostFrames.AddRange(sp.RetransmittableFrames);
                 if (sp.AckEliciting)
                 {
