@@ -1,6 +1,7 @@
 # Hermod
 
 [![CI](https://github.com/Vanaheimr/Hermod/actions/workflows/ci.yml/badge.svg)](https://github.com/Vanaheimr/Hermod/actions/workflows/ci.yml)
+[![Nightly](https://github.com/Vanaheimr/Hermod/actions/workflows/nightly.yml/badge.svg)](https://github.com/Vanaheimr/Hermod/actions/workflows/nightly.yml)
 
 Hermod is a .NET library for simplified advanced networking tasks...
 

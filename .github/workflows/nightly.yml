@@ -1,0 +1,53 @@
+name: Nightly
+
+# The counterpart to ci.yml. That workflow gates every push and deliberately
+# leaves the DNS tests out, because they query Cloudflare and Google for real
+# and a gate whose red can also mean "the network was slow" stops being read
+# as a gate. Those tests are still worth running — just not against a merge.
+#
+# Two things worth knowing about scheduled workflows: they only ever run on the
+# default branch, and GitHub disables them after 60 days without any repository
+# activity. If this stops reporting, that is the first thing to check.
+on:
+  schedule:
+    # 02:17 UTC. Not on the hour: GitHub's scheduler is busiest then and delays
+    # runs by tens of minutes.
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  full-suite:
+    runs-on: windows-latest
+    steps:
+      # Same side-by-side checkout as ci.yml: Hermod.csproj and
+      # HermodTests.csproj reference ..\..\Styx\... — a SIBLING directory —
+      # and there is no submodule for it.
+      - uses: actions/checkout@v4
+        with:
+          path: Hermod
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Vanaheimr/Styx
+          path: Styx
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        working-directory: Hermod
+        run: dotnet build HermodTests/HermodTests.csproj --configuration Release
+
+      # The whole suite, DNS included — 1264 tests. Unlike the gate this is
+      # allowed to be flaky: a red night means "look at it", not "a merge is
+      # blocked". Read the failures before believing them; a resolver timeout
+      # and a broken parser look the same from here.
+      - name: Test (full suite, DNS included)
+        timeout-minutes: 90
+        working-directory: Hermod
+        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
