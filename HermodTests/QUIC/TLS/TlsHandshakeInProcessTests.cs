@@ -21,6 +21,7 @@ using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Crypto;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Messages;
 
 #endregion
 
@@ -220,6 +221,52 @@ public class TlsHandshakeInProcessTests
         Assert.That(server.ClientFinishedValid, Is.True);
         Assert.That(client.ServerCertificateValid, Is.True);
         AssertMatchingSecrets(client, server);
+        client.Dispose();
+    }
+
+    [Test]
+    public void HelloRetryRequest_SecondClientHello_ReusesTheFirstRandom()
+    {
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var tp = new byte[] { 0x0f, 0x00 };
+
+        // Same constellation as above: only a P-256 key share offered, server insists on X25519,
+        // so a HelloRetryRequest is unavoidable and the client rebuilds its ClientHello.
+        var client = new TlsClientHandshake("localhost", tp,
+            keyShareGroups: [NamedGroup.Secp256r1],
+            supportedGroups: [NamedGroup.X25519, NamedGroup.Secp256r1],
+            certificateValidation: TrustingOptions(cert));
+        using var server = new TlsServerHandshake(cert, tp, preferredGroups: [NamedGroup.X25519]);
+
+        // Collect every ClientHello the client puts on the wire. Initial-level CRYPTO carrying
+        // handshake type 0x01 is a ClientHello; after an HRR there are exactly two.
+        var clientHellos = new List<byte[]>();
+        client.Start();
+        for (int round = 0; round < 10 && !(client.IsComplete && server.IsComplete); round++)
+        {
+            while (client.TryGetOutgoingCrypto(out EncryptionLevel level, out byte[] data))
+            {
+                if (level == EncryptionLevel.Initial && data.Length > 0 && data[0] == 0x01)
+                    clientHellos.Add(data);
+                server.ProvideCrypto(level, data);
+            }
+            Pump(server, client);
+        }
+
+        Assert.That(server.SentHelloRetryRequest, Is.True, "The server must have sent an HRR.");
+        Assert.That(clientHellos, Has.Count.EqualTo(2), "Expected ClientHello1 and ClientHello2.");
+
+        // RFC 8446 §4.1.2: the second ClientHello may differ only in an enumerated list of ways,
+        // and the random is not among them. A fresh random here is a MUST violation.
+        byte[] random1 = ClientHelloParser.ClientRandom(clientHellos[0]).ToArray();
+        byte[] random2 = ClientHelloParser.ClientRandom(clientHellos[1]).ToArray();
+        Assert.That(random1, Has.Length.EqualTo(32));
+        Assert.That(random2, Is.EqualTo(random1), "ClientHello2 must carry the random of ClientHello1.");
+
+        // The two hellos must still be genuinely different messages — otherwise this test would
+        // also pass if the client simply resent ClientHello1 and never switched groups.
+        Assert.That(clientHellos[1], Is.Not.EqualTo(clientHellos[0]));
+        Assert.That(client.NegotiatedGroup, Is.EqualTo(NamedGroup.X25519));
         client.Dispose();
     }
 

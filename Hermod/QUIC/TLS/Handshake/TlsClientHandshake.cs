@@ -50,6 +50,7 @@ public sealed class TlsClientHandshake : ITlsHandshake
 
     private State _state = State.New;
     private byte[] _clientHello1 = [];
+    private byte[] _clientRandom = []; // drawn once, kept across an HRR rebuild (RFC 8446 §4.1.2)
     private bool _hrrHandled;
     private KeySchedule? _ks;
     private Transcript? _transcript;
@@ -93,7 +94,8 @@ public sealed class TlsClientHandshake : ITlsHandshake
 
     /// <summary>
     /// The random of the ClientHello most recently built — the connection identifier of the key log.
-    /// After a HelloRetryRequest that is the random of ClientHello2, i.e. the one on the wire.
+    /// It survives a HelloRetryRequest unchanged (RFC 8446 §4.1.2), so both hellos of a connection
+    /// name it identically and the key log stays unambiguous.
     /// </summary>
     private ReadOnlySpan<byte> ClientRandom => ClientHelloParser.ClientRandom(_currentClientHello);
 
@@ -411,6 +413,15 @@ public sealed class TlsClientHandshake : ITlsHandshake
 
     private byte[] BuildClientHello(IReadOnlyList<NamedGroup> keyShareGroups)
     {
+        // RFC 8446 §4.1.2: after a HelloRetryRequest the second ClientHello must be sent "without
+        // modification" apart from an enumerated list of permitted changes — replacing the key share,
+        // adding a cookie, adjusting the PSK offer. The random is NOT on that list, so it is drawn
+        // once here and reused for every rebuild. Left to ClientHello.Build it would draw a fresh
+        // one for ClientHello2, which is a MUST violation and also makes the key log ambiguous,
+        // because the two hellos would then identify the same connection under two different names.
+        if (_clientRandom.Length == 0)
+            _clientRandom = RandomNumberGenerator.GetBytes(32);
+
         var shares = new List<KeyShareEntry>(keyShareGroups.Count);
         foreach (NamedGroup group in keyShareGroups)
             shares.Add(new KeyShareEntry(group, _keyExchanges[group].PublicKey));
@@ -428,6 +439,7 @@ public sealed class TlsClientHandshake : ITlsHandshake
 
         _currentClientHello = ClientHello.Build(new ClientHelloOptions
         {
+            Random = _clientRandom,
             ServerName = _serverName,
             CipherSuites = _cipherSuites,
             SupportedGroups = _supportedGroups,
