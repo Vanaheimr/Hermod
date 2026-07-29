@@ -124,17 +124,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
                                   HTTPPort:                    HTTPPort,
 
-                                  //ServerCertificateSelector:  () => {
-
-                                      //return serverCertificate!;
-
-                                  //},
+                                  // Without this the "TLS" fixture served plain HTTP while its
+                                  // clients spoke TLS, so every test here timed out waiting for a
+                                  // connection that could never complete. It had been commented
+                                  // out rather than adapted when ServerCertificateSelectorDelegate
+                                  // gained its (TCPServer, TCPClient) parameters — the old
+                                  // parameterless lambda no longer compiled.
+                                  ServerCertificateSelector:   (tcpServer, tcpClient) => serverCertificate!,
 
                                   SecWebSocketProtocols:       SecWebSocketProtocols,
 
                                   AutoStart:                   true
 
-                              );;
+                              );
 
         }
 

@@ -131,7 +131,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Client setup and connect
 
-            var webSocketClient  = new WebSocketClient(URL.Parse($"wss://127.0.0.1:{HTTPPort}"));
+            // The fixture builds its own PKI and the server now presents that certificate, so the
+            // client has to be told to trust it — a self-signed test certificate from an untrusted
+            // root fails default validation, and the connect attempt then retries for minutes
+            // before giving up. Pinned to the exact certificate rather than accepting anything.
+            var webSocketClient  = new WebSocketClient(
+                                       URL.Parse($"wss://127.0.0.1:{HTTPPort}"),
+                                       RemoteCertificateValidator: (sender,
+                                                                    certificate,
+                                                                    certificateChain,
+                                                                    tlsClient,
+                                                                    policyErrors) =>
+
+                                           certificate is not null &&
+                                           serverCertificate is not null &&
+                                           certificate.Thumbprint == serverCertificate.Thumbprint
+
+                                               ? TLSValidationResult.Success()
+                                               : TLSValidationResult.Failed("Unexpected server certificate!")
+
+                                   );
 
             #region OnTextMessageReceived
 
