@@ -262,5 +262,6 @@ still reference a finished stream, so there is no close to count down.
 
 - **Receive-side GRO and per-connection parallelism** — send-side GSO exists;
   the receive path is still one loop.
-- **Delayed acknowledgments** are implemented but off by default
-  (`DelayedAcknowledgments`), and the **draft ACK-frequency extension** is not here.
+- The **draft ACK-frequency extension** (`ACK_FREQUENCY`, `IMMEDIATE_ACK`,
+  `min_ack_delay`) is not here. Delayed acknowledgments per RFC 9000 §13.2.2 are,
+  and are on by default (`DelayedAcknowledgments`).

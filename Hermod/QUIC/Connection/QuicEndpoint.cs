@@ -251,23 +251,24 @@ public abstract class QuicEndpoint : IDisposable
     /// <summary>
     /// Whether acknowledgments may be held back per RFC 9000 §13.2.2 ("A receiver SHOULD send an ACK
     /// frame after receiving at least two ack-eliciting packets") instead of going out for every
-    /// packet. Default <c>false</c>.
+    /// packet. Default <c>true</c>.
     /// <para>
-    /// Still off by default, but no longer for the original reason. The WebSocket-over-HTTP/3 stall
-    /// that kept it off was never an acknowledgment problem: the HTTP/3 client drained its tunnel
-    /// send queue only when a datagram came in, so an application writing into a quiet connection
-    /// had its data sit there — frequent acknowledgments had merely been hiding it by keeping
-    /// traffic flowing in both directions. That is fixed.
+    /// Two observations kept this off for a while, and neither turned out to be about acknowledgments.
+    /// The first was a WebSocket-over-HTTP/3 stall: the HTTP/3 client drained its tunnel send queue
+    /// only when a datagram came in, so an application writing into a quiet connection had its data
+    /// sit there. Frequent acknowledgments had merely hidden it by keeping traffic flowing both ways.
     /// </para>
     /// <para>
-    /// What still stands in the way of switching it on is smaller and different: the idle timeout
-    /// then fires late. Measured on the in-process pair with a negotiated 300 ms, it lands somewhere
-    /// between 600 ms and 2.6 s instead — it does fire, but the effective floor has moved, and that
-    /// has not been explained. Acknowledging everything at once remains fully compliant (§13.2.2 is
-    /// a SHOULD) and costs return-path traffic, not correctness.
+    /// The second was an idle timeout that seemed to fire late once delays were switched on. It does
+    /// fire late — but equally so with delays off. The cause is the 3·PTO floor of §10.1 meeting an
+    /// RTT estimate that, on an in-process pair, measures the handshake's own signature and
+    /// verification work rather than any network delay: 25–90 ms of "RTT" puts 3·PTO between roughly
+    /// 250 ms and 750 ms, which is at or above a short negotiated timeout. Ten alternating handshakes
+    /// showed no systematic difference between the two settings; the original measurement had
+    /// compared a cold process against a warm one.
     /// </para>
     /// </summary>
-    public bool DelayedAcknowledgments { get; set; }
+    public bool DelayedAcknowledgments { get; set; } = true;
 
     /// <summary>
     /// How often an otherwise ACK-only packet gets a PING so the peer acknowledges it and our ACK

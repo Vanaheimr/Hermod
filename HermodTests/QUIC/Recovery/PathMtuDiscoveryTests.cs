@@ -162,17 +162,18 @@ public class PathMtuDiscoveryTests
 
     #region Over a real connection
 
-    private static (QuicClientConnection, QuicServerConnection, ServerCertificate) Pair(int ceiling)
+    private static (QuicClientConnection, QuicServerConnection, ServerCertificate) Pair(int ceiling,
+                                                                                        TimeProvider? clock = null)
     {
         var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
         var client = new QuicClientConnection("localhost", certificateValidation: validation,
-                                              maxDatagramSizeCeiling: ceiling);
+                                              maxDatagramSizeCeiling: ceiling, timeProvider: clock);
         var server = new QuicServerConnection(cert, new TransportParameters
         {
             InitialMaxDataValue                 = 4 * 1024 * 1024,
             InitialMaxStreamDataBidiRemoteValue = 4 * 1024 * 1024,
-        }, maxDatagramSizeCeiling: ceiling);
+        }, maxDatagramSizeCeiling: ceiling, timeProvider: clock);
         client.Start();
         return (client, server, cert);
     }
@@ -182,11 +183,17 @@ public class PathMtuDiscoveryTests
     {
         // In process there is no MTU at all, so every probe arrives: the search should walk all the
         // way up and settle on the ceiling.
-        (QuicClientConnection client, QuicServerConnection server, ServerCertificate cert) = Pair(1452);
+        // A probe counts as delivered only once it is acknowledged, and acknowledgments may be held
+        // back for up to max_ack_delay (RFC 9000 §13.2.2). A pump loop with a standing clock never
+        // reaches that deadline, so the clock steps past it between rounds — within a round send and
+        // acknowledgment still happen at the same instant, which keeps the RTT estimate at zero.
+        var clock = new FakeTimeProvider();
+        (QuicClientConnection client, QuicServerConnection server, ServerCertificate cert) = Pair(1452, clock);
         using (cert) using (client) using (server)
         {
             for (int round = 0; round < 40; round++)
             {
+                clock.Advance(TimeSpan.FromMilliseconds(30));
                 foreach (byte[] datagram in client.GetDatagramsToSend())
                     server.ProcessDatagram(datagram);
                 foreach (byte[] datagram in server.GetDatagramsToSend())

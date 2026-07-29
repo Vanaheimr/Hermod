@@ -122,8 +122,13 @@ public class KeyDiscardTests
     {
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var client = new QuicClientConnection("localhost", certificateValidation: validation);
-        using var server = new QuicServerConnection(cert) { SuppressHandshakeDoneForTest = true };
+        // The confirmation this test is about hangs on a single acknowledgment, and the server may
+        // legitimately hold that back for up to max_ack_delay (RFC 9000 §13.2.2) — one 1-RTT packet
+        // does not reach the two-packet threshold. A pump loop on a standing clock never gets there,
+        // so the clock steps past the deadline between rounds.
+        var clock = new FakeTimeProvider();
+        using var client = new QuicClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
+        using var server = new QuicServerConnection(cert, timeProvider: clock) { SuppressHandshakeDoneForTest = true };
 
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeComplete; round++)
@@ -139,6 +144,7 @@ public class KeyDiscardTests
         stream.Write("hi"u8.ToArray());
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
         {
+            clock.Advance(TimeSpan.FromMilliseconds(30));
             foreach (byte[] dg in client.GetDatagramsToSend()) server.ProcessDatagram(dg);
             foreach (byte[] dg in server.GetDatagramsToSend()) client.ProcessDatagram(dg);
         }
