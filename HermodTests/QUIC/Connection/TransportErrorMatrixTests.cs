@@ -126,7 +126,14 @@ public class TransportErrorMatrixTests
                     Does.Contain("retry_source_connection_id"));
         Assert.That(server.ValidatePeerTransportParameters(Decode(EncodeParams((0x0f, iscid), (0x02, new byte[16])))!),
                     Does.Contain("stateless_reset_token"));
-        Assert.That(server.ValidatePeerTransportParameters(Decode(EncodeParams((0x0f, iscid), (0x0d, new byte[41])))!),
+        // A WELL-FORMED preferred_address (§18.2 Figure 22: 4+2+16+2 address/port bytes, a CID length
+        // byte, the CID, and a 16-byte token). It has to be well-formed to reach the role check at
+        // all — a malformed one is already rejected while decoding, which is also
+        // TRANSPORT_PARAMETER_ERROR but for the other reason. What is under test here is that a
+        // SERVER refuses this parameter from a client no matter how correct it looks.
+        byte[] preferredAddress = new byte[4 + 2 + 16 + 2 + 1 + 8 + 16];
+        preferredAddress[24] = 8; // connection ID length; zero would be illegal per §18.2
+        Assert.That(server.ValidatePeerTransportParameters(Decode(EncodeParams((0x0f, iscid), (0x0d, preferredAddress)))!),
                     Does.Contain("preferred_address"));
     }
 

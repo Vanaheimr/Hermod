@@ -122,6 +122,12 @@ public sealed class TransportParameters
     public bool SawPreferredAddress { get; private set; }
 
     /// <summary>
+    /// The server's preferred address (RFC 9000 §9.6), when one was sent or is to be sent. Only a
+    /// server may set this — §18.2: "This transport parameter is only sent by a server."
+    /// </summary>
+    public PreferredAddress? PreferredAddressValue { get; set; }
+
+    /// <summary>
     /// Serialises the parameters to the opaque extension bytes.
     /// </summary>
     public byte[] Encode()
@@ -149,6 +155,8 @@ public sealed class TransportParameters
                 WriteBytes(ref writer, OriginalDestinationConnectionId, odcid.Span);
             if (RetrySourceConnectionIdValue is { } rscid)
                 WriteBytes(ref writer, RetrySourceConnectionId, rscid.Span);
+            if (PreferredAddressValue is { } preferred)
+                WriteBytes(ref writer, PreferredAddress, preferred.Encode()); // §9.6, server only
 
             return writer.WrittenSpan.ToArray();
         }
@@ -239,7 +247,12 @@ public sealed class TransportParameters
                     break;
                 case OriginalDestinationConnectionId: result.OriginalDestinationConnectionIdValue = new ConnectionId(value); break;
                 case RetrySourceConnectionId: result.RetrySourceConnectionIdValue = new ConnectionId(value); break;
-                case PreferredAddress: result.SawPreferredAddress = true; break; // content ignored; role check in the endpoint
+                case PreferredAddress:
+                    result.SawPreferredAddress = true; // role check (server-only, §18.2) in the endpoint
+                    if (!Quic.PreferredAddress.TryParse(value, out Quic.PreferredAddress? preferred))
+                        return false; // §18.2: a malformed one is TRANSPORT_PARAMETER_ERROR
+                    result.PreferredAddressValue = preferred;
+                    break;
                 default: break; // unknown/grease -> ignore
             }
         }

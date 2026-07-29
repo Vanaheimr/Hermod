@@ -93,7 +93,8 @@ public sealed class QuicServerConnection : QuicEndpoint
         QlogWriter? qlog = null,
         ValidatedRetry? validatedRetry = null,
         ClientCertificateOptions? clientCertificate = null,
-        int maxDatagramSizeCeiling = PathMtuDiscovery.DefaultSearchCeiling)
+        int maxDatagramSizeCeiling = PathMtuDiscovery.DefaultSearchCeiling,
+        PreferredAddress? preferredAddress = null)
         : base(transportParameters, version, timeProvider, qlog,
                sourceConnectionId: validatedRetry?.RetrySourceConnectionId,
                maxDatagramSizeCeiling: maxDatagramSizeCeiling)
@@ -110,6 +111,17 @@ public sealed class QuicServerConnection : QuicEndpoint
             _retryValidatedExternally = true;
             MarkAddressValidated(); // the returned token proved the client address (RFC 9000 §8.1)
         }
+        // RFC 9000 §9.6/§18.2: only a server sends preferred_address, and it MUST NOT carry a
+        // zero-length connection ID — the client would have to treat that as a connection error, so
+        // it is refused here rather than put on the wire.
+        if (preferredAddress is { } preferred)
+        {
+            if (preferred.ConnectionId.Length == 0)
+                throw new ArgumentException("A preferred address requires a non-empty connection ID (RFC 9000 §18.2).",
+                                            nameof(preferredAddress));
+            LocalParams.PreferredAddressValue = preferred;
+        }
+
         _preferredCipherSuites = preferredCipherSuites;
         _preferredGroups = preferredGroups;
         StatelessResetTokens = statelessResetTokens; // tokens derivable from the CID ⇒ stateless reset sendable

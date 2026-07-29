@@ -163,7 +163,7 @@ application. Clients pass their own credential as `clientCertificate:`.
 
 | RFC / draft | Title | Status |
 |---|---|---|
-| **9000** | QUIC: A UDP-Based Multiplexed and Secure Transport | ✅ Packets, frames, streams, flow control, connection lifecycle, migration, CID management, stateless reset, version negotiation, Retry (incl. stateless), transport-error matrix |
+| **9000** | QUIC: A UDP-Based Multiplexed and Secure Transport | ✅ Packets, frames, streams, flow control, connection lifecycle, migration incl. preferred_address, CID management, stateless reset, version negotiation, Retry (incl. stateless), NEW_TOKEN, path MTU discovery, transport-error matrix |
 | **9001** | Using TLS to Secure QUIC | ✅ Initial/handshake/1-RTT keys, header protection, key update, key discard, 0-RTT, Retry integrity. Appendix A vectors byte-exact |
 | **9002** | QUIC Loss Detection and Congestion Control | ✅ RTT estimation, ACK-based + PTO loss detection, NewReno, pacing, persistent congestion |
 | **8446** | TLS 1.3 | ✅ Full handshake engine: HelloRetryRequest, session resumption/PSK, 0-RTT, client certificates. Key schedule verified against RFC 8448 |
@@ -198,7 +198,7 @@ TLS with a client certificate from an OpenSSL CA.
 
 ## Test
 
-332 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
+344 tests live under [`HermodTests/QUIC`](../../HermodTests/QUIC), mirroring this
 folder layout.
 
 ```powershell
@@ -262,4 +262,4 @@ still reference a finished stream, so there is no close to count down.
 
 - **Receive-side GRO and per-connection parallelism** — send-side GSO exists;
   the receive path is still one loop.
-- **preferred_address** (§9.6) and **ACK frequency**.
+- **ACK frequency** and ACK delay.

@@ -24,6 +24,8 @@ using org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 
 #endregion
@@ -137,6 +139,54 @@ public sealed class QuicClientConnection : QuicEndpoint
                 return;
 
         _newTokens.Add(incoming.ToArray());
+    }
+
+    /// <summary>
+    /// The address the server would rather serve this connection from (RFC 9000 §9.6), or
+    /// <c>null</c> when it offered none. Only meaningful once the peer transport parameters are in.
+    /// <para>
+    /// §9.6.2: these addresses "are only valid for the connection in which they are provided. A
+    /// client MUST NOT use these for other connections, including connections that are resumed from
+    /// the current connection" — so this is not something to cache alongside a session ticket.
+    /// </para>
+    /// </summary>
+    public PreferredAddress? ServerPreferredAddress => PeerTransportParameters?.PreferredAddressValue;
+
+    /// <summary>
+    /// Begins the move to the server's preferred address (RFC 9000 §9.6.1): switches to the
+    /// connection ID that came with it and starts path validation. Returns the endpoint the caller
+    /// must send to from now on, or <c>null</c> when there is nothing to migrate to.
+    /// <para>
+    /// The socket is the caller's, here as everywhere in this core — so this call changes the
+    /// connection's view (CID, PATH_CHALLENGE) and hands back the address; redirecting the datagrams
+    /// is the caller's part.
+    /// </para>
+    /// <para>
+    /// §9.6.1 requires the handshake to be confirmed first, and the migration to complete only on
+    /// successful validation: "As soon as path validation succeeds, the client SHOULD begin sending
+    /// all future packets to the new server address … If path validation fails, the client MUST
+    /// continue sending all future packets to the server's original IP address." Watch
+    /// <see cref="QuicEndpoint.PathValidated"/> for the verdict and fall back if it never arrives.
+    /// </para>
+    /// </summary>
+    /// <param name="family">
+    /// Which address family to move to. §9.6.3: a client that has itself migrated "SHOULD use a
+    /// preferred address from the same address family for the server".
+    /// </param>
+    public IPEndPoint? MigrateToPreferredAddress(AddressFamily family = AddressFamily.InterNetwork)
+    {
+        if (!HandshakeConfirmed)
+            return null; // §9.6.1: "Once the handshake is confirmed" — not before
+        if (ServerPreferredAddress is not { } preferred)
+            return null;
+        if (preferred.EndPointFor(family) is not { } endpoint)
+            return null;
+
+        // §9.6.1: the client "constructs packets using any previously unused active connection ID".
+        // The CID from the parameter was registered with sequence 1 when the parameters arrived.
+        Dcid = preferred.ConnectionId;
+        InitiatePathValidation();
+        return endpoint;
     }
 
     /// <summary>

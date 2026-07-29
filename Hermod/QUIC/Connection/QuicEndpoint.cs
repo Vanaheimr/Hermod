@@ -2340,6 +2340,16 @@ public abstract class QuicEndpoint : IDisposable
         _connSendLimit = p.InitialMaxDataValue;
         _idle.Negotiate(LocalParams.MaxIdleTimeoutMs, p.MaxIdleTimeoutMs); // effective idle timeout (RFC 9000 §10.1)
         ApplyPeerStatelessResetToken();
+
+        // The connection ID inside preferred_address has sequence number 1 (§18.2) and exists so the
+        // client is guaranteed an unused active CID when it migrates. Feeding it through the same
+        // path as a NEW_CONNECTION_ID frame keeps the active-CID limit and the retire logic in one
+        // place instead of growing a second way to learn a remote CID.
+        if (!IsServer && p.PreferredAddressValue is { } preferred)
+            _cids.OnNewConnectionId(new NewConnectionIdFrame(1, 0, preferred.ConnectionId.ToArray(),
+                                                             preferred.StatelessResetToken),
+                                    out _, out _);
+
         foreach (QuicStream s in StreamMap.Values)
             if (s.Send.MaxData == 0)
                 s.Send.MaxData = PeerSendLimitFor(s.Id);
