@@ -46,13 +46,18 @@ jobs:
         working-directory: Hermod
         run: dotnet build HermodTests/HermodTests.csproj --configuration Release
 
-      # QUIC and HTTP/2 — 511 tests, none of them touching the network. Both are
-      # in-process against our own servers, so a failure means our code broke,
-      # not that a resolver was slow.
+      # Everything except DNS — 1057 tests, none of them touching the network.
+      # They run in-process against our own servers, so a failure means our code
+      # broke, not that a resolver was slow.
       #
-      # Deliberately NOT the whole suite: 207 DNS tests query Cloudflare and
+      # Deliberately NOT the whole suite: the 207 DNS tests query Cloudflare and
       # Google for real. They belong in a nightly run, not in a gate that has to
       # be trustworthy enough that a red mark stops a merge.
-      - name: Test (QUIC + HTTP/2)
+      #
+      # This takes ~8 minutes locally and will be slower on a hosted runner. The
+      # concurrency group above cancels superseded runs, so a push train does not
+      # queue up behind itself.
+      - name: Test (everything except DNS)
+        timeout-minutes: 45
         working-directory: Hermod
-        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Hermod.Tests.QUIC|FullyQualifiedName~Hermod.Tests.HTTP2" --logger "console;verbosity=normal"
+        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "FullyQualifiedName!~Hermod.Tests.DNS" --logger "console;verbosity=normal"

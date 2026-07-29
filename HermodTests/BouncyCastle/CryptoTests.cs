@@ -49,9 +49,27 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqNJuHgNldF4syegsp4+jWf8oCh6Q
 Od/wzy9vUdcuVxUydvk67x1h8az6RLvSs73HO783ts704XuQQyqKTyY96A==
 -----END PUBLIC KEY-----";
 
-            Assert.That(pem.Trim(), Is.EqualTo(expectedPEM.Trim()));
+            // Compare without the line endings: BouncyCastle's PemWriter writes
+            // Environment.NewLine, so the PEM is CRLF-delimited on Windows and
+            // LF-delimited on Linux, while the literal above carries whatever
+            // this source file happens to be stored with. RFC 7468 section 2
+            // permits both, so the encoding — not the host's newline convention —
+            // is what this test is about.
+            Assert.That(Normalize(pem), Is.EqualTo(Normalize(expectedPEM)));
 
         }
+
+        #endregion
+
+        #region (private static) Normalize(Text)
+
+        /// <summary>
+        /// Reduce the given text to CRLF-independent form for comparison.
+        /// </summary>
+        /// <param name="Text">A text.</param>
+        private static String Normalize(String Text)
+
+            => Text.Replace("\r\n", "\n").Trim();
 
         #endregion
 
