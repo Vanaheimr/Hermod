@@ -121,9 +121,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.That(ssl.NegotiatedApplicationProtocol, Is.EqualTo(SslApplicationProtocol.Http11),
                         "http/1.1 is advertised once a handler exists");
 
-            var buffer = new Byte[512];
-            var read   = await ssl.ReadAsync(buffer);
-            var text   = Encoding.ASCII.GetString(buffer, 0, read);
+            // A single ReadAsync is not enough. The fallback above writes the header block and the
+            // body with two separate calls, so they need not share a TLS record — on a loaded
+            // machine the first read returns the headers alone and the body assertion below fails
+            // for no reason at all. Read until the header terminator has been seen AND the declared
+            // body has followed it, which is the framing this fixture exists to check anyway.
+            using var readTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var buffer            = new Byte[512];
+            var received          = new List<Byte>();
+            var text              = String.Empty;
+            var headerEnd         = -1;
+
+            while (headerEnd < 0 || received.Count - headerEnd - 4 < 22)
+            {
+
+                var read = await ssl.ReadAsync(buffer, readTimeout.Token);
+                if (read == 0)
+                    break;   // Connection: close — nothing more is coming
+
+                received.AddRange(buffer[..read]);
+                text      = Encoding.ASCII.GetString([.. received]);
+                headerEnd = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+
+            }
 
             Assert.Multiple(() =>
             {
