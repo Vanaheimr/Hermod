@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_cloudflare_com__CAA()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_cloudflare_com__CAA()
         {
 
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_cloudflare_com__DNSKEY()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_cloudflare_com__DNSKEY()
         {
 
@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_cloudflare_com__DS()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_cloudflare_com__DS()
         {
 
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_dane_enabled_domain__TLSA()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_dane_enabled_domain__TLSA()
         {
 
@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_sshfp_domain__SSHFP()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_sshfp_domain__SSHFP()
         {
 
@@ -373,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_hinfo_query_roundtrip()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_hinfo_query_roundtrip()
         {
 
@@ -405,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_loc_query_roundtrip()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_loc_query_roundtrip()
         {
 
@@ -428,7 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_nsec_in_authority_section()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_nsec_in_authority_section()
         {
 
@@ -478,7 +478,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_cloudflare_com__RRSIG_with_DNSKEY()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_cloudflare_com__RRSIG_with_DNSKEY()
         {
 
@@ -523,7 +523,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_DNSKEY_KeyTag_computation()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_DNSKEY_KeyTag_computation()
         {
 
@@ -562,7 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_DS_DNSKEY_verification()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_DS_DNSKEY_verification()
         {
 
@@ -626,7 +626,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_ToZoneFileString__A()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_ToZoneFileString__A()
         {
 
@@ -653,7 +653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_ToZoneFileString__CAA()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_ToZoneFileString__CAA()
         {
 
@@ -687,7 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_ToZoneFileString__DNSKEY()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_ToZoneFileString__DNSKEY()
         {
 
@@ -717,7 +717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_ToZoneFileString__DS()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_ToZoneFileString__DS()
         {
 
@@ -779,7 +779,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_cloudflare_com__CAA__JSON()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_cloudflare_com__CAA__JSON()
         {
 
@@ -805,7 +805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_cloudflare_com__DNSKEY__JSON()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_cloudflare_com__DNSKEY__JSON()
         {
 
@@ -834,7 +834,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_cloudflare_com__DS__JSON()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_cloudflare_com__DS__JSON()
         {
 
@@ -863,7 +863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Test_hinfo_query_roundtrip__JSON()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_hinfo_query_roundtrip__JSON()
         {
 

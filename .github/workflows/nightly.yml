@@ -43,11 +43,41 @@ jobs:
         working-directory: Hermod
         run: dotnet build HermodTests/HermodTests.csproj --configuration Release
 
-      # The whole suite, DNS included — 1264 tests. Unlike the gate this is
-      # allowed to be flaky: a red night means "look at it", not "a merge is
-      # blocked". Read the failures before believing them; a resolver timeout
-      # and a broken parser look the same from here.
-      - name: Test (full suite, DNS included)
+      # Everything the gate runs PLUS the deterministic DNS tests (cache, zone
+      # file, wire format, our own DNS servers on ephemeral ports) — the ones
+      # ci.yml leaves out only because they sit in the DNS namespace, not
+      # because they touch the network. This step is fatal: a red here is a
+      # real regression.
+      - name: Test (everything except live DNS)
         timeout-minutes: 90
         working-directory: Hermod
-        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
+        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "TestCategory!=LiveDNS" --logger "console;verbosity=normal"
+
+      # The live DNS probes (Category "LiveDNS"): real queries to Cloudflare,
+      # Google and charging.cloud over UDP/TCP/TLS/HTTPS/JSON. Informational on
+      # purpose — a hosted runner is not a normal client. The first night this
+      # ran, 84 of these 115 failed with IsValid=false while the identical tests
+      # passed 206/206 on a residential line: datacentre egress on UDP/53 is
+      # restricted and the DoH endpoints rate-limit these IPs. Failures here
+      # mean "the runner could not ask", which says nothing about our resolver,
+      # so they must not be able to turn the night red. Read the numbers below
+      # for a trend instead; a sudden 115/115 failure IS worth investigating.
+      - name: Live DNS probes (informational)
+        continue-on-error: true
+        timeout-minutes: 30
+        working-directory: Hermod
+        shell: bash
+        run: |
+          set +e
+          dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build \
+            --filter "TestCategory=LiveDNS" --logger "console;verbosity=normal" 2>&1 | tee livedns.txt
+          {
+            echo '## Live DNS probes (informational)'
+            echo
+            echo 'Network-dependent: failures here reflect runner egress, not our resolver.'
+            echo
+            echo '```'
+            grep -E "Passed!|Failed!|Total tests|Passed:|Failed:" livedns.txt || tail -5 livedns.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0

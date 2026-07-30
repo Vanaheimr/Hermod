@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test_charging_cloud__A()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_charging_cloud__A()
         {
 
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test_charging_cloud__AAAA()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_charging_cloud__AAAA()
         {
 
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test_charging_cloud__MX()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_charging_cloud__MX()
         {
 
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test_charging_cloud__TXT()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_charging_cloud__TXT()
         {
 
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test_open_charging_cloud__A()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_open_charging_cloud__A()
         {
 
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test_open_charging_cloud__AAAA()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_open_charging_cloud__AAAA()
         {
 
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test_open_charging_cloud__MX()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_open_charging_cloud__MX()
         {
 
@@ -343,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #region Test__ocpp_tcp_api_charging_cloud__SRV()
 
-        [Test]
+        [Test, Category("LiveDNS")]
         public async Task Test_ocpp_tcp_api_charging_cloud__SRV()
         {
 
