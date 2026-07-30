@@ -23,10 +23,11 @@ curves .NET does not expose: X25519, X448, Ed25519, Ed448.
 > the receive path is still a single loop.
 > See [what is not here](#not-here-yet).
 
-**HTTP/3 is not in this repository.** QPACK and the H3 framing/mapping live in the
-sibling project
-[HTTP/3 Conformance Tests](https://github.com/Vanaheimr/HTTP3ConformanceTests),
-which consumes this transport. The line runs between transport and HTTP mapping.
+**HTTP/3 lives one folder over**, in [`../HTTP3`](../HTTP3/README.md): QPACK and the
+H3 framing/mapping consume this transport and nothing here knows about them. The
+line runs between transport and HTTP mapping. The interop matrices and the samples
+that drive both over real sockets are in the sibling project
+[HTTP/3 Conformance Tests](https://github.com/Vanaheimr/HTTP3ConformanceTests).
 
 ---
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.QUIC;
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests;
 
 /// <summary>
 /// Helper functions to parse the RFC hex vectors (often grouped with spaces/line breaks).

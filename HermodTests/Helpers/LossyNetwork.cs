@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.QUIC;
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests;
 
 /// <summary>
 /// One direction of an impaired in-process link: drops, delays, reorders and duplicates datagrams —

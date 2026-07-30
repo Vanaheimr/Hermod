@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.QUIC;
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests;
 
 /// <summary>
 /// Small NUnit test helpers that CHECK a condition and RETURN the checked value — handy when

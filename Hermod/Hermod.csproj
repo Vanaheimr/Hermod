@@ -34,12 +34,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The QUIC/TLS tests reach into internals (packet number spaces, key schedule,
+    <!-- The QUIC/TLS and HTTP/3 tests reach into internals (packet number spaces, key schedule,
          send buffers) that are deliberately not part of the public surface. -->
     <InternalsVisibleTo Include="org.GraphDefined.Vanaheimr.Hermod.Tests" />
-    <!-- Transitional: the HTTP/3 tests still live in the HTTP3FromScratch repo and drive the
-         QUIC test seams from there. Drop this once HTTP/3 moves here too. -->
-    <InternalsVisibleTo Include="Http3.Tests" />
   </ItemGroup>
 
   <ItemGroup>

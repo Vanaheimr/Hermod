@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.QUIC;
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests;
 
 /// <summary>
 /// Minimal hand-rolled fake clock (BCL-only — no Microsoft.Extensions.Time.Testing dependency):
