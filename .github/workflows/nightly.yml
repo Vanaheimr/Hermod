@@ -43,10 +43,11 @@ jobs:
         working-directory: Hermod
         run: dotnet build HermodTests/HermodTests.csproj --configuration Release
 
-      # Everything the gate runs PLUS the deterministic DNS tests (cache, zone
-      # file, wire format, our own DNS servers on ephemeral ports) — the ones
-      # ci.yml leaves out only because they sit in the DNS namespace, not
-      # because they touch the network. This step is fatal: a red here is a
+      # The same set the gate runs (ci.yml excludes Category "LiveDNS" too, so
+      # this is not a wider net any more). Repeating it here is still worth the
+      # minutes: it catches tests that only fail sometimes, and — because
+      # neither workflow pins Styx — it notices a breaking change in Styx master
+      # on a day when nobody pushed to Hermod at all. Fatal: a red here is a
       # real regression.
       - name: Test (everything except live DNS)
         timeout-minutes: 90

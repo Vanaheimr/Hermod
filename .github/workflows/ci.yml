@@ -46,18 +46,22 @@ jobs:
         working-directory: Hermod
         run: dotnet build HermodTests/HermodTests.csproj --configuration Release
 
-      # Everything except DNS — 1057 tests, none of them touching the network.
-      # They run in-process against our own servers, so a failure means our code
-      # broke, not that a resolver was slow.
+      # Everything except the live DNS probes — 1229 tests, none of them touching
+      # the network. They run in-process against our own servers, so a failure
+      # means our code broke, not that a resolver was slow.
       #
-      # Deliberately NOT the whole suite: the 207 DNS tests query Cloudflare and
-      # Google for real. They belong in a nightly run, not in a gate that has to
-      # be trustworthy enough that a red mark stops a merge.
+      # The exclusion is by CATEGORY, not by namespace. It used to be
+      # "FullyQualifiedName!~Hermod.Tests.DNS", which threw away all 206 DNS tests
+      # because 115 of them query Cloudflare and Google for real — and with them
+      # the 91 that do not: cache expiry, zone-file round-trips, wire-format
+      # parsing, our own UDP/TCP/TLS DNS servers on ephemeral ports. Those are as
+      # deterministic as anything else here and belong in the gate. Only
+      # Category("LiveDNS") is left out; nightly.yml runs it non-fatally.
       #
       # This takes ~8 minutes locally and will be slower on a hosted runner. The
       # concurrency group above cancels superseded runs, so a push train does not
       # queue up behind itself.
-      - name: Test (everything except DNS)
+      - name: Test (everything except live DNS)
         timeout-minutes: 45
         working-directory: Hermod
-        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "FullyQualifiedName!~Hermod.Tests.DNS" --logger "console;verbosity=normal"
+        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "TestCategory!=LiveDNS" --logger "console;verbosity=normal"
