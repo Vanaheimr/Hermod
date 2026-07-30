@@ -472,6 +472,14 @@ public abstract class QuicEndpoint : IDisposable
     public ConnectionId DestinationConnectionId => Dcid;
 
     /// <summary>
+    /// <c>true</c> once the 1-RTT keys are installed and application data may be written. On the
+    /// server that happens with its OWN Finished, before the client's Finished arrives (RFC 9001
+    /// §4.1.1) — a window an HTTP/3 server should use, because a client that has to know the peer's
+    /// SETTINGS before it can act must otherwise wait a further round trip.
+    /// </summary>
+    public bool ApplicationKeysInstalled => _appKeysInstalled;
+
+    /// <summary>
     /// Gives the peer an additional connection ID (8 bytes) incl. stateless-reset token via
     /// NEW_CONNECTION_ID (RFC 9000 §19.15), provided its <c>active_connection_id_limit</c> permits it.
     /// Requires installed 1-RTT keys. Returns the new ID or <c>null</c> when nothing was issued.

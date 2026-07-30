@@ -49,6 +49,26 @@ public sealed class ServerCertificate : IDisposable
     /// </summary>
     public SignatureScheme SignatureScheme => _signer.Scheme;
 
+    /// <summary>
+    /// The SPKI pin: base64 of the SHA-256 hash over the DER-encoded SubjectPublicKeyInfo. This is
+    /// the identity a pinning client checks instead of the chain, so it is what Chrome's
+    /// <c>--ignore-certificate-errors-spki-list</c> expects — and why the key has to survive a
+    /// restart (see <see cref="LoadOrCreatePkcs12"/>).
+    /// </summary>
+    public string SubjectPublicKeyInfoPin
+        => Convert.ToBase64String(SHA256.HashData(Certificate.PublicKey.ExportSubjectPublicKeyInfo()));
+
+    /// <summary>
+    /// SHA-256 over the DER certificate, lowercase hex. Not the same identity as
+    /// <see cref="SubjectPublicKeyInfoPin"/>: this one covers the whole certificate, which is what
+    /// WebTransport's <c>serverCertificateHashes</c> compares against. That option only accepts an
+    /// ECDSA P-256 certificate valid for at most 14 days — short life stands in for revocation — so a
+    /// certificate built with the default <paramref name="validity"/> of
+    /// <see cref="CreateSelfSigned"/> is deliberately out of range for it.
+    /// </summary>
+    public string CertificateHashSha256
+        => Convert.ToHexString(SHA256.HashData(Der)).ToLowerInvariant();
+
     private ServerCertificate(X509Certificate2 certificate, ICertificateSigner signer)
     {
         Certificate = certificate;
@@ -57,16 +77,82 @@ public sealed class ServerCertificate : IDisposable
 
     /// <summary>
     /// Creates a fresh self-signed ECDSA P-256 certificate for <paramref name="commonName"/>.
+    /// <paramref name="validity"/> is the total lifetime, starting one day in the past to absorb clock
+    /// skew; pass 14 days or less to make the certificate usable with WebTransport's
+    /// <c>serverCertificateHashes</c> (see <see cref="CertificateHashSha256"/>).
     /// </summary>
-    public static ServerCertificate CreateSelfSigned(string commonName = "localhost")
+    public static ServerCertificate CreateSelfSigned(string commonName = "localhost",
+                                                     TimeSpan? validity = null)
     {
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var request = new CertificateRequest($"CN={commonName}", key, HashAlgorithmName.SHA256);
         AddExtensions(request, commonName);
 
+        DateTimeOffset notBefore = DateTimeOffset.UtcNow.AddDays(-1);
         X509Certificate2 cert = request.CreateSelfSigned(
-            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+            notBefore, notBefore + (validity ?? DefaultValidity));
         return new ServerCertificate(cert, new EcdsaSigner(key));
+    }
+
+    /// <summary>
+    /// Lifetime of a test certificate when none is given: a year plus the day of backdating.
+    /// </summary>
+    public static readonly TimeSpan DefaultValidity = TimeSpan.FromDays(366);
+
+    /// <summary>
+    /// Returns the ECDSA P-256 certificate stored at <paramref name="path"/>, creating it there on
+    /// first use. A fresh key on every start would be fine for <c>curl -k</c>, but not for a client
+    /// that pins the public key: the pin in a browser's command line has to stay valid across
+    /// restarts. Ed25519/Ed448 have no equivalent, because BouncyCastle holds those private keys and
+    /// they never reach the <see cref="X509Certificate2"/> that PKCS#12 export reads.
+    /// An expired stored certificate is replaced rather than served: with a short
+    /// <paramref name="validity"/> (as WebTransport demands) that happens within two weeks, and a
+    /// silently expired certificate looks like a protocol bug from the client side.
+    /// </summary>
+    public static ServerCertificate LoadOrCreatePkcs12(string path,
+                                                       out bool created,
+                                                       string commonName = "localhost",
+                                                       TimeSpan? validity = null)
+    {
+        if (File.Exists(path))
+        {
+            ServerCertificate stored = FromPkcs12(X509CertificateLoader.LoadPkcs12FromFile(
+                                                      path, password: null, X509KeyStorageFlags.Exportable));
+            if (stored.Certificate.NotAfter.ToUniversalTime() > DateTime.UtcNow)
+            {
+                created = false;
+                return stored;
+            }
+            stored.Dispose();
+        }
+
+        ServerCertificate fresh = CreateSelfSigned(commonName, validity);
+        File.WriteAllBytes(path, fresh.Certificate.Export(X509ContentType.Pkcs12));
+        created = true;
+        return fresh;
+    }
+
+    /// <summary>
+    /// Rebuilds the signer from a loaded certificate. Only ECDSA P-256 is accepted: the curve
+    /// decides the signature scheme, and <see cref="EcdsaSigner"/> announces exactly one.
+    /// </summary>
+    private static ServerCertificate FromPkcs12(X509Certificate2 certificate)
+    {
+        ECDsa? key = certificate.GetECDsaPrivateKey();
+        if (key is null)
+            throw new NotSupportedException(
+                $"'{certificate.Subject}' carries no ECDSA private key. A stored certificate has to be " +
+                "ECDSA P-256; Ed25519/Ed448 keys live in BouncyCastle and cannot be exported this way.");
+
+        string? curve = key.ExportParameters(includePrivateParameters: false).Curve.Oid.Value;
+        if (curve != ECCurve.NamedCurves.nistP256.Oid.Value)
+        {
+            key.Dispose();
+            throw new NotSupportedException(
+                $"Expected an ECDSA P-256 key ({ECCurve.NamedCurves.nistP256.Oid.Value}), found {curve}.");
+        }
+
+        return new ServerCertificate(certificate, new EcdsaSigner(key));
     }
 
     /// <summary>

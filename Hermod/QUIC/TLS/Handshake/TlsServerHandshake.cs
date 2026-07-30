@@ -147,6 +147,14 @@ public sealed class TlsServerHandshake : ITlsHandshake
     public bool EarlyDataAccepted { get; private set; }
 
     public CipherSuite? NegotiatedCipherSuite { get; private set; }
+
+    /// <summary>
+    /// The key-exchange group the server picked from the client's key shares. Set with the server
+    /// flight, i.e. before <see cref="NegotiatedCipherSuite"/> — and after a HelloRetryRequest it is
+    /// the group of the SECOND ClientHello, which is the one the secret actually comes from.
+    /// </summary>
+    public NamedGroup? NegotiatedGroup { get; private set; }
+
     public HandshakeTrafficSecrets? HandshakeSecrets { get; private set; }
     public ApplicationTrafficSecrets? ApplicationSecrets { get; private set; }
     public byte[]? PeerQuicTransportParameters { get; private set; }
@@ -431,6 +439,7 @@ public sealed class TlsServerHandshake : ITlsHandshake
     /// </summary>
     private void EmitServerFlight(NamedGroup group, byte[] clientKeyShare)
     {
+        NegotiatedGroup = group;
         using IKeyExchange kex = KeyExchange.Create(group);
         // Server side: produce response + secret from the client share. With (EC)DHE the response is our
         // own public key; with the KEM hybrid (X25519MLKEM768) the ciphertext — so it depends on the

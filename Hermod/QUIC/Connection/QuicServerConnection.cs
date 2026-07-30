@@ -158,6 +158,19 @@ public sealed class QuicServerConnection : QuicEndpoint
     public bool HandshakeComplete => _serverTls is { IsComplete: true, ClientFinishedValid: true };
 
     /// <summary>
+    /// The negotiated cipher suite — the counterpart of
+    /// <see cref="QuicClientConnection.NegotiatedCipherSuite"/>, so that a server can report what a
+    /// foreign client actually chose.
+    /// </summary>
+    public CipherSuite? NegotiatedCipherSuite => _serverTls?.NegotiatedCipherSuite;
+
+    /// <summary>
+    /// The negotiated key-exchange group, counterpart of
+    /// <see cref="QuicClientConnection.NegotiatedGroup"/>.
+    /// </summary>
+    public NamedGroup? NegotiatedGroup => _serverTls?.NegotiatedGroup;
+
+    /// <summary>
     /// Opens a server-initiated unidirectional stream (HTTP/3 control/QPACK).
     /// </summary>
     public QuicStream OpenUnidirectionalStream() => OpenLocalStream(bidirectional: false);
