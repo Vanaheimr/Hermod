@@ -13,7 +13,7 @@ Hermod is a .NET library for simplified advanced networking tasks...
 - Generic UDP clients / servers
 - Generic TCP clients / servers
 - [QUIC clients / servers (RFC 9000/9001/9002)](Hermod/QUIC/README.md) incl. the
-  TLS 1.3 handshake it carries — the transport under HTTP/3
+  TLS 1.3 handshake it carries
 
 
 ## Common Application Protocols
