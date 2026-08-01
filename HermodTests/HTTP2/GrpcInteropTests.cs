@@ -25,6 +25,7 @@ using Grpc.Core;
 using Grpc.Net.Client;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -172,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task OurClient_Unary()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync("POST", "https", authority, "/helloworld.Greeter/SayHello",
+            var resp = await conn.SendRequestAsync(HTTPMethod.POST, "https", authority, "/helloworld.Greeter/SayHello",
                            ExtraHeaders: [("content-type", "application/grpc"), ("te", "trailers")],
                            Body: Frame(EncodeStr("Ada")));
             var reply = Deframe(resp.Body);
@@ -195,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task OurClient_ServerStreaming()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var sresp = await conn.SendRequestAsync("POST", "https", authority, "/helloworld.Greeter/SayHelloStream",
+            var sresp = await conn.SendRequestAsync(HTTPMethod.POST, "https", authority, "/helloworld.Greeter/SayHelloStream",
                             ExtraHeaders: [("content-type", "application/grpc"), ("te", "trailers")],
                             Body: Frame(EncodeStr("Ada")));
             var msgs = Deframe(sresp.Body).Select(DecodeStr).ToList();
@@ -215,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task OurClient_ClientStreaming()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var cs = await conn.StartStreamingRequestAsync("POST", "https", authority, "/helloworld.Greeter/SayHelloClientStream",
+            var cs = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", authority, "/helloworld.Greeter/SayHelloClientStream",
                          ExtraHeaders: [("content-type", "application/grpc"), ("te", "trailers")]);
             foreach (var n in new[] { "Ada", "Grace", "Lin" })
                 await cs.WriteAsync(Frame(EncodeStr(n)));
@@ -247,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task OurClient_Bidi()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var bd = await conn.StartStreamingRequestAsync("POST", "https", authority, "/helloworld.Greeter/SayHelloBidi",
+            var bd = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", authority, "/helloworld.Greeter/SayHelloBidi",
                          ExtraHeaders: [("content-type", "application/grpc"), ("te", "trailers")]);
             var bdHead   = await bd.GetResponseAsync();   // server writes response HEADERS before reading
             var bdReader = new GrpcMessageReader(ct => new ValueTask<Byte[]?>(bd.ReadAsync(ct)));

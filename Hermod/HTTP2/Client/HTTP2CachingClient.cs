@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
@@ -70,23 +72,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
 
         /// <summary>Convenience GET.</summary>
-        public Task<HTTP2Response> GetAsync(
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders = null,
-            CancellationToken                  CancellationToken = default)
-            => SendRequestAsync("GET", Path, ExtraHeaders, null, CancellationToken);
+        public Task<HTTP2Response> GetAsync(String                             Path,
+                                            List<(String Name, String Value)>? ExtraHeaders = null,
+                                            CancellationToken                  CancellationToken = default)
+
+            => SendRequestAsync(
+                   HTTPMethod.GET,
+                   Path,
+                   ExtraHeaders,
+                   null,
+                   CancellationToken
+               );
 
         /// <summary>
         /// Send a request through the cache. GET/HEAD are cached per RFC 9111;
         /// other (unsafe) methods bypass the cache and, on success, invalidate any
         /// stored entry for the target (Section 4.4).
         /// </summary>
-        public async Task<HTTP2Response> SendRequestAsync(
-            string                             Method,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders = null,
-            byte[]?                            Body         = null,
-            CancellationToken                  CancellationToken = default)
+        public async Task<HTTP2Response> SendRequestAsync(HTTPMethod                          Method,
+                                                          String                              Path,
+                                                          List<(String Name, String Value)>?  ExtraHeaders        = null,
+                                                          Byte[]?                             Body                = null,
+                                                          CancellationToken                   CancellationToken   = default)
         {
 
             var extraHeaders = ExtraHeaders ?? [];
@@ -94,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var hasAuth      = extraHeaders.Any(h => h.Name == "authorization");
 
             // Unsafe / non-cacheable methods: straight to origin, then invalidate.
-            if (Method is not ("GET" or "HEAD"))
+            if (Method != HTTPMethod.GET && Method != HTTPMethod.HEAD)
             {
                 var resp = await connection.SendRequestAsync(Method, scheme, authority, Path, extraHeaders, Body, CancellationToken: CancellationToken);
                 if (resp.Status is >= 200 and < 400)
@@ -145,9 +152,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Origin round trips
 
-        private async Task<HTTP2Response> OriginAndMaybeStore(
-            string Method, string Path, List<(string Name, string Value)> ExtraHeaders, byte[]? Body,
-            HTTPCacheControl RequestCC, bool HasAuth, bool store, CancellationToken CancellationToken)
+        private async Task<HTTP2Response> OriginAndMaybeStore(HTTPMethod                         Method,
+                                                              String                             Path,
+                                                              List<(String Name, String Value)>  ExtraHeaders,
+                                                              Byte[]?                            Body,
+                                                              HTTPCacheControl                   RequestCC,
+                                                              Boolean                            HasAuth,
+                                                              Boolean                            store,
+                                                              CancellationToken                  CancellationToken)
         {
 
             var requestTime = timeProvider.GetUtcNow();
@@ -164,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         private async Task<HTTP2Response> RevalidateAsync(
-            string Method, string Path, List<(string Name, string Value)> ExtraHeaders,
+            HTTPMethod Method, string Path, List<(string Name, string Value)> ExtraHeaders,
             HTTPStoredResponse Stored, HTTPCacheControl RequestCC, bool HasAuth, CancellationToken CancellationToken)
         {
 
@@ -208,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private void TryStore(
             string Path, List<(string Name, string Value)> RequestHeaders, HTTPCacheControl RequestCC, bool HasAuth,
-            string Method, HTTP2Response Response, DateTimeOffset RequestTime, DateTimeOffset ResponseTime)
+            HTTPMethod Method, HTTP2Response Response, DateTimeOffset RequestTime, DateTimeOffset ResponseTime)
         {
 
             var responseCC = HTTPCacheControl.FromHeaders(Response.Headers);

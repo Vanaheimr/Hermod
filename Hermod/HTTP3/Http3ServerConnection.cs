@@ -25,6 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Quic.Connection;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Qlog;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -910,7 +911,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
                     // CONNECT is handled IMMEDIATELY (§4.4/RFC 8441): the stream stays open —
                     // waiting for a FIN would be pointless for a tunnel.
-                    if (state.Request.Method == "CONNECT")
+                    if (state.Request.Method == HTTPMethod.CONNECT)
                         return HandleConnect(state);
 
                     // Streaming handler: start right here, with the body still arriving.
@@ -1129,22 +1130,42 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     private static Http3Request BuildRequest(List<HeaderField> headers)
     {
-        string method = "GET", scheme = "https", authority = "", path = "/";
-        string? protocol = null;
+
+        var     method     = HTTPMethod.GET;
+        String  scheme     = "https";
+        String  authority  = "";
+        String  path       = "/";
+        String? protocol   = null;
+
         var extra = new List<HeaderField>();
         foreach (HeaderField h in headers)
         {
             switch (h.Name)
             {
-                case ":method": method = h.Value; break;
-                case ":scheme": scheme = h.Value; break;
-                case ":authority": authority = h.Value; break;
-                case ":path": path = h.Value; break;
-                case ":protocol": protocol = h.Value; break; // Extended CONNECT (RFC 8441 §4)
-                default: extra.Add(h); break;
+
+                case ":method":    method     = HTTPMethod.TryParseWithoutRegistration(h.Value) ?? HTTPMethod.GET; break;
+                case ":scheme":    scheme     = h.Value;                                        break;
+                case ":authority": authority  = h.Value;                                        break;
+                case ":path":      path       = h.Value;                                        break;
+                case ":protocol":  protocol   = h.Value;                                        break; // Extended CONNECT (RFC 8441 §4)
+
+                default:
+                    extra.Add(h);
+                    break;
+
             }
         }
-        return new Http3Request(method, scheme, authority, path) { AdditionalHeaders = extra, Protocol = protocol };
+
+        return new Http3Request(
+                   method,
+                   scheme,
+                   authority,
+                   path
+               ) {
+                     AdditionalHeaders = extra,
+                     Protocol          = protocol
+                 };
+
     }
 
     /// <summary>

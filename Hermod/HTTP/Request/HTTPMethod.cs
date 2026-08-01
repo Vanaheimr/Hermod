@@ -18,7 +18,9 @@
 #region Usings
 
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -31,18 +33,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// An HTTP method.
     /// </summary>
     [DebuggerDisplay("{DebugView}")]
-    public class HTTPMethod : IEquatable<HTTPMethod>,
-                              IComparable<HTTPMethod>,
-                              IComparable
+    public sealed class HTTPMethod : IEquatable<HTTPMethod>,
+                                     IComparable<HTTPMethod>,
+                                     IComparable
     {
 
         #region Data
 
-        private readonly static Dictionary<String, HTTPMethod> lookup = new (StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// The registry of all well-known and explicitly declared HTTP methods.
+        ///
+        /// Note: This registry is only ever grown by code declaring its own HTTP methods.
+        ///       HTTP methods parsed from the network MUST NOT be added here, otherwise a
+        ///       remote peer could grow it without any bound! Use TryParseWithoutRegistration(...)
+        ///       for anything coming in over the wire.
+        /// </summary>
+        private readonly static ConcurrentDictionary<String, HTTPMethod>  lookup           = new (StringComparer.Ordinal);
+
+        /// <summary>
+        /// A regular expression to validate the HTTP method name.
+        /// RFC 9110 §3.1.1: "The method token is case-sensitive and SHOULD be in uppercase, yet is not required to be.
+        /// The method token is a sequence of characters that does not include any control characters or separators.
+        /// Its syntax is defined as a token in Section 3.2.6 which includes the following characters: !#$%&'*+-.^_`|~0-9A-Za-z".
+        /// </summary>
+        private static readonly Regex                                     httpMethodRegex  = new (@"\A[!#$%&'*+.^_`|~0-9A-Za-z-]+\z",
+                                                                                                  RegexOptions.CultureInvariant |
+                                                                                                  RegexOptions.Compiled);
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// The number of currently registered HTTP methods.
+        /// </summary>
+        public static Int32 RegisteredCount
+            => lookup.Count;
+
 
         /// <summary>
         /// The name of the HTTP method.
@@ -88,30 +115,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private) Constructor(s)
 
-        #region (static)  HTTPMethod()
-
-        //static HTTPMethod()
-        //{
-
-        //    foreach (var fieldInfo in typeof(HTTPMethod).GetFields())
-        //    {
-        //        if (fieldInfo is not null)
-        //        {
-
-        //            var reflected = fieldInfo.GetValue(null);
-
-        //            if (reflected is HTTPMethod httpMethod)
-        //                httpMethods.TryAdd(httpMethod.MethodName, httpMethod);
-
-        //        }
-        //    }
-
-        //}
-
-        #endregion
-
-        #region (private) HTTPMethod(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
-
         /// <summary>
         /// Creates a new HTTP method based on the given parameters.
         /// </summary>
@@ -127,22 +130,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.MethodName    = MethodName;
             this.IsSafe        = IsSafe;
-            this.IsIdempotent  = IsIdempotent;
+            this.IsIdempotent  = IsSafe || IsIdempotent;
             this.Description   = Description;
 
-            unchecked
-            {
-
-                hashCode = this.MethodName.  GetHashCode() *  7 ^
-                           this.IsSafe.      GetHashCode() *  5 ^
-                           this.IsIdempotent.GetHashCode() *  3 ^
-                           this.Description?.GetHashCode() ?? 0;
-
-            }
-
         }
-
-        #endregion
 
         #endregion
 
@@ -161,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            Boolean  IsIdempotent   = false,
                                            String?  Description    = null)
 
-            => lookup.AddAndReturnValue(
+            => lookup.GetOrAdd(
                    MethodName,
                    new HTTPMethod(
                        MethodName,
@@ -174,15 +165,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region RFC 2616 - HTTP/1.1
+        #region RFC 9110 - HTTP/1.1
 
-        public static HTTPMethod CONNECT            { get; }
+        public static HTTPMethod  CONNECT           { get; }
             = Register("CONNECT");
 
         /// <summary>
         /// Delete the given resource.
         /// </summary>
-        public static HTTPMethod DELETE             { get; }
+        public static HTTPMethod  DELETE            { get; }
             = Register("DELETE",  IsIdempotent: true);
 
         /// <summary>
@@ -201,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a list of valid HTTP verbs for the given resource.
         /// </summary>
         public static HTTPMethod  OPTIONS           { get; }
-            = Register("OPTIONS", IsIdempotent: true);
+            = Register("OPTIONS", IsIdempotent: true, IsSafe: true);
 
         public static HTTPMethod  POST              { get; }
             = Register("POST");
@@ -210,32 +201,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             = Register("PUT",     IsIdempotent: true);
 
         public static HTTPMethod  TRACE             { get; }
-            = Register("TRACE",   IsIdempotent: true);
+            = Register("TRACE",   IsIdempotent: true, IsSafe: true);
 
         #endregion
 
         #region RFC 4918 - WebDAV
 
         public static HTTPMethod  COPY              { get; }
-            = Register("COPY");
+            = Register("COPY",       IsIdempotent: true);
 
         public static HTTPMethod  LOCK              { get; }
             = Register("LOCK");
 
         public static HTTPMethod  MKCOL             { get; }
-            = Register("MKCOL");
+            = Register("MKCOL",      IsIdempotent: true);
 
         public static HTTPMethod  MOVE              { get; }
-            = Register("MOVE");
+            = Register("MOVE",       IsIdempotent: true);
 
         public static HTTPMethod  PROPFIND          { get; }
-            = Register("PROPFIND");
+            = Register("PROPFIND",   IsIdempotent: true, IsSafe: true);
 
         public static HTTPMethod  PROPPATCH         { get; }
-            = Register("PROPPATCH");
+            = Register("PROPPATCH",  IsIdempotent: true);
 
         public static HTTPMethod  UNLOCK            { get; }
-            = Register("UNLOCK");
+            = Register("UNLOCK",     IsIdempotent: true);
 
         #endregion
 
@@ -373,7 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Update a resource (a replacement for PUT)
         /// </summary>
         public static HTTPMethod  UPDATE            { get; }
-            = Register("UPDATE");
+            = Register("UPDATE",  IsIdempotent: true);
 
         /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
@@ -445,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Parse   (Text)
+        #region Parse    (Text)
 
         /// <summary>
         /// Parse the given string as a HTTP method.
@@ -476,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParse(Text)
+        #region TryParse (Text)
 
         /// <summary>
         /// Try to parse the given text as a HTTP method.
@@ -485,7 +476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IsSafe">Whether the HTTP method does not cause any changes or side-effects on the server-side.</param>
         /// <param name="IsIdempotent">Whether the HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
-        public static HTTPMethod? TryParse(String   Text,
+        public static HTTPMethod? TryParse(String?  Text,
                                            Boolean  IsSafe         = false,
                                            Boolean  IsIdempotent   = false,
                                            String?  Description    = null)
@@ -506,7 +497,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParse(Text, out HTTPMethod)
+        #region TryParse (Text, out HTTPMethod)
 
         // Note: The following is needed to satisfy pattern matching delegates! Do not refactor it!
 
@@ -515,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">An HTTP method name.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
-        public static Boolean TryParse(String                               Text,
+        public static Boolean TryParse(String?                              Text,
                                        [NotNullWhen(true)] out HTTPMethod?  HTTPMethod)
 
             => TryParse(Text,
@@ -533,16 +524,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IsSafe">Whether the HTTP method does not cause any changes or side-effects on the server-side.</param>
         /// <param name="IsIdempotent">Whether the HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
-        public static Boolean TryParse(String                               Text,
+        public static Boolean TryParse(String?                              Text,
                                        [NotNullWhen(true)] out HTTPMethod?  HTTPMethod,
                                        Boolean                              IsSafe         = false,
                                        Boolean                              IsIdempotent   = false,
                                        String?                              Description    = null)
         {
 
-            Text = Text.Trim();
+            if (Text.IsNullOrEmpty())
+            {
+                HTTPMethod = null;
+                return false;
+            }
 
-            if (Text.IsNotNullOrEmpty())
+            if (httpMethodRegex.IsMatch(Text))
             {
 
                 if (!lookup.TryGetValue(Text, out HTTPMethod))
@@ -550,6 +545,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           IsSafe,
                                           IsIdempotent,
                                           Description);
+
+                return true;
+
+            }
+
+            HTTPMethod = null;
+            return false;
+
+        }
+
+        #endregion
+
+
+        #region TryParseWithoutRegistration(Text)
+
+        /// <summary>
+        /// Try to parse the given text as an HTTP method, WITHOUT adding an unknown
+        /// HTTP method to the registry.
+        ///
+        /// Use this for everything received from the network! Otherwise a remote peer
+        /// could grow the registry without any bound, simply by sending a new HTTP
+        /// method name on every request.
+        ///
+        /// Unknown HTTP methods are still parsed successfully. As equality, hash code
+        /// and comparison are all based on the method name, such a transient HTTP
+        /// method is fully interchangeable with a registered one.
+        /// </summary>
+        /// <param name="Text">A text representation of an HTTP method.</param>
+        public static HTTPMethod? TryParseWithoutRegistration(String Text)
+        {
+
+            if (TryParseWithoutRegistration(Text, out var httpMethod))
+                return httpMethod;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryParseWithoutRegistration(Text, out HTTPMethod)
+
+        /// <summary>
+        /// Try to parse the given text as an HTTP method, WITHOUT adding an unknown
+        /// HTTP method to the registry.
+        ///
+        /// Use this for everything received from the network! Otherwise a remote peer
+        /// could grow the registry without any bound, simply by sending a new HTTP
+        /// method name on every request.
+        ///
+        /// Unknown HTTP methods are still parsed successfully. As equality, hash code
+        /// and comparison are all based on the method name, such a transient HTTP
+        /// method is fully interchangeable with a registered one.
+        /// </summary>
+        /// <param name="Text">A text representation of an HTTP method.</param>
+        /// <param name="HTTPMethod">The parsed HTTP method.</param>
+        public static Boolean TryParseWithoutRegistration(String                               Text,
+                                                          [NotNullWhen(true)] out HTTPMethod?  HTTPMethod)
+        {
+
+            if (Text.IsNullOrEmpty())
+            {
+                HTTPMethod = null;
+                return false;
+            }
+
+            if (httpMethodRegex.IsMatch(Text))
+            {
+
+                if (!lookup.TryGetValue(Text, out HTTPMethod))
+                    HTTPMethod = new HTTPMethod(Text);
 
                 return true;
 
@@ -619,7 +685,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPMethod1 is null)
-                throw new ArgumentNullException(nameof(HTTPMethod1), "The given constant stream data must not be null!");
+                throw new ArgumentNullException(nameof(HTTPMethod1), "The given HTTP method must not be null!");
 
             return HTTPMethod1.CompareTo(HTTPMethod2) < 0;
 
@@ -655,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPMethod1 is null)
-                throw new ArgumentNullException(nameof(HTTPMethod1), "The given constant stream data must not be null!");
+                throw new ArgumentNullException(nameof(HTTPMethod1), "The given HTTP method must not be null!");
 
             return HTTPMethod1.CompareTo(HTTPMethod2) > 0;
 
@@ -704,28 +770,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPMethod">An HTTP method to compare with.</param>
         public Int32 CompareTo(HTTPMethod? HTTPMethod)
-        {
 
-            if (HTTPMethod is null)
-                throw new ArgumentNullException(nameof(HTTPMethod),
-                                                "The given HTTP method must not be null!");
-
-            var c = String.Compare(MethodName,
-                                   HTTPMethod.MethodName,
-                                   StringComparison.OrdinalIgnoreCase);
-
-            if (c == 0)
-                c = IsSafe.      CompareTo(HTTPMethod.IsSafe);
-
-            if (c == 0)
-                c = IsIdempotent.CompareTo(HTTPMethod.IsIdempotent);
-
-            if (c == 0 && Description is not null && HTTPMethod.Description is not null)
-                c = Description. CompareTo(HTTPMethod.Description);
-
-            return c;
-
-        }
+            => HTTPMethod is null
+                   ? 1
+                   : StringComparer.Ordinal.Compare(
+                         MethodName,
+                         HTTPMethod.MethodName
+                     );
 
         #endregion
 
@@ -758,13 +809,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                String.Equals(MethodName,
                              HTTPMethod.MethodName,
-                             StringComparison.OrdinalIgnoreCase) &&
-
-               IsSafe.      Equals(HTTPMethod.IsSafe)       &&
-               IsIdempotent.Equals(HTTPMethod.IsIdempotent) &&
-
-             ((Description is null     && HTTPMethod.Description is null) ||
-              (Description is not null && HTTPMethod.Description is not null && Description.Equals(HTTPMethod.Description)));
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -772,13 +817,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (override) GetHashCode()
 
-        private readonly Int32 hashCode;
-
         /// <summary>
         /// Return the hash code of this object.
         /// </summary>
         public override Int32 GetHashCode()
-            => hashCode;
+
+            => StringComparer.Ordinal.GetHashCode(MethodName);
 
         #endregion
 

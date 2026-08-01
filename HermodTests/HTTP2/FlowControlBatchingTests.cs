@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var encoder     = new HPACKEncoder();
             var headerBlock = encoder.EncodeHeaderBlock(
             [
-                (":method", "POST"), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"),
+                (":method", HTTPMethod.POST.ToString()), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"),
                 (":path", "/upload"), ("content-length", bodyLength.ToString())
             ]);
             await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1, headerBlock, EndStream: false, EndHeaders: true).Serialize(), cts.Token);

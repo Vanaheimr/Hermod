@@ -21,6 +21,7 @@ using System.Text;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -211,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await cache.GetAsync("/invalidate");
             await cache.GetAsync("/invalidate");                                  // HIT
             Assert.That(OriginHits("/invalidate"), Is.EqualTo(1), "cached before POST");
-            await cache.SendRequestAsync("POST", "/invalidate", Body: Encoding.UTF8.GetBytes("x"));
+            await cache.SendRequestAsync(HTTPMethod.POST, "/invalidate", Body: Encoding.UTF8.GetBytes("x"));
             await cache.GetAsync("/invalidate");                                  // MISS again
             Assert.That(OriginHits("/invalidate"), Is.EqualTo(3), "re-fetched after POST invalidation");
         }

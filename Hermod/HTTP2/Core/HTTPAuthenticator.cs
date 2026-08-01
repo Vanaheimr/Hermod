@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
@@ -79,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // The request's method + target, which a challenge-binding scheme (Digest)
             // folds into its hash; Basic/Bearer ignore them.
-            var method = RequestHeaders.FirstOrDefault(h => h.Name == ":method").Value ?? "GET";
+            var method = HTTPMethod.TryParseWithoutRegistration(RequestHeaders.FirstOrDefault(h => h.Name == ":method").Value) ?? HTTPMethod.GET;
             var target = RequestHeaders.FirstOrDefault(h => h.Name == ":path").Value   ?? "/";
 
             return await scheme.AuthenticateAsync(credentials, method, target, CancellationToken);

@@ -21,6 +21,7 @@ using System.Net.Security;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -58,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.That(await H2.EventuallyAsync(() => pool.ConnectionCount == 4), Is.True, "pool warms up to 4 connections");
 
             var results = await Task.WhenAll(Enumerable.Range(0, 40).Select(_ =>
-                pool.SendRequestAsync("GET", "https", $"127.0.0.1:{srv.Port}", "/")));
+                pool.SendRequestAsync(HTTPMethod.GET, "https", $"127.0.0.1:{srv.Port}", "/")));
 
             Assert.Multiple(() =>
             {
@@ -89,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await H2.EventuallyAsync(() => pool.ConnectionCount == 4);
 
             var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
-                pool.SendRequestAsync("GET", "https", "127.0.0.1", "/")));
+                pool.SendRequestAsync(HTTPMethod.GET, "https", "127.0.0.1", "/")));
 
             Assert.Multiple(() =>
             {
@@ -120,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var allOk = true;
             for (var i = 0; i < 6; i++)
             {
-                var r = await pool.SendRequestAsync("GET", "https", "127.0.0.1", "/");
+                var r = await pool.SendRequestAsync(HTTPMethod.GET, "https", "127.0.0.1", "/");
                 if (r.Status != 200) allOk = false;
             }
 
@@ -153,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             await using var pool = await HTTP2ClientPool.ConnectAsync("127.0.0.1", mock.Port, H2.AcceptAnyServerCert, MaxConnections: 1);
 
-            var resp = await pool.SendRequestAsync("GET", "https", "127.0.0.1", "/");
+            var resp = await pool.SendRequestAsync(HTTPMethod.GET, "https", "127.0.0.1", "/");
             Assert.Multiple(() =>
             {
                 Assert.That(resp.Status,     Is.EqualTo(200),            "request succeeds after failing over to a fresh connection");
@@ -174,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var pool = await HTTP2ClientPool.ConnectAsync("127.0.0.1", srv.Port, H2.AcceptAnyServerCert, MaxConnections: 2);
             await pool.DisposeAsync();
 
-            Assert.That(async () => await pool.SendRequestAsync("GET", "https", $"127.0.0.1:{srv.Port}", "/"),
+            Assert.That(async () => await pool.SendRequestAsync(HTTPMethod.GET, "https", $"127.0.0.1:{srv.Port}", "/"),
                         Throws.TypeOf<ObjectDisposedException>(),
                         "disposed pool throws ObjectDisposedException");
         }

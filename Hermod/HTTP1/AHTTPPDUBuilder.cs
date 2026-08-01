@@ -200,7 +200,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 }
 
-                                sb.Append($"{headerField.Key}: {list.AggregateCSV()}\r\n");
+                                if (list.Count > 0)
+                                    sb.Append($"{headerField.Key}: {list.AggregateCSV()}\r\n");
+
                                 break;
 
                             default:
@@ -600,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Access-Control-Allow-Methods
         /// </summary>
-        public IEnumerable<String> AccessControlAllowMethods
+        public IEnumerable<HTTPMethod> AccessControlAllowMethods
         {
 
             get

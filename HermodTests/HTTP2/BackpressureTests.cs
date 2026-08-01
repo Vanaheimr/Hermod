@@ -21,6 +21,7 @@ using System.Text;
 using System.Buffers.Binary;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -70,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var encoder     = new HPACKEncoder();
             var headerBlock = encoder.EncodeHeaderBlock(
-                [(":method", "POST"), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/stream")]);
+                [(":method", HTTPMethod.POST.ToString()), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/stream")]);
             await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1, headerBlock, EndStream: false, EndHeaders: true).Serialize(), cts.Token);
 
             // Upload 34 x 16 KiB = 544 KiB — past half the window (524288), under 1 MiB.
@@ -152,11 +153,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var encoder = new HPACKEncoder();
 
-            List<(String, String)> Req(String method, String? contentLength)
+            List<(String, String)> Req(HTTPMethod method, String? contentLength)
             {
                 var hdrs = new List<(String, String)>
                 {
-                    (":method", method), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/upload")
+                    (":method", method.ToString()), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/upload")
                 };
                 if (contentLength is not null) hdrs.Add(("content-length", contentLength));
                 return hdrs;
@@ -176,12 +177,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             }
 
             // (a) Declared content-length over the cap -> refused up front.
-            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1, encoder.EncodeHeaderBlock(Req("POST", (cap * 100).ToString())), EndStream: false, EndHeaders: true).Serialize(), cts.Token);
+            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1, encoder.EncodeHeaderBlock(Req(HTTPMethod.POST, (cap * 100).ToString())), EndStream: false, EndHeaders: true).Serialize(), cts.Token);
             await ssl.FlushAsync(cts.Token);
             var (rst1, _) = await DriveResponse(1);
 
             // (b) Undeclared length, body streamed past the cap -> refused mid-stream.
-            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(3, encoder.EncodeHeaderBlock(Req("POST", null)), EndStream: false, EndHeaders: true).Serialize(), cts.Token);
+            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(3, encoder.EncodeHeaderBlock(Req(HTTPMethod.POST, null)), EndStream: false, EndHeaders: true).Serialize(), cts.Token);
             var body = new Byte[512];
             new Random(5).NextBytes(body);
             for (var i = 0; i < 4; i++)   // 4 x 512 = 2048 > 1024 cap
@@ -190,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var (rst2, _) = await DriveResponse(3);
 
             // (c) A body under the cap still succeeds — the connection stayed usable.
-            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(5, encoder.EncodeHeaderBlock(Req("POST", "10")), EndStream: false, EndHeaders: true).Serialize(), cts.Token);
+            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(5, encoder.EncodeHeaderBlock(Req(HTTPMethod.POST, "10")), EndStream: false, EndHeaders: true).Serialize(), cts.Token);
             await ssl.WriteAsync(HTTP2Frame.CreateData(5, Encoding.UTF8.GetBytes("0123456789"), EndStream: true).Serialize(), cts.Token);
             await ssl.FlushAsync(cts.Token);
             var (_, status3) = await DriveResponse(5);

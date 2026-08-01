@@ -17,7 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Globalization;
 
     /// <summary>
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Authorization rule of Section 3.5.)
         /// </summary>
         public static bool IsStorable(
-            string                            Method,
+            HTTPMethod                        Method,
             bool                              RequestHasAuthorization,
             HTTPCacheControl                  RequestCacheControl,
             int                               Status,
@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
 
             // Only responses to safe, cacheable methods (GET/HEAD here).
-            if (Method is not ("GET" or "HEAD"))
+            if (Method != HTTPMethod.GET && Method != HTTPMethod.HEAD)
                 return false;
 
             // no-store on either side forbids storage.

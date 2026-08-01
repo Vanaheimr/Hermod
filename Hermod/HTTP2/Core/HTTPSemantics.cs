@@ -17,7 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Globalization;
     using System.IO.Compression;
     using System.Security.Cryptography;
@@ -144,19 +144,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             => async (StreamId, RequestHeaders, RequestBody, CancellationToken) =>
             {
 
-                var method = RequestHeaders.FirstOrDefault(h => h.Name == ":method").Value ?? "GET";
-                var path   = RequestHeaders.FirstOrDefault(h => h.Name == ":path").Value   ?? "/";
+                var method = HTTPMethod.TryParseWithoutRegistration(RequestHeaders.FirstOrDefault(h => h.Name == ":method").Value) ?? HTTPMethod.GET;
+                var path   = RequestHeaders.FirstOrDefault(h => h.Name == ":path").  Value ?? "/";
 
                 // Allow-set for OPTIONS/405 — QUERY only when a handler backs it.
                 var allow = QueryHandler is null ? "GET, HEAD, OPTIONS" : "GET, HEAD, OPTIONS, QUERY";
 
-                if (method == "OPTIONS")
+                if (method == HTTPMethod.OPTIONS)
                     return OptionsResponse(allow);
 
                 // QUERY (RFC 10008): a safe, idempotent, cacheable method whose query
                 // lives in the request body. Only handled if an app registered a
                 // QueryHandler; otherwise it falls through to 405 like any other method.
-                if (method == "QUERY" && QueryHandler is not null)
+                if (method == HTTPMethod.QUERY && QueryHandler is not null)
                 {
 
                     var contentType = RequestHeaders.FirstOrDefault(h => h.Name == "content-type").Value;
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // 9.3.7) and, optionally, QUERY (above) — anything else
                 // (POST/PUT/DELETE/PATCH/...) is a resource-creation/mutation concern
                 // this "core mechanics" slice deliberately doesn't take a position on.
-                if (method is not ("GET" or "HEAD"))
+                if (method != HTTPMethod.GET && method != HTTPMethod.HEAD)
                     return MethodNotAllowed(allow);
 
                 var variants = await VariantHandler(path, RequestHeaders, CancellationToken);
@@ -210,10 +210,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private static (List<(string Name, string Value)> Headers, byte[]? Body) RunRepresentationPipeline(
             List<(string Name, string Value)>  RequestHeaders,
-            string                              Method,
-            IReadOnlyList<HTTPResource>         Variants,
-            bool                                CompressResponses,
-            bool                                ContentDigests)
+            HTTPMethod                         Method,
+            IReadOnlyList<HTTPResource>        Variants,
+            bool                               CompressResponses,
+            bool                               ContentDigests)
         {
 
             if (Variants.Count == 0)
@@ -264,16 +264,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private static (List<(string Name, string Value)> Headers, byte[]? Body) BuildRepresentationResult(
             List<(string Name, string Value)>  RequestHeaders,
-            string                              Method,
-            HTTPResource                        Resource,
-            string                              ETag)
+            HTTPMethod                         Method,
+            HTTPResource                       Resource,
+            string                             ETag)
         {
 
             var conditional = EvaluateConditionalRequest(RequestHeaders, Method, ETag, Resource.LastModified);
             if (conditional is not null)
                 return conditional.Value;
 
-            if (Method == "HEAD")
+            if (Method == HTTPMethod.HEAD)
                 return FullResponse(Resource, ETag, Body: null);
 
             // Range only applies to GET here — HEAD has no body to slice,
@@ -856,11 +856,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// 412 or 304 if one of them fires. Returns null if none did (proceed
         /// with normal processing).
         /// </summary>
-        private static (List<(string Name, string Value)> Headers, byte[]? Body)? EvaluateConditionalRequest(
-            List<(string Name, string Value)>  RequestHeaders,
-            string                              Method,
-            string                              ETag,
-            DateTimeOffset?                     LastModified)
+        private static (List<(String Name, String Value)> Headers, Byte[]? Body)? EvaluateConditionalRequest(
+            List<(String Name, String Value)>  RequestHeaders,
+            HTTPMethod                         Method,
+            String                             ETag,
+            DateTimeOffset?                    LastModified)
         {
 
             var ifMatch = RequestHeaders.FirstOrDefault(h => h.Name == "if-match").Value;
@@ -894,9 +894,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // conditional semantics mirror GET on the "equivalent resource"),
                 // 412 for anything else this wrapper would otherwise have let through.
                 if (!IfNoneMatchPasses(ifNoneMatch, ETag))
-                    return Method is "GET" or "HEAD" or "QUERY" ? NotModified(ETag, LastModified) : PreconditionFailed();
+                    return Method == HTTPMethod.GET || Method == HTTPMethod.HEAD || Method == HTTPMethod.QUERY ? NotModified(ETag, LastModified) : PreconditionFailed();
             }
-            else if (Method is "GET" or "HEAD" or "QUERY")
+            else if (Method == HTTPMethod.GET || Method == HTTPMethod.HEAD || Method == HTTPMethod.QUERY)
             {
                 // Section 13.1.4: If-Modified-Since is only evaluated for
                 // GET/HEAD, and only when If-None-Match was absent.

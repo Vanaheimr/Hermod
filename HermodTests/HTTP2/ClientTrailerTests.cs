@@ -21,7 +21,7 @@ using System.Text;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(NotUsed, StreamingHandler: EchoTrailers);
 
             var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var stream = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo");
+            var stream = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo");
 
             await stream.WriteAsync("hello "u8.ToArray());
             await stream.WriteAsync("world"u8.ToArray());
@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(NotUsed, StreamingHandler: EchoTrailers);
 
             var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var stream = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo");
+            var stream = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo");
 
             await stream.CompleteRequestAsync([("x-only", "trailer")]);
 
@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(NotUsed, StreamingHandler: EchoTrailers);
 
             var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var stream = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo");
+            var stream = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo");
 
             await stream.WriteAsync("payload"u8.ToArray());
             await stream.CompleteRequestAsync();
@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var (head, body, _) = await DrainAsync(stream);
 
             // An empty list is the same statement as no list at all.
-            var empty  = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo");
+            var empty  = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo");
             await empty.WriteAsync("payload"u8.ToArray());
             await empty.CompleteRequestAsync([]);
 
@@ -220,17 +220,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var pseudo = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo");
+            var pseudo = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo");
             Assert.That(async () => await pseudo.CompleteRequestAsync([(":status", "200")]),
                         Throws.InstanceOf<HTTP2StreamException>(), "pseudo-header fields belong to the leading section");
 
-            var upper = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo");
+            var upper = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo");
             Assert.That(async () => await upper.CompleteRequestAsync([("X-Upper", "no")]),
                         Throws.InstanceOf<HTTP2StreamException>(), "field names are lowercase on the wire");
 
             // Both requests were abandoned without END_STREAM; the connection itself
             // must be unharmed.
-            var ok = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo");
+            var ok = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo");
             await ok.CompleteRequestAsync([("x-fine", "yes")]);
             var (head, body, _) = await DrainAsync(ok);
 
@@ -273,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 }));
 
             var conn   = await HTTP2Client.ConnectAsync("localhost", kestrel.Port, H2.AcceptAnyServerCert);
-            var stream = await conn.StartStreamingRequestAsync("POST", "https", $"localhost:{kestrel.Port}", "/trailers");
+            var stream = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{kestrel.Port}", "/trailers");
 
             await stream.WriteAsync("twelve bytes"u8.ToArray());
             await stream.CompleteRequestAsync([

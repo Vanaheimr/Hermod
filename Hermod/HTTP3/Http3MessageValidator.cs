@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3.Qpack;
 
 #endregion
@@ -42,7 +43,8 @@ internal static class Http3MessageValidator
     {
         bool regularSeen = false;
         int method = 0, scheme = 0, path = 0, authority = 0, protocol = 0;
-        string methodValue = "", schemeValue = "", pathValue = "", authorityValue = "", protocolValue = "";
+        HTTPMethod? methodValue = null;
+        String schemeValue = "", pathValue = "", authorityValue = "", protocolValue = "";
         string? hostValue = null;
 
         foreach (HeaderField field in fields)
@@ -55,7 +57,7 @@ internal static class Http3MessageValidator
                     return "invalid characters in pseudo-header value";
                 switch (field.Name)
                 {
-                    case ":method": method++; methodValue = field.Value; break;
+                    case ":method": method++; methodValue = HTTPMethod.TryParseWithoutRegistration(field.Value); break;
                     case ":scheme": scheme++; schemeValue = field.Value; break;
                     case ":path": path++; pathValue = field.Value; break;
                     case ":authority": authority++; authorityValue = field.Value; break;
@@ -75,11 +77,12 @@ internal static class Http3MessageValidator
 
         if (method != 1)
             return "exactly one :method required"; // §4.3.1
-        if (methodValue.Length == 0)
+        // TryParse... returns null for an empty or whitespace-only method name.
+        if (methodValue is null)
             return "empty :method";
 
         // :protocol is ONLY defined on CONNECT requests (RFC 8441 §4).
-        if (protocol > 0 && methodValue != "CONNECT")
+        if (protocol > 0 && methodValue != HTTPMethod.CONNECT)
             return ":protocol on non-CONNECT request";
         if (protocol > 1)
             return "multiple :protocol values"; // RFC 8441 §4: single valued
@@ -87,11 +90,11 @@ internal static class Http3MessageValidator
         // Classic CONNECT (§4.4): :scheme/:path MUST be absent, :authority MUST be present.
         // Extended CONNECT (RFC 8441 §4): with :protocol, :scheme and :path MUST be present and
         // :authority follows the NORMAL request rules — that case falls through below.
-        if (methodValue == "CONNECT" && protocol == 0)
+        if (methodValue == HTTPMethod.CONNECT && protocol == 0)
             return scheme > 0 || path > 0 ? "CONNECT with :scheme/:path"
                  : authority != 1 || authorityValue.Length == 0 ? "CONNECT without :authority"
                  : null;
-        if (methodValue == "CONNECT" && protocolValue.Length == 0)
+        if (methodValue == HTTPMethod.CONNECT && protocolValue.Length == 0)
             return "empty :protocol";
 
         if (scheme != 1 || path != 1)

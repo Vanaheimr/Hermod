@@ -17,7 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <param name="WWWAuthenticate">The challenge field values from the 401.</param>
         /// <param name="Method">The request method, which Digest signs over.</param>
         /// <param name="RequestTarget">The <c>:path</c>, which Digest also signs over.</param>
-        public String? Answer(IEnumerable<String> WWWAuthenticate, String Method, String RequestTarget)
+        public String? Answer(IEnumerable<String> WWWAuthenticate, HTTPMethod Method, String RequestTarget)
         {
 
             var challenges = ParseChallenges(WWWAuthenticate);
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        private String? AnswerOne(String Scheme, String Parameters, String Method, String RequestTarget)
+        private String? AnswerOne(String Scheme, String Parameters, HTTPMethod Method, String RequestTarget)
 
             => Scheme.ToLowerInvariant() switch {
 
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// server nonce across requests is the normal case, and repeating an nc
         /// value with it would be exactly the replay the mechanism exists to stop.
         /// </summary>
-        private String? BuildDigest(String Parameters, String Method, String RequestTarget)
+        private String? BuildDigest(String Parameters, HTTPMethod Method, String RequestTarget)
         {
 
             var p = HTTPAuthParams.Parse(Parameters);

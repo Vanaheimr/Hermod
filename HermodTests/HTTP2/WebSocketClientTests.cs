@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                         Throws.Exception, "unknown WebSocket path is rejected");
 
             // Connection still usable for an ordinary request afterward.
-            var resp = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
             Assert.That(resp.Status, Is.EqualTo(404), "connection healthy after a rejected CONNECT");
 
             await conn.CloseAsync();

@@ -23,6 +23,7 @@ using System.IO.Compression;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -58,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         [OneTimeSetUp]
         public async Task StartServer()
-            => srv = await TestH2Server.StartAsync(HTTPSemantics.Wrap(Resource, CompressResponses: true));
+            => srv = await TestH2Server.StartAsync(Hermod.HTTP2.HTTPSemantics.Wrap(Resource, CompressResponses: true));
 
         [OneTimeTearDown]
         public async Task StopServer()
@@ -88,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
             var conn  = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var extra = acceptEncoding is null ? null : new List<(String, String)> { ("accept-encoding", acceptEncoding) };
-            var resp  = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", path, extra);
+            var resp  = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", path, extra);
             await conn.CloseAsync();
             return resp;
         }
@@ -193,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var etag  = first.HeaderValue("etag")!;
 
             var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var second = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/big",
+            var second = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/big",
                              new List<(String, String)> { ("accept-encoding", "gzip"), ("if-none-match", etag) });
             await conn.CloseAsync();
 

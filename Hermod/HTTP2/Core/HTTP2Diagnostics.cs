@@ -17,7 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Diagnostics;
 
 
@@ -84,19 +84,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Begin a span covering one request/response exchange on one stream. Null
         /// when unobserved.
         /// </summary>
-        public static Activity? StartRequest(String? Method,
-                                             String? Scheme,
-                                             String? Authority,
-                                             String? Path,
-                                             UInt32  StreamId,
-                                             String  Role)
+        public static Activity? StartRequest(HTTPMethod?  Method,
+                                             String?      Scheme,
+                                             String?      Authority,
+                                             String?      Path,
+                                             UInt32       StreamId,
+                                             String       Role)
         {
 
             // OpenTelemetry names an HTTP span after the method (the route, when
             // known, but this layer has no notion of routes — that is the
             // application's business).
             var activity = ActivitySource.StartActivity(
-                               Method ?? "HTTP",
+                               Method?.ToString() ?? "HTTP",
                                Role == "server" ? ActivityKind.Server : ActivityKind.Client
                            );
 

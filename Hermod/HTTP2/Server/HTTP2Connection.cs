@@ -17,6 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Buffers.Binary;
     using System.Net.Security;
     using System.Text;
@@ -2478,7 +2479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // One span per request, nested inside the connection's. Null unless
             // something is listening, and disposed on every path out of here.
-            var method = requestHeaders.FirstOrDefault(header => header.Name == ":method").Value;
+            var method = HTTPMethod.TryParseWithoutRegistration(requestHeaders.FirstOrDefault(header => header.Name == ":method").Value);
             var path   = requestHeaders.FirstOrDefault(header => header.Name == ":path").  Value;
 
             using var activity = HTTP2Diagnostics.StartRequest(
@@ -2507,7 +2508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                  : 0;
 
                 HTTP2Diagnostics.Complete(activity, status);
-                HTTP2EventSource.Log.RequestHandled((int) Stream.StreamId, method ?? "?", path ?? "?", status);
+                HTTP2EventSource.Log.RequestHandled((int) Stream.StreamId, method?.ToString() ?? "?", path ?? "?", status);
 
             }
             catch (OperationCanceledException)

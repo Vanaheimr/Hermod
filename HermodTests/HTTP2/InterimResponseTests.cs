@@ -20,7 +20,7 @@
 using System.Net;
 using System.Net.Security;
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
             var body = Encoding.UTF8.GetBytes("the request body");
-            var resp = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo",
+            var resp = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo",
                            new List<(String, String)> { ("expect", "100-continue") }, body);
 
             Assert.Multiple(() =>
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // A request WITHOUT expect gets no interim 100.
-            var plain = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo", null, body);
+            var plain = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo", null, body);
             Assert.That(plain.InformationalResponses.All(i => i.Status != 100), Is.True, "no expect -> no interim 100");
 
             await conn.CloseAsync();
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Unused, StreamingHandler: EarlyHints);
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/page");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/page");
 
             var early = resp.InformationalResponses.FirstOrDefault(i => i.Status == 103);
             var links = early.Headers?.Where(h => h.Name == "link").Select(h => h.Value).ToList() ?? [];

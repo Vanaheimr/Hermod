@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -81,10 +81,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// useless for observing the refusal itself, so the server-side tests go one
         /// layer down to <c>StartRequestAsync</c> and read the first answer.
         /// </summary>
-        private static async Task<HTTP2Response> RawAsync(HTTP2ClientConnection Connection,
-                                                          String                Method,
-                                                          String                Authority,
-                                                          Byte[]?               Body = null)
+        private static async Task<HTTP2Response> RawAsync(HTTP2ClientConnection  Connection,
+                                                          HTTPMethod             Method,
+                                                          String                 Authority,
+                                                          Byte[]?                Body = null)
         {
             var handle = await Connection.StartRequestAsync(Method, "https", Authority, "/", Flagged, Body);
             return await handle.Response;
@@ -98,8 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public void EarlyData_IsRecognisedAndJudgedBySafety()
         {
 
-            Assert.Multiple(() =>
-            {
+            Assert.Multiple(() => {
 
                 Assert.That(HTTP2EarlyData.IsFlagged([("early-data", "1")]),   Is.True);
                 Assert.That(HTTP2EarlyData.IsFlagged([("early-data", " 1 ")]), Is.True,  "whitespace is not significant");
@@ -107,16 +106,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(HTTP2EarlyData.IsFlagged([("x", "1")]),            Is.False);
                 Assert.That(HTTP2EarlyData.IsFlagged([]),                      Is.False);
 
-                foreach (var safe in new[] { "GET", "HEAD", "OPTIONS", "TRACE", "QUERY" })
-                    Assert.That(HTTP2EarlyData.IsSafeMethod(safe), Is.True, safe);
+                foreach (var safe in new[] { HTTPMethod.GET, HTTPMethod.HEAD, HTTPMethod.OPTIONS, HTTPMethod.TRACE, HTTPMethod.QUERY })
+                    Assert.That(HTTP2EarlyData.IsSafeMethod(safe), Is.True, safe.ToString());
 
                 // Idempotent is not the same as safe: replaying a PUT after a later
                 // change undoes it, so PUT and DELETE are refused too.
-                foreach (var unsafeMethod in new[] { "POST", "PUT", "DELETE", "PATCH", "CONNECT", null })
-                    Assert.That(HTTP2EarlyData.IsSafeMethod(unsafeMethod), Is.False, unsafeMethod ?? "(null)");
+                foreach (var unsafeMethod in new[] { HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.DELETE, HTTPMethod.PATCH, HTTPMethod.CONNECT, null })
+                    Assert.That(HTTP2EarlyData.IsSafeMethod(unsafeMethod), Is.False, unsafeMethod?.ToString() ?? "(null)");
 
-                Assert.That(HTTP2EarlyData.IsSafeToProcess([(":method", "GET")]),  Is.True);
-                Assert.That(HTTP2EarlyData.IsSafeToProcess([(":method", "POST")]), Is.False);
+                Assert.That(HTTP2EarlyData.IsSafeToProcess([(":method", "GET". ToString())]),  Is.True);
+                Assert.That(HTTP2EarlyData.IsSafeToProcess([(":method", HTTPMethod.POST.ToString())]), Is.False);
 
             });
 
@@ -135,8 +134,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn      = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var safe    = await RawAsync(conn, "GET",  authority);
-            var refused = await RawAsync(conn, "POST", authority, "payload"u8.ToArray());
+            var safe    = await RawAsync(conn, HTTPMethod.GET,  authority);
+            var refused = await RawAsync(conn, HTTPMethod.POST, authority, "payload"u8.ToArray());
 
             await conn.CloseAsync();
 
@@ -169,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var post = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/", Body: "payload"u8.ToArray());
+            var post = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/", Body: "payload"u8.ToArray());
 
             await conn.CloseAsync();
 
@@ -197,8 +196,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn      = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var safe    = await RawAsync(conn, "GET",  authority);
-            var refused = await RawAsync(conn, "POST", authority, "payload"u8.ToArray());
+            var safe    = await RawAsync(conn, HTTPMethod.GET,  authority);
+            var refused = await RawAsync(conn, HTTPMethod.POST, authority, "payload"u8.ToArray());
 
             await conn.CloseAsync();
 
@@ -225,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var post = await RawAsync(conn, "POST", $"localhost:{srv.Port}", "payload"u8.ToArray());
+            var post = await RawAsync(conn, HTTPMethod.POST, $"localhost:{srv.Port}", "payload"u8.ToArray());
 
             await conn.CloseAsync();
 
@@ -249,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var post = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/",
+            var post = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/",
                            Flagged, "payload"u8.ToArray());
 
             await conn.CloseAsync();
@@ -296,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var response = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/",
+            var response = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/",
                                Flagged, "payload"u8.ToArray());
 
             await conn.CloseAsync();
@@ -332,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var response = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/",
+            var response = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/",
                                Flagged, "payload"u8.ToArray());
 
             await conn.CloseAsync();

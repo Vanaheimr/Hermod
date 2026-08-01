@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
@@ -28,12 +30,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// <param name="Method">Method for the follow-up request — possibly rewritten to GET.</param>
     /// <param name="KeepBody">Whether the original request body is replayed (307/308) or dropped (301/302/303).</param>
     /// <param name="SameOrigin">Whether the target is the same scheme + authority as the request that was redirected.</param>
-    public sealed record HTTPRedirectTarget(String  Scheme,
-                                            String  Authority,
-                                            String  Path,
-                                            String  Method,
-                                            Boolean KeepBody,
-                                            Boolean SameOrigin)
+    public sealed record HTTPRedirectTarget(String      Scheme,
+                                            String      Authority,
+                                            String      Path,
+                                            HTTPMethod  Method,
+                                            Boolean     KeepBody,
+                                            Boolean     SameOrigin)
     {
 
         /// <summary>The target as an absolute URI string, for logging or handing onwards.</summary>
@@ -94,13 +96,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <param name="RequestPath">Path of the request being redirected — the base for a relative reference.</param>
         /// <param name="RequestMethod">Method of the request being redirected.</param>
         /// <param name="Target">The resolved follow-up request.</param>
-        public static Boolean TryResolve(Int32                     Status,
-                                         String?                   Location,
-                                         String                    RequestScheme,
-                                         String                    RequestAuthority,
-                                         String                    RequestPath,
-                                         String                    RequestMethod,
-                                         out HTTPRedirectTarget?   Target)
+        public static Boolean TryResolve(Int32                    Status,
+                                         String?                  Location,
+                                         String                   RequestScheme,
+                                         String                   RequestAuthority,
+                                         String                   RequestPath,
+                                         HTTPMethod               RequestMethod,
+                                         out HTTPRedirectTarget?  Target)
         {
 
             Target = null;
@@ -137,23 +139,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// The method and body rules of RFC 9110, Section 15.4 — see the class
         /// remarks for why they differ per status.
         /// </summary>
-        private static (String Method, Boolean KeepBody) Rewrite(Int32 Status, String Method)
+        private static (HTTPMethod Method, Boolean KeepBody)
 
-            => Status switch {
+            Rewrite(Int32 Status, HTTPMethod Method)
 
-                   // MUST preserve both.
-                   307 or 308 => (Method, true),
 
-                   // Always GET, except that HEAD stays HEAD.
-                   303        => (Method.Equals("HEAD", StringComparison.Ordinal) ? "HEAD" : "GET", false),
+                => Status switch {
 
-                   // POST becomes GET (universal practice, permitted explicitly);
-                   // anything else is preserved, body and all.
-                   _          => Method.Equals("POST", StringComparison.Ordinal)
-                                     ? ("GET",  false)
-                                     : (Method, true)
+                        // MUST preserve both.
+                        307 or 308 => (Method, true),
 
-               };
+                        // Always GET, except that HEAD stays HEAD.
+                        303        => (Method.Equals(HTTPMethod.HEAD) ? HTTPMethod.HEAD : HTTPMethod.GET, false),
+
+                        // POST becomes GET (universal practice, permitted explicitly);
+                        // anything else is preserved, body and all.
+                        _          => Method.Equals(HTTPMethod.POST)
+                                            ? (HTTPMethod.GET,  false)
+                                            : (Method, true)
+
+                    };
 
         #endregion
 

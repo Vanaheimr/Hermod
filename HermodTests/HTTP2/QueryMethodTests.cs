@@ -21,7 +21,7 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography;
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         [OneTimeSetUp]
         public async Task StartServer()
             => srv = await TestH2Server.StartAsync(
-                         HTTPSemantics.Wrap((HTTPResourceHandler) ResourceHandler, QueryHandler: QueryHandler));
+                         Hermod.HTTP2.HTTPSemantics.Wrap((HTTPResourceHandler) ResourceHandler, QueryHandler: QueryHandler));
 
         [OneTimeTearDown]
         public async Task StopServer()
@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 return await http.SendAsync(req);
             }
 
-            var query = new HttpMethod("QUERY");
+            var query = new HttpMethod(HTTPMethod.QUERY.ToString());
 
             // GET /search -> the whole corpus.
             var get     = await Send(HttpMethod.Get, "/search");
@@ -137,16 +137,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.Multiple(() =>
             {
                 Assert.That((Int32) opt.StatusCode, Is.EqualTo(204));
-                Assert.That(allow, Does.Contain("QUERY"), "OPTIONS Allow lists QUERY");
+                Assert.That(allow, Does.Contain(HTTPMethod.QUERY.ToString()), "OPTIONS Allow lists QUERY");
             });
 
             // POST (unsupported) -> 405, Allow still lists QUERY.
             var post      = await Send(HttpMethod.Post, "/search", "x");
             var postAllow = post.Content.Headers.Allow.Count > 0 ? String.Join(", ", post.Content.Headers.Allow) : "";
-            Assert.Multiple(() =>
-            {
+            Assert.Multiple(() => {
                 Assert.That((Int32) post.StatusCode, Is.EqualTo(405));
-                Assert.That(postAllow, Does.Contain("QUERY"), "405 Allow lists QUERY");
+                Assert.That(postAllow, Does.Contain(HTTPMethod.QUERY.ToString()), "405 Allow lists QUERY");
             });
 
         }
@@ -167,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn      = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var q = await conn.SendRequestAsync("QUERY", "https", authority, "/search",
+            var q = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/search",
                         ExtraHeaders: [("content-type", "text/plain")], Body: Encoding.UTF8.GetBytes("ap"));
             Assert.Multiple(() =>
             {
@@ -177,11 +176,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // RFC 10008 §4: a QUERY with content but no Content-Type MUST fail (400).
-            var noCt = await conn.SendRequestAsync("QUERY", "https", authority, "/search", Body: Encoding.UTF8.GetBytes("ap"));
+            var noCt = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/search", Body: Encoding.UTF8.GetBytes("ap"));
             Assert.That(noCt.Status, Is.EqualTo(400), "body without Content-Type -> 400");
 
             // QUERY to an unknown path -> the handler returns null -> 404.
-            var missing = await conn.SendRequestAsync("QUERY", "https", authority, "/nope",
+            var missing = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/nope",
                               ExtraHeaders: [("content-type", "text/plain")], Body: Encoding.UTF8.GetBytes("x"));
             Assert.That(missing.Status, Is.EqualTo(404), "unknown path -> 404");
 

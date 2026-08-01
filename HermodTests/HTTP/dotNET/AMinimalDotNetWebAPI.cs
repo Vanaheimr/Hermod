@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             #region HEAD    /
 
             app.MapMethods("/",
-                           [ "HEAD" ],
+                           [ HTTPMethod.HEAD.ToString() ],
                            (HttpResponse httpResponse) => {
 
                                httpResponse.StatusCode     = StatusCodes.Status200OK;
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             #region QUERY   /query
 
             app.MapMethods("/query",
-                           [ "QUERY" ],
+                           [ HTTPMethod.QUERY.ToString() ],
                            async (HttpRequest   httpRequest,
                                   HttpResponse  httpResponse) => {
 

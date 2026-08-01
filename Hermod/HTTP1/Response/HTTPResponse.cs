@@ -513,9 +513,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Access-Control-Allow-Methods
         /// </summary>
-        public IEnumerable<String> AccessControlAllowMethods
+        public IEnumerable<HTTPMethod> AccessControlAllowMethods
 
-            => GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.AccessControlAllowMethods);
+            => GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowMethods) ?? Array.Empty<HTTPMethod>();
 
         #endregion
 

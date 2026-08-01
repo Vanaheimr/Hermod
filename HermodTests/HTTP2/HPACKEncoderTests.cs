@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -103,13 +103,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var enc = new HPACKEncoder();
             var dec = new HPACKDecoder();
 
-            var block = enc.EncodeHeaderBlock([(":method", "GET")]);
+            var block = enc.EncodeHeaderBlock([(":method", "GET".ToString())]);
 
             Assert.Multiple(() =>
             {
                 Assert.That(block.Length == 1 && block[0] == 0x82, Is.True,
                             $":method GET encodes to one byte 0x82 ({BitConverter.ToString(block)})");
-                Assert.That(SameHeaders(dec.DecodeHeaderBlock(block), [(":method", "GET")]), Is.True,
+                Assert.That(SameHeaders(dec.DecodeHeaderBlock(block), [(":method", "GET".ToString())]), Is.True,
                             ":method GET round-trips");
             });
 
@@ -296,8 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var enc = new HPACKEncoder();
             var dec = new HPACKDecoder();
 
-            var req = new List<(String, String)>
-            {
+            var req = new List<(String, String)> {
                 (":method",         "GET"),
                 (":scheme",         "https"),
                 (":authority",      "example.com"),

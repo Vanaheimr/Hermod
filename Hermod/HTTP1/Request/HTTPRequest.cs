@@ -1347,7 +1347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse HTTP method
             // Probably not useful to define here, as we can not send a response having an "Allow-header" here!
-            this.HTTPMethod         = HTTPMethod.TryParse(firstPDULine[0]) ??
+            this.HTTPMethod         = HTTPMethod.TryParseWithoutRegistration(firstPDULine[0]) ??
                                           throw new Exception("Invalid HTTP method!");
 
             #endregion
@@ -2283,7 +2283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 // Parse HTTP method
                 // Probably not useful to define here, as we can not send a response having an "Allow-header" here!
-                if (!HTTPMethod.TryParse(httpMethodHeader[0], out var httpMethod))
+                if (!HTTPMethod.TryParseWithoutRegistration(httpMethodHeader[0], out var httpMethod))
                 {
 
                     HTTPResponse = new HTTPResponse.Builder(

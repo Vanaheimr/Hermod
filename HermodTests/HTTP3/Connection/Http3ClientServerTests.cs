@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Threading;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3.Qpack;
 using org.GraphDefined.Vanaheimr.Hermod.Quic;
@@ -201,8 +202,8 @@ public class Http3ClientServerTests
 
         // The server saw the method, the headers and the complete body (RFC 9114 §4.1).
         Assert.That(seenRequest, Is.Not.Null);
-        Assert.That(seenRequest!.Method, Is.EqualTo("POST"));
-        Assert.That(seenRequest.Path, Is.EqualTo("/echo"));
+        Assert.That(seenRequest!.Method, Is.EqualTo(HTTPMethod.POST));
+        Assert.That(seenRequest.Path,    Is.EqualTo("/echo"));
         Assert.That(seenRequest.AdditionalHeaders.FirstOrDefault(h => h.Name == "content-type").Value, Is.EqualTo("text/plain"));
         Assert.That(seenRequest.AdditionalHeaders.FirstOrDefault(h => h.Name == "content-length").Value, Is.EqualTo(requestBody.Length.ToString()));
         Assert.That(requestBody.AsSpan().SequenceEqual(seenRequest.Body), Is.True, "The request body must arrive byte for byte.");

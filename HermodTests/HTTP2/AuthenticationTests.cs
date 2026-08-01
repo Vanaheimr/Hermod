@@ -23,7 +23,7 @@ using System.Net.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 new TokenAuthenticationScheme((t, parameters, _) => Task.FromResult<HTTPAuthenticatedIdentity?>(
                     t == "secret-token-abc" ? new HTTPAuthenticatedIdentity { Name = "api-user" } : null)));
 
-            return HTTPAuthentication.RequireAuthentication(authenticator,
+            return Hermod.HTTP2.HTTPAuthentication.RequireAuthentication(authenticator,
                 (identity, sid, h, b, ct) =>
                 {
                     var body = Encoding.UTF8.GetBytes($"Authenticated as: {identity.Name}");
@@ -133,11 +133,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // Same, via OUR client — proves the framework isn't HttpClient-specific.
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var basicViaOurClient = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret",
+            var basicViaOurClient = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret",
                 ExtraHeaders: [("authorization", "Basic " + Convert.ToBase64String(B64("alice:secret")))]);
-            var tokenViaOurClient = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret",
+            var tokenViaOurClient = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret",
                 ExtraHeaders: [("authorization", "Token secret-token-abc")]);
-            var anonViaOurClient  = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret");
+            var anonViaOurClient  = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
             Assert.Multiple(() =>
             {
                 Assert.That(basicViaOurClient.Status, Is.EqualTo(200), "our client + Basic -> 200");
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // OUR client WITH a client cert -> ok.
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert, ClientCertificate: clientCert);
-            var ok = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/");
+            var ok = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
             Assert.Multiple(() =>
             {
                 Assert.That(ok.Status, Is.EqualTo(200), "our client + client cert -> 200");
@@ -234,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var digestAuth = new HTTPAuthenticator("demo",
                 new DigestAuthenticationScheme("demo",
                     (u, _) => Task.FromResult<String?>(u == "alice" ? "secret" : null)));
-            var digestHandler = HTTPAuthentication.RequireAuthentication(digestAuth,
+            var digestHandler = Hermod.HTTP2.HTTPAuthentication.RequireAuthentication(digestAuth,
                 (identity, sid, h, b, ct) =>
                 {
                     var body = Encoding.UTF8.GetBytes($"Digest as: {identity.Name}");
@@ -247,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
             // 1. No credentials -> 401 with a Digest challenge.
-            var anon      = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest");
+            var anon      = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest");
             var challenge = anon.Headers.FirstOrDefault(h => h.Name == "www-authenticate").Value ?? "";
             Assert.Multiple(() =>
             {
@@ -258,8 +258,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // 2. Correct SHA-256 response -> 200 (the password never crossed the wire).
-            var okResp = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest",
-                             ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", "GET", "/digest"))]);
+            var okResp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+                             ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", HTTPMethod.GET, "/digest"))]);
             Assert.Multiple(() =>
             {
                 Assert.That(okResp.Status, Is.EqualTo(200), "Digest: valid response -> 200");
@@ -267,15 +267,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // 3-6. Failure modes -> 401.
-            var wrongPw = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest",
-                              ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "wrong", "GET", "/digest"))]);
-            var unknownUser = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest",
-                                  ExtraHeaders: [("authorization", BuildAuth(challenge, "bob", "secret", "GET", "/digest"))]);
+            var wrongPw = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+                              ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "wrong", HTTPMethod.GET, "/digest"))]);
+            var unknownUser = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+                                  ExtraHeaders: [("authorization", BuildAuth(challenge, "bob", "secret", HTTPMethod.GET, "/digest"))]);
             var forgedNonce = Convert.ToBase64String(Encoding.ASCII.GetBytes("638000000000000000:bogusmac"));
-            var badNonce = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest",
-                               ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", "GET", "/digest", nonceOverride: forgedNonce))]);
-            var wrongUri = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest",
-                               ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", "GET", "/elsewhere"))]);
+            var badNonce = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+                               ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", HTTPMethod.GET, "/digest", nonceOverride: forgedNonce))]);
+            var wrongUri = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+                               ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", HTTPMethod.GET, "/elsewhere"))]);
             Assert.Multiple(() =>
             {
                 Assert.That(wrongPw.Status,     Is.EqualTo(401), "Digest: wrong password -> 401");
@@ -330,20 +330,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                               TimeProvider: clock);
 
             var challenge = scheme.BuildChallenge("demo");
-            var auth      = BuildAuth(challenge, "alice", "secret", "GET", "/digest")["Digest ".Length..];
+            var auth      = BuildAuth(challenge, "alice", "secret", HTTPMethod.GET, "/digest")["Digest ".Length..];
 
             // Fresh nonce -> authenticated.
-            var fresh = await scheme.AuthenticateAsync(auth, "GET", "/digest", CancellationToken.None);
+            var fresh = await scheme.AuthenticateAsync(auth, HTTPMethod.GET, "/digest", CancellationToken.None);
             Assert.That(fresh?.Name, Is.EqualTo("alice"), "fresh nonce -> authenticated");
 
             // Just inside NonceMaxAge -> still valid (the nonce itself is stateless).
             clock.UtcNow += TimeSpan.FromMinutes(4) + TimeSpan.FromSeconds(59);
-            Assert.That(await scheme.AuthenticateAsync(auth, "GET", "/digest", CancellationToken.None),
+            Assert.That(await scheme.AuthenticateAsync(auth, HTTPMethod.GET, "/digest", CancellationToken.None),
                         Is.Not.Null, "4:59 old nonce -> still valid");
 
             // Beyond NonceMaxAge -> stale, rejected.
             clock.UtcNow += TimeSpan.FromSeconds(2);
-            Assert.That(await scheme.AuthenticateAsync(auth, "GET", "/digest", CancellationToken.None),
+            Assert.That(await scheme.AuthenticateAsync(auth, HTTPMethod.GET, "/digest", CancellationToken.None),
                         Is.Null, "expired nonce -> rejected");
 
         }
@@ -382,7 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             return d;
         }
 
-        private static String BuildAuth(String challenge, String user, String pass, String method, String uri, String? nonceOverride = null, String alg = "SHA-256")
+        private static String BuildAuth(String challenge, String user, String pass, HTTPMethod method, String uri, String? nonceOverride = null, String alg = "SHA-256")
         {
             var p      = ParseChallenge(challenge);
             var realm  = p["realm"];

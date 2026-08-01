@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                             Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "GET" ],
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
                                                                            Connection                 = ConnectionType.Close
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                  //           Server                     = "Hermod Test Server",
                                                  //           Date                       = Timestamp.Now,
                                                  //           AccessControlAllowOrigin   = "*",
-                                                 //           AccessControlAllowMethods  = [ "GET" ],
+                                                 //           AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                  //           AccessControlAllowHeaders  = [ "Authorization" ],
                                                  //           WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
                                                  //           Connection                 = ConnectionType.Close
@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                     Server                     = "Hermod Test Server",
                                                                     Date                       = Timestamp.Now,
                                                                     AccessControlAllowOrigin   = "*",
-                                                                    AccessControlAllowMethods  = [ "GET" ],
+                                                                    AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                     AccessControlAllowHeaders  = [ "Authorization" ],
                                                                     ContentType                = HTTPContentType.Text.PLAIN,
                                                                     Content                    = $"Hello '{httpBasicAuthentication.Username}'!".ToUTF8Bytes(),
@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                     Server                     = "Hermod Test Server",
                                                                     Date                       = Timestamp.Now,
                                                                     AccessControlAllowOrigin   = "*",
-                                                                    AccessControlAllowMethods  = [ "GET" ],
+                                                                    AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                     AccessControlAllowHeaders  = [ "Authorization" ],
                                                                     ContentType                = HTTPContentType.Text.PLAIN,
                                                                     Content                    = $"Sorry '{httpBasicAuthentication.Username}' please contact your administrator!".ToUTF8Bytes(),
@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             Server                     = "Hermod Test Server",
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = [ "GET" ],
+                                                            AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                             AccessControlAllowHeaders  = [ "Authorization" ],
                                                             WWWAuthenticate            = WWWAuthenticate.Basic("Access to the staging site"),
                                                             Connection                 = ConnectionType.Close
@@ -263,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "GET" ],
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = request.QueryString.GetString("q", "").Reverse().ToUTF8Bytes(),
                                                                            Connection                 = ConnectionType.Close
@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "GET" ],
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
                                                                            Connection                 = ConnectionType.Close
@@ -299,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "MIRROR" ],
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.MIRROR ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
                                                                            Connection                 = ConnectionType.Close
@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                              Server                     = "Hermod Test Server",
                                                                              Date                       = Timestamp.Now,
                                                                              AccessControlAllowOrigin   = "*",
-                                                                             AccessControlAllowMethods  = [ "QUERY" ],
+                                                                             AccessControlAllowMethods  = [ HTTPMethod.QUERY ],
                                                                              ContentType                = HTTPContentType.Text.PLAIN,
                                                                              Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
                                                                              Connection                 = ConnectionType.Close
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "GET" ],
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                            TransferEncoding           = "chunked",
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (chunks.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes(),
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             Server                     = "Hermod Test Server",
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = [ "GET" ],
+                                                            AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                             TransferEncoding           = "chunked",
                                                             ContentType                = HTTPContentType.Text.PLAIN,
                                                             ContentStream              = responseStream,
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "GET" ],
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                            TransferEncoding           = "chunked",
                                                                            Trailer                    = "X-Message-Length, X-Protocol-Version",
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
@@ -429,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = [ "GET" ],
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                                            TransferEncoding           = "chunked",
                                                                            Trailer                    = "X-Message-Length, X-Protocol-Version",
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
@@ -533,7 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                 Server                     = "Hermod Test Server",
                                                                 Date                       = Timestamp.Now,
                                                                 AccessControlAllowOrigin   = "*",
-                                                                AccessControlAllowMethods  = [ "QUERY" ],
+                                                                AccessControlAllowMethods  = [ HTTPMethod.QUERY ],
                                                                 ContentType                = HTTPContentType.Text.PLAIN,
                                                                 Content                    = $"{requestBody.Reverse()}|{metadata}".ToUTF8Bytes(),
                                                                 Connection                 = ConnectionType.Close
@@ -558,7 +558,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             Server                     = "Hermod Test Server",
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = [ "GET" ],
+                                                            AccessControlAllowMethods  = [ HTTPMethod.GET ],
                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                = HTTPContentType.Text.PLAIN,
                                                             Content                    = queryParameter.Reverse().ToUTF8Bytes(),
@@ -645,6 +645,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                                  }
                                                            }.AsImmutable
                                                        ));
+
+            #endregion
+
+            #region GET     /corsMethods
+
+            httpAPI.AddHandler(HTTPPath.Root + "corsMethods",
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => Task.FromResult(
+                                                                       new HTTPResponse.Builder(request) {
+                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                           Server                     = "Hermod Test Server",
+                                                                           Date                       = Timestamp.Now,
+                                                                           AccessControlAllowOrigin   = "*",
+                                                                           AccessControlAllowMethods  = [ HTTPMethod.OPTIONS, HTTPMethod.GET, HTTPMethod.DELETE ],
+                                                                           ContentType                = HTTPContentType.Text.PLAIN,
+                                                                           Content                    = "Hello World!".ToUTF8Bytes(),
+                                                                           Connection                 = ConnectionType.Close
+                                                                       }.AsImmutable));
+
+            #endregion
+
+            #region GET     /corsMethods/unknown
+
+            // Note: The header is set as raw text on purpose, so that "FLUXCAPACITOR" is
+            //       NOT registered within HTTPMethod.lookup before the client parses it.
+            //       Otherwise the test would no longer prove that the parser accepts
+            //       HTTP methods it has never seen before.
+            httpAPI.AddHandler(HTTPPath.Root + "corsMethods" + "unknown",
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => Task.FromResult(
+                                                                       new HTTPResponse.Builder(request) {
+                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                           Server                     = "Hermod Test Server",
+                                                                           Date                       = Timestamp.Now,
+                                                                           AccessControlAllowOrigin   = "*",
+                                                                           ContentType                = HTTPContentType.Text.PLAIN,
+                                                                           Content                    = "Hello World!".ToUTF8Bytes(),
+                                                                           Connection                 = ConnectionType.Close
+                                                                       }.SetHeaderField("Access-Control-Allow-Methods", "GET, FLUXCAPACITOR").
+                                                                         AsImmutable));
 
             #endregion
 

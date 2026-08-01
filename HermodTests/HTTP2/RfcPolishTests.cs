@@ -21,6 +21,7 @@ using System.Text;
 using System.Buffers.Binary;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -101,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var encoder     = new HPACKEncoder();
             var headerBlock = encoder.EncodeHeaderBlock(
-                [(":method", "POST"), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"),
+                [(":method", HTTPMethod.POST.ToString()), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"),
                  (":path", "/upload"), ("content-length", (dataSize * frameCount).ToString())]);
             await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1, headerBlock, EndStream: false, EndHeaders: true).Serialize(), cts.Token);
 
@@ -155,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // Open + cleanly finish stream 1 (ends up closed but known).
             await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1, encoder.EncodeHeaderBlock(
-                [(":method", "GET"), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/")]),
+                [(":method", "GET".ToString()), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/")]),
                 EndStream: true, EndHeaders: true).Serialize(), cts.Token);
             await ssl.FlushAsync(cts.Token);
 
@@ -174,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 await ssl.WriteAsync(HTTP2Frame.CreateData(1, chunk, EndStream: false).Serialize(), cts.Token);
 
             await ssl.WriteAsync(HTTP2Frame.CreateHeaders(3, encoder.EncodeHeaderBlock(
-                [(":method", "GET"), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/")]),
+                [(":method", "GET".ToString()), (":scheme", "https"), (":authority", $"localhost:{srv.Port}"), (":path", "/")]),
                 EndStream: true, EndHeaders: true).Serialize(), cts.Token);
             await ssl.FlushAsync(cts.Token);
 
@@ -215,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var client = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var two = await client.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/cookie",
+            var two = await client.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/cookie",
                           ExtraHeaders: [("cookie", "a=1"), ("cookie", "b=2")]);
             Assert.Multiple(() =>
             {
@@ -223,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(Encoding.UTF8.GetString(two.Body),  Is.EqualTo("a=1; b=2"), "two crumbs arrive as one \"; \"-joined field");
             });
 
-            var one = await client.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/cookie",
+            var one = await client.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/cookie",
                           ExtraHeaders: [("cookie", "x=9")]);
             Assert.Multiple(() =>
             {

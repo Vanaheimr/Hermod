@@ -1595,8 +1595,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var chunks = new MemoryStream();
 
                 var trailers = await chunkedStream.ReadAllChunks(
-                                       async (timestamp, elapsed, counter, data) => await chunks.WriteAsync(data)
-                                   );
+                                         async (timestamp, elapsed, counter, data) => await chunks.WriteAsync(data)
+                                     );
 
                 SetTrailingHeaders(trailers);
                 ChunkExtensions = chunkedStream.ChunkExtensions;

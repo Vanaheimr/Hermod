@@ -20,7 +20,7 @@
 using System.Net;
 using System.Net.Security;
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task OurClient_ServerStreamingResponse()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var sr   = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/stream-response");
+            var sr   = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/stream-response");
             Assert.Multiple(() =>
             {
                 Assert.That(sr.Status,                        Is.EqualTo(200));
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task OurClient_EchoStream()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var echo = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/echo-stream",
+            var echo = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/echo-stream",
                            Body: Encoding.UTF8.GetBytes("hello streaming world"));
             Assert.Multiple(() =>
             {
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task OurClient_ResponseTrailers()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var tr   = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/trailers");
+            var tr   = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/trailers");
             Assert.Multiple(() =>
             {
                 Assert.That(tr.Status,                        Is.EqualTo(200));
@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var big  = new Byte[200_000];
             new Random(7).NextBytes(big);
-            var bc = await conn.SendRequestAsync("POST", "https", $"localhost:{srv.Port}", "/count-body", Body: big);
+            var bc = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/count-body", Body: big);
             Assert.Multiple(() =>
             {
                 Assert.That(bc.Status,                        Is.EqualTo(200));

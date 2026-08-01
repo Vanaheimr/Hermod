@@ -204,10 +204,10 @@ public class Http3GoAwayTests
     private static byte[] EncodeGetHeaders(string path)
         => QpackEncoder.Encode(
         [
-            new HeaderField(":method", "GET"),
-            new HeaderField(":scheme", "https"),
+            new HeaderField(":method",    "GET"),
+            new HeaderField(":scheme",    "https"),
             new HeaderField(":authority", "localhost"),
-            new HeaderField(":path", path),
+            new HeaderField(":path",       path),
         ]);
 
     private static void Pump(Http3ClientConnection client, Http3ServerConnection server)

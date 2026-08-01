@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public void Resolve_AppliesTheRewritingRules()
         {
 
-            (String Method, Boolean KeepBody) Follow(Int32 status, String method)
+            (HTTPMethod Method, Boolean KeepBody) Follow(Int32 status, HTTPMethod method)
             {
                 Assert.That(HTTPRedirect.TryResolve(status, "/next", "https", "example.com", "/here", method, out var t), Is.True);
                 return (t!.Method, t.KeepBody);
@@ -145,19 +145,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.Multiple(() =>
             {
                 // 301/302: POST becomes GET, everything else is preserved.
-                Assert.That(Follow(301, "POST"),   Is.EqualTo(("GET",    false)));
-                Assert.That(Follow(302, "POST"),   Is.EqualTo(("GET",    false)));
-                Assert.That(Follow(302, "PUT"),    Is.EqualTo(("PUT",    true)), "only POST is rewritten");
-                Assert.That(Follow(302, "GET"),    Is.EqualTo(("GET",    true)));
+                Assert.That(Follow(301, HTTPMethod.POST),   Is.EqualTo((HTTPMethod.GET,    false)));
+                Assert.That(Follow(302, HTTPMethod.POST),   Is.EqualTo((HTTPMethod.GET,    false)));
+                Assert.That(Follow(302, HTTPMethod.PUT),    Is.EqualTo((HTTPMethod.PUT,    true)), "only POST is rewritten");
+                Assert.That(Follow(302, HTTPMethod.GET),    Is.EqualTo((HTTPMethod.GET,    true)));
 
                 // 303: always GET — except HEAD, which still only wants headers.
-                Assert.That(Follow(303, "POST"),   Is.EqualTo(("GET",    false)));
-                Assert.That(Follow(303, "PUT"),    Is.EqualTo(("GET",    false)));
-                Assert.That(Follow(303, "HEAD"),   Is.EqualTo(("HEAD",   false)));
+                Assert.That(Follow(303, HTTPMethod.POST),   Is.EqualTo((HTTPMethod.GET,    false)));
+                Assert.That(Follow(303, HTTPMethod.PUT),    Is.EqualTo((HTTPMethod.GET,    false)));
+                Assert.That(Follow(303, HTTPMethod.HEAD),   Is.EqualTo((HTTPMethod.HEAD,   false)));
 
                 // 307/308 preserve both, which is the whole reason they exist.
-                Assert.That(Follow(307, "POST"),   Is.EqualTo(("POST",   true)));
-                Assert.That(Follow(308, "DELETE"), Is.EqualTo(("DELETE", true)));
+                Assert.That(Follow(307, HTTPMethod.POST),   Is.EqualTo((HTTPMethod.POST,   true)));
+                Assert.That(Follow(308, HTTPMethod.DELETE), Is.EqualTo((HTTPMethod.DELETE, true)));
             });
 
         }
@@ -175,13 +175,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(HTTPRedirect.IsRedirect(304), Is.False, "304 is an answer, not a redirect");
                 Assert.That(HTTPRedirect.IsRedirect(200), Is.False);
 
-                Assert.That(HTTPRedirect.TryResolve(302, null,   "https", "a.example", "/", "GET", out _), Is.False, "no Location");
-                Assert.That(HTTPRedirect.TryResolve(302, "   ",  "https", "a.example", "/", "GET", out _), Is.False, "blank Location");
-                Assert.That(HTTPRedirect.TryResolve(200, "/x",   "https", "a.example", "/", "GET", out _), Is.False, "not a redirect");
+                Assert.That(HTTPRedirect.TryResolve(302, null,   "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "no Location");
+                Assert.That(HTTPRedirect.TryResolve(302, "   ",  "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "blank Location");
+                Assert.That(HTTPRedirect.TryResolve(200, "/x",   "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "not a redirect");
 
                 // A client must not be talked into speaking another protocol.
-                Assert.That(HTTPRedirect.TryResolve(302, "ftp://a.example/x",  "https", "a.example", "/", "GET", out _), Is.False, "ftp");
-                Assert.That(HTTPRedirect.TryResolve(302, "file:///etc/passwd", "https", "a.example", "/", "GET", out _), Is.False, "file");
+                Assert.That(HTTPRedirect.TryResolve(302, "ftp://a.example/x",  "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "ftp");
+                Assert.That(HTTPRedirect.TryResolve(302, "file:///etc/passwd", "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "file");
             });
         }
 
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             HTTPRedirectTarget R(String location, String path = "/deep/here")
             {
-                Assert.That(HTTPRedirect.TryResolve(302, location, "https", "example.com", path, "GET", out var t), Is.True, location);
+                Assert.That(HTTPRedirect.TryResolve(302, location, "https", "example.com", path, HTTPMethod.GET, out var t), Is.True, location);
                 return t!;
             }
 
@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync("GET", "https", Authority, "/302");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/302");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -248,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync("GET", "https", Authority, "/deep/here");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/deep/here");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -274,14 +274,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var payload = Encoding.UTF8.GetBytes("some form data");
             var conn    = await Connect();
 
-            var after303 = await conn.SendRequestAsync("POST", "https", Authority, "/303",
+            var after303 = await conn.SendRequestAsync(HTTPMethod.POST, "https", Authority, "/303",
                                ExtraHeaders: [("content-type", "text/plain"), ("content-length", payload.Length.ToString())],
                                Body: payload);
 
             var hops303  = seen.ToList();
             lock (seen) seen.Clear();
 
-            var after307 = await conn.SendRequestAsync("POST", "https", Authority, "/307",
+            var after307 = await conn.SendRequestAsync(HTTPMethod.POST, "https", Authority, "/307",
                                ExtraHeaders: [("content-type", "text/plain"), ("content-length", payload.Length.ToString())],
                                Body: payload);
 
@@ -291,13 +291,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.Multiple(() =>
             {
                 Assert.That(after303.Status,                Is.EqualTo(200));
-                Assert.That(hops303[0].Method,              Is.EqualTo("POST"), "the original request");
-                Assert.That(hops303[1].Method,              Is.EqualTo("GET"),  "303 -> GET");
+                Assert.That(hops303[0].Method,              Is.EqualTo(HTTPMethod.POST.ToString()), "the original request");
+                Assert.That(hops303[1].Method,              Is.EqualTo(HTTPMethod.GET.ToString()),  "303 -> GET");
                 Assert.That(hops303[1].BodyLength,          Is.EqualTo(0),      "and the body is dropped");
                 Assert.That(hops303[1].ContentLength,       Is.Null,            "no stale content-length left describing it");
 
                 Assert.That(after307.Status,                Is.EqualTo(200));
-                Assert.That(hops307[1].Method,              Is.EqualTo("POST"), "307 preserves the method");
+                Assert.That(hops307[1].Method,              Is.EqualTo(HTTPMethod.POST.ToString()), "307 preserves the method");
                 Assert.That(hops307[1].BodyLength,          Is.EqualTo(payload.Length), "and replays the body");
                 Assert.That(hops307[1].ContentLength,       Is.EqualTo(payload.Length.ToString()));
             });
@@ -314,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync("GET", "https", Authority, "/offsite");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/offsite");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // Two hops allowed, three needed: the third 302 is returned as-is.
             var limited = await Connect(maxRedirects: 2);
-            var chain   = await limited.SendRequestAsync("GET", "https", Authority, "/hop1");
+            var chain   = await limited.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/hop1");
             await limited.CloseAsync();
 
             var seenChain = seen.Select(s => s.Path).ToList();
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // A Location pointing at itself would spin forever without the limit.
             var looping = await Connect(maxRedirects: 3);
-            var loop    = await looping.SendRequestAsync("GET", "https", Authority, "/loop");
+            var loop    = await looping.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/loop");
             await looping.CloseAsync();
 
             var seenLoop = seen.Count;
@@ -371,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync("GET", "https", Authority, "/300");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/300");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync("GET", "https", Authority, "/302");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/302");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>

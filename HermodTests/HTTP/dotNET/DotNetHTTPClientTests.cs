@@ -22,6 +22,7 @@ using System.Text;
 using System.Globalization;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Net.Http.Headers;
 
 #endregion
@@ -279,8 +280,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(httpResponse.Content.Headers.TryGetValues("Allow", out var allowedMethods),
                         Is.True,
                         String.Join("; ", httpResponse.Content.Headers.Select(header => $"{header.Key}: {String.Join(",", header.Value)}")));
-            Assert.That(String.Join(",", allowedMethods ?? []), Does.Contain("GET"));
-            Assert.That(String.Join(",", allowedMethods ?? []), Does.Contain("HEAD"));
+            Assert.That(String.Join(",", allowedMethods ?? []), Does.Contain(HTTPMethod.GET.ToString()));
+            Assert.That(String.Join(",", allowedMethods ?? []), Does.Contain(HTTPMethod.HEAD.ToString()));
             Assert.That(String.Join(",", allowedMethods ?? []), Does.Contain("OPTIONS"));
 
         }
@@ -438,7 +439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             using var httpRequest = new HttpRequestMessage {
-                                        Method      = new HttpMethod("QUERY"),
+                                        Method      = new HttpMethod(HTTPMethod.QUERY.ToString()),
                                         RequestUri  = new Uri("/query", UriKind.Relative),
                                         Content     = new StringContent(
                                                           MirrorText,
@@ -464,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task QUERY_ChunkedTestString_in_HTTPBody()
         {
 
-            using var httpRequest = new HttpRequestMessage(new HttpMethod("QUERY"), "/query") {
+            using var httpRequest = new HttpRequestMessage(new HttpMethod(HTTPMethod.QUERY.ToString()), "/query") {
                                         Content = new StreamContent(new MemoryStream(MirrorText.ToUTF8Bytes()))
                                     };
             httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain") {

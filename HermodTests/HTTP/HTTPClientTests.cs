@@ -225,6 +225,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region GET_AccessControlAllowMethods_RoundTrip()
+
+        /// <summary>
+        /// The server serializes "Access-Control-Allow-Methods" from a list of HTTPMethods,
+        /// the client parses it back into a list of HTTPMethods.
+        /// </summary>
+        [Test]
+        public async Task GET_AccessControlAllowMethods_RoundTrip()
+        {
+
+            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            var httpResponse = await httpClient.GET(HTTPPath.Root + "corsMethods");
+
+            Assert.That(httpResponse.HTTPStatusCode,            Is.EqualTo(HTTPStatusCode.OK));
+            Assert.That(httpResponse.AccessControlAllowMethods, Is.EqualTo([ HTTPMethod.OPTIONS, HTTPMethod.GET, HTTPMethod.DELETE ]));
+
+        }
+
+        #endregion
+
+        #region GET_AccessControlAllowMethods_UnknownMethodIsPreserved()
+
+        /// <summary>
+        /// Unknown HTTP methods are a feature, not an error: The parser must hand them
+        /// through instead of silently dropping them.
+        /// </summary>
+        [Test]
+        public async Task GET_AccessControlAllowMethods_UnknownMethodIsPreserved()
+        {
+
+            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            var httpResponse = await httpClient.GET(HTTPPath.Root + "corsMethods" + "unknown");
+
+            var methodNames  = httpResponse.AccessControlAllowMethods.Select(method => method.ToString()).ToArray();
+
+            Assert.That(httpResponse.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.OK));
+            Assert.That(methodNames,                 Is.EqualTo([ "GET", "FLUXCAPACITOR" ]));
+
+        }
+
+        #endregion
+
         #region Test_002()
 
         [Test]

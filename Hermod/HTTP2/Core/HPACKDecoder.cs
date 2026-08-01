@@ -36,70 +36,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         // Internal so the HPACKEncoder can build its reverse index from the exact
         // same 61-entry table (RFC 7541, Appendix A) rather than duplicating it.
-        internal static readonly (string Name, string? Value)[] StaticTable =
-        [
-            ("",                          null),              //  0 — unused (1-indexed)
-            (":authority",                null),              //  1
-            (":method",                   "GET"),             //  2
-            (":method",                   "POST"),            //  3
-            (":path",                     "/"),               //  4
-            (":path",                     "/index.html"),     //  5
-            (":scheme",                   "http"),            //  6
-            (":scheme",                   "https"),           //  7
-            (":status",                   "200"),             //  8
-            (":status",                   "204"),             //  9
-            (":status",                   "206"),             // 10
-            (":status",                   "304"),             // 11
-            (":status",                   "400"),             // 12
-            (":status",                   "404"),             // 13
-            (":status",                   "500"),             // 14
-            ("accept-charset",            null),              // 15
-            ("accept-encoding",           "gzip, deflate"),   // 16
-            ("accept-language",           null),              // 17
-            ("accept-ranges",             null),              // 18
-            ("accept",                    null),              // 19
-            ("access-control-allow-origin", null),            // 20
-            ("age",                       null),              // 21
-            ("allow",                     null),              // 22
-            ("authorization",             null),              // 23
-            ("cache-control",             null),              // 24
-            ("content-disposition",       null),              // 25
-            ("content-encoding",          null),              // 26
-            ("content-language",          null),              // 27
-            ("content-length",            null),              // 28
-            ("content-location",          null),              // 29
-            ("content-range",             null),              // 30
-            ("content-type",              null),              // 31
-            ("cookie",                    null),              // 32
-            ("date",                      null),              // 33
-            ("etag",                      null),              // 34
-            ("expect",                    null),              // 35
-            ("expires",                   null),              // 36
-            ("from",                      null),              // 37
-            ("host",                      null),              // 38
-            ("if-match",                  null),              // 39
-            ("if-modified-since",         null),              // 40
-            ("if-none-match",             null),              // 41
-            ("if-range",                  null),              // 42
-            ("if-unmodified-since",       null),              // 43
-            ("last-modified",             null),              // 44
-            ("link",                      null),              // 45
-            ("location",                  null),              // 46
-            ("max-forwards",             null),               // 47
-            ("proxy-authenticate",        null),              // 48
-            ("proxy-authorization",       null),              // 49
-            ("range",                     null),              // 50
-            ("referer",                   null),              // 51
-            ("refresh",                   null),              // 52
-            ("retry-after",               null),              // 53
-            ("server",                    null),              // 54
-            ("set-cookie",                null),              // 55
-            ("strict-transport-security", null),              // 56
-            ("transfer-encoding",         null),              // 57
-            ("user-agent",                null),              // 58
-            ("vary",                      null),              // 59
-            ("via",                       null),              // 60
-            ("www-authenticate",          null)               // 61
+        internal static readonly (String Name, String? Value)[] StaticTable = [
+
+            ("",                             null),              //  0 — unused (1-indexed)
+            (":authority",                   null),              //  1
+            (":method",                     "GET"),              //  2
+            (":method",                     "POST"),             //  3
+            (":path",                       "/"),                //  4
+            (":path",                       "/index.html"),      //  5
+            (":scheme",                     "http"),             //  6
+            (":scheme",                     "https"),            //  7
+            (":status",                     "200"),              //  8
+            (":status",                     "204"),              //  9
+            (":status",                     "206"),              // 10
+            (":status",                     "304"),              // 11
+            (":status",                     "400"),              // 12
+            (":status",                     "404"),              // 13
+            (":status",                     "500"),              // 14
+            ("accept-charset",               null),              // 15
+            ("accept-encoding",             "gzip, deflate"),    // 16
+            ("accept-language",              null),              // 17
+            ("accept-ranges",                null),              // 18
+            ("accept",                       null),              // 19
+            ("access-control-allow-origin",  null),              // 20
+            ("age",                          null),              // 21
+            ("allow",                        null),              // 22
+            ("authorization",                null),              // 23
+            ("cache-control",                null),              // 24
+            ("content-disposition",          null),              // 25
+            ("content-encoding",             null),              // 26
+            ("content-language",             null),              // 27
+            ("content-length",               null),              // 28
+            ("content-location",             null),              // 29
+            ("content-range",                null),              // 30
+            ("content-type",                 null),              // 31
+            ("cookie",                       null),              // 32
+            ("date",                         null),              // 33
+            ("etag",                         null),              // 34
+            ("expect",                       null),              // 35
+            ("expires",                      null),              // 36
+            ("from",                         null),              // 37
+            ("host",                         null),              // 38
+            ("if-match",                     null),              // 39
+            ("if-modified-since",            null),              // 40
+            ("if-none-match",                null),              // 41
+            ("if-range",                     null),              // 42
+            ("if-unmodified-since",          null),              // 43
+            ("last-modified",                null),              // 44
+            ("link",                         null),              // 45
+            ("location",                     null),              // 46
+            ("max-forwards",                 null),              // 47
+            ("proxy-authenticate",           null),              // 48
+            ("proxy-authorization",          null),              // 49
+            ("range",                        null),              // 50
+            ("referer",                      null),              // 51
+            ("refresh",                      null),              // 52
+            ("retry-after",                  null),              // 53
+            ("server",                       null),              // 54
+            ("set-cookie",                   null),              // 55
+            ("strict-transport-security",    null),              // 56
+            ("transfer-encoding",            null),              // 57
+            ("user-agent",                   null),              // 58
+            ("vary",                         null),              // 59
+            ("via",                          null),              // 60
+            ("www-authenticate",             null)               // 61
+
         ];
 
         #endregion

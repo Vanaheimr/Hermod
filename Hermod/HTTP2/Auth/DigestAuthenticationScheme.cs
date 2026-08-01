@@ -17,7 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -44,23 +44,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public sealed class DigestAuthenticationScheme : IHTTPAuthenticationScheme
     {
 
-        private readonly Func<string, CancellationToken, Task<string?>> lookupPassword;
-        private readonly string   realm;
-        private readonly string   algorithm;      // advertised in the challenge (default SHA-256)
-        private readonly TimeSpan     nonceMaxAge;
-        private readonly TimeProvider timeProvider;
-        private readonly byte[]   nonceSecret = RandomNumberGenerator.GetBytes(32);
+        private readonly Func<String, CancellationToken, Task<String?>>  lookupPassword;
+        private readonly String                                          realm;
+        private readonly String                                          algorithm;      // advertised in the challenge (default SHA-256)
+        private readonly TimeSpan                                        nonceMaxAge;
+        private readonly TimeProvider                                    timeProvider;
+        private readonly Byte[]                                          nonceSecret = RandomNumberGenerator.GetBytes(32);
 
         /// <param name="Realm">The protection space; folded into HA1, so it must match what the client used.</param>
         /// <param name="LookupPassword">Maps a username to that user's password (null ⇒ unknown user).</param>
         /// <param name="Algorithm">The algorithm advertised in the challenge — "SHA-256" (default) or "MD5".</param>
         /// <param name="NonceMaxAge">How long a nonce stays valid (default 5 minutes).</param>
         public DigestAuthenticationScheme(
-            string                                        Realm,
-            Func<string, CancellationToken, Task<string?>> LookupPassword,
-            string                                        Algorithm   = "SHA-256",
-            TimeSpan?                                     NonceMaxAge  = null,
-            TimeProvider?                                 TimeProvider = null)
+            String                                          Realm,
+            Func<String, CancellationToken, Task<String?>>  LookupPassword,
+            String                                          Algorithm   = "SHA-256",
+            TimeSpan?                                       NonceMaxAge  = null,
+            TimeProvider?                                   TimeProvider = null)
         {
             realm          = Realm;
             lookupPassword = LookupPassword;
@@ -77,8 +77,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public string BuildChallenge(string Realm)
             => $"Digest realm=\"{Realm}\", qop=\"auth\", algorithm={algorithm}, nonce=\"{CreateNonce()}\"";
 
-        public async Task<HTTPAuthenticatedIdentity?> AuthenticateAsync(
-            string Credentials, string Method, string RequestTarget, CancellationToken CancellationToken)
+        public async Task<HTTPAuthenticatedIdentity?> AuthenticateAsync(String             Credentials,
+                                                                        HTTPMethod         Method,
+                                                                        String             RequestTarget,
+                                                                        CancellationToken  CancellationToken)
         {
 
             var p = HTTPAuthParams.Parse(Credentials);

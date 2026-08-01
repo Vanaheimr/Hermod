@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Encoding.UTF8.GetBytes(String.Concat(Enumerable.Repeat("The quick brown fox jumps over the lazy dog. ", 40)));
 
         private static HTTP2RequestHandler Serving(Boolean Compress = false)
-            => HTTPSemantics.Wrap(
+            => Hermod.HTTP2.HTTPSemantics.Wrap(
                    (path, headers, ct) => Task.FromResult<HTTPResource?>(
                        new HTTPResource { Body = Text, ContentType = "text/plain; charset=utf-8" }),
                    CompressResponses: Compress,
@@ -238,8 +238,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn      = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var plain  = await conn.SendRequestAsync("GET", "https", authority, "/f");
-            var wanted = await conn.SendRequestAsync("GET", "https", authority, "/f",
+            var plain  = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/f");
+            var wanted = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/f",
                              [("want-content-digest", "sha-512=10, sha-256=1")]);
 
             await conn.CloseAsync();
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var partial = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/f",
+            var partial = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/f",
                               [("range", "bytes=0-99")]);
 
             await conn.CloseAsync();
@@ -319,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var response = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/f",
+            var response = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/f",
                                [("accept-encoding", "gzip")]);
 
             await conn.CloseAsync();
@@ -354,8 +354,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                              Options: new HTTP2ClientOptions { VerifyDigests = true });
             var quiet  = await HTTP2Client.ConnectAsync("localhost", echo.Port, H2.AcceptAnyServerCert);
 
-            var asked   = await asking.SendRequestAsync("GET", "https", $"localhost:{echo.Port}", "/f");
-            var didnt   = await quiet. SendRequestAsync("GET", "https", $"localhost:{echo.Port}", "/f");
+            var asked   = await asking.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{echo.Port}", "/f");
+            var didnt   = await quiet. SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{echo.Port}", "/f");
 
             await asking.CloseAsync();
             await quiet.CloseAsync();
@@ -365,7 +365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert,
                            Options: new HTTP2ClientOptions { VerifyDigests = true });
 
-            var verified = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/f");
+            var verified = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/f");
 
             await conn.CloseAsync();
 
@@ -404,14 +404,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var authority = $"localhost:{srv.Port}";
 
-            Assert.That(async () => await conn.SendRequestAsync("GET", "https", authority, "/f"),
+            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/f"),
                         Throws.InstanceOf<HTTPDigestMismatchException>(),
                         "corrupt content is surfaced, not returned");
 
             // Off by default, the same response is delivered untouched — verification
             // is the caller's decision, and this is what declining it looks like.
             var unchecked_ = await (await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert))
-                                 .SendRequestAsync("GET", "https", authority, "/f");
+                                 .SendRequestAsync(HTTPMethod.GET, "https", authority, "/f");
 
             await conn.CloseAsync();
 
@@ -439,7 +439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                         AutomaticDecompression = true
                                     });
 
-            var response = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/f");
+            var response = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/f");
 
             await conn.CloseAsync();
 
@@ -516,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task Query_WithAContentDigestThatDisagrees_Is400()
         {
 
-            var handler = HTTPSemantics.Wrap(
+            var handler = Hermod.HTTP2.HTTPSemantics.Wrap(
                               (path, headers, ct) => Task.FromResult<HTTPResource?>(null),
                               QueryHandler: (path, headers, content, contentType, ct) => Task.FromResult<HTTPResource?>(
                                   new HTTPResource { Body = content ?? [], ContentType = "text/plain" }),
@@ -528,11 +528,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var authority = $"localhost:{srv.Port}";
             var query     = "find: everything"u8.ToArray();
 
-            var honest = await conn.SendRequestAsync("QUERY", "https", authority, "/search",
+            var honest = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/search",
                              [("content-type",   "text/plain"),
                               ("content-digest", HTTPDigest.FieldValue(query, "sha-256"))], query);
 
-            var corrupt = await conn.SendRequestAsync("QUERY", "https", authority, "/search",
+            var corrupt = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/search",
                               [("content-type",   "text/plain"),
                                ("content-digest", HTTPDigest.FieldValue("find: something else"u8.ToArray(), "sha-256"))], query);
 

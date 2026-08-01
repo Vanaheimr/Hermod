@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             {
 
                 Notification = new HTTPSNotification(URL.Parse(JSON["URL"           ]?.Value<String>()),
-                                                     JSON["method"        ] is not null ? HTTPMethod.Parse(JSON["method"].Value<String>()) : HTTPMethod.POST,
+                                                     HTTPMethod.TryParseWithoutRegistration(JSON["method"]?.Value<String>() ?? "") ?? HTTPMethod.POST,
                                                      JSON["basicAuth"     ]?["login"   ]?.Value<String>(),
                                                      JSON["basicAuth"     ]?["password"]?.Value<String>(),
                                                      JSON["APIKey"] is not null ? APIKey_Id.Parse(JSON["APIKey"        ]?.Value<String>()) : new APIKey_Id?(),

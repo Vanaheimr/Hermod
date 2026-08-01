@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3.Qpack;
 
 #endregion
@@ -27,7 +28,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3;
 /// An HTTP/3 request. The pseudo-headers (:method/:scheme/:authority/:path) are mandatory (RFC 9114 §4.3.1).
 /// The optional body is sent as a series of DATA frames after the HEADERS frame (RFC 9114 §4.1).
 /// </summary>
-public sealed record Http3Request(string Method, string Scheme, string Authority, string Path)
+public sealed record Http3Request(HTTPMethod  Method,
+                                  String      Scheme,
+                                  String      Authority,
+                                  String      Path)
 {
     public IReadOnlyList<HeaderField> AdditionalHeaders { get; init; } = [];
 
@@ -53,21 +57,30 @@ public sealed record Http3Request(string Method, string Scheme, string Authority
     /// The <c>:protocol</c> pseudo-header of an Extended CONNECT (RFC 8441 §4 / RFC 9220),
     /// e.g. "websocket"; <c>null</c> for normal requests.
     /// </summary>
-    public string? Protocol { get; init; }
+    public String? Protocol { get; init; }
 
-    public static Http3Request Get(string authority, string path = "/", string scheme = "https")
-        => new("GET", scheme, authority, path);
+    public static Http3Request Get(String authority,
+                                   String path = "/",
+                                   String scheme = "https")
+
+        => new (HTTPMethod.GET,
+                scheme,
+                authority,
+                path);
 
     /// <summary>
     /// Creates a POST request with a body and content type.
     /// </summary>
-    public static Http3Request Post(string authority, string path, byte[] body,
-                                    string contentType = "application/octet-stream", string scheme = "https")
-        => new("POST", scheme, authority, path)
-        {
-            Body = body,
-            AdditionalHeaders = [new HeaderField("content-type", contentType)],
-        };
+    public static Http3Request Post(String  authority,
+                                    String  path,
+                                    Byte[]  body,
+                                    String  contentType = "application/octet-stream",
+                                    String  scheme = "https")
+
+        => new (HTTPMethod.POST, scheme, authority, path) {
+                   Body = body,
+                   AdditionalHeaders = [new HeaderField("content-type", contentType)],
+               };
 
     /// <summary>
     /// Produces the header field list in the order HTTP/3 requires (pseudo-headers first).
@@ -76,24 +89,29 @@ public sealed record Http3Request(string Method, string Scheme, string Authority
     /// </summary>
     public List<HeaderField> ToHeaderFields()
     {
-        var fields = new List<HeaderField>
-        {
-            new(":method", Method),
-            new(":scheme", Scheme),
-            new(":authority", Authority),
-            new(":path", Path),
-        };
+
+        var fields = new List<HeaderField> {
+                         new(":method",     Method.ToString()),
+                         new(":scheme",     Scheme),
+                         new(":authority",  Authority),
+                         new(":path",       Path),
+                     };
+
         fields.AddRange(AdditionalHeaders);
         if (Body.Length > 0 && !AdditionalHeaders.Any(h => h.Name == "content-length"))
             fields.Add(new HeaderField("content-length", Body.Length.ToString()));
+
         if (Priority is { } priority && !AdditionalHeaders.Any(h => h.Name == "priority"))
         {
             string value = priority.ToHeaderValue();
             if (value.Length > 0)
                 fields.Add(new HeaderField("priority", value)); // RFC 9218 §5
         }
+
         return fields;
+
     }
+
 }
 
 /// <summary>

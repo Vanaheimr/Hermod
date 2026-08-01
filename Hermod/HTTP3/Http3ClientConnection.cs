@@ -26,6 +26,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Quic.Qlog;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -65,16 +66,16 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         TransportParameters? transportParameters = null,
         CertificateValidationOptions? certificateValidation = null,
         ulong qpackMaxTableCapacity = 0,
-        IReadOnlyList<Quic.Tls.CipherSuite>? cipherSuites = null,
-        IReadOnlyList<Quic.Tls.NamedGroup>? keyExchangeGroups = null,
-        Quic.Tls.ResumptionTicket? resumptionTicket = null,
+        IReadOnlyList<CipherSuite>? cipherSuites = null,
+        IReadOnlyList<NamedGroup>? keyExchangeGroups = null,
+        ResumptionTicket? resumptionTicket = null,
         ulong? maxFieldSectionSize = null,
         bool enableDatagrams = false,
         ulong webTransportMaxSessions = 0,
         TimeProvider? timeProvider = null,
         KeyLog? keyLog = null,
         QlogWriter? qlog = null,
-        Quic.Tls.ServerCertificate? clientCertificate = null,
+        ServerCertificate? clientCertificate = null,
         byte[]? addressValidationToken = null)
     {
         _wtMaxSessions = webTransportMaxSessions;
@@ -377,7 +378,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         stream.Write(Http3Frames.Build(Http3FrameType.Headers, _qpack.EncodeHeaders(stream.Id.Value, fields)));
         // NO Finish: the stream subsequently carries the tunnel bytes (RFC 9114 §4.4).
 
-        _requests[stream.Id.Value] = new RequestState(stream) { Method = "CONNECT", IsConnect = true };
+        _requests[stream.Id.Value] = new RequestState(stream) { Method = HTTPMethod.CONNECT, IsConnect = true };
         return stream.Id.Value;
     }
 
@@ -616,6 +617,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
 
     private void Pump()
     {
+
         if (_quic.IsClosing || _quic.IsDraining || _quic.IsClosed)
             return; // process nothing more after a connection error
 
@@ -624,6 +626,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
 
         foreach (RequestState state in _requests.Values)
         {
+
             if (_quic.IsClosing)
                 return; // a connection error was reported
 
@@ -696,7 +699,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
                 // §4.1.2: content-length MUST match the DATA sum — unless the response is body-less
                 // by definition (HEAD, 204, 304) and indeed no content arrived.
                 int finalStatus = ParseStatus(state.Headers);
-                bool contentNeverPresent = state.Method == "HEAD" || finalStatus is 204 or 304;
+                bool contentNeverPresent = state.Method == HTTPMethod.HEAD || finalStatus is 204 or 304;
                 if (Http3MessageValidator.ValidateContentLength(state.Headers, (ulong)state.Body.Count, contentNeverPresent) is { } lengthProblem)
                 {
                     MarkMalformed(state, lengthProblem);
@@ -719,6 +722,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         // Match HTTP datagrams LAST (RFC 9297 §2.1): tunnels from the same flight are then already
         // created, instead of dropping the datagrams as "unknown".
         DispatchReceivedDatagrams();
+
     }
 
     private readonly Dictionary<ulong, List<byte>> _serverBidiHeaders = []; // header buffers of server-initiated bidi streams
@@ -785,17 +789,17 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     // ---- IWebTransportHost (draft-webtrans-http3) -----------------------------------------
 
     /// <summary>Initial flow-control limits we grant per session (draft §5.5).</summary>
-    internal ulong LocalInitialMaxStreamsUni { get; init; } = 16;
-    internal ulong LocalInitialMaxStreamsBidi { get; init; } = 16;
-    internal ulong LocalInitialMaxData { get; init; } = 1_048_576;
+    internal ulong LocalInitialMaxStreamsUni    { get; init; } = 16;
+    internal ulong LocalInitialMaxStreamsBidi   { get; init; } = 16;
+    internal ulong LocalInitialMaxData          { get; init; } = 1_048_576;
 
-    bool IWebTransportHost.FlowControlEnabled => _wtMaxSessions > 1 && _qpack.PeerWtMaxSessions > 1; // §5.1
-    ulong IWebTransportHost.LocalInitialMaxStreamsUni => LocalInitialMaxStreamsUni;
-    ulong IWebTransportHost.LocalInitialMaxStreamsBidi => LocalInitialMaxStreamsBidi;
-    ulong IWebTransportHost.LocalInitialMaxData => LocalInitialMaxData;
-    ulong IWebTransportHost.PeerInitialMaxStreamsUni => _qpack.PeerWtInitialMaxStreamsUni;
-    ulong IWebTransportHost.PeerInitialMaxStreamsBidi => _qpack.PeerWtInitialMaxStreamsBidi;
-    ulong IWebTransportHost.PeerInitialMaxData => _qpack.PeerWtInitialMaxData;
+    bool  IWebTransportHost.FlowControlEnabled          => _wtMaxSessions > 1 && _qpack.PeerWtMaxSessions > 1; // §5.1
+    ulong IWebTransportHost.LocalInitialMaxStreamsUni   => LocalInitialMaxStreamsUni;
+    ulong IWebTransportHost.LocalInitialMaxStreamsBidi  => LocalInitialMaxStreamsBidi;
+    ulong IWebTransportHost.LocalInitialMaxData         => LocalInitialMaxData;
+    ulong IWebTransportHost.PeerInitialMaxStreamsUni    => _qpack.PeerWtInitialMaxStreamsUni;
+    ulong IWebTransportHost.PeerInitialMaxStreamsBidi   => _qpack.PeerWtInitialMaxStreamsBidi;
+    ulong IWebTransportHost.PeerInitialMaxData          => _qpack.PeerWtInitialMaxData;
 
     byte[] IWebTransportHost.ExportKeyingMaterial(string label, ReadOnlySpan<byte> context, int length)
         => _quic.ExportKeyingMaterial(label, context, length); // RFC 8446 §7.5 / draft §4.7
@@ -1086,7 +1090,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     private sealed class RequestState(QuicStream stream)
     {
         public QuicStream Stream { get; } = stream;
-        public string Method { get; init; } = "GET"; // for the content-length exception (HEAD, §4.1.2)
+        public HTTPMethod Method { get; init; } = HTTPMethod.GET; // for the content-length exception (HEAD, §4.1.2)
         public bool IsConnect { get; init; }         // Extended CONNECT (RFC 8441/9220)
         public bool IsWebTransport { get; set; }     // :protocol = webtransport (draft-webtrans-http3)
         public List<string>? OfferedWtProtocols { get; set; } // offered via WT-Available-Protocols (draft §3.3)

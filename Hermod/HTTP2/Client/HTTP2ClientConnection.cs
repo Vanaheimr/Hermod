@@ -17,6 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Buffers.Binary;
     using System.Net.Security;
     using System.Security.Cryptography;
@@ -46,13 +47,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private static readonly byte[] ConnectionPreface = Encoding.ASCII.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
 
-        private readonly Stream             transportStream;
-        private readonly HTTP2Settings      localSettings  = new();
-        private readonly HTTP2Settings      remoteSettings = new();
-        private readonly HTTP2StreamManager streamManager  = new(HTTP2Role.Client);
-        private readonly HPACKDecoder        hpackDecoder   = new();
-        private readonly HPACKEncoder        hpackEncoder   = new();
-        private readonly SemaphoreSlim       writeLock      = new(1, 1);
+        private readonly Stream              transportStream;
+        private readonly HTTP2Settings       localSettings    = new();
+        private readonly HTTP2Settings       remoteSettings   = new();
+        private readonly HTTP2StreamManager  streamManager    = new(HTTP2Role.Client);
+        private readonly HPACKDecoder        hpackDecoder     = new();
+        private readonly HPACKEncoder        hpackEncoder     = new();
+        private readonly SemaphoreSlim       writeLock        = new(1, 1);
 
         /// <summary>
         /// Serializes request *starts* — allocating the next odd stream ID,
@@ -144,15 +145,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             CancellationToken   CancellationToken = default,
             HTTP2ClientOptions? Options           = null)
         {
-            this.transportStream   = TransportStream;
-            this.isSecure          = TransportStream is System.Net.Security.SslStream { IsAuthenticated: true };
-            this.options           = Options ?? HTTP2ClientOptions.Default;
-            this.connectionCts     = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-            this.cancellationToken = connectionCts.Token;
-            this.lastActivityTimestamp = this.options.TimeProvider.GetTimestamp();
-            this.authenticator     = new Lazy<HTTPClientAuthenticator>(
-                                         () => new HTTPClientAuthenticator(this.options.Credentials!),
-                                         LazyThreadSafetyMode.ExecutionAndPublication);
+            this.transportStream        = TransportStream;
+            this.isSecure               = TransportStream is System.Net.Security.SslStream { IsAuthenticated: true };
+            this.options                = Options ?? HTTP2ClientOptions.Default;
+            this.connectionCts          = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+            this.cancellationToken      = connectionCts.Token;
+            this.lastActivityTimestamp  = this.options.TimeProvider.GetTimestamp();
+            this.authenticator          = new Lazy<HTTPClientAuthenticator>(
+                                              () => new HTTPClientAuthenticator(this.options.Credentials!),
+                                              LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
 
@@ -308,19 +309,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the origin boundary is where following stops. Each hop is answered by the
         /// same 401 logic, so a redirect into an authenticated area still works.
         /// </summary>
-        public async Task<HTTP2Response> SendRequestAsync(
-            string                             Method,
-            string                             Scheme,
-            string                             Authority,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders = null,
-            byte[]?                            Body         = null,
-            HTTP2Priority?                     Priority     = null,
-            CancellationToken                  CancellationToken = default)
+        public async Task<HTTP2Response> SendRequestAsync(HTTPMethod                          Method,
+                                                          String                              Scheme,
+                                                          String                              Authority,
+                                                          String                              Path,
+                                                          List<(String Name, String Value)>?  ExtraHeaders        = null,
+                                                          Byte[]?                             Body                = null,
+                                                          HTTP2Priority?                      Priority            = null,
+                                                          CancellationToken                   CancellationToken   = default)
 
             => options.MaxRedirects > 0
-                   ? await FollowRedirectsAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken)
-                   : await SendWithAuthenticationAsync(Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
+                   ? await FollowRedirectsAsync        (Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken)
+                   : await SendWithAuthenticationAsync (Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
 
         /// <summary>
         /// Follow <c>Location</c> for as many hops as
@@ -340,15 +340,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// hop is same-origin, an <c>Authorization</c> header can never travel to an
         /// origin that did not ask for it.
         /// </summary>
-        private async Task<HTTP2Response> FollowRedirectsAsync(
-            string                             Method,
-            string                             Scheme,
-            string                             Authority,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders,
-            byte[]?                            Body,
-            HTTP2Priority?                     Priority,
-            CancellationToken                  CancellationToken)
+        private async Task<HTTP2Response> FollowRedirectsAsync(HTTPMethod                          Method,
+                                                               String                              Scheme,
+                                                               String                              Authority,
+                                                               String                              Path,
+                                                               List<(String Name, String Value)>?  ExtraHeaders,
+                                                               Byte[]?                             Body,
+                                                               HTTP2Priority?                      Priority,
+                                                               CancellationToken                   CancellationToken)
         {
 
             var method    = Method;
@@ -400,16 +399,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// One request, answering a 401 challenge once if we hold credentials for it.
         /// </summary>
-        private async Task<HTTP2Response> SendWithAuthenticationAsync(
-            string                             Method,
-            string                             Scheme,
-            string                             Authority,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders,
-            byte[]?                            Body,
-            HTTP2Priority?                     Priority,
-            CancellationToken                  CancellationToken)
+        private async Task<HTTP2Response> SendWithAuthenticationAsync(HTTPMethod                          Method,
+                                                                      String                              Scheme,
+                                                                      String                              Authority,
+                                                                      String                              Path,
+                                                                      List<(String Name, String Value)>?  ExtraHeaders,
+                                                                      Byte[]?                             Body,
+                                                                      HTTP2Priority?                      Priority,
+                                                                      CancellationToken                   CancellationToken)
         {
+
             using var activity = HTTP2Diagnostics.StartRequest(Method, Scheme, Authority, Path, 0, "client");
 
             // One issue of the request, repeated once if the origin answers 425.
@@ -496,26 +495,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the in-flight request via <see cref="UpdatePriorityAsync"/> (RFC 9218
         /// PRIORITY_UPDATE) while awaiting <see cref="HTTP2RequestHandle.Response"/>.
         /// </summary>
-        public async Task<HTTP2RequestHandle> StartRequestAsync(
-            string                             Method,
-            string                             Scheme,
-            string                             Authority,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders = null,
-            byte[]?                            Body         = null,
-            HTTP2Priority?                     Priority     = null,
-            CancellationToken                  CancellationToken = default)
+        public async Task<HTTP2RequestHandle> StartRequestAsync(HTTPMethod                          Method,
+                                                                String                              Scheme,
+                                                                String                              Authority,
+                                                                String                              Path,
+                                                                List<(String Name, String Value)>?  ExtraHeaders        = null,
+                                                                byte[]?                             Body                = null,
+                                                                HTTP2Priority?                      Priority            = null,
+                                                                CancellationToken                   CancellationToken   = default)
         {
 
             var hasBody = Body is not null && Body.Length > 0;
 
-            var headers = new List<(string Name, string Value)>
-            {
-                (":method",    Method),
-                (":scheme",    Scheme),
-                (":authority", Authority),
-                (":path",      Path)
-            };
+            var headers = new List<(String Name, String Value)> {
+                              (":method",    Method.ToString()),
+                              (":scheme",    Scheme),
+                              (":authority", Authority),
+                              (":path",      Path)
+                          };
 
             // RFC 9218 Section 4: the priority hint, unless the caller already put
             // one in ExtraHeaders explicitly.
@@ -542,17 +539,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // The exchange carries everything needed to re-issue the request on a
             // fresh stream should the server refuse this one (REFUSED_STREAM).
-            var exchange = new ClientExchange
-            {
-                RequestHeaders = headers,
-                RequestBody    = Body,
-                HasBody        = hasBody,
-                RequestToken   = CancellationToken
-            };
+            var exchange = new ClientExchange{
+                               RequestHeaders  = headers,
+                               RequestBody     = Body,
+                               HasBody         = hasBody,
+                               RequestToken    = CancellationToken
+                           };
 
             var streamId = await IssueOnNewStreamAsync(exchange);
 
-            return new HTTP2RequestHandle(streamId, AwaitResponseAsync(exchange));
+            return new HTTP2RequestHandle(
+                       streamId,
+                       AwaitResponseAsync(exchange)
+                   );
 
         }
 
@@ -585,14 +584,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <param name="Destination">Where the body is written. Must be seekable to survive a restart.</param>
         /// <param name="MaxAttempts">Total requests allowed, the first one included.</param>
         /// <exception cref="InvalidOperationException">A restart is required but the destination cannot seek.</exception>
-        public async Task<HTTP2DownloadResult> DownloadAsync(
-            string                             Scheme,
-            string                             Authority,
-            string                             Path,
-            Stream                             Destination,
-            List<(string Name, string Value)>? ExtraHeaders = null,
-            int                                MaxAttempts  = 3,
-            CancellationToken                  CancellationToken = default)
+        public async Task<HTTP2DownloadResult> DownloadAsync(String                              Scheme,
+                                                             String                              Authority,
+                                                             String                              Path,
+                                                             Stream                              Destination,
+                                                             List<(String Name, String Value)>?  ExtraHeaders        = null,
+                                                             Byte                                MaxAttempts         = 3,
+                                                             CancellationToken                   CancellationToken   = default)
         {
 
             var startPosition = Destination.CanSeek ? Destination.Position : 0L;
@@ -640,7 +638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         resumes++;
                     }
 
-                    var stream = await StartStreamingRequestAsync("GET", Scheme, Authority, Path, headers, null, CancellationToken);
+                    var stream = await StartStreamingRequestAsync(HTTPMethod.GET, Scheme, Authority, Path, headers, null, CancellationToken);
                     await stream.CompleteRequestAsync(CancellationToken: CancellationToken);
 
                     var head = await stream.GetResponseAsync(CancellationToken);
@@ -817,22 +815,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// replay); a reset surfaces on the response side instead.
         /// </summary>
         public async Task<HTTP2ClientStream> StartStreamingRequestAsync(
-            string                             Method,
-            string                             Scheme,
-            string                             Authority,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders = null,
+            HTTPMethod                         Method,
+            String                             Scheme,
+            String                             Authority,
+            String                             Path,
+            List<(String Name, String Value)>? ExtraHeaders = null,
             HTTP2Priority?                     Priority     = null,
             CancellationToken                  CancellationToken = default)
         {
 
-            var headers = new List<(string Name, string Value)>
-            {
-                (":method",    Method),
-                (":scheme",    Scheme),
-                (":authority", Authority),
-                (":path",      Path)
-            };
+            var headers = new List<(String Name, String Value)> {
+                              (":method",    Method.ToString()),
+                              (":scheme",    Scheme),
+                              (":authority", Authority),
+                              (":path",      Path)
+                          };
 
             if (Priority is not null && (ExtraHeaders is null || !ExtraHeaders.Any(h => h.Name == "priority")))
                 headers.Add(("priority", Priority.Value.ToHeaderValue()));

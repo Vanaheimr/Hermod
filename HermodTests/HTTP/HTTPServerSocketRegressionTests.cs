@@ -566,12 +566,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [TestCase("GET",     "/%GG",                  400)]
         [TestCase("GET",     "/%25%32%46",            400)]
         [TestCase("GET",     "/a#fragment",           400)]
-        [TestCase("GET",     "http://example.org/a",   400)]
+        [TestCase("GET",     "http://example.org/a",  400)]
         [TestCase("GET",     "*",                     400)]
-        [TestCase("CONNECT", "example.org:443",        501)]
-        public async Task Invalid_Request_Target_Forms_Are_Rejected(String HTTPMethod,
-                                                                     String RequestTarget,
-                                                                     Int32  ExpectedStatusCode)
+        [TestCase("CONNECT", "example.org:443",       501)]
+        public async Task Invalid_Request_Target_Forms_Are_Rejected(String  HTTPMethod,
+                                                                    String  RequestTarget,
+                                                                    Int32   ExpectedStatusCode)
         {
 
             var server = CreateHTTPServer(IPv4Address.Localhost);

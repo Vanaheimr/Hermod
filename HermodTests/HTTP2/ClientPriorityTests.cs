@@ -23,6 +23,7 @@ using System.Buffers.Binary;
 using Microsoft.AspNetCore.Builder;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -99,9 +100,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Origin);
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var p0 = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/echo", Priority: new HTTP2Priority(0, true));
-            var p5 = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/echo", Priority: new HTTP2Priority(5, false));
-            var pNone = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/echo");
+            var p0 = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/echo", Priority: new HTTP2Priority(0, true));
+            var p5 = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/echo", Priority: new HTTP2Priority(5, false));
+            var pNone = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/echo");
             Assert.Multiple(() =>
             {
                 Assert.That(Encoding.UTF8.GetString(p0.Body),    Is.EqualTo("u=0, i"), "Priority u=0,i -> exact header at server");
@@ -110,13 +111,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // PRIORITY_UPDATE mid-flight: a well-formed one keeps the connection healthy.
-            var handle = await conn.StartRequestAsync("GET", "https", $"localhost:{srv.Port}", "/slow");
+            var handle = await conn.StartRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/slow");
             Assert.That(handle.StreamId % 2, Is.EqualTo(1u), "StartRequestAsync exposes an odd stream id");
             await conn.UpdatePriorityAsync(handle.StreamId, new HTTP2Priority(0, false));
             var slow = await handle.Response;
             Assert.That(slow.Status, Is.EqualTo(200), "request completes after mid-flight PRIORITY_UPDATE");
 
-            var after = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/echo");
+            var after = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/echo");
             Assert.That(after.Status, Is.EqualTo(200), "connection healthy after PRIORITY_UPDATE");
 
             await conn.CloseAsync();
@@ -132,19 +133,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await KestrelH2Server.StartAsync(app => app.MapGet("/", () => "kestrel-ok"));
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var withPriority = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/", Priority: new HTTP2Priority(1, false));
+            var withPriority = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/", Priority: new HTTP2Priority(1, false));
             Assert.Multiple(() =>
             {
                 Assert.That(withPriority.Status, Is.EqualTo(200));
                 Assert.That(Encoding.UTF8.GetString(withPriority.Body), Is.EqualTo("kestrel-ok"), "Kestrel accepts a priority-hinted request");
             });
 
-            var handle = await conn.StartRequestAsync("GET", "https", $"localhost:{srv.Port}", "/");
+            var handle = await conn.StartRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
             await conn.UpdatePriorityAsync(handle.StreamId, new HTTP2Priority(0, false));
             var resp = await handle.Response;
             Assert.That(resp.Status, Is.EqualTo(200), "Kestrel accepts a client PRIORITY_UPDATE");
 
-            var follow = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/");
+            var follow = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
             Assert.That(follow.Status, Is.EqualTo(200), "Kestrel connection healthy afterward");
 
             await conn.CloseAsync();

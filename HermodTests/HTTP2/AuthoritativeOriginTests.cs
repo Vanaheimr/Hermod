@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -122,9 +122,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv  = await TestH2Server.StartAsync(Handle);
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var ours     = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}",      "/");
-            var foreign  = await conn.SendRequestAsync("GET", "https", $"evil.example:{srv.Port}",   "/");
-            var loopback = await conn.SendRequestAsync("GET", "https", $"127.0.0.1:{srv.Port}",      "/");
+            var ours     = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}",      "/");
+            var foreign  = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"evil.example:{srv.Port}",   "/");
+            var loopback = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"127.0.0.1:{srv.Port}",      "/");
 
             Assert.Multiple(() =>
             {
@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // A stream-level answer: the connection keeps working afterwards.
-            var after = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/");
+            var after = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
             Assert.That(after.Status, Is.EqualTo(200), "421 does not poison the connection");
 
         }
@@ -163,8 +163,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var foreign = await conn.SendRequestAsync("GET", "https", "evil.example", "/");
-            var ours    = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/");
+            var foreign = await conn.SendRequestAsync(HTTPMethod.GET, "https", "evil.example", "/");
+            var ours    = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
 
             Assert.Multiple(() =>
             {
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv  = await TestH2Server.StartAsync(Handle, IsAuthorityServed: _ => true);
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var foreign = await conn.SendRequestAsync("GET", "https", "anything.example", "/");
+            var foreign = await conn.SendRequestAsync(HTTPMethod.GET, "https", "anything.example", "/");
 
             Assert.That(foreign.Status, Is.EqualTo(200));
 
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv  = await TestH2Server.StartAsync(Handle, Cleartext: true);
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, Cleartext: true);
 
-            var foreign = await conn.SendRequestAsync("GET", "http", "anything.example", "/");
+            var foreign = await conn.SendRequestAsync(HTTPMethod.GET, "http", "anything.example", "/");
 
             Assert.Multiple(() =>
             {
@@ -239,9 +239,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.That(await H2.EventuallyAsync(() => conn.OriginSet is not null), Is.True, "ORIGIN frame arrived");
             Assert.That(conn.OriginSet, Is.EquivalentTo(origins), "announced set arrived intact");
 
-            var alpha   = await conn.SendRequestAsync("GET", "https", "alpha.example",       "/");
-            var beta    = await conn.SendRequestAsync("GET", "https", "beta.example:8443",   "/");
-            var dialed  = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/");
+            var alpha   = await conn.SendRequestAsync(HTTPMethod.GET, "https", "alpha.example",       "/");
+            var beta    = await conn.SendRequestAsync(HTTPMethod.GET, "https", "beta.example:8443",   "/");
+            var dialed  = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
 
             Assert.Multiple(() =>
             {
@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                                  OriginSet: ["http://alpha.example"]);
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, Cleartext: true);
 
-            var alpha = await conn.SendRequestAsync("GET", "http", "alpha.example", "/");
+            var alpha = await conn.SendRequestAsync(HTTPMethod.GET, "http", "alpha.example", "/");
 
             Assert.Multiple(() =>
             {

@@ -17,7 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Text;
 
     /// <summary>
@@ -33,25 +33,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public sealed class BasicAuthenticationScheme : IHTTPAuthenticationScheme
     {
 
-        private readonly Func<string, string, CancellationToken, Task<HTTPAuthenticatedIdentity?>> validate;
+        private readonly Func<String, String, CancellationToken, Task<HTTPAuthenticatedIdentity?>> validate;
 
-        public BasicAuthenticationScheme(Func<string, string, CancellationToken, Task<HTTPAuthenticatedIdentity?>> Validate)
+        public BasicAuthenticationScheme(Func<String, String, CancellationToken, Task<HTTPAuthenticatedIdentity?>> Validate)
         {
             validate = Validate;
         }
 
-        public string SchemeName => "Basic";
+        public String SchemeName => "Basic";
 
         // charset="UTF-8" (RFC 7617, Section 2.1) tells the client how to encode
         // non-ASCII credentials before base64.
-        public string BuildChallenge(string Realm)
+        public String BuildChallenge(String Realm)
             => $"Basic realm=\"{Realm}\", charset=\"UTF-8\"";
 
         public async Task<HTTPAuthenticatedIdentity?> AuthenticateAsync(
-            string Credentials, string Method, string RequestTarget, CancellationToken CancellationToken)
+            String Credentials, HTTPMethod Method, String RequestTarget, CancellationToken CancellationToken)
         {
 
-            string decoded;
+            String decoded;
             try
             {
                 decoded = Encoding.UTF8.GetString(Convert.FromBase64String(Credentials.Trim()));

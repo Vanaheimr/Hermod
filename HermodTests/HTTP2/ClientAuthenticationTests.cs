@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         private static HTTP2RequestHandler Respond(HTTPAuthenticator Authenticator)
 
-            => HTTPAuthentication.RequireAuthentication(Authenticator,
+            => Hermod.HTTP2.HTTPAuthentication.RequireAuthentication(Authenticator,
                    (identity, sid, h, b, ct) => {
                        var body = Encoding.UTF8.GetBytes($"Authenticated as: {identity.Name}");
                        return Task.FromResult<(List<(String, String)>, Byte[]?)>(
@@ -127,9 +127,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             // "password never on the wire" assertion below means what it says.
             var both  = auth.Answer(["Basic realm=\"demo\"",
                                      "Digest realm=\"demo\", qop=\"auth\", algorithm=SHA-256, nonce=\"abc\""],
-                                    "GET", "/private");
+                                    HTTPMethod.GET, "/private");
 
-            var basic = auth.Answer(["Basic realm=\"demo\""], "GET", "/private");
+            var basic = auth.Answer(["Basic realm=\"demo\""], HTTPMethod.GET, "/private");
 
             Assert.Multiple(() =>
             {
@@ -156,13 +156,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             Assert.Multiple(() =>
             {
-                Assert.That(password.Answer(["Negotiate"],                                                    "GET", "/"), Is.Null, "unimplemented scheme");
-                Assert.That(password.Answer(["Bearer realm=\"demo\""],                                        "GET", "/"), Is.Null, "no token held");
-                Assert.That(token.   Answer(["Basic realm=\"demo\""],                                         "GET", "/"), Is.Null, "no password held");
-                Assert.That(password.Answer(["Digest realm=\"d\", nonce=\"n\", algorithm=SHA-512"],           "GET", "/"), Is.Null, "algorithm we cannot compute");
-                Assert.That(password.Answer(["Digest realm=\"d\", nonce=\"n\", qop=\"auth-int\""],            "GET", "/"), Is.Null, "auth-int not implemented");
-                Assert.That(password.Answer(["Digest realm=\"d\""],                                           "GET", "/"), Is.Null, "challenge without a nonce");
-                Assert.That(password.Answer([],                                                               "GET", "/"), Is.Null, "no challenge at all");
+                Assert.That(password.Answer(["Negotiate"],                                                    HTTPMethod.GET, "/"), Is.Null, "unimplemented scheme");
+                Assert.That(password.Answer(["Bearer realm=\"demo\""],                                        HTTPMethod.GET, "/"), Is.Null, "no token held");
+                Assert.That(token.   Answer(["Basic realm=\"demo\""],                                         HTTPMethod.GET, "/"), Is.Null, "no password held");
+                Assert.That(password.Answer(["Digest realm=\"d\", nonce=\"n\", algorithm=SHA-512"],           HTTPMethod.GET, "/"), Is.Null, "algorithm we cannot compute");
+                Assert.That(password.Answer(["Digest realm=\"d\", nonce=\"n\", qop=\"auth-int\""],            HTTPMethod.GET, "/"), Is.Null, "auth-int not implemented");
+                Assert.That(password.Answer(["Digest realm=\"d\""],                                           HTTPMethod.GET, "/"), Is.Null, "challenge without a nonce");
+                Assert.That(password.Answer([],                                                               HTTPMethod.GET, "/"), Is.Null, "no challenge at all");
             });
 
         }
@@ -180,9 +180,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var auth      = new HTTPClientAuthenticator(HTTPClientCredentials.UserNameAndPassword("alice", "secret"));
             var challenge = new[] { "Digest realm=\"demo\", qop=\"auth\", algorithm=SHA-256, nonce=\"same-nonce\"" };
 
-            var first  = auth.Answer(challenge, "GET", "/secret");
-            var second = auth.Answer(challenge, "GET", "/secret");
-            var other  = auth.Answer(["Digest realm=\"demo\", qop=\"auth\", algorithm=SHA-256, nonce=\"other\""], "GET", "/secret");
+            var first  = auth.Answer(challenge, HTTPMethod.GET, "/secret");
+            var second = auth.Answer(challenge, HTTPMethod.GET, "/secret");
+            var other  = auth.Answer(["Digest realm=\"demo\", qop=\"auth\", algorithm=SHA-256, nonce=\"other\""], HTTPMethod.GET, "/secret");
 
             Assert.Multiple(() =>
             {
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "secret")
                            });
 
-            var ok = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret");
+            var ok = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.BearerToken("valid-token-123")
                            });
 
-            var ok = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret");
+            var ok = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -264,8 +264,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "secret")
                            });
 
-            var ok     = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest");
-            var second = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/digest");
+            var ok     = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest");
+            var second = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest");
 
             await conn.CloseAsync();
 
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "wrong")
                            });
 
-            var denied = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret");
+            var denied = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.That(denied.Status, Is.EqualTo(401), "the second 401 is returned, not retried again");
@@ -318,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "secret")
                            });
 
-            var denied = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret",
+            var denied = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret",
                              ExtraHeaders: [("authorization", "Bearer definitely-not-valid")]);
 
             await conn.CloseAsync();
@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(MultiSchemeServer());
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var anon = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/secret");
+            var anon = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>

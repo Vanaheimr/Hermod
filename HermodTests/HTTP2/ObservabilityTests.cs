@@ -20,7 +20,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Handle);
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/hello");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/hello");
             await conn.CloseAsync();
 
             Assert.That(resp.Status, Is.EqualTo(200));
@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             Assert.Multiple(() =>
             {
-                Assert.That(handled[1]?.ToString(), Is.EqualTo("GET"));
+                Assert.That(handled[1]?.ToString(), Is.EqualTo(HTTPMethod.GET.ToString()));
                 Assert.That(handled[2]?.ToString(), Is.EqualTo("/hello"));
                 Assert.That(handled[3],             Is.EqualTo(200));
             });
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Handle);
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync("GET", "https", $"localhost:{srv.Port}", "/traced");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/traced");
             await conn.CloseAsync();
 
             Assert.That(resp.Status, Is.EqualTo(200));
@@ -165,8 +165,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 all = [.. started];
 
             var connection = all.FirstOrDefault(a => a.OperationName.StartsWith("HTTP/2 connection server"));
-            var request    = all.FirstOrDefault(a => a.OperationName == "GET" && a.Kind == ActivityKind.Server);
-            var clientSide = all.FirstOrDefault(a => a.OperationName == "GET" && a.Kind == ActivityKind.Client);
+            var request    = all.FirstOrDefault(a => a.OperationName == HTTPMethod.GET.ToString() && a.Kind == ActivityKind.Server);
+            var clientSide = all.FirstOrDefault(a => a.OperationName == HTTPMethod.GET.ToString() && a.Kind == ActivityKind.Client);
 
             Assert.Multiple(() =>
             {
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 Assert.That(request?.Parent,                        Is.EqualTo(connection), "request nests in the connection");
                 Assert.That(request?.GetTagItem("url.path"),        Is.EqualTo("/traced"));
-                Assert.That(request?.GetTagItem("http.request.method"), Is.EqualTo("GET"));
+                Assert.That(request?.GetTagItem("http.request.method"), Is.EqualTo(HTTPMethod.GET));
                 Assert.That(request?.GetTagItem("network.protocol.version"), Is.EqualTo("2"));
                 Assert.That(clientSide?.GetTagItem("http.response.status_code"), Is.EqualTo(200));
             });
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
             Assert.Multiple(() =>
             {
-                Assert.That(HTTP2Diagnostics.StartRequest("GET", "https", "example.com", "/", 1, "server"),
+                Assert.That(HTTP2Diagnostics.StartRequest(HTTPMethod.GET, "https", "example.com", "/", 1, "server"),
                             Is.Null, "no listener -> no Activity allocated");
 
                 Assert.That(HTTP2Diagnostics.StartConnection("127.0.0.1:1", "server"),

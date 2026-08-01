@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
@@ -28,11 +34,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// </summary>
     public interface IHTTPAuthenticationScheme
     {
-        /// <summary>The auth-scheme token, e.g. "Basic" (compared case-insensitively per RFC 9110, Section 11.1).</summary>
-        string SchemeName { get; }
 
-        /// <summary>The <c>WWW-Authenticate</c> challenge value this scheme advertises for the given protection space.</summary>
-        string BuildChallenge(string Realm);
+        /// <summary>
+        /// The auth-scheme token, e.g. "Basic" (compared case-insensitively per RFC 9110, Section 11.1).
+        /// </summary>
+        String SchemeName { get; }
+
+        /// <summary>
+        /// The <c>WWW-Authenticate</c> challenge value this scheme advertises for the given protection space.
+        /// </summary>
+        String BuildChallenge(String Realm);
 
         /// <summary>
         /// Decode Credentials (everything after the scheme token in the
@@ -44,11 +55,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <c>method:request-target</c> into its response (RFC 7616, Section 3.4.3);
         /// Basic and Bearer ignore them.
         /// </summary>
-        Task<HTTPAuthenticatedIdentity?> AuthenticateAsync(
-            string            Credentials,
-            string            Method,
-            string            RequestTarget,
-            CancellationToken CancellationToken);
+        Task<HTTPAuthenticatedIdentity?> AuthenticateAsync(String             Credentials,
+                                                           HTTPMethod         Method,
+                                                           String             RequestTarget,
+                                                           CancellationToken  CancellationToken);
     }
 
 }

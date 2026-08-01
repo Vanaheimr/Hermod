@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             await using var srv = await TestH2Server.StartAsync(
-                                      HTTPSemantics.Wrap((path, headers, ct) => Task.FromResult<HTTPResource?>(
+                                      Hermod.HTTP2.HTTPSemantics.Wrap((path, headers, ct) => Task.FromResult<HTTPResource?>(
                                           new HTTPResource { Body = Body, ContentType = "application/octet-stream" })));
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var lastModified = new DateTimeOffset(2026, 7, 1, 10, 0, 0, TimeSpan.Zero);
 
             await using var srv = await TestH2Server.StartAsync(
-                                      HTTPSemantics.Wrap((path, headers, ct) => Task.FromResult<HTTPResource?>(
+                                      Hermod.HTTP2.HTTPSemantics.Wrap((path, headers, ct) => Task.FromResult<HTTPResource?>(
                                           new HTTPResource {
                                               Body         = Body,
                                               ContentType  = "application/octet-stream",
@@ -401,16 +401,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var full = await conn.SendRequestAsync("GET", "https", authority, "/file");
+            var full = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file");
             var etag = full.HeaderValue("etag")!;
 
-            var byETag = await conn.SendRequestAsync("GET", "https", authority, "/file",
+            var byETag = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file",
                              [("if-none-match", etag)]);
 
-            var byDate = await conn.SendRequestAsync("GET", "https", authority, "/file",
+            var byDate = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file",
                              [("if-modified-since", HTTPValidators.FormatDate(lastModified))]);
 
-            var stale  = await conn.SendRequestAsync("GET", "https", authority, "/file",
+            var stale  = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file",
                              [("if-none-match", "\"something-else\"")]);
 
             await conn.CloseAsync();

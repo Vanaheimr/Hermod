@@ -17,7 +17,7 @@
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
 
@@ -186,15 +186,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// (RFC 9113 §8.1 / §6.8). Signature mirrors
         /// <see cref="HTTP2ClientConnection.SendRequestAsync"/>.
         /// </summary>
-        public async Task<HTTP2Response> SendRequestAsync(
-            string                             Method,
-            string                             Scheme,
-            string                             Authority,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders = null,
-            byte[]?                            Body         = null,
-            HTTP2Priority?                     Priority     = null,
-            CancellationToken                  CancellationToken = default)
+        public async Task<HTTP2Response> SendRequestAsync(HTTPMethod                          Method,
+                                                          String                              Scheme,
+                                                          String                              Authority,
+                                                          String                              Path,
+                                                          List<(String Name, String Value)>?  ExtraHeaders        = null,
+                                                          Byte[]?                             Body                = null,
+                                                          HTTP2Priority?                      Priority            = null,
+                                                          CancellationToken                   CancellationToken   = default)
         {
 
             ObjectDisposedException.ThrowIf(disposed, this);

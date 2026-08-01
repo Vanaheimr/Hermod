@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
@@ -40,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             => $"Bearer realm=\"{Realm}\"";
 
         public Task<HTTPAuthenticatedIdentity?> AuthenticateAsync(
-            string Credentials, string Method, string RequestTarget, CancellationToken CancellationToken)
+            string Credentials, HTTPMethod Method, string RequestTarget, CancellationToken CancellationToken)
             => validate(Credentials.Trim(), CancellationToken);
 
     }

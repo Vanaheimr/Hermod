@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
@@ -72,9 +74,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// only holds for repetition, not for reordering. A safe method has no
         /// intended effect to undo.
         /// </summary>
-        public static Boolean IsSafeMethod(String? Method)
+        public static Boolean IsSafeMethod(HTTPMethod? Method)
 
-            => Method is "GET" or "HEAD" or "OPTIONS" or "TRACE" or "QUERY";
+            => Method == HTTPMethod.GET     ||
+               Method == HTTPMethod.HEAD    ||
+               Method == HTTPMethod.OPTIONS ||
+               Method == HTTPMethod.TRACE   ||
+               Method == HTTPMethod.QUERY;
 
         #endregion
 
@@ -86,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public static Boolean IsSafeToProcess(IEnumerable<(String Name, String Value)> RequestHeaders)
 
-            => IsSafeMethod(RequestHeaders.FirstOrDefault(header => header.Name == ":method").Value);
+            => IsSafeMethod(HTTPMethod.TryParseWithoutRegistration(RequestHeaders.FirstOrDefault(header => header.Name == ":method").Value));
 
         #endregion
 
