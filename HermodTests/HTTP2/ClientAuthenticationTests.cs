@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "secret")
                            });
 
-            var ok = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
+            var ok = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.BearerToken("valid-token-123")
                            });
 
-            var ok = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
+            var ok = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -264,8 +264,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "secret")
                            });
 
-            var ok     = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest");
-            var second = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest");
+            var ok     = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest");
+            var second = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest");
 
             await conn.CloseAsync();
 
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "wrong")
                            });
 
-            var denied = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
+            var denied = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.That(denied.Status, Is.EqualTo(401), "the second 401 is returned, not retried again");
@@ -318,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                Credentials = HTTPClientCredentials.UserNameAndPassword("alice", "secret")
                            });
 
-            var denied = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret",
+            var denied = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret",
                              ExtraHeaders: [("authorization", "Bearer definitely-not-valid")]);
 
             await conn.CloseAsync();
@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(MultiSchemeServer());
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var anon = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
+            var anon = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>

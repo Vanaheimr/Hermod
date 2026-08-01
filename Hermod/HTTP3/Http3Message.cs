@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3;
 /// The optional body is sent as a series of DATA frames after the HEADERS frame (RFC 9114 §4.1).
 /// </summary>
 public sealed record Http3Request(HTTPMethod  Method,
-                                  String      Scheme,
+                                  URIScheme   Scheme,
                                   String      Authority,
                                   String      Path)
 {
@@ -61,10 +61,10 @@ public sealed record Http3Request(HTTPMethod  Method,
 
     public static Http3Request Get(String authority,
                                    String path = "/",
-                                   String scheme = "https")
+                                   URIScheme? scheme = null)
 
         => new (HTTPMethod.GET,
-                scheme,
+                scheme ?? URIScheme.https,
                 authority,
                 path);
 
@@ -75,9 +75,9 @@ public sealed record Http3Request(HTTPMethod  Method,
                                     String  path,
                                     Byte[]  body,
                                     String  contentType = "application/octet-stream",
-                                    String  scheme = "https")
+                                    URIScheme?  scheme = null)
 
-        => new (HTTPMethod.POST, scheme, authority, path) {
+        => new (HTTPMethod.POST, scheme ?? URIScheme.https, authority, path) {
                    Body = body,
                    AdditionalHeaders = [new HeaderField("content-type", contentType)],
                };
@@ -92,7 +92,7 @@ public sealed record Http3Request(HTTPMethod  Method,
 
         var fields = new List<HeaderField> {
                          new(":method",     Method.ToString()),
-                         new(":scheme",     Scheme),
+                         new(":scheme",     Scheme.SchemeName),
                          new(":authority",  Authority),
                          new(":path",       Path),
                      };

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -177,14 +177,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
             {
 
                 stopwatch.Restart();
-                var addresses = await Dns.GetHostAddressesAsync(URL.Hostname.ToString(), ct);
+                var addresses = await Dns.GetHostAddressesAsync(URL.Host.ToString(), ct);
                 dnsDelay = stopwatch.Elapsed;
 
                 if (addresses.Length == 0)
                     throw new Exception("DNS: keine Adressen");
 
                 var ipAddress  = addresses[0];
-                var port       = URL.Port ?? (URL.Protocol == URLProtocols.https
+                var port       = URL.Port ?? (URL.Scheme == URIScheme.https
                                                   ? IPPort.HTTPS
                                                   : IPPort.HTTP);
 
@@ -195,13 +195,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 
                 Stream stream = new NetworkStream(socket, ownsSocket: false);
 
-                if (URL.Protocol == URLProtocols.https)
+                if (URL.Scheme == URIScheme.https)
                 {
                     var sslStream = new SslStream(stream, leaveInnerStreamOpen: false);
                     stopwatch.Restart();
                     await sslStream.AuthenticateAsClientAsync(
                               new SslClientAuthenticationOptions {
-                                  TargetHost = URL.Hostname.ToString()
+                                  TargetHost = URL.Host.ToString()
                               },
                               ct
                           );
@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
                                             "",
                                             requestHeaders.Select(header => $"{header.Key}: {header.Value}\r\n")
                                         );
-                var request       = $"GET {path} HTTP/1.1\r\nHost: {URL.Hostname}\r\nConnection: close\r\nUser-Agent: Vanaheimr Argus/1.0\r\n{additionalHeaders}\r\n";
+                var request       = $"GET {path} HTTP/1.1\r\nHost: {URL.Host}\r\nConnection: close\r\nUser-Agent: Vanaheimr Argus/1.0\r\n{additionalHeaders}\r\n";
                 var requestBytes  = System.Text.Encoding.ASCII.GetBytes(request);
 
                 stopwatch.Restart();

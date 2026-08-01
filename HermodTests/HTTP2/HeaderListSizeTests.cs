@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -107,14 +107,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn      = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var first = await conn.StartRequestAsync(HTTPMethod.GET, "https", authority, "/");
+            var first = await conn.StartRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/");
             await first.Response;
 
             // Comfortably under the advertised 8 KiB: unaffected.
-            var modest = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/",
+            var modest = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/",
                              [("x-context", new String('c', 4000))]);
 
-            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/",
+            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/",
                             [("x-huge", new String('h', 9000))]),
                         Throws.InstanceOf<InvalidOperationException>()
                               .With.Message.Contains("MAX_HEADER_LIST_SIZE"),
@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // The connection is untouched, and — because the check runs before the
             // stream is allocated — the refused request burned no stream ID.
-            var next = await conn.StartRequestAsync(HTTPMethod.GET, "https", authority, "/");
+            var next = await conn.StartRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/");
             var body = await next.Response;
 
             await conn.CloseAsync();
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Ok, StreamingHandler: OkStreaming);
 
             var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var stream = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/");
+            var stream = await conn.StartStreamingRequestAsync(HTTPMethod.POST, URIScheme.https, $"localhost:{srv.Port}", "/");
 
             await stream.WriteAsync("body"u8.ToArray());
 
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                               .With.Message.Contains("MAX_HEADER_LIST_SIZE"));
 
             // Modest trailers on a fresh stream still go out.
-            var ok = await conn.StartStreamingRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/");
+            var ok = await conn.StartStreamingRequestAsync(HTTPMethod.POST, URIScheme.https, $"localhost:{srv.Port}", "/");
             await ok.CompleteRequestAsync([("x-small", "1")]);
             var head = await ok.GetResponseAsync();
 
@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var response = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
+            var response = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/");
 
             await conn.CloseAsync();
 

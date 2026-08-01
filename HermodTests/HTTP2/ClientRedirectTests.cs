@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             (HTTPMethod Method, Boolean KeepBody) Follow(Int32 status, HTTPMethod method)
             {
-                Assert.That(HTTPRedirect.TryResolve(status, "/next", "https", "example.com", "/here", method, out var t), Is.True);
+                Assert.That(HTTPRedirect.TryResolve(status, "/next", URIScheme.https, "example.com", "/here", method, out var t), Is.True);
                 return (t!.Method, t.KeepBody);
             }
 
@@ -175,13 +175,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(HTTPRedirect.IsRedirect(304), Is.False, "304 is an answer, not a redirect");
                 Assert.That(HTTPRedirect.IsRedirect(200), Is.False);
 
-                Assert.That(HTTPRedirect.TryResolve(302, null,   "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "no Location");
-                Assert.That(HTTPRedirect.TryResolve(302, "   ",  "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "blank Location");
-                Assert.That(HTTPRedirect.TryResolve(200, "/x",   "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "not a redirect");
+                Assert.That(HTTPRedirect.TryResolve(302, null,   URIScheme.https, "a.example", "/", HTTPMethod.GET, out _), Is.False, "no Location");
+                Assert.That(HTTPRedirect.TryResolve(302, "   ",  URIScheme.https, "a.example", "/", HTTPMethod.GET, out _), Is.False, "blank Location");
+                Assert.That(HTTPRedirect.TryResolve(200, "/x",   URIScheme.https, "a.example", "/", HTTPMethod.GET, out _), Is.False, "not a redirect");
 
                 // A client must not be talked into speaking another protocol.
-                Assert.That(HTTPRedirect.TryResolve(302, "ftp://a.example/x",  "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "ftp");
-                Assert.That(HTTPRedirect.TryResolve(302, "file:///etc/passwd", "https", "a.example", "/", HTTPMethod.GET, out _), Is.False, "file");
+                Assert.That(HTTPRedirect.TryResolve(302, "ftp://a.example/x",  URIScheme.https, "a.example", "/", HTTPMethod.GET, out _), Is.False, "ftp");
+                Assert.That(HTTPRedirect.TryResolve(302, "file:///etc/passwd", URIScheme.https, "a.example", "/", HTTPMethod.GET, out _), Is.False, "file");
             });
         }
 
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             HTTPRedirectTarget R(String location, String path = "/deep/here")
             {
-                Assert.That(HTTPRedirect.TryResolve(302, location, "https", "example.com", path, HTTPMethod.GET, out var t), Is.True, location);
+                Assert.That(HTTPRedirect.TryResolve(302, location, URIScheme.https, "example.com", path, HTTPMethod.GET, out var t), Is.True, location);
                 return t!;
             }
 
@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/302");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, Authority, "/302");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -248,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/deep/here");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, Authority, "/deep/here");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -274,14 +274,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var payload = Encoding.UTF8.GetBytes("some form data");
             var conn    = await Connect();
 
-            var after303 = await conn.SendRequestAsync(HTTPMethod.POST, "https", Authority, "/303",
+            var after303 = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.https, Authority, "/303",
                                ExtraHeaders: [("content-type", "text/plain"), ("content-length", payload.Length.ToString())],
                                Body: payload);
 
             var hops303  = seen.ToList();
             lock (seen) seen.Clear();
 
-            var after307 = await conn.SendRequestAsync(HTTPMethod.POST, "https", Authority, "/307",
+            var after307 = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.https, Authority, "/307",
                                ExtraHeaders: [("content-type", "text/plain"), ("content-length", payload.Length.ToString())],
                                Body: payload);
 
@@ -314,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/offsite");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, Authority, "/offsite");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // Two hops allowed, three needed: the third 302 is returned as-is.
             var limited = await Connect(maxRedirects: 2);
-            var chain   = await limited.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/hop1");
+            var chain   = await limited.SendRequestAsync(HTTPMethod.GET, URIScheme.https, Authority, "/hop1");
             await limited.CloseAsync();
 
             var seenChain = seen.Select(s => s.Path).ToList();
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // A Location pointing at itself would spin forever without the limit.
             var looping = await Connect(maxRedirects: 3);
-            var loop    = await looping.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/loop");
+            var loop    = await looping.SendRequestAsync(HTTPMethod.GET, URIScheme.https, Authority, "/loop");
             await looping.CloseAsync();
 
             var seenLoop = seen.Count;
@@ -371,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await Connect();
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/300");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, Authority, "/300");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", Authority, "/302");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, Authority, "/302");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>

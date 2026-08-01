@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
             var conn  = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var extra = acceptEncoding is null ? null : new List<(String, String)> { ("accept-encoding", acceptEncoding) };
-            var resp  = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", path, extra);
+            var resp  = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", path, extra);
             await conn.CloseAsync();
             return resp;
         }
@@ -194,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var etag  = first.HeaderValue("etag")!;
 
             var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var second = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/big",
+            var second = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/big",
                              new List<(String, String)> { ("accept-encoding", "gzip"), ("if-none-match", etag) });
             await conn.CloseAsync();
 

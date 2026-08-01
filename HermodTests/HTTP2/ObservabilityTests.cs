@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Handle);
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/hello");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/hello");
             await conn.CloseAsync();
 
             Assert.That(resp.Status, Is.EqualTo(200));
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Handle);
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/traced");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/traced");
             await conn.CloseAsync();
 
             Assert.That(resp.Status, Is.EqualTo(200));
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
             Assert.Multiple(() =>
             {
-                Assert.That(HTTP2Diagnostics.StartRequest(HTTPMethod.GET, "https", "example.com", "/", 1, "server"),
+                Assert.That(HTTP2Diagnostics.StartRequest(HTTPMethod.GET, URIScheme.https, "example.com", "/", 1, "server"),
                             Is.Null, "no listener -> no Activity allocated");
 
                 Assert.That(HTTP2Diagnostics.StartConnection("127.0.0.1:1", "server"),

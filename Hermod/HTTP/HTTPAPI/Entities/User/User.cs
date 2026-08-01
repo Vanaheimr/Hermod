@@ -785,7 +785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     IEnumerable<User2UserGroupEdge>?     User2UserGroupEdges      = null,
                     IEnumerable<User2OrganizationEdge>?  User2OrganizationEdges   = null,
 
-                    JObject?                             CustomData               = default,
+                    CustomDataNew?                       CustomData               = default,
                     IEnumerable<AttachedFile>?           AttachedFiles            = default,
                     JSONLDContext?                       JSONLDContext            = default,
                     String?                              DataSource               = default,
@@ -2329,7 +2329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<User2UserGroupEdge>?     User2GroupEdges          = null,
                            IEnumerable<User2OrganizationEdge>?  User2OrganizationEdges   = null,
 
-                           JObject?                             CustomData               = null,
+                           CustomDataNew?                       CustomData               = null,
                            IEnumerable<AttachedFile>?           AttachedFiles            = null,
                            JSONLDContext?                       JSONLDContext            = null,
                            String?                              DataSource               = null,

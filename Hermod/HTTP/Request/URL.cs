@@ -18,7 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -59,7 +59,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal identification.
         /// </summary>
-        private readonly String InternalId;
+        private        readonly  String      InternalId;
+
+        /// <summary>
+        /// The URL scheme, or null for default(URL).
+        /// </summary>
+        private        readonly  URIScheme?  scheme;
+
+        /// <summary>
+        /// The characters terminating the "scheme://[userinfo@]host[:port]" part of an URL.
+        /// </summary>
+        private static readonly  Char[]      pathQueryOrFragment = ['/', '?', '#'];
 
         #endregion
 
@@ -68,35 +78,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this identification is null or empty.
         /// </summary>
-        public Boolean IsNullOrEmpty
+        public Boolean       IsNullOrEmpty
             => InternalId.IsNullOrEmpty();
 
         /// <summary>
         /// Indicates whether this identification is NOT null or empty.
         /// </summary>
-        public Boolean IsNotNullOrEmpty
+        public Boolean       IsNotNullOrEmpty
             => !InternalId.IsNullOrEmpty();
 
         /// <summary>
         /// The length of the uniform resource location.
         /// </summary>
-        public UInt64 Length
+        public UInt64        Length
 
             => (UInt64) (InternalId?.Length ?? 0);
 
-        public URLProtocols  Protocol       { get; }
+        /// <summary>
+        /// The URL scheme, e.g. "https", or null when this URL has none.
+        ///
+        /// Note: Nullable on purpose. A struct can not prevent its own default value from
+        ///       being created, so default(URL) genuinely has no scheme. Declaring this
+        ///       non-nullable and papering over it with a fallback would force one invented
+        ///       answer on every caller, although only the caller knows what "no scheme"
+        ///       means for it: AHTTPClient must not enforce TLS, a URL builder may well want
+        ///       https, a log line wants nothing at all. A fallback of https once turned every
+        ///       client whose RemoteURL was never assigned into one demanding a TLS handshake
+        ///       on a plain connection - and nothing in the type system could have caught it.
+        /// </summary>
+        public URIScheme?    Scheme
+            => scheme;
 
+        /// <summary>
+        /// The optional login of the user information.
+        /// </summary>
         public String?       Login          { get; }
 
+        /// <summary>
+        /// The optional password of the user information.
+        /// </summary>
         public String?       Password       { get; }
 
-        public HTTPHostname  Hostname       { get; }
+        /// <summary>
+        /// The host, i.e. a domain name, an IPv4 address or an IPv6 address.
+        /// </summary>
+        public URLHost       Host           { get; }
 
+        /// <summary>
+        /// The optional TCP/IP port, defaulting to the default port of the URL scheme.
+        /// </summary>
         public IPPort?       Port           { get; }
 
+        /// <summary>
+        /// The host as it belongs into the HTTP 'Host' header, i.e. the host plus the
+        /// TCP/IP port whenever that differs from the default port of the URL scheme.
+        ///
+        /// RFC 9110 section 7.2: Host = uri-host [ ":" port ]
+        /// RFC 3986 section 3.2.3: the port is omitted when it is the scheme's default.
+        /// </summary>
+        public HTTPHostname  HostHeader
+            => Host.ToHTTPHostname(
+                   Port.HasValue && Port != Scheme?.DefaultPort
+                       ? Port
+                       : null
+               );
+
+        /// <summary>
+        /// The path.
+        /// </summary>
         public HTTPPath      Path           { get; }
 
+        /// <summary>
+        /// The optional query string.
+        /// </summary>
         public QueryString?  QueryString    { get; }
+
+        /// <summary>
+        /// The optional fragment, without the leading '#'.
+        /// </summary>
+        public String?       Fragment       { get; }
 
         #endregion
 
@@ -104,65 +164,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// Create a new uniform resource location based on the given string.
+        ///
+        /// Note: This is deliberately the only constructor. Additional constructors taking
+        ///       just a subset of the components led to Clone() and operator + silently
+        ///       dropping the login, the password and the query string.
         /// </summary>
         /// <param name="String">The string representation of the uniform resource location.</param>
+        /// <param name="Protocol">The URL scheme.</param>
+        /// <param name="Login">An optional login of the user information.</param>
+        /// <param name="Password">An optional password of the user information.</param>
+        /// <param name="Host">The host, i.e. a domain name, an IPv4 address or an IPv6 address.</param>
+        /// <param name="Port">An optional TCP/IP port.</param>
+        /// <param name="Path">The path.</param>
+        /// <param name="QueryString">An optional query string.</param>
+        /// <param name="Fragment">An optional fragment, without the leading '#'.</param>
         private URL(String        String,
-                    URLProtocols  Protocol,
-                    HTTPHostname  Hostname,
-                    IPPort?       Port,
-                    HTTPPath      Path,
-                    QueryString?  QueryString = null)
-        {
-
-            this.InternalId   = String;
-            this.Protocol     = Protocol;
-            this.Hostname     = Hostname;
-            this.Port         = Port;
-            this.Path         = Path;
-            this.QueryString  = QueryString;
-
-        }
-
-        /// <summary>
-        /// Create a new uniform resource location based on the given string.
-        /// </summary>
-        /// <param name="String">The string representation of the uniform resource location.</param>
-        private URL(String        String,
-                    URLProtocols  Protocol,
+                    URIScheme?    Protocol,
                     String?       Login,
                     String?       Password,
-                    HTTPHostname  Hostname,
+                    URLHost       Host,
                     IPPort?       Port,
                     HTTPPath      Path,
-                    QueryString?  QueryString = null)
+                    QueryString?  QueryString,
+                    String?       Fragment)
         {
 
             this.InternalId   = String;
-            this.Protocol     = Protocol;
+            this.scheme     = Protocol;
             this.Login        = Login;
             this.Password     = Password;
-            this.Hostname     = Hostname;
+            this.Host         = Host;
             this.Port         = Port;
             this.Path         = Path;
             this.QueryString  = QueryString;
+            this.Fragment     = Fragment;
 
         }
 
         #endregion
 
 
-        #region (static) Parse     (Text, URLProtocol = null)
+        #region (static) Parse     (Text, URLScheme = null)
 
         /// <summary>
         /// Parse the given string as an uniform resource location.
         /// </summary>
         /// <param name="Text">A text representation of an uniform resource location.</param>
-        /// <param name="URLProtocol">An optional URL protocol.</param>
+        /// <param name="URLScheme">An optional URL schemel.</param>
         public static URL Parse(String         Text,
-                                URLProtocols?  URLProtocol   = null)
+                                URIScheme ?  URLScheme   = null)
         {
 
-            if (TryParse(Text, out var url, URLProtocol))
+            if (TryParse(Text, out var url, URLScheme))
                 return url;
 
             throw new ArgumentException("The given text representation of an uniform resource location is invalid: " + Text,
@@ -172,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse  (Text, URLProtocol = null)
+        #region (static) TryParse  (Text, URLScheme = null)
 
         /// <summary>
         /// Try to parse the given text as an uniform resource location.
@@ -186,12 +239,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Try to parse the given text as an uniform resource location.
         /// </summary>
         /// <param name="Text">A text representation of an uniform resource location.</param>
-        /// <param name="URLProtocol">An optional URL protocol.</param>
+        /// <param name="URLScheme">An optional URL schemel.</param>
         public static URL? TryParse(String         Text,
-                                    URLProtocols?  URLProtocol   = null)
+                                    URIScheme ?  URLScheme   = null)
         {
 
-            if (TryParse(Text, out var url, URLProtocol))
+            if (TryParse(Text, out var url, URLScheme))
                 return url;
 
             return null;
@@ -200,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse  (Text, out URL, URLProtocol = null)
+        #region (static) TryParse  (Text, out URL, URLScheme = null)
 
         /// <summary>
         /// Try to parse the given text as an uniform resource location.
@@ -216,185 +269,196 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of an uniform resource location.</param>
         /// <param name="URL">The parsed uniform resource location.</param>
-        /// <param name="URLProtocol">An optional URL protocol.</param>
-        public static Boolean TryParse(String         Text,
-                                       out URL        URL,
-                                       URLProtocols?  URLProtocol)
+        /// <param name="URLScheme">An optional URL schemel.</param>
+        public static Boolean TryParse(String      Text,
+                                       out URL     URL,
+                                       URIScheme?  URLScheme)
         {
 
-            Text  = Text.Trim();
-            URL   = default;
+            #region Initial checks
 
-            if (Text.IsNotNullOrEmpty())
+            URL = default;
+
+            if (Text is null)
+                return false;
+
+            Text = Text.Trim();
+
+            if (Text.IsNullOrEmpty())
+                return false;
+
+            if (!Text.Contains("://"))
+                Text = $"{URLScheme?.SchemeName ?? "https"}://{Text}";
+
+            #endregion
+
+            #region Scheme
+
+            var schemeEnd = Text.IndexOf("://", StringComparison.Ordinal);
+
+            // Note: TryParse(...) never grows the URL scheme registry, therefore it is
+            //       safe to call with anything received over the wire.
+            if (!URIScheme.TryParse(Text[..schemeEnd], out var scheme))
+                return false;
+
+            // Everything after "scheme://", parsed in the order defined by RFC 3986:
+            // [ userinfo "@" ] host [ ":" port ] path [ "?" query ] [ "#" fragment ]
+            var rest = Text[(schemeEnd + 3)..];
+
+            #endregion
+
+            #region Fragment
+
+            String? fragment      = null;
+            var     fragmentStart = rest.IndexOf('#');
+
+            if (fragmentStart >= 0)
             {
-                try
-                {
-
-                    if (!Text.Contains("://"))
-                        Text = (URLProtocol.HasValue
-                                   ? $"{URLProtocol.Value}://"
-                                   : "https://") + Text;
-
-                    var elements = Text.Split('/');
-
-                    URLProtocols  protocol      = URLProtocols.https;
-                    HTTPHostname  hostname;
-                    IPPort?       port          = null;
-                    HTTPPath?     path          = null;
-                    QueryString?  queryString   = null;
-
-
-                    switch (elements[0])
-                    {
-
-                        case "tcp:":
-                            protocol = URLProtocols.tcp;
-                            break;
-
-                        case "tls:":
-                            protocol = URLProtocols.tls;
-                            break;
-
-                        case "http:":
-                            protocol = URLProtocols.http;
-                            break;
-
-                        case "ws:":
-                            protocol = URLProtocols.ws;
-                            break;
-
-                        case "wss:":
-                            protocol = URLProtocols.wss;
-                            break;
-
-                        case "udp:":
-                            protocol = URLProtocols.udp;
-                            break;
-
-                        case "modbus:":
-                            protocol = URLProtocols.modbus;
-                            break;
-
-                        case "smodbus:":
-                            protocol = URLProtocols.smodbus;
-                            break;
-
-                        default:
-                            protocol = URLProtocols.https;
-                            break;
-
-                    }
-
-                    String? login     = null;
-                    String? password  = null;
-
-                    // Login (+ password) is given...
-                    if (elements[2].Contains('@'))
-                    {
-
-                        var loginAndPassword = elements[2][..elements[2].IndexOf('@')];
-                        elements[2]          = elements[2][ (elements[2].IndexOf('@') + 1)..];
-
-                        if (loginAndPassword.IndexOf(':') > 0)
-                        {
-                            login     = loginAndPassword[..loginAndPassword.IndexOf(':')];
-                            password  = loginAndPassword[ (loginAndPassword.IndexOf(':') + 1)..];
-                        }
-                        else
-                            login     = loginAndPassword;
-
-                    }
-
-                    if (elements[2].Contains('[') && elements[2].Contains(']'))
-                    {
-
-
-
-                    }
-
-                    // An HTTP(S) port is given...
-                    if (elements[2].Contains(':'))
-                    {
-
-                        if (!HTTPHostname.TryParse(elements[2][..elements[2].LastIndexOf(':')], out hostname, out _))
-                            return false;
-
-                        var portText = elements[2][(elements[2].LastIndexOf(':') + 1)..]?.Trim();
-
-                        if (portText.IsNotNullOrEmpty())
-                        {
-
-                            if (IPPort.TryParse(elements[2][(elements[2].LastIndexOf(':') + 1)..], out var _port))
-                                port = _port;
-
-                            else
-                                return false;
-
-                        }
-
-                    }
-
-                    else if (!HTTPHostname.TryParse(elements[2], out hostname, out _))
-                        return false;
-
-                    if (elements.Length > 3)
-                    {
-
-                        if (elements[^1].Contains('?'))
-                        {
-                            queryString   = QueryString.Parse(elements[^1][elements[^1].IndexOf('?')..]);
-                            var fullPath  = elements.Skip(3).AggregateWith("/");
-                            path          = HTTPPath.TryParse(fullPath[..fullPath.IndexOf('?')]);
-                        }
-
-                        else
-                            path          = HTTPPath.TryParse(elements.Skip(3).AggregateWith("/"));
-
-                    }
-
-                    if (port is null)
-                    {
-                        switch (protocol)
-                        {
-
-                            case URLProtocols.http:
-                                port = IPPort.HTTP;
-                                break;
-
-                            case URLProtocols.https:
-                                port = IPPort.HTTPS;
-                                break;
-
-                            case URLProtocols.ws:
-                                port = IPPort.HTTP;
-                                break;
-
-                            case URLProtocols.wss:
-                                port = IPPort.HTTPS;
-                                break;
-
-                        }
-                    }
-
-                    URL = new URL(
-                              Text,
-                              protocol,
-                              login,
-                              password,
-                              hostname,
-                              port,
-                              path ?? HTTPPath.Parse("/"),
-                              queryString
-                          );
-
-                    return true;
-
-                }
-                catch
-                { }
+                fragment  = rest[(fragmentStart + 1)..];
+                rest      = rest[..fragmentStart];
             }
 
-            return false;
+            #endregion
+
+            #region Query string
+
+            QueryString?  queryString  = null;
+            var           queryStart   = rest.IndexOf('?');
+
+            if (queryStart >= 0)
+            {
+                // Note: The query string is cut off before the path is split, so that
+                //       a '/' inside the query can no longer end up within the path.
+                queryString  = QueryString.Parse(rest[queryStart..]);
+                rest         = rest[..queryStart];
+            }
+
+            #endregion
+
+            #region Authority and path
+
+            var pathStart  = rest.IndexOf('/');
+            var authority  = pathStart >= 0 ? rest[..pathStart] : rest;
+            var pathText   = pathStart >= 0 ? rest[pathStart..] : "/";
+
+            #endregion
+
+            #region User information
+
+            String?  login       = null;
+            String?  password    = null;
+            var      userInfoEnd = authority.LastIndexOf('@');
+
+            if (userInfoEnd >= 0)
+            {
+
+                var userInfo    = authority[..userInfoEnd];
+                authority       = authority[(userInfoEnd + 1)..];
+
+                var colonIndex  = userInfo.IndexOf(':');
+
+                if (colonIndex > 0)
+                {
+                    login     = userInfo[..colonIndex];
+                    password  = userInfo[(colonIndex + 1)..];
+                }
+                else
+                    login     = userInfo;
+
+            }
+
+            #endregion
+
+            #region Host and port
+
+            if (!TrySplitHostAndPort(authority, out var hostText, out var portText))
+                return false;
+
+            if (!URLHost.TryParse(hostText, out var host, out _))
+                return false;
+
+            IPPort? port = null;
+
+            if (portText is not null)
+            {
+
+                if (!IPPort.TryParse(portText, out var parsedPort))
+                    return false;
+
+                port = parsedPort;
+
+            }
+
+            #endregion
+
+            if (!HTTPPath.TryParse(pathText, out var path))
+                return false;
+
+            URL = new URL(
+                      Text,
+                      scheme,
+                      login,
+                      password,
+                      host,
+                      port ?? scheme.DefaultPort,
+                      path,
+                      queryString,
+                      fragment
+                  );
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private static) TrySplitHostAndPort(Text, out HostText, out PortText)
+
+        /// <summary>
+        /// Split the "host[:port]" part of an authority.
+        ///
+        /// Note: The ':' separating the port must not be searched for within an IPv6
+        ///       literal, as that is full of them.
+        /// </summary>
+        /// <param name="Text">The "host[:port]" part of an authority.</param>
+        /// <param name="HostText">The host.</param>
+        /// <param name="PortText">The optional TCP/IP port.</param>
+        private static Boolean TrySplitHostAndPort(String        Text,
+                                                   out String    HostText,
+                                                   out String?   PortText)
+        {
+
+            HostText  = Text;
+            PortText  = null;
+
+            var searchFrom = 0;
+
+            if (Text.StartsWith('['))
+            {
+
+                var closingBracket = Text.IndexOf(']');
+
+                if (closingBracket < 0)
+                    return false;
+
+                searchFrom = closingBracket + 1;
+
+            }
+
+            var colon = Text.IndexOf(':', searchFrom);
+
+            if (colon >= 0)
+            {
+
+                HostText  = Text[..colon];
+                PortText  = Text[(colon + 1)..];
+
+                if (PortText.Length == 0)
+                    PortText = null;
+
+            }
+
+            return true;
 
         }
 
@@ -461,11 +525,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new (
                    InternalId.CloneString(),
-                   Protocol,
-                   Hostname.  Clone(),
+                   Scheme,
+                   Login?.    CloneString(),
+                   Password?. CloneString(),
+                   Host.      Clone(),
                    Port?.     Clone(),
-                   Path.      Clone()
+                   Path.      Clone(),
+
+                   // Note: QueryString is mutable (Add(...) modifies the instance and
+                   //       returns it), so it must not be shared between two URLs.
+                   QueryString is not null
+                       ? QueryString.Parse(QueryString.ToString())
+                       : null,
+
+                   Fragment?. CloneString()
                );
+
+        #endregion
+
+
+        #region (private) WithPathAndQuery(Path, QueryString)
+
+        /// <summary>
+        /// Return a copy of this uniform resource location having the given path and query string.
+        /// The scheme, the user information and the host of the original text are kept as-is,
+        /// so that e.g. an omitted default port does not suddenly appear.
+        /// </summary>
+        /// <param name="Path">The new path.</param>
+        /// <param name="QueryString">The new query string.</param>
+        private URL WithPathAndQuery(HTTPPath      Path,
+                                     QueryString?  QueryString)
+        {
+
+            var text       = InternalId ?? "";
+            var schemeEnd  = text.IndexOf("://", StringComparison.Ordinal);
+            var headStart  = schemeEnd >= 0 ? schemeEnd + 3 : 0;
+            var headEnd    = text.IndexOfAny(pathQueryOrFragment, headStart);
+
+            // "scheme://[userinfo@]host[:port]"
+            var head       = headEnd >= 0 ? text[..headEnd] : text;
+
+            return new URL(
+                       String.Concat(
+                           head,
+                           Path.ToString(),
+                           QueryString?.ToString() ?? "",
+                           Fragment is not null ? $"#{Fragment}" : ""
+                       ),
+                       Scheme,
+                       Login,
+                       Password,
+                       Host,
+                       Port,
+                       Path,
+                       QueryString,
+                       Fragment
+                   );
+
+        }
 
         #endregion
 
@@ -573,59 +690,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static URL operator + (URL       URL,
                                       HTTPPath  PathSuffix)
 
-            => new (URL.InternalId + "/" + PathSuffix.ToString(),
-                    URL.Protocol,
-                    URL.Hostname,
-                    URL.Port,
-                    URL.Path + PathSuffix);
+            => URL.WithPathAndQuery(URL.Path + PathSuffix.ToString(),
+                                    URL.QueryString);
 
 
         /// <summary>
-        /// Combines a uniform resource location with a path suffix.
+        /// Combines a uniform resource location with a path suffix, or, when the given
+        /// suffix starts with a '?', with a query string.
         /// </summary>
         /// <param name="URL">A uniform resource location.</param>
-        /// <param name="PathSuffix">A path suffix which will be added to the existing path.</param>
+        /// <param name="PathSuffix">A path suffix which will be added to the existing path, or a query string.</param>
         public static URL operator + (URL     URL,
                                       String  PathSuffix)
+        {
 
-            => PathSuffix.StartsWith('?')
+            if (!PathSuffix.StartsWith('?'))
+                return URL.WithPathAndQuery(URL.Path + PathSuffix,
+                                            URL.QueryString);
 
-                   ? new (URL.InternalId + PathSuffix,
-                          URL.Protocol,
-                          URL.Hostname,
-                          URL.Port,
-                          URL.Path + PathSuffix)
+            // A query string suffix must not end up within the path. When the URL already
+            // has a query string, both are merged instead of being concatenated into an
+            // invalid "?a=1?b=2".
+            var existingQuery = URL.QueryString?.ToString();
 
-                   : new (URL.InternalId + "/" + PathSuffix,
-                          URL.Protocol,
-                          URL.Hostname,
-                          URL.Port,
-                          URL.Path + PathSuffix);
+            return URL.WithPathAndQuery(
+                       URL.Path,
+                       QueryString.Parse(
+                           existingQuery.IsNullOrEmpty()
+                               ? PathSuffix
+                               : $"{existingQuery}&{PathSuffix[1..]}"
+                       )
+                   );
+
+        }
 
 
         /// <summary>
-        /// Combines a uniform resource location with a path suffix.
+        /// Combines a uniform resource location with a path suffix, or, when the given
+        /// suffix starts with a '?', with a query string.
         /// </summary>
         /// <param name="URL">A uniform resource location.</param>
-        /// <param name="PathSuffix">A path suffix which will be added to the existing path.</param>
+        /// <param name="PathSuffix">A path suffix which will be added to the existing path, or a query string.</param>
         public static URL? operator + (URL?    URL,
                                        String  PathSuffix)
 
             => URL.HasValue
-                   ? PathSuffix.StartsWith('?')
-
-                       ? new (URL.Value.InternalId + PathSuffix,
-                              URL.Value.Protocol,
-                              URL.Value.Hostname,
-                              URL.Value.Port,
-                              URL.Value.Path + PathSuffix)
-
-                       : new (URL.Value.InternalId + "/" + PathSuffix,
-                              URL.Value.Protocol,
-                              URL.Value.Hostname,
-                              URL.Value.Port,
-                              URL.Value.Path + PathSuffix)
-
+                   ? URL.Value + PathSuffix
                    : null;
 
         #endregion
@@ -656,10 +766,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="URL">An uniform resource location to compare with.</param>
         public Int32 CompareTo(URL URL)
+        {
 
-            => String.Compare(InternalId,
-                              URL.InternalId,
-                              StringComparison.OrdinalIgnoreCase);
+            // Note: Must order by the very same components Equals(URL) compares, otherwise
+            //       CompareTo(...) == 0 and Equals(...) could disagree.
+            //       A missing scheme sorts before any scheme.
+            var c = Scheme is null
+                        ? (URL.Scheme is null ? 0 : -1)
+                        : Scheme.CompareTo(URL.Scheme);
+            if (c != 0) return c;
+
+            c = Host.CompareTo(URL.Host);
+            if (c != 0) return c;
+
+            c = Nullable.Compare(Port, URL.Port);
+            if (c != 0) return c;
+
+            c = Path.CompareTo(URL.Path);
+            if (c != 0) return c;
+
+            c = String.CompareOrdinal(Login,    URL.Login);
+            if (c != 0) return c;
+
+            c = String.CompareOrdinal(Password, URL.Password);
+            if (c != 0) return c;
+
+            c = String.CompareOrdinal(QueryString?.ToString(), URL.QueryString?.ToString());
+            if (c != 0) return c;
+
+            return String.CompareOrdinal(Fragment, URL.Fragment);
+
+        }
 
         #endregion
 
@@ -688,9 +825,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URL">An uniform resource location to compare with.</param>
         public Boolean Equals(URL URL)
 
-            => String.Equals(InternalId,
-                             URL.InternalId,
-                             StringComparison.OrdinalIgnoreCase);
+               // Scheme and host are case-insensitive, everything else is not, see RFC 3986
+               // section 6.2.2.1. URIScheme and URLHost both compare case-insensitively,
+               // so both are covered by their own comparisons. The '==' of URIScheme also
+               // copes with a missing scheme on either side.
+            => Scheme ==     URL.Scheme        &&
+               Host.    Equals(URL.Host)      &&
+               Port.    Equals(URL.Port)      &&
+               Path.    Equals(URL.Path)      &&
+
+               String.Equals(Login,                  URL.Login,                  StringComparison.Ordinal) &&
+               String.Equals(Password,               URL.Password,               StringComparison.Ordinal) &&
+               String.Equals(QueryString?.ToString(), URL.QueryString?.ToString(), StringComparison.Ordinal) &&
+               String.Equals(Fragment,               URL.Fragment,               StringComparison.Ordinal);
 
         #endregion
 
@@ -703,7 +850,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override Int32 GetHashCode()
 
-            => InternalId?.ToLower().GetHashCode() ?? 0;
+            // Note: This must use the very same comparison as Equals(URL), otherwise two
+            //       equal URLs could end up with different hash codes.
+            => HashCode.Combine(
+                   Scheme,
+                   Host,
+                   Port,
+                   Path,
+                   Login,
+                   Password,
+                   QueryString?.ToString(),
+                   Fragment
+               );
 
         #endregion
 

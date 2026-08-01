@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// <param name="Method">Method for the follow-up request — possibly rewritten to GET.</param>
     /// <param name="KeepBody">Whether the original request body is replayed (307/308) or dropped (301/302/303).</param>
     /// <param name="SameOrigin">Whether the target is the same scheme + authority as the request that was redirected.</param>
-    public sealed record HTTPRedirectTarget(String      Scheme,
+    public sealed record HTTPRedirectTarget(URIScheme   Scheme,
                                             String      Authority,
                                             String      Path,
                                             HTTPMethod  Method,
@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <param name="Target">The resolved follow-up request.</param>
         public static Boolean TryResolve(Int32                    Status,
                                          String?                  Location,
-                                         String                   RequestScheme,
+                                         URIScheme                RequestScheme,
                                          String                   RequestAuthority,
                                          String                   RequestPath,
                                          HTTPMethod               RequestMethod,
@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // RFC 9110 §10.2.2 allows a relative reference, resolved against the
             // effective request URI (RFC 3986 §5).
-            if (!Uri.TryCreate($"{RequestScheme}://{RequestAuthority}{RequestPath}", UriKind.Absolute, out var baseUri) ||
+            if (!Uri.TryCreate($"{RequestScheme.Prefix}{RequestAuthority}{RequestPath}", UriKind.Absolute, out var baseUri) ||
                 !Uri.TryCreate(baseUri, Location.Trim(), out var target))
                 return false;
 
@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var (method, keepBody) = Rewrite(Status, RequestMethod);
 
             Target = new HTTPRedirectTarget(
-                         target.Scheme,
+                         URIScheme.Parse(target.Scheme),   // guaranteed http/https by the check above
                          target.Authority,          // a default port is omitted, as in :authority
                          target.PathAndQuery,       // the fragment is intentionally not carried
                          method,

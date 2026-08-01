@@ -275,6 +275,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static readonly IPPort  SSH         = new (22);
 
         /// <summary>
+        /// FTP (21)
+        /// </summary>
+        public static readonly IPPort  FTP         = new (21);
+
+        /// <summary>
         /// TELNET (23)
         /// </summary>
         public static readonly IPPort  TELNET      = new (23);

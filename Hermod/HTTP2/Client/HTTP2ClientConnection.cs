@@ -15,14 +15,20 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text;
+using System.Net.Security;
+using System.Buffers.Binary;
+using System.Threading.Channels;
+using System.Security.Cryptography;
+
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
-    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-    using System.Buffers.Binary;
-    using System.Net.Security;
-    using System.Security.Cryptography;
-    using System.Text;
-    using System.Threading.Channels;
 
     /// <summary>
     /// The client-side counterpart of <see cref="HTTP2Connection"/> — the same
@@ -45,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public sealed class HTTP2ClientConnection
     {
 
-        private static readonly byte[] ConnectionPreface = Encoding.ASCII.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
+        private static readonly Byte[] ConnectionPreface = Encoding.ASCII.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
 
         private readonly Stream              transportStream;
         private readonly HTTP2Settings       localSettings    = new();
@@ -82,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly Lazy<HTTPClientAuthenticator> authenticator;
 
-        private readonly object flowLock = new();
+        private readonly Lock flowLock = new();
         private TaskCompletionSource windowChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>Connection-level receive window we raise to at startup (above the 65535 default).</summary>
@@ -125,14 +131,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         // Keepalive / liveness state.
         private long                     lastActivityTimestamp;    // options.TimeProvider.GetTimestamp() at last inbound frame
-        private readonly object          pingLock = new();
+        private readonly Lock            pingLock             = new();
         private TaskCompletionSource?    pendingPingAck;
-        private byte[]                   pendingPingPayload = [];
+        private byte[]                   pendingPingPayload   = [];
 
         /// <summary>In-flight requests keyed by their stream ID (guarded by <see cref="exchangesLock"/>).</summary>
-        private readonly Dictionary<UInt32, ClientExchange> exchanges = [];
-        private readonly object                             exchangesLock = new();
+        private readonly Dictionary<UInt32, ClientExchange>  exchanges       = [];
+        private readonly Lock                                exchangesLock   = new();
 
+
+        #region Constructor(s)
 
         /// <param name="TransportStream">
         /// The byte transport: an <see cref="SslStream"/> for HTTP/2-over-TLS, or a
@@ -140,13 +148,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// (prior-knowledge, RFC 9113 §3.3). Only the <see cref="Stream"/> base API
         /// is used, so the connection is transport-agnostic.
         /// </param>
-        public HTTP2ClientConnection(
-            Stream              TransportStream,
-            CancellationToken   CancellationToken = default,
-            HTTP2ClientOptions? Options           = null)
+        public HTTP2ClientConnection(Stream               TransportStream,
+                                     HTTP2ClientOptions?  Options             = null,
+                                     CancellationToken    CancellationToken   = default)
         {
+
             this.transportStream        = TransportStream;
-            this.isSecure               = TransportStream is System.Net.Security.SslStream { IsAuthenticated: true };
+            this.isSecure               = TransportStream is SslStream { IsAuthenticated: true };
             this.options                = Options ?? HTTP2ClientOptions.Default;
             this.connectionCts          = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             this.cancellationToken      = connectionCts.Token;
@@ -154,7 +162,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.authenticator          = new Lazy<HTTPClientAuthenticator>(
                                               () => new HTTPClientAuthenticator(this.options.Credentials!),
                                               LazyThreadSafetyMode.ExecutionAndPublication);
+
         }
+
+        #endregion
 
 
         #region Handshake + run loop
@@ -310,7 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// same 401 logic, so a redirect into an authenticated area still works.
         /// </summary>
         public async Task<HTTP2Response> SendRequestAsync(HTTPMethod                          Method,
-                                                          String                              Scheme,
+                                                          URIScheme                           Scheme,
                                                           String                              Authority,
                                                           String                              Path,
                                                           List<(String Name, String Value)>?  ExtraHeaders        = null,
@@ -319,8 +330,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                                           CancellationToken                   CancellationToken   = default)
 
             => options.MaxRedirects > 0
-                   ? await FollowRedirectsAsync        (Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken)
-                   : await SendWithAuthenticationAsync (Method, Scheme, Authority, Path, ExtraHeaders, Body, Priority, CancellationToken);
+
+                   ? await FollowRedirectsAsync(
+                               Method,
+                               Scheme,
+                               Authority,
+                               Path,
+                               ExtraHeaders,
+                               Body,
+                               Priority,
+                               CancellationToken
+                           )
+
+                   : await SendWithAuthenticationAsync(
+                               Method,
+                               Scheme,
+                               Authority,
+                               Path,
+                               ExtraHeaders,
+                               Body,
+                               Priority,
+                               CancellationToken
+                           );
+
 
         /// <summary>
         /// Follow <c>Location</c> for as many hops as
@@ -341,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// origin that did not ask for it.
         /// </summary>
         private async Task<HTTP2Response> FollowRedirectsAsync(HTTPMethod                          Method,
-                                                               String                              Scheme,
+                                                               URIScheme                           Scheme,
                                                                String                              Authority,
                                                                String                              Path,
                                                                List<(String Name, String Value)>?  ExtraHeaders,
@@ -357,28 +389,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var body      = Body;
             var extra     = ExtraHeaders;
 
-            List<string>? chain = null;
+            List<String>? chain = null;
 
             for (var hop = 0; ; hop++)
             {
 
-                var response = await SendWithAuthenticationAsync(method, scheme, authority, path, extra, body, Priority, CancellationToken);
+                var response = await SendWithAuthenticationAsync(
+                                         method,
+                                         scheme,
+                                         authority,
+                                         path,
+                                         extra,
+                                         body,
+                                         Priority,
+                                         CancellationToken
+                                     );
 
                 if (chain is not null)
                     response.RedirectChain = chain;
 
                 if (hop >= options.MaxRedirects ||
-                    !HTTPRedirect.TryResolve(response.Status, response.HeaderValue("location"),
-                                             scheme, authority, path, method, out var target) ||
+                    !HTTPRedirect.TryResolve(
+                         response.Status,
+                         response.HeaderValue("location"),
+                         scheme,
+                         authority,
+                         path,
+                         method,
+                         out var target
+                    ) ||
                     !target!.SameOrigin)
+                {
                     return response;
+                }
 
                 (chain ??= []).Add(target.ToString());
 
-                method    = target.Method;
-                scheme    = target.Scheme;
-                authority = target.Authority;
-                path      = target.Path;
+                method     = target.Method;
+                scheme     = target.Scheme;
+                authority  = target.Authority;
+                path       = target.Path;
 
                 if (!target.KeepBody)
                 {
@@ -400,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// One request, answering a 401 challenge once if we hold credentials for it.
         /// </summary>
         private async Task<HTTP2Response> SendWithAuthenticationAsync(HTTPMethod                          Method,
-                                                                      String                              Scheme,
+                                                                      URIScheme                           Scheme,
                                                                       String                              Authority,
                                                                       String                              Path,
                                                                       List<(String Name, String Value)>?  ExtraHeaders,
@@ -409,10 +459,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                                                       CancellationToken                   CancellationToken)
         {
 
-            using var activity = HTTP2Diagnostics.StartRequest(Method, Scheme, Authority, Path, 0, "client");
+            using var activity = HTTP2Diagnostics.StartRequest(
+                                     Method,
+                                     Scheme,
+                                     Authority,
+                                     Path,
+                                     0,
+                                     "client"
+                                 );
 
             // One issue of the request, repeated once if the origin answers 425.
-            async Task<HTTP2Response> IssueAsync(List<(string Name, string Value)>? Headers)
+            async Task<HTTP2Response> IssueAsync(List<(String Name, String Value)>? Headers)
             {
 
                 var handle = await StartRequestAsync(Method, Scheme, Authority, Path, Headers, Body, Priority, CancellationToken);
@@ -475,7 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (authorization is not null)
                 {
 
-                    List<(string Name, string Value)> retryHeaders = ExtraHeaders is null ? [] : [.. ExtraHeaders];
+                    List<(String Name, String Value)> retryHeaders = ExtraHeaders is null ? [] : [.. ExtraHeaders];
                     retryHeaders.Add(("authorization", authorization));
 
                     return await IssueAsync(retryHeaders);
@@ -496,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// PRIORITY_UPDATE) while awaiting <see cref="HTTP2RequestHandle.Response"/>.
         /// </summary>
         public async Task<HTTP2RequestHandle> StartRequestAsync(HTTPMethod                          Method,
-                                                                String                              Scheme,
+                                                                URIScheme                           Scheme,
                                                                 String                              Authority,
                                                                 String                              Path,
                                                                 List<(String Name, String Value)>?  ExtraHeaders        = null,
@@ -509,7 +566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             var headers = new List<(String Name, String Value)> {
                               (":method",    Method.ToString()),
-                              (":scheme",    Scheme),
+                              (":scheme",    Scheme.SchemeName),
                               (":authority", Authority),
                               (":path",      Path)
                           };
@@ -584,7 +641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <param name="Destination">Where the body is written. Must be seekable to survive a restart.</param>
         /// <param name="MaxAttempts">Total requests allowed, the first one included.</param>
         /// <exception cref="InvalidOperationException">A restart is required but the destination cannot seek.</exception>
-        public async Task<HTTP2DownloadResult> DownloadAsync(String                              Scheme,
+        public async Task<HTTP2DownloadResult> DownloadAsync(URIScheme                           Scheme,
                                                              String                              Authority,
                                                              String                              Path,
                                                              Stream                              Destination,
@@ -593,23 +650,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                                              CancellationToken                   CancellationToken   = default)
         {
 
-            var startPosition = Destination.CanSeek ? Destination.Position : 0L;
+            var     startPosition  = Destination.CanSeek ? Destination.Position : 0L;
 
-            long    written   = 0;
-            int     attempts  = 0,
-                    resumes   = 0,
-                    restarts  = 0;
-            string? validator = null;
-            int     status    = 0;
+            Int64   written        = 0;
+            Int32   attempts       = 0,
+                    resumes        = 0,
+                    restarts       = 0;
+            String? validator      = null;
+            Int32   status         = 0;
 
-            List<(string Name, string Value)>? firstHeaders = null;
+            List<(String Name, String Value)>?  firstHeaders              = null;
 
             // RFC 9530 Section 3: the representation digest, and the running hash of
             // what we have written so far to check it against at the end.
-            IncrementalHash?       representationHash      = null;
-            string?                representationAlgorithm = null;
-            byte[]?                expectedDigest          = null;
-            HTTPDigestVerification digestVerification      = HTTPDigestVerification.NotPresent;
+            IncrementalHash?                    representationHash        = null;
+            String?                             representationAlgorithm   = null;
+            Byte[]?                             expectedDigest            = null;
+            HTTPDigestVerification              digestVerification        = HTTPDigestVerification.NotPresent;
 
             try
             {
@@ -619,8 +676,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     attempts++;
 
-                    var resuming = written > 0 && validator is not null;
-                    var headers  = ExtraHeaders is null ? [] : new List<(string Name, string Value)>(ExtraHeaders);
+                    var resuming  = written > 0 && validator is not null;
+                    var headers   = ExtraHeaders is null
+                                        ? []
+                                        : new List<(String Name, String Value)>(ExtraHeaders);
 
                     if (!headers.Any(header => header.Name == "accept-encoding"))
                         headers.Add(("accept-encoding", "identity"));
@@ -638,7 +697,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         resumes++;
                     }
 
-                    var stream = await StartStreamingRequestAsync(HTTPMethod.GET, Scheme, Authority, Path, headers, null, CancellationToken);
+                    var stream = await StartStreamingRequestAsync(
+                                           HTTPMethod.GET,
+                                           Scheme,
+                                           Authority,
+                                           Path,
+                                           headers,
+                                           null,
+                                           CancellationToken
+                                       );
+
                     await stream.CompleteRequestAsync(CancellationToken: CancellationToken);
 
                     var head = await stream.GetResponseAsync(CancellationToken);
@@ -656,11 +724,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         // representation is exactly as long as what we already hold, the
                         // download is simply finished (RFC 9110, Section 14.4).
                         if (status == 416 && resuming && head.ContentRange?.CompleteLength == written)
-                            return new HTTP2DownloadResult(200, firstHeaders, written, attempts, resumes, restarts, validator,
-                                                           VerifyRepresentation(representationHash, expectedDigest, digestVerification));
+                            return new HTTP2DownloadResult(
+                                           200,
+                                           firstHeaders,
+                                           written,
+                                           attempts,
+                                           resumes,
+                                           restarts,
+                                           validator,
+                                           VerifyRepresentation(
+                                               representationHash,
+                                               expectedDigest,
+                                               digestVerification
+                                           )
+                                       );
 
-                        return new HTTP2DownloadResult(status, head.Headers, written, attempts, resumes, restarts, validator,
-                                                       digestVerification);
+                        return new HTTP2DownloadResult(
+                                       status,
+                                       head.Headers,
+                                       written,
+                                       attempts,
+                                       resumes,
+                                       restarts,
+                                       validator,
+                                       digestVerification
+                                   );
 
                     }
 
@@ -671,10 +759,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     if (resuming)
                     {
+
                         if (status == 200)
                             restarting = true;
+
                         else if (head.ContentRange?.Start != written)
                             restarting = true;
+
                     }
 
                     if (restarting)
@@ -693,9 +784,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         // A different representation is a different digest — the bytes
                         // hashed so far belonged to the one that just went away.
                         representationHash?.Dispose();
-                        representationHash      = null;
-                        representationAlgorithm = null;
-                        expectedDigest          = null;
+                        representationHash       = null;
+                        representationAlgorithm  = null;
+                        expectedDigest           = null;
 
                     }
 
@@ -704,7 +795,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     // started mid-file could never match, and claiming it did would be
                     // the one failure mode this whole feature exists to prevent.
                     if (options.VerifyDigests && representationAlgorithm is null && written == 0 &&
-                        head.HeaderValue("repr-digest") is string offered)
+                        head.HeaderValue("repr-digest") is String offered)
                     {
 
                         var digests = HTTPDigest.Parse(offered);
@@ -794,10 +885,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// tag. A *weak* tag yields null — it promises equivalence, not identity, and
         /// concatenating byte ranges needs identity.
         /// </summary>
-        private static string? SelectResumeValidator(HTTP2ResponseHead Head)
+        private static String? SelectResumeValidator(HTTP2ResponseHead Head)
         {
 
-            if (Head.ETag is string etag && !HTTPValidators.SplitETag(etag).Weak)
+            if (Head.ETag is String etag && !HTTPValidators.SplitETag(etag).Weak)
                 return etag;
 
             return Head.HeaderValue("last-modified");
@@ -814,19 +905,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// auto-retried on REFUSED_STREAM (the outbound chunks aren't buffered for
         /// replay); a reset surfaces on the response side instead.
         /// </summary>
-        public async Task<HTTP2ClientStream> StartStreamingRequestAsync(
-            HTTPMethod                         Method,
-            String                             Scheme,
-            String                             Authority,
-            String                             Path,
-            List<(String Name, String Value)>? ExtraHeaders = null,
-            HTTP2Priority?                     Priority     = null,
-            CancellationToken                  CancellationToken = default)
+        public async Task<HTTP2ClientStream> StartStreamingRequestAsync(HTTPMethod                          Method,
+                                                                        URIScheme                           Scheme,
+                                                                        String                              Authority,
+                                                                        String                              Path,
+                                                                        List<(String Name, String Value)>?  ExtraHeaders        = null,
+                                                                        HTTP2Priority?                      Priority            = null,
+                                                                        CancellationToken                   CancellationToken   = default)
         {
 
             var headers = new List<(String Name, String Value)> {
                               (":method",    Method.ToString()),
-                              (":scheme",    Scheme),
+                              (":scheme",    Scheme.SchemeName),
                               (":authority", Authority),
                               (":path",      Path)
                           };
@@ -840,25 +930,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // Vehicles shared between the exchange (connection side) and the returned
             // handle (caller side): created up front so neither needs to look the
             // other up after the exchange is removed on completion.
-            var responseHead     = new TaskCompletionSource<HTTP2ResponseHead>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var responseChunks   = Channel.CreateUnbounded<byte[]>();
-            var responseTrailers = new TaskCompletionSource<List<(string Name, string Value)>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var responseHead      = new TaskCompletionSource<HTTP2ResponseHead>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var responseChunks    = Channel.CreateUnbounded<Byte[]>();
+            var responseTrailers  = new TaskCompletionSource<List<(String Name, String Value)>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var exchange = new ClientExchange
-            {
-                RequestHeaders   = headers,
-                RequestBody      = null,
-                HasBody          = false,
-                RequestToken     = CancellationToken,
-                IsStreaming      = true,
-                ResponseHead     = responseHead,
-                ResponseChunks   = responseChunks,
-                ResponseTrailers = responseTrailers
-            };
+            var exchange          = new ClientExchange {
+                                        RequestHeaders    = headers,
+                                        RequestBody       = null,
+                                        HasBody           = false,
+                                        RequestToken      = CancellationToken,
+                                        IsStreaming       = true,
+                                        ResponseHead      = responseHead,
+                                        ResponseChunks    = responseChunks,
+                                        ResponseTrailers  = responseTrailers
+                                    };
 
             await IssueOnNewStreamAsync(exchange);
 
-            return new HTTP2ClientStream(this, exchange.Stream, responseHead.Task, responseChunks.Reader, responseTrailers.Task);
+            return new HTTP2ClientStream(
+                           this,
+                           exchange.Stream,
+                           responseHead.Task,
+                           responseChunks.Reader,
+                           responseTrailers.Task
+                       );
 
         }
 
@@ -889,8 +984,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Exchange.RequestToken);
 
             await requestStartLock.WaitAsync(linked.Token);
+
             try
             {
+
                 // Wait for a free stream slot rather than failing when the server's
                 // MAX_CONCURRENT_STREAMS limit is momentarily reached.
                 await WaitForStreamSlotAsync(linked.Token);
@@ -913,6 +1010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 if (!Exchange.HasBody && !keepOpen)
                     stream.CloseLocal();
+
             }
             finally
             {
@@ -939,7 +1037,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// both directions, and the inbound half at the peer remains the real
         /// enforcement.
         /// </summary>
-        private Boolean ExceedsPeerHeaderListSize(List<(string Name, string Value)> Headers, out Int64 Size)
+        private Boolean ExceedsPeerHeaderListSize(List<(String Name, String Value)> Headers, out Int64 Size)
         {
 
             Size = HTTP2HeaderList.UncompressedSize(Headers);
@@ -953,6 +1051,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
             while (true)
             {
+
                 Task wait;
                 lock (exchangesLock)
                 {
@@ -960,7 +1059,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         return;
                     wait = streamSlotFreed.Task;
                 }
+
                 await wait.WaitAsync(Token);
+
             }
         }
 
@@ -1032,15 +1133,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// bytes can flow both ways. Throws if the server refuses the tunnel.
         /// </summary>
         public async Task<HTTP2ClientTunnel> OpenTunnelAsync(
-            string                             Authority,
-            string?                            Protocol     = null,
-            string?                            Scheme       = null,
-            string?                            Path         = null,
-            List<(string Name, string Value)>? ExtraHeaders = null,
+            String                             Authority,
+            String?                            Protocol     = null,
+            URIScheme?                         Scheme       = null,
+            String?                            Path         = null,
+            List<(String Name, String Value)>? ExtraHeaders = null,
             CancellationToken                  CancellationToken = default)
         {
 
-            var headers = new List<(string Name, string Value)>
+            var headers = new List<(String Name, String Value)>
             {
                 (":method",    "CONNECT"),
                 (":authority", Authority)
@@ -1051,7 +1152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (Protocol is not null)
             {
                 headers.Add((":protocol", Protocol));
-                headers.Add((":scheme",   Scheme ?? throw new ArgumentException("Extended CONNECT requires a scheme", nameof(Scheme))));
+                headers.Add((":scheme",   (Scheme ?? throw new ArgumentException("Extended CONNECT requires a scheme", nameof(Scheme))).SchemeName));
                 headers.Add((":path",     Path   ?? throw new ArgumentException("Extended CONNECT requires a path",   nameof(Path))));
             }
 
@@ -1114,10 +1215,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// yields an uncompressed connection.
         /// </summary>
         public async Task<WebSocketConnection> OpenWebSocketAsync(
-            string                             Authority,
-            string                             Scheme,
-            string                             Path,
-            List<(string Name, string Value)>? ExtraHeaders      = null,
+            String                             Authority,
+            URIScheme                          Scheme,
+            String                             Path,
+            List<(String Name, String Value)>? ExtraHeaders      = null,
             bool                               PerMessageDeflate = false,
             CancellationToken                  CancellationToken = default)
         {
@@ -1202,7 +1303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// went out.
         /// </summary>
         internal async Task EndRequestWithTrailersAsync(HTTP2Stream                       Stream,
-                                                        List<(string Name, string Value)> Trailers,
+                                                        List<(String Name, String Value)> Trailers,
                                                         CancellationToken                 CancellationToken)
         {
 
@@ -1991,7 +2092,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             public HTTP2Stream                          Stream          { get; set; } = null!;
 
             // Request definition, kept so a REFUSED_STREAM can be re-issued verbatim.
-            public required List<(string Name, string Value)> RequestHeaders { get; init; }
+            public required List<(String Name, String Value)> RequestHeaders { get; init; }
             public required byte[]?                     RequestBody     { get; init; }
             public required bool                        HasBody         { get; init; }
             public required CancellationToken           RequestToken    { get; init; }
@@ -2009,14 +2110,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             public bool                                                          IsStreaming      { get; init; }
             public TaskCompletionSource<HTTP2ResponseHead>?                      ResponseHead     { get; init; }
             public Channel<byte[]>?                                             ResponseChunks   { get; init; }
-            public TaskCompletionSource<List<(string Name, string Value)>>?      ResponseTrailers { get; init; }
+            public TaskCompletionSource<List<(String Name, String Value)>>?      ResponseTrailers { get; init; }
 
             // Response accumulation (reset between retry attempts).
             public MemoryStream                         HeaderBuffer    { get; } = new();
             public MemoryStream                         Body            { get; } = new();
-            public List<(string Name, string Value)>?   Headers         { get; set; }
-            public List<(string Name, string Value)>    Trailers        { get; set; } = [];
-            public List<(int Status, List<(string Name, string Value)> Headers)> Interim { get; set; } = [];
+            public List<(String Name, String Value)>?   Headers         { get; set; }
+            public List<(String Name, String Value)>    Trailers        { get; set; } = [];
+            public List<(int Status, List<(String Name, String Value)> Headers)> Interim { get; set; } = [];
             public bool                                 HeadersReceived { get; set; }
             public TaskCompletionSource<HTTP2Response>  Completion      { get; } =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -2220,9 +2321,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Shutdown
 
-        /// <summary>Send a best-effort GOAWAY and tear the connection down.</summary>
+        /// <summary>
+        /// Send a best-effort GOAWAY and tear the connection down.
+        /// </summary>
         public async Task CloseAsync()
         {
+
             if (!goawayReceived)
             {
                 try
@@ -2233,6 +2337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             connectionCts.Cancel();
+
         }
 
         #endregion

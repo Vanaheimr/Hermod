@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -716,7 +716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var httpRequestBuilder = DefaultRequestBuilder(this);
 
-                httpRequestBuilder.SetHost(RemoteURL.Hostname);
+                httpRequestBuilder.SetHost(RemoteURL.HostHeader);
 
                 if (Mode == DNSHTTPSMode.GET)
                 {

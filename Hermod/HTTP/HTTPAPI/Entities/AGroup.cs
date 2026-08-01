@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       IEnumerable<TMembers>?      Members         = default,
                       TGroup?                     ParentGroup     = default,
                       IEnumerable<TGroup>?        Subgroups       = default,
-                      JObject?                    CustomData      = default,
+                      CustomDataNew?              CustomData      = default,
                       IEnumerable<AttachedFile>?  AttachedFiles   = default,
 
                       JSONLDContext?              JSONLDContext   = default,
@@ -321,7 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<TMembers>?      Members         = null,
                            TGroup?                     ParentGroup     = null,
                            IEnumerable<TGroup>?        Subgroups       = null,
-                           JObject?                    CustomData      = null,
+                           CustomDataNew?              CustomData      = null,
                            IEnumerable<AttachedFile>?  AttachedFiles   = null,
 
                            String?                     DataSource      = null,

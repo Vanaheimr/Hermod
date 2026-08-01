@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                           String                 Authority,
                                                           Byte[]?                Body = null)
         {
-            var handle = await Connection.StartRequestAsync(Method, "https", Authority, "/", Flagged, Body);
+            var handle = await Connection.StartRequestAsync(Method, URIScheme.https, Authority, "/", Flagged, Body);
             return await handle.Response;
         }
 
@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var post = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/", Body: "payload"u8.ToArray());
+            var post = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.https, $"localhost:{srv.Port}", "/", Body: "payload"u8.ToArray());
 
             await conn.CloseAsync();
 
@@ -248,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var post = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/",
+            var post = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.https, $"localhost:{srv.Port}", "/",
                            Flagged, "payload"u8.ToArray());
 
             await conn.CloseAsync();
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var response = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/",
+            var response = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.https, $"localhost:{srv.Port}", "/",
                                Flagged, "payload"u8.ToArray());
 
             await conn.CloseAsync();
@@ -331,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var response = await conn.SendRequestAsync(HTTPMethod.POST, "https", $"localhost:{srv.Port}", "/",
+            var response = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.https, $"localhost:{srv.Port}", "/",
                                Flagged, "payload"u8.ToArray());
 
             await conn.CloseAsync();

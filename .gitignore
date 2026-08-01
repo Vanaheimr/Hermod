@@ -1,4 +1,4 @@
-*.pidb
+﻿*.pidb
 *.VisualState.xml
 *.suo
 *.csproj.user
@@ -31,3 +31,7 @@
 *.sqlog
 sslkeylog.txt
 stateless-reset-secret.bin
+
+# 'dotnet test --blame-hang' writes a full process dump per aborted run in here.
+# Those are hundreds of megabytes each and must never end up in the history.
+TestResults/

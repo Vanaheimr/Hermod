@@ -103,6 +103,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private        readonly ConcurrentDictionary<String, List<String>>  internalDictionary   = [];
 
+        /// <summary>
+        /// The position at which each parameter was added.
+        ///
+        /// Note: A ConcurrentDictionary does not have any defined enumeration order, therefore
+        ///       ToString() and GetEnumerator() would return the parameters in an arbitrary and
+        ///       even varying order. This keeps the order in which the parameters were parsed or
+        ///       added, so that a query string round-trips and can be compared as text.
+        /// </summary>
+        private        readonly ConcurrentDictionary<String, Int64>         insertionOrder       = [];
+
+        private                 Int64                                       insertionCounter;
+
         private static readonly Char[]                                      AndSign              = ['&'];
         private static readonly Char[]                                      EqualsSign           = ['='];
         private static readonly Char[]                                      CommaSign            = [','];
@@ -173,6 +185,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region (private) TrackInsertionOrder(Key)
+
+        /// <summary>
+        /// Remember the position at which the given parameter was added, unless it is already known.
+        /// </summary>
+        /// <param name="Key">The key.</param>
+        private void TrackInsertionOrder(String Key)
+
+            => insertionOrder.GetOrAdd(
+                   Key,
+                   _ => Interlocked.Increment(ref insertionCounter)
+               );
+
+        #endregion
+
+        #region (private) OrderedParameters
+
+        /// <summary>
+        /// All parameters, in the order in which they were parsed or added.
+        /// </summary>
+        private IEnumerable<KeyValuePair<String, List<String>>> OrderedParameters
+
+            => internalDictionary.OrderBy(parameter => insertionOrder.TryGetValue(parameter.Key, out var position)
+                                                           ? position
+                                                           : Int64.MaxValue);
+
+        #endregion
+
         #region (static) Parse(Text)
 
         /// <summary>
@@ -204,6 +245,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            TrackInsertionOrder(Key);
+
             internalDictionary.AddOrUpdate(
                                    Key,
                                    [Value],
@@ -231,6 +274,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            TrackInsertionOrder(Key);
+
             internalDictionary.AddOrUpdate(
                                    Key,
                                    [Value.ToString()],
@@ -257,6 +302,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(Key), "The key must not be null or empty!");
 
             #endregion
+
+            TrackInsertionOrder(Key);
 
             internalDictionary.AddOrUpdate(
                                    Key,
@@ -291,6 +338,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            TrackInsertionOrder(Key);
+
             internalDictionary.AddOrUpdate(
                                    Key,
                                    new List<String>(Values),
@@ -321,6 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             internalDictionary.TryRemove(Key, out _);
+            insertionOrder.    TryRemove(Key, out _);
 
             return this;
 
@@ -1627,13 +1677,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public IEnumerator<KeyValuePair<String, IEnumerable<Object>>> GetEnumerator()
 
-            => internalDictionary.
+            => OrderedParameters.
                    Select(v => new KeyValuePair<String, IEnumerable<Object>>(v.Key, v.Value)).
                    GetEnumerator();
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 
-            => internalDictionary.
+            => OrderedParameters.
                    Select(v => new KeyValuePair<String, IEnumerable<Object>>(v.Key, v.Value)).
                    GetEnumerator();
 
@@ -1652,7 +1702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var stringBuilder = new StringBuilder();
 
-            foreach (var KeyValuePair in internalDictionary)
+            foreach (var KeyValuePair in OrderedParameters)
                 foreach (var Value in KeyValuePair.Value)
                     stringBuilder.Append('&').
                                   Append(HttpUtility.UrlEncode(KeyValuePair.Key)).

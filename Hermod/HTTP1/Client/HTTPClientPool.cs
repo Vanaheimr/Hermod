@@ -1069,7 +1069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
-                                                                                                   Host               = URL.Hostname,
+                                                                                                   Host               = URL.HostHeader,
                                                                                                    Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                                    UserAgent          = httpClient.HTTPUserAgent,
                                                                                                    Connection         = ConnectionType.KeepAlive,
@@ -1451,7 +1451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var host  = VirtualHostname?.  ToString() ??
-                        RemoteURL.Hostname.ToString();
+                        RemoteURL.Host.ToString();
 
             if (RemoteURL.Port.HasValue &&
                 RemoteURL.Port != IPPort.HTTP &&

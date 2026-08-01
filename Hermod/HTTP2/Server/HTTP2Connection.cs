@@ -2479,12 +2479,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // One span per request, nested inside the connection's. Null unless
             // something is listening, and disposed on every path out of here.
-            var method = HTTPMethod.TryParseWithoutRegistration(requestHeaders.FirstOrDefault(header => header.Name == ":method").Value);
+            var method = HTTPMethod.TryParse(requestHeaders.FirstOrDefault(header => header.Name == ":method").Value);
             var path   = requestHeaders.FirstOrDefault(header => header.Name == ":path").  Value;
 
             using var activity = HTTP2Diagnostics.StartRequest(
                                      method,
-                                     requestHeaders.FirstOrDefault(header => header.Name == ":scheme").   Value,
+                                     URIScheme.TryParse(requestHeaders.FirstOrDefault(header => header.Name == ":scheme").Value),
                                      requestHeaders.FirstOrDefault(header => header.Name == ":authority").Value,
                                      path,
                                      Stream.StreamId,

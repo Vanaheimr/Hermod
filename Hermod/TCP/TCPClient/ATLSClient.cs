@@ -470,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                 AllowTlsResume                        = AllowTLSResume     ?? false,
                                                 TargetHost                            = TLSHostname ??
                                                                                         (!RemoteURL.IsNullOrEmpty
-                                                                                             ? RemoteURL.Hostname.ToString() // SNI!
+                                                                                             ? RemoteURL.Host.ToString() // SNI!
                                                                                              : DomainName?.      ToString() ??
                                                                                                RemoteIPAddress?. ToString()),
                                                 ClientCertificates                    = ClientCertificateContext is null &&
@@ -559,9 +559,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (EnforceTLS ||
-                RemoteURL.Protocol == URLProtocols.tls   ||
-                RemoteURL.Protocol == URLProtocols.https ||
-                RemoteURL.Protocol == URLProtocols.wss)
+                RemoteURL.Scheme == URIScheme.tls   ||
+                RemoteURL.Scheme == URIScheme.https ||
+                RemoteURL.Scheme == URIScheme.wss)
             {
 
                 var startTLSResult = await StartTLS(CancellationToken);

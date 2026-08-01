@@ -935,7 +935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var httpRequestBuilder  = new HTTPRequest.Builder(this) {
                                           Path                  = RemoteURL.Path,
                                           QueryString           = RemoteURL.QueryString ?? QueryString.Empty,
-                                          Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
+                                          Host                  = RemoteURL.HostHeader,
                                           Connection            = ConnectionType.Upgrade,
                                           Upgrade               = "websocket",
                                           SecWebSocketKey       = swkaSHA1Base64,

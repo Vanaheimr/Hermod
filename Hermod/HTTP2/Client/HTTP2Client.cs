@@ -67,35 +67,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             CancellationToken                     CancellationToken         = default)
         {
 
-            var tcp = new TcpClient();
+            var tcp = new TcpClient {
 
-            // See the matching comment in HTTP2Server: Nagle's algorithm and HTTP/2's
-            // many small control frames interact badly, adding a fixed per-exchange
-            // stall that concurrency cannot hide.
-            tcp.NoDelay = true;
+                          // See the matching comment in HTTP2Server: Nagle's algorithm and HTTP/2's
+                          // many small control frames interact badly, adding a fixed per-exchange
+                          // stall that concurrency cannot hide.
+                          NoDelay = true
 
-            await tcp.ConnectAsync(Host, Port, CancellationToken);
+                      };
+
+            await tcp.ConnectAsync(
+                      Host,
+                      Port,
+                      CancellationToken
+                  );
 
             // h2c: skip TLS/ALPN entirely and speak HTTP/2 over the raw socket.
             if (Cleartext)
             {
-                var plain = new HTTP2ClientConnection(tcp.GetStream(), CancellationToken, Options);
+
+                var plain = new HTTP2ClientConnection(
+                                tcp.GetStream(),
+                                Options,
+                                CancellationToken
+                            );
+
                 await plain.StartAsync();
+
                 return plain;
+
             }
 
-            var ssl = new SslStream(tcp.GetStream(), leaveInnerStreamOpen: false, ValidateServerCertificate);
+            var ssl            = new SslStream(
+                                     tcp.GetStream(),
+                                     leaveInnerStreamOpen: false,
+                                     ValidateServerCertificate
+                                 );
 
-            var clientOptions = new SslClientAuthenticationOptions {
-                TargetHost           = Host,
-                ApplicationProtocols = [SslApplicationProtocol.Http2],
-                EnabledSslProtocols  = SslProtocols.Tls12 | SslProtocols.Tls13
-            };
+            var clientOptions  = new SslClientAuthenticationOptions {
+                                     TargetHost            = Host,
+                                     ApplicationProtocols  = [ SslApplicationProtocol.Http2 ],
+                                     EnabledSslProtocols   = SslProtocols.Tls12 | SslProtocols.Tls13
+                                 };
 
             if (ClientCertificate is not null)
                 clientOptions.ClientCertificates = [ClientCertificate];
 
-            await ssl.AuthenticateAsClientAsync(clientOptions, CancellationToken);
+            await ssl.AuthenticateAsClientAsync(
+                      clientOptions,
+                      CancellationToken
+                  );
 
             if (ssl.NegotiatedApplicationProtocol != SslApplicationProtocol.Http2)
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
@@ -118,7 +139,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             }
 
-            var connection = new HTTP2ClientConnection(ssl, CancellationToken, Options);
+            var connection = new HTTP2ClientConnection(
+                                 ssl,
+                                 Options,
+                                 CancellationToken
+                             );
+
             await connection.StartAsync();
 
             return connection;

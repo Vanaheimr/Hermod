@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             => await srv.DisposeAsync();
 
         private async Task<HTTP2CachingClient> NewCache(HTTPCacheMode mode)
-            => new(await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert), "https", authority, mode);
+            => new(await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert), URIScheme.https, authority, mode);
 
         private Int32 OriginHits(String path)
             => originHits.TryGetValue(path, out var c) ? c : 0;

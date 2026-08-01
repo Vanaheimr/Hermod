@@ -306,16 +306,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         private static IPPort ResolveRemoteTCPPort(IPPort?        RemoteTCPPort,
                                                    SslProtocols?  TLSProtocol,
-                                                   URLProtocols?  URLProtocol = null)
+                                                   URIScheme?    Scheme   = null)
 
-            => RemoteTCPPort ?? (TLSProtocol.HasValue || URLProtocol?.EnforcesTLS() == true
-                                      ? DefaultSecurePort
-                                      : DefaultRemotePort);
+            => RemoteTCPPort ?? (TLSProtocol.HasValue || Scheme?.EnforcesTLS == true
+                                     ? DefaultSecurePort
+                                     : DefaultRemotePort);
 
 
-        private static URL BuildModbusURL(HTTPHostname  RemoteHostname,
-                                          IPPort?       RemoteTCPPort,
-                                          SslProtocols? TLSProtocol)
+        private static URL BuildModbusURL(HTTPHostname   RemoteHostname,
+                                          IPPort?        RemoteTCPPort,
+                                          SslProtocols?  TLSProtocol)
 
             => URL.Parse(
                    String.Concat(
@@ -599,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                    ClientCertificates:         ToClientCertificates(ClientCert),
                    ClientCertificateChain:     ClientCertificateChain,
                    TLSProtocols:               TLSProtocol ?? (SslProtocols.Tls12 | SslProtocols.Tls13),
-                   EnforceTLS:                 TLSProtocol.HasValue || RemoteURL.Protocol.EnforcesTLS(),
+                   EnforceTLS:                 TLSProtocol.HasValue || RemoteURL.Scheme?.EnforcesTLS == true,
 
                    IPVersionPreference:        PreferIPv4 == true
                                                    ? IPVersionPreference.PreferIPv4
@@ -615,8 +615,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         {
 
-            this.RemoteHostname              = RemoteURL.Hostname;
-            this.RemoteTCPPort               = ResolveRemoteTCPPort(RemoteURL.Port, TLSProtocol, RemoteURL.Protocol);
+            this.RemoteHostname              = RemoteURL.Host.ToHTTPHostname();
+            this.RemoteTCPPort               = ResolveRemoteTCPPort(RemoteURL.Port, TLSProtocol, RemoteURL.Scheme);
             this.UnitAddress                 = UnitAddress            ?? 1;
             this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
             this.Description                 = Description;

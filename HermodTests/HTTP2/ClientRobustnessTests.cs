@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             var conn = await HTTP2Client.ConnectAsync("localhost", mock.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/");
             Assert.Multiple(() =>
             {
                 Assert.That(resp.Status,       Is.EqualTo(200), "request succeeds despite first-stream refusal");
@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", mock.Port, H2.AcceptAnyServerCert,
                 Options: new HTTP2ClientOptions { MaxRefusedStreamRetries = 2 });
 
-            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/"),
+            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/"),
                         Throws.TypeOf<HTTP2RequestNotProcessedException>(),
                         "persistent refusal throws HTTP2RequestNotProcessedException");
             await conn.CloseAsync();
@@ -118,9 +118,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", mock.Port, H2.AcceptAnyServerCert);
             var all  = await Task.WhenAll(
-                conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/a"),
-                conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/b"),
-                conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/c"));
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/a"),
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/b"),
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/c"));
 
             Assert.Multiple(() =>
             {
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             var conn = await HTTP2Client.ConnectAsync("localhost", mock.Port, H2.AcceptAnyServerCert);
-            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/"),
+            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/"),
                         Throws.TypeOf<HTTP2RequestNotProcessedException>(),
                         "GOAWAY-abandoned request throws HTTP2RequestNotProcessedException");
             await conn.CloseAsync();
@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var sw = Stopwatch.StartNew();
             Exception? caught = null;
-            try { await conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/"); }
+            try { await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/"); }
             catch (Exception ex) { caught = ex; }
             sw.Stop();
 
@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             var conn = await HTTP2Client.ConnectAsync("localhost", mock.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", "localhost", "/");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/");
             Assert.Multiple(() =>
             {
                 Assert.That(resp.Status,                        Is.EqualTo(200));

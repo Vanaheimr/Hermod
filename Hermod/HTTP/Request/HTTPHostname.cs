@@ -359,11 +359,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        [NotNullWhen(true)] out HTTPHostname  Hostname)
         {
 
-            Text = Text.Trim().ToLower();
-
-            if (Text == "*" || regEx.IsMatch(Text))
+            // Note: This delegates on purpose, so that the host syntax is validated in
+            //       exactly one place. Validating it here again with a plain domain label
+            //       regular expression rejected IPv6 literals, therefore
+            //       Parse("[::1]", IPPort.Parse(8080)) threw while Parse("[::1]:8080") worked.
+            if (TryParse(Text, out var hostname, out _) &&
+                hostname.Port is null)
             {
-                Hostname = new HTTPHostname(Text, Port);
+                Hostname = new HTTPHostname(hostname.Name, Port);
                 return true;
             }
 
@@ -584,8 +587,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             unchecked
             {
-                return Name. GetHashCode() * 3 ^
-                      (Port?.GetHashCode() ?? 0);
+                // Note: A struct can not prevent its own default value from being created,
+                //       so Name is null for default(HTTPHostname).
+                return (Name?.GetHashCode() ?? 0) * 3 ^
+                       (Port?.GetHashCode() ?? 0);
             }
         }
 

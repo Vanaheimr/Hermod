@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn      = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var q = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/search",
+            var q = await conn.SendRequestAsync(HTTPMethod.QUERY, URIScheme.https, authority, "/search",
                         ExtraHeaders: [("content-type", "text/plain")], Body: Encoding.UTF8.GetBytes("ap"));
             Assert.Multiple(() =>
             {
@@ -176,11 +176,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // RFC 10008 §4: a QUERY with content but no Content-Type MUST fail (400).
-            var noCt = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/search", Body: Encoding.UTF8.GetBytes("ap"));
+            var noCt = await conn.SendRequestAsync(HTTPMethod.QUERY, URIScheme.https, authority, "/search", Body: Encoding.UTF8.GetBytes("ap"));
             Assert.That(noCt.Status, Is.EqualTo(400), "body without Content-Type -> 400");
 
             // QUERY to an unknown path -> the handler returns null -> 404.
-            var missing = await conn.SendRequestAsync(HTTPMethod.QUERY, "https", authority, "/nope",
+            var missing = await conn.SendRequestAsync(HTTPMethod.QUERY, URIScheme.https, authority, "/nope",
                               ExtraHeaders: [("content-type", "text/plain")], Body: Encoding.UTF8.GetBytes("x"));
             Assert.That(missing.Status, Is.EqualTo(404), "unknown path -> 404");
 

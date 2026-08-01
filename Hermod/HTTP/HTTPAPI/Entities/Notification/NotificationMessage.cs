@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                    IEnumerable<Organization_Id>  Owners,
                                    IEnumerable<Signature23>?     Signatures   = null,
 
-                                   JObject?                      CustomData   = default,
+                                   CustomDataNew?                CustomData   = default,
                                    String?                       DataSource   = default,
                                    DateTimeOffset?               LastChange   = default)
 
@@ -727,7 +727,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                            IEnumerable<Organization_Id>?  Owners            = null,
                            IEnumerable<Signature23>?      Signatures        = null,
 
-                           JObject?                       CustomData        = null,
+                           CustomDataNew?                 CustomData        = null,
                            String?                        DataSource        = null,
                            DateTimeOffset?                Created           = null,
                            DateTimeOffset?                LastChange        = null)

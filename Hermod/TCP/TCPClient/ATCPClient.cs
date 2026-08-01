@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -342,6 +342,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                         TCPPort
                                     );
 
+            // Note: This used to stay default(URL), so every consumer of RemoteURL had to
+            //       cope with a URL that has neither a scheme nor a host. Most notably the
+            //       TLS decision in AHTTPClient.ConnectAsync() reads RemoteURL.Scheme and
+            //       therefore silently depended on whatever default(URL) happened to yield.
+            //
+            //       The scheme is tcp, because that is all this transport layer knows: it
+            //       neither enforces TLS nor implies a default port. Whether the connection
+            //       becomes TLS is decided by EnforceTLS and the derived clients.
+            if (URL.TryParse($"{URIScheme.tcp.Prefix}{IPAddress}:{TCPPort}", out var remoteURL))
+                this.RemoteURL = remoteURL;
+
         }
 
         #endregion
@@ -524,7 +535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (ResolvedIPAddresses.Count == 0)
                 {
 
-                    var hostname = (DomainName?.FullName ?? RemoteURL.Hostname.Name)?.Trim() ?? "";
+                    var hostname = (DomainName?.FullName ?? RemoteURL.Host.ToString())?.Trim() ?? "";
 
                     #region Localhost / URL looks like an IP address...
 

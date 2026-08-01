@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task ExtendedConnect_WebSocketSession()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var ws   = await conn.OpenWebSocketAsync("localhost", "https", "/ws-echo");
+            var ws   = await conn.OpenWebSocketAsync("localhost", URIScheme.https, "/ws-echo");
 
             await ws.SendTextAsync("hello websocket", CancellationToken.None);
             var m1 = await ws.ReceiveAsync(CancellationToken.None);
@@ -181,11 +181,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            Assert.That(async () => await conn.OpenWebSocketAsync("localhost", "https", "/nonexistent"),
+            Assert.That(async () => await conn.OpenWebSocketAsync("localhost", URIScheme.https, "/nonexistent"),
                         Throws.Exception, "unknown WebSocket path is rejected");
 
             // Connection still usable for an ordinary request afterward.
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/");
             Assert.That(resp.Status, Is.EqualTo(404), "connection healthy after a rejected CONNECT");
 
             await conn.CloseAsync();
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task PermessageDeflate_ManualNegotiation()
         {
             var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var tunnel = await conn.OpenTunnelAsync("localhost", "websocket", "https", "/ws-echo",
+            var tunnel = await conn.OpenTunnelAsync("localhost", "websocket", URIScheme.https, "/ws-echo",
                              [("sec-websocket-extensions", WebSocketDeflate.Offer)]);
             var echoed = tunnel.ResponseHeaders.FirstOrDefault(h => h.Name == "sec-websocket-extensions").Value;
             Assert.That(WebSocketDeflate.WasAccepted(echoed), Is.True, "server echoes permessage-deflate acceptance");
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task PermessageDeflate_ConvenienceApi()
         {
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var ws   = await conn.OpenWebSocketAsync("localhost", "https", "/ws-echo", PerMessageDeflate: true);
+            var ws   = await conn.OpenWebSocketAsync("localhost", URIScheme.https, "/ws-echo", PerMessageDeflate: true);
 
             var msg = new String('Z', 1500);
             await ws.SendTextAsync(msg, CancellationToken.None);

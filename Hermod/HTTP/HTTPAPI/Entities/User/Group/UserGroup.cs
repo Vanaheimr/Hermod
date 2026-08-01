@@ -503,7 +503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          IEnumerable<UserGroup2UserGroupEdge>?  UserGroup2UserGroupInEdges    = null,
                          IEnumerable<UserGroup2UserGroupEdge>?  UserGroup2UserGroupOutEdges   = null,
 
-                         JObject?                               CustomData                    = default,
+                         CustomDataNew?                         CustomData                    = default,
                          IEnumerable<AttachedFile>?             AttachedFiles                 = default,
                          JSONLDContext?                         JSONLDContext                 = default,
                          String?                                DataSource                    = default,
@@ -1176,7 +1176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<UserGroup2UserGroupEdge>?  UserGroup2UserGroupInEdges    = null,
                            IEnumerable<UserGroup2UserGroupEdge>?  UserGroup2UserGroupOutEdges   = null,
 
-                           JObject?                               CustomData                    = default,
+                           CustomDataNew?                         CustomData                    = default,
                            IEnumerable<AttachedFile>?             AttachedFiles                 = default,
                            JSONLDContext?                         JSONLDContext                 = default,
                            String?                                DataSource                    = default,

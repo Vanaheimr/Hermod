@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var client = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
-            var two = await client.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/cookie",
+            var two = await client.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/cookie",
                           ExtraHeaders: [("cookie", "a=1"), ("cookie", "b=2")]);
             Assert.Multiple(() =>
             {
@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(Encoding.UTF8.GetString(two.Body),  Is.EqualTo("a=1; b=2"), "two crumbs arrive as one \"; \"-joined field");
             });
 
-            var one = await client.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/cookie",
+            var one = await client.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/cookie",
                           ExtraHeaders: [("cookie", "x=9")]);
             Assert.Multiple(() =>
             {

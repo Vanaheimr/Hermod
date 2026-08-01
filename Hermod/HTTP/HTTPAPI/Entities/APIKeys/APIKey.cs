@@ -178,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       IEnumerable<IIPAddress>?  ValidRemoteIPAddresses   = null,
                       Boolean?                  IsDisabled               = false,
 
-                      JObject?                  CustomData               = default,
+                      CustomDataNew?            CustomData               = default,
                       JSONLDContext?            JSONLDContext            = default,
                       String?                   DataSource               = default,
                       DateTimeOffset?           LastChange               = default)
@@ -834,7 +834,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<IIPAddress>?  ValidRemoteIPAddresses   = null,
                            Boolean?                  IsDisabled               = false,
 
-                           JObject?                  CustomData               = null,
+                           CustomDataNew?            CustomData               = null,
                            JSONLDContext?            JSONLDContext            = null,
                            String?                   DataSource               = null,
                            DateTimeOffset?           LastChange               = null)

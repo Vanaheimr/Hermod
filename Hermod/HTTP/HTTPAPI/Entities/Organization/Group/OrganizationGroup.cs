@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  IOrganizationGroup?               ParentGroup     = default,
                                  IEnumerable<IOrganizationGroup>?  Subgroups       = default,
 
-                                 JObject?                          CustomData      = default,
+                                 CustomDataNew?                    CustomData      = default,
                                  IEnumerable<AttachedFile>?        AttachedFiles   = default,
                                  JSONLDContext?                    JSONLDContext   = default,
                                  String?                           DataSource      = default,
@@ -748,7 +748,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IOrganizationGroup?               ParentGroup     = default,
                            IEnumerable<IOrganizationGroup>?  Subgroups       = default,
 
-                           JObject?                          CustomData      = default,
+                           CustomDataNew?                    CustomData      = default,
                            IEnumerable<AttachedFile>?        AttachedFiles   = default,
                            JSONLDContext?                    JSONLDContext   = default,
                            String?                           DataSource      = default,

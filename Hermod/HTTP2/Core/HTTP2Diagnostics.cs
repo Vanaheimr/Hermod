@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// when unobserved.
         /// </summary>
         public static Activity? StartRequest(HTTPMethod?  Method,
-                                             String?      Scheme,
+                                             URIScheme?   Scheme,
                                              String?      Authority,
                                              String?      Path,
                                              UInt32       StreamId,

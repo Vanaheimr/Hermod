@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await using var srv = await TestH2Server.StartAsync(Handle, Cleartext: true);
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, Cleartext: true);
 
-            var get = await conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/");
+            var get = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/");
             Assert.Multiple(() =>
             {
                 Assert.That(get.Status,                        Is.EqualTo(200));
@@ -75,14 +75,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             var payload = Encoding.UTF8.GetBytes("cleartext round-trip 🚀");
-            var echo = await conn.SendRequestAsync(HTTPMethod.POST, "http", $"localhost:{srv.Port}", "/echo", Body: payload);
+            var echo = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.http, $"localhost:{srv.Port}", "/echo", Body: payload);
             Assert.Multiple(() =>
             {
                 Assert.That(echo.Status, Is.EqualTo(200));
                 Assert.That(echo.Body,   Is.EqualTo(payload), "byte-exact echo");
             });
 
-            var large = await conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/large");
+            var large = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/large");
             Assert.Multiple(() =>
             {
                 Assert.That(large.Status,      Is.EqualTo(200));
@@ -90,9 +90,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             var r = await Task.WhenAll(
-                conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/"),
-                conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/large"),
-                conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/"));
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/"),
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/large"),
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/"));
             Assert.That(r.All(x => x.Status == 200), Is.True, "3 concurrent requests all 200");
 
             await conn.CloseAsync();
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, Cleartext: true);
 
-            var get = await conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/");
+            var get = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/");
             Assert.Multiple(() =>
             {
                 Assert.That(get.Status,                        Is.EqualTo(200));
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             var payload = Encoding.UTF8.GetBytes("kestrel h2c round-trip äöü");
-            var echo = await conn.SendRequestAsync(HTTPMethod.POST, "http", $"localhost:{srv.Port}", "/echo", Body: payload);
+            var echo = await conn.SendRequestAsync(HTTPMethod.POST, URIScheme.http, $"localhost:{srv.Port}", "/echo", Body: payload);
             Assert.Multiple(() =>
             {
                 Assert.That(echo.Status, Is.EqualTo(200));
@@ -171,8 +171,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             var rr = await Task.WhenAll(
-                conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/"),
-                conn.SendRequestAsync(HTTPMethod.GET, "http", $"localhost:{srv.Port}", "/"));
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/"),
+                conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"localhost:{srv.Port}", "/"));
             Assert.That(rr.All(x => x.Status == 200), Is.True, "2 concurrent requests all 200");
 
             await conn.CloseAsync();

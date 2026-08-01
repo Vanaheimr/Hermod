@@ -353,7 +353,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     /// sent (RFC 8441 §3 MUST NOT) — an <see cref="InvalidOperationException"/> is thrown then.
     /// </summary>
     public ulong SendExtendedConnect(string authority, string path, string protocol,
-                                     IReadOnlyList<HeaderField>? headers = null, string scheme = "https")
+                                     IReadOnlyList<HeaderField>? headers = null, URIScheme? scheme = null)
     {
         if (!_qpack.PeerEnableConnectProtocol)
             throw new InvalidOperationException(
@@ -364,7 +364,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         var fields = new List<HeaderField>
         {
             new(":method", "CONNECT"),
-            new(":scheme", scheme),
+            new(":scheme", (scheme ?? URIScheme.https).SchemeName),
             new(":authority", authority),
             new(":path", path),
             new(":protocol", protocol),

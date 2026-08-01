@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -133,11 +133,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // Same, via OUR client — proves the framework isn't HttpClient-specific.
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var basicViaOurClient = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret",
+            var basicViaOurClient = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret",
                 ExtraHeaders: [("authorization", "Basic " + Convert.ToBase64String(B64("alice:secret")))]);
-            var tokenViaOurClient = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret",
+            var tokenViaOurClient = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret",
                 ExtraHeaders: [("authorization", "Token secret-token-abc")]);
-            var anonViaOurClient  = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/secret");
+            var anonViaOurClient  = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/secret");
             Assert.Multiple(() =>
             {
                 Assert.That(basicViaOurClient.Status, Is.EqualTo(200), "our client + Basic -> 200");
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             // OUR client WITH a client cert -> ok.
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert, ClientCertificate: clientCert);
-            var ok = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/");
+            var ok = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/");
             Assert.Multiple(() =>
             {
                 Assert.That(ok.Status, Is.EqualTo(200), "our client + client cert -> 200");
@@ -247,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
             // 1. No credentials -> 401 with a Digest challenge.
-            var anon      = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest");
+            var anon      = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest");
             var challenge = anon.Headers.FirstOrDefault(h => h.Name == "www-authenticate").Value ?? "";
             Assert.Multiple(() =>
             {
@@ -258,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // 2. Correct SHA-256 response -> 200 (the password never crossed the wire).
-            var okResp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+            var okResp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest",
                              ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", HTTPMethod.GET, "/digest"))]);
             Assert.Multiple(() =>
             {
@@ -267,14 +267,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             });
 
             // 3-6. Failure modes -> 401.
-            var wrongPw = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+            var wrongPw = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest",
                               ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "wrong", HTTPMethod.GET, "/digest"))]);
-            var unknownUser = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+            var unknownUser = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest",
                                   ExtraHeaders: [("authorization", BuildAuth(challenge, "bob", "secret", HTTPMethod.GET, "/digest"))]);
             var forgedNonce = Convert.ToBase64String(Encoding.ASCII.GetBytes("638000000000000000:bogusmac"));
-            var badNonce = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+            var badNonce = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest",
                                ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", HTTPMethod.GET, "/digest", nonceOverride: forgedNonce))]);
-            var wrongUri = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/digest",
+            var wrongUri = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/digest",
                                ExtraHeaders: [("authorization", BuildAuth(challenge, "alice", "secret", HTTPMethod.GET, "/elsewhere"))]);
             Assert.Multiple(() =>
             {

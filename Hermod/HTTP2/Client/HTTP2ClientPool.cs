@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <see cref="HTTP2ClientConnection.SendRequestAsync"/>.
         /// </summary>
         public async Task<HTTP2Response> SendRequestAsync(HTTPMethod                          Method,
-                                                          String                              Scheme,
+                                                          URIScheme                           Scheme,
                                                           String                              Authority,
                                                           String                              Path,
                                                           List<(String Name, String Value)>?  ExtraHeaders        = null,

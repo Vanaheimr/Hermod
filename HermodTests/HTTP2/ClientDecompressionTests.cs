@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert,
                                                        Options: new HTTP2ClientOptions { AutomaticDecompression = true });
 
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/big");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/big");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
-            var resp = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/big");
+            var resp = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/big");
             await conn.CloseAsync();
 
             Assert.Multiple(() =>
@@ -239,10 +239,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert,
                                                        Options: new HTTP2ClientOptions { AutomaticDecompression = true });
 
-            var identity = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/big",
+            var identity = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/big",
                                                         [("accept-encoding", "identity")]);
 
-            var gzipOnly = await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/big",
+            var gzipOnly = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/big",
                                                         [("accept-encoding", "gzip")]);
 
             await conn.CloseAsync();
@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                            MaxDecodedBodySize     = 16   // smaller than /big
                                                        });
 
-            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, "https", $"localhost:{srv.Port}", "/big"),
+            Assert.That(async () => await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/big"),
                         Throws.InstanceOf<InvalidDataException>());
 
             await conn.CloseAsync();

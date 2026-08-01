@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public static Boolean IsSafeToProcess(IEnumerable<(String Name, String Value)> RequestHeaders)
 
-            => IsSafeMethod(HTTPMethod.TryParseWithoutRegistration(RequestHeaders.FirstOrDefault(header => header.Name == ":method").Value));
+            => IsSafeMethod(HTTPMethod.TryParse(RequestHeaders.FirstOrDefault(header => header.Name == ":method").Value));
 
         #endregion
 

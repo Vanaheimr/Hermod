@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -319,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
                    CertificateRevocationCheckMode,
-                   URL.Protocol == URLProtocols.https || URL.Protocol == URLProtocols.wss,//  EnforceTLS,
+                   URL.Scheme == URIScheme.https || URL.Scheme == URIScheme.wss,//  EnforceTLS,
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                                    Host                                       = URL.Hostname,
+                                                                                    Host                                       = URL.HostHeader,
                                                                                     Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                     UserAgent                                  = httpClient.HTTPUserAgent,
                                                                                     ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
@@ -515,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 httpStream = tcpClient?.GetStream();
 
                 if (EnforceTLS ||
-                    RemoteURL.Protocol.EnforcesTLS() == true)
+                    RemoteURL.Scheme?.EnforcesTLS == true)
                 {
 
                     if (tlsStream is null || tlsStream.IsAuthenticated == false)
@@ -564,7 +564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             httpStream = tcpClient?.GetStream();
 
             if (EnforceTLS ||
-                RemoteURL.Protocol.EnforcesTLS() == true)
+                RemoteURL.Scheme?.EnforcesTLS == true)
             {
 
                 if (tlsStream is null || tlsStream.IsAuthenticated == false)

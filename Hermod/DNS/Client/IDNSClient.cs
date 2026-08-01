@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -217,13 +217,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => (await IDNSClient.Query<A>(
-                              DomainName.Parse(RemoteURL.Hostname.Name),
+        {
+
+            // When the URL already carries an IP address there is nothing to resolve.
+            // Sending it to a DNS server would be a pointless query for a name like
+            // "192.168.1.1", as that happens to pass the domain name syntax check.
+            if (RemoteURL.Host.IsIPAddress)
+                return RemoteURL.Host.IPAddress is IPv4Address ipv4Address
+                           ? [ ipv4Address ]
+                           : [];
+
+            if (RemoteURL.Host.DomainName is null)
+                return [];
+
+            return (await IDNSClient.Query<A>(
+                              RemoteURL.Host.DomainName,
                               Timeout,
                               RecursionDesired,
                               ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(ARecord => ARecord.IPv4Address);
+
+        }
 
         #endregion
 
@@ -281,13 +296,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
-                => (await IDNSClient.Query<AAAA>(
-                              DomainName.Parse(RemoteURL.Hostname.Name),
+        {
+
+            // When the URL already carries an IP address there is nothing to resolve.
+            if (RemoteURL.Host.IsIPAddress)
+                return RemoteURL.Host.IPAddress is IPv6Address ipv6Address
+                           ? [ ipv6Address ]
+                           : [];
+
+            if (RemoteURL.Host.DomainName is null)
+                return [];
+
+            return (await IDNSClient.Query<AAAA>(
+                              RemoteURL.Host.DomainName,
                               Timeout,
                               RecursionDesired,
                               ForceUpdate,
                               CancellationToken
                           ).ConfigureAwait(false)).FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address);
+
+        }
 
         #endregion
 
@@ -367,8 +395,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(DomainName.Parse(RemoteURL.Hostname.Name), Timeout, RecursionDesired, ForceUpdate, CancellationToken);
-            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(DomainName.Parse(RemoteURL.Hostname.Name), Timeout, RecursionDesired, ForceUpdate, CancellationToken);
+            // When the URL already carries an IP address there is nothing to resolve.
+            if (RemoteURL.Host.IPAddress is IIPAddress ipAddress)
+                return [ ipAddress ];
+
+            if (RemoteURL.Host.DomainName is null)
+                return [];
+
+            var ipv4AddressLookupTask = IDNSClient.Query_IPv4Addresses(RemoteURL.Host.DomainName, Timeout, RecursionDesired, ForceUpdate, CancellationToken);
+            var ipv6AddressLookupTask = IDNSClient.Query_IPv6Addresses(RemoteURL.Host.DomainName, Timeout, RecursionDesired, ForceUpdate, CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,

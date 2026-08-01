@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             => async (StreamId, RequestHeaders, RequestBody, CancellationToken) =>
             {
 
-                var method = HTTPMethod.TryParseWithoutRegistration(RequestHeaders.FirstOrDefault(h => h.Name == ":method").Value) ?? HTTPMethod.GET;
+                var method = HTTPMethod.TryParse(RequestHeaders.FirstOrDefault(h => h.Name == ":method").Value) ?? HTTPMethod.GET;
                 var path   = RequestHeaders.FirstOrDefault(h => h.Name == ":path").  Value ?? "/";
 
                 // Allow-set for OPTIONS/405 — QUERY only when a handler backs it.

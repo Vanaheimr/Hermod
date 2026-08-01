@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private readonly HTTP2ClientConnection connection;
         private readonly TimeProvider          timeProvider;
-        private readonly string                scheme;
+        private readonly URIScheme             scheme;
         private readonly string                authority;
         private readonly HTTPCacheMode         mode;
 
@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         public HTTP2CachingClient(
             HTTP2ClientConnection Connection,
-            string                Scheme,
+            URIScheme             Scheme,
             string                Authority,
             HTTPCacheMode         Mode         = HTTPCacheMode.Private,
             TimeProvider?         TimeProvider = null)

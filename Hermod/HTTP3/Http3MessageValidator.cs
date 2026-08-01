@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -44,7 +44,8 @@ internal static class Http3MessageValidator
         bool regularSeen = false;
         int method = 0, scheme = 0, path = 0, authority = 0, protocol = 0;
         HTTPMethod? methodValue = null;
-        String schemeValue = "", pathValue = "", authorityValue = "", protocolValue = "";
+        URIScheme? schemeValue = null;
+        String pathValue = "", authorityValue = "", protocolValue = "";
         string? hostValue = null;
 
         foreach (HeaderField field in fields)
@@ -57,8 +58,8 @@ internal static class Http3MessageValidator
                     return "invalid characters in pseudo-header value";
                 switch (field.Name)
                 {
-                    case ":method": method++; methodValue = HTTPMethod.TryParseWithoutRegistration(field.Value); break;
-                    case ":scheme": scheme++; schemeValue = field.Value; break;
+                    case ":method": method++; methodValue = HTTPMethod.TryParse(field.Value); break;
+                    case ":scheme": scheme++; schemeValue = URIScheme.TryParse(field.Value); break;
                     case ":path": path++; pathValue = field.Value; break;
                     case ":authority": authority++; authorityValue = field.Value; break;
                     case ":protocol": protocol++; protocolValue = field.Value; break; // RFC 8441 §4
@@ -99,14 +100,17 @@ internal static class Http3MessageValidator
 
         if (scheme != 1 || path != 1)
             return "exactly one :scheme and :path required"; // §4.3.1
-        if (schemeValue.Length == 0)
-            return "empty :scheme";
+        // TryParse(...) returns null for an empty or syntactically invalid scheme name, and
+        // never grows the scheme registry, so a peer can not flood it (RFC 3986 §3.1).
+        if (schemeValue is null)
+            return "empty or invalid :scheme";
         if (pathValue.Length == 0)
             return "empty :path"; // §4.3.1: for http/https, "/" or "*" MUST be sent
         if (authority > 1)
             return "multiple :authority values";
 
-        if (schemeValue is "http" or "https")
+        // Scheme names are case-insensitive (RFC 3986 §3.1); URIScheme compares accordingly.
+        if (schemeValue == URIScheme.http || schemeValue == URIScheme.https)
         {
             // §4.3.1: :authority OR Host required, non-empty; both present ⇒ identical;
             // the deprecated userinfo component ("…@…") is forbidden.

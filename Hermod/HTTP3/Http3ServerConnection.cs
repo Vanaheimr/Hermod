@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -1132,7 +1132,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     {
 
         var     method     = HTTPMethod.GET;
-        String  scheme     = "https";
+        URIScheme  scheme  = URIScheme.https;
         String  authority  = "";
         String  path       = "/";
         String? protocol   = null;
@@ -1143,8 +1143,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             switch (h.Name)
             {
 
-                case ":method":    method     = HTTPMethod.TryParseWithoutRegistration(h.Value) ?? HTTPMethod.GET; break;
-                case ":scheme":    scheme     = h.Value;                                        break;
+                case ":method":    method     = HTTPMethod.TryParse(h.Value) ?? HTTPMethod.GET; break;
+                case ":scheme":    scheme     = URIScheme.TryParse(h.Value) ?? scheme;          break;
                 case ":authority": authority  = h.Value;                                        break;
                 case ":path":      path       = h.Value;                                        break;
                 case ":protocol":  protocol   = h.Value;                                        break; // Extended CONNECT (RFC 8441 §4)

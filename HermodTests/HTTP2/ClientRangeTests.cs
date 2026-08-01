@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
             using var destination = new MemoryStream();
-            var result = await conn.DownloadAsync("https", $"localhost:{srv.Port}", "/file", destination);
+            var result = await conn.DownloadAsync(URIScheme.https, $"localhost:{srv.Port}", "/file", destination);
 
             await conn.CloseAsync();
 
@@ -267,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
             using var destination = new MemoryStream();
-            var result = await conn.DownloadAsync("https", $"localhost:{srv.Port}", "/resume", destination);
+            var result = await conn.DownloadAsync(URIScheme.https, $"localhost:{srv.Port}", "/resume", destination);
 
             await conn.CloseAsync();
 
@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
 
             using var destination = new MemoryStream();
-            var result = await conn.DownloadAsync("https", $"localhost:{srv.Port}", "/changed", destination);
+            var result = await conn.DownloadAsync(URIScheme.https, $"localhost:{srv.Port}", "/changed", destination);
 
             await conn.CloseAsync();
 
@@ -331,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             using var destination = new MemoryStream();
 
-            Assert.That(async () => await conn.DownloadAsync("https", $"localhost:{srv.Port}", "/novalidator", destination),
+            Assert.That(async () => await conn.DownloadAsync(URIScheme.https, $"localhost:{srv.Port}", "/novalidator", destination),
                         Throws.Exception, "the interruption is not swallowed");
 
             await conn.CloseAsync();
@@ -354,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             using var destination = new ForwardOnlyStream();
 
-            Assert.That(async () => await conn.DownloadAsync("https", $"localhost:{srv.Port}", "/changed", destination),
+            Assert.That(async () => await conn.DownloadAsync(URIScheme.https, $"localhost:{srv.Port}", "/changed", destination),
                         Throws.InstanceOf<InvalidOperationException>());
 
             await conn.CloseAsync();
@@ -401,16 +401,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var conn = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
             var authority = $"localhost:{srv.Port}";
 
-            var full = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file");
+            var full = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/file");
             var etag = full.HeaderValue("etag")!;
 
-            var byETag = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file",
+            var byETag = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/file",
                              [("if-none-match", etag)]);
 
-            var byDate = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file",
+            var byDate = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/file",
                              [("if-modified-since", HTTPValidators.FormatDate(lastModified))]);
 
-            var stale  = await conn.SendRequestAsync(HTTPMethod.GET, "https", authority, "/file",
+            var stale  = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, authority, "/file",
                              [("if-none-match", "\"something-else\"")]);
 
             await conn.CloseAsync();
