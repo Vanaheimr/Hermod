@@ -187,13 +187,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4
 
             packetBytes[1]  = TypeOfService;
 
-            // Total Length – Big-Endian (Network Order)
+            // Total Length - big-endian (network order)
             Buffer.BlockCopy(BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)TotalLength)), 0, packetBytes, 2, 2);
 
-            // Identification – Big-Endian
+            // Identification - big-endian
             Buffer.BlockCopy(BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)Identification)), 0, packetBytes, 4, 2);
 
-            // Flags (3 Bit) + Fragment Offset (13 Bit) – korrekt gepackt
+            // Flags (3 bits) + Fragment Offset (13 bits), packed into one 16-bit word
             UInt16 flagsAndOffset = (UInt16)(((Flags & 0x07) << 13) | (FragmentOffset & 0x1FFF));
             Buffer.BlockCopy(BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)flagsAndOffset)), 0, packetBytes, 6, 2);
 
