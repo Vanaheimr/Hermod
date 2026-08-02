@@ -3195,15 +3195,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Content        = new JArray(JSONNotification).ToUTF8Bytes(),
                                                    ContentType    = HTTPContentType.Application.JSON_UTF8,
                                                    UserAgent      = "HTTPExtAPI Notification API",
-                                                   API_Key        = notification.APIKey.HasValue
-                                                                        ? notification.APIKey
-                                                                        : null,
-                                                   Authorization  = notification.BasicAuthenticationLogin.IsNotNullOrEmpty()
-                                                                        ? HTTPBasicAuthentication.Create(
-                                                                              notification.BasicAuthenticationLogin,
-                                                                              notification.BasicAuthenticationPassword
-                                                                          )
-                                                                        : null
+                                                   //API_Key        = notification.APIKey.HasValue
+                                                   //                     ? notification.APIKey
+                                                   //                     : null,
+                                                   //Authorization  = notification.BasicAuthenticationLogin.IsNotNullOrEmpty()
+                                                   //                     ? HTTPBasicAuthentication.Create(
+                                                   //                           notification.BasicAuthenticationLogin,
+                                                   //                           notification.BasicAuthenticationPassword
+                                                   //                       )
+                                                   //                     : null
                                     };
 
                                     //result  = await httpsClient.Execute(Request:              request,
@@ -7637,7 +7637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(JSONObject, out HTTPSNotification httpsNotification))
+                                                  if (!HTTPSNotification.TryParse(JSONObject, out HTTPSNotification httpsNotification, out _))
                                                   {
                                                       ErrorString = "Could not parse https notification!";
                                                       goto fail;
@@ -7829,7 +7829,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification))
+                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification, out _))
                                                   {
                                                       ErrorString = "Could not parse https notification!";
                                                       goto fail;
@@ -10378,7 +10378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification))
+                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification, out _))
                                                   {
                                                       errorString = "Could not parse https notification!";
                                                       goto fail;
@@ -10567,7 +10567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification))
+                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification, out _))
                                                   {
                                                       errorString = "Could not parse https notification!";
                                                       goto fail;
@@ -12961,7 +12961,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case HTTPSNotification.JSONLDContext:
 
-                            if (HTTPSNotification.TryParse(Data, out HTTPSNotification httpsNotification))
+                            if (HTTPSNotification.TryParse(Data, out HTTPSNotification httpsNotification, out _))
                             {
                                 user?.        AddNotification(httpsNotification);
                                 organization?.AddNotification(httpsNotification);
@@ -13118,7 +13118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case HTTPSNotification.JSONLDContext:
 
-                            if (HTTPSNotification.TryParse(Data, out HTTPSNotification httpsNotification))
+                            if (HTTPSNotification.TryParse(Data, out var httpsNotification, out _))
                             {
 
                                 if (user         is not null)
@@ -14547,11 +14547,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               User,
                               new EMailNotification(
                                   User.EMail,
-                                  "",
-                                  "",
-                                  "",
                                   newUserDefaultNotificationMessageGroups,
-                                  "Default notifications for new users"
+                                  "",
+                                  "",
+                                  "",
+                                  I18NString.Create("Default notifications for new users")
                               ),
                               eventTrackingId,
                               CurrentUserId
@@ -15053,11 +15053,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               User,
                               new EMailNotification(
                                   User.EMail,
-                                  "",
-                                  "",
-                                  "",
                                   newUserDefaultNotificationMessageGroups,
-                                  "Default notifications for new users"
+                                  "",
+                                  "",
+                                  "",
+                                  I18NString.Create("Default notifications for new users")
                               ),
                               eventTrackingId,
                               CurrentUserId
@@ -15567,11 +15567,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   User,
                                   new EMailNotification(
                                       User.EMail,
-                                      "",
-                                      "",
-                                      "",
                                       newUserDefaultNotificationMessageGroups,
-                                      "Default notifications for new users"
+                                      "",
+                                      "",
+                                      "",
+                                      I18NString.Create("Default notifications for new users")
                                   ),
                                   eventTrackingId,
                                   CurrentUserId

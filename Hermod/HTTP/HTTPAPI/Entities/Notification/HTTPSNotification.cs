@@ -22,6 +22,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -34,82 +35,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
     public static class HTTPSNotificationExtensions
     {
 
-        #region AddHTTPSNotification(this HTTPExtAPI, User, NotificationMessageType,  RemoteURL, Method = null, BasicAuthenticationLogin = null, BasicAuthenticationPassword = null, APIKey = null)
+        #region AddHTTPSNotification(this HTTPExtAPI, User, NotificationMessageType,  RemoteURL, Method = null, HTTPAuthentication = null)
 
-        public static Task AddHTTPSNotification(this HTTPExtAPI            HTTPExtAPI,
+        public static Task AddHTTPSNotification(this HTTPExtAPI          HTTPExtAPI,
                                                 User                     User,
                                                 NotificationMessageType  NotificationMessageType,
                                                 URL                      RemoteURL,
                                                 HTTPMethod?              Method               = null,
-                                                String                   BasicAuthenticationLogin      = null,
-                                                String                   BasicAuthenticationPassword   = null,
-                                                APIKey_Id?               APIKey               = null)
+                                                IHTTPAuthentication?     HTTPAuthentication   = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new HTTPSNotification(RemoteURL,
-                                                              Method,
-                                                              BasicAuthenticationLogin,
-                                                              BasicAuthenticationPassword,
-                                                              APIKey),
-                                        NotificationMessageType);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new HTTPSNotification(
+                       RemoteURL,
+                       [ NotificationMessageType ],
+                       Method,
+                       HTTPAuthentication
+                   ),
+                   NotificationMessageType
+               );
 
         #endregion
 
-        #region AddHTTPSNotification(this HTTPExtAPI, User, NotificationMessageTypes, RemoteURL, Method = null, BasicAuthenticationLogin = null, BasicAuthenticationPassword = null, APIKey = null)
+        #region AddHTTPSNotification(this HTTPExtAPI, User, NotificationMessageTypes, RemoteURL, Method = null, HTTPAuthentication = null)
 
-        public static Task AddHTTPSNotification(this HTTPExtAPI                         HTTPExtAPI,
+        public static Task AddHTTPSNotification(this HTTPExtAPI                       HTTPExtAPI,
                                                 User                                  User,
                                                 IEnumerable<NotificationMessageType>  NotificationMessageTypes,
                                                 URL                                   RemoteURL,
                                                 HTTPMethod?                           Method               = null,
-                                                String                                BasicAuthenticationLogin      = null,
-                                                String                                BasicAuthenticationPassword   = null,
-                                                APIKey_Id?                            APIKey               = null)
+                                                IHTTPAuthentication?                  HTTPAuthentication   = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new HTTPSNotification(RemoteURL,
-                                                              Method,
-                                                              BasicAuthenticationLogin,
-                                                              BasicAuthenticationPassword,
-                                                              APIKey),
-                                        NotificationMessageTypes);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new HTTPSNotification(
+                       RemoteURL,
+                       NotificationMessageTypes,
+                       Method,
+                       HTTPAuthentication
+                   ),
+                   NotificationMessageTypes
+               );
 
         #endregion
 
 
         #region GetHTTPSNotifications(this HTTPExtAPI, User,         params NotificationMessageTypes)
 
-        public static IEnumerable<HTTPSNotification> GetHTTPSNotifications(this HTTPExtAPI                     HTTPExtAPI,
+        public static IEnumerable<HTTPSNotification> GetHTTPSNotifications(this HTTPExtAPI                   HTTPExtAPI,
                                                                            User                              User,
                                                                            params NotificationMessageType[]  NotificationMessageTypes)
 
 
-            => HTTPExtAPI.GetNotificationsOf<HTTPSNotification>(User,
-                                                              NotificationMessageTypes);
+            => HTTPExtAPI.GetNotificationsOf<HTTPSNotification>(
+                   User,
+                   NotificationMessageTypes
+               );
 
         #endregion
 
         #region GetHTTPSNotifications(this HTTPExtAPI, Organization, params NotificationMessageTypes)
 
-        public static IEnumerable<HTTPSNotification> GetHTTPSNotifications(this HTTPExtAPI                     HTTPExtAPI,
+        public static IEnumerable<HTTPSNotification> GetHTTPSNotifications(this HTTPExtAPI                   HTTPExtAPI,
                                                                            Organization                      Organization,
                                                                            params NotificationMessageType[]  NotificationMessageTypes)
 
 
-            => HTTPExtAPI.GetNotificationsOf<HTTPSNotification>(Organization,
-                                                              NotificationMessageTypes);
+            => HTTPExtAPI.GetNotificationsOf<HTTPSNotification>(
+                   Organization,
+                   NotificationMessageTypes
+               );
 
         #endregion
 
         #region GetHTTPSNotifications(this HTTPExtAPI, UserGroup,    params NotificationMessageTypes)
 
-        public static IEnumerable<HTTPSNotification> GetHTTPSNotifications(this HTTPExtAPI                     HTTPExtAPI,
+        public static IEnumerable<HTTPSNotification> GetHTTPSNotifications(this HTTPExtAPI                   HTTPExtAPI,
                                                                            UserGroup                         UserGroup,
                                                                            params NotificationMessageType[]  NotificationMessageTypes)
 
 
-            => HTTPExtAPI.GetNotificationsOf<HTTPSNotification>(UserGroup,
-                                                              NotificationMessageTypes);
+            => HTTPExtAPI.GetNotificationsOf<HTTPSNotification>(
+                   UserGroup,
+                   NotificationMessageTypes
+               );
 
         #endregion
 
@@ -189,32 +198,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// The URL for of HTTPS notification.
         /// </summary>
-        public URL         RemoteURL             { get; }
+        public URL                   RemoteURL             { get; }
 
         /// <summary>
         /// The HTTP method of this HTTPS notification.
         /// </summary>
-        public HTTPMethod  Method                { get; }
+        public HTTPMethod            Method                { get; }
 
         /// <summary>
         /// An optional HTTP Basic Auth login for the HTTPS notification.
         /// </summary>
-        public String      BasicAuthenticationLogin       { get; }
-
-        /// <summary>
-        /// An optional HTTP Basic Auth password for the HTTPS notification.
-        /// </summary>
-        public String      BasicAuthenticationPassword    { get; }
-
-        /// <summary>
-        /// An optional HTTP API Key for the HTTPS notification.
-        /// </summary>
-        public APIKey_Id?  APIKey                { get; }
+        public IHTTPAuthentication?  HTTPAuthentication    { get; }
 
         /// <summary>
         /// An optional HTTP request timeout.
         /// </summary>
-        public TimeSpan?   RequestTimeout        { get; }
+        public TimeSpan?             RequestTimeout        { get; }
 
         #endregion
 
@@ -225,20 +224,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         /// <param name="RemoteURL">The URL of this HTTPS notification.</param>
         /// <param name="Method">The HTTP method of this HTTPS notification.</param>
-        /// <param name="BasicAuthenticationLogin">An optional HTTP Basic Auth login for the HTTPS notification.</param>
-        /// <param name="BasicAuthenticationPassword">An optional HTTP Basic Auth password for the HTTPS notification.</param>
-        /// <param name="APIKey">An optional HTTP API Key for the HTTPS notification.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
         /// <param name="RequestTimeout"></param>
         /// <param name="NotificationMessageTypes">An optional enumeration of notification message types.</param>
         /// <param name="Description">Some description to remember why this notification was created.</param>
         public HTTPSNotification(URL                                   RemoteURL,
-                                 HTTPMethod?                           Method                     = null,
-                                 String                                BasicAuthenticationLogin            = null,
-                                 String                                BasicAuthenticationPassword         = null,
-                                 APIKey_Id?                            APIKey                     = null,
-                                 TimeSpan?                             RequestTimeout             = null,
-                                 IEnumerable<NotificationMessageType>  NotificationMessageTypes   = null,
-                                 String                                Description                = null)
+                                 IEnumerable<NotificationMessageType>  NotificationMessageTypes,
+                                 HTTPMethod?                           Method                        = null,
+                                 IHTTPAuthentication?                  HTTPAuthentication            = null,
+                                 TimeSpan?                             RequestTimeout                = null,
+                                 I18NString?                           Description                   = null)
 
             : base(NotificationMessageTypes,
                    Description,
@@ -250,9 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
             this.RemoteURL           = RemoteURL;
             this.Method              = Method ?? HTTPMethod.POST;
-            this.BasicAuthenticationLogin     = BasicAuthenticationLogin;
-            this.BasicAuthenticationPassword  = BasicAuthenticationPassword;
-            this.APIKey              = APIKey;
+            this.HTTPAuthentication  = HTTPAuthentication;
             this.RequestTimeout      = RequestTimeout;
 
         }
@@ -265,8 +258,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static HTTPSNotification Parse(JObject JSON)
         {
 
-            if (TryParse(JSON, out HTTPSNotification Notification))
-                return Notification;
+            if (TryParse(JSON, out var notification, out _))
+                return notification;
 
             return null;
 
@@ -276,29 +269,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region TryParse(JSON, out Notification)
 
-        public static Boolean TryParse(JObject JSON, out HTTPSNotification Notification)
+        public static Boolean TryParse(JObject                                      JSON,
+                                       [NotNullWhen(true)]  out HTTPSNotification?  Notification,
+                                       [NotNullWhen(false)] out String?             ErrorResponse)
         {
 
-            var url = JSON["URL"]?.Value<String>();
+            Notification = null;
 
-            if (JSON["@context"]?.Value<String>() == JSONLDContext &&
-                url.IsNotNullOrEmpty())
+            if (JSON["@context"]?.Value<String>() == JSONLDContext)
             {
 
-                Notification = new HTTPSNotification(URL.Parse(JSON["URL"           ]?.Value<String>()),
-                                                     HTTPMethod.TryParse(JSON["method"]?.Value<String>() ?? "") ?? HTTPMethod.POST,
-                                                     JSON["basicAuth"     ]?["login"   ]?.Value<String>(),
-                                                     JSON["basicAuth"     ]?["password"]?.Value<String>(),
-                                                     JSON["APIKey"] is not null ? APIKey_Id.Parse(JSON["APIKey"        ]?.Value<String>()) : new APIKey_Id?(),
-                                                     JSON["RequestTimeout"] is not null ? TimeSpan.FromSeconds((Double) JSON["RequestTimeout"]?.Value<Int32>()) : new TimeSpan?(),
-                                                    (JSON["messageTypes"  ] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
-                                                     JSON["description"   ]?.Value<String>());
+                if (!JSON.ParseMandatory("url",
+                                         "notification URL",
+                                         URL.TryParse,
+                                         out URL remoteURL,
+                                         out ErrorResponse))
+                {
+                    return false;
+                }
+
+                if (JSON.ParseOptional("method",
+                                       "notification HTTP method",
+                                       s => HTTPMethod.TryParse(s),
+                                       out HTTPMethod? method,
+                                       out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                if (JSON.ParseOptionalJSON("description",
+                                           "notification description",
+                                           I18NString.TryParse,
+                                           out I18NString? description,
+                                           out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                Notification = new HTTPSNotification(
+                                   remoteURL,
+                                  (JSON["messageTypes"  ] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
+                                   method ?? HTTPMethod.POST,
+                                   //JSON["basicAuth"     ]?["login"   ]?.Value<String>(),
+                                   //JSON["basicAuth"     ]?["password"]?.Value<String>(),
+                                   //JSON["APIKey"] is not null ? APIKey_Id.Parse(JSON["APIKey"        ]?.Value<String>()) : new APIKey_Id?(),
+                                   null,
+                                   JSON["requestTimeout"] is not null ? TimeSpan.FromSeconds((Double) JSON["requestTimeout"]?.Value<Int32>()) : new TimeSpan?(),
+                                   description
+                               );
 
                 return true;
 
             }
 
-            Notification = null;
+            Notification   = null;
+            ErrorResponse  = "Error parsing HTTPS notification!";
             return false;
 
         }
@@ -316,24 +343,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                        : null,
 
                    new JProperty("method",                Method.ToString()),
-                   new JProperty("URL",                   RemoteURL.ToString()),
+                   new JProperty("url",                   RemoteURL.ToString()),
 
-                   BasicAuthenticationLogin.   IsNotNullOrEmpty() &&
-                   BasicAuthenticationPassword.IsNotNullOrEmpty()
-                       ? new JProperty("basicAuth",
-                             new JObject(
-                                 new JProperty("login",     BasicAuthenticationLogin),
-                                 new JProperty("password",  BasicAuthenticationPassword)
-                             )
-                         )
-                       : null,
+                   //BasicAuthenticationLogin.   IsNotNullOrEmpty() &&
+                   //BasicAuthenticationPassword.IsNotNullOrEmpty()
+                   //    ? new JProperty("basicAuth",
+                   //          new JObject(
+                   //              new JProperty("login",     BasicAuthenticationLogin),
+                   //              new JProperty("password",  BasicAuthenticationPassword)
+                   //          )
+                   //      )
+                   //    : null,
 
-                   APIKey.HasValue
-                       ? new JProperty("APIKey",          APIKey.Value.ToString())
-                       : null,
+                   //APIKey.HasValue
+                   //    ? new JProperty("APIKey",          APIKey.Value.ToString())
+                   //    : null,
 
                    RequestTimeout.HasValue
-                       ? new JProperty("RequestTimeout",  RequestTimeout.Value.TotalSeconds)
+                       ? new JProperty("requestTimeout",  RequestTimeout.Value.TotalSeconds)
                        : null,
 
                    NotificationMessageTypes.SafeAny()
@@ -361,13 +388,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             => Method.   Equals(other.Method)                              &&
                RemoteURL.Equals(other.RemoteURL)                           &&
 
-               String.Equals(BasicAuthenticationLogin,    other.BasicAuthenticationLogin)    &&
-               String.Equals(BasicAuthenticationPassword, other.BasicAuthenticationPassword) &&
-               String.Equals(APIKey,             other.APIKey)             &&
+               //String.Equals(BasicAuthenticationLogin,    other.BasicAuthenticationLogin)    &&
+               //String.Equals(BasicAuthenticationPassword, other.BasicAuthenticationPassword) &&
+               //String.Equals(APIKey,             other.APIKey)             &&
 
                String.Equals(Description,        other.Description)        &&
 
-               _NotificationMessageTypes.SetEquals(other._NotificationMessageTypes);
+               notificationMessageTypes.SetEquals(other.notificationMessageTypes);
 
         #endregion
 
@@ -435,6 +462,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         public override String ToString()
             => String.Concat(nameof(HTTPSNotification), ": ", Method, " ", RemoteURL);
+
+        public override Int32 CompareTo(Object? obj)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 

@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region AddSMSNotification(this HTTPExtAPI, User, NotificationMessageType,  Phonenumber = null, TextTemplate = null)
 
-        public static Task AddSMSNotification(this HTTPExtAPI            HTTPExtAPI,
+        public static Task AddSMSNotification(this HTTPExtAPI          HTTPExtAPI,
                                               IUser                    User,
                                               NotificationMessageType  NotificationMessageType,
                                               PhoneNumber?             PhoneNumber       = null,
@@ -48,14 +48,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             if (!phoneNumber.HasValue || phoneNumber.Value.IsNullOrEmpty)
                 throw new ArgumentNullException(nameof(PhoneNumber), "The given mobile phone number must not be null or empty!");
 
-            return HTTPExtAPI.AddNotification(User,
-                                            new SMSNotification(
-                                                phoneNumber.Value,
-                                                TextTemplate
-                                            ),
-                                            NotificationMessageType,
-                                            EventTrackingId,
-                                            CurrentUserId);
+            return HTTPExtAPI.AddNotification(
+                       User,
+                       new SMSNotification(
+                           phoneNumber.Value,
+                           [ NotificationMessageType ],
+                           TextTemplate
+                       ),
+                       NotificationMessageType,
+                       EventTrackingId,
+                       CurrentUserId
+                   );
 
         }
 
@@ -63,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region AddSMSNotification(this HTTPExtAPI, User, NotificationMessageTypes, PhoneNumber = null, TextTemplate = null)
 
-        public static Task AddSMSNotification(this HTTPExtAPI                         HTTPExtAPI,
+        public static Task AddSMSNotification(this HTTPExtAPI                       HTTPExtAPI,
                                               IUser                                 User,
                                               IEnumerable<NotificationMessageType>  NotificationMessageTypes,
                                               PhoneNumber?                          PhoneNumber       = null,
@@ -77,14 +80,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             if (!phoneNumber.HasValue || phoneNumber.Value.IsNullOrEmpty)
                 throw new ArgumentNullException(nameof(PhoneNumber), "The given mobile phone number must not be null or empty!");
 
-            return HTTPExtAPI.AddNotification(User,
-                                            new SMSNotification(
-                                                phoneNumber.Value,
-                                                TextTemplate
-                                            ),
-                                            NotificationMessageTypes,
-                                            EventTrackingId,
-                                            CurrentUserId);
+            return HTTPExtAPI.AddNotification(
+                       User,
+                       new SMSNotification(
+                           phoneNumber.Value,
+                           NotificationMessageTypes,
+                           TextTemplate
+                       ),
+                       NotificationMessageTypes,
+                       EventTrackingId,
+                       CurrentUserId
+                   );
 
         }
 
@@ -204,9 +210,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="NotificationMessageTypes">An optional enumeration of notification message types.</param>
         /// <param name="Description">Some description to remember why this notification was created.</param>
         public SMSNotification(PhoneNumber                           PhoneNumber,
-                               String                                TextTemplate               = null,
-                               IEnumerable<NotificationMessageType>  NotificationMessageTypes   = null,
-                               String                                Description                = null)
+                               IEnumerable<NotificationMessageType>  NotificationMessageTypes,
+                               String?                               TextTemplate   = null,
+                               I18NString?                           Description    = null)
 
             : base(NotificationMessageTypes,
                    Description,
@@ -247,12 +253,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 PhoneNumber.TryParse(JSON["phoneNumber"]?.Value<String>(), out PhoneNumber phoneNumber))
             {
 
-                Notification = new SMSNotification(PhoneNumber.Parse(JSON["phoneNumber"]?.Value<String>()),
-                                                    JSON["textTemplate"]?.Value<String>(),
-                                                   (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
-                                                    JSON["description" ]?.Value<String>());
+                //Notification = new SMSNotification(PhoneNumber.Parse(JSON["phoneNumber"]?.Value<String>()),
+                //                                    JSON["textTemplate"]?.Value<String>(),
+                //                                   (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
+                //                                    JSON["description" ]?.Value<String>());
 
-                return true;
+                //return true;
 
             }
 
@@ -305,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                String.Equals(Description,  other.Description)  &&
                String.Equals(TextTemplate, other.TextTemplate) &&
 
-               _NotificationMessageTypes.SetEquals(other._NotificationMessageTypes);
+               notificationMessageTypes.SetEquals(other.notificationMessageTypes);
 
         #endregion
 
@@ -363,6 +369,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         public override String ToString()
             => String.Concat(nameof(SMSNotification), ": ", PhoneNumber.ToString());
+
+        public override Int32 CompareTo(Object? obj)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 

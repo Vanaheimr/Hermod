@@ -533,9 +533,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>Access-Control-Allow-Methods: GET, PUT, POST, DELETE</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPMethod>> AccessControlAllowMethods = new ("Access-Control-Allow-Methods",
-                                                                                                                RequestPathSemantic.EndToEnd,
-                                                                                                                MultipleValuesAsList:  true,
-                                                                                                                StringParser:         (String s, out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSetOf(s, HTTPMethod.TryParse, out o));
+                                                                                                                 RequestPathSemantic.EndToEnd,
+                                                                                                                 MultipleValuesAsList:  true,
+                                                                                                                 StringParser:         (String s, out IEnumerable<HTTPMethod> o) => StringParsers.NullableHashSetOf(s, HTTPMethod.TryParse, out o));
 
         #endregion
 

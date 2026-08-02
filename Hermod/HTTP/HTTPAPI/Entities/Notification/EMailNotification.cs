@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region AddEMailNotification(this HTTPExtAPI, User, NotificationMessageType,  EMailAddress = null, Subject = null, SubjectPrefix = null)
 
-        public static Task AddEMailNotification(this HTTPExtAPI            HTTPExtAPI,
+        public static Task AddEMailNotification(this HTTPExtAPI          HTTPExtAPI,
                                                 IUser                    User,
                                                 NotificationMessageType  NotificationMessageType,
                                                 EMailAddress?            EMailAddress      = null,
@@ -44,21 +44,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                                 EventTracking_Id?        EventTrackingId   = null,
                                                 User_Id?                 CurrentUserId     = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new EMailNotification(
-                                            EMailAddress ?? User.EMail,
-                                            Subject,
-                                            SubjectPrefix
-                                        ),
-                                        NotificationMessageType,
-                                        EventTrackingId,
-                                        CurrentUserId);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new EMailNotification(
+                       EMailAddress ?? User.EMail,
+                       [ NotificationMessageType ],
+                       Subject,
+                       SubjectPrefix
+                   ),
+                   NotificationMessageType,
+                   EventTrackingId,
+                   CurrentUserId
+               );
 
         #endregion
 
         #region AddEMailNotification(this HTTPExtAPI, User, NotificationMessageTypes, EMailAddress = null, Subject = null, SubjectPrefix = null)
 
-        public static Task AddEMailNotification(this HTTPExtAPI                         HTTPExtAPI,
+        public static Task AddEMailNotification(this HTTPExtAPI                       HTTPExtAPI,
                                                 IUser                                 User,
                                                 IEnumerable<NotificationMessageType>  NotificationMessageTypes,
                                                 EMailAddress?                         EMailAddress      = null,
@@ -67,15 +70,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                                 EventTracking_Id?                     EventTrackingId   = null,
                                                 User_Id?                              CurrentUserId     = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new EMailNotification(
-                                            EMailAddress ?? User.EMail,
-                                            Subject,
-                                            SubjectPrefix
-                                        ),
-                                        NotificationMessageTypes,
-                                        EventTrackingId,
-                                        CurrentUserId);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new EMailNotification(
+                       EMailAddress ?? User.EMail,
+                       NotificationMessageTypes,
+                       Subject,
+                       SubjectPrefix
+                   ),
+                   NotificationMessageTypes,
+                   EventTrackingId,
+                   CurrentUserId
+               );
 
         #endregion
 
@@ -180,17 +186,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// An optional customer-specific subject of all e-mails to send.
         /// </summary>
-        public String        Subject          { get; }
+        public String?       Subject          { get; }
 
         /// <summary>
         /// An optional prefix added to the standard subject of the e-mail notification.
         /// </summary>
-        public String        SubjectPrefix    { get; }
+        public String?       SubjectPrefix    { get; }
 
         /// <summary>
         /// An optional 'List-Id" e-mail header within all e-mails to send.
         /// </summary>
-        public String        ListId           { get; }
+        public String?       ListId           { get; }
 
         #endregion
 
@@ -206,11 +212,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="NotificationMessageTypes">An optional enumeration of notification message types.</param>
         /// <param name="Description">Some description to remember why this notification was created.</param>
         public EMailNotification(EMailAddress                          EMailAddress,
-                                 String                                Subject                    = null,
-                                 String                                SubjectPrefix              = null,
-                                 String                                ListId                     = null,
-                                 IEnumerable<NotificationMessageType>  NotificationMessageTypes   = null,
-                                 String                                Description                = null)
+                                 IEnumerable<NotificationMessageType>  NotificationMessageTypes,
+                                 String?                               Subject                    = null,
+                                 String?                               SubjectPrefix              = null,
+                                 String?                               ListId                     = null,
+                                 I18NString?                           Description                = null)
 
             : base(NotificationMessageTypes,
                    Description,
@@ -259,14 +265,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                           true))
             {
 
-                Notification = new EMailNotification(EMail,
-                                                     JSON["subject"      ]?.Value<String>(),
-                                                     JSON["subjectPrefix"]?.Value<String>(),
-                                                     JSON["listId"       ]?.Value<String>(),
-                                                     (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
-                                                     JSON["description"  ]?.Value<String>());
+                //Notification = new EMailNotification(EMail,
+                //                                     JSON["subject"      ]?.Value<String>(),
+                //                                     JSON["subjectPrefix"]?.Value<String>(),
+                //                                     JSON["listId"       ]?.Value<String>(),
+                //                                     (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
+                //                                     JSON["description"  ]?.Value<String>());
 
-                return true;
+                //return true;
 
             }
 
@@ -331,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                String.Equals(Description,   other.Description)   &&
 
-               _NotificationMessageTypes.SetEquals(other._NotificationMessageTypes);
+               notificationMessageTypes.SetEquals(other.notificationMessageTypes);
 
         #endregion
 
@@ -389,6 +395,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         public override String ToString()
             => String.Concat(nameof(EMailNotification), ": ", EMailAddress.ToString());
+
+        public override Int32 CompareTo(Object? obj)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 

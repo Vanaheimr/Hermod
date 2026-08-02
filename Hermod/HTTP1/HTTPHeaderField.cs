@@ -271,6 +271,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+
+        /// <summary>
+        /// A delegate to parse a hash set from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="Parser">The delegate to parse the string into a value of type T.</param>
+        /// <param name="HashSet">The parsed hash set of type T.</param>
+        public static Boolean NullableHashSetOf<T>(String              String,
+                                                   TryParser2<T>       Parser,
+                                                   out IEnumerable<T>  HashSet)
+        {
+
+            var hashSet   = new HashSet<T>();
+            var elements  = String.Split (",", StringSplitOptions.RemoveEmptyEntries).
+                                   Select(element => element.Trim());
+
+            foreach (var element in elements)
+            {
+
+                if (element is not null &&
+                    element.IsNotNullOrEmpty() &&
+                    Parser(element, out var TTT, out _) &&
+                    TTT is not null)
+                {
+                    hashSet.Add(TTT);
+                }
+
+            }
+
+            HashSet = hashSet;
+            return true;
+
+        }
+
         #endregion
 
     }

@@ -35,110 +35,140 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #region AddTelegramGroupNotification(this HTTPExtAPI, User,                             Username, TextTemplate = null)
 
         public static Task AddTelegramGroupNotification(this HTTPExtAPI  HTTPExtAPI,
-                                                   User           User,
-                                                   String         Username,
-                                                   Int32?         ChatId         = null,
-                                                   String         SharedSecret   = null,
-                                                   String         TextTemplate   = null)
+                                                        User             User,
+                                                        String           Username,
+                                                        Int32?           ChatId         = null,
+                                                        String?          SharedSecret   = null,
+                                                        String?          TextTemplate   = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new TelegramGroupNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate));
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new TelegramGroupNotification(
+                       Username,
+                       [],
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   )
+               );
 
         #endregion
 
         #region AddTelegramGroupNotification(this HTTPExtAPI, UserId,                           Username, TextTemplate = null)
 
         public static Task AddTelegramGroupNotification(this HTTPExtAPI  HTTPExtAPI,
-                                                   User_Id        UserId,
-                                                   String         Username,
-                                                   Int32?         ChatId         = null,
-                                                   String         SharedSecret   = null,
-                                                   String         TextTemplate   = null)
+                                                        User_Id          UserId,
+                                                        String           Username,
+                                                        Int32?           ChatId         = null,
+                                                        String?          SharedSecret   = null,
+                                                        String?          TextTemplate   = null)
 
-            => HTTPExtAPI.AddNotification(UserId,
-                                        new TelegramGroupNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate));
+            => HTTPExtAPI.AddNotification(
+                   UserId,
+                   new TelegramGroupNotification(
+                       Username,
+                       [],
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   )
+               );
 
         #endregion
 
         #region AddTelegramGroupNotification(this HTTPExtAPI, User,   NotificationMessageType,  Username, TextTemplate = null)
 
-        public static Task AddTelegramGroupNotification(this HTTPExtAPI            HTTPExtAPI,
-                                                   User                     User,
-                                                   NotificationMessageType  NotificationMessageType,
-                                                   String                   Username,
-                                                   Int32?                   ChatId         = null,
-                                                   String                   SharedSecret   = null,
-                                                   String                   TextTemplate   = null)
+        public static Task AddTelegramGroupNotification(this HTTPExtAPI          HTTPExtAPI,
+                                                        User                     User,
+                                                        NotificationMessageType  NotificationMessageType,
+                                                        String                   Username,
+                                                        Int32?                   ChatId         = null,
+                                                        String?                  SharedSecret   = null,
+                                                        String?                  TextTemplate   = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new TelegramGroupNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate),
-                                        NotificationMessageType);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new TelegramGroupNotification(
+                       Username,
+                       [ NotificationMessageType ],
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   ),
+                   NotificationMessageType
+               );
 
         #endregion
 
         #region AddTelegramGroupNotification(this HTTPExtAPI, UserId, NotificationMessageType,  Username, TextTemplate = null)
 
-        public static Task AddTelegramGroupNotification(this HTTPExtAPI            HTTPExtAPI,
-                                                   User_Id                  UserId,
-                                                   NotificationMessageType  NotificationMessageType,
-                                                   String                   Username,
-                                                   Int32?                   ChatId         = null,
-                                                   String                   SharedSecret   = null,
-                                                   String                   TextTemplate   = null)
+        public static Task AddTelegramGroupNotification(this HTTPExtAPI          HTTPExtAPI,
+                                                        User_Id                  UserId,
+                                                        NotificationMessageType  NotificationMessageType,
+                                                        String                   Username,
+                                                        Int32?                   ChatId         = null,
+                                                        String?                  SharedSecret   = null,
+                                                        String?                  TextTemplate   = null)
 
-            => HTTPExtAPI.AddNotification(UserId,
-                                        new TelegramGroupNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate),
-                                        NotificationMessageType);
+            => HTTPExtAPI.AddNotification(
+                   UserId,
+                   new TelegramGroupNotification(
+                       Username,
+                       [ NotificationMessageType ],
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   ),
+                   NotificationMessageType
+               );
 
         #endregion
 
         #region AddTelegramGroupNotification(this HTTPExtAPI, User,   NotificationMessageTypes, Username, TextTemplate = null)
 
-        public static Task AddTelegramGroupNotification(this HTTPExtAPI                         HTTPExtAPI,
-                                                   User                                  User,
-                                                   IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                                                   String                                Username,
-                                                   Int32?                                ChatId         = null,
-                                                   String                                SharedSecret   = null,
-                                                   String                                TextTemplate   = null)
+        public static Task AddTelegramGroupNotification(this HTTPExtAPI                       HTTPExtAPI,
+                                                        User                                  User,
+                                                        IEnumerable<NotificationMessageType>  NotificationMessageTypes,
+                                                        String                                Username,
+                                                        Int32?                                ChatId         = null,
+                                                        String?                               SharedSecret   = null,
+                                                        String?                               TextTemplate   = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new TelegramGroupNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate),
-                                        NotificationMessageTypes);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new TelegramGroupNotification(
+                       Username,
+                       NotificationMessageTypes,
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   ),
+                   NotificationMessageTypes
+               );
 
         #endregion
 
         #region AddTelegramGroupNotification(this HTTPExtAPI, UserId, NotificationMessageTypes, Username, TextTemplate = null)
 
-        public static Task AddTelegramGroupNotification(this HTTPExtAPI                         HTTPExtAPI,
-                                                   User_Id                               UserId,
-                                                   IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                                                   String                                Username,
-                                                   Int32?                                ChatId         = null,
-                                                   String                                SharedSecret   = null,
-                                                   String                                TextTemplate   = null)
+        public static Task AddTelegramGroupNotification(this HTTPExtAPI                       HTTPExtAPI,
+                                                        User_Id                               UserId,
+                                                        IEnumerable<NotificationMessageType>  NotificationMessageTypes,
+                                                        String                                Username,
+                                                        Int32?                                ChatId         = null,
+                                                        String?                               SharedSecret   = null,
+                                                        String?                               TextTemplate   = null)
 
-            => HTTPExtAPI.AddNotification(UserId,
-                                        new TelegramGroupNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate),
-                                        NotificationMessageTypes);
+            => HTTPExtAPI.AddNotification(
+                   UserId,
+                   new TelegramGroupNotification(
+                       Username,
+                       NotificationMessageTypes,
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   ),
+                   NotificationMessageTypes
+               );
 
         #endregion
 
@@ -280,11 +310,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="NotificationMessageTypes">An optional enumeration of notification message types.</param>
         /// <param name="Description">Some description to remember why this notification was created.</param>
         public TelegramGroupNotification(String                                GroupName,
-                                         Int32?                                ChatId                     = null,
-                                         String                                SharedSecret               = null,
-                                         String                                TextTemplate               = null,
-                                         IEnumerable<NotificationMessageType>  NotificationMessageTypes   = null,
-                                         String                                Description                = null)
+                                         IEnumerable<NotificationMessageType>  NotificationMessageTypes,
+                                         Int32?                                ChatId         = null,
+                                         String?                               SharedSecret   = null,
+                                         String?                               TextTemplate   = null,
+                                         I18NString?                           Description    = null)
 
             : base(NotificationMessageTypes,
                    Description,
@@ -330,14 +360,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             if (JSON["@context"]?.Value<String>() == JSONLDContext && GroupName.IsNeitherNullNorEmpty())
             {
 
-                Notification = new TelegramGroupNotification(GroupName,
-                                                             JSON["chatId"]?.      Value<Int32>(),
-                                                             JSON["sharedSecret"]?.Value<String>(),
-                                                             JSON["textTemplate"]?.Value<String>(),
-                                                            (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
-                                                             JSON["description" ]?.Value<String>());
+                //Notification = new TelegramGroupNotification(GroupName,
+                //                                             JSON["chatId"]?.      Value<Int32>(),
+                //                                             JSON["sharedSecret"]?.Value<String>(),
+                //                                             JSON["textTemplate"]?.Value<String>(),
+                //                                            (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
+                //                                             JSON["description" ]?.Value<String>());
 
-                return true;
+                //return true;
 
             }
 
@@ -398,7 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                String.Equals(Description,  other.Description)  &&
                String.Equals(TextTemplate, other.TextTemplate) &&
 
-               _NotificationMessageTypes.SetEquals(other._NotificationMessageTypes);
+               notificationMessageTypes.SetEquals(other.notificationMessageTypes);
 
         #endregion
 
@@ -456,6 +486,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         public override String ToString()
             => String.Concat(nameof(TelegramGroupNotification), ": ", GroupName.ToString());
+
+        public override Int32 CompareTo(Object? obj)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 

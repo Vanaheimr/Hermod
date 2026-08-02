@@ -2283,7 +2283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 // Parse HTTP method
                 // Probably not useful to define here, as we can not send a response having an "Allow-header" here!
-                if (!HTTPMethod.TryParse(httpMethodHeader[0], out var httpMethod))
+                if (!HTTPMethod.TryParse(httpMethodHeader[0], out var httpMethod, out _))
                 {
 
                     HTTPResponse = new HTTPResponse.Builder(

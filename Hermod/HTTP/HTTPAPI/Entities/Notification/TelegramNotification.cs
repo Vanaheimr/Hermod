@@ -34,47 +34,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region AddTelegramNotification(this HTTPExtAPI, User, NotificationMessageType,  Username, TextTemplate = null)
 
-        public static Task AddTelegramNotification(this HTTPExtAPI           HTTPExtAPI,
+        public static Task AddTelegramNotification(this HTTPExtAPI          HTTPExtAPI,
                                                    User                     User,
                                                    NotificationMessageType  NotificationMessageType,
                                                    String                   Username,
                                                    Int32?                   ChatId            = null,
-                                                   String                   SharedSecret      = null,
-                                                   String                   TextTemplate      = null,
-                                                   EventTracking_Id         EventTrackingId   = null,
+                                                   String?                  SharedSecret      = null,
+                                                   String?                  TextTemplate      = null,
+                                                   EventTracking_Id?        EventTrackingId   = null,
                                                    User_Id?                 CurrentUserId     = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new TelegramNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate),
-                                        NotificationMessageType,
-                                        EventTrackingId,
-                                        CurrentUserId);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new TelegramNotification(
+                       Username,
+                       [ NotificationMessageType ],
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   ),
+                   NotificationMessageType,
+                   EventTrackingId,
+                   CurrentUserId
+               );
 
         #endregion
 
         #region AddTelegramNotification(this HTTPExtAPI, User, NotificationMessageTypes, Username, TextTemplate = null)
 
-        public static Task AddTelegramNotification(this HTTPExtAPI                         HTTPExtAPI,
+        public static Task AddTelegramNotification(this HTTPExtAPI                       HTTPExtAPI,
                                                    User                                  User,
                                                    IEnumerable<NotificationMessageType>  NotificationMessageTypes,
                                                    String                                Username,
                                                    Int32?                                ChatId            = null,
-                                                   String                                SharedSecret      = null,
-                                                   String                                TextTemplate      = null,
-                                                   EventTracking_Id                      EventTrackingId   = null,
+                                                   String?                               SharedSecret      = null,
+                                                   String?                               TextTemplate      = null,
+                                                   EventTracking_Id?                     EventTrackingId   = null,
                                                    User_Id?                              CurrentUserId     = null)
 
-            => HTTPExtAPI.AddNotification(User,
-                                        new TelegramNotification(Username,
-                                                                 ChatId,
-                                                                 SharedSecret,
-                                                                 TextTemplate),
-                                        NotificationMessageTypes,
-                                        EventTrackingId,
-                                        CurrentUserId);
+            => HTTPExtAPI.AddNotification(
+                   User,
+                   new TelegramNotification(
+                       Username,
+                       NotificationMessageTypes,
+                       ChatId,
+                       SharedSecret,
+                       TextTemplate
+                   ),
+                   NotificationMessageTypes,
+                   EventTrackingId,
+                   CurrentUserId
+               );
 
         #endregion
 
@@ -203,11 +213,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="NotificationMessageTypes">An optional enumeration of notification message types.</param>
         /// <param name="Description">Some description to remember why this notification was created.</param>
         public TelegramNotification(String                                Username,
-                                    Int32?                                ChatId                     = null,
-                                    String                                SharedSecret               = null,
-                                    String                                TextTemplate               = null,
-                                    IEnumerable<NotificationMessageType>  NotificationMessageTypes   = null,
-                                    String                                Description                = null)
+                                    IEnumerable<NotificationMessageType>  NotificationMessageTypes,
+                                    Int32?                                ChatId         = null,
+                                    String?                               SharedSecret   = null,
+                                    String?                               TextTemplate   = null,
+                                    I18NString?                           Description    = null)
 
             : base(NotificationMessageTypes,
                    Description,
@@ -253,14 +263,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             if (JSON["@context"]?.Value<String>() == JSONLDContext && Username.IsNeitherNullNorEmpty())
             {
 
-                Notification = new TelegramNotification(Username,
-                                                        JSON["chatId"]?.      Value<Int32>(),
-                                                        JSON["sharedSecret"]?.Value<String>(),
-                                                        JSON["textTemplate"]?.Value<String>(),
-                                                       (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
-                                                        JSON["description" ]?.Value<String>());
+                //Notification = new TelegramNotification(Username,
+                //                                        JSON["chatId"]?.      Value<Int32>(),
+                //                                        JSON["sharedSecret"]?.Value<String>(),
+                //                                        JSON["textTemplate"]?.Value<String>(),
+                //                                       (JSON["messageTypes"] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
+                //                                        JSON["description" ]?.Value<String>());
 
-                return true;
+                //return true;
 
             }
 
@@ -321,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                String.Equals(Description,  other.Description)  &&
                String.Equals(TextTemplate, other.TextTemplate) &&
 
-               _NotificationMessageTypes.SetEquals(other._NotificationMessageTypes);
+               notificationMessageTypes.SetEquals(other.notificationMessageTypes);
 
         #endregion
 
@@ -379,6 +389,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         public override String ToString()
             => String.Concat(nameof(TelegramNotification), ": ", Username.ToString());
+
+        public override Int32 CompareTo(Object? obj)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 

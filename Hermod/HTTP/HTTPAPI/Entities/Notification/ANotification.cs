@@ -22,6 +22,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -42,29 +43,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// All notification messages types.
         /// </summary>
-        protected readonly HashSet<NotificationMessageType> _NotificationMessageTypes;
+        protected readonly HashSet<NotificationMessageType> notificationMessageTypes;
 
         /// <summary>
         /// All notification messages types.
         /// </summary>
         public IEnumerable<NotificationMessageType> NotificationMessageTypes
-            => _NotificationMessageTypes;
+            => notificationMessageTypes;
 
         /// <summary>
         /// The number of notification messages types.
         /// </summary>
         public Int32 Count
-            => _NotificationMessageTypes.Count;
+            => notificationMessageTypes.Count;
 
         /// <summary>
         /// Some description to remember why this notification was created.
         /// </summary>
-        public          String  Description    { get; }
+        public          I18NString  Description    { get; }
 
         /// <summary>
         /// A helper for sorting.
         /// </summary>
-        public          String  SortKey        { get; }
+        public          String      SortKey        { get; }
 
         #endregion
 
@@ -77,18 +78,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="Description">Some description to remember why this notification was created.</param>
         /// <param name="SortKey">A helper for sorting.</param>
         protected ANotification(IEnumerable<NotificationMessageType>  NotificationMessageTypes,
-                                String                                Description,
+                                I18NString?                           Description,
                                 String                                SortKey)
         {
 
-            this._NotificationMessageTypes  = new HashSet<NotificationMessageType>();
-
-            if (NotificationMessageTypes is not null)
-                foreach (var notificationMessageType in NotificationMessageTypes)
-                    _NotificationMessageTypes.Add(notificationMessageType);
-
-            this.Description                = Description;
-            this.SortKey                    = SortKey;
+            this.notificationMessageTypes  = [.. NotificationMessageTypes];
+            this.Description               = Description ?? I18NString.Empty;
+            this.SortKey                   = SortKey;
 
         }
 
@@ -100,12 +96,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         internal void Add(NotificationMessageType  NotificationMessageType,
                           Action?                   OnAdded  = null)
         {
-            lock (_NotificationMessageTypes)
+            lock (notificationMessageTypes)
             {
 
-                if (!_NotificationMessageTypes.Contains(NotificationMessageType))
+                if (!notificationMessageTypes.Contains(NotificationMessageType))
                 {
-                    _NotificationMessageTypes.Add(NotificationMessageType);
+                    notificationMessageTypes.Add(NotificationMessageType);
                     OnAdded?.Invoke();
                 }
 
@@ -119,16 +115,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         internal void Add(IEnumerable<NotificationMessageType>  NotificationMessageTypes,
                           Action?                                OnAdded  = null)
         {
-            lock (_NotificationMessageTypes)
+            lock (notificationMessageTypes)
             {
 
                 var Added = false;
 
                 foreach (var NotificationMessageType in NotificationMessageTypes)
                 {
-                    if (!_NotificationMessageTypes.Contains(NotificationMessageType))
+                    if (!notificationMessageTypes.Contains(NotificationMessageType))
                     {
-                        _NotificationMessageTypes.Add(NotificationMessageType);
+                        notificationMessageTypes.Add(NotificationMessageType);
                         Added = true;
                     }
                 }
@@ -149,12 +145,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             if (NotificationMessageTypes is null || NotificationMessageTypes.Length == 0)
                 return false;
 
-            lock (_NotificationMessageTypes)
+            lock (notificationMessageTypes)
             {
 
                 foreach (var notificationMessageType in NotificationMessageTypes)
                 {
-                    if (_NotificationMessageTypes.Contains(notificationMessageType))
+                    if (notificationMessageTypes.Contains(notificationMessageType))
                         return true;
                 }
 
@@ -168,10 +164,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #region IEnumerable<NotificationMessageType> Members
 
         public IEnumerator<NotificationMessageType> GetEnumerator()
-            => _NotificationMessageTypes.GetEnumerator();
+            => notificationMessageTypes.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator()
-            => _NotificationMessageTypes.GetEnumerator();
+            => notificationMessageTypes.GetEnumerator();
 
         #endregion
 
@@ -180,12 +176,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         internal void Remove(NotificationMessageType  NotificationMessageType,
                              Action?                   OnRemoved  = null)
         {
-            lock (_NotificationMessageTypes)
+            lock (notificationMessageTypes)
             {
 
-                if (_NotificationMessageTypes.Contains(NotificationMessageType))
+                if (notificationMessageTypes.Contains(NotificationMessageType))
                 {
-                    _NotificationMessageTypes.Add(NotificationMessageType);
+                    notificationMessageTypes.Add(NotificationMessageType);
                     OnRemoved?.Invoke();
                 }
 
@@ -199,16 +195,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         internal void Remove(IEnumerable<NotificationMessageType>  NotificationMessageTypes,
                              Action?                                OnRemoved  = null)
         {
-            lock (_NotificationMessageTypes)
+            lock (notificationMessageTypes)
             {
 
                 var Removed = false;
 
                 foreach (var NotificationMessageType in NotificationMessageTypes)
                 {
-                    if (!_NotificationMessageTypes.Contains(NotificationMessageType))
+                    if (!notificationMessageTypes.Contains(NotificationMessageType))
                     {
-                        _NotificationMessageTypes.Add(NotificationMessageType);
+                        notificationMessageTypes.Add(NotificationMessageType);
                         Removed = true;
                     }
                 }
@@ -225,12 +221,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         internal void Clear(Action? OnCleared = null)
         {
-            lock (_NotificationMessageTypes)
+            lock (notificationMessageTypes)
             {
 
-                if (_NotificationMessageTypes.Count > 0)
+                if (notificationMessageTypes.Count > 0)
                 {
-                    _NotificationMessageTypes.Clear();
+                    notificationMessageTypes.Clear();
                     OnCleared?.Invoke();
                 }
 
@@ -246,18 +242,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public abstract Boolean OptionalEquals(ANotification other);
 
 
+
+
+        public static bool operator ==(ANotification left, ANotification right)
+        {
+            if (ReferenceEquals(left, null))
+            {
+                return ReferenceEquals(right, null);
+            }
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(ANotification left, ANotification right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator <(ANotification left, ANotification right)
+        {
+            return ReferenceEquals(left, null) ? !ReferenceEquals(right, null) : left.CompareTo(right) < 0;
+        }
+
+        public static bool operator <=(ANotification left, ANotification right)
+        {
+            return ReferenceEquals(left, null) || left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >(ANotification left, ANotification right)
+        {
+            return !ReferenceEquals(left, null) && left.CompareTo(right) > 0;
+        }
+
+        public static bool operator >=(ANotification left, ANotification right)
+        {
+            return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.CompareTo(right) >= 0;
+        }
+
+
+
         #region IComparable<ANotification> Members
 
-        public abstract Int32 CompareTo(ANotification other);
+        public abstract Int32 CompareTo(ANotification? other);
 
-        public Int32 CompareTo(Object obj)
-            => 0;
+        public abstract Int32 CompareTo(Object? obj);
 
         #endregion
 
         #region IEquatable<ANotification> Members
 
-        public abstract Boolean Equals(ANotification other);
+        //public abstract Boolean Equals(Object? obj);
+
+        public abstract Boolean Equals(ANotification? other);
 
         #endregion
 

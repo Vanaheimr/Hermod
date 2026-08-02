@@ -755,7 +755,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPMethod Parse(String? Text)
         {
 
-            if (TryParse(Text, out var httpMethod))
+            if (TryParse(Text, out var httpMethod, out _))
                 return httpMethod;
 
             throw new ArgumentException($"Invalid text representation of a HTTP method: '{Text}'!",
@@ -776,7 +776,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPMethod? TryParse(String? Text)
         {
 
-            if (TryParse(Text, out var httpMethod))
+            if (TryParse(Text, out var httpMethod, out _))
                 return httpMethod;
 
             return null;
@@ -785,7 +785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParse (Text, out HTTPMethod)
+        #region TryParse (Text, out HTTPMethod, out ErrorResponse)
 
         // Note: The following is needed to satisfy pattern matching delegates! Do not refactor it!
 
@@ -797,24 +797,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">An HTTP method name.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
-        public static Boolean TryParse(String?                              Text,
-                                       [NotNullWhen(true)] out HTTPMethod?  HTTPMethod)
+        /// <param name="ErrorResponse">An optional error response.</param>
+        public static Boolean TryParse(String?                               Text,
+                                       [NotNullWhen(true)]  out HTTPMethod?  HTTPMethod,
+                                       [NotNullWhen(false)] out String?      ErrorResponse)
         {
 
             // Note: HTTP method names are case-sensitive, see RFC 9110 section 9.1,
             //       therefore they must not be normalized here.
-            if (Text is not null && httpMethodRegex.IsMatch(Text))
+            if (Text is null || !httpMethodRegex.IsMatch(Text))
             {
-
-                if (!lookup.TryGetValue(Text, out HTTPMethod))
-                    HTTPMethod = new HTTPMethod(Text);
-
-                return true;
-
+                HTTPMethod     = null;
+                ErrorResponse  = $"Invalid HTTP method name: '{Text}'!";
+                return false;
             }
 
-            HTTPMethod = null;
-            return false;
+            if (!lookup.TryGetValue(Text, out HTTPMethod))
+                HTTPMethod = new HTTPMethod(Text);
+
+            ErrorResponse = null;
+            return true;
 
         }
 

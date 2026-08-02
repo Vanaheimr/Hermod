@@ -47,9 +47,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var before = HTTPMethod.RegisteredCount;
 
-            Assert.That(HTTPMethod.TryParse("METHODFROMTHEWIRE1", out var method1), Is.True);
-            Assert.That(HTTPMethod.TryParse("METHODFROMTHEWIRE2", out _),           Is.True);
-            Assert.That(HTTPMethod.Parse   ("METHODFROMTHEWIRE3"),                  Is.Not.Null);
+            Assert.That(HTTPMethod.TryParse("METHODFROMTHEWIRE1", out var method1, out _), Is.True);
+            Assert.That(HTTPMethod.TryParse("METHODFROMTHEWIRE2", out _,           out _), Is.True);
+            Assert.That(HTTPMethod.Parse   ("METHODFROMTHEWIRE3"),                         Is.Not.Null);
 
             Assert.That(HTTPMethod.RegisteredCount, Is.EqualTo(before));
 
@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(method1!.MethodName,        Is.EqualTo("METHODFROMTHEWIRE1"));
 
             // ...and is fully interchangeable with a registered one.
-            Assert.That(HTTPMethod.TryParse("METHODFROMTHEWIRE1", out var again), Is.True);
+            Assert.That(HTTPMethod.TryParse("METHODFROMTHEWIRE1", out var again, out _), Is.True);
             Assert.That(again,                      Is.EqualTo(method1));
             Assert.That(again!.GetHashCode(),       Is.EqualTo(method1.GetHashCode()));
 
@@ -106,14 +106,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public void MethodNames_AreValidatedAgainstRFC9110()
         {
 
-            Assert.That(HTTPMethod.TryParse("GET",         out _), Is.True);
-            Assert.That(HTTPMethod.TryParse("X-My_Verb!",  out _), Is.True);
+            Assert.That(HTTPMethod.TryParse("GET",         out _, out _), Is.True);
+            Assert.That(HTTPMethod.TryParse("X-My_Verb!",  out _, out _), Is.True);
 
-            Assert.That(HTTPMethod.TryParse(null,          out _), Is.False);
-            Assert.That(HTTPMethod.TryParse("",            out _), Is.False);
-            Assert.That(HTTPMethod.TryParse("GE T",        out _), Is.False);
-            Assert.That(HTTPMethod.TryParse("GET/x",       out _), Is.False);
-            Assert.That(HTTPMethod.TryParse("GET(x)",      out _), Is.False);
+            Assert.That(HTTPMethod.TryParse(null,          out _, out _), Is.False);
+            Assert.That(HTTPMethod.TryParse("",            out _, out _), Is.False);
+            Assert.That(HTTPMethod.TryParse("GE T",        out _, out _), Is.False);
+            Assert.That(HTTPMethod.TryParse("GET/x",       out _, out _), Is.False);
+            Assert.That(HTTPMethod.TryParse("GET(x)",      out _, out _), Is.False);
 
             Assert.Throws<ArgumentException>(() => HTTPMethod.Parse   ("bad method"));
             Assert.Throws<ArgumentException>(() => HTTPMethod.Register("bad method"));
