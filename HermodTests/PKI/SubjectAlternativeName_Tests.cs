@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                   builder.AddDnsName("third.example.org");
                               });
 
-            Assert.That(certificate.GetDnsNames(),
+            Assert.That(certificate.GetDNSNames(),
                         Is.EqualTo(new[] {
                             "first.example.org",
                             "second.example.org",
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var certificate = CertificateWith(builder => builder.AddDnsName("bare.example.org"));
 
-            Assert.That(certificate.GetDnsNames().Single(), Is.EqualTo("bare.example.org"));
+            Assert.That(certificate.GetDNSNames().Single(), Is.EqualTo("bare.example.org"));
 
         }
 
@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             Assert.Multiple(() => {
 
-                Assert.That(certificate.GetDnsNames(),
+                Assert.That(certificate.GetDNSNames(),
                             Is.EqualTo(new[] { "mixed.example.org" }).AsCollection);
 
                 Assert.That(certificate.GetIPAddresses().Select(ipAddress => ipAddress.ToString()),
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var certificate = CertificateWith();
 
             Assert.Multiple(() => {
-                Assert.That(certificate.GetDnsNames(),                     Is.Empty);
+                Assert.That(certificate.GetDNSNames(),                     Is.Empty);
                 Assert.That(certificate.GetIPAddresses(),                  Is.Empty);
                 Assert.That(certificate.DecodeSubjectAlternativeNames(),   Is.Empty);
             });
@@ -230,9 +230,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                               );
 
             Assert.Multiple(() => {
-                Assert.That(() => certificate.GetDnsNames().   ToArray(), Throws.Nothing);
+                Assert.That(() => certificate.GetDNSNames().   ToArray(), Throws.Nothing);
                 Assert.That(() => certificate.GetIPAddresses().ToArray(), Throws.Nothing);
-                Assert.That(certificate.GetDnsNames(),                    Is.Empty);
+                Assert.That(certificate.GetDNSNames(),                    Is.Empty);
             });
 
         }
