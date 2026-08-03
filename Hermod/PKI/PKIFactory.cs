@@ -1650,7 +1650,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                 foreach (var applicationPolicyOID in ApplicationPolicy)
                     chain.ChainPolicy.ApplicationPolicy.Add(applicationPolicyOID);
 
-            var isValid        = chain.Build(Certificate);
+            Boolean isValid;
+
+            try
+            {
+                isValid = chain.Build(Certificate);
+            }
+            catch (CryptographicException e)
+            {
+
+                // Build() does not always come back with "false" — when the platform cannot
+                // construct a chain at all it throws, and on Windows that happens for reasons
+                // outside the caller's control: CertGetCertificateChain fails outright when its
+                // chain-engine cache holds several same-named CAs with different keys, which is
+                // ordinary in a test suite that regenerates a CA under a fixed name.
+                //
+                // A function whose job is to answer "is this chain valid?" must answer it. The
+                // caller is asking about a certificate it does not control — often one a remote
+                // peer just presented — and an exception in place of "no" turns a routine
+                // rejection into a fault the caller has to know to catch.
+                return new ChainReport(
+                           false,
+                           [
+                               new X509ChainStatus {
+                                   Status             = X509ChainStatusFlags.PartialChain,
+                                   StatusInformation  = e.Message
+                               }
+                           ],
+                           []
+                       );
+
+            }
 
             var topStatus      = chain.ChainStatus is { Length: > 0 }
                                      ? chain.ChainStatus.

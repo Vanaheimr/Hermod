@@ -38,6 +38,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
     public class Mutual_TLS_Tests
     {
 
+        #region (private static) UniqueCAName(Role)
+
+        /// <summary>
+        /// A CA subject name that no other certificate has ever used.
+        ///
+        /// These tests mint a fresh CA on every run, and they used to give it a fixed name.
+        /// Windows' chain engine caches by name, so each run added another "Hermod RootCA" with
+        /// a different key to that cache; once enough of them accumulated,
+        /// CertGetCertificateChain stopped returning a partial chain and started failing
+        /// outright, and every test here failed with "An unknown chain building error occurred"
+        /// on a machine where they had passed an hour earlier.
+        ///
+        /// It also made the deliberate mismatch cases ambiguous: with a same-named issuer in the
+        /// cache the platform could report NotSignatureValid instead of PartialChain, which is
+        /// why those assertions check only IsValid.
+        /// </summary>
+        /// <param name="Role">RootCA, ServerCA or ClientCA.</param>
+        private static String UniqueCAName(String Role)
+
+            => $"Hermod {Role} {Guid.NewGuid().ToString("N")[..8]}";
+
+        #endregion
+
+
         #region Mutual_TLS_ECC__1_usingLocalCertificateSelector_Test1()
 
         /// <summary>
@@ -51,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var rootCAKeyPair        = PKIFactory.GenerateECCKeyPair();
             var rootCACertificate    = PKIFactory.CreateRootCACertificate(
-                                           SubjectName:             "Hermod RootCA",
+                                           SubjectName:             UniqueCAName("RootCA"),
                                            RootKeyPair:              rootCAKeyPair,
                                            CRL_DistributionPoints:   [ URL.Parse("http://pki.example.com/root.crl") ],
                                            AIA_OCSPURLs:             [ URL.Parse("http://ocsp.example.com") ],
@@ -70,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var serverCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ServerCA",
+                                           SubjectName:             UniqueCAName("ServerCA"),
                                            IntermediatePublicKey:    serverCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -119,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var clientCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var clientCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ClientCA",
+                                           SubjectName:             UniqueCAName("ClientCA"),
                                            IntermediatePublicKey:    clientCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -237,11 +261,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             // Only IsValid is asserted below, deliberately. Which status the platform reports —
             // PartialChain (no issuer found, chain stops at the leaf) or NotSignatureValid (a
-            // same-named issuer was found and its signature rejected) — depends on what the
-            // Windows chain engine has cached, and every test here names its CAs identically
-            // ("Hermod RootCA" / "ServerCA" / "ClientCA"). Running these tests alone and running
-            // them together therefore produced different codes and different element counts, so
-            // pinning either value made the suite flake rather than test anything.
+            // same-named issuer was found and its signature rejected) — used to depend on what
+            // the Windows chain engine had cached, because every test named its CAs identically.
+            // UniqueCAName has removed that ambiguity, so pinning the exact status would work
+            // now; it is left alone because what this case is really about is that the
+            // validation fails, not how the platform words it.
 
             var ee1 = PKIFactory.ValidateChain(
                           clientCertificate2!,
@@ -398,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var rootCAKeyPair        = PKIFactory.GenerateECCKeyPair();
             var rootCACertificate    = PKIFactory.CreateRootCACertificate(
-                                           SubjectName:             "Hermod RootCA",
+                                           SubjectName:             UniqueCAName("RootCA"),
                                            RootKeyPair:              rootCAKeyPair,
                                            CRL_DistributionPoints:   [ URL.Parse("http://pki.example.com/root.crl") ],
                                            AIA_OCSPURLs:             [ URL.Parse("http://ocsp.example.com") ],
@@ -417,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var serverCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ServerCA",
+                                           SubjectName:             UniqueCAName("ServerCA"),
                                            IntermediatePublicKey:    serverCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -466,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var clientCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var clientCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ClientCA",
+                                           SubjectName:             UniqueCAName("ClientCA"),
                                            IntermediatePublicKey:    clientCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -584,11 +608,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             // Only IsValid is asserted below, deliberately. Which status the platform reports —
             // PartialChain (no issuer found, chain stops at the leaf) or NotSignatureValid (a
-            // same-named issuer was found and its signature rejected) — depends on what the
-            // Windows chain engine has cached, and every test here names its CAs identically
-            // ("Hermod RootCA" / "ServerCA" / "ClientCA"). Running these tests alone and running
-            // them together therefore produced different codes and different element counts, so
-            // pinning either value made the suite flake rather than test anything.
+            // same-named issuer was found and its signature rejected) — used to depend on what
+            // the Windows chain engine had cached, because every test named its CAs identically.
+            // UniqueCAName has removed that ambiguity, so pinning the exact status would work
+            // now; it is left alone because what this case is really about is that the
+            // validation fails, not how the platform words it.
 
             var ee1 = PKIFactory.ValidateChain(
                           clientCertificate2!,
@@ -739,7 +763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var rootCAKeyPair        = PKIFactory.GenerateECCKeyPair();
             var rootCACertificate    = PKIFactory.CreateRootCACertificate(
-                                           SubjectName:             "Hermod RootCA",
+                                           SubjectName:             UniqueCAName("RootCA"),
                                            RootKeyPair:              rootCAKeyPair,
                                            CRL_DistributionPoints:   [ URL.Parse("http://pki.example.com/root.crl") ],
                                            AIA_OCSPURLs:             [ URL.Parse("http://ocsp.example.com") ],
@@ -758,7 +782,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var serverCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ServerCA",
+                                           SubjectName:             UniqueCAName("ServerCA"),
                                            IntermediatePublicKey:    serverCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -807,7 +831,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var clientCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var clientCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ClientCA",
+                                           SubjectName:             UniqueCAName("ClientCA"),
                                            IntermediatePublicKey:    clientCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -925,11 +949,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             // Only IsValid is asserted below, deliberately. Which status the platform reports —
             // PartialChain (no issuer found, chain stops at the leaf) or NotSignatureValid (a
-            // same-named issuer was found and its signature rejected) — depends on what the
-            // Windows chain engine has cached, and every test here names its CAs identically
-            // ("Hermod RootCA" / "ServerCA" / "ClientCA"). Running these tests alone and running
-            // them together therefore produced different codes and different element counts, so
-            // pinning either value made the suite flake rather than test anything.
+            // same-named issuer was found and its signature rejected) — used to depend on what
+            // the Windows chain engine had cached, because every test named its CAs identically.
+            // UniqueCAName has removed that ambiguity, so pinning the exact status would work
+            // now; it is left alone because what this case is really about is that the
+            // validation fails, not how the platform words it.
 
             var ee1 = PKIFactory.ValidateChain(
                           clientCertificate2!,
@@ -1096,7 +1120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var rootCAKeyPair        = PKIFactory.GenerateECCKeyPair();
             var rootCACertificate    = PKIFactory.CreateRootCACertificate(
-                                           SubjectName:             "Hermod RootCA",
+                                           SubjectName:             UniqueCAName("RootCA"),
                                            RootKeyPair:              rootCAKeyPair,
                                            CRL_DistributionPoints:   [ URL.Parse("http://pki.example.com/root.crl") ],
                                            AIA_OCSPURLs:             [ URL.Parse("http://ocsp.example.com") ],
@@ -1115,7 +1139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var serverCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ServerCA",
+                                           SubjectName:             UniqueCAName("ServerCA"),
                                            IntermediatePublicKey:    serverCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -1164,7 +1188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var clientCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var clientCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ClientCA",
+                                           SubjectName:             UniqueCAName("ClientCA"),
                                            IntermediatePublicKey:    clientCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -1282,11 +1306,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             // Only IsValid is asserted below, deliberately. Which status the platform reports —
             // PartialChain (no issuer found, chain stops at the leaf) or NotSignatureValid (a
-            // same-named issuer was found and its signature rejected) — depends on what the
-            // Windows chain engine has cached, and every test here names its CAs identically
-            // ("Hermod RootCA" / "ServerCA" / "ClientCA"). Running these tests alone and running
-            // them together therefore produced different codes and different element counts, so
-            // pinning either value made the suite flake rather than test anything.
+            // same-named issuer was found and its signature rejected) — used to depend on what
+            // the Windows chain engine had cached, because every test named its CAs identically.
+            // UniqueCAName has removed that ambiguity, so pinning the exact status would work
+            // now; it is left alone because what this case is really about is that the
+            // validation fails, not how the platform words it.
 
             var ee1 = PKIFactory.ValidateChain(
                           clientCertificate2!,
@@ -1453,7 +1477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var rootCAKeyPair        = PKIFactory.GenerateECCKeyPair();
             var rootCACertificate    = PKIFactory.CreateRootCACertificate(
-                                           SubjectName:             "Hermod RootCA",
+                                           SubjectName:             UniqueCAName("RootCA"),
                                            RootKeyPair:              rootCAKeyPair,
                                            CRL_DistributionPoints:   [ URL.Parse("http://pki.example.com/root.crl") ],
                                            AIA_OCSPURLs:             [ URL.Parse("http://ocsp.example.com") ],
@@ -1472,7 +1496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var serverCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ServerCA",
+                                           SubjectName:             UniqueCAName("ServerCA"),
                                            IntermediatePublicKey:    serverCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -1521,7 +1545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var clientCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var clientCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ClientCA",
+                                           SubjectName:             UniqueCAName("ClientCA"),
                                            IntermediatePublicKey:    clientCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -1639,11 +1663,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             // Only IsValid is asserted below, deliberately. Which status the platform reports —
             // PartialChain (no issuer found, chain stops at the leaf) or NotSignatureValid (a
-            // same-named issuer was found and its signature rejected) — depends on what the
-            // Windows chain engine has cached, and every test here names its CAs identically
-            // ("Hermod RootCA" / "ServerCA" / "ClientCA"). Running these tests alone and running
-            // them together therefore produced different codes and different element counts, so
-            // pinning either value made the suite flake rather than test anything.
+            // same-named issuer was found and its signature rejected) — used to depend on what
+            // the Windows chain engine had cached, because every test named its CAs identically.
+            // UniqueCAName has removed that ambiguity, so pinning the exact status would work
+            // now; it is left alone because what this case is really about is that the
+            // validation fails, not how the platform words it.
 
             var ee1 = PKIFactory.ValidateChain(
                           clientCertificate2!,
@@ -1795,7 +1819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var rootCAKeyPair        = PKIFactory.GenerateECCKeyPair();
             var rootCACertificate    = PKIFactory.CreateRootCACertificate(
-                                           SubjectName:             "Hermod RootCA",
+                                           SubjectName:             UniqueCAName("RootCA"),
                                            RootKeyPair:              rootCAKeyPair,
                                            CRL_DistributionPoints:   [ URL.Parse("http://pki.example.com/root.crl") ],
                                            AIA_OCSPURLs:             [ URL.Parse("http://ocsp.example.com") ],
@@ -1814,7 +1838,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var serverCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ServerCA",
+                                           SubjectName:             UniqueCAName("ServerCA"),
                                            IntermediatePublicKey:    serverCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -1863,7 +1887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var clientCAKeyPair      = PKIFactory.GenerateECCKeyPair();
             var clientCACertificate  = PKIFactory.CreateIntermediateCA(
-                                           SubjectName:             "Hermod ClientCA",
+                                           SubjectName:             UniqueCAName("ClientCA"),
                                            IntermediatePublicKey:    clientCAKeyPair.Public,
                                            IssuerPrivateKey:         rootCAKeyPair.Private,
                                            IssuerCertificate:        rootCACertificate,
@@ -1981,11 +2005,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             // Only IsValid is asserted below, deliberately. Which status the platform reports —
             // PartialChain (no issuer found, chain stops at the leaf) or NotSignatureValid (a
-            // same-named issuer was found and its signature rejected) — depends on what the
-            // Windows chain engine has cached, and every test here names its CAs identically
-            // ("Hermod RootCA" / "ServerCA" / "ClientCA"). Running these tests alone and running
-            // them together therefore produced different codes and different element counts, so
-            // pinning either value made the suite flake rather than test anything.
+            // same-named issuer was found and its signature rejected) — used to depend on what
+            // the Windows chain engine had cached, because every test named its CAs identically.
+            // UniqueCAName has removed that ambiguity, so pinning the exact status would work
+            // now; it is left alone because what this case is really about is that the
+            // validation fails, not how the platform words it.
 
             var ee1 = PKIFactory.ValidateChain(
                           clientCertificate2!,
