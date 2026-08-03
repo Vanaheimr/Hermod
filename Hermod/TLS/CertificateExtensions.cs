@@ -33,15 +33,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public static class CertificateExtensions
     {
 
-        #region GetDNSDomainNames             (this Certificate)
+        #region GetDNSNamePatterns            (this Certificate)
 
         /// <summary>
-        /// The DNS DomainName entries of the certificate's Subject Alternative Name extension.
+        /// The dNSName entries of the certificate's Subject Alternative Name extension, as
+        /// RFC 9525 § 6.3 presented identifiers.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A <see cref="DNSNamePattern"/> rather than a <see cref="DomainName"/> because a
+        /// certificate name need not be a host name: "*.example.com" is the commonest thing a
+        /// commercial certificate authority issues, and <c>DomainName.Parse</c> throws on it.
+        /// This used to return domain names and did exactly that — one wildcard entry and the
+        /// whole enumeration threw, on the certificates most likely to be in front of a real
+        /// server.
+        /// </para>
+        /// <para>
+        /// Entries that are not valid presented identifiers are dropped rather than reported.
+        /// § 6.3: an invalid one "MUST be ignored", and a certificate carrying one alongside
+        /// good names is still usable through the good ones.
+        /// </para>
+        /// </remarks>
         /// <param name="Certificate">A certificate.</param>
-        public static IEnumerable<DomainName> GetDNSDomainNames(this X509Certificate2 Certificate)
+        public static IEnumerable<DNSNamePattern> GetDNSNamePatterns(this X509Certificate2 Certificate)
 
-            => Certificate.SubjectAlternativeNameExtension()?.EnumerateDnsNames().Select(DomainName.Parse) ?? [];
+            => DNSNamePattern.ParseAll(
+                   Certificate.SubjectAlternativeNameExtension()?.EnumerateDnsNames() ?? []
+               );
+
+        #endregion
+
+        #region MatchesHostName               (this Certificate, HostName)
+
+        /// <summary>
+        /// Whether any dNSName entry of this certificate matches the given host name, by
+        /// RFC 9525 § 6.3.
+        /// </summary>
+        /// <remarks>
+        /// Only the subject alternative names are consulted. The Common Name is not a fallback:
+        /// RFC 9525 § 6.1 dropped it, browsers stopped accepting it years earlier, and a client
+        /// that still falls back to it accepts certificates that no certificate authority may
+        /// issue and no other client will honour.
+        /// </remarks>
+        /// <param name="Certificate">A certificate.</param>
+        /// <param name="HostName">The host name the client set out to reach.</param>
+        public static Boolean MatchesHostName(this X509Certificate2  Certificate,
+                                              DomainName             HostName)
+
+            => Certificate.GetDNSNamePatterns().
+                   Any(pattern => pattern.Matches(HostName));
 
         #endregion
 
@@ -50,21 +90,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The IPv4/v6 Address entries of the certificate's Subject Alternative Name extension.
         /// </summary>
+        /// <remarks>
+        /// Named as the region above it always said, and not as the method itself did. Styx has
+        /// a <c>GetIPAddresses</c> returning <see cref="System.Net.IPAddress"/>, and with both
+        /// namespaces imported — which is the normal case — neither could be called. The extra I
+        /// is for the interface this one returns.
+        /// </remarks>
         /// <param name="Certificate">A certificate.</param>
-        public static IEnumerable<IIPAddress> GetIPAddresses(this X509Certificate2 Certificate)
+        public static IEnumerable<IIPAddress> GetIIPAddresses(this X509Certificate2 Certificate)
 
             => Certificate.SubjectAlternativeNameExtension()?.EnumerateIPAddresses().Select(IPAddress.FromDotNet) ?? [];
 
         #endregion
 
-        #region DecodeSubjectAlternativeNames (this Certificate)
+        #region DecodeSANs                    (this Certificate)
 
         /// <summary>
         /// The certificate's subject alternative names, as "DNS-Name=..." and "IP-Address=..."
         /// strings.
         ///
-        /// Prefer <see cref="GetDNSDomainNames"/> or <see cref="GetIIPAddresses"/>: they return the
-        /// values themselves, and cannot be misread.
+        /// Prefer <see cref="GetDNSNamePatterns"/> or <see cref="GetIIPAddresses"/>: they return
+        /// the values themselves, and cannot be misread.
+        ///
+        /// Named for the abbreviation rather than spelled out because Styx offers the same
+        /// method under the spelled-out name, and the two namespaces are almost always imported
+        /// together — which made every call to either of them ambiguous.
         ///
         /// This used to render the extension with AsnEncodedData.Format(), which delegates to
         /// the operating system — CryptFormatObject on Windows — and is localized. The same
@@ -75,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// whatever the host is set to.
         /// </summary>
         /// <param name="Certificate">A certificate.</param>
-        public static IEnumerable<String> DecodeSubjectAlternativeNames(this X509Certificate2 Certificate)
+        public static IEnumerable<String> DecodeSANs(this X509Certificate2 Certificate)
         {
 
             var extension = Certificate.SubjectAlternativeNameExtension();
