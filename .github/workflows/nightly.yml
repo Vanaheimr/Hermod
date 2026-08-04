@@ -26,16 +26,16 @@ jobs:
       # Same side-by-side checkout as ci.yml: Hermod.csproj and
       # HermodTests.csproj reference ..\..\Styx\... — a SIBLING directory —
       # and there is no submodule for it.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: Hermod
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: Vanaheimr/Styx
           path: Styx
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 

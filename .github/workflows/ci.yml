@@ -29,16 +29,16 @@ jobs:
       # through a submodule; here we build against Styx master, so a breaking
       # change there turns this red without anything in Hermod having moved.
       # That is arguably the honest signal, but it is a choice, not an accident.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: Hermod
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: Vanaheimr/Styx
           path: Styx
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
