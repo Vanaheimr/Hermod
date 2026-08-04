@@ -53,4 +53,9 @@
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="org.GraphDefined.Vanaheimr.Hermod.Tests" />
+  </ItemGroup>
+
 </Project>
