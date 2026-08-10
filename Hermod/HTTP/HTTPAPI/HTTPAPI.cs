@@ -392,7 +392,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String?                        LoggingPath               = null,
                        String?                        LoggingContext            = null,
                        String?                        LogfileName               = null,
-                       LogfileCreatorDelegate?        LogfileCreator            = null)
+                       LogfileCreatorDelegate?        LogfileCreator            = null,
+                       Boolean                        RegisterWithinHTTPServer  = true)
 
             : base(Description    ?? I18NString.Create(nameof(HTTPAPI)),
                    RootPath,
@@ -422,11 +423,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             RegisterURLTemplates();
 
             // Register HTTP API within the HTTP server!
-            HTTPServer?.AddHTTPAPI(
-                this.RootPath,
-                HTTPHostname.Any,
-                (server, path) => this
-            );
+            // Not needed, when this HTTP API is constructed BY the HTTP server,
+            // as HTTPServer.AddHTTPAPI(...) will do the registration itself!
+            if (RegisterWithinHTTPServer)
+                HTTPServer?.AddHTTPAPI(
+                    this.RootPath,
+                    HTTPHostname.Any,
+                    (server, path) => this
+                );
 
         }
 

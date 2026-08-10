@@ -476,7 +476,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var hostname    = Hostname                           ?? HTTPHostname.Any;
             var httpAPI     = HTTPAPICreator?.Invoke(this, path) ?? new HTTPAPI(
                                                                         this,
-                                                                        RootPath: path
+                                                                        RootPath:                  path,
+                                                                        // ...as this method will do the registration itself!
+                                                                        RegisterWithinHTTPServer:  false
                                                                     );
             HTTPAPIConfigurator?.Invoke(httpAPI);
 
