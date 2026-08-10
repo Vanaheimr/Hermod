@@ -490,21 +490,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               );
 
             if (path == HTTPPath.Root)
-                routeNode1.Children.GetOrAdd(
-                    "/",
-                    pathSegment => {
+            {
 
-                        if (routeNode1.HTTPAPI is not null)
-                            throw new ArgumentException($"An HTTP API at '{path}' is already registered!", nameof(Path));
+                var rootNode = routeNode1.Children.GetOrAdd(
+                                   "/",
+                                   pathSegment => new HTTPAPINode(
+                                                      routeNode1.FullPath + "/" + pathSegment,
+                                                      pathSegment
+                                                  )
+                               );
 
-                        return new HTTPAPINode(
-                            routeNode1.FullPath + "/" + pathSegment,
-                            pathSegment,
-                            httpAPI
-                        );
+                // The node might have been created earlier as an intermediate node
+                // of a more specific HTTP API path, e.g. '/webapi'!
+                if (rootNode.HTTPAPI is not null)
+                    throw new ArgumentException($"An HTTP API at '{path}' is already registered!", nameof(Path));
 
-                    }
-                );
+                rootNode.HTTPAPI = httpAPI;
+
+            }
 
             else
             {
@@ -521,29 +524,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var routeNode2 = routeNode1.Children.GetOrAdd(
                                          segment,
-                                         pathSegment => {
-
-                                             if (segmentIndex == segments.Length - 1)
-                                             {
-
-                                                 if (routeNode1.HTTPAPI is not null)
-                                                     throw new ArgumentException($"An HTTP API at '{path}' is already registered!", nameof(Path));
-
-                                                 return new HTTPAPINode(
-                                                     routeNode1.FullPath + "/" + pathSegment,
-                                                     "/" + pathSegment,
-                                                     httpAPI
-                                                 );
-
-                                             }
-
-                                             else return new HTTPAPINode(
-                                                             routeNode1.FullPath + "/" + pathSegment,
-                                                             "/" + pathSegment
-                                                         );
-
-                                         }
+                                         pathSegment => new HTTPAPINode(
+                                                            routeNode1.FullPath + "/" + pathSegment,
+                                                            "/" + pathSegment
+                                                        )
                                      );
+
+                    if (segmentIndex == segments.Length - 1)
+                    {
+
+                        // Only a node that already dispatches to another HTTP API
+                        // is a duplicate. A parent node having an HTTP API is fine:
+                        // The request dispatcher prefers the most specific API path!
+                        if (routeNode2.HTTPAPI is not null)
+                            throw new ArgumentException($"An HTTP API at '{path}' is already registered!", nameof(Path));
+
+                        routeNode2.HTTPAPI = httpAPI;
+
+                    }
 
                     routeNode1 = routeNode2;
 

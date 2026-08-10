@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public ConcurrentDictionary<String, HTTPAPINode>  Children    { get; } = [];
 
-        public HTTPAPI?                                  HTTPAPI     { get; }
+        public HTTPAPI?                                  HTTPAPI     { get; internal set; }
 
 
         //public HTTPAPINode(String  FullPath,
