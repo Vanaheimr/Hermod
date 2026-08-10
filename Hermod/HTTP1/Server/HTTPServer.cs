@@ -29,6 +29,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -324,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var includeExceptionDetails = IncludeStackTracesInErrorResponses;
 
             var json = JSONObject.Create(
-                           new JProperty("request",          Request?.FirstPDULine       ?? "null"),
+                           new JProperty("request",          Request?.FirstPDULine               ?? "null"),
                            new JProperty("eventTrackingId",  Request?.EventTrackingId.ToString() ?? "null"),
                            new JProperty("description",      includeExceptionDetails
                                                                    ? Exception.Message
@@ -551,6 +552,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             return httpAPI;
+
+        }
+
+        #endregion
+
+        #region GetHTTPAPI(Path, out HTTPAPI, Hostname = null)
+
+        public Boolean TryGetHTTPAPI(HTTPPath                          Path,
+                                     [NotNullWhen(true)] out HTTPAPI?  HTTPAPI,
+                                     HTTPHostname?                     Hostname   = null)
+        {
+
+            var h = Hostname ?? HTTPHostname.Any;
+
+            HTTPAPI = null;
+
+            if (!routeNodes.TryGetValue(h, out var routeNode1))
+                return false;
+
+            if (Path == HTTPPath.Root)
+            {
+
+                if (routeNode1.Children.TryGetValue("/", out var rootNode) &&
+                    rootNode.HTTPAPI is not null)
+                {
+                    HTTPAPI = rootNode.HTTPAPI;
+                    return true;
+                }
+
+                return false;
+
+            }
+
+            var segments = ("/" + Path.ToString().Trim('/')).Split('/');
+            if (segments[0] == "")
+                segments[0] = "/";
+
+            for (var i = 0; i < segments.Length; i++)
+            {
+
+                if (!routeNode1.Children.TryGetValue(segments[i], out var routeNode2))
+                    return false;
+
+                if (i == segments.Length - 1 && routeNode2.HTTPAPI is not null)
+                {
+                    HTTPAPI = routeNode2.HTTPAPI;
+                    return true;
+                }
+
+                routeNode1 = routeNode2;
+
+            }
+
+            return false;
 
         }
 
