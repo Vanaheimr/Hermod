@@ -36,7 +36,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #region Constructor(s)
 
         public WebSocketClientLoadTests()
-            : base(IPPort.Parse(101))
+            // 1102, not 101: ports below 1024 need root (or CAP_NET_BIND_SERVICE) on
+            // Linux, and this suite also runs on Debian — as an unprivileged user in
+            // WSL, and in CI. 1102 lines up with WebSocketClientTests on 1101.
+            : base(IPPort.Parse(1102))
         { }
 
         #endregion

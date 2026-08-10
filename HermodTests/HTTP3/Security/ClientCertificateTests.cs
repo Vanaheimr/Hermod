@@ -252,6 +252,7 @@ public class ClientCertificateTests
     }
 
     [Test]
+    [Platform("Win", Reason = "Only the Windows chain builder throws for Ed25519 — OpenSSL builds the chain and authenticates the client, so the scenario this test guards does not exist on Linux.")]
     public void AChainTheePlatformCannotBuild_IsARejection_NotAnException()
     {
         // Ed25519 makes the Windows chain builder throw rather than report a status. A peer must

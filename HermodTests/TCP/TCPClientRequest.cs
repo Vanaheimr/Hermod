@@ -75,7 +75,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
         public TCPClientRequest FinishCurrentRequest()
         {
-            Send(Environment.NewLine + Environment.NewLine);
+            // HTTP line endings are CRLF by protocol definition — Environment.NewLine
+            // is "\n" on Linux, which the HTTP header parser rightly never accepts
+            // as the end of the header block.
+            Send("\r\n\r\n");
             return this;
         }
 
@@ -108,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
         public void Close()
         {
-            Send(Environment.NewLine + Environment.NewLine);
+            Send("\r\n\r\n");
             TCPClient.Close();
         }
 
