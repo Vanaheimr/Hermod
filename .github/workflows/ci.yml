@@ -5,6 +5,8 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # Manual runs from the Actions tab ("Run workflow"), same as nightly.yml.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -12,13 +14,31 @@ concurrency:
 
 jobs:
   build-and-test:
-    # windows-latest, not ubuntu: this is the platform the suite is verified on.
-    # Hermod pulls in System.Diagnostics.PerformanceCounter, System.IO.Ports and
-    # System.Drawing.Common, and certificate chain building differs between the
-    # Windows and OpenSSL backends — we hit that difference with Ed25519 already.
-    # Linux would be cheaper and is worth adding as a second matrix entry, but
-    # not before someone has actually seen it pass there.
-    runs-on: windows-latest
+    # One leg per platform Hermod is expected to work on:
+    #
+    #  * Windows, because this is the platform the suite has been verified on
+    #    the longest — certificate chain building goes through Schannel and
+    #    CryptoAPI here, which behaves differently from OpenSSL. Both the
+    #    Ed25519 chain difference and the Mutual-TLS certless-handshake
+    #    flakiness were found on this leg.
+    #  * Debian, because that is what Hermod runs on in production. GitHub
+    #    offers no Debian runner image, so this leg runs on an Ubuntu runner
+    #    inside the official .NET SDK container, which is Debian-based and
+    #    already ships the SDK — hence the Windows-only setup-dotnet step
+    #    below.
+    #
+    # fail-fast is off on purpose: "red on exactly one platform" is the most
+    # valuable signal this matrix produces, so one leg must not cancel the
+    # other.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+            container: mcr.microsoft.com/dotnet/sdk:10.0
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
       # This repository cannot be built on its own: Hermod.csproj and
       # HermodTests.csproj reference ..\..\Styx\... — a SIBLING directory — and
@@ -38,7 +58,9 @@ jobs:
           repository: Vanaheimr/Styx
           path: Styx
 
+      # The Debian container already ships its SDK; only Windows needs one.
       - uses: actions/setup-dotnet@v6
+        if: runner.os == 'Windows'
         with:
           dotnet-version: '10.0.x'
 
@@ -46,8 +68,8 @@ jobs:
         working-directory: Hermod
         run: dotnet build HermodTests/HermodTests.csproj --configuration Release
 
-      # Everything except the live DNS probes — 1229 tests, none of them touching
-      # the network. They run in-process against our own servers, so a failure
+      # Everything except the live DNS probes — none of these touch the
+      # network. They run in-process against our own servers, so a failure
       # means our code broke, not that a resolver was slow.
       #
       # The exclusion is by CATEGORY, not by namespace. It used to be
