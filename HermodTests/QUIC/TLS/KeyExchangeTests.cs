@@ -77,6 +77,10 @@ public class KeyExchangeTests
     [Test]
     public void X25519MlKem768_ClientServer_DeriveSameSecret()
     {
+        // ML-KEM comes from the OS: Windows 11 24H2+ or OpenSSL 3.5+ (Debian 13). Where the
+        // platform lacks it, that is a platform gap, not a Hermod bug — skip, don't fail.
+        Assume.That(System.Security.Cryptography.MLKem.IsSupported, "ML-KEM is not supported by this platform's crypto library.");
+
         // The client offers (ek ‖ x25519 = 1216 bytes); the server encapsulates (ct ‖ x25519 = 1120 bytes);
         // the client derives the same 64-byte secret from the server response (ML-KEM ss ‖ X25519 ss).
         using var client = new X25519MlKem768KeyExchange();
@@ -96,6 +100,10 @@ public class KeyExchangeTests
     [Test]
     public void X25519MlKem768_TamperedCiphertext_YieldsDifferentSecret()
     {
+        // ML-KEM comes from the OS: Windows 11 24H2+ or OpenSSL 3.5+ (Debian 13). Where the
+        // platform lacks it, that is a platform gap, not a Hermod bug — skip, don't fail.
+        Assume.That(System.Security.Cryptography.MLKem.IsSupported, "ML-KEM is not supported by this platform's crypto library.");
+
         // ML-KEM is IND-CCA2: a modified ciphertext yields (implicit rejection) a different secret,
         // not an error — the handshake then fails at the Finished MAC.
         using var client = new X25519MlKem768KeyExchange();

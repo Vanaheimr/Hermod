@@ -67,6 +67,10 @@ public class TlsHandshakeInProcessTests
     [Test]
     public void ClientAndServer_CompleteHandshake_WithX25519MlKem768()
     {
+        // ML-KEM comes from the OS: Windows 11 24H2+ or OpenSSL 3.5+ (Debian 13). Where the
+        // platform lacks it, that is a platform gap, not a Hermod bug — skip, don't fail.
+        Assume.That(System.Security.Cryptography.MLKem.IsSupported, "ML-KEM is not supported by this platform's crypto library.");
+
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var tp = new byte[] { 0x0f, 0x00 };
 

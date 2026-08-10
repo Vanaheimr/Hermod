@@ -37,6 +37,10 @@ public class MultiInitialSendTests
     [Test]
     public void LargePqClientHello_IsSplitAcrossMultipleMtuSizedInitials_AndHandshakeCompletes()
     {
+        // ML-KEM comes from the OS: Windows 11 24H2+ or OpenSSL 3.5+ (Debian 13). Where the
+        // platform lacks it, that is a platform gap, not a Hermod bug — skip, don't fail.
+        Assume.That(System.Security.Cryptography.MLKem.IsSupported, "ML-KEM is not supported by this platform's crypto library.");
+
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
         using var client = new QuicClientConnection("localhost", certificateValidation: validation,

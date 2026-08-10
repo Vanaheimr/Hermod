@@ -21,11 +21,13 @@ jobs:
     #    CryptoAPI here, which behaves differently from OpenSSL. Both the
     #    Ed25519 chain difference and the Mutual-TLS certless-handshake
     #    flakiness were found on this leg.
-    #  * Debian, because that is what Hermod runs on in production. GitHub
+    #  * Debian 13, because that is what Hermod runs on in production. GitHub
     #    offers no Debian runner image, so this leg runs on an Ubuntu runner
-    #    inside the official .NET SDK container, which is Debian-based and
-    #    already ships the SDK — hence the Windows-only setup-dotnet step
-    #    below.
+    #    inside a debian:13 container. Deliberately NOT the official .NET SDK
+    #    image: that is still Debian-12-based with OpenSSL 3.0, and the
+    #    X25519MlKem768 hybrid key exchange needs OpenSSL 3.5+ — on the SDK
+    #    image the post-quantum tests could only be skipped, on trixie they
+    #    actually run.
     #
     # fail-fast is off on purpose: "red on exactly one platform" is the most
     # valuable signal this matrix produces, so one leg must not cancel the
@@ -36,7 +38,7 @@ jobs:
         include:
           - os: windows-latest
           - os: ubuntu-latest
-            container: mcr.microsoft.com/dotnet/sdk:10.0
+            container: debian:13
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
@@ -58,9 +60,15 @@ jobs:
           repository: Vanaheimr/Styx
           path: Styx
 
-      # The Debian container already ships its SDK; only Windows needs one.
+      # The bare debian:13 container needs the .NET runtime prerequisites before
+      # setup-dotnet installs the SDK: ICU and tzdata for globalization, OpenSSL
+      # (3.5, which is what makes ML-KEM work) for crypto, ca-certificates for
+      # NuGet over HTTPS. Package names verified on Debian 13 (trixie).
+      - name: Install .NET prerequisites (Debian container)
+        if: runner.os == 'Linux'
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates libicu76 libssl3t64 libstdc++6 tzdata
+
       - uses: actions/setup-dotnet@v6
-        if: runner.os == 'Windows'
         with:
           dotnet-version: '10.0.x'
 
