@@ -613,7 +613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         {
 
-            this.HTTPServiceName             = HTTPServiceName            ?? "GraphDefined HTTP WebSocket Service v2.0";
+            this.HTTPServiceName             = HTTPServerName             ?? "GraphDefined HTTP WebSocket Service v2.0";
 
             this.RequireAuthentication       = RequireAuthentication      ?? true;
             this.secWebSocketProtocols       = SecWebSocketProtocols is not null
