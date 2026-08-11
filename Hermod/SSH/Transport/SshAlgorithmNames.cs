@@ -52,6 +52,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             public const String StrictKexClient          = "kex-strict-c-v00@openssh.com";
             /// <summary>Server's strict-KEX marker (Terrapin mitigation, CVE-2023-48795).</summary>
             public const String StrictKexServer          = "kex-strict-s-v00@openssh.com";
+
+            /// <summary>
+            /// Dropbear's guessed-key-exchange marker, sent by both roles under the same name.
+            ///
+            /// <para>
+            /// RFC 4253 §7.1 only lets a peer's guessed first key-exchange packet count when the key
+            /// exchange <i>and</i> the host-key algorithm both match what was negotiated — which makes
+            /// guessing near-useless, since a client rarely knows which host key it will be offered.
+            /// This extension narrows the rule to the key exchange alone. Both sides must advertise it.
+            /// </para>
+            /// </summary>
+            public const String KexGuess2                = "kexguess2@matt.ucc.asn.au";
+
+            /// <summary>
+            /// The pseudo-algorithms that may appear in a key-exchange name-list without ever being a
+            /// key exchange. They must never be selected during negotiation — <see cref="KexGuess2"/>
+            /// makes that a real hazard rather than a theoretical one, because unlike the -c/-s marker
+            /// pairs both peers send the identical name.
+            /// </summary>
+            public static readonly String[] Markers =
+            [
+                ExtInfoClient, ExtInfoServer,
+                StrictKexClient, StrictKexServer,
+                KexGuess2
+            ];
+
         }
 
         /// <summary>Host-key / public-key signature algorithm names.</summary>

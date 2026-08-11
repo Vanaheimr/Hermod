@@ -31,7 +31,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                               String   CompressionClientToServer,
                                               String   CompressionServerToClient,
                                               Boolean  ExtensionInfo,
-                                              Boolean  StrictKex);
+                                              Boolean  StrictKex,
+                                              Boolean  KexGuess2 = false);
 
 
     /// <summary>
@@ -66,8 +67,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                               ? Contains(ClientKexInit.KexAlgorithms, SshAlgorithmNames.Kex.ExtInfoClient)
                               : Contains(ServerKexInit.KexAlgorithms, SshAlgorithmNames.Kex.ExtInfoServer);
 
+            // Dropbear's guessed-KEX extension, agreed only when both sides advertise it — and unlike the
+            // -c/-s marker pairs both send the identical name, so it must be filtered out of the
+            // key-exchange candidates or it could be "negotiated" as the key exchange itself.
+            var kexGuess2 = Contains(ClientKexInit.KexAlgorithms, SshAlgorithmNames.Kex.KexGuess2) &&
+                            Contains(ServerKexInit.KexAlgorithms, SshAlgorithmNames.Kex.KexGuess2);
+
             return new NegotiatedAlgorithms(
-                       KeyExchange:                Pick("key exchange",       ClientKexInit.KexAlgorithms,             ServerKexInit.KexAlgorithms),
+                       KeyExchange:                Pick("key exchange",       WithoutMarkers(ClientKexInit.KexAlgorithms),
+                                                                              WithoutMarkers(ServerKexInit.KexAlgorithms)),
                        HostKey:                    Pick("host key",           ClientKexInit.ServerHostKeyAlgorithms,  ServerKexInit.ServerHostKeyAlgorithms),
                        CipherClientToServer:       Pick("cipher c2s",         ClientKexInit.EncryptionClientToServer, ServerKexInit.EncryptionClientToServer),
                        CipherServerToClient:       Pick("cipher s2c",         ClientKexInit.EncryptionServerToClient, ServerKexInit.EncryptionServerToClient),
@@ -76,10 +84,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                        CompressionClientToServer:  Pick("compression c2s",    ClientKexInit.CompressionClientToServer,ServerKexInit.CompressionClientToServer),
                        CompressionServerToClient:  Pick("compression s2c",    ClientKexInit.CompressionServerToClient,ServerKexInit.CompressionServerToClient),
                        ExtensionInfo:              extInfo,
-                       StrictKex:                  strictKex
+                       StrictKex:                  strictKex,
+                       KexGuess2:                  kexGuess2
                    );
 
         }
+
+        #endregion
+
+        #region (private) WithoutMarkers(Names)
+
+        // The pseudo-algorithms carried in a key-exchange name-list are signals, never key exchanges.
+        private static String[] WithoutMarkers(String[] Names)
+            => [.. Names.Where(name => !SshAlgorithmNames.Kex.Markers.Contains(name, StringComparer.Ordinal))];
 
         #endregion
 

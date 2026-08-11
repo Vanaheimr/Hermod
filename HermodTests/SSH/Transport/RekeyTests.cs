@@ -68,14 +68,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (static) AssertTrafficFlowsBothWays(Client, Server, CancellationToken)
 
+        /// <summary>
+        /// Application traffic of the given size.
+        ///
+        /// <para>
+        /// The first byte of a packet payload <i>is</i> its message number, so it has to be a real one.
+        /// A wholly random payload used to be fine, but the transport now skips SSH_MSG_IGNORE, DEBUG and
+        /// UNIMPLEMENTED as RFC 4253 §11 requires — and a random first byte lands on one of those about
+        /// once in eighty packets, whereupon the read waits forever for traffic that was legitimately
+        /// dropped. That flake cost half an hour; the payload is now a plausible packet.
+        /// </para>
+        /// </summary>
+        private static Byte[] TrafficPayload(Int32 Length)
+            => [ (Byte) SshMessageNumber.ChannelData, .. RandomNumberGenerator.GetBytes(Length - 1) ];
+
+
         private static async Task AssertTrafficFlowsBothWays(SshTransport Client, SshTransport Server, CancellationToken CancellationToken)
         {
 
-            var clientToServer = RandomNumberGenerator.GetBytes(300);
+            var clientToServer = TrafficPayload(300);
             await Client.SendPacketAsync(clientToServer, CancellationToken);
             var gotByServer = await Server.ReceivePacketAsync(CancellationToken);
 
-            var serverToClient = RandomNumberGenerator.GetBytes(280);
+            var serverToClient = TrafficPayload(280);
             await Server.SendPacketAsync(serverToClient, CancellationToken);
             var gotByClient = await Client.ReceivePacketAsync(CancellationToken);
 

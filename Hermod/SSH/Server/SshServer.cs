@@ -151,6 +151,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             {
 
                 transport = await SshTransport.ServerHandshakeAsync(Pipe, options.HostKeys[0], CancellationToken: CancellationToken);
+
+                // What we actually agreed on is the first thing anyone asks when a connection misbehaves,
+                // and until now the audit catalog defined this event without anything ever raising it.
+                if (options.AuditSink is not null)
+                {
+                    var negotiated = transport.Algorithms;
+                    await options.AuditSink.WriteAsync(
+                              new KexCompletedEvent(DateTimeOffset.UtcNow,
+                                                    negotiated.KeyExchange,
+                                                    negotiated.CipherClientToServer,
+                                                    negotiated.MacClientToServer,
+                                                    negotiated.HostKey,
+                                                    negotiated.KeyExchange.Contains("mlkem",   StringComparison.Ordinal) ||
+                                                    negotiated.KeyExchange.Contains("sntrup",  StringComparison.Ordinal),
+                                                    negotiated.StrictKex),
+                              CancellationToken);
+                }
+
                 var auth = await UserAuthentication.ServerAuthenticateAsync(transport, options.Authenticator, AuditSink: options.AuditSink, CancellationToken: CancellationToken);
                 var user = auth.Username;
 

@@ -35,7 +35,3 @@ stateless-reset-secret.bin
 # 'dotnet test --blame-hang' writes a full process dump per aborted run in here.
 # Those are hundreds of megabytes each and must never end up in the history.
 TestResults/
-
-# The SSH interop harness provisions its Python peers (AsyncSSH, Paramiko) into a local
-# virtual environment next to setup-wsl.sh — a few thousand machine-specific files.
-.venv-interop/

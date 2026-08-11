@@ -153,6 +153,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="Macs">Optional MAC preference override (both directions).</param>
         /// <param name="KeyExchanges">Optional key-exchange preference override (without the markers).</param>
         /// <param name="HostKeyAlgorithms">Optional host-key algorithm override (a server passes its key's algorithms).</param>
+        /// <summary>
+        /// Whether the peer's guessed key-exchange packet — the one it appended to its KEXINIT after
+        /// setting <see cref="FirstKexPacketFollows"/> — turned out to be the right one.
+        ///
+        /// <para>
+        /// RFC 4253 §7.1 makes the guess valid only when <b>both</b> the key exchange algorithm and the
+        /// host-key algorithm the peer listed first are the ones actually negotiated. If either differs
+        /// the guess is wrong and the receiver must read and discard that packet, or it will parse a
+        /// message meant for a different algorithm — which is precisely what happens with Dropbear, whose
+        /// <c>kexguess2@matt.ucc.asn.au</c> clients always send a guess.
+        /// </para>
+        /// </summary>
+        /// <param name="PeerKexInit">The peer's KEXINIT.</param>
+        /// <param name="NegotiatedKeyExchange">The key exchange method that was actually negotiated.</param>
+        /// <param name="NegotiatedHostKey">The host-key algorithm that was actually negotiated.</param>
+        /// <param name="KexGuess2">
+        /// Whether both sides agreed <c>kexguess2@matt.ucc.asn.au</c>, which drops the host-key algorithm
+        /// from the test and leaves only the key exchange — see <see cref="SshAlgorithmNames.Kex.KexGuess2"/>.
+        /// </param>
+        public static Boolean GuessWasCorrect(KexInitMessage  PeerKexInit,
+                                              String          NegotiatedKeyExchange,
+                                              String          NegotiatedHostKey,
+                                              Boolean         KexGuess2 = false)
+        {
+
+            var kexNames = PeerKexInit.KexAlgorithms.Where(name => !SshAlgorithmNames.Kex.Markers.Contains(name, StringComparer.Ordinal)).ToArray();
+
+            if (kexNames.Length == 0 || !String.Equals(kexNames[0], NegotiatedKeyExchange, StringComparison.Ordinal))
+                return false;
+
+            return KexGuess2 ||
+                   (PeerKexInit.ServerHostKeyAlgorithms.Length > 0 &&
+                    String.Equals(PeerKexInit.ServerHostKeyAlgorithms[0], NegotiatedHostKey, StringComparison.Ordinal));
+
+        }
+
+
         public static KexInitMessage CreateLocal(Boolean    IsServer,
                                                  String[]?  Ciphers            = null,
                                                  String[]?  Macs               = null,
@@ -163,11 +200,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var ciphers = Ciphers ?? DefaultCiphers;
             var macs    = Macs    ?? DefaultMacs;
 
-            // Key exchange list = the offered methods followed by the ext-info and strict-KEX markers.
+            // Key exchange list = the offered methods followed by the ext-info, strict-KEX and
+            // guessed-KEX markers.
             var kex = new List<String>(KeyExchanges ?? DefaultKeyExchanges)
                       {
                           IsServer ? SshAlgorithmNames.Kex.ExtInfoServer   : SshAlgorithmNames.Kex.ExtInfoClient,
-                          IsServer ? SshAlgorithmNames.Kex.StrictKexServer : SshAlgorithmNames.Kex.StrictKexClient
+                          IsServer ? SshAlgorithmNames.Kex.StrictKexServer : SshAlgorithmNames.Kex.StrictKexClient,
+                          SshAlgorithmNames.Kex.KexGuess2
                       };
 
             return new (

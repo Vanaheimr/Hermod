@@ -18,9 +18,6 @@
     <!-- Test-only reference peer (the real gRPC client) for the HTTP/2 gRPC
          interop tests — does not count against the core stack's BCL-only rule. -->
     <PackageReference Include="Grpc.Net.Client" Version="2.83.0" />
-    <!-- Test-only reference peer for the SSH interop tests: an independent .NET SSH client lineage
-         driving our server in-process (SSH/interop/SshNetInteropTests.cs). -->
-    <PackageReference Include="SSH.NET" Version="2026.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NUnit" Version="4.6.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.2.0" />

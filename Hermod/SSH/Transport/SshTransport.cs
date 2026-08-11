@@ -338,6 +338,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var negotiated = AlgorithmNegotiation.Negotiate(clientInit, serverInit, WeAreServer: isServer);
             SshKexCore.EnsureSupported(negotiated);
 
+            // RFC 4253 §7.1: a peer may append a *guessed* first key-exchange packet to its KEXINIT. If the
+            // guess turns out wrong it must be read and discarded, otherwise the next read would parse a
+            // packet meant for a different algorithm. Dropbear guesses on every connection, so without
+            // this its clients only ever interoperate on whichever method they happen to prefer.
+            if (remoteKexInit.FirstKexPacketFollows &&
+                !KexInitMessage.GuessWasCorrect(remoteKexInit, negotiated.KeyExchange, negotiated.HostKey, negotiated.KexGuess2))
+            {
+                await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+            }
+
             // 3. The method-specific exchange (client sends INIT, server replies) — shared with the
             //    initial handshake. e/f (classic DH) or Q_C/Q_S (ECDH) are carried transparently.
             using var kex = SshKeyExchange.Create(negotiated.KeyExchange);
@@ -412,7 +422,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var newKeys = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
             if (newKeys.Length < 1 || newKeys[0] != (Byte) SshMessageNumber.NewKeys)
-                throw new SshWireException("Expected SSH_MSG_NEWKEYS (21) to complete the key exchange!");
+                throw new SshWireException(
+                          $"Expected SSH_MSG_NEWKEYS (21) to complete the key exchange, but found " +
+                          $"{(newKeys.Length > 0 ? ((SshMessageNumber) newKeys[0]).ToString() : "an empty packet")}. " +
+                          $"Negotiated {negotiated.KeyExchange} / {negotiated.HostKey}; the peer listed " +
+                          $"{(remoteKexInit.KexAlgorithms.Length > 0 ? remoteKexInit.KexAlgorithms[0] : "-")} / " +
+                          $"{(remoteKexInit.ServerHostKeyAlgorithms.Length > 0 ? remoteKexInit.ServerHostKeyAlgorithms[0] : "-")} first " +
+                          $"and {(remoteKexInit.FirstKexPacketFollows ? "did" : "did not")} guess. " +
+                          $"A peer rejecting our signature here means the two sides computed different exchange hashes.");
             SwapReceive(newReceiveCipher, newReceiveMac, negotiated.StrictKex);
 
             algorithms     = negotiated;
