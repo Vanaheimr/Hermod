@@ -21,7 +21,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 /// Token-bucket pacer per RFC 9002 §7.7. Spreads the sent bytes over time so the whole congestion
 /// window does not go out as one burst (which provokes queues and losses). The rate is
 /// <c>N · congestion_window / smoothed_rtt</c> (N = 1.25); the budget is capped at a small burst so
-/// that after idle time not arbitrarily much can be "caught up".
+/// that after idle time not arbitrarily much can be "caught up", and floored at zero so that
+/// packets sent past the budget gate cannot pile up debt.
 /// <para>Timestamps are <see cref="TimeSpan.Ticks"/> (100 ns) of a monotonic clock.</para>
 /// </summary>
 public sealed class Pacer
@@ -33,11 +34,11 @@ public sealed class Pacer
 
     private const int MaxDatagramSize = 1200;
 
-    private double _budget;              // available send budget in bytes (may be transiently negative)
+    private double _budget;              // available send budget in bytes (0 ≤ budget ≤ burst cap)
     private long _lastRefillTicks = -1;
 
     /// <summary>
-    /// Current send budget in bytes (clamped to 0 for the caller).
+    /// Current send budget in bytes (never negative).
     /// </summary>
     public long AvailableBytes => (long)Math.Max(0, _budget);
 
@@ -64,9 +65,14 @@ public sealed class Pacer
     }
 
     /// <summary>
-    /// Debits <paramref name="bytes"/> sent bytes (the budget may go negative in the process).
+    /// Debits <paramref name="bytes"/> sent bytes, flooring the budget at zero. Packets that are
+    /// sent without consulting the budget — handshake CRYPTO, control frames, retransmits, PMTU
+    /// probes — spend at most what is left: their bytes already count towards bytes_in_flight, so
+    /// the congestion window throttles what follows them anyway, and a debt would additionally
+    /// stall the first application data after the handshake for a large part of an RTT.
+    /// RFC 9002 §7.7 asks for burst limiting (the cap above), not for debt bookkeeping.
     /// </summary>
-    public void OnBytesSent(int bytes) => _budget -= bytes;
+    public void OnBytesSent(int bytes) => _budget = Math.Max(0, _budget - bytes);
 
     /// <summary>
     /// Bytes per tick at the current rate; without a valid RTT there is no pacing (unlimited).
