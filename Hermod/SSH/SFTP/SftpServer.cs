@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 catch (SftpQuotaExceededException e)
                 {
                     // Mid-write overrun: discard the partial upload and keep the session healthy.
-                    await CleanupPartialAsync(FileSystem, request.Handle, e.PathToCleanup, CancellationToken).ConfigureAwait(false);
+                    await CleanupPartialAsync(FileSystem, request.WriteHandle, e.PathToCleanup, CancellationToken).ConfigureAwait(false);
                     response = BuildStatus(request.RequestId, e.Code, e.Message);
                 }
                 catch (SftpException e)
@@ -266,12 +266,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 case "fstatvfs@openssh.com":
                     return BuildStatVfs(Request.RequestId, Session);
 
+                // Copy bytes between two open handles without them crossing the network twice.
+                case "copy-data":
+                    await CopyDataAsync(FileSystem, Session, Request, CancellationToken).ConfigureAwait(false);
+                    return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
+
                 // Report our protocol limits (max packet / read / write / open handles).
                 case "limits@openssh.com":
                     return BuildLimits(Request.RequestId, Session);
 
                 default:
                     return BuildStatus(Request.RequestId, SftpStatusCode.OpUnsupported, $"Unsupported extension '{Request.ExtendedName}'.");
+
+            }
+
+        }
+
+        /// <summary>
+        /// <c>copy-data</c>: copy <c>read-data-length</c> bytes (0 = to end of file) from one open handle
+        /// to another, server-side.
+        ///
+        /// <para>
+        /// The bytes never touch the network, which is the whole point — and also the reason this is the
+        /// one operation that could quietly walk around every limit the session has, since the client
+        /// pays nothing for it. So the copy is metered exactly like the upload it replaces: the quota
+        /// tracker sees every written byte, and the upload rate limiter throttles the loop. The read side
+        /// is deliberately *not* charged to the download limiter as well — that would bill the same bytes
+        /// twice for a transfer that only ever happens once.
+        /// </para>
+        /// </summary>
+        private static async ValueTask CopyDataAsync(ISftpFileSystem FileSystem, SftpSession Session, SftpRequest Request, CancellationToken CancellationToken)
+        {
+
+            // Same handle on both ends: OpenSSH allows it only for non-overlapping ranges, and telling
+            // those apart needs the length, which may be "until EOF" and therefore unknown up front.
+            // Refusing outright is the honest answer; nothing in a file *copy* needs it.
+            if (Request.Handle == Request.TargetHandle)
+                throw new SftpException(SftpStatusCode.OpUnsupported,
+                                        "copy-data between the same handle is not supported — open the destination separately.");
+
+            const Int32 chunk = 32_768;   // our advertised max read/write length
+
+            var remaining   = Request.CopyLength;                 // 0 means "until EOF"
+            var toEndOfFile = Request.CopyLength == 0;
+            var readAt      = Request.Offset;
+            var writeAt     = Request.TargetOffset;
+
+            while (toEndOfFile || remaining > 0)
+            {
+
+                var want = toEndOfFile ? chunk : (Int32) Math.Min((UInt64) chunk, remaining);
+                var data = await FileSystem.ReadAsync(Request.Handle, readAt, want, CancellationToken).ConfigureAwait(false);
+
+                if (data.Length == 0)
+                {
+                    // A short source is an error only when a definite length was asked for: the caller
+                    // named bytes that do not exist, and silently copying fewer would look like success.
+                    if (!toEndOfFile)
+                        throw new SftpException(SftpStatusCode.Eof, "copy-data reached the end of the source before the requested length.");
+                    break;
+                }
+
+                // Metered before the write, exactly as SSH_FXP_WRITE is — an overrun must throw before
+                // anything lands, so the partial-file cleanup upstream has something consistent to undo.
+                Session.Quota?.OnWrite(Request.TargetHandle, writeAt, data.Length);
+                await FileSystem.WriteAsync(Request.TargetHandle, writeAt, data, CancellationToken).ConfigureAwait(false);
+                if (Session.Upload is not null)
+                    await Session.Upload.ThrottleAsync(data.Length, CancellationToken).ConfigureAwait(false);
+
+                readAt  += data.Length;
+                writeAt += data.Length;
+                if (!toEndOfFile)
+                    remaining -= (UInt64) data.Length;
 
             }
 
@@ -329,7 +395,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         private readonly record struct SftpRequest(SftpPacketType Type, UInt32 RequestId, String Path, String TargetPath,
                                                    String Handle, Int64 Offset, UInt32 Length, SftpOpenFlags OpenFlags, Byte[] Data,
-                                                   String ExtendedName);
+                                                   String ExtendedName,
+                                                   // copy-data alone names a second handle and a second offset, and its
+                                                   // length is a uint64 rather than the uint32 a READ carries.
+                                                   String TargetHandle = "", Int64 TargetOffset = 0, UInt64 CopyLength = 0)
+        {
+
+            /// <summary>
+            /// The handle this request writes to — which for <c>copy-data</c> is the *destination*, not
+            /// the handle in the usual position. A quota overrun cleans up what was being written, so
+            /// getting this wrong would close the file the client was reading from and leave the
+            /// half-written copy in place: exactly backwards.
+            /// </summary>
+            public String WriteHandle
+                => ExtendedName == "copy-data" ? TargetHandle : Handle;
+
+        }
 
         private static SftpRequest ParseRequest(Byte[] Packet)
         {
@@ -338,8 +419,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             var type       = (SftpPacketType) reader.ReadByte();
             var requestId  = reader.ReadUInt32();
 
-            String path = "", target = "", handle = "", extendedName = "";
-            Int64 offset = 0; UInt32 length = 0; SftpOpenFlags flags = 0; Byte[] data = [];
+            String path = "", target = "", handle = "", extendedName = "", targetHandle = "";
+            Int64 offset = 0, targetOffset = 0; UInt32 length = 0; UInt64 copyLength = 0;
+            SftpOpenFlags flags = 0; Byte[] data = [];
 
             switch (type)
             {
@@ -360,6 +442,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                             break;
                         case "statvfs@openssh.com":
                             path = reader.ReadString();
+                            break;
+                        // read-from-handle, read-from-offset, read-data-length, write-to-handle, write-to-offset
+                        case "copy-data":
+                            handle       = reader.ReadString();
+                            offset       = (Int64) reader.ReadUInt64();
+                            copyLength   = reader.ReadUInt64();
+                            targetHandle = reader.ReadString();
+                            targetOffset = (Int64) reader.ReadUInt64();
                             break;
                     }
                     break;
@@ -408,7 +498,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     break;
             }
 
-            return new SftpRequest(type, requestId, path, target, handle, offset, length, flags, data, extendedName);
+            return new SftpRequest(type, requestId, path, target, handle, offset, length, flags, data, extendedName,
+                                   targetHandle, targetOffset, copyLength);
 
         }
 
@@ -461,6 +552,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                    "fsync@openssh.com"         => SftpPermissions.Write,
                    "statvfs@openssh.com"       => SftpPermissions.Stat,
                    "fstatvfs@openssh.com"      => SftpPermissions.Stat,
+                   // A server-side copy reads one file and writes another, so it must demand both — an
+                   // upload-only session that could copy would be able to read what it may not read.
+                   "copy-data"                 => SftpPermissions.Read | SftpPermissions.Write,
                    "limits@openssh.com"        => SftpPermissions.None,
                    _                           => SftpPermissions.All
                };
@@ -482,6 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             w.WriteString("statvfs@openssh.com");      w.WriteString("2");
             w.WriteString("fstatvfs@openssh.com");     w.WriteString("2");
             w.WriteString("limits@openssh.com");       w.WriteString("1");
+            w.WriteString("copy-data");                w.WriteString("1");
             return abw.WrittenSpan.ToArray();
         }
 

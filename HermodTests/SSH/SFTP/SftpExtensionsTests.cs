@@ -247,6 +247,132 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         #endregion
 
 
+        #region CopyData_CopiesServerSide_WithoutTheBytesCrossingTheWire
+
+        /// <summary>
+        /// <c>copy-data</c> end to end: a whole file, and a byte range placed at an offset in an existing
+        /// destination. The interesting part is what is <i>not</i> in the test — no download and no upload,
+        /// so the payload never travels; the client only ever sends two handles and three numbers.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task CopyData_CopiesServerSide_WithoutTheBytesCrossingTheWire(CancellationToken CancellationToken)
+        {
+
+            var fs = new InMemorySftpFileSystem();
+            var (sftp, client, server) = await ConnectAsync(fs, null, CancellationToken);
+
+            var payload = Encoding.UTF8.GetBytes("firmware-image-v7-contents");
+            await sftp.UploadAsync("/source.bin", payload, CancellationToken);
+
+            Assert.That(sftp.Supports("copy-data"), Is.True);
+
+            // Whole file: length 0 means "to the end".
+            await sftp.CopyAsync("/source.bin", "/copy.bin", CancellationToken);
+            Assert.That(await sftp.DownloadAsync("/copy.bin", CancellationToken), Is.EqualTo(payload));
+
+            // A range: 8 bytes from offset 9 ("image-v7"[..] → "image-v7" starts at 9).
+            await sftp.CopyAsync("/source.bin", "/range.bin", CancellationToken, Length: 8, SourceOffset: 9);
+            Assert.That(Encoding.UTF8.GetString(await sftp.DownloadAsync("/range.bin", CancellationToken)),
+                        Is.EqualTo("image-v7"));
+
+            // The source is untouched, and both copies are independent files.
+            Assert.That(await sftp.DownloadAsync("/source.bin", CancellationToken), Is.EqualTo(payload));
+
+            await sftp.DisposeAsync();
+            using (client) { }
+            await server;
+
+        }
+
+        #endregion
+
+        #region CopyData_IsMeteredByTheQuota
+
+        /// <summary>
+        /// A server-side copy must be charged to the session quota exactly like the upload it replaces.
+        ///
+        /// <para>
+        /// This is the one operation that could otherwise walk around every limit a session has: the
+        /// client pays no bandwidth for it, so an unmetered copy would let a 1 KB upload become a
+        /// gigabyte on the server for free.
+        /// </para>
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task CopyData_IsMeteredByTheQuota(CancellationToken CancellationToken)
+        {
+
+            var fs = new InMemorySftpFileSystem();
+            // Room for the 10 KB upload and one copy of it, but not a second copy.
+            var (sftp, client, server) = await ConnectAsync(fs, new SftpLimits { MaxBytesPerSession = 25_000 }, CancellationToken);
+
+            await sftp.UploadAsync("/source.bin", new Byte[10_000], CancellationToken);
+            await sftp.CopyAsync("/source.bin", "/first.bin", CancellationToken);
+
+            // Driven through raw handles, so the state *after* the refusal can be inspected — which is
+            // where the interesting mistake lives: the cleanup must undo the handle being written to,
+            // and copy-data is the only request whose destination is not in the usual handle position.
+            var source      = await sftp.OpenFileAsync("/source.bin", SftpOpenFlags.Read, CancellationToken);
+            var destination = await sftp.OpenFileAsync("/second.bin", SftpOpenFlags.Create | SftpOpenFlags.Write | SftpOpenFlags.Truncate, CancellationToken);
+
+            var refused = Assert.ThrowsAsync<SftpException>(async () =>
+                await sftp.CopyDataAsync(source, 0, 0, destination, 0, CancellationToken));
+
+            Assert.That(refused!.Code, Is.EqualTo(SftpStatusCode.Failure).Or.EqualTo(SftpStatusCode.PermissionDenied),
+                        "the copy that would exceed the session quota must be refused");
+
+            // The source survived: it was being read, not written, so the cleanup must not have touched it.
+            var stillReadable = await sftp.ReadAsync(source, 0, 100, CancellationToken);
+            Assert.That(stillReadable, Has.Length.EqualTo(100), "the read handle must survive a failed copy");
+            await sftp.CloseAsync(source, CancellationToken);
+
+            // What the quota already accounted for is intact, and the refused copy left nothing behind.
+            Assert.That((await sftp.DownloadAsync("/first.bin", CancellationToken)).Length, Is.EqualTo(10_000));
+            Assert.That((await sftp.ListDirectoryAsync("/", CancellationToken)).Select(e => e.Name),
+                        Does.Not.Contain("second.bin"), "the half-created destination must not survive the overrun");
+
+            await sftp.DisposeAsync();
+            using (client) { }
+            await server;
+
+        }
+
+        #endregion
+
+        #region CopyData_RefusesTheSameHandleOnBothEnds
+
+        /// <summary>
+        /// Source and destination being the same handle is refused. OpenSSH permits it for non-overlapping
+        /// ranges, but telling those apart needs a length that may be "until EOF" — and nothing in a file
+        /// copy needs it, so the honest answer is a clean refusal rather than a best guess.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task CopyData_RefusesTheSameHandleOnBothEnds(CancellationToken CancellationToken)
+        {
+
+            var fs = new InMemorySftpFileSystem();
+            var (sftp, client, server) = await ConnectAsync(fs, null, CancellationToken);
+
+            await sftp.UploadAsync("/f.bin", Encoding.UTF8.GetBytes("0123456789"), CancellationToken);
+
+            var handle = await sftp.OpenFileAsync("/f.bin", SftpOpenFlags.Read | SftpOpenFlags.Write, CancellationToken);
+
+            var refused = Assert.ThrowsAsync<SftpException>(async () =>
+                await sftp.CopyDataAsync(handle, 0, 4, handle, 6, CancellationToken));
+
+            Assert.That(refused!.Code, Is.EqualTo(SftpStatusCode.OpUnsupported));
+
+            await sftp.DisposeAsync();
+            using (client) { }
+            await server;
+
+        }
+
+        #endregion
+
+
         #region (private) test doubles
 
         /// <summary>Passes everything through, but records which handles were asked to flush.</summary>

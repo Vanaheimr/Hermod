@@ -332,6 +332,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
+        /// <summary>
+        /// Copy a remote file to another remote path **on the server** via the <c>copy-data</c> extension —
+        /// the bytes never cross the network, where a download-then-upload would send them twice.
+        /// </summary>
+        /// <param name="SourcePath">The file to read.</param>
+        /// <param name="DestinationPath">The file to create or overwrite.</param>
+        /// <param name="Length">How many bytes to copy from <paramref name="SourceOffset"/>; 0 copies to the end of the file.</param>
+        public async ValueTask CopyAsync(String             SourcePath,
+                                         String             DestinationPath,
+                                         CancellationToken  CancellationToken = default,
+                                         UInt64             Length            = 0,
+                                         Int64              SourceOffset      = 0,
+                                         Int64              DestinationOffset = 0)
+        {
+
+            if (!Supports("copy-data"))
+                throw new SftpException(SftpStatusCode.OpUnsupported,
+                                        "The server does not offer 'copy-data', so a copy would have to go through this client — do it explicitly if that is what you want.");
+
+            var source = await OpenFileAsync(SourcePath, SftpOpenFlags.Read, CancellationToken).ConfigureAwait(false);
+
+            try
+            {
+
+                var destination = await OpenFileAsync(DestinationPath,
+                                                      SftpOpenFlags.Create | SftpOpenFlags.Write | SftpOpenFlags.Truncate,
+                                                      CancellationToken).ConfigureAwait(false);
+
+                try
+                {
+                    await CopyDataAsync(source, SourceOffset, Length, destination, DestinationOffset, CancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    await CloseAsync(destination, CancellationToken).ConfigureAwait(false);
+                }
+
+            }
+            finally
+            {
+                await CloseAsync(source, CancellationToken).ConfigureAwait(false);
+            }
+
+        }
+
+        /// <summary>
+        /// The raw <c>copy-data</c> request between two handles the caller already holds — what
+        /// <see cref="CopyAsync"/> is built from, for callers driving their own handles.
+        /// </summary>
+        internal ValueTask CopyDataAsync(String             SourceHandle,
+                                         Int64              SourceOffset,
+                                         UInt64             Length,
+                                         String             DestinationHandle,
+                                         Int64              DestinationOffset,
+                                         CancellationToken  CancellationToken = default)
+
+            => ExpectOkAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => {
+                   w.WriteString("copy-data");
+                   w.WriteString(SourceHandle);
+                   w.WriteUInt64((UInt64) SourceOffset);
+                   w.WriteUInt64(Length);
+                   w.WriteString(DestinationHandle);
+                   w.WriteUInt64((UInt64) DestinationOffset);
+               }, CancellationToken);
+
         /// <summary>Query the server's protocol limits via <c>limits@openssh.com</c>.</summary>
         public async ValueTask<SftpProtocolLimits> LimitsAsync(CancellationToken CancellationToken = default)
         {

@@ -15,7 +15,7 @@ the interesting mistakes live. The ChaCha20 core is ours too, and vectorised
 
 > **Verified against nine independent implementations**, in both directions: OpenSSH and Dropbear
 > drive our server *and* our client drives theirs, with TinySSH, PuTTY, AsyncSSH, Paramiko,
-> Go `x/crypto/ssh`, SSH.NET and curl/libssh2 alongside. **91 interop checks, none failing.**
+> Go `x/crypto/ssh`, SSH.NET and curl/libssh2 alongside. **93 interop checks, none failing.**
 > The harness that runs them is a sibling repository,
 > [SSHConformanceTests](https://github.com/Vanaheimr/SSHConformanceTests) — see [Interop](#interop).
 
@@ -186,7 +186,7 @@ follow) and `ext-info-c`/`-s` for RFC 8308.
 | **draft-ietf-sshm-mlkem-hybrid-kex** | `mlkem768x25519-sha256` | ✅ Draft-10, in the RFC Editor queue; names and encoding stable |
 | **draft-ietf-secsh-filexfer-02** | SFTP version 3 | ✅ Client + server |
 | **RFC 9987 / draft-miller-ssh-agent** | SSH agent protocol | 🔶 Client only — list identities, request signatures; no agent *forwarding* |
-| OpenSSH `PROTOCOL` | Certificates, `hostkeys-00@openssh.com`, and the SFTP extensions `posix-rename`, `fsync`, `statvfs`/`fstatvfs`, `limits@openssh.com` | ✅ Server answers all five; the client drives all but `fstatvfs`. `hardlink`, `lsetstat`, `expand-path`, `copy-data` are not implemented |
+| OpenSSH `PROTOCOL` | Certificates, `hostkeys-00@openssh.com`, and the SFTP extensions `posix-rename`, `fsync`, `statvfs`/`fstatvfs`, `limits@openssh.com`, `copy-data` | ✅ Server answers all six; the client drives all but `fstatvfs`. `hardlink`, `lsetstat`, `expand-path` are not implemented |
 | `kexguess2@matt.ucc.asn.au` | Dropbear's narrowed guess rule | ✅ Both roles |
 
 RFC 4253 §7.1 is worth a note, because it is the one place where "obviously correct" was wrong for
@@ -220,7 +220,7 @@ distinguishes "disagreed" from "no evidence either way".
 
 ## Test
 
-318 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
+321 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
 folder layout. They need nothing but the code — unit tests and loopback round-trips between our
 own client and our own server.
 
