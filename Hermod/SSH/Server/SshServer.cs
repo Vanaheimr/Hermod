@@ -144,10 +144,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         private async Task HandleConnectionAsync(IDuplexPipe Pipe, IPSocket? Peer, CancellationToken CancellationToken)
         {
+
+            SshTransport? transport = null;
+
             try
             {
 
-                using var transport = await SshTransport.ServerHandshakeAsync(Pipe, options.HostKeys[0], CancellationToken: CancellationToken);
+                transport = await SshTransport.ServerHandshakeAsync(Pipe, options.HostKeys[0], CancellationToken: CancellationToken);
                 var auth = await UserAuthentication.ServerAuthenticateAsync(transport, options.Authenticator, AuditSink: options.AuditSink, CancellationToken: CancellationToken);
                 var user = auth.Username;
 
@@ -197,7 +200,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 }
 
             }
-            catch { /* connection torn down */ }
+            catch (Exception exception)
+            {
+
+                // Never leave the peer waiting. Anything reaching here — a malformed packet, a failed
+                // negotiation, a torn-down socket — used to be swallowed silently while the connection
+                // stayed open, so the client hung until its own timeout and we leaked the socket.
+                // The peer gets a protocol-level goodbye with a deliberately generic reason (it is not
+                // necessarily authenticated, so it learns nothing about our internals) while the detail
+                // goes to the audit sink, where an operator can actually see it.
+                if (transport is not null)
+                {
+                    try
+                    {
+
+                        var abw = new ArrayBufferWriter<Byte>();
+                        var w   = new SshPacketWriter(abw);
+                        w.WriteByte((Byte) SshMessageNumber.Disconnect);
+                        w.WriteUInt32((UInt32) DisconnectReason.ProtocolError);
+                        w.WriteString("protocol error");
+                        w.WriteString("");
+
+                        await transport.SendPacketAsync(abw.WrittenSpan.ToArray(), CancellationToken);
+
+                    }
+                    catch { /* the peer may already be gone */ }
+                }
+
+                if (options.AuditSink is not null)
+                {
+                    try
+                    {
+                        await options.AuditSink.WriteAsync(
+                                  new DisconnectedEvent(DateTimeOffset.UtcNow,
+                                                        (UInt32) DisconnectReason.ProtocolError,
+                                                        $"{exception.GetType().Name}: {exception.Message}"),
+                                  CancellationToken);
+                    }
+                    catch { }
+                }
+
+            }
+            finally
+            {
+
+                transport?.Dispose();
+
+                // The pipe owns the socket and closes it on completion — without this the connection
+                // would linger for as long as the process lives.
+                try { await Pipe.Output.CompleteAsync(); } catch { }
+                try { await Pipe.Input. CompleteAsync(); } catch { }
+
+            }
+
         }
 
         private async ValueTask<Boolean> AcceptChannelAsync(SshChannelOpenInfo Info, SshSessionRestrictions Restrictions)

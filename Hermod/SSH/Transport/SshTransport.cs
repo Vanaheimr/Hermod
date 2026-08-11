@@ -71,6 +71,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private Byte[]               serverHostKey  = [];
         private NegotiatedAlgorithms algorithms     = null!;
 
+        // Whether a key exchange is currently running. Only strict KEX cares: it forbids the otherwise
+        // always-legal SSH_MSG_IGNORE / DEBUG / UNIMPLEMENTED while the exchange is in flight.
+        private Boolean              keyExchangeInProgress;
+
         #endregion
 
         #region Properties
@@ -231,15 +235,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Read, decrypt and authenticate one packet under the current receive cipher, advancing the
         /// receive sequence number.
+        ///
+        /// <para>
+        /// SSH_MSG_IGNORE, SSH_MSG_DEBUG and SSH_MSG_UNIMPLEMENTED are consumed here rather than handed
+        /// on: RFC 4253 §11 lets a peer send them <i>at any time</i>, so every caller would otherwise have
+        /// to skip them and any that forgot would break against peers that use them — AsyncSSH, for one,
+        /// pads authentication with SSH_MSG_IGNORE to blunt traffic analysis.
+        /// </para>
+        ///
+        /// <para>
+        /// The exception is strict KEX: while a key exchange is in flight it requires that no unexpected
+        /// packet is tolerated, explicitly including these three, because silently dropping them is what
+        /// let Terrapin (CVE-2023-48795) shift the sequence numbers. There they are fatal instead.
+        /// </para>
         /// </summary>
         public async ValueTask<Byte[]> ReceivePacketAsync(CancellationToken CancellationToken = default)
         {
 
-            var payload = await SshPacketFraming.ReadPacketAsync(pipe.Input, receiveCipher, receiveSequenceNumber, receiveMac, CancellationToken).ConfigureAwait(false);
+            while (true)
+            {
 
-            unchecked { receiveSequenceNumber++; }
+                var payload = await SshPacketFraming.ReadPacketAsync(pipe.Input, receiveCipher, receiveSequenceNumber, receiveMac, CancellationToken).ConfigureAwait(false);
 
-            return payload;
+                unchecked { receiveSequenceNumber++; }
+
+                if (payload.Length < 1)
+                    return payload;
+
+                var messageNumber = (SshMessageNumber) payload[0];
+
+                if (messageNumber is not (SshMessageNumber.Ignore or SshMessageNumber.Debug or SshMessageNumber.Unimplemented))
+                    return payload;
+
+                if (keyExchangeInProgress && algorithms is { StrictKex: true })
+                    throw new SshWireException($"Strict KEX forbids {messageNumber} ({payload[0]}) during a key exchange.");
+
+            }
 
         }
 
@@ -278,6 +309,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                         Byte[]?            PeerKexInit,
                                                         CancellationToken  CancellationToken)
         {
+
+            // Marks the window in which strict KEX refuses SSH_MSG_IGNORE / DEBUG / UNIMPLEMENTED
+            // instead of skipping them (see ReceivePacketAsync).
+            keyExchangeInProgress = true;
+
+            try
+            {
 
             // 1. Send our KEXINIT (a server offers only its host key's algorithms).
             var localKexInit = KexInitMessage.CreateLocal(isServer, ciphers, macs, keyExchanges,
@@ -388,6 +426,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             {
                 var extInfo = ExtInfoMessage.ForServerSigAlgs(serverSignatureAlgorithms);
                 await SendPacketAsync(extInfo.Encode(), CancellationToken).ConfigureAwait(false);
+            }
+
+            }
+            finally
+            {
+                keyExchangeInProgress = false;
             }
 
         }

@@ -530,10 +530,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private static AuthRequest ParseAuthRequest(ReadOnlySpan<Byte> Payload)
         {
 
-            var reader = new SshPacketReader(Payload);
+            var reader        = new SshPacketReader(Payload);
+            var messageNumber = reader.ReadByte();
 
-            if (reader.ReadByte() != (Byte) SshMessageNumber.UserAuthRequest)
-                throw new SshWireException("Expected SSH_MSG_USERAUTH_REQUEST (50) during authentication.");
+            if (messageNumber != (Byte) SshMessageNumber.UserAuthRequest)
+                throw new SshWireException($"Expected SSH_MSG_USERAUTH_REQUEST (50) during authentication, but found {(SshMessageNumber) messageNumber} ({messageNumber}).");
 
             var username  = reader.ReadString();
             _             = reader.ReadString();   // service name ("ssh-connection")
