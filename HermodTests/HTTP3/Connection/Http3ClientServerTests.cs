@@ -107,8 +107,13 @@ public class Http3ClientServerTests
         };
 
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var server = new Http3ServerConnection(cert, Handler);
-        using var client = new Http3ClientConnection("localhost", certificateValidation: validation);
+        // Pumped on a fake clock advanced 1 ms per round: the pacer refills its budget from ELAPSED
+        // TIME (RFC 9002 §7.7), and with the real clock this fixed round budget races the machine —
+        // on a JIT-warm process 2000 rounds burn down in ~3 ms, less real time than the pacer needs
+        // to recover its post-handshake deficit at the handshake's compute-time-derived sRTT (~40 ms).
+        var clock = new FakeTimeProvider();
+        using var server = new Http3ServerConnection(cert, Handler, timeProvider: clock);
+        using var client = new Http3ClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
         client.Start();
 
         ulong requestStream = 0;
@@ -118,6 +123,7 @@ public class Http3ClientServerTests
 
         for (int round = 0; round < 2000 && response is null; round++)
         {
+            clock.Advance(TimeSpan.FromMilliseconds(1));
             client.CheckTimeouts();
             foreach (byte[] dg in client.GetDatagramsToSend())
                 server.ProcessDatagram(dg);

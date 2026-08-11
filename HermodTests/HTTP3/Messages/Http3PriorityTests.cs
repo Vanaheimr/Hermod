@@ -89,11 +89,12 @@ public class Http3PriorityTests
         Http3Response Handler(Http3Request request) => new() { Status = 200, Body = big };
 
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var server = new Http3ServerConnection(cert, Handler);
-        using var client = new Http3ClientConnection("localhost", certificateValidation: validation);
+        var clock = new FakeTimeProvider();
+        using var server = new Http3ServerConnection(cert, Handler, timeProvider: clock);
+        using var client = new Http3ClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
-            Pump(client, server);
+            Pump(client, server, clock);
         client.InitializeHttp3();
 
         var incremental = new Http3Priority(3, true);
@@ -105,7 +106,7 @@ public class Http3PriorityTests
         Http3Response? responseA = null, responseB = null;
         for (int round = 0; round < 2000 && (responseA is null || responseB is null); round++)
         {
-            Pump(client, server);
+            Pump(client, server, clock);
             client.TryGetResponse(a, out responseA);
             client.TryGetResponse(b, out responseB);
             if (responseA is null && responseB is null &&
@@ -128,18 +129,19 @@ public class Http3PriorityTests
         Http3Response Handler(Http3Request request) => new() { Status = 200, Body = big };
 
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var server = new Http3ServerConnection(cert, Handler);
-        using var client = new Http3ClientConnection("localhost", certificateValidation: validation);
+        var clock = new FakeTimeProvider();
+        using var server = new Http3ServerConnection(cert, Handler, timeProvider: clock);
+        using var client = new Http3ClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
-            Pump(client, server);
+            Pump(client, server, clock);
         client.InitializeHttp3();
 
         ulong a = client.SendRequest(Http3Request.Get("localhost", "/big") with { Priority = new(0, false) });
         ulong b = client.SendRequest(Http3Request.Get("localhost", "/big"));
         client.SendPriorityUpdate(a, new Http3Priority(7, false)); // degrade the prefetch (§6)
 
-        (int roundA, int roundB) = AwaitBoth(client, server, a, b);
+        (int roundA, int roundB) = AwaitBoth(client, server, a, b, clock);
         Assert.That(roundB < roundA, Is.True, $"The PRIORITY_UPDATE (u=7) must override the header (u=0) (A: {roundA}, B: {roundB}).");
     }
 
@@ -150,12 +152,13 @@ public class Http3PriorityTests
         // the latest update and apply it when the stream opens (§7) ⇒ stream 4 is served before stream 0.
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         byte[] big = new byte[150_000];
-        using var server = new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = big });
+        var clock = new FakeTimeProvider();
+        using var server = new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = big }, timeProvider: clock);
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var client = new QuicClientConnection("localhost", certificateValidation: validation);
+        using var client = new QuicClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
-            Pump(client, server);
+            Pump(client, server, clock);
 
         QuicStream control = client.OpenUnidirectionalStream();
         control.Write([(byte)Http3StreamType.Control]);
@@ -172,7 +175,7 @@ public class Http3PriorityTests
         int completeA = -1, completeB = -1;
         for (int round = 0; round < 2000 && (completeA < 0 || completeB < 0); round++)
         {
-            Pump(client, server);
+            Pump(client, server, clock);
             requestA.Read();
             requestB.Read();
             if (completeA < 0 && requestA.IsReceiveComplete) completeA = round;
@@ -252,25 +255,26 @@ public class Http3PriorityTests
         Http3Response Handler(Http3Request request) => new() { Status = 200, Body = big };
 
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        using var server = new Http3ServerConnection(cert, Handler);
-        using var client = new Http3ClientConnection("localhost", certificateValidation: validation);
+        var clock = new FakeTimeProvider();
+        using var server = new Http3ServerConnection(cert, Handler, timeProvider: clock);
+        using var client = new Http3ClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
-            Pump(client, server);
+            Pump(client, server, clock);
         Assert.That(client.HandshakeConfirmed, Is.True);
         client.InitializeHttp3();
 
         ulong a = client.SendRequest(first);
         ulong b = client.SendRequest(second);
-        return AwaitBoth(client, server, a, b);
+        return AwaitBoth(client, server, a, b, clock);
     }
 
-    private static (int RoundA, int RoundB) AwaitBoth(Http3ClientConnection client, Http3ServerConnection server, ulong a, ulong b)
+    private static (int RoundA, int RoundB) AwaitBoth(Http3ClientConnection client, Http3ServerConnection server, ulong a, ulong b, FakeTimeProvider clock)
     {
         int roundA = -1, roundB = -1;
         for (int round = 0; round < 2000 && (roundA < 0 || roundB < 0); round++)
         {
-            Pump(client, server);
+            Pump(client, server, clock);
             if (roundA < 0 && client.TryGetResponse(a, out _)) roundA = round;
             if (roundB < 0 && client.TryGetResponse(b, out _)) roundB = round;
         }
@@ -308,8 +312,15 @@ public class Http3PriorityTests
         Assert.That(client.PeerCloseFrame.ErrorCode, Is.EqualTo(expectedError));
     }
 
-    private static void Pump(Http3ClientConnection client, Http3ServerConnection server)
+    // The big-transfer tests pump on a FakeTimeProvider advanced 1 ms per round: the pacer refills
+    // its budget from ELAPSED TIME (RFC 9002 §7.7), and with the real clock a fixed round budget
+    // races the machine — on a JIT-warm process 2000 rounds burn down in ~3 ms, less real time than
+    // the pacer needs to recover its post-handshake deficit at the handshake's compute-time-derived
+    // sRTT (~40 ms), so the transfer stalls forever. One fake millisecond per round makes the budget
+    // a function of the ROUND COUNT instead of the wall clock, on every machine.
+    private static void Pump(Http3ClientConnection client, Http3ServerConnection server, FakeTimeProvider? clock = null)
     {
+        clock?.Advance(TimeSpan.FromMilliseconds(1));
         client.CheckTimeouts();
         foreach (byte[] dg in client.GetDatagramsToSend())
             server.ProcessDatagram(dg);
@@ -317,8 +328,9 @@ public class Http3PriorityTests
             client.ProcessDatagram(dg);
     }
 
-    private static void Pump(QuicClientConnection client, Http3ServerConnection server)
+    private static void Pump(QuicClientConnection client, Http3ServerConnection server, FakeTimeProvider? clock = null)
     {
+        clock?.Advance(TimeSpan.FromMilliseconds(1));
         client.CheckLossDetectionTimeout();
         foreach (byte[] dg in client.GetDatagramsToSend())
             server.ProcessDatagram(dg);
