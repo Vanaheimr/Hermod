@@ -163,14 +163,31 @@ public class PacerTests
     }
 
     [Test]
-    public void OverSpending_DrivesBudgetNegative_ReportedAsZero()
+    public void OverSpending_FloorsBudgetAtZero()
     {
         var pacer = new Pacer();
         pacer.Refill(0, congestionWindow: 2000, smoothedRtt: TimeSpan.FromMilliseconds(100));
         Assert.That(pacer.AvailableBytes, Is.EqualTo(2400)); // burst cap = max(2·MDS, min(cwnd, 10·MDS)) = 2400
 
-        pacer.OnBytesSent(3000); // sent more than the budget
-        Assert.That(pacer.AvailableBytes, Is.EqualTo(0)); // negative, but reported as 0
+        pacer.OnBytesSent(3000); // sent more than the budget (un-gated packet classes may do that)
+        Assert.That(pacer.AvailableBytes, Is.EqualTo(0)); // floored at 0, not driven negative
+    }
+
+    [Test]
+    public void OverSpending_LeavesNoDebt_NextRefillCreditsAtFullRate()
+    {
+        // Post-handshake regression: CRYPTO flights, retransmits and probes are sent without
+        // consulting the budget but are debited nevertheless. Before the zero floor this left the
+        // bucket ~10 KB in the red, so the first application data of a connection stalled until
+        // the deficit was paid off — tens of milliseconds at 1.25·cwnd/sRTT with a large sRTT.
+        var pacer = new Pacer();
+        pacer.Refill(0, congestionWindow: 12000, smoothedRtt: TimeSpan.FromMilliseconds(120));
+        pacer.OnBytesSent(22_000); // un-gated flight: the full 12 KB burst plus 10 KB beyond it
+
+        // Rate = 1.25 · 12000 / 1_200_000 ticks = 0.0125 bytes/tick; over 10 ms → 1250 bytes.
+        // With a −10 KB debt this refill would still report 0 (and would for another 80 ms).
+        pacer.Refill(Ticks(10), congestionWindow: 12000, smoothedRtt: TimeSpan.FromMilliseconds(120));
+        Assert.That(pacer.AvailableBytes, Is.EqualTo(1250));
     }
 }
 
