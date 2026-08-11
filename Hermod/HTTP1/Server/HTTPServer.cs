@@ -633,6 +633,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal ParsedRequest GetRequestHandle(HTTPRequest Request)
         {
 
+            ArgumentNullException.ThrowIfNull(Request);
+
             try
             {
 
@@ -857,8 +859,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 httpLogger.LogError(
                     e,
                     "Exception while resolving HTTP request {FirstPDULine} ({EventTrackingId}).",
-                    Request.FirstPDULine,
-                    Request.EventTrackingId
+                    Request?.FirstPDULine,
+                    Request?.EventTrackingId
                 );
 
                 return ParsedRequest.Error(GetExceptionDescriptionForResponse(e));
@@ -1297,8 +1299,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  httpLogger.LogError(
                                      e,
                                      "Exception in HTTP request handler for {FirstPDULine} ({EventTrackingId}).",
-                                     Request.FirstPDULine,
-                                     Request.EventTrackingId
+                                     Request?.FirstPDULine,
+                                     Request?.EventTrackingId
                                  );
 
                                  httpResponse = new HTTPResponse.Builder(Request) {
