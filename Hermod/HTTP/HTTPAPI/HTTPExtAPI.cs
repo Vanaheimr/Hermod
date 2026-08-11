@@ -22161,11 +22161,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (users.TryGetValue(UserId, out var user) && user is not null)
                 {
 
-                    user.RemoveNotification(NotificationType,
-                                            async update => await WriteToDatabaseFile(removeNotification_MessageType,
-                                                                                      update.ToJSON(false).AddFirstAndReturn(new JProperty("userId", UserId.ToString())),
-                                                                                      EventTrackingId,
-                                                                                      CurrentUserId));
+                    await user.RemoveNotification(NotificationType,
+                                                  async update => await WriteToDatabaseFile(removeNotification_MessageType,
+                                                                                            update.ToJSON(false).AddFirstAndReturn(new JProperty("userId", UserId.ToString())),
+                                                                                            EventTrackingId,
+                                                                                            CurrentUserId));
 
                 }
 
@@ -22231,11 +22231,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (organizations.TryGetValue(OrganizationId, out var organization) && organization is not null)
                 {
 
-                    organization.RemoveNotification(NotificationType,
-                                                    async update => await WriteToDatabaseFile(removeNotification_MessageType,
-                                                                                              update.ToJSON(false).AddFirstAndReturn(new JProperty("organizationId", OrganizationId.ToString())),
-                                                                                              EventTrackingId,
-                                                                                              CurrentUserId));
+                    await organization.RemoveNotification(NotificationType,
+                                                          async update => await WriteToDatabaseFile(removeNotification_MessageType,
+                                                                                                    update.ToJSON(false).AddFirstAndReturn(new JProperty("organizationId", OrganizationId.ToString())),
+                                                                                                    EventTrackingId,
+                                                                                                    CurrentUserId));
 
                 }
 
