@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 try   { stderr = await ssh.StandardError.ReadToEndAsync(CancellationToken); }
                 catch { }
                 TestContext.Out.WriteLine("ssh -vv stderr:\n" + stderr);
-                throw new AssertionException("The OpenSSH transport interop failed. ssh -vv output:\n" + stderr, e);
+                throw new AssertionException($"The OpenSSH transport interop failed:\n{e.Message}\nssh -vv output:\n" + stderr, e);
             }
             finally
             {
@@ -333,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 try   { stderr = await ssh.StandardError.ReadToEndAsync(CancellationToken); }
                 catch { }
                 TestContext.Out.WriteLine("ssh -vv stderr:\n" + stderr);
-                throw new AssertionException("The OpenSSH ext-info interop failed. ssh -vv output:\n" + stderr, e);
+                throw new AssertionException($"The OpenSSH ext-info interop failed:\n{e.Message}\nssh -vv output:\n" + stderr, e);
             }
             finally
             {

@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 {
                     try { if (!client.HasExited) client.Kill(true); } catch { }
                     var err = await client.StandardError.ReadToEndAsync(CancellationToken);
-                    throw new AssertionException("OpenSSH exec interop failed. ssh stderr:\n" + err, e);
+                    throw new AssertionException($"OpenSSH exec interop failed:\n{e.Message}\nssh stderr:\n" + err, e);
                 }
                 finally
                 {

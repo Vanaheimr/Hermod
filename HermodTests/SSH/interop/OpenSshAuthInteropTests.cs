@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                     try   { stderr = await client.StandardError.ReadToEndAsync(CancellationToken); }
                     catch { }
                     TestContext.Out.WriteLine("ssh -vv stderr:\n" + stderr);
-                    throw new AssertionException($"OpenSSH public-key auth interop failed for {KeyType}. ssh -vv output:\n" + stderr, e);
+                    throw new AssertionException($"OpenSSH public-key auth interop failed for {KeyType}:\n{e.Message}\nssh -vv output:\n" + stderr, e);
                 }
                 finally
                 {

@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 catch (Exception e)
                 {
                     try { if (!client.HasExited) client.Kill(true); } catch { }
-                    throw new AssertionException("OpenSSH host-key rotation interop failed.", e);
+                    throw new AssertionException("OpenSSH host-key rotation interop failed:\n" + e.Message, e);
                 }
                 finally
                 {

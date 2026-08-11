@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 {
                     try { if (!client.HasExited) client.Kill(true); } catch { }
                     var log = await stderrTask;
-                    throw new AssertionException("OpenSSH sftp interop failed. sftp -v log:\n" + log, e);
+                    throw new AssertionException($"OpenSSH sftp interop failed:\n{e.Message}\nsftp -v log:\n" + log, e);
                 }
 
             }
