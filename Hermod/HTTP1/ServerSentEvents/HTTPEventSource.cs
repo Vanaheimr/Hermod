@@ -1027,7 +1027,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static async Task<List<HTTPEvent<JObject>>> ParseHTTPResponseStream(HTTPResponse       HTTPResponse,
                                                                                    TimeSpan?          lineTimeout       = null,
                                                                                    CancellationToken  cancellationToken = default,
-                                                                                   Action<TimeSpan>?  RetryInterval      = null)
+                                                                                   Action<TimeSpan>?  RetryInterval     = null,
+                                                                                   UInt64?            MaxEvents         = null)
         {
 
             if (HTTPResponse?.HTTPBodyStream is null)
@@ -1080,6 +1081,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (parsedEvent is not null)
                         {
                             events.Add(parsedEvent);
+
+                            // Stop once the requested number of events has been read,
+                            // instead of blocking until the line timeout expires.
+                            if (MaxEvents.HasValue && (UInt64) events.Count >= MaxEvents.Value)
+                                return events;
                         }
                     }
                     currentEvent.Reset();

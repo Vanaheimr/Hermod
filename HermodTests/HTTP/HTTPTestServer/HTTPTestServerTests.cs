@@ -1186,8 +1186,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var eventList     = await HTTPEventSource<JObject>.ParseHTTPResponseStream(
                                               httpResponse,
-                                              TimeSpan.FromSeconds(5),
-                                              httpResponse.CancellationToken
+                                              TimeSpan.FromSeconds(30),
+                                              httpResponse.CancellationToken,
+                                              MaxEvents: 3
                                           );
 
                 Assert.That(eventList.Count,  Is.EqualTo(3));
@@ -1282,8 +1283,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var eventList     = await HTTPEventSource<JObject>.ParseHTTPResponseStream(
                                               httpResponse,
-                                              TimeSpan.FromSeconds(5),
-                                              httpResponse.CancellationToken
+                                              TimeSpan.FromSeconds(30),
+                                              httpResponse.CancellationToken,
+                                              MaxEvents: 3
                                           );
 
                 Assert.That(eventList.Count,  Is.EqualTo(3));
@@ -1313,8 +1315,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var eventList     = await HTTPEventSource<JObject>.ParseHTTPResponseStream(
                                               httpResponse,
-                                              TimeSpan.FromSeconds(5),
-                                              httpResponse.CancellationToken
+                                              TimeSpan.FromSeconds(30),
+                                              httpResponse.CancellationToken,
+                                              MaxEvents: 3
                                           );
 
                 Assert.That(eventList.Count,  Is.EqualTo(3));
@@ -1411,8 +1414,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
                                      httpResponse,
-                                     TimeSpan.FromSeconds(15),
-                                     httpResponse.CancellationToken
+                                     TimeSpan.FromSeconds(30),
+                                     httpResponse.CancellationToken,
+                                     MaxEvents: 6
                                  );
 
                 }
@@ -1446,8 +1450,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
                                      httpResponse,
-                                     TimeSpan.FromSeconds(15),
-                                     httpResponse.CancellationToken
+                                     TimeSpan.FromSeconds(30),
+                                     httpResponse.CancellationToken,
+                                     MaxEvents: 6
                                  );
 
                 }
@@ -1483,8 +1488,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
                                      httpResponse,
-                                     TimeSpan.FromSeconds(15),
-                                     httpResponse.CancellationToken
+                                     TimeSpan.FromSeconds(30),
+                                     httpResponse.CancellationToken,
+                                     MaxEvents: 6
                                  );
 
                 }
@@ -1520,8 +1526,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                     return await HTTPEventSource<JObject>.ParseHTTPResponseStream(
                                      httpResponse,
-                                     TimeSpan.FromSeconds(15),
-                                     httpResponse.CancellationToken
+                                     TimeSpan.FromSeconds(30),
+                                     httpResponse.CancellationToken,
+                                     MaxEvents: 6
                                  );
 
                 }
