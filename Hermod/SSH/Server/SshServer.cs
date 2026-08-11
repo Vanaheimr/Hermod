@@ -183,14 +183,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 SshRemoteForwarding.ServeRemoteForwards(mux, options.ForwardingPolicy, CancellationToken);
 
                 if (options.AdvertiseHostKeys)
+                {
+
                     SshHostKeyRotation.ServeHostKeyProofs(mux, options.HostKeys);
 
-                mux.Start();
-
-                // Advertise every host key we hold, so clients can learn a rotated-in key before the
-                // old one is retired. Only meaningful after authentication has completed.
-                if (options.AdvertiseHostKeys)
+                    // Advertise every host key we hold, so clients can learn a rotated-in key before the
+                    // old one is retired. This must go out BEFORE the dispatch loop starts (sshd sends
+                    // notify_hostkeys before entering its connection loop for the same reason): the
+                    // announcement then precedes our channel-open confirmation on the wire, so an OpenSSH
+                    // client challenges the unknown keys before it issues exec — and the sequential
+                    // dispatch loop answers the challenge before the exec can run. Announced after
+                    // Start(), the proof reply races the exec's exit-status/close, and a client running a
+                    // short-lived command can disconnect before the reply — silently never updating its
+                    // known_hosts.
                     await SshHostKeyRotation.AnnounceAsync(mux, options.HostKeys, CancellationToken);
+
+                }
+
+                mux.Start();
 
                 while (!CancellationToken.IsCancellationRequested)
                 {
