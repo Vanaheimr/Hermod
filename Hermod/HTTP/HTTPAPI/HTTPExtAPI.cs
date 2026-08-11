@@ -2238,7 +2238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="AdminOrganizationId">The admins' organization identification.</param>
         /// <param name="APIRobotEMailAddress">An e-mail address for this API.</param>
         /// <param name="APIRobotGPGPassphrase">A GPG passphrase for this API.</param>
-        /// <param name="SMTPClient">A SMTP client for sending e-mails.</param>
+        /// <param name="SMTPSubmissionClient">A SMTP client for sending e-mails.</param>
         /// 
         /// <param name="PasswordQualityCheck">A delegate to ensure a minimal password quality.</param>
         /// <param name="CookieName">The name of the HTTP Cookie for authentication.</param>
@@ -2284,7 +2284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Organization_Id?               AdminOrganizationId              = null,
                           EMailAddress?                  APIRobotEMailAddress             = null,
                           String?                        APIRobotGPGPassphrase            = null,
-                          ISMTPSubmissionClient?                   SMTPClient                       = null,
+                          ISMTPSubmissionClient?         SMTPSubmissionClient             = null,
 
                           PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
                           HTTPCookieName?                CookieName                       = null,
@@ -2381,7 +2381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             CurrentAsyncLocalUserId.Value        = Robot?.Id;
 
             this.AdminOrganizationId             = AdminOrganizationId            ?? DefaultAdminOrganizationId;
-            this.SMTPClient                      = SMTPClient                     ?? new NullMailer();
+            this.SMTPClient                      = SMTPSubmissionClient                     ?? new NullMailer();
 
             this.CookieName                      = CookieName                     ?? DefaultCookieName;
             this.SessionCookieName               = this.CookieName + "Session";
