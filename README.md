@@ -25,6 +25,8 @@ Hermod is a .NET library for simplified advanced networking tasks...
 - [HTTP/3 Client / Server (RFC 9114) + QPACK (RFC 9204)](Hermod/HTTP3/README.md)
   incl. WebSockets (RFC 9220), HTTP datagrams (RFC 9297) and WebTransport
 - [SMTP Submission/Outbound Clients / Server](Hermod/SMTP/README.md) with OpenPGP/MIME
+- [SSH2 Client / Server + SFTP (RFC 4251-4254)](Hermod/SSH/README.md) with post-quantum
+  hybrid key exchange, OpenSSH certificates and port forwarding
 
 
 ## Specialized Application Protocols or Extensions
