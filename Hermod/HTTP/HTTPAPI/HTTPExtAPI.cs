@@ -3634,6 +3634,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryGetHTTPUserWithOrganizations(Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
+
+        /// <summary>
+        /// Like TryGetHTTPUser(...), but will also fail with a HTTP 403 Forbidden response,
+        /// when the HTTP user (e.g. the anonymous user) is not a member of any organization
+        /// having the given access level.
+        /// </summary>
+        public Boolean TryGetHTTPUserWithOrganizations(HTTPRequest                                     Request,
+                                                       [NotNullWhen(true)]  out IUser?                 User,
+                                                       out HashSet<IOrganization>                      Organizations,
+                                                       [NotNullWhen(false)] out HTTPResponse.Builder?  ErrorResponseBuilder,
+                                                       Access_Levels                                   AccessLevel  = Access_Levels.ReadOnly,
+                                                       Boolean                                         Recursive    = false)
+        {
+
+            if (!TryGetHTTPUser(Request,
+                                out User,
+                                out Organizations,
+                                out ErrorResponseBuilder,
+                                AccessLevel,
+                                Recursive))
+            {
+                return false;
+            }
+
+            if (Organizations.Count == 0)
+            {
+
+                ErrorResponseBuilder  = new HTTPResponse.Builder(Request) {
+                                            HTTPStatusCode  = HTTPStatusCode.Forbidden,
+                                            Date            = Timestamp.Now,
+                                            Server          = HTTPServer?.HTTPServerName,
+                                            CacheControl    = "private, max-age=0, no-cache",
+                                            Connection      = ConnectionType.KeepAlive
+                                        };
+
+                return false;
+
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
         #region TryGetSuperUser(Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
 
         public Boolean TryGetSuperUser(HTTPRequest                                     Request,
@@ -8673,15 +8719,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadWrite,
+                                                                       Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -8818,17 +8863,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadOnly,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadOnly,
+                                                                       Recursive: true))
                                   {
-                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder.AsImmutable);
                                   }
 
                                   #endregion
@@ -8912,17 +8956,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadOnly,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadOnly,
+                                                                       Recursive: true))
                                   {
-                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder.AsImmutable);
                                   }
 
                                   #endregion
@@ -8990,15 +9033,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadWrite,
+                                                                       Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -9235,15 +9277,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadWrite,
+                                                                       Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -9366,15 +9407,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadWrite,
+                                                                       Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -10171,17 +10211,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadOnly,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadOnly,
+                                                                       Recursive: true))
                                   {
-                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder.AsImmutable);
                                   }
 
                                   #endregion
@@ -10236,15 +10275,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadWrite,
+                                                                       Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -10425,17 +10463,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuidler,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuidler,
+                                                                       Access_Levels.ReadWrite,
+                                                                       Recursive: true))
                                   {
-                                      return httpResponseBuidler!;
+                                      return httpResponseBuidler;
                                   }
 
                                   #endregion
@@ -10611,17 +10648,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var httpUser,
-                                                      out var httpOrganizations,
-                                                      out var httpResponseBuilder,
-                                                      Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null ||
-                                      httpOrganizations.Count == 0)
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown,
+                                  // and HTTP 403 Forbidden, when the HTTP user is not a member of any organization!
+                                  if (!TryGetHTTPUserWithOrganizations(Request,
+                                                                       out var httpUser,
+                                                                       out var httpOrganizations,
+                                                                       out var httpResponseBuilder,
+                                                                       Access_Levels.ReadWrite,
+                                                                       Recursive: true))
                                   {
-                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder.AsImmutable);
                                   }
 
                                   #endregion
