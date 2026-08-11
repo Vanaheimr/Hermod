@@ -346,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public Organization2OrganizationEdge AddEdge(Organization2OrganizationEdge Edge)
 
-            => Edge.Target == this
+            => ReferenceEquals(Edge.Target, this)
                    ? _Organization2Organization_InEdges.AddAndReturnElement(Edge)
                    : _Organization2Organization_OutEdges.AddAndReturnElement(Edge);
 
@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var parents = _Organization2Organization_OutEdges.
-                              Where (edge => edge.Source == this && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
+                              Where (edge => ReferenceEquals(edge.Source, this) && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
                               Select(edge => edge.Target).
                               ToArray();
 
@@ -455,7 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<IOrganization> ParentOrganizations
 
             => _Organization2Organization_OutEdges.
-                   Where(edge => edge.Source == this && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
+                   Where(edge => ReferenceEquals(edge.Source, this) && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
                    Select(edge => edge.Target).
                    ToArray();
 
@@ -468,7 +468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var childs = _Organization2Organization_InEdges.
-                             Where (edge => edge.Target == this && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
+                             Where (edge => ReferenceEquals(edge.Target, this) && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
                              Select(edge => edge.Source).
                              ToArray();
 
@@ -527,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<IOrganization> SubOrganizations
 
             => _Organization2Organization_InEdges.
-                   Where(edge => edge.Target == this && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
+                   Where(edge => ReferenceEquals(edge.Target, this) && edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
                    Select(edge => edge.Source).
                    ToArray();
 
@@ -546,11 +546,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ? new Organization2OrganizationEdgeLabel[0]
 
                    : _Organization2Organization_InEdges.
-                         Where(edge => edge.Source == Organization).
+                         Where(edge => ReferenceEquals(edge.Source, Organization)).
                          Select(edge => edge.EdgeLabel).Concat(
 
                      _Organization2Organization_OutEdges.
-                         Where(edge => edge.Target == Organization).
+                         Where(edge => ReferenceEquals(edge.Target, Organization)).
                          Select(edge => edge.EdgeLabel));
 
         #endregion
@@ -1610,7 +1610,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public IEnumerable<User2OrganizationEdge> User2OrganizationInEdges(User User)
 
                 => _User2Organization_Edges.
-                       Where(edge => edge.Source == User);
+                       Where(edge => ReferenceEquals(edge.Source, User));
 
             #endregion
 
@@ -1622,7 +1622,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public IEnumerable<User2OrganizationEdgeLabel> User2OrganizationInEdgeLabels(User User)
 
                 => _User2Organization_Edges.
-                       Where(edge => edge.Source == User).
+                       Where(edge => ReferenceEquals(edge.Source, User)).
                        Select(edge => edge.EdgeLabel);
 
             #endregion
@@ -1642,7 +1642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var edges = _User2Organization_Edges.
                                 Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                              edge.Source == User).
+                                              ReferenceEquals(edge.Source, User)).
                                 ToArray();
 
                 foreach (var edge in edges)
@@ -1710,7 +1710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var edges = _Organization2Organization_OutEdges.
                                 Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                              edge.Source == SourceOrganization).
+                                              ReferenceEquals(edge.Source, SourceOrganization)).
                                 ToArray();
 
                 foreach (var edge in edges)
@@ -1773,7 +1773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var edges = _Organization2Organization_OutEdges.
                                 Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                              edge.Target == TargetOrganization).
+                                              ReferenceEquals(edge.Target, TargetOrganization)).
                                 ToArray();
 
                 foreach (var edge in edges)

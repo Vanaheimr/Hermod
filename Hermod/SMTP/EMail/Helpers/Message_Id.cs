@@ -326,19 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="MessageId2">Another message identification.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (Message_Id MessageId1, Message_Id MessageId2)
-        {
-
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(MessageId1, MessageId2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) MessageId1 is null) || ((Object) MessageId2 is null))
-                return false;
-
-            return MessageId1.Equals(MessageId2);
-
-        }
+            => MessageId1.Equals(MessageId2);
 
         #endregion
 

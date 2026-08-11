@@ -683,7 +683,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2UserGroupEdgeLabel> EdgeLabels(UserGroup UserGroup)
 
             => _User2UserGroup_Edges.
-                   Where(edge => edge.Target == UserGroup).
+                   Where(edge => ReferenceEquals(edge.Target, UserGroup)).
                    Select(edge => edge.EdgeLabel);
 
         #endregion
@@ -697,7 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2UserGroupEdge> Edges(UserGroup UserGroup)
 
             => _User2UserGroup_Edges.
-                   Where(edge => edge.Target == UserGroup);
+                   Where(edge => ReferenceEquals(edge.Target, UserGroup));
 
         #endregion
 
@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      UserGroup                UserGroup)
 
             => _User2UserGroup_Edges.
-                   Where(edge => edge.Target == UserGroup && edge.EdgeLabel == EdgeLabel);
+                   Where(edge => ReferenceEquals(edge.Target, UserGroup) && edge.EdgeLabel == EdgeLabel);
 
         #endregion
 
@@ -719,7 +719,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                UserGroup                UserGroup)
 
             => _User2UserGroup_Edges.
-                   Any(edge => edge.Target == UserGroup && edge.EdgeLabel == EdgeLabel);
+                   Any(edge => ReferenceEquals(edge.Target, UserGroup) && edge.EdgeLabel == EdgeLabel);
 
 
         public Boolean RemoveOutEdge(User2UserGroupEdge Edge)
@@ -2257,7 +2257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public IEnumerable<User2UserGroupEdgeLabel> OutEdges(UserGroup Group)
                 => _User2Group_OutEdges.
-                       Where (edge => edge.Target == Group).
+                       Where (edge => ReferenceEquals(edge.Target, Group)).
                        Select(edge => edge.EdgeLabel);
 
             #endregion
@@ -2270,7 +2270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public IEnumerable<User2OrganizationEdgeLabel> Edges(Organization Organization)
                 => _User2Organization_OutEdges.
-                       Where (edge => edge.Target == Organization).
+                       Where (edge => ReferenceEquals(edge.Target, Organization)).
                        Select(edge => edge.EdgeLabel);
 
             #endregion

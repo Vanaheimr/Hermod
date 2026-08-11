@@ -305,11 +305,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                 AllowEmptyHTTPBody);
 
-            if (httpResult.HasErrors    ||
-                httpResult.Data is null ||
-                httpResult.Data.IsNullOrEmpty())
+            if (httpResult.HasErrors)
             {
                 HTTPResponseBuilder = httpResult.Error;
+                return false;
+            }
+
+            if (httpResult.Data.IsNullOrEmpty())
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
                 return false;
             }
 
@@ -387,11 +391,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                 AllowEmptyHTTPBody);
 
-            if (httpResult.HasErrors    ||
-                httpResult.Data is null ||
-                httpResult.Data.IsNullOrEmpty())
+            if (httpResult.HasErrors)
             {
                 HTTPResponseBuilder = httpResult.Error;
+                return false;
+            }
+
+            if (httpResult.Data.IsNullOrEmpty())
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
                 return false;
             }
 
@@ -572,11 +580,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var httpResult = Request.GetRequestBodyAsUTF8String(ContentType ?? HTTPContentType.Application.XML_UTF8,
                                                                 AllowEmptyHTTPBody);
 
-            if (httpResult.HasErrors    ||
-                httpResult.Data is null ||
-                httpResult.Data.IsNullOrEmpty())
+            if (httpResult.HasErrors)
             {
                 HTTPResponseBuilder = httpResult.Error;
+                return false;
+            }
+
+            if (httpResult.Data.IsNullOrEmpty())
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
                 return false;
             }
 

@@ -3538,7 +3538,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryGetSuperUser(Request, out User)
 
-        public Boolean TryGetSuperUser(HTTPRequest Request, out IUser? User)
+        public Boolean TryGetSuperUser(HTTPRequest Request, [NotNullWhen(true)] out IUser? User)
         {
 
             // Get user from cookie...
@@ -3636,12 +3636,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryGetSuperUser(Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
 
-        public Boolean TryGetSuperUser(HTTPRequest                 Request,
-                                       out IUser?                  User,
-                                       out HashSet<IOrganization>  Organizations,
-                                       out HTTPResponse.Builder?   ErrorResponseBuilder,
-                                       Access_Levels               AccessLevel  = Access_Levels.ReadOnly,
-                                       Boolean                     Recursive    = false)
+        public Boolean TryGetSuperUser(HTTPRequest                                     Request,
+                                       [NotNullWhen(true)]  out IUser?                 User,
+                                       out HashSet<IOrganization>                      Organizations,
+                                       [NotNullWhen(false)] out HTTPResponse.Builder?  ErrorResponseBuilder,
+                                       Access_Levels                                   AccessLevel  = Access_Levels.ReadOnly,
+                                       Boolean                                         Recursive    = false)
         {
 
             if (!TryGetSuperUser(Request, out User))
@@ -3671,9 +3671,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Organizations         = User is not null
-                                        ? [.. User.Organizations(AccessLevel, Recursive)]
-                                        : [];
+            Organizations         = [.. User.Organizations(AccessLevel, Recursive)];
 
             ErrorResponseBuilder  = null;
 
@@ -6377,7 +6375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Parse JSON
 
-                    if (!request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                    if (!request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder))
                         return httpResponseBuilder;
 
                     if (!User.TryParseJSON(json,
@@ -6475,8 +6473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         out var httpUser,
                                         out var httpOrganizations,
                                         out var httpResponseBuilder,
-                                        Recursive: true) ||
-                        httpUser is null)
+                                        Recursive: true))
                     {
                         return httpResponseBuilder;
                     }
@@ -6595,8 +6592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
                                                       Access_Levels.ReadOnly,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -7008,8 +7004,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        out var superUser,
                                                        out var superUserOrganizations,
                                                        out var httpResponseBuilder,
-                                                       Recursive: true) ||
-                                       superUser is null)
+                                                       Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7020,8 +7015,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   if (!Request.ParseUserId(this,
                                                            out var userIdURL,
-                                                           out httpResponseBuilder) ||
-                                      !userIdURL.HasValue)
+                                                           out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7126,8 +7120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        out var superUser,
                                                        out var superUserOrganizations,
                                                        out var httpResponseBuilder,
-                                                       Recursive: true) ||
-                                       superUser is null)
+                                                       Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7138,8 +7131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   if (!Request.ParseUserId(this,
                                                            out var userIdURL,
-                                                           out httpResponseBuilder) ||
-                                       userIdURL is null)
+                                                           out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7233,8 +7225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
                                                       Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7246,9 +7237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseUser(this,
                                                          out var userIdURL,
                                                          out var user,
-                                                         out httpResponseBuilder) ||
-                                      !userIdURL.HasValue ||
-                                       user is null)
+                                                         out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7275,7 +7264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   #endregion
@@ -7413,8 +7402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpUser,
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -7426,9 +7414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseUser(this,
                                                          out var userIdURL,
                                                          out var user,
-                                                         out httpResponseBuilder) ||
-                                      !userIdURL.HasValue ||
-                                       user is null)
+                                                         out httpResponseBuilder))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -7488,8 +7474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpUser,
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -7540,8 +7525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
                                                       Access_Levels.ReadOnly,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7583,7 +7567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and new notifications...
 
-                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
+                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   String? ErrorString = null;
@@ -7732,8 +7716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
                                                       Access_Levels.ReadOnly,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -7775,7 +7758,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and new notifications...
 
-                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
+                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   String? ErrorString = null;
@@ -7916,8 +7899,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpUser,
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -7995,8 +7977,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpUser,
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -8008,9 +7989,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseUser(this,
                                                          out var userId,
                                                          out var user,
-                                                         out httpResponseBuilder) ||
-                                      !userId.HasValue ||
-                                       user is null)
+                                                         out httpResponseBuilder))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -8081,8 +8060,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpUser,
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -8094,9 +8072,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseUser(this,
                                                          out var userId,
                                                          out var user,
-                                                         out httpResponseBuilder) ||
-                                      !userId.HasValue ||
-                                       user is null)
+                                                         out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -8105,7 +8081,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON HTTP body...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   #region Parse APIKey    [mandatory]
@@ -8217,8 +8193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpUser,
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -8230,9 +8205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseUser(this,
                                                          out var userId,
                                                          out var user,
-                                                         out httpResponseBuilder) ||
-                                      !userId.HasValue ||
-                                       user is null)
+                                                         out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -8377,8 +8350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
                                                       AccessLevel: Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -8465,8 +8437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var httpOrganizations,
                                                       out var httpResponseBuilder,
                                                       AccessLevel: Access_Levels.ReadWrite,
-                                                      Recursive: true) ||
-                                      httpUser is null)
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -8719,7 +8690,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and create the new child organization...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   #region Parse new organization
@@ -8867,9 +8838,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseOrganization(this,
                                                                  out var organizationId,
                                                                  out var organization,
-                                                                 out httpResponseBuilder) ||
-                                      !organizationId.HasValue ||
-                                       organization is null)
+                                                                 out httpResponseBuilder))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -8963,9 +8932,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseOrganization(this,
                                                                  out var organizationId,
                                                                  out var organization,
-                                                                 out httpResponseBuilder) ||
-                                      !organizationId.HasValue ||
-                                       organization is null)
+                                                                 out httpResponseBuilder))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -9042,8 +9009,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   if (!Request.ParseOrganizationId(this,
                                                                    out var organizationIdURL,
-                                                                   out httpResponseBuilder) ||
-                                      !organizationIdURL.HasValue)
+                                                                   out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -9053,7 +9019,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and create the new child organization...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   #region Parse new child organization
@@ -9289,9 +9255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseOrganization(this,
                                                                  out var organizationIdURL,
                                                                  out var organization,
-                                                                 out httpResponseBuilder) ||
-                                      !organizationIdURL.HasValue ||
-                                       organization is null)
+                                                                 out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -9317,7 +9281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and create the new child organization...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   #region Parse updated organization
@@ -9422,9 +9386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseOrganization(this,
                                                                  out var organizationIdURL,
                                                                  out var organization,
-                                                                 out httpResponseBuilder) ||
-                                      !organizationIdURL.HasValue ||
-                                       organization is null)
+                                                                 out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -10229,9 +10191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseOrganization(this,
                                                                  out var organizationId,
                                                                  out var organization,
-                                                                 out httpResponseBuilder) ||
-                                      !organizationId.HasValue ||
-                                       organization is null)
+                                                                 out httpResponseBuilder))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -10296,9 +10256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!Request.ParseOrganization(this,
                                                                  out var organizationId,
                                                                  out var organization,
-                                                                 out httpResponseBuilder) ||
-                                      !organizationId.HasValue ||
-                                       organization is null)
+                                                                 out httpResponseBuilder))
                                   {
                                       return httpResponseBuilder;
                                   }
@@ -10324,7 +10282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and new notifications...
 
-                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
+                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder))
                                       return httpResponseBuilder;
 
                                   String? errorString = null;
@@ -10871,6 +10829,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPContentType.Image.PNG,
                 HTTPDelegate: request => {
 
+                    if (!OperatingSystem.IsWindows())
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(request) {
+                                HTTPStatusCode  = HTTPStatusCode.NotImplemented,
+                                Server          = HTTPServer?.HTTPServerName,
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
+
                     Byte x =  13;
                     Byte y =  13;
                     Byte t = 255;
@@ -10880,6 +10846,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var MaxValue  = ByteArray.Max();
 
                     var size = 10UL;
+
+                    // The platform analyzer cannot track the OperatingSystem.IsWindows() guard above across this lambda body.
+#pragma warning disable CA1416
                     var _Bitmap = new Bitmap((Int32) (x * size), (Int32) (y * size));
 
                     var _Pens = new Brush[] {
@@ -10903,6 +10872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var s = new MemoryStream();
                     _Bitmap.Save(s, ImageFormat.Png);
+#pragma warning restore CA1416
                     var f = s.ToArray();
 
                     return Task.FromResult(
@@ -13978,7 +13948,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                   Where (edge => edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf).
                                                                                                   Select(edge => edge.Target)))
                 {
-                    if (higherLevelOrganization != NoOwner)
+                    if (!ReferenceEquals(higherLevelOrganization, NoOwner))
                         allHisOrganizations.Add(higherLevelOrganization);
                 }
             }
@@ -21874,7 +21844,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         return Organization.
-                                   GetMeAndAllMyParents(parent => parent != NoOwner).
+                                   GetMeAndAllMyParents(parent => !ReferenceEquals(parent, NoOwner)).
                                    SelectMany          (parent => parent.User2OrganizationEdges).
                                    SelectMany          (edge   => edge.Source.GetNotificationsOf<T>(NotificationMessageTypes));
 
@@ -21926,7 +21896,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (organizations.TryGetValue(OrganizationId, out var organization))
                             return organization.
-                                       GetMeAndAllMyParents(parent => parent != NoOwner).
+                                       GetMeAndAllMyParents(parent => !ReferenceEquals(parent, NoOwner)).
                                        SelectMany          (parent => parent.User2OrganizationEdges).
                                        SelectMany          (edge   => edge.Source.GetNotificationsOf<T>(NotificationMessageTypes));
 
@@ -22570,10 +22540,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
             if (OnNotificationMessageAddedLocal is not null)
-                await OnNotificationMessageAddedLocal?.Invoke(Timestamp.Now,
-                                                              NotificationMessage,
-                                                              eventTrackingId,
-                                                              CurrentUserId);
+                await OnNotificationMessageAddedLocal.Invoke(Timestamp.Now,
+                                                             NotificationMessage,
+                                                             eventTrackingId,
+                                                             CurrentUserId);
 
             await SendNotifications(NotificationMessage,
                                     addUser_MessageType,
@@ -22683,7 +22653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
             if (OnNotificationMessageAddedLocal is not null)
-                await OnNotificationMessageAddedLocal?.Invoke(Timestamp.Now,
+                await OnNotificationMessageAddedLocal.Invoke(Timestamp.Now,
                                                       NotificationMessage,
                                                       eventTrackingId,
                                                       CurrentUserId);
@@ -22804,7 +22774,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
                 if (OnNotificationMessageUpdatedLocal is not null)
-                    await OnNotificationMessageUpdatedLocal?.Invoke(Timestamp.Now,
+                    await OnNotificationMessageUpdatedLocal.Invoke(Timestamp.Now,
                                                             NotificationMessage,
                                                             OldNotificationMessage,
                                                             eventTrackingId,
@@ -22825,7 +22795,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
                 if (OnNotificationMessageAddedLocal is not null)
-                    await OnNotificationMessageAddedLocal?.Invoke(Timestamp.Now,
+                    await OnNotificationMessageAddedLocal.Invoke(Timestamp.Now,
                                                           NotificationMessage,
                                                           eventTrackingId,
                                                           CurrentUserId);
@@ -22962,7 +22932,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
             if (OnNotificationMessageUpdatedLocal is not null)
-                await OnNotificationMessageUpdatedLocal?.Invoke(Timestamp.Now,
+                await OnNotificationMessageUpdatedLocal.Invoke(Timestamp.Now,
                                                         NotificationMessage,
                                                         OldNotificationMessage,
                                                         eventTrackingId,
@@ -23076,7 +23046,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
             if (OnNotificationMessageUpdatedLocal is not null)
-                await OnNotificationMessageUpdatedLocal?.Invoke(Timestamp.Now,
+                await OnNotificationMessageUpdatedLocal.Invoke(Timestamp.Now,
                                                         NewNotificationMessage,
                                                         OldNotificationMessage,
                                                         eventTrackingId,
@@ -23266,7 +23236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var OnNotificationMessageRemovedLocal = OnNotificationMessageRemoved;
                 if (OnNotificationMessageRemovedLocal is not null)
-                    await OnNotificationMessageRemovedLocal?.Invoke(Timestamp.Now,
+                    await OnNotificationMessageRemovedLocal.Invoke(Timestamp.Now,
                                                             NotificationMessage,
                                                             eventTrackingId,
                                                             CurrentUserId);
@@ -25255,7 +25225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Get all parent organizations now, because later
             // the --isChildOf--> edge will no longer be available!
-            var parentOrganizations = Organization.GetAllParents(parent => parent != NoOwner).
+            var parentOrganizations = Organization.GetAllParents(parent => !ReferenceEquals(parent, NoOwner)).
                                                    ToArray();
 
 

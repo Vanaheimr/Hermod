@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -57,6 +59,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP result contains errors.
         /// </summary>
+        [MemberNotNullWhen(true,  nameof(Error))]
+        [MemberNotNullWhen(false, nameof(Data))]
         public Boolean                HasErrors
 
             => Error is not null ||
