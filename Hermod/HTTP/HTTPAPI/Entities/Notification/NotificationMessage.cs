@@ -547,7 +547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public override Int32 CompareTo(Object Object)
+        public override Int32 CompareTo(Object? Object)
         {
 
             if (Object is null)
@@ -569,7 +569,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="NotificationMessage">An NotificationMessage object to compare with.</param>
-        public override Int32 CompareTo(NotificationMessage NotificationMessage)
+        public override Int32 CompareTo(NotificationMessage? NotificationMessage)
         {
 
             if ((Object?) NotificationMessage is null)
@@ -592,7 +592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
             if (Object is null)
@@ -614,7 +614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// </summary>
         /// <param name="NotificationMessage">An NotificationMessage to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public override Boolean Equals(NotificationMessage NotificationMessage)
+        public override Boolean Equals(NotificationMessage? NotificationMessage)
         {
 
             if ((Object?) NotificationMessage is null)
@@ -797,7 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             {
             }
 
-            public override int CompareTo(object obj)
+            public override int CompareTo(object? obj)
             {
                 return 0;
             }

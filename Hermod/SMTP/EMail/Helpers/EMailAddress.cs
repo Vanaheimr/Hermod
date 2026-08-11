@@ -233,11 +233,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                        : null,
 
                    SecretKeyRing is not null
-                       ? new JProperty("secretKeyRing",     null)
+                       ? new JProperty("secretKeyRing",     (Object?) null)
                        : null,
 
                    PublicKeyRing is not null
-                       ? new JProperty("publicKeyRing",     null)
+                       ? new JProperty("publicKeyRing",     (Object?) null)
                        : null
 
                );
@@ -486,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
             if (Object is null)

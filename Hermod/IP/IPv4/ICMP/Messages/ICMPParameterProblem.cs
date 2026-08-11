@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -34,9 +35,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
         public Byte[]                            Data                  { get; }
 
-        public ICMPPacket<ICMPParameterProblem>  ICMPPacket            { get; internal set; }
+        public ICMPPacket<ICMPParameterProblem>? ICMPPacket            { get; internal set; }
 
-        public IPv4Packet                        EmbeddedIPv4Packet    { get; internal set; }
+        public IPv4Packet?                       EmbeddedIPv4Packet    { get; internal set; }
 
         public Byte                              Pointer               { get; }
 
@@ -45,9 +46,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #region (private) ICMPParameterProblem(Data, IPv4Packet = null)
 
         private ICMPParameterProblem(Byte[]                            Data,
-                                     IPv4Packet                        EmbeddedIPv4Packet   = null,
+                                     IPv4Packet?                       EmbeddedIPv4Packet   = null,
                                      Byte                              Pointer              = 0,
-                                     ICMPPacket<ICMPParameterProblem>  ICMPPacket           = null)
+                                     ICMPPacket<ICMPParameterProblem>? ICMPPacket           = null)
         {
 
             this.Data                = Data;
@@ -63,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #region (static) Create(Data, ICMPPacket = null)
 
         public static ICMPParameterProblem Create(Byte[]      Data,
-                                              IPv4Packet  IPv4Packet = null)
+                                              IPv4Packet? IPv4Packet = null)
         {
 
             var echoReply =  new ICMPParameterProblem(Data,
@@ -88,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #endregion
 
 
-        public static Boolean TryParse(ICMPPacket Packet, out ICMPParameterProblem ICMPParameterProblem)
+        public static Boolean TryParse(ICMPPacket Packet, [NotNullWhen(true)] out ICMPParameterProblem? ICMPParameterProblem)
         {
 
             ICMPParameterProblem = null;
@@ -126,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         }
 
 
-        public static Boolean TryParse(Byte[] Data, out ICMPParameterProblem ICMPParameterProblem)
+        public static Boolean TryParse(Byte[] Data, [NotNullWhen(true)] out ICMPParameterProblem? ICMPParameterProblem)
         {
 
             ICMPParameterProblem = null;

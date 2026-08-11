@@ -246,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
         {
 
             if (Object is null)
@@ -268,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Tag">A tag object to compare with.</param>
-        public Int32 CompareTo(Tag Tag)
+        public Int32 CompareTo(Tag? Tag)
         {
 
             if ((Object?) Tag is null)
@@ -291,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
             if (Object is null)
@@ -314,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Tag">A tag to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(Tag Tag)
+        public Boolean Equals(Tag? Tag)
         {
 
             if ((Object?) Tag is null)

@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -1517,7 +1519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPRequestHeaderField<IEnumerable<IIPAddress>> X_Forwarded_For = new ("X-Forwarded-For",
                                                                                                       RequestPathSemantic.HopToHop,
                                                                                                       MultipleValuesAsList:  true,
-                                                                                                      StringParser:         (String s, out IEnumerable<IIPAddress>? o) => StringParsers.NullableListOf(s, IPAddress.TryParse, out o));
+                                                                                                      StringParser:         (String s, [NotNullWhen(true)] out IEnumerable<IIPAddress>? o) => StringParsers.NullableListOf(s, IPAddress.TryParse, out o));
 
         #endregion
 

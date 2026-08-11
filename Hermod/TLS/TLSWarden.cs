@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region CreateRemoteCertificateValidationFunc(Check)
 
-        public static Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, Boolean>? CreateRemoteCertificateValidationFunc(CheckResult Check)
+        public static Func<HttpRequestMessage?, X509Certificate2?, X509Chain?, SslPolicyErrors, Boolean>? CreateRemoteCertificateValidationFunc(CheckResult Check)
 
             => (message, cert, chain, errors) => {
 

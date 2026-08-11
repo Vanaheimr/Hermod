@@ -24,7 +24,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
     {
 
-        ICMPPacket<TICMPMessage> ICMPPacket { get; }
+        ICMPPacket<TICMPMessage>? ICMPPacket { get; }
 
         Byte[] GetBytes();
 

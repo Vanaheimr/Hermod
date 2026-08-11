@@ -20,6 +20,7 @@
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -235,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static SMSNotification Parse(JObject JSON)
         {
 
-            if (TryParse(JSON, out SMSNotification smsNotification))
+            if (TryParse(JSON, out var smsNotification))
                 return smsNotification;
 
             return null;
@@ -246,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region TryParse(JSON, out Notification)
 
-        public static Boolean TryParse(JObject JSON, out SMSNotification Notification)
+        public static Boolean TryParse(JObject JSON, [NotNullWhen(true)] out SMSNotification? Notification)
         {
 
             if (JSON["@context"]?.Value<String>() == JSONLDContext &&
@@ -320,15 +321,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region CompareTo(ANotification)
 
-        public override Int32 CompareTo(ANotification other)
-            => SortKey.CompareTo(other.SortKey);
+        public override Int32 CompareTo(ANotification? other)
+            => other is not null
+                   ? SortKey.CompareTo(other.SortKey)
+                   : throw new ArgumentNullException(nameof(other), "The given notification must not be null!");
 
         #endregion
 
         #region CompareTo(SMSNotification)
 
-        public Int32 CompareTo(SMSNotification other)
-            => PhoneNumber.CompareTo(other.PhoneNumber);
+        public Int32 CompareTo(SMSNotification? other)
+            => other is not null
+                   ? PhoneNumber.CompareTo(other.PhoneNumber)
+                   : throw new ArgumentNullException(nameof(other), "The given SMS notification must not be null!");
 
         #endregion
 
@@ -338,15 +343,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Equals(ANotification)
 
-        public override Boolean Equals(ANotification other)
-            => SortKey.Equals(other.SortKey);
+        public override Boolean Equals(ANotification? other)
+            => other is not null &&
+               SortKey.Equals(other.SortKey);
 
         #endregion
 
         #region Equals(SMSNotification)
 
-        public Boolean Equals(SMSNotification other)
-            => PhoneNumber.Equals(other.PhoneNumber);
+        public Boolean Equals(SMSNotification? other)
+            => other is not null &&
+               PhoneNumber.Equals(other.PhoneNumber);
 
         #endregion
 

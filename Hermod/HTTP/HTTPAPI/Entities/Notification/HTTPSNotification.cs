@@ -403,15 +403,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region CompareTo(ANotification)
 
-        public override Int32 CompareTo(ANotification other)
-            => SortKey.CompareTo(other.SortKey);
+        public override Int32 CompareTo(ANotification? other)
+            => other is not null
+                   ? SortKey.CompareTo(other.SortKey)
+                   : throw new ArgumentNullException(nameof(other), "The given notification must not be null!");
 
         #endregion
 
         #region CompareTo(HTTPSNotification)
 
-        public Int32 CompareTo(HTTPSNotification other)
+        public Int32 CompareTo(HTTPSNotification? other)
         {
+
+            if (other is null)
+                throw new ArgumentNullException(nameof(other), "The given HTTPS notification must not be null!");
 
             var c = RemoteURL.CompareTo(other.RemoteURL);
             if (c != 0)
@@ -429,16 +434,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Equals(ANotification)
 
-        public override Boolean Equals(ANotification other)
-            => SortKey.Equals(other.SortKey);
+        public override Boolean Equals(ANotification? other)
+            => other is not null &&
+               SortKey.Equals(other.SortKey);
 
         #endregion
 
         #region Equals(HTTPSNotification)
 
-        public Boolean Equals(HTTPSNotification other)
+        public Boolean Equals(HTTPSNotification? other)
 
-            => RemoteURL.Equals(other.RemoteURL) &&
+            => other is not null                 &&
+               RemoteURL.Equals(other.RemoteURL) &&
                Method.   Equals(other.Method);
 
         #endregion

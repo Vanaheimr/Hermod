@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -60,9 +61,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
         public Byte[]                                  Data                  { get; }
 
-        public ICMPPacket<ICMPDestinationUnreachable>  ICMPPacket            { get; internal set; }
+        public ICMPPacket<ICMPDestinationUnreachable>? ICMPPacket            { get; internal set; }
 
-        public IPv4Packet                              EmbeddedIPv4Packet    { get; internal set; }
+        public IPv4Packet?                             EmbeddedIPv4Packet    { get; internal set; }
 
         #endregion
 
@@ -71,8 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         private ICMPDestinationUnreachable(CodeEnum                                Code,
                                            UInt16                                  NextHopMTU,
                                            Byte[]                                  Data,
-                                           IPv4Packet                              EmbeddedIPv4Packet   = null,
-                                           ICMPPacket<ICMPDestinationUnreachable>  ICMPPacket           = null)
+                                           IPv4Packet?                             EmbeddedIPv4Packet   = null,
+                                           ICMPPacket<ICMPDestinationUnreachable>? ICMPPacket           = null)
         {
 
             this.Code                = Code;
@@ -92,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         public static ICMPDestinationUnreachable Create(CodeEnum                                Code,
                                                         UInt16                                  NextHopMTU,
                                                         Byte[]                                  Data,
-                                                        ICMPPacket<ICMPDestinationUnreachable>  ICMPPacket = null)
+                                                        ICMPPacket<ICMPDestinationUnreachable>? ICMPPacket = null)
         {
 
             var echoReply =  new ICMPDestinationUnreachable(Code,
@@ -108,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                                                                                   Payload:   echoReply);
 
             else
-                echoReply.ICMPPacket.Payload = echoReply;
+                echoReply.ICMPPacket?.Payload = echoReply;
 
             // Will calculate the checksum
             echoReply.ICMPPacket?.GetBytes();
@@ -162,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
         }
 
-        public static Boolean TryParse(CodeEnum Code, Byte[] Packet, out ICMPDestinationUnreachable ICMPDestinationUnreachable)
+        public static Boolean TryParse(CodeEnum Code, Byte[] Packet, [NotNullWhen(true)] out ICMPDestinationUnreachable? ICMPDestinationUnreachable)
         {
 
             try

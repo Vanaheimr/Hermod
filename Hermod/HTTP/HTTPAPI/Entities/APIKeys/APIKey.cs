@@ -440,9 +440,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Embedded">Whether this data structure is embedded into another data structure.</param>
         /// <param name="IncludeLastChange">Whether to include the lastChange timestamp of this object.</param>
         /// <param name="CustomAPIKeySerializer">A delegate to serialize custom API key JSON objects.</param>
-        public JObject ToJSON(Boolean                                  Embedded,
-                              Boolean                                  IncludeLastChange,
-                              CustomJObjectSerializerDelegate<APIKey>  CustomAPIKeySerializer)
+        public JObject ToJSON(Boolean                                   Embedded,
+                              Boolean                                   IncludeLastChange,
+                              CustomJObjectSerializerDelegate<APIKey>?  CustomAPIKeySerializer)
 
         {
 

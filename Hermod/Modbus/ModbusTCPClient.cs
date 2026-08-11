@@ -87,12 +87,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The default delay between transmission retries.
         /// </summary>
-        public static readonly TimeSpan  DefaultTransmissionRetryDelay   = TimeSpan.FromSeconds(1);
+        public new static readonly TimeSpan  DefaultTransmissionRetryDelay   = TimeSpan.FromSeconds(1);
 
         /// <summary>
         /// The default number of maximum transmission retries.
         /// </summary>
-        public const           UInt16    DefaultMaxNumberOfRetries       = 3;
+        public new const       UInt16    DefaultMaxNumberOfRetries       = 3;
 
         #endregion
 
@@ -1149,12 +1149,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             Text = Encoding.UTF8.GetString([.. response.EntirePDU.Skip(9).TakeWhile(b => b != 0x00)]);
 
             return Text.Length > 0;
-
-
-            return TryRead(StartingAddress,
-                           NumberOfRegisters,
-                           out Text,
-                           array => Encoding.UTF8.GetString([.. array.Skip(3).TakeWhile(b => b != 0x00)]));
 
         }
 

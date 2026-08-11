@@ -848,7 +848,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Int32 bufferSize       = 8192;
             using var bufferOwner  = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
             var       buffer       = bufferOwner.Memory;
-            var       dataLength   = 0;
             var       counter      = 1UL;
             var       sw           = Stopwatch.StartNew();
 

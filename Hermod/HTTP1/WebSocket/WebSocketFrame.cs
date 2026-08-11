@@ -1276,7 +1276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
-            static Boolean TryParseEnum<TEnum>(JObject json, String propertyName, out TEnum value, out String? errorResponse)
+            static Boolean TryParseEnum<TEnum>(JObject json, String propertyName, out TEnum value, [NotNullWhen(false)] out String? errorResponse)
                 where TEnum : struct
             {
 
@@ -1299,7 +1299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
-            static Boolean TryParseOptionalEnum<TEnum>(JObject json, String propertyName, TEnum defaultValue, out TEnum value, out String? errorResponse)
+            static Boolean TryParseOptionalEnum<TEnum>(JObject json, String propertyName, TEnum defaultValue, out TEnum value, [NotNullWhen(false)] out String? errorResponse)
                 where TEnum : struct
             {
 
@@ -1322,7 +1322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
-            static Boolean TryGetUInt64(JObject json, String propertyName, out UInt64 value, out String? errorResponse)
+            static Boolean TryGetUInt64(JObject json, String propertyName, out UInt64 value, [NotNullWhen(false)] out String? errorResponse)
             {
 
                 var token = GetToken(json, propertyName);

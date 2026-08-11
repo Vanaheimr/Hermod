@@ -28,7 +28,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Boolean UserGroupProviderDelegate(UserGroup_Id UserGroupId, out IUserGroup UserGroup);
+    public delegate Boolean UserGroupProviderDelegate(UserGroup_Id UserGroupId, out IUserGroup? UserGroup);
 
     public delegate JObject UserGroupToJSONDelegate(IUserGroup  UserGroup,
                                                     Boolean     Embedded                        = false,
@@ -1385,7 +1385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Compares two instances of this object.
             /// </summary>
             /// <param name="Object">An object to compare with.</param>
-            public override Int32 CompareTo(Object Object)
+            public override Int32 CompareTo(Object? Object)
             {
 
                 if (Object is UserGroup UserGroup)
@@ -1422,7 +1422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Object">An object to compare with.</param>
             /// <returns>true|false</returns>
-            public override Boolean Equals(Object Object)
+            public override Boolean Equals(Object? Object)
             {
 
                 if (Object is UserGroup UserGroup)

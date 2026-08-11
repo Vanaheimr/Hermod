@@ -20,6 +20,7 @@
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -341,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static TelegramGroupNotification Parse(JObject JSON)
         {
 
-            if (TryParse(JSON, out TelegramGroupNotification Notification))
+            if (TryParse(JSON, out var Notification))
                 return Notification;
 
             return null;
@@ -352,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region TryParse(JSON, out Notification)
 
-        public static Boolean TryParse(JObject JSON, out TelegramGroupNotification Notification)
+        public static Boolean TryParse(JObject JSON, [NotNullWhen(true)] out TelegramGroupNotification? Notification)
         {
 
             var GroupName = JSON["groupName"]?.Value<String>();
@@ -437,15 +438,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region CompareTo(ANotification)
 
-        public override Int32 CompareTo(ANotification other)
-            => SortKey.CompareTo(other.SortKey);
+        public override Int32 CompareTo(ANotification? other)
+            => other is not null
+                   ? SortKey.CompareTo(other.SortKey)
+                   : throw new ArgumentNullException(nameof(other), "The given notification must not be null!");
 
         #endregion
 
         #region CompareTo(TelegramGroupNotification)
 
-        public Int32 CompareTo(TelegramGroupNotification other)
-            => GroupName.CompareTo(other.GroupName);
+        public Int32 CompareTo(TelegramGroupNotification? other)
+            => other is not null
+                   ? GroupName.CompareTo(other.GroupName)
+                   : throw new ArgumentNullException(nameof(other), "The given Telegram group notification must not be null!");
 
         #endregion
 
@@ -455,15 +460,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Equals(ANotification)
 
-        public override Boolean Equals(ANotification other)
-            => SortKey.Equals(other.SortKey);
+        public override Boolean Equals(ANotification? other)
+            => other is not null &&
+               SortKey.Equals(other.SortKey);
 
         #endregion
 
         #region Equals(TelegramGroupNotification)
 
-        public Boolean Equals(TelegramGroupNotification other)
-            => GroupName.Equals(other.GroupName);
+        public Boolean Equals(TelegramGroupNotification? other)
+            => other is not null &&
+               GroupName.Equals(other.GroupName);
 
         #endregion
 

@@ -15,13 +15,19 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Diagnostics.CodeAnalysis;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     public static class HTTPAuthenticationExtensions
     {
 
-        public static Boolean TryParse(String authorizationString, out IHTTPAuthentication? HTTPAuthentication)
+        public static Boolean TryParse(String authorizationString, [NotNullWhen(true)] out IHTTPAuthentication? HTTPAuthentication)
         {
 
             if (authorizationString is not null)

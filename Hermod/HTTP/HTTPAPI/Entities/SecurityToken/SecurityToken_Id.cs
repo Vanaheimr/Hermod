@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
 
             => Object is SecurityToken_Id securityTokenId
                    ? CompareTo(securityTokenId)
@@ -331,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
 
             => Object is SecurityToken_Id securityTokenId &&
                    Equals(securityTokenId);

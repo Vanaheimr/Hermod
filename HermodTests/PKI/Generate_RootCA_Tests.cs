@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             Assert.That(nonCriticalOids.Contains(X509Extensions.AuthorityKeyIdentifier.Id), Is.True,                                                               "AuthorityKeyIdentifier should be non-critical.");
 
             // Extensions: SKI == AKI?
-            var akiKid                  = authorityKeyIdentifier?.GetKeyIdentifier();
+            var akiKid                  = authorityKeyIdentifier?.KeyIdentifier?.GetOctets();
             Assert.That(akiKid,                                                             Is.Not.Null,                                                           "AuthorityKeyIdentifier.keyIdentifier must not be null for a rootCA!");
             Assert.That(subjectKeyIdentifier.GetKeyIdentifier().ToHexString(),              Is.EqualTo(akiKid!.ToHexString()),                                     "Root SKI.keyIdentifier and AKI.keyIdentifier must match!");
 

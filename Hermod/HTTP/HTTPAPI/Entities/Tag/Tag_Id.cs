@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(TagId1, TagId2))
+            if (TagId1.Equals(TagId2))
                 return true;
 
             // If one is null, but not both, return false.
@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
         {
 
             if (Object is null)
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
             if (Object is null)

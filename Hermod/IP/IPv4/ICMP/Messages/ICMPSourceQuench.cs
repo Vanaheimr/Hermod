@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -34,17 +35,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
         public Byte[]                        Data          { get; }
 
-        public ICMPPacket<ICMPSourceQuench>  ICMPPacket    { get; internal set; }
+        public ICMPPacket<ICMPSourceQuench>? ICMPPacket    { get; internal set; }
 
-        public IPv4Packet                    EmbeddedIPv4Packet    { get; internal set; }
+        public IPv4Packet?                   EmbeddedIPv4Packet    { get; internal set; }
 
         #endregion
 
         #region (private) ICMPTTLExceeded(Data, IPv4Packet = null)
 
         private ICMPSourceQuench(Byte[]                        Data,
-                                 IPv4Packet                    EmbeddedIPv4Packet   = null,
-                                 ICMPPacket<ICMPSourceQuench>  ICMPPacket           = null)
+                                 IPv4Packet?                   EmbeddedIPv4Packet   = null,
+                                 ICMPPacket<ICMPSourceQuench>? ICMPPacket           = null)
         {
 
             this.Data                = Data;
@@ -59,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #region (static) Create(Data, ICMPPacket = null)
 
         public static ICMPSourceQuench Create(Byte[]      Data,
-                                              IPv4Packet  IPv4Packet = null)
+                                              IPv4Packet? IPv4Packet = null)
         {
 
             var echoReply =  new ICMPSourceQuench(Data,
@@ -84,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #endregion
 
 
-        public static Boolean TryParse(ICMPPacket Packet, out ICMPSourceQuench ICMPSourceQuench)
+        public static Boolean TryParse(ICMPPacket Packet, [NotNullWhen(true)] out ICMPSourceQuench? ICMPSourceQuench)
         {
 
             ICMPSourceQuench = null;
@@ -119,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         }
 
 
-        public static Boolean TryParse(Byte[] Data, out ICMPSourceQuench ICMPSourceQuench)
+        public static Boolean TryParse(Byte[] Data, [NotNullWhen(true)] out ICMPSourceQuench? ICMPSourceQuench)
         {
 
             ICMPSourceQuench = null;

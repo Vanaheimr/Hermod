@@ -279,8 +279,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
             if (Input.ExcludedIP?.    Any() == true) excluded .AddRange(BuildIPSubtrees   (Input.ExcludedIP));
 
             return new NameConstraints(
-                       permitted as IList<GeneralSubtree>,
-                       excluded  as IList<GeneralSubtree>
+                       new GeneralSubtrees(permitted),
+                       new GeneralSubtrees(excluded)
                    );
 
         }
@@ -1271,8 +1271,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
                             var features = new Asn1EncodableVector();
 
-                            if (TLSMustStaple   == true) features.Add(new DerInteger(5));   // status_request_v1
-                            if (TLSMustStapleV2 == true) features.Add(new DerInteger(17));  // status_request_v2
+                            if (TLSMustStaple   == true) features.Add(DerInteger.ValueOf(5));   // status_request_v1
+                            if (TLSMustStapleV2 == true) features.Add(DerInteger.ValueOf(17));  // status_request_v2
 
                             certGen.AddExtension(
                                 new DerObjectIdentifier("1.3.6.1.5.5.7.1.24"),
@@ -1485,7 +1485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                                password.ToCharArray(),
                                new SecureRandom());
 
-                    return new X509Certificate2(
+                    return X509CertificateLoader.LoadPkcs12(
                                pfxStream.ToArray(),
                                password,
                                X509KeyStorageFlags.Exportable

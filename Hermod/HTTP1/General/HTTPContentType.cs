@@ -19,6 +19,7 @@
 
 using System.Reflection;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -170,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParse(Text, out HTTPContentType)
 
-        public static Boolean TryParse(String Text, out HTTPContentType? HTTPContentType)
+        public static Boolean TryParse(String Text, [NotNullWhen(true)] out HTTPContentType? HTTPContentType)
         {
 
             try

@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     {
 
-        JObject ToJSON();
+        new JObject ToJSON();
 
     }
 

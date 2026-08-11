@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
             if (Object is null)
@@ -320,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPEvent">An HTTP event to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPEvent<T> HTTPEvent)
+        public Boolean Equals(HTTPEvent<T>? HTTPEvent)
         {
 
             if (HTTPEvent is null)
@@ -342,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
         {
 
             if (Object is null)
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="HTTPEvent">Another HTTP event.</param>
-        public Int32 CompareTo(HTTPEvent<T> HTTPEvent)
+        public Int32 CompareTo(HTTPEvent<T>? HTTPEvent)
         {
 
             if (HTTPEvent is null)
@@ -431,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return Id.HasValue && DataLines.Count > 0;
             }
 
-            public HTTPEvent<T>? Build<T>(Func<String, T> Parser)
+            public HTTPEvent<TData>? Build<TData>(Func<String, TData> Parser)
             {
 
                 if (!Id.HasValue || DataLines.Count == 0)
@@ -442,7 +442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var serializedData = String.Join("\n", DataLines);
 
-                    return new HTTPEvent<T>(
+                    return new HTTPEvent<TData>(
                                Id:                Id.Value,
                                Subevent:          Subevent ?? "message",
                                Data:              Parser(serializedData),

@@ -1345,7 +1345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                String              PropertyDescription,
                                                TryParser<T>        Parser,
                                                out IEnumerable<T>  Values,
-                                               out String          ErrorResponse)
+                                               out String?         ErrorResponse)
         {
 
             var _Values    = new List<T>();

@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
             if (Object is null)
@@ -358,9 +358,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="JSONArray">A JSON array.</param>
         /// <param name="Tags">The parsed tags.</param>
         /// <param name="ErrorResponse">An error message.</param>
-        public static Boolean TryParseJSON(JArray      JSONArray,
-                                           out Tags    Tags,
-                                           out String  ErrorResponse)
+        public static Boolean TryParseJSON(JArray       JSONArray,
+                                           out Tags?    Tags,
+                                           out String?  ErrorResponse)
         {
 
             try

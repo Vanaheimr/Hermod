@@ -69,8 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         public   IUser                   You     { get; }
-        public   IEnumerable<IUser>      Admins  { get; }
-        public   IEnumerable<IUser>      Members { get; }
+        public   new IEnumerable<IUser>  Admins  { get; }
+        public   new IEnumerable<IUser>  Members { get; }
 
         internal List<OrganizationInfo>  internalChilds;
         public IEnumerable<OrganizationInfo> Childs

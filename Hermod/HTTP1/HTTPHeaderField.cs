@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="String">The string to be parsed.</param>
         /// <param name="Integer">The parsed UInt64 value.</param>
-        public static Boolean NullableUInt64(String String, out UInt64? Integer)
+        public static Boolean NullableUInt64(String String, [NotNullWhen(true)] out UInt64? Integer)
         {
 
             if (UInt64.TryParse(String, out var uint64))
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="String">The string to be parsed.</param>
         /// <param name="TimeSpan">The parsed time span value.</param>
-        public static Boolean NullableTimeSpan(String String, out TimeSpan? TimeSpan)
+        public static Boolean NullableTimeSpan(String String, [NotNullWhen(true)] out TimeSpan? TimeSpan)
         {
 
             if (System.TimeSpan.TryParse(String, out var timeSpan))
@@ -675,7 +675,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPHeaderField<DateTimeOffset?> Date = new ("Date",
                                                                             HeaderFieldType.General,
                                                                             RequestPathSemantic.EndToEnd,
-                                                                            StringParser:     (String text, out DateTimeOffset? dt) => { if (DateTimeOffset.TryParse(text, out var dt2)) { dt = dt2; return true; } dt = null; return false; },
+                                                                            StringParser:     (String text, [NotNullWhen(true)] out DateTimeOffset? dt) => { if (DateTimeOffset.TryParse(text, out var dt2)) { dt = dt2; return true; } dt = null; return false; },
                                                                             ValueSerializer:  dateTime => dateTime.HasValue
                                                                                                   ? dateTime.Value.ToUniversalTime().ToString("r")
                                                                                                   : null);
@@ -1305,7 +1305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two HTTP header fields.
         /// </summary>
         /// <param name="Object">An HTTP header field to compare with.</param>
-        public Int32 CompareTo(Object? Object)
+        public new Int32 CompareTo(Object? Object)
 
             => Object is HTTPHeaderField<T> httpHeaderField
                    ? CompareTo(httpHeaderField)

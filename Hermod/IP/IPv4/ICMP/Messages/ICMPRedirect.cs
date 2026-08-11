@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -45,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         public CodeEnum                  Code                      { get; }
         public IPv4Address               GatewayInternetAddress    { get; }
         public Byte[]                    Data                      { get; }
-        public ICMPPacket<ICMPRedirect>  ICMPPacket                { get; internal set; }
+        public ICMPPacket<ICMPRedirect>? ICMPPacket                { get; internal set; }
 
         #endregion
 
@@ -54,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         private ICMPRedirect(CodeEnum                  Code,
                              IPv4Address               GatewayInternetAddress,
                              Byte[]                    Data,
-                             ICMPPacket<ICMPRedirect>  ICMPPacket = null)
+                             ICMPPacket<ICMPRedirect>? ICMPPacket = null)
         {
 
             this.Code                    = Code;
@@ -80,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         public static ICMPRedirect Create(CodeEnum                  Code,
                                           IPv4Address               GatewayInternetAddress,
                                           Byte[]                    Data,
-                                          ICMPPacket<ICMPRedirect>  ICMPPacket = null)
+                                          ICMPPacket<ICMPRedirect>? ICMPPacket = null)
         {
 
             var echoRedirect =  new ICMPRedirect(Code,
@@ -95,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                                                                        Payload:   echoRedirect);
 
             else
-                echoRedirect.ICMPPacket.Payload = echoRedirect;
+                echoRedirect.ICMPPacket?.Payload = echoRedirect;
 
             // Will calculate the checksum
             echoRedirect.ICMPPacket?.GetBytes();
@@ -107,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #endregion
 
 
-        public static Boolean TryParse(CodeEnum Code, Byte[] Packet, out ICMPRedirect ICMPRedirect)
+        public static Boolean TryParse(CodeEnum Code, Byte[] Packet, [NotNullWhen(true)] out ICMPRedirect? ICMPRedirect)
         {
 
             try

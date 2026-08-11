@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             if (password.Length > ipad.Length)
             {
-                var HashedPassword = new MD5CryptoServiceProvider().ComputeHash(password);
+                var HashedPassword = MD5.Create().ComputeHash(password);
                 Array.Copy(HashedPassword, ipad, HashedPassword.Length);
                 Array.Copy(HashedPassword, opad, HashedPassword.Length);
             }
@@ -103,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             byte[] digest;
 
-            using (var MD5 = new MD5CryptoServiceProvider())
+            using (var MD5 = System.Security.Cryptography.MD5.Create())
             {
                 MD5.TransformBlock     (ipad, 0, ipad.Length, null, 0);
                 MD5.TransformFinalBlock(token, startIndex, length);
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             #region Calculate the outer padding
 
             // oPAD (will use iPAD digest!)
-            using (var MD5 = new MD5CryptoServiceProvider())
+            using (var MD5 = System.Security.Cryptography.MD5.Create())
             {
                 MD5.TransformBlock     (opad, 0, opad.Length, null, 0);
                 MD5.TransformFinalBlock(digest, 0, digest.Length);

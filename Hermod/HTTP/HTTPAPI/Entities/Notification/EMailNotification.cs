@@ -21,6 +21,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -243,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static EMailNotification Parse(JObject JSON)
         {
 
-            if (TryParse(JSON, out EMailNotification Notification))
+            if (TryParse(JSON, out var Notification))
                 return Notification;
 
             return null;
@@ -254,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region TryParse(JSON, out Notification)
 
-        public static Boolean TryParse(JObject JSON, out EMailNotification Notification)
+        public static Boolean TryParse(JObject JSON, [NotNullWhen(true)] out EMailNotification? Notification)
         {
 
             if (JSON["@context"]?.Value<String>() == JSONLDContext &&
@@ -346,15 +347,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region CompareTo(ANotification)
 
-        public override Int32 CompareTo(ANotification other)
-            => SortKey.CompareTo(other.SortKey);
+        public override Int32 CompareTo(ANotification? other)
+            => other is not null
+                   ? SortKey.CompareTo(other.SortKey)
+                   : throw new ArgumentNullException(nameof(other), "The given notification must not be null!");
 
         #endregion
 
         #region CompareTo(EMailNotification)
 
-        public Int32 CompareTo(EMailNotification other)
-            => EMailAddress.CompareTo(other.EMailAddress);
+        public Int32 CompareTo(EMailNotification? other)
+            => other is not null
+                   ? EMailAddress.CompareTo(other.EMailAddress)
+                   : throw new ArgumentNullException(nameof(other), "The given e-mail notification must not be null!");
 
         #endregion
 
@@ -364,15 +369,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Equals(ANotification)
 
-        public override Boolean Equals(ANotification other)
-            => SortKey.Equals(other.SortKey);
+        public override Boolean Equals(ANotification? other)
+            => other is not null &&
+               SortKey.Equals(other.SortKey);
 
         #endregion
 
         #region Equals(EMailNotification)
 
-        public Boolean Equals(EMailNotification other)
-            => EMailAddress.Equals(other.EMailAddress);
+        public Boolean Equals(EMailNotification? other)
+            => other is not null &&
+               EMailAddress.Equals(other.EMailAddress);
 
         #endregion
 

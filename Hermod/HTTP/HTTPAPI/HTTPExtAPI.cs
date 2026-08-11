@@ -3140,8 +3140,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             return Task.Run(() => {
 
-                Response.AppendToLogfile(this.NotificationsPath +
-                                         RemoteHost + "-Responses-" + Request.Timestamp.ToString("yyyy-MM") + ".log");
+                _ = Response.AppendToLogfile(this.NotificationsPath +
+                                             RemoteHost + "-Responses-" + Request.Timestamp.ToString("yyyy-MM") + ".log");
 
             });
 
@@ -3704,7 +3704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) MixWithHTMLTemplate           (ResourceName, ResourceAssemblies)
 
-        protected virtual String MixWithHTMLTemplate(String ResourceName)
+        protected new virtual String MixWithHTMLTemplate(String ResourceName)
 
             => MixWithHTMLTemplate(
                    ResourceName,
@@ -3712,8 +3712,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    new Tuple<String, Assembly>(HTTPAPI.    HTTPRoot, typeof(HTTPAPI).    Assembly)
                );
 
-        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
-                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected new virtual String MixWithHTMLTemplate(String                            ResourceName,
+                                                         params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
             if (HTMLTemplate is not null)
@@ -3751,16 +3751,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) MixWithHTMLTemplate           (ResourceName, HTMLConverter, ResourceAssemblies)
 
-        protected virtual String MixWithHTMLTemplate(String                ResourceName,
-                                                     Func<String, String>  HTMLConverter)
+        protected new virtual String MixWithHTMLTemplate(String                ResourceName,
+                                                         Func<String, String>  HTMLConverter)
 
             => MixWithHTMLTemplate(ResourceName,
                                    HTMLConverter,
                                    new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
-                                                     Func<String, String>              HTMLConverter,
-                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected new virtual String MixWithHTMLTemplate(String                            ResourceName,
+                                                         Func<String, String>              HTMLConverter,
+                                                         params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
             if (HTMLTemplate is not null)
@@ -3798,19 +3798,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) MixWithHTMLTemplate           (Template, ResourceName, ResourceAssemblies)
 
-        protected virtual String MixWithHTMLTemplate(String   Template,
-                                                     String   ResourceName,
-                                                     String?  Content   = null)
+        protected new virtual String MixWithHTMLTemplate(String   Template,
+                                                         String   ResourceName,
+                                                         String?  Content   = null)
 
             => MixWithHTMLTemplate(Template,
                                    ResourceName,
                                    [ new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) ],
                                    Content);
 
-        protected virtual String MixWithHTMLTemplate(String                     Template,
-                                                     String                     ResourceName,
-                                                     Tuple<String, Assembly>[]  ResourceAssemblies,
-                                                     String?                    Content   = null)
+        protected new virtual String MixWithHTMLTemplate(String                     Template,
+                                                         String                     ResourceName,
+                                                         Tuple<String, Assembly>[]  ResourceAssemblies,
+                                                         String?                    Content   = null)
         {
 
             var htmlStream = new MemoryStream();
@@ -7610,7 +7610,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           {
 
                                               case TelegramNotification.JSONLDContext:
-                                                  if (!TelegramNotification.TryParse(JSONObject, out TelegramNotification telegramNotification))
+                                                  if (!TelegramNotification.TryParse(JSONObject, out var telegramNotification))
                                                   {
                                                       ErrorString = "Could not parse Telegram notification!";
                                                       goto fail;
@@ -7619,7 +7619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case TelegramGroupNotification.JSONLDContext:
-                                                  if (!TelegramGroupNotification.TryParse(JSONObject, out TelegramGroupNotification telegramGroupNotification))
+                                                  if (!TelegramGroupNotification.TryParse(JSONObject, out var telegramGroupNotification))
                                                   {
                                                       ErrorString = "Could not parse Telegram group notification!";
                                                       goto fail;
@@ -7628,7 +7628,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case SMSNotification.JSONLDContext:
-                                                  if (!SMSNotification.TryParse(JSONObject, out SMSNotification   smsNotification))
+                                                  if (!SMSNotification.TryParse(JSONObject, out var smsNotification))
                                                   {
                                                       ErrorString = "Could not parse sms notification!";
                                                       goto fail;
@@ -7646,7 +7646,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case EMailNotification.JSONLDContext:
-                                                  if (!EMailNotification.TryParse(JSONObject, out EMailNotification eMailNotification))
+                                                  if (!EMailNotification.TryParse(JSONObject, out var eMailNotification))
                                                   {
                                                       ErrorString = "Could not parse e-mail notification!";
                                                       goto fail;
@@ -12919,7 +12919,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case TelegramNotification.JSONLDContext:
 
-                            if (TelegramNotification.TryParse(Data, out TelegramNotification telegramNotification))
+                            if (TelegramNotification.TryParse(Data, out var telegramNotification))
                             {
                                 user?.        AddNotification(telegramNotification);
                                 organization?.AddNotification(telegramNotification);
@@ -12933,7 +12933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case TelegramGroupNotification.JSONLDContext:
 
-                            if (TelegramGroupNotification.TryParse(Data, out TelegramGroupNotification telegramGroupNotification))
+                            if (TelegramGroupNotification.TryParse(Data, out var telegramGroupNotification))
                             {
                                 user?.        AddNotification(telegramGroupNotification);
                                 organization?.AddNotification(telegramGroupNotification);
@@ -12947,7 +12947,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case SMSNotification.JSONLDContext:
 
-                            if (SMSNotification.TryParse(Data, out SMSNotification smsNotification))
+                            if (SMSNotification.TryParse(Data, out var smsNotification))
                             {
                                 user?.        AddNotification(smsNotification);
                                 organization?.AddNotification(smsNotification);
@@ -12975,7 +12975,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case EMailNotification.JSONLDContext:
 
-                            if (EMailNotification.TryParse(Data, out EMailNotification emailNotification))
+                            if (EMailNotification.TryParse(Data, out var emailNotification))
                             {
                                 user?.        AddNotification(emailNotification);
                                 organization?.AddNotification(emailNotification);
@@ -13061,7 +13061,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case TelegramNotification.JSONLDContext:
 
-                            if (TelegramNotification.TryParse(Data, out TelegramNotification telegramNotification))
+                            if (TelegramNotification.TryParse(Data, out var telegramNotification))
                             {
 
                                 if (user         is not null)
@@ -13080,7 +13080,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case TelegramGroupNotification.JSONLDContext:
 
-                            if (TelegramGroupNotification.TryParse(Data, out TelegramGroupNotification telegramGroupNotification))
+                            if (TelegramGroupNotification.TryParse(Data, out var telegramGroupNotification))
                             {
 
                                 if (user         is not null)
@@ -13099,7 +13099,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case SMSNotification.JSONLDContext:
 
-                            if (SMSNotification.TryParse(Data, out SMSNotification smsNotification))
+                            if (SMSNotification.TryParse(Data, out var smsNotification))
                             {
 
                                 if (user         is not null)
@@ -13137,7 +13137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case EMailNotification.JSONLDContext:
 
-                            if (EMailNotification.TryParse(Data, out EMailNotification emailNotification))
+                            if (EMailNotification.TryParse(Data, out var emailNotification))
                             {
 
                                 if (user         is not null)
@@ -23444,7 +23444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="NotificationMessageId">The unique identification of an notification message.</param>
         /// <param name="NotificationMessage">The notification message.</param>
-        protected Boolean _TryGetNotificationMessage(NotificationMessage_Id NotificationMessageId, out NotificationMessage NotificationMessage)
+        protected Boolean _TryGetNotificationMessage(NotificationMessage_Id NotificationMessageId, [NotNullWhen(true)] out NotificationMessage? NotificationMessage)
         {
 
             if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage? notificationMessage))
@@ -23465,14 +23465,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NotificationMessageId">The unique identification of an notification message.</param>
         /// <param name="NotificationMessage">The notification message.</param>
         public Boolean TryGetNotificationMessage(NotificationMessage_Id   NotificationMessageId,
-                                         out NotificationMessage  NotificationMessage)
+                                         [NotNullWhen(true)] out NotificationMessage?  NotificationMessage)
         {
 
             try
             {
 
                 if (NotificationMessagesSemaphore.Wait(SemaphoreSlimTimeout) &&
-                    _TryGetNotificationMessage(NotificationMessageId, out NotificationMessage notificationMessage))
+                    _TryGetNotificationMessage(NotificationMessageId, out var notificationMessage))
                 {
                     NotificationMessage = notificationMessage;
                     return true;
@@ -25837,8 +25837,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationName">The name of a organization (might not be unique).</param>
         /// <param name="Organizations">An enumeration of matching organizations.</param>
-        public Boolean TrySearchOrganizationsByName(I18NString                      OrganizationName,
-                                                    out IEnumerable<IOrganization>  Organizations)
+        public Boolean TrySearchOrganizationsByName(I18NString                                           OrganizationName,
+                                                    [NotNullWhen(true)] out IEnumerable<IOrganization>?  Organizations)
         {
 
             if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -25872,9 +25872,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationName">The name of a organization (might not be unique).</param>
         /// <param name="Organizations">An enumeration of matching organizations.</param>
-        public Boolean TrySearchOrganizationsByName(String                          OrganizationName,
-                                                    out IEnumerable<IOrganization>  Organizations,
-                                                    StringComparison                ComparisonType   = StringComparison.OrdinalIgnoreCase)
+        public Boolean TrySearchOrganizationsByName(String                                               OrganizationName,
+                                                    [NotNullWhen(true)] out IEnumerable<IOrganization>?  Organizations,
+                                                    StringComparison                                     ComparisonType   = StringComparison.OrdinalIgnoreCase)
         {
 
             if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
@@ -27113,7 +27113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationGroupId">The unique identification of an organization group.</param>
         /// <param name="OrganizationGroup">The organization group.</param>
-        protected internal Boolean _TryGetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId, out OrganizationGroup OrganizationGroup)
+        protected internal Boolean _TryGetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId, [NotNullWhen(true)] out OrganizationGroup? OrganizationGroup)
         {
 
             if (!OrganizationGroupId.IsNullOrEmpty && organizationGroups.TryGetValue(OrganizationGroupId, out OrganizationGroup? organizationGroup))
@@ -27133,15 +27133,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="OrganizationGroupId">The unique identification of an organization group.</param>
         /// <param name="OrganizationGroup">The organization group.</param>
-        public Boolean TryGetOrganizationGroup(OrganizationGroup_Id   OrganizationGroupId,
-                                               out OrganizationGroup  OrganizationGroup)
+        public Boolean TryGetOrganizationGroup(OrganizationGroup_Id                        OrganizationGroupId,
+                                               [NotNullWhen(true)] out OrganizationGroup?  OrganizationGroup)
         {
 
             try
             {
 
                 if (OrganizationGroupsSemaphore.Wait(SemaphoreSlimTimeout) &&
-                    _TryGetOrganizationGroup(OrganizationGroupId, out OrganizationGroup organizationGroup))
+                    _TryGetOrganizationGroup(OrganizationGroupId, out var organizationGroup))
                 {
                     OrganizationGroup = organizationGroup;
                     return true;

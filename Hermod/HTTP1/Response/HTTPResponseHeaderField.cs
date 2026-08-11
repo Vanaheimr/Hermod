@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -95,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPMethod>> Allow = new ("Allow",
                                                                                              RequestPathSemantic.EndToEnd,
                                                                                              MultipleValuesAsList:  true,
-                                                                                             StringParser:         (String s, out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSetOf(s, HTTPMethod.TryParse, out o));
+                                                                                             StringParser:         (String s, [NotNullWhen(true)] out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSetOf(s, HTTPMethod.TryParse, out o));
 
         #endregion
 
@@ -252,8 +254,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Keep-Alive: timeout=10, max=5</example>
         /// <seealso cref="http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01.html"/>
-        public static readonly HTTPResponseHeaderField<KeepAliveType> KeepAlive = new ("Keep-Alive",
-                                                                                       RequestPathSemantic.HopToHop);
+        public new static readonly HTTPResponseHeaderField<KeepAliveType> KeepAlive = new ("Keep-Alive",
+                                                                                           RequestPathSemantic.HopToHop);
 
         #endregion
 
@@ -535,7 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPMethod>> AccessControlAllowMethods = new ("Access-Control-Allow-Methods",
                                                                                                                  RequestPathSemantic.EndToEnd,
                                                                                                                  MultipleValuesAsList:  true,
-                                                                                                                 StringParser:         (String s, out IEnumerable<HTTPMethod> o) => StringParsers.NullableHashSetOf(s, HTTPMethod.TryParse, out o));
+                                                                                                                 StringParser:         (String s, [NotNullWhen(true)] out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSetOf(s, HTTPMethod.TryParse, out o));
 
         #endregion
 

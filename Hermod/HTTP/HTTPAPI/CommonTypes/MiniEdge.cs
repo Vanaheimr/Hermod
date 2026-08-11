@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
         {
 
             if (Object is null)
@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="MiniEdge">A miniedge to compare with.</param>
-        public Int32 CompareTo(MiniEdge<TSource, TEdge, TTarget> MiniEdge)
+        public Int32 CompareTo(MiniEdge<TSource, TEdge, TTarget>? MiniEdge)
         {
 
             if ((Object?)MiniEdge is null)
@@ -170,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
         {
 
             if (Object is null)
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="MiniEdge">A miniedge to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(MiniEdge<TSource, TEdge, TTarget> MiniEdge)
+        public Boolean Equals(MiniEdge<TSource, TEdge, TTarget>? MiniEdge)
         {
 
             if ((Object?)MiniEdge is null)

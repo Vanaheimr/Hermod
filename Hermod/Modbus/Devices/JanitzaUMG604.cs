@@ -84,15 +84,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                 return DateTimeOffset.UnixEpoch.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt64(response.EntirePDU, 9)));
 
-
-
-                if (ModbusClient.TryReadDateTime32(Addr.SYSTIME, out var value))
-                    return value;
-
-                Debug.Print("Could not read SysTime!");
-
-                return DateTimeOffset.MinValue;
-
             }
         }
 
@@ -108,15 +99,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 var response = ModbusClient.ReadHoldingRegisters(Addr.SYSTIME, 2).Result;
 
                 return DateTimeOffset.UnixEpoch.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(response.EntirePDU, 9)));
-
-
-
-                if (ModbusClient.TryReadDateTime32(Addr.SYSTIME, out var value))
-                    return value;
-
-                Debug.Print("Could not read SysTime!");
-
-                return DateTimeOffset.MinValue;
 
             }
         }
@@ -158,13 +140,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 var response = ModbusClient.ReadHoldingRegisters(10178, 2).Result;
 
                 return System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(response.EntirePDU, 9));
-
-                if (ModbusClient.ReadInt32(10178, out var value))
-                    return value;
-
-                Debug.Print("Could not read the device productnumber!");
-
-                return -1;
 
             }
         }
@@ -237,15 +212,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 var response = ModbusClient.ReadHoldingRegisters(19000, 40).Result;
 
                 return System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(response.EntirePDU, 9));
-
-
-
-                if (ModbusClient.ReadInt16(6, out var value))
-                    return value;
-
-                Debug.Print("Could not read the device day!");
-
-                return -1;
 
             }
         }

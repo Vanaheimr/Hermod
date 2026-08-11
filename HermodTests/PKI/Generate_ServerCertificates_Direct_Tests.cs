@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             Assert.That(nonCriticalOids.Contains(X509Extensions.AuthorityKeyIdentifier.Id), Is.True,                                                               "AuthorityKeyIdentifier should be non-critical.");
 
             var issuerKeyIdentifier     = PKIFactory.ParseAuthorityKeyIdentifier(IssuerCertificate);
-            Assert.That(authorityKeyIdentifier!.GetKeyIdentifier().ToHexString(),           Is.EqualTo(issuerKeyIdentifier!.GetKeyIdentifier().ToHexString()),     "AKI.keyIdentifier must match the rootCA SKI.keyIdentifier!");
+            Assert.That(authorityKeyIdentifier!.KeyIdentifier?.GetOctets().ToHexString(),   Is.EqualTo(issuerKeyIdentifier!.KeyIdentifier?.GetOctets().ToHexString()),     "AKI.keyIdentifier must match the rootCA SKI.keyIdentifier!");
 
             // Extended Key Usage
             var ekuOctets    = ServerCertificate.GetExtensionValue(X509Extensions.ExtendedKeyUsage);
