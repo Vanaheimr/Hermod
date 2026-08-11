@@ -21,7 +21,19 @@ concurrency:
 
 jobs:
   full-suite:
-    runs-on: windows-latest
+    # The same two-leg matrix as ci.yml: windows-latest, and Debian 13 in a
+    # bare debian:13 container. See ci.yml for why it is exactly these two —
+    # in short: Schannel/CryptoAPI vs OpenSSL chain building, and the SDK
+    # image being Debian-12-based with an OpenSSL too old for ML-KEM.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+            container: debian:13
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
       # Same side-by-side checkout as ci.yml: Hermod.csproj and
       # HermodTests.csproj reference ..\..\Styx\... — a SIBLING directory —
@@ -34,6 +46,15 @@ jobs:
         with:
           repository: Vanaheimr/Styx
           path: Styx
+
+      # The bare debian:13 container needs the .NET runtime prerequisites before
+      # setup-dotnet installs the SDK: curl for the dotnet-install script itself,
+      # ICU and tzdata for globalization, OpenSSL (3.5, which is what makes
+      # ML-KEM work) for crypto, ca-certificates for NuGet over HTTPS. Package
+      # names verified on Debian 13 (trixie).
+      - name: Install .NET prerequisites (Debian container)
+        if: runner.os == 'Linux'
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates curl libicu76 libssl3t64 libstdc++6 tzdata
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -73,7 +94,7 @@ jobs:
           dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build \
             --filter "TestCategory=LiveDNS" --logger "console;verbosity=normal" 2>&1 | tee livedns.txt
           {
-            echo '## Live DNS probes (informational)'
+            echo '## Live DNS probes (informational, ${{ runner.os }})'
             echo
             echo 'Network-dependent: failures here reflect runner egress, not our resolver.'
             echo
