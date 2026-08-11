@@ -1,0 +1,4 @@
+# Shell scripts MUST stay LF, otherwise they fail to run under WSL/bash ("\r: command not found").
+# Relevant for the SSH interop harness (HermodTests/SSH/interop/setup-wsl.sh), which is invoked
+# from Windows via `wsl.exe -e`.
+*.sh    text eol=lf
