@@ -61,12 +61,13 @@ jobs:
           path: Styx
 
       # The bare debian:13 container needs the .NET runtime prerequisites before
-      # setup-dotnet installs the SDK: ICU and tzdata for globalization, OpenSSL
-      # (3.5, which is what makes ML-KEM work) for crypto, ca-certificates for
-      # NuGet over HTTPS. Package names verified on Debian 13 (trixie).
+      # setup-dotnet installs the SDK: curl for the dotnet-install script itself,
+      # ICU and tzdata for globalization, OpenSSL (3.5, which is what makes
+      # ML-KEM work) for crypto, ca-certificates for NuGet over HTTPS. Package
+      # names verified on Debian 13 (trixie).
       - name: Install .NET prerequisites (Debian container)
         if: runner.os == 'Linux'
-        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates libicu76 libssl3t64 libstdc++6 tzdata
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates curl libicu76 libssl3t64 libstdc++6 tzdata
 
       - uses: actions/setup-dotnet@v6
         with:
