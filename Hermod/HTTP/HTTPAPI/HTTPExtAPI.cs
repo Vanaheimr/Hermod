@@ -1361,6 +1361,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public User?                          Robot                              { get; }
 
         /// <summary>
+        /// The virtual 'robot' user, that must be configured for sending e-mails.
+        /// </summary>
+        private User                          RequiredRobot
+            => Robot ?? throw new InvalidOperationException("The HTTP API robot must be configured for sending e-mails!");
+
+        /// <summary>
+        /// The external DNS name, that must be configured for links within e-mails.
+        /// </summary>
+        private String                        RequiredExternalDNSName
+            => ExternalDNSName ?? throw new InvalidOperationException("The external DNS name must be configured for sending e-mails!");
+
+        /// <summary>
         /// The passphrase of the PGP/GPG secret key of the API.
         /// </summary>
         public String                         APIRobotGPGPassphrase              { get; }
@@ -2457,7 +2469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //
             //                            // lowStorage_MessageType
             //                            await SMTPClient.Send(new HTMLEMailBuilder {
-            //                                                         From           = Robot.EMail,
+            //                                                         From           = RequiredRobot.EMail,
             //                                                         To             = EMailAddressList.Create(adminOrganization.Admins.Select(admin => admin.EMail)),
             //                                                         Passphrase     = APIRobotGPGPassphrase,
             //                                                         Subject        = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
@@ -2817,34 +2829,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Languages          Language,
                                                        EventTracking_Id?  EventTrackingId)
 
-            =>  new HTMLEMailBuilder() {
+        {
 
-                    From           = Robot.EMail,
+            var robot            = Robot           ?? throw new InvalidOperationException("The HTTP API robot must be configured for sending 'new user sign up' e-mails!");
+            var externalDNSName  = ExternalDNSName ?? throw new InvalidOperationException("The external DNS name must be configured for sending 'new user sign up' e-mails!");
+
+            return new HTMLEMailBuilder() {
+
+                    From           = robot.EMail,
                     To             = EMailRecipients,
                     Passphrase     = APIRobotGPGPassphrase,
                     Subject        = "Your " + HTTPServiceName + " account has been created",
 
                     HTMLText       = String.Concat(
-                                         HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System),
+                                         HTMLEMailHeader(externalDNSName, BasePath, EMailType.System),
                                              "Dear ", User.Name, ",<br /><br />" + Environment.NewLine,
                                              "your " + HTTPServiceName + " account has been created!<br /><br />" + Environment.NewLine,
                                              "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : String.Empty) + "...<br /><br />" + Environment.NewLine,
-                                             "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine,
-                                         HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                             "<a href=\"https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine,
+                                         HTMLEMailFooter(externalDNSName, BasePath, EMailType.System)
                                      ),
 
                     PlainText      = String.Concat(
-                                         TextEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
+                                         TextEMailHeader(externalDNSName, BasePath, EMailType.System) +
                                              "Dear ", User.Name, ", " + Environment.NewLine +
                                              "your " + HTTPServiceName + " account has been created!" + Environment.NewLine + Environment.NewLine +
                                              "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : String.Empty) + "..." + Environment.NewLine + Environment.NewLine +
-                                             "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) +
-                                         TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                             "https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) +
+                                         TextEMailFooter(externalDNSName, BasePath, EMailType.System)
                                     ),
 
                     SecurityLevel  = EMailSecurity.autosign
 
                 }.AsImmutable;
+
+        }
 
         #endregion
 
@@ -2858,33 +2877,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         Languages          Language,
                                                         EventTracking_Id?  EventTrackingId)
 
-            => new HTMLEMailBuilder() {
+        {
 
-                   From           = Robot.EMail,
+            var robot            = Robot           ?? throw new InvalidOperationException("The HTTP API robot must be configured for sending 'new user welcome' e-mails!");
+            var externalDNSName  = ExternalDNSName ?? throw new InvalidOperationException("The external DNS name must be configured for sending 'new user welcome' e-mails!");
+
+            return new HTMLEMailBuilder() {
+
+                   From           = robot.EMail,
                    To             = EMailRecipients,
                    Passphrase     = APIRobotGPGPassphrase,
                    Subject        = "Welcome to " + HTTPServiceName + "...",
 
                    HTMLText       = String.Concat(
-                                        HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
+                                        HTMLEMailHeader(externalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + ",<br /><br />" + Environment.NewLine +
                                             "welcome to your new " + HTTPServiceName + " account!<br /><br />" + Environment.NewLine +
-                                            "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/login\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Login</a>" + Environment.NewLine +
-                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                            "<a href=\"https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/login\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Login</a>" + Environment.NewLine +
+                                        HTMLEMailFooter(externalDNSName, BasePath, EMailType.System)
                                     ),
 
                    PlainText      = String.Concat(
-                                        TextEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
+                                        TextEMailHeader(externalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + "," + Environment.NewLine +
                                             "welcome to your new " + HTTPServiceName + " account!" + Environment.NewLine + Environment.NewLine +
-                                            "Please login via: https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/login" + Environment.NewLine + Environment.NewLine +
-                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                            "Please login via: https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/login" + Environment.NewLine + Environment.NewLine +
+                                        TextEMailFooter(externalDNSName, BasePath, EMailType.System)
                                     ),
 
                    SecurityLevel  = EMailSecurity.autosign
 
                }.//AddAttachment("Hi there!".ToUTF8Bytes(), "welcome.txt", MailContentTypes.text_plain).
                  AsImmutable;
+
+        }
 
         #endregion
 
@@ -2900,34 +2926,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Languages          Language,
                                                        EventTracking_Id?  EventTrackingId)
 
-            => new HTMLEMailBuilder() {
+        {
 
-                   From           = Robot.EMail,
+            var robot            = Robot           ?? throw new InvalidOperationException("The HTTP API robot must be configured for sending 'reset password' e-mails!");
+            var externalDNSName  = ExternalDNSName ?? throw new InvalidOperationException("The external DNS name must be configured for sending 'reset password' e-mails!");
+
+            return new HTMLEMailBuilder() {
+
+                   From           = robot.EMail,
                    To             = EMailRecipients,
                    Passphrase     = APIRobotGPGPassphrase,
                    Subject        = HTTPServiceName + " password reset...",
 
                    HTMLText       = String.Concat(
-                                        HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
+                                        HTMLEMailHeader(externalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + ",<br /><br />" + Environment.NewLine +
                                             "someone - hopefully you - requested us to change your password!<br />" + Environment.NewLine +
                                             "If this request was your intention, please click the following link to set a new password...<br /><br />" + Environment.NewLine +
-                                            "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine +
-                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                            "<a href=\"https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine +
+                                        HTMLEMailFooter(externalDNSName, BasePath, EMailType.System)
                                     ),
 
                    PlainText      = String.Concat(
-                                        TextEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
+                                        TextEMailHeader(externalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + "," + Environment.NewLine +
                                             "someone - hopefully you - requested us to change your password!" + Environment.NewLine +
                                             "If this request was your intention, please click the following link to set a new password..." + Environment.NewLine + Environment.NewLine +
-                                            "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) +
-                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                            "https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) +
+                                        TextEMailFooter(externalDNSName, BasePath, EMailType.System)
                                     ),
 
                    SecurityLevel  = EMailSecurity.autosign
 
                }.AsImmutable;
+
+        }
 
         #endregion
 
@@ -2941,32 +2974,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          Languages          Language,
                                                          EventTracking_Id?  EventTrackingId)
 
-            => new HTMLEMailBuilder() {
+        {
 
-                   From           = Robot.EMail,
+            var robot            = Robot           ?? throw new InvalidOperationException("The HTTP API robot must be configured for sending 'password changed' e-mails!");
+            var externalDNSName  = ExternalDNSName ?? throw new InvalidOperationException("The external DNS name must be configured for sending 'password changed' e-mails!");
+
+            return new HTMLEMailBuilder() {
+
+                   From           = robot.EMail,
                    To             = EMailRecipients,
                    Passphrase     = APIRobotGPGPassphrase,
                    Subject        = "Your " + HTTPServiceName + " password changed...",
 
                    HTMLText       = String.Concat(
-                                        HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
+                                        HTMLEMailHeader(externalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + ",<br /><br />" + Environment.NewLine +
                                             "your password has successfully been changed!<br />" + Environment.NewLine +
-                                            "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/login?" + User.Id + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Login</a>" + Environment.NewLine +
-                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                            "<a href=\"https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/login?" + User.Id + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Login</a>" + Environment.NewLine +
+                                        HTMLEMailFooter(externalDNSName, BasePath, EMailType.System)
                                     ),
 
                    PlainText      = String.Concat(
-                                        TextEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
+                                        TextEMailHeader(externalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + "," + Environment.NewLine +
                                             "your password has successfully been changed!" + Environment.NewLine +
-                                            "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/login?" + User.Id +
-                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
+                                            "https://" + externalDNSName + (BasePath?.ToString() ?? "") + "/login?" + User.Id +
+                                        TextEMailFooter(externalDNSName, BasePath, EMailType.System)
                                     ),
 
                    SecurityLevel  = EMailSecurity.autosign
 
                }.AsImmutable;
+
+        }
 
         #endregion
 
@@ -13897,9 +13937,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected virtual String UserHTMLInfo(IUser User)
 
             => String.Concat(User.Name.IsNotNullOrEmpty()
-                                 ? String.Concat("<a href=\"https://", ExternalDNSName, BasePath, "/users/", User.Id, "\">", User.Name, "</a> ",
-                                                "(<a href=\"https://", ExternalDNSName, BasePath, "/users/", User.Id, "\">", User.Id,   "</a>)")
-                                 : String.Concat("<a href=\"https://", ExternalDNSName, BasePath, "/users/", User.Id, "\">", User.Id,   "</a>"));
+                                 ? String.Concat("<a href=\"https://", RequiredExternalDNSName, BasePath, "/users/", User.Id, "\">", User.Name, "</a> ",
+                                                "(<a href=\"https://", RequiredExternalDNSName, BasePath, "/users/", User.Id, "\">", User.Id,   "</a>)")
+                                 : String.Concat("<a href=\"https://", RequiredExternalDNSName, BasePath, "/users/", User.Id, "\">", User.Id,   "</a>"));
 
         protected virtual String UserTextInfo(IUser User)
 
@@ -14051,7 +14091,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //        if (messageTypes.Contains(addUser_MessageType))
                 //        {
                 //            SendSMS(String.Concat("User ", UserTextInfo(User), " was successfully added. ",
-                //                                  "https://", ExternalDNSName, BasePath, "/users/", User.Id),
+                //                                  "https://", RequiredExternalDNSName, BasePath, "/users/", User.Id),
                 //                    AllSMSNotifications.Select(smsPhoneNumber => smsPhoneNumber.PhoneNumber.ToString()).ToArray(),
                 //                    SMSSenderName);
                 //        }
@@ -14059,7 +14099,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //        if (messageTypes.Contains(updateUser_MessageType))
                 //        {
                 //            SendSMS(String.Concat("User ", UserTextInfo(User), " information had been successfully updated. ",
-                //                                  "https://", ExternalDNSName, BasePath, "/users/", User.Id),
+                //                                  "https://", RequiredExternalDNSName, BasePath, "/users/", User.Id),
                 //                    AllSMSNotifications.Select(smsPhoneNumber => smsPhoneNumber.PhoneNumber.ToString()).ToArray(),
                 //                    SMSSenderName);
                 //        }
@@ -14151,19 +14191,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                          new HTMLEMailBuilder() {
 
-                                             From           = Robot.EMail,
+                                             From           = RequiredRobot.EMail,
                                              To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                              Passphrase     = APIRobotGPGPassphrase,
                                              Subject        = "User " + UserTextInfo(User) + " was successfully created",
 
-                                             HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "User ", UserHTMLInfo(User), " was successfully created.",
-                                                                            HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                             PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "User ", UserTextInfo(User), " was successfully created.\r\n",
-                                                                            "https://", ExternalDNSName, BasePath, "/users/", User.Id, "\r\r\r\r",
-                                                                            TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            "https://", RequiredExternalDNSName, BasePath, "/users/", User.Id, "\r\r\r\r",
+                                                                            TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                              SecurityLevel  = EMailSecurity.autosign
 
@@ -14173,22 +14213,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                          new HTMLEMailBuilder() {
 
-                                             From           = Robot.EMail,
+                                             From           = RequiredRobot.EMail,
                                              To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                              Passphrase     = APIRobotGPGPassphrase,
                                              Subject        = "User " + UserTextInfo(User) + " information had been successfully updated",
 
-                                             HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "User ", UserHTMLInfo(User), " information had been successfully updated.<br /><br />",
                                                                             comparizionResult?.ToHTML() ?? "",
-                                                                            HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                             PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "User ", UserTextInfo(User), " information had been successfully updated.\r\r\r\r",
                                                                             comparizionResult?.ToText() ?? "",
                                                                             "\r\r\r\r",
-                                                                            "https://", ExternalDNSName, BasePath, "/users/", User.Id, "\r\r\r\r",
-                                                                            TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            "https://", RequiredExternalDNSName, BasePath, "/users/", User.Id, "\r\r\r\r",
+                                                                            TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                              SecurityLevel  = EMailSecurity.autosign
 
@@ -14380,18 +14420,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                      new HTMLEMailBuilder() {
 
-                                         From           = Robot.EMail,
+                                         From           = RequiredRobot.EMail,
                                          To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                          Passphrase     = APIRobotGPGPassphrase,
                                          Subject        = "User " + UserTextInfo(User) + " has been deleted",
 
-                                         HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         "User ", UserHTMLInfo(User), " has been deleted.<br />",
-                                                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                         PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         "User ", UserTextInfo(User), " has been deleted.\r\n",
-                                                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                          SecurityLevel  = EMailSecurity.autosign
 
@@ -19655,18 +19695,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                      new HTMLEMailBuilder() {
 
-                                         From           = Robot.EMail,
+                                         From           = RequiredRobot.EMail,
                                          To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                          Passphrase     = APIRobotGPGPassphrase,
                                          Subject        = String.Concat("User group '", UserGroup.Name.FirstText(), "' has been deleted."),
 
-                                         HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
-                                                                        "User group <a href=\"https://", ExternalDNSName, BasePath, "/organizations/", UserGroup.Id, "\">", UserGroup.Name.FirstText(), "</a> has been deleted.<br />",
-                                                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                         HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
+                                                                        "User group <a href=\"https://", RequiredExternalDNSName, BasePath, "/organizations/", UserGroup.Id, "\">", UserGroup.Name.FirstText(), "</a> has been deleted.<br />",
+                                                                        HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                         PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         "User group '", UserGroup.Name.FirstText(), "' has been deleted.\r\n",
-                                                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                          SecurityLevel  = EMailSecurity.autosign
 
@@ -23558,9 +23598,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected virtual String OrganizationHTMLInfo(IOrganization Organization)
 
             => String.Concat(Organization.Name.IsNotNullOrEmpty()
-                                 ? String.Concat("<a href=\"https://", ExternalDNSName, BasePath, "/organizations/", Organization.Id, "\">", Organization.Name.FirstText(), "</a> ",
-                                                "(<a href=\"https://", ExternalDNSName, BasePath, "/organizations/", Organization.Id, "\">", Organization.Id, "</a>)")
-                                 : String.Concat("<a href=\"https://", ExternalDNSName, BasePath, "/organizations/", Organization.Id, "\">", Organization.Id, "</a>"));
+                                 ? String.Concat("<a href=\"https://", RequiredExternalDNSName, BasePath, "/organizations/", Organization.Id, "\">", Organization.Name.FirstText(), "</a> ",
+                                                "(<a href=\"https://", RequiredExternalDNSName, BasePath, "/organizations/", Organization.Id, "\">", Organization.Id, "</a>)")
+                                 : String.Concat("<a href=\"https://", RequiredExternalDNSName, BasePath, "/organizations/", Organization.Id, "\">", Organization.Id, "</a>"));
 
         protected virtual String OrganizationTextInfo(IOrganization Organization)
 
@@ -23677,13 +23717,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 //        if (messageTypes.Contains(addOrganization_MessageType))
                 //            SendSMS(String.Concat("Organization '", Organization.Name.FirstText(), "' was successfully created. ",
-                //                                  "https://", ExternalDNSName, BasePath, "/organizations/", Organization.Id),
+                //                                  "https://", RequiredExternalDNSName, BasePath, "/organizations/", Organization.Id),
                 //                    AllSMSNotifications.Select(smsPhoneNumber => smsPhoneNumber.PhoneNumber.ToString()).ToArray(),
                 //                    SMSSenderName);
 
                 //        if (messageTypes.Contains(updateOrganization_MessageType))
                 //            SendSMS(String.Concat("Organization '", Organization.Name.FirstText(), "' information had been successfully updated. ",
-                //                                  "https://", ExternalDNSName, BasePath, "/organizations/", Organization.Id),
+                //                                  "https://", RequiredExternalDNSName, BasePath, "/organizations/", Organization.Id),
                 //                                  // + {Updated information}
                 //                    AllSMSNotifications.Select(smsPhoneNumber => smsPhoneNumber.PhoneNumber.ToString()).ToArray(),
                 //                    SMSSenderName);
@@ -23754,19 +23794,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                          new HTMLEMailBuilder() {
 
-                                             From           = Robot.EMail,
+                                             From           = RequiredRobot.EMail,
                                              To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                              Passphrase     = APIRobotGPGPassphrase,
                                              Subject        = OrganizationTextInfo(Organization) + " was successfully created",
 
-                                             HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             OrganizationHTMLInfo(Organization) + " was successfully created.",
-                                                                            HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                             PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             OrganizationTextInfo(Organization) + " was successfully created.\r\n",
-                                                                            "https://", ExternalDNSName, BasePath, "/organizations/", Organization.Id, "\r\r\r\r",
-                                                                            TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            "https://", RequiredExternalDNSName, BasePath, "/organizations/", Organization.Id, "\r\r\r\r",
+                                                                            TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                              SecurityLevel  = EMailSecurity.autosign
 
@@ -23776,22 +23816,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                          new HTMLEMailBuilder() {
 
-                                             From           = Robot.EMail,
+                                             From           = RequiredRobot.EMail,
                                              To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                              Passphrase     = APIRobotGPGPassphrase,
                                              Subject        = OrganizationTextInfo(Organization) + " information had been successfully updated",
 
-                                             HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             OrganizationHTMLInfo(Organization) + " information had been successfully updated.<br /><br />",
                                                                             comparizionResult?.ToHTML() ?? "",
-                                                                            HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                             PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             OrganizationTextInfo(Organization) + " information had been successfully updated.\r\r\r\r",
                                                                             comparizionResult?.ToText() ?? "",
                                                                             "\r\r\r\r",
-                                                                            "https://", ExternalDNSName, BasePath, "/organizations/", Organization.Id, "\r\r\r\r",
-                                                                            TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            "https://", RequiredExternalDNSName, BasePath, "/organizations/", Organization.Id, "\r\r\r\r",
+                                                                            TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                              SecurityLevel  = EMailSecurity.autosign
 
@@ -23981,18 +24021,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                      new HTMLEMailBuilder() {
 
-                                         From           = Robot.EMail,
+                                         From           = RequiredRobot.EMail,
                                          To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                          Passphrase     = APIRobotGPGPassphrase,
                                          Subject        = OrganizationTextInfo(Organization) + " has been deleted",
 
-                                         HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         OrganizationHTMLInfo(Organization) + " has been deleted.<br />",
-                                                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                         PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         OrganizationTextInfo(Organization) + " has been deleted.\r\n",
-                                                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                          SecurityLevel  = EMailSecurity.autosign
 
@@ -27497,18 +27537,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //        await APISMTPClient.Send(
                     //                 new HTMLEMailBuilder() {
 
-                    //                     From           = Robot.EMail,
+                    //                     From           = RequiredRobot.EMail,
                     //                     To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                     //                     Passphrase     = APIPassphrase,
                     //                     Subject        = String.Concat("User '", User.Name, "' was added to user group '", UserGroup.Name.FirstText(), "'" + membership + "."),
 
-                    //                     HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
-                    //                                                    "User <a href=\"https://", this.ExternalDNSName, this.BasePath, "/users/", User.Id, "\">", User.Name, "</a> has been added to user group <a href=\"https://", ExternalDNSName, BasePath, "/user groups/", UserGroup.Id, "\">", UserGroup.Name.FirstText(), "</a>.<br />",
-                    //                                                    HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                    //                     HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
+                    //                                                    "User <a href=\"https://", this.ExternalDNSName, this.BasePath, "/users/", User.Id, "\">", User.Name, "</a> has been added to user group <a href=\"https://", RequiredExternalDNSName, BasePath, "/user groups/", UserGroup.Id, "\">", UserGroup.Name.FirstText(), "</a>.<br />",
+                    //                                                    HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                    //                     PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                    //                     PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                     //                                                    "User '" + User.Name + "' has been added to user group '", UserGroup.Name.FirstText(), "'.\r\n",
-                    //                                                    TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                    //                                                    TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                     //                     SecurityLevel  = EMailSecurity.autosign
 
@@ -27518,18 +27558,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //        await APISMTPClient.Send(
                     //                 new HTMLEMailBuilder() {
 
-                    //                     From           = Robot.EMail,
+                    //                     From           = RequiredRobot.EMail,
                     //                     To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                     //                     Passphrase     = APIPassphrase,
                     //                     Subject        = String.Concat("User '", User.Name, "' was removed from user group '", UserGroup.Name.FirstText(), "'."),
 
-                    //                     HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
-                    //                                                    "User <a href=\"https://", this.ExternalDNSName, this.BasePath, "/users/", User.Id, "\">", User.Name, "</a> has been removed from user group <a href=\"https://", ExternalDNSName, BasePath, "/user groups/", UserGroup.Id, "\">", UserGroup.Name.FirstText(), "</a>.<br />",
-                    //                                                    HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                    //                     HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
+                    //                                                    "User <a href=\"https://", this.ExternalDNSName, this.BasePath, "/users/", User.Id, "\">", User.Name, "</a> has been removed from user group <a href=\"https://", RequiredExternalDNSName, BasePath, "/user groups/", UserGroup.Id, "\">", UserGroup.Name.FirstText(), "</a>.<br />",
+                    //                                                    HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                    //                     PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                    //                     PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                     //                                                    "User '" + User.Name + "' has been removed from user group '", UserGroup.Name.FirstText(), "'.\r\n",
-                    //                                                    TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                    //                                                    TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                     //                     SecurityLevel  = EMailSecurity.autosign
 
@@ -28433,18 +28473,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             await SMTPClient.Send(
                                      new HTMLEMailBuilder() {
 
-                                         From           = Robot.EMail,
+                                         From           = RequiredRobot.EMail,
                                          To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                          Passphrase     = APIRobotGPGPassphrase,
                                          Subject        = String.Concat("User ", UserTextInfo(User), " was added to organization ", Organization.Name.FirstText(), membership, "."),
 
-                                         HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         "User ", UserHTMLInfo(User), " has been added to organization ", OrganizationHTMLInfo(Organization), membership, ".<br />",
-                                                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                         PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         "User ", UserTextInfo(User), " has been added to organization ", OrganizationTextInfo(Organization), membership, ".\r\n",
-                                                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                          SecurityLevel  = EMailSecurity.autosign
 
@@ -28454,18 +28494,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             await SMTPClient.Send(
                                      new HTMLEMailBuilder() {
 
-                                         From           = Robot.EMail,
+                                         From           = RequiredRobot.EMail,
                                          To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                          Passphrase     = APIRobotGPGPassphrase,
                                          Subject        = String.Concat("User ", UserTextInfo(User), " was removed from organization ", Organization.Name.FirstText(), "."),
 
-                                         HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         "User ", UserHTMLInfo(User), " has been removed from organization ", OrganizationHTMLInfo(Organization), ".<br />",
-                                                                        HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                         PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                         PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                         "User ", UserTextInfo(User), " has been removed from organization ", OrganizationTextInfo(Organization), ".\r\n",
-                                                                        TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                        TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                          SecurityLevel  = EMailSecurity.autosign
 
@@ -29268,18 +29308,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                          new HTMLEMailBuilder() {
 
-                                             From           = Robot.EMail,
+                                             From           = RequiredRobot.EMail,
                                              To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                              Passphrase     = APIRobotGPGPassphrase,
                                              Subject        = String.Concat("Organization ", OrganizationTextInfo(OrganizationOut), " was linked to organization ", OrganizationTextInfo(OrganizationIn), "."),
 
-                                             HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "Organization ", OrganizationHTMLInfo(OrganizationOut), " had been linked to organization ", OrganizationTextInfo(OrganizationIn), ".<br />",
-                                                                            HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                             PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "Organization ", OrganizationTextInfo(OrganizationOut), " had been linked to organization ", OrganizationTextInfo(OrganizationIn), ".\r\r\r\r",
-                                                                            TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                              SecurityLevel  = EMailSecurity.autosign
 
@@ -29291,18 +29331,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await SMTPClient.Send(
                                          new HTMLEMailBuilder() {
 
-                                             From           = Robot.EMail,
+                                             From           = RequiredRobot.EMail,
                                              To             = EMailAddressListBuilder.Create(EMailAddressList.Create(AllEMailNotifications.Select(emailnotification => emailnotification.EMailAddress))),
                                              Passphrase     = APIRobotGPGPassphrase,
                                              Subject        = String.Concat("Organization ", OrganizationTextInfo(OrganizationOut), " was unlinked from organization ", OrganizationTextInfo(OrganizationIn), "."),
 
-                                             HTMLText       = String.Concat(HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             HTMLText       = String.Concat(HTMLEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "Organization ", OrganizationHTMLInfo(OrganizationOut), " had been unlinked from organization ", OrganizationTextInfo(OrganizationIn), ".<br />",
-                                                                            HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            HTMLEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
-                                             PlainText      = String.Concat(TextEMailHeader(ExternalDNSName, BasePath, EMailType.Notification),
+                                             PlainText      = String.Concat(TextEMailHeader(RequiredExternalDNSName, BasePath, EMailType.Notification),
                                                                             "Organization ", OrganizationTextInfo(OrganizationOut), " had been unlinked from organization ", OrganizationTextInfo(OrganizationIn), ".\r\r\r\r",
-                                                                            TextEMailFooter(ExternalDNSName, BasePath, EMailType.Notification)),
+                                                                            TextEMailFooter(RequiredExternalDNSName, BasePath, EMailType.Notification)),
 
                                              SecurityLevel  = EMailSecurity.autosign
 
