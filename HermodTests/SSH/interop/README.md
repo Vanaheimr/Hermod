@@ -28,6 +28,19 @@ handles automatically (the plan's §11.2): private keys are copied off `/mnt/c` 
 `chmod 600`-ed (OpenSSH refuses world-readable keys), and `localhost` reachability differs between
 NAT and mirrored networking modes.
 
+### Which address a WSL peer must dial (measured 2026-08-11, NAT mode)
+
+Peers that only exist inside Linux — Dropbear, TinySSH, AsyncSSH, Paramiko, the Go harness — run in
+WSL and connect *back* to a server hosted on Windows. Under WSL's default **NAT** networking that
+server is **not reachable at `127.0.0.1`**: from inside WSL, the Windows host answers on the
+**default gateway** address (`ip route show default | awk '{print $3}'`, e.g. `172.23.32.1`).
+
+So a test driving a WSL peer must bind our listener to **`IPv4Address.Any`**, not `Localhost`, and
+hand the peer the gateway address. The existing interop tests bind to `Localhost` and are unaffected
+only because their peer (`ssh.exe`, `ssh-keygen`, SSH.NET) runs on Windows alongside the server.
+Under **mirrored** networking (`networkingMode=mirrored` in `.wslconfig`) `localhost` does work — so
+detect rather than assume: try `127.0.0.1` first, fall back to the gateway.
+
 ## CI
 
 Hosted CI runners have no WSL; the same peers are provided there via the `docker/` images. The full

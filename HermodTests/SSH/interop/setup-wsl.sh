@@ -10,8 +10,10 @@
 # Usage:   ./setup-wsl.sh            # install everything
 #          ./setup-wsl.sh --check    # only report what is present, install nothing
 #
-# Requires sudo for the apt packages. The Python peers are installed into a local virtual
-# environment (.venv-interop next to this script), so nothing is installed system-wide for those.
+# Requires sudo for the apt packages — run it from an interactive shell, since sudo will normally
+# ask for a password and a non-interactive caller just gets a failure. The Python peers go into a
+# local virtual environment (.venv-interop next to this script), which needs no privileges at all,
+# so '--check' and the venv half work fine unattended.
 
 set -euo pipefail
 
@@ -77,11 +79,21 @@ report() {
     fi
 }
 
+# TinySSH has no version flag, so report what the package manager knows.
+report_tinyssh() {
+    if command -v tinysshd >/dev/null 2>&1; then
+        printf '  %-12s %s\n' "TinySSH" "$(dpkg-query -W -f='${Version}' tinysshd 2>/dev/null || echo installed)"
+    else
+        printf '  %-12s \033[1;33mMISSING\033[0m\n' "TinySSH"
+    fi
+}
+
 # OpenSSH prints its version on stderr; grab it via -V.
 report "OpenSSH"  ssh -V
-report "sshd"     sh -c 'command -v sshd >/dev/null && $(command -v sshd) -\? 2>&1 | head -n1 || echo n/a'
+report "sshd"     sshd -V
 report "Dropbear" dropbear -V
 report "dbclient" dbclient -V
+report_tinyssh
 report "plink"    plink -V
 report "curl"     curl --version
 report "socat"    socat -V
