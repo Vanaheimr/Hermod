@@ -18,8 +18,6 @@
 #region Usings
 
 using System.Text;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Reflection;
 using System.Diagnostics;
 using System.Security.Cryptography;
@@ -10859,66 +10857,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region /hashimage
 
+            // ----------------------------------------------------------------------------------------------------------
+            // Renders the OpenSSH "drunken bishop" randomart of the given fingerprint as SVG.
+            // curl "http://127.0.0.1:3004/hashimage/fc:94:b0:c1:e5:b0:98:7c:58:43:99:76:97:ee:9f:b7"
+            // ----------------------------------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.GET,
-                HTTPPath.Parse("/hashimage"),
-                HTTPContentType.Image.PNG,
+                HTTPPath.Parse("/hashimage/{fingerprint}"),
+                HTTPContentType.Image.SVG,
                 HTTPDelegate: request => {
 
-                    if (!OperatingSystem.IsWindows())
+                    Byte x    = 13;
+                    Byte y    = 13;
+                    var  size = 10UL;
+
+                    var hexDigits = request.TryGetURLParameter("fingerprint", out var fingerprint)
+                                        ? fingerprint.Replace(":", "").Replace("-", "").Replace(" ", "")
+                                        : String.Empty;
+
+                    if (hexDigits.Length == 0     ||
+                        hexDigits.Length  > 128   ||
+                        hexDigits.Length % 2 == 1 ||
+                        !hexDigits.All(Uri.IsHexDigit))
+                    {
                         return Task.FromResult(
                             new HTTPResponse.Builder(request) {
-                                HTTPStatusCode  = HTTPStatusCode.NotImplemented,
+                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                 Server          = HTTPServer?.HTTPServerName,
-                                Connection      = ConnectionType.Close
+                                ContentType     = HTTPContentType.Text.PLAIN,
+                                Content         = "The 'fingerprint' URL parameter must be an even number of up to 128 hex digits, optionally separated by ':', '-' or spaces!".ToUTF8Bytes(),
+                                CacheControl    = "no-cache",
+                                Connection      = ConnectionType.KeepAlive
                             }.AsImmutable);
+                    }
 
-                    Byte x =  13;
-                    Byte y =  13;
-                    Byte t = 255;
+                    var byteArray  = SecurityVisualization.DrunkenBishop(hexDigits, x, y);
 
-                    var ByteArray = SecurityVisualization.DrunkenBishop("fc:94:b0:c1:e5:b0:98:7c:58:43:99:76:97:ee:9f:b7");
-                    ByteArray     = SecurityVisualization.DrunkenBishop("AE0D 5C5C 4EB5 C3F0 683E  2173 B1EA 6EEA A89A 2896", x, y);
-                    var MaxValue  = ByteArray.Max();
+                    var palette    = new String[] {
+                                         "#f0f0f0",
+                                         "#7878f0",
+                                         "#6969d2",
+                                         "#5a5ab4",
+                                         "#4b4b96",
+                                         "#3c3c78",
+                                         "#2d2d5a",
+                                         "#1e1e3c",
+                                         "#0f0f1e",
+                                         "#000000"
+                                     };
 
-                    var size = 10UL;
+                    var svg = new StringBuilder();
+                    svg.Append($"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {x * size} {y * size}\" shape-rendering=\"crispEdges\">");
 
-                    // The platform analyzer cannot track the OperatingSystem.IsWindows() guard above across this lambda body.
-#pragma warning disable CA1416
-                    var _Bitmap = new Bitmap((Int32) (x * size), (Int32) (y * size));
-
-                    var _Pens = new Brush[] {
-                        new SolidBrush(Color.FromArgb(t, 240, 240, 240)),
-                        new SolidBrush(Color.FromArgb(t, 120, 120, 240)),
-                        new SolidBrush(Color.FromArgb(t, 105, 105, 210)),
-                        new SolidBrush(Color.FromArgb(t,  90,  90, 180)),
-                        new SolidBrush(Color.FromArgb(t,  75,  75, 150)),
-                        new SolidBrush(Color.FromArgb(t,  60,  60, 120)),
-                        new SolidBrush(Color.FromArgb(t,  45,  45,  90)),
-                        new SolidBrush(Color.FromArgb(t,  30,  30,  60)),
-                        new SolidBrush(Color.FromArgb(t,  15,  15,  30)),
-                        new SolidBrush(Color.FromArgb(t,   0,   0,   0))
-                    };
-
-                    var g = Graphics.FromImage(_Bitmap);
-                    ByteArray.ForEachCounted((_byte, i) => {
-                        g.FillRectangle(_Pens[Math.Min(_byte, _Pens.Length-1)], size * ((i - 1) % x), size * ((i - 1) / x), size - 1, size-1);
+                    byteArray.ForEachCounted((_byte, i) => {
+                        svg.Append($"<rect x=\"{size * ((i - 1) % x)}\" y=\"{size * ((i - 1) / x)}\" width=\"{size - 1}\" height=\"{size - 1}\" fill=\"{palette[Math.Min(_byte, palette.Length - 1)]}\"/>");
                     });
 
-
-                    var s = new MemoryStream();
-                    _Bitmap.Save(s, ImageFormat.Png);
-#pragma warning restore CA1416
-                    var f = s.ToArray();
+                    svg.Append("</svg>");
 
                     return Task.FromResult(
                         new HTTPResponse.Builder(request) {
                             HTTPStatusCode  = HTTPStatusCode.OK,
                             Server          = HTTPServer?.HTTPServerName,
-                            ContentType     = HTTPContentType.Image.PNG,
-                            Content         = f,
+                            ContentType     = HTTPContentType.Image.SVG,
+                            Content         = svg.ToString().ToUTF8Bytes(),
                             CacheControl    = "public",
-                            //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
                             Connection      = ConnectionType.KeepAlive
                         }.AsImmutable);
 
