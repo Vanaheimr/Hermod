@@ -1708,7 +1708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       Organization SourceOrganization)
             {
 
-                var edges = _Organization2Organization_OutEdges.
+                var edges = _Organization2Organization_InEdges.
                                 Where(edge => edge.EdgeLabel == EdgeLabel &&
                                               edge.Source == SourceOrganization).
                                 ToArray();
