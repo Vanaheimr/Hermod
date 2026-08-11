@@ -117,6 +117,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             await RandomAccess.WriteAsync(entry.Handle, Data, Offset, CancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Flush the handle to stable storage. <see cref="RandomAccess"/> writes land in the operating
+        /// system's page cache, so a successful WRITE is not yet a durable one — this is the call that
+        /// makes it so, and the only reason <c>fsync@openssh.com</c> is worth answering.
+        /// </summary>
+        public ValueTask FlushAsync(String Handle, CancellationToken CancellationToken = default)
+        {
+            RandomAccess.FlushToDisk(File(Handle).Handle);
+            return ValueTask.CompletedTask;
+        }
+
         public ValueTask CloseAsync(String Handle, CancellationToken CancellationToken = default)
         {
             lock (gate)

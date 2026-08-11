@@ -142,8 +142,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             return position;
         }
 
+        // Nothing is buffered on this side — every write already went out as a WRITE request — so Flush
+        // has nothing to do. It deliberately does *not* send fsync: callers flush routinely and would be
+        // paying a round trip plus a disk sync for it, and a server without the extension would start
+        // throwing from a method nobody expects to fail. Durability is asked for by name, below.
         public override void Flush() { }
         public override Task FlushAsync(CancellationToken CancellationToken) => Task.CompletedTask;
+
+        /// <summary>
+        /// Ask the server to flush this file to stable storage (<c>fsync@openssh.com</c>) — the bytes are
+        /// on the disk, not merely in the server's page cache, once this returns.
+        ///
+        /// <para>
+        /// Call it before disposing the stream, not after: the flush needs the handle to still be open.
+        /// Throws <see cref="SftpException"/> with <see cref="SftpStatusCode.OpUnsupported"/> if the
+        /// server never offered the extension — an unanswerable durability request is reported, never
+        /// quietly skipped.
+        /// </para>
+        /// </summary>
+        public ValueTask SyncToDiskAsync(CancellationToken CancellationToken = default)
+        {
+
+            ObjectDisposedException.ThrowIf(closed, this);
+
+            return client.FsyncAsync(handle, CancellationToken);
+
+        }
 
         /// <summary>Not supported: SFTP v3 has no in-place truncation on this stream.</summary>
         public override void SetLength(Int64 value)

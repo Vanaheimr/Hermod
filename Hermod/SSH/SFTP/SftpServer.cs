@@ -251,11 +251,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     await FileSystem.RenameAsync(Request.Path, Request.TargetPath, CancellationToken).ConfigureAwait(false);
                     return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
 
-                // Flush a handle to stable storage — RandomAccess writes are already durable, so this is a no-op success.
+                // Flush a handle to stable storage. This must reach the file system: a client sends fsync
+                // precisely because it does not trust that a successful WRITE is durable, and answering OK
+                // without acting would leave it believing a guarantee it never got.
                 case "fsync@openssh.com":
+                    await FileSystem.FlushAsync(Request.Handle, CancellationToken).ConfigureAwait(false);
                     return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
 
-                // Report file-system stats — we surface the session quota as free space.
+                // Report file-system stats — we surface the session quota as free space, deliberately:
+                // the real numbers of the host file system are none of a jailed session's business.
+                // Both variants therefore answer identically and neither consults its argument (a path
+                // for statvfs, an open handle for fstatvfs) — the figures are per-session, not per-file.
                 case "statvfs@openssh.com":
                 case "fstatvfs@openssh.com":
                     return BuildStatVfs(Request.RequestId, Session);
@@ -346,10 +352,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                             path   = reader.ReadString();
                             target = reader.ReadString();
                             break;
-                        case "fsync@openssh.com":
+                        // Handle-based: fstatvfs is statvfs' f-variant, so its argument is an open
+                        // handle, not a path — reading it into `path` happened to work only because
+                        // both are wire strings and the reply consults neither.
+                        case "fsync@openssh.com" or "fstatvfs@openssh.com":
                             handle = reader.ReadString();
                             break;
-                        case "statvfs@openssh.com" or "fstatvfs@openssh.com":
+                        case "statvfs@openssh.com":
                             path = reader.ReadString();
                             break;
                     }
@@ -465,10 +474,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
             w.WriteByte((Byte) SftpPacketType.Version);
             w.WriteUInt32(SftpVersion.Three);
-            // Advertise the OpenSSH extensions we support (name/data pairs).
+            // Advertise the OpenSSH extensions we support (name/data pairs). This list is the only thing
+            // a peer may go by, so every name handled in DispatchExtendedAsync must appear here —
+            // fstatvfs was answered but not advertised, which made a correct client never ask for it.
             w.WriteString("posix-rename@openssh.com"); w.WriteString("1");
             w.WriteString("fsync@openssh.com");        w.WriteString("1");
             w.WriteString("statvfs@openssh.com");      w.WriteString("2");
+            w.WriteString("fstatvfs@openssh.com");     w.WriteString("2");
             w.WriteString("limits@openssh.com");       w.WriteString("1");
             return abw.WrittenSpan.ToArray();
         }

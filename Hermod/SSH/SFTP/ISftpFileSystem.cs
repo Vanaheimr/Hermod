@@ -80,6 +80,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// <summary>Canonicalize a path to an absolute one.</summary>
         ValueTask<String> RealPathAsync(String Path, CancellationToken CancellationToken = default);
 
+        /// <summary>
+        /// Flush everything written through a handle to stable storage — what the client asked for with
+        /// <c>fsync@openssh.com</c>.
+        ///
+        /// <para>
+        /// The default does nothing, which is the honest answer for a store that has no cache between
+        /// the write and its durability (an in-memory file system has nowhere to flush *to*). An
+        /// implementation backed by an operating-system file **must** override this: a buffered write
+        /// that returned successfully is not yet on the disk, and answering the request without acting
+        /// on it turns the one call whose entire purpose is a durability guarantee into a lie.
+        /// </para>
+        /// </summary>
+        ValueTask FlushAsync(String Handle, CancellationToken CancellationToken = default)
+            => ValueTask.CompletedTask;
+
     }
 
 }

@@ -17,7 +17,10 @@
 
 #region Usings
 
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Text;
+using System.Threading.Channels;
 
 using NUnit.Framework;
 
@@ -81,6 +84,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(sftp.Supports("posix-rename@openssh.com"), Is.True);
                 Assert.That(sftp.Supports("statvfs@openssh.com"),      Is.True);
                 Assert.That(sftp.Supports("limits@openssh.com"),       Is.True);
+                Assert.That(sftp.Supports("fsync@openssh.com"),        Is.True);
+                // fstatvfs was answered by the dispatcher but missing from VERSION, so a peer that
+                // honours the advertisement — the only thing it can go by — would never have asked.
+                Assert.That(sftp.Supports("fstatvfs@openssh.com"),     Is.True);
                 Assert.That(limits.MaxWriteLength,  Is.GreaterThan(0));
                 Assert.That(limits.MaxOpenHandles,  Is.EqualTo(42), "open-handle limit reflects the file-count quota");
             });
@@ -149,6 +156,170 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await sftp.DisposeAsync();
             using (client) { }
             await server;
+
+        }
+
+        #endregion
+
+        #region Fsync_ReachesTheFileSystem
+
+        /// <summary>
+        /// An <c>fsync@openssh.com</c> request must arrive at the file system, on the handle it names.
+        ///
+        /// <para>
+        /// No test can prove durability — that needs the power to go out — so this proves the thing that
+        /// was actually broken: the server used to answer OK without asking the store to flush anything,
+        /// which is the failure mode fsync exists to prevent. The spy records what the store was told.
+        /// </para>
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task Fsync_ReachesTheFileSystem(CancellationToken CancellationToken)
+        {
+
+            var spy = new FlushRecordingFileSystem(new InMemorySftpFileSystem());
+            var (sftp, client, server) = await ConnectAsync(spy, null, CancellationToken);
+
+            await using (var stream = await sftp.OpenFileStreamAsync("/firmware.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken))
+            {
+                await stream.WriteAsync(Encoding.UTF8.GetBytes("payload"), CancellationToken);
+                Assert.That(spy.FlushedHandles, Is.Empty, "writing alone must not flush — that is what makes the explicit call meaningful");
+
+                await stream.SyncToDiskAsync(CancellationToken);
+            }
+
+            Assert.That(spy.FlushedHandles, Has.Count.EqualTo(1), "the fsync request reached the file system exactly once");
+
+            // And the same through the upload convenience, which flushes before it closes the handle.
+            await sftp.UploadAsync("/second.bin", [1, 2, 3], CancellationToken, SyncToDisk: true);
+            Assert.That(spy.FlushedHandles, Has.Count.EqualTo(2));
+
+            await sftp.DisposeAsync();
+            using (client) { }
+            await server;
+
+        }
+
+        #endregion
+
+        #region Fsync_AgainstAServerWithoutTheExtension_Throws
+
+        /// <summary>
+        /// A server that never advertised <c>fsync@openssh.com</c> must produce an error, not a silent
+        /// success: a durability request that cannot be honoured is the one case where returning normally
+        /// is worse than throwing, because the caller would believe a guarantee it never received.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task Fsync_AgainstAServerWithoutTheExtension_Throws(CancellationToken CancellationToken)
+        {
+
+            // A minimal peer that answers INIT with a VERSION carrying no extensions at all.
+            var (ours, theirs) = BarePipe.CreatePair();
+            var peer = Task.Run(async () =>
+            {
+                var length  = await theirs.ReadExactAsync(4, CancellationToken);
+                var payload = await theirs.ReadExactAsync((Int32) BinaryPrimitives.ReadUInt32BigEndian(length), CancellationToken);
+                Assert.That((SftpPacketType) payload[0], Is.EqualTo(SftpPacketType.Init));
+
+                var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
+                w.WriteByte((Byte) SftpPacketType.Version);
+                w.WriteUInt32(SftpVersion.Three);          // …and not a single extension pair
+                await SftpServer.SendAsync(theirs, abw.WrittenSpan.ToArray(), CancellationToken);
+            }, CancellationToken);
+
+            var sftp = await SftpClient.OpenAsync(ours, CancellationToken);
+            await peer;
+
+            Assert.That(sftp.Supports("fsync@openssh.com"), Is.False);
+
+            var direct = Assert.ThrowsAsync<SftpException>(async () => await sftp.FsyncAsync("handle-1", CancellationToken));
+            Assert.That(direct!.Code, Is.EqualTo(SftpStatusCode.OpUnsupported));
+
+            // The upload path refuses up front — before a single byte is written, not after.
+            var upload = Assert.ThrowsAsync<SftpException>(async () => await sftp.UploadAsync("/x.bin", [1], CancellationToken, SyncToDisk: true));
+            Assert.That(upload!.Code, Is.EqualTo(SftpStatusCode.OpUnsupported));
+
+            await sftp.DisposeAsync();
+
+        }
+
+        #endregion
+
+
+        #region (private) test doubles
+
+        /// <summary>Passes everything through, but records which handles were asked to flush.</summary>
+        private sealed class FlushRecordingFileSystem(ISftpFileSystem Inner) : ISftpFileSystem
+        {
+
+            public List<String> FlushedHandles { get; } = [];
+
+            public ValueTask FlushAsync(String Handle, CancellationToken CancellationToken = default)
+            {
+                FlushedHandles.Add(Handle);
+                return Inner.FlushAsync(Handle, CancellationToken);
+            }
+
+            public ValueTask<String> OpenAsync(String Path, SftpOpenFlags Flags, CancellationToken CancellationToken = default) => Inner.OpenAsync(Path, Flags, CancellationToken);
+            public ValueTask<Byte[]> ReadAsync(String Handle, Int64 Offset, Int32 Length, CancellationToken CancellationToken = default) => Inner.ReadAsync(Handle, Offset, Length, CancellationToken);
+            public ValueTask WriteAsync(String Handle, Int64 Offset, ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default) => Inner.WriteAsync(Handle, Offset, Data, CancellationToken);
+            public ValueTask CloseAsync(String Handle, CancellationToken CancellationToken = default) => Inner.CloseAsync(Handle, CancellationToken);
+            public ValueTask<String> OpenDirectoryAsync(String Path, CancellationToken CancellationToken = default) => Inner.OpenDirectoryAsync(Path, CancellationToken);
+            public ValueTask<IReadOnlyList<SftpDirectoryEntry>> ReadDirectoryAsync(String Handle, CancellationToken CancellationToken = default) => Inner.ReadDirectoryAsync(Handle, CancellationToken);
+            public ValueTask<SftpFileAttributes> StatAsync(String Path, CancellationToken CancellationToken = default) => Inner.StatAsync(Path, CancellationToken);
+            public ValueTask MakeDirectoryAsync(String Path, CancellationToken CancellationToken = default) => Inner.MakeDirectoryAsync(Path, CancellationToken);
+            public ValueTask RemoveAsync(String Path, CancellationToken CancellationToken = default) => Inner.RemoveAsync(Path, CancellationToken);
+            public ValueTask RemoveDirectoryAsync(String Path, CancellationToken CancellationToken = default) => Inner.RemoveDirectoryAsync(Path, CancellationToken);
+            public ValueTask RenameAsync(String OldPath, String NewPath, CancellationToken CancellationToken = default) => Inner.RenameAsync(OldPath, NewPath, CancellationToken);
+            public ValueTask<String> RealPathAsync(String Path, CancellationToken CancellationToken = default) => Inner.RealPathAsync(Path, CancellationToken);
+
+        }
+
+
+        /// <summary>Two <see cref="ISftpDuplex"/> ends wired to each other in memory — no transport, no crypto.</summary>
+        private sealed class BarePipe : ISftpDuplex
+        {
+
+            private readonly Channel<Byte[]>  inbox = Channel.CreateUnbounded<Byte[]>();
+            private BarePipe                  peer  = default!;
+            private Byte[]                    rest  = [];
+
+            public static (BarePipe A, BarePipe B) CreatePair()
+            {
+                var a = new BarePipe(); var b = new BarePipe();
+                a.peer = b; b.peer = a;
+                return (a, b);
+            }
+
+            public async ValueTask<Byte[]?> TryReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
+            {
+                while (rest.Length < Count)
+                {
+                    if (!await inbox.Reader.WaitToReadAsync(CancellationToken))
+                        return null;
+                    rest = [.. rest, .. await inbox.Reader.ReadAsync(CancellationToken)];
+                }
+                var head = rest[..Count];
+                rest = rest[Count..];
+                return head;
+            }
+
+            public async ValueTask<Byte[]> ReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
+                => await TryReadExactAsync(Count, CancellationToken) ?? throw new EndOfStreamException();
+
+            public ValueTask SendAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+            {
+                peer.inbox.Writer.TryWrite(Data.ToArray());
+                return ValueTask.CompletedTask;
+            }
+
+            public ValueTask CloseAsync(CancellationToken CancellationToken = default)
+            {
+                inbox.Writer.TryComplete();
+                peer.inbox.Writer.TryComplete();
+                return ValueTask.CompletedTask;
+            }
 
         }
 

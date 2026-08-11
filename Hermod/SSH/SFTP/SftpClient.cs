@@ -112,9 +112,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region UploadAsync / DownloadAsync (pipelined)
 
-        /// <summary>Upload bytes to a remote path (creating/truncating it), pipelining the WRITE requests.</summary>
-        public async ValueTask UploadAsync(String RemotePath, Byte[] Content, CancellationToken CancellationToken = default)
+        /// <summary>
+        /// Upload bytes to a remote path (creating/truncating it), pipelining the WRITE requests.
+        /// </summary>
+        /// <param name="SyncToDisk">
+        /// Ask the server to flush the file to stable storage before the handle is closed
+        /// (<c>fsync@openssh.com</c>). Off by default because it costs a round trip and a real disk
+        /// flush; worth it when the upload must survive the power going out a second later — writing
+        /// firmware to a device is the case this exists for. Throws if the server does not offer the
+        /// extension, rather than returning as if it had.
+        /// </param>
+        public async ValueTask UploadAsync(String             RemotePath,
+                                           Byte[]             Content,
+                                           CancellationToken  CancellationToken = default,
+                                           Boolean            SyncToDisk        = false)
         {
+
+            // Checked before the first byte goes out: a caller who demanded durability is better served by
+            // an upload that never happened than by one that finished and cannot be confirmed.
+            if (SyncToDisk && !Supports("fsync@openssh.com"))
+                throw new SftpException(SftpStatusCode.OpUnsupported,
+                                        "SyncToDisk was requested, but the server does not offer 'fsync@openssh.com'.");
 
             var handle   = await OpenFileAsync(RemotePath, SftpOpenFlags.Create | SftpOpenFlags.Write | SftpOpenFlags.Truncate, CancellationToken).ConfigureAwait(false);
             var inflight = new Queue<Task>();
@@ -131,6 +149,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
                 while (inflight.Count > 0)
                     await inflight.Dequeue().ConfigureAwait(false);
+
+                // After the last write is acknowledged, and before the close: a flush of a handle the
+                // server has already closed would be answered by nothing at all.
+                if (SyncToDisk)
+                    await FsyncAsync(handle, CancellationToken).ConfigureAwait(false);
             }
             catch
             {
@@ -286,6 +309,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// <summary>Atomically rename with replace semantics via <c>posix-rename@openssh.com</c>.</summary>
         public ValueTask PosixRenameAsync(String OldPath, String NewPath, CancellationToken CancellationToken = default)
             => ExpectOkAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => { w.WriteString("posix-rename@openssh.com"); w.WriteString(OldPath); w.WriteString(NewPath); }, CancellationToken);
+
+        /// <summary>
+        /// Ask the server to flush an open handle to stable storage via <c>fsync@openssh.com</c>.
+        ///
+        /// <para>
+        /// A server that never advertised the extension is refused here rather than asked: silently
+        /// skipping the request would hand the caller the appearance of a durability guarantee, which is
+        /// the one thing an fsync must never do. Check <see cref="Supports"/> when the server is unknown.
+        /// </para>
+        /// </summary>
+        internal ValueTask FsyncAsync(String Handle, CancellationToken CancellationToken = default)
+        {
+
+            if (!Supports("fsync@openssh.com"))
+                throw new SftpException(SftpStatusCode.OpUnsupported,
+                                        "The server does not offer 'fsync@openssh.com', so it cannot confirm the data reached stable storage.");
+
+            return ExpectOkAsync(SftpPacketType.Extended,
+                                 (ref SshPacketWriter w) => { w.WriteString("fsync@openssh.com"); w.WriteString(Handle); },
+                                 CancellationToken);
+
+        }
 
         /// <summary>Query the server's protocol limits via <c>limits@openssh.com</c>.</summary>
         public async ValueTask<SftpProtocolLimits> LimitsAsync(CancellationToken CancellationToken = default)

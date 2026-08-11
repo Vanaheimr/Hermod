@@ -186,7 +186,7 @@ follow) and `ext-info-c`/`-s` for RFC 8308.
 | **draft-ietf-sshm-mlkem-hybrid-kex** | `mlkem768x25519-sha256` | ✅ Draft-10, in the RFC Editor queue; names and encoding stable |
 | **draft-ietf-secsh-filexfer-02** | SFTP version 3 | ✅ Client + server |
 | **RFC 9987 / draft-miller-ssh-agent** | SSH agent protocol | 🔶 Client only — list identities, request signatures; no agent *forwarding* |
-| OpenSSH `PROTOCOL` | Certificates, `hostkeys-00@openssh.com`, `posix-rename`, `statvfs`, `limits@openssh.com` | ✅ |
+| OpenSSH `PROTOCOL` | Certificates, `hostkeys-00@openssh.com`, and the SFTP extensions `posix-rename`, `fsync`, `statvfs`/`fstatvfs`, `limits@openssh.com` | ✅ Server answers all five; the client drives all but `fstatvfs`. `hardlink`, `lsetstat`, `expand-path`, `copy-data` are not implemented |
 | `kexguess2@matt.ucc.asn.au` | Dropbear's narrowed guess rule | ✅ Both roles |
 
 RFC 4253 §7.1 is worth a note, because it is the one place where "obviously correct" was wrong for
@@ -220,7 +220,7 @@ distinguishes "disagreed" from "no evidence either way".
 
 ## Test
 
-315 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
+318 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
 folder layout. They need nothing but the code — unit tests and loopback round-trips between our
 own client and our own server.
 
@@ -264,7 +264,11 @@ Three things about them are worth knowing:
 ## Not here yet
 
 - **No compression.** `zlib@openssh.com` is not implemented; `none` is what we offer.
-- **SFTP v3 only** — versions 4–6 are not negotiated.
+- **SFTP v3 only** — versions 4–6 are not negotiated. Of the OpenSSH extensions, `hardlink@openssh.com`
+  and `lsetstat@openssh.com` are missing because `ISftpFileSystem` has no concept of links at all (not
+  even symlinks), and hard links would quietly defeat the per-session byte quota — that is a decision,
+  not a gap. `home-directory` and `users-groups-by-id@openssh.com` are deliberately not offered: a
+  root-jailed session has no business learning host paths or resolving UIDs to names.
 - **No agent forwarding, no X11 forwarding.** The `authorized_keys` parser understands and enforces
   the options that restrict them, which is the part that matters for a server that does not offer
   them either way.

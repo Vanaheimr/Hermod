@@ -192,6 +192,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Local_Flush_PushesAnOpenHandleToDisk
+
+        /// <summary>
+        /// <see cref="LocalSftpFileSystem.FlushAsync"/> must reach the operating system on a still-open
+        /// handle — this is what a client's <c>fsync@openssh.com</c> ends up calling.
+        ///
+        /// <para>
+        /// The assertion is deliberately modest. Whether the bytes survive a power cut cannot be tested
+        /// here; what can be tested is that the flush is accepted on a live write handle and that the
+        /// data is readable afterwards without the handle having been closed. An unknown handle must
+        /// still be an error rather than a quiet success.
+        /// </para>
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task Local_Flush_PushesAnOpenHandleToDisk(CancellationToken CancellationToken)
+        {
+
+            var fs      = new LocalSftpFileSystem(root);
+            var payload = Encoding.UTF8.GetBytes("must-survive");
+
+            var handle = await fs.OpenAsync("/durable.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+            await fs.WriteAsync(handle, 0, payload, CancellationToken);
+
+            await fs.FlushAsync(handle, CancellationToken);
+
+            // Still open, and the bytes are on disk. The reader must be opened with FileShare.ReadWrite:
+            // File.ReadAllBytes asks for FileShare.Read, which refuses a file somebody else holds open
+            // for writing — which is exactly the situation this test is about.
+            var onDisk = new Byte[payload.Length];
+            using (var check = new FileStream(Path.Combine(root, "durable.bin"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                await check.ReadExactlyAsync(onDisk, CancellationToken);
+
+            Assert.That(onDisk, Is.EqualTo(payload));
+
+            await fs.CloseAsync(handle, CancellationToken);
+
+            Assert.ThrowsAsync<SftpException>(async () => await fs.FlushAsync(handle, CancellationToken),
+                                              "a handle the file system does not know must not report a successful flush");
+
+        }
+
+        #endregion
+
     }
 
 }
