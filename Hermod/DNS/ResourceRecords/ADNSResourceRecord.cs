@@ -679,6 +679,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         protected abstract String ZoneFileRData();
 
         /// <summary>
+        /// Whether a DNS type bit map (RFC 4034 §4.1.2) asserts the presence of
+        /// the given type.
+        /// </summary>
+        /// <param name="TypeBitMaps">The raw type bit map bytes.</param>
+        /// <param name="Type">The type to look for.</param>
+        /// <remarks>
+        /// This reads the bit rather than the decoded name, because that is what
+        /// authenticated denial of existence turns on: RFC 4035 §5.4 proves a
+        /// type absent precisely by its bit being clear, and a comparison against
+        /// a rendered name would answer "no" for every type this build has no
+        /// name for — turning an unknown type into a proof it does not exist.
+        /// </remarks>
+        public static Boolean TypeBitMapContains(Byte[]                  TypeBitMaps,
+                                                 DNSResourceRecordTypes  Type)
+        {
+
+            var typeNumber   = (UInt16) Type;
+            var wantedWindow = (Byte) (typeNumber >> 8);
+            var offset       = 0;
+
+            while (offset + 2 <= TypeBitMaps.Length)
+            {
+
+                var window        = TypeBitMaps[offset];
+                var bitmapLength  = TypeBitMaps[offset + 1];
+
+                offset += 2;
+
+                if (offset + bitmapLength > TypeBitMaps.Length)
+                    return false;
+
+                if (window == wantedWindow)
+                {
+
+                    var bitIndex   = typeNumber & 0xFF;
+                    var octetIndex = bitIndex >> 3;
+
+                    if (octetIndex >= bitmapLength)
+                        return false;
+
+                    // Bit 0 is the most significant bit of the octet.
+                    return (TypeBitMaps[offset + octetIndex] & (0x80 >> (bitIndex & 0x07))) != 0;
+
+                }
+
+                offset += bitmapLength;
+
+            }
+
+            return false;
+
+        }
+
+        /// <summary>
         /// Decode a DNS type bit map (RFC 4034 Section 4.1.2) into a space-separated string of type names.
         /// Used by NSEC, NSEC3, and CSYNC zone-file representations.
         /// </summary>

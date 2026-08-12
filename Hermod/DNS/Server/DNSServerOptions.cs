@@ -64,6 +64,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public X509RevocationMode TLSCertificateRevocationCheckMode { get; init; } = X509RevocationMode.NoCheck;
 
+        /// <summary>
+        /// The TSIG keys this server accepts (RFC 8945).
+        /// </summary>
+        /// <remarks>
+        /// Empty by default, which leaves TSIG entirely inactive: a request
+        /// carrying a TSIG record is answered as though it did not, exactly as
+        /// before. Configuring keys turns verification on, and from then on a
+        /// signed request that fails to verify is answered NOTAUTH rather than
+        /// served — an unsigned request is still served, because refusing those
+        /// is a policy decision and not something RFC 8945 requires.
+        /// </remarks>
+        public IEnumerable<TSIGKey>  TSIGKeys      { get; init; } = [];
+
         public Boolean   UseCompression         { get; init; } = false;
 
         /// <summary>

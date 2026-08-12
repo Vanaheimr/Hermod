@@ -30,7 +30,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         NameError       = 3, // NXDOMAIN
         NotImplemented  = 4,
         Refused         = 5,
-        Reserved        = 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15,
+
+        /// <summary>
+        /// Not authoritative / not authorized (RFC 8945 §5.2). A TSIG-signed
+        /// request that fails verification is answered with this, and the reason
+        /// travels in the TSIG record's own Error field rather than here.
+        /// </summary>
+        NotAuthorized   = 9,
+
+        Reserved        = 6 | 7 | 8 | 10 | 11 | 12 | 13 | 14 | 15,
 
         /// <summary>
         /// Bad EDNS version (RFC 6891 §9). An extended RCODE: the low 4 bits

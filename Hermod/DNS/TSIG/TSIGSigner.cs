@@ -175,6 +175,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) Verify(SignedMessage, Keys, Now = null, RequestMAC = null)
+
+        /// <summary>
+        /// Verify a received message against whichever of the given keys it
+        /// claims to be signed with.
+        /// </summary>
+        /// <param name="SignedMessage">The message as received.</param>
+        /// <param name="Keys">The keys this party holds.</param>
+        /// <param name="Now">Unix seconds to check the time window against.</param>
+        /// <param name="RequestMAC">When verifying a response, the MAC of the request that was sent.</param>
+        /// <remarks>
+        /// A responder cannot know which key to use before looking: the key is
+        /// named by the TSIG record's owner name, which is inside the message it
+        /// is about to authenticate. Reading that name first is safe — it selects
+        /// a candidate, it does not grant anything.
+        /// </remarks>
+        public static TSIGVerificationResult Verify(Byte[]                SignedMessage,
+                                                    IEnumerable<TSIGKey>  Keys,
+                                                    UInt64?               Now          = null,
+                                                    Byte[]?               RequestMAC   = null)
+        {
+
+            if (!TryStripTSIG(SignedMessage, out _, out var tsig) || tsig is null)
+                return TSIGVerificationResult.Failed(BADSIG, "The message carries no TSIG record as its last additional record.");
+
+            var named = Keys.FirstOrDefault(key => key.Name.FullName.TrimEnd('.').
+                                                       Equals(tsig.DomainName.ToString().TrimEnd('.'),
+                                                              StringComparison.OrdinalIgnoreCase));
+
+            if (named is null)
+                return TSIGVerificationResult.Failed(BADKEY, $"No key named '{tsig.DomainName}' is configured.", tsig);
+
+            return Verify(SignedMessage, named, Now, RequestMAC);
+
+        }
+
+        #endregion
+
+        #region (static) BuildErrorResponse(SignedRequest, Error, Key)
+
+        /// <summary>
+        /// Build the NOTAUTH reply that RFC 8945 §5.2 owes the sender of a
+        /// request that failed verification.
+        /// </summary>
+        /// <param name="SignedRequest">The request that failed.</param>
+        /// <param name="Error">The TSIG error code to report.</param>
+        /// <param name="Key">The key to sign the reply with, or null when the failure was that no such key exists.</param>
+        /// <remarks>
+        /// The reply echoes the header and question and carries a TSIG with the
+        /// error code and an empty MAC. It is unsigned when the failure was
+        /// BADKEY or BADSIG: there is no shared secret to sign with, and §5.2
+        /// says so explicitly — a MAC computed with a key the peer does not hold
+        /// would be noise.
+        /// </remarks>
+        public static Byte[]? BuildErrorResponse(Byte[]    SignedRequest,
+                                                 UInt16    Error,
+                                                 TSIGKey?  Key   = null)
+        {
+
+            if (SignedRequest.Length < 12)
+                return null;
+
+            try
+            {
+
+                if (!TryStripTSIG(SignedRequest, out var unsigned, out var tsig) ||
+                    unsigned is null || tsig is null)
+                    return null;
+
+                var response = new Byte[unsigned.Length];
+                Buffer.BlockCopy(unsigned, 0, response, 0, unsigned.Length);
+
+                // QR = 1, RCODE = NOTAUTH (9), everything else as it arrived.
+                var flags    = BinaryPrimitives.ReadUInt16BigEndian(response.AsSpan(2, 2));
+                flags        = (UInt16) ((flags | 0x8000) & 0xFFF0 | (UInt16) DNSResponseCodes.NotAuthorized);
+                BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(2, 2), flags);
+
+                // No answers of any kind travel with an authentication failure.
+                BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(6,  2), 0);
+                BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(8,  2), 0);
+                BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(10, 2), 0);
+
+                var errorKey  = Key ?? new TSIGKey(DomainName.ParseLenient(tsig.DomainName.ToString()),
+                                                   [],
+                                                   tsig.AlgorithmName);
+
+                var record    = BuildTSIGRecord(errorKey,
+                                                tsig.TimeSigned,
+                                                tsig.Fudge,
+                                                MAC:         [],
+                                                OriginalID:  tsig.OriginalID,
+                                                Error:       Error,
+                                                OtherData:   []);
+
+                var result    = new Byte[response.Length + record.Length];
+                Buffer.BlockCopy(response, 0, result, 0,               response.Length);
+                Buffer.BlockCopy(record,   0, result, response.Length, record.Length);
+
+                BinaryPrimitives.WriteUInt16BigEndian(result.AsSpan(10, 2), 1);
+
+                return result;
+
+            }
+            catch
+            {
+                return null;
+            }
+
+        }
+
+        #endregion
+
         #region (static) ComputeMAC(Message, Key, TimeSigned, Fudge, Error, OtherData, RequestMAC = null)
 
         /// <summary>
