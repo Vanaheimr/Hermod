@@ -111,30 +111,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region SMIMEA(Stream)
-
-        /// <summary>
-        /// Create a new SMIMEA resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the SMIMEA resource record data.</param>
-        public SMIMEA(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.CertificateUsage            = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Selector                    = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.MatchingType                = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.CertificateAssociationData  = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 3));
-
-        }
-
-        #endregion
-
         #region SMIMEA(DomainName, Stream)
 
         /// <summary>

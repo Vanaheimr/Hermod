@@ -110,30 +110,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region ZONEMD(Stream)
-
-        /// <summary>
-        /// Create a new ZONEMD resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the ZONEMD resource record data.</param>
-        public ZONEMD(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.Serial         = Stream.ReadUInt32BE();
-            this.Scheme         = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.HashAlgorithm  = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Digest         = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 6));
-
-        }
-
-        #endregion
-
         #region ZONEMD(DomainName, Stream)
 
         /// <summary>

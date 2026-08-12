@@ -157,30 +157,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region TLSA(Stream)
-
-        /// <summary>
-        /// Create a new TLSA resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the TLSA resource record data.</param>
-        public TLSA(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.CertificateUsage            = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Selector                    = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.MatchingType                = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.CertificateAssociationData  = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 3));
-
-        }
-
-        #endregion
-
         #region TLSA(DomainName, Stream)
 
         /// <summary>

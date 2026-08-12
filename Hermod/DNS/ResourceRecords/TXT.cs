@@ -94,29 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region TXT(Stream)
-
-        /// <summary>
-        /// Create a new TXT resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the TXT resource record data.</param>
-        public TXT(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            // RFC 1035 §3.3.14: TXT-DATA is "one or more <character-string>s";
-            // RFC 7208 §3.3 requires them to be concatenated without separators.
-            this.Text = String.Concat(DNSTools.ExtractCharacterStrings(Stream, rdLength));
-
-        }
-
-        #endregion
-
         #region TXT(DomainName, Stream)
 
         /// <summary>

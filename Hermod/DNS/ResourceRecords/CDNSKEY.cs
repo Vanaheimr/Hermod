@@ -111,30 +111,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region CDNSKEY(Stream)
-
-        /// <summary>
-        /// Create a new CDNSKEY resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the CDNSKEY resource record data.</param>
-        public CDNSKEY(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.Flags      = Stream.ReadUInt16BE();
-            this.Protocol   = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Algorithm  = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.PublicKey  = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 4));
-
-        }
-
-        #endregion
-
         #region CDNSKEY(DomainName, Stream)
 
         /// <summary>

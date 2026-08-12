@@ -134,40 +134,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region TKEY(Stream)
-
-        /// <summary>
-        /// Create a new TKEY resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the TKEY resource record data.</param>
-        public TKEY(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.Algorithm   = DNS.DomainName.Parse(
-                                   DNSTools.ExtractName(Stream)
-                               );
-
-            this.Inception   = Stream.ReadUInt32BE();
-            this.Expiration  = Stream.ReadUInt32BE();
-            this.Mode        = Stream.ReadUInt16BE();
-            this.Error       = Stream.ReadUInt16BE();
-
-            var keySize      = Stream.ReadUInt16BE();
-            this.KeyData     = DNSTools.ExtractByteArray(Stream, keySize);
-
-            var otherSize    = Stream.ReadUInt16BE();
-            this.OtherData   = DNSTools.ExtractByteArray(Stream, otherSize);
-
-        }
-
-        #endregion
-
         #region TKEY(DomainName, Stream)
 
         /// <summary>

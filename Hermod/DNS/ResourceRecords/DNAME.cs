@@ -90,27 +90,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region DNAME(Stream)
-
-        /// <summary>
-        /// Create a new DNAME resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the DNAME resource record data.</param>
-        public DNAME(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.Target = DNS.DomainName.Parse(
-                              DNSTools.ExtractName(Stream)
-                          );
-
-        }
-
-        #endregion
-
         #region DNAME(DomainName, Stream)
 
         /// <summary>

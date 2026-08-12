@@ -101,28 +101,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region HINFO(Stream)
-
-        /// <summary>
-        /// Create a new HINFO resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the HINFO resource record data.</param>
-        public HINFO(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.CPU = DNSTools.ExtractCharacterString(Stream);
-            this.OS  = DNSTools.ExtractCharacterString(Stream);
-
-        }
-
-        #endregion
-
         #region HINFO(DomainName, Stream)
 
         /// <summary>

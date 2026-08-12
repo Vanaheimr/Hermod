@@ -137,40 +137,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region SSHFP(Stream)
-
-        /// <summary>
-        /// Create a new SSHFP resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the SSHFP resource record data.</param>
-        public SSHFP(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.FingerprintAlgorithm  = ParseAlgorithm      (Stream);
-
-            this.FingerprintType       = ParseFingerprintType(Stream);
-
-            this.Fingerprint           = FingerprintType switch {
-                                             SSHFP_FingerprintType.SHA1    => DNSTools.ExtractByteArray(Stream, 20),
-                                             SSHFP_FingerprintType.SHA256  => DNSTools.ExtractByteArray(Stream, 32),
-                                             _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
-                                         };
-
-            // The fingerprint is compared in BYTES, not in hex characters: SHA-1 is 20, SHA-256 is 32.
-            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 20)
-                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (20)!");
-
-            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 32)
-                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (32)!");
-
-        }
-
-        #endregion
-
         #region SSHFP(DomainName, Stream)
 
         /// <summary>

@@ -99,23 +99,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region A(Stream)
-
-        /// <summary>
-        /// Create a new A resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the A resource record data.</param>
-        public A(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-            this.IPv4Address = new IPv4Address(Stream);
-        }
-
-        #endregion
-
         #region A(DomainName,     Stream)
 
         /// <summary>

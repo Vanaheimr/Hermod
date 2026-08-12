@@ -110,32 +110,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region NSEC3PARAM(Stream)
-
-        /// <summary>
-        /// Create a new NSEC3PARAM resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the NSEC3PARAM resource record data.</param>
-        public NSEC3PARAM(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.HashAlgorithm  = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Flags          = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Iterations     = Stream.ReadUInt16BE();
-
-            var saltLength      = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Salt           = DNSTools.ExtractByteArray(Stream, saltLength);
-
-        }
-
-        #endregion
-
         #region NSEC3PARAM(DomainName, Stream)
 
         /// <summary>

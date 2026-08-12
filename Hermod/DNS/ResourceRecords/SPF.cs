@@ -96,29 +96,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region SPF(Stream)
-
-        /// <summary>
-        /// Create a new SPF resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the SPF resource record data.</param>
-        public SPF(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            // RFC 7208 §3.1: SPF shares the TXT RDATA format — one or more
-            // <character-string>s, concatenated. It is not a domain name.
-            this.Rules = String.Concat(DNSTools.ExtractCharacterStrings(Stream, rdLength));
-
-        }
-
-        #endregion
-
         #region SPF(DomainName, Stream)
 
         /// <summary>

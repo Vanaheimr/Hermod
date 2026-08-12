@@ -141,31 +141,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region SOA(Stream)
-
-        /// <summary>
-        /// Create a new SOA resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the SOA resource record data.</param>
-        public SOA(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.Server   = DNS.DomainName.    Parse(DNSTools.ExtractName(Stream));
-            this.EMail    = SimpleEMailAddress.Parse(DNSTools.ExtractName(Stream));
-            this.Serial   = (UInt32) ((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Expire   = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Minimum  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-
-        }
-
-        #endregion
-
         #region SOA(DomainName, Stream)
 
         /// <summary>

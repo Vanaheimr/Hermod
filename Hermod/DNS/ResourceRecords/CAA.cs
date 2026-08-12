@@ -109,31 +109,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region CAA(Stream)
-
-        /// <summary>
-        /// Create a new CAA resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the CAA resource record data.</param>
-        public CAA(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength  = Stream.ReadUInt16BE();
-
-            this.Flags    = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-
-            var tagLength = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Tag      = Encoding.ASCII.GetString(DNSTools.ExtractByteArray(Stream, tagLength));
-            this.Value    = Encoding.ASCII.GetString(DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 2 - tagLength)));
-
-        }
-
-        #endregion
-
         #region CAA(DomainName, Stream)
 
         /// <summary>

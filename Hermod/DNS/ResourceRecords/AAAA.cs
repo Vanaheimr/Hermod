@@ -99,23 +99,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region AAAA(Stream)
-
-        /// <summary>
-        /// Create a new AAAA resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">AAAA stream containing the AAAA resource record data.</param>
-        public AAAA(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-            this.IPv6Address = new IPv6Address(Stream);
-        }
-
-        #endregion
-
         #region AAAA(DomainName,     Stream)
 
         /// <summary>

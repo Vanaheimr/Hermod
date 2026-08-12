@@ -86,27 +86,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region EUI48(Stream)
-
-        /// <summary>
-        /// Create a new EUI48 resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the EUI48 resource record data.</param>
-        public EUI48(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.Address = DNSTools.ExtractByteArray(Stream, 6);
-
-        }
-
-        #endregion
-
         #region EUI48(DomainName, Stream)
 
         /// <summary>

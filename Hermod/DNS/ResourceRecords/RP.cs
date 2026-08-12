@@ -94,33 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region RP(Stream)
-
-        /// <summary>
-        /// Create a new RP resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the RP resource record data.</param>
-        public RP(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.Mailbox        = DNS.DomainName.Parse(
-                                      DNSTools.ExtractName(Stream)
-                                  );
-
-            this.TxtDomainName  = DNS.DomainName.Parse(
-                                      DNSTools.ExtractName(Stream)
-                                  );
-
-        }
-
-        #endregion
-
         #region RP(DomainName, Stream)
 
         /// <summary>

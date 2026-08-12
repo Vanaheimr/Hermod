@@ -81,34 +81,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
-        #region (protected) ADNSResourceRecord(DNSStream,      Type)
-
-        /// <summary>
-        /// Create a new DNS resource record from the given DNS stream and type.
-        /// </summary>
-        /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
-        /// <param name="Type">A valid DNS resource record type.</param>
-        protected ADNSResourceRecord(Stream                  DNSStream,
-                                     DNSResourceRecordTypes  Type)
-        {
-
-            this.DomainName  = DNSTools.ExtractDNSServiceName(DNSStream);
-
-            this.Type        = Type;
-            var type         = (DNSResourceRecordTypes) DNSStream.ReadUInt16BE();  //((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
-            if (type != Type)
-                throw new ArgumentException($"Invalid DNS resource record type! Expected '{Type}', but got '{type}'!");
-
-            this.Class       = (DNSQueryClasses)        DNSStream.ReadUInt16BE();  //(DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
-            this.TimeToLive  = TimeSpan.FromSeconds    (DNSStream.ReadUInt32BE()); //(DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
-            this.EndOfLife   = Timestamp.Now + TimeToLive;
-
-            //var RDLength     = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
-
-        }
-
-        #endregion
-
         #region (protected) ADNSResourceRecord(DomainName,     Type, DNSStream)
 
         protected ADNSResourceRecord(DomainName              DomainName,

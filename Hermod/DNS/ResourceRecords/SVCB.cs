@@ -199,34 +199,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructors
 
-        #region SVCB(Stream)
-
-        /// <summary>
-        /// Create a new SVCB resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the SVCB resource record data.</param>
-        public SVCB(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength       = Stream.ReadUInt16BE();
-            var rdataStart     = Stream.Position;
-
-            this.Priority      = Stream.ReadUInt16BE();
-            this.TargetName    = DNSTools.ExtractDomainName(Stream);
-
-            this.SVCParameters = ParseSVCParameters(
-                                     Stream,
-                                     rdLength - (Int32) (Stream.Position - rdataStart)
-                                 ).AsReadOnly();
-
-        }
-
-        #endregion
-
         #region SVCB(DomainName, Stream)
 
         /// <summary>
