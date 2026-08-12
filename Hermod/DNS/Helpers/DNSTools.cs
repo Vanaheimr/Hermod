@@ -30,6 +30,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNSTools
     {
 
+        #region (static) SerializeCanonicalName(Name)
+
+        /// <summary>
+        /// Serialize a domain name into its canonical wire format: lowercased,
+        /// length-prefixed labels, root-terminated, never compressed.
+        /// </summary>
+        /// <param name="Name">A domain name, with or without its trailing dot.</param>
+        /// <remarks>
+        /// RFC 4034 §6.2 defines this form for DNSSEC signing, and RFC 5155 §5
+        /// reuses it as the input to the NSEC3 hash. Both need the identical
+        /// bytes, which is why this lives here rather than beside either of them.
+        /// </remarks>
+        public static Byte[] SerializeCanonicalName(String Name)
+        {
+
+            var normalized = Name.ToLowerInvariant().TrimEnd('.');
+
+            if (normalized.Length == 0)
+                return [ 0x00 ];
+
+            using var stream = new MemoryStream();
+
+            foreach (var label in normalized.Split('.'))
+            {
+                var labelBytes = Encoding.ASCII.GetBytes(label);
+                stream.WriteByte((Byte) labelBytes.Length);
+                stream.Write(labelBytes, 0, labelBytes.Length);
+            }
+
+            // The root label terminates the name.
+            stream.WriteByte(0x00);
+
+            return stream.ToArray();
+
+        }
+
+        #endregion
+
+
         public static Byte[] ExtractByteArray(Stream DNSStream, UInt32 LengthOfSegment)
         {
 

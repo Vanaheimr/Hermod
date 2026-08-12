@@ -1114,35 +1114,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Serialize a domain name in canonical wire format (lowercased, no compression).
         /// </summary>
+        /// <remarks>
+        /// RFC 5155 §5 hashes the very same bytes, so the implementation lives in
+        /// <see cref="DNSTools.SerializeCanonicalName"/> and both callers share it.
+        /// </remarks>
         private static Byte[] SerializeCanonicalName(String Name)
-        {
 
-            using var stream = new MemoryStream();
-
-            // Normalize: lowercase, ensure trailing dot is handled
-            var normalized = Name.ToLowerInvariant().TrimEnd('.');
-
-            if (String.IsNullOrEmpty(normalized) || normalized == ".")
-            {
-                stream.WriteByte(0x00);
-                return stream.ToArray();
-            }
-
-            var labels = normalized.Split('.');
-
-            foreach (var label in labels)
-            {
-                var labelBytes = Encoding.ASCII.GetBytes(label);
-                stream.WriteByte((Byte) labelBytes.Length);
-                stream.Write(labelBytes, 0, labelBytes.Length);
-            }
-
-            // Null terminator (root label)
-            stream.WriteByte(0x00);
-
-            return stream.ToArray();
-
-        }
+            => DNSTools.SerializeCanonicalName(Name);
 
         #endregion
 
