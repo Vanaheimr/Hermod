@@ -110,6 +110,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         AFSDB        = 18,
 
         /// <summary>
+        /// Public key record (RFC 2535 §3). Not a DNSSEC record: RFC 3445 removed
+        /// its zone-signing role and left it to applications, which today means
+        /// the Diffie-Hellman half of TKEY (RFC 2930 §4.2, encoded per RFC 2539)
+        /// and SIG(0) transaction signatures (RFC 2931). Zone keys live in
+        /// <see cref="DNSKEY"/>.
+        /// </summary>
+        KEY          = 25,
+
+        /// <summary>
         /// IPv6 address record (RFC 3596).
         /// </summary>
         AAAA         = 28,
