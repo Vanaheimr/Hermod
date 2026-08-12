@@ -87,27 +87,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region OPENPGPKEY(Stream)
-
-        /// <summary>
-        /// Create a new OPENPGPKEY resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the OPENPGPKEY resource record data.</param>
-        public OPENPGPKEY(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.PublicKey = DNSTools.ExtractByteArray(Stream, rdLength);
-
-        }
-
-        #endregion
-
         #region OPENPGPKEY(DomainName, Stream)
 
         /// <summary>

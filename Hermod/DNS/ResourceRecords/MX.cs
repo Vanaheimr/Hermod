@@ -94,27 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region MX(Stream)
-
-        /// <summary>
-        /// Create a new MX resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the MX resource record data.</param>
-        public MX(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.Preference  = (UInt16) ((Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue));
-
-            this.Exchange    = DNSTools.ExtractDomainName(Stream);
-
-        }
-
-        #endregion
-
         #region MX(DomainName, Stream)
 
         /// <summary>

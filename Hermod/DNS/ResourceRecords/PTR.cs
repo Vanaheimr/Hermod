@@ -87,23 +87,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region PTR(Stream)
-
-        /// <summary>
-        /// Create a new PTR resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the PTR resource record data.</param>
-        public PTR(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-            this.Target = DNSTools.ExtractDNSServiceName(Stream);
-        }
-
-        #endregion
-
         #region PTR(DomainName, Stream)
 
         /// <summary>

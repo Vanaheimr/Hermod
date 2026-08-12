@@ -86,27 +86,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region NS(Stream)
-
-        /// <summary>
-        /// Create a new NS resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the NS resource record data.</param>
-        public NS(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.NameServer = DNS.DomainName.Parse(
-                                  DNSTools.ExtractName(Stream)
-                              );
-
-        }
-
-        #endregion
-
         #region NS(DomainName, Stream)
 
         /// <summary>

@@ -150,41 +150,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region RRSIG(Stream)
-
-        /// <summary>
-        /// Create a new RRSIG resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the RRSIG resource record data.</param>
-        public RRSIG(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength  = Stream.ReadUInt16BE();
-            var startPos  = Stream.Position;
-
-            this.TypeCovered          = (DNSResourceRecordTypes) Stream.ReadUInt16BE();
-            this.Algorithm            = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Labels               = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.OriginalTTL          = Stream.ReadUInt32BE();
-            this.SignatureExpiration   = Stream.ReadUInt32BE();
-            this.SignatureInception    = Stream.ReadUInt32BE();
-            this.KeyTag               = Stream.ReadUInt16BE();
-
-            this.SignerName           = DNS.DomainName.Parse(
-                                           DNSTools.ExtractName(Stream)
-                                       );
-
-            var bytesRead             = (Int32) (Stream.Position - startPos);
-            this.Signature            = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - bytesRead));
-
-        }
-
-        #endregion
-
         #region RRSIG(DomainName, Stream)
 
         /// <summary>

@@ -69,25 +69,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region OPT(Stream)
-
-        /// <summary>
-        /// Create a new OPT resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the OPT resource record data.</param>
-        public OPT(Stream Stream)
-
-            //: base(Stream,
-            //       TypeId)
-
-        {
-
-            //this.IPv6Address = new IPv6Address(Stream);
-
-        }
-
-        #endregion
-
         #region OPT(DomainName Stream)
 
         public OPT(DomainName       DomainName,

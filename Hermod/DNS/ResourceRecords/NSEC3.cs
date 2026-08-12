@@ -126,39 +126,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region NSEC3(Stream)
-
-        /// <summary>
-        /// Create a new NSEC3 resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the NSEC3 resource record data.</param>
-        public NSEC3(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength  = Stream.ReadUInt16BE();
-            var startPos  = Stream.Position;
-
-            this.HashAlgorithm        = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Flags                = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Iterations           = Stream.ReadUInt16BE();
-
-            var saltLength            = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Salt                 = DNSTools.ExtractByteArray(Stream, saltLength);
-
-            var hashLength            = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.NextHashedOwnerName  = DNSTools.ExtractByteArray(Stream, hashLength);
-
-            var bytesRead             = (Int32) (Stream.Position - startPos);
-            this.TypeBitMaps          = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - bytesRead));
-
-        }
-
-        #endregion
-
         #region NSEC3(DomainName, Stream)
 
         /// <summary>

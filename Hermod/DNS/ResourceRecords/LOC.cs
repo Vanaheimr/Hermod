@@ -135,33 +135,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region LOC(Stream)
-
-        /// <summary>
-        /// Create a new LOC resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the LOC resource record data.</param>
-        public LOC(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.Version         = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Size            = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.HorizPrecision  = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.VertPrecision   = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Latitude        = Stream.ReadUInt32BE();
-            this.Longitude       = Stream.ReadUInt32BE();
-            this.Altitude        = Stream.ReadUInt32BE();
-
-        }
-
-        #endregion
-
         #region LOC(DomainName, Stream)
 
         /// <summary>

@@ -131,30 +131,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructors
 
-        #region NAPTR(Stream)
-
-        /// <summary>
-        /// Create a new NAPTR resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the NAPTR resource record data.</param>
-        public NAPTR(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.Order        = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Preference   = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Flags        = DNSTools.ExtractCharacterString(Stream);
-            this.Services     = DNSTools.ExtractCharacterString(Stream);
-            this.RegExpr      = DNSTools.ExtractCharacterString(Stream);
-            this.Replacement  = DNSTools.ExtractDomainName(Stream);
-
-        }
-
-        #endregion
-
         #region NAPTR(DomainName, Stream)
 
         /// <summary>

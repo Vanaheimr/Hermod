@@ -86,27 +86,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region CNAME(Stream)
-
-        /// <summary>
-        /// Create a new CNAME resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the CNAME resource record data.</param>
-        public CNAME(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.CName = DNS.DomainName.Parse(
-                             DNSTools.ExtractName(Stream)
-                         );
-
-        }
-
-        #endregion
-
         #region CNAME(DomainName, Stream)
 
         /// <summary>

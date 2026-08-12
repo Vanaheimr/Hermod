@@ -111,30 +111,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region CERT(Stream)
-
-        /// <summary>
-        /// Create a new CERT resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the CERT resource record data.</param>
-        public CERT(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.CertType     = Stream.ReadUInt16BE();
-            this.KeyTag       = Stream.ReadUInt16BE();
-            this.Algorithm    = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Certificate  = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 5));
-
-        }
-
-        #endregion
-
         #region CERT(DomainName, Stream)
 
         /// <summary>

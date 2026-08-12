@@ -94,31 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region AFSDB(Stream)
-
-        /// <summary>
-        /// Create a new AFSDB resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the AFSDB resource record data.</param>
-        public AFSDB(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.Subtype   = Stream.ReadUInt16BE();
-
-            this.Hostname  = DNS.DomainName.Parse(
-                                 DNSTools.ExtractName(Stream)
-                             );
-
-        }
-
-        #endregion
-
         #region AFSDB(DomainName, Stream)
 
         /// <summary>

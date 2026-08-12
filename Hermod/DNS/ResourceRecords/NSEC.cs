@@ -94,33 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region NSEC(Stream)
-
-        /// <summary>
-        /// Create a new NSEC resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the NSEC resource record data.</param>
-        public NSEC(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength  = Stream.ReadUInt16BE();
-            var startPos  = Stream.Position;
-
-            this.NextDomainName = DNS.DomainName.Parse(
-                                     DNSTools.ExtractName(Stream)
-                                 );
-
-            var bytesRead       = (Int32) (Stream.Position - startPos);
-            this.TypeBitMaps    = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - bytesRead));
-
-        }
-
-        #endregion
-
         #region NSEC(DomainName, Stream)
 
         /// <summary>

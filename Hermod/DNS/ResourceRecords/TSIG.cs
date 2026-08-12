@@ -134,45 +134,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region TSIG(Stream)
-
-        /// <summary>
-        /// Create a new TSIG resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the TSIG resource record data.</param>
-        public TSIG(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.AlgorithmName  = DNS.DomainName.Parse(
-                                      DNSTools.ExtractName(Stream)
-                                  );
-
-            // TimeSigned: 48-bit value (high 16 bits + low 32 bits)
-            var timeHigh        = (UInt64) Stream.ReadUInt16BE();
-            var timeLow         = (UInt64) Stream.ReadUInt32BE();
-            this.TimeSigned     = (timeHigh << 32) | timeLow;
-
-            this.Fudge          = Stream.ReadUInt16BE();
-
-            var macSize         = Stream.ReadUInt16BE();
-            this.MAC            = DNSTools.ExtractByteArray(Stream, macSize);
-
-            this.OriginalID     = Stream.ReadUInt16BE();
-            this.Error          = Stream.ReadUInt16BE();
-
-            var otherLen        = Stream.ReadUInt16BE();
-            this.OtherData      = DNSTools.ExtractByteArray(Stream, otherLen);
-
-        }
-
-        #endregion
-
         #region TSIG(DomainName, Stream)
 
         /// <summary>

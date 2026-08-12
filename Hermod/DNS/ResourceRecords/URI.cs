@@ -113,31 +113,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructors
 
-        #region URI(Stream)
-
-        /// <summary>
-        /// Create a new URI resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the URI resource record data.</param>
-        public URI(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength   = Stream.ReadUInt16BE();
-
-            this.Priority  = Stream.ReadUInt16BE();
-            this.Weight    = Stream.ReadUInt16BE();
-
-            // RFC 7553 §4.5: the Target is the remaining octets of the RDATA.
-            this.Target    = URL.Parse(ReadTarget(Stream, rdLength));
-
-        }
-
-        #endregion
-
         #region URI(DNSServiceName, Stream)
 
         /// <summary>

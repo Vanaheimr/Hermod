@@ -102,29 +102,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region CSYNC(Stream)
-
-        /// <summary>
-        /// Create a new CSYNC resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the CSYNC resource record data.</param>
-        public CSYNC(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.SOASerial    = Stream.ReadUInt32BE();
-            this.Flags        = Stream.ReadUInt16BE();
-            this.TypeBitMaps  = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 6));
-
-        }
-
-        #endregion
-
         #region CSYNC(DomainName, Stream)
 
         /// <summary>

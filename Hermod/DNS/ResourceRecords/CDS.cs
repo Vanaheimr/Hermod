@@ -111,30 +111,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor
 
-        #region CDS(Stream)
-
-        /// <summary>
-        /// Create a new CDS resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the CDS resource record data.</param>
-        public CDS(Stream  Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength = Stream.ReadUInt16BE();
-
-            this.KeyTag      = Stream.ReadUInt16BE();
-            this.Algorithm   = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.DigestType  = (Byte) (Stream.ReadByte() & Byte.MaxValue);
-            this.Digest      = DNSTools.ExtractByteArray(Stream, (UInt32)(rdLength - 4));
-
-        }
-
-        #endregion
-
         #region CDS(DomainName, Stream)
 
         /// <summary>

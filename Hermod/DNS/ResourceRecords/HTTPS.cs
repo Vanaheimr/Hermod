@@ -109,34 +109,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructors
 
-        #region HTTPS(Stream)
-
-        /// <summary>
-        /// Create a new HTTPS resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the HTTPS resource record data.</param>
-        public HTTPS(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            var rdLength       = Stream.ReadUInt16BE();
-            var rdataStart     = Stream.Position;
-
-            this.Priority      = Stream.ReadUInt16BE();
-            this.TargetName    = DNSTools.ExtractDomainName(Stream);
-
-            this.SVCParameters = SVCB.ParseSVCParameters(
-                                     Stream,
-                                     rdLength - (Int32) (Stream.Position - rdataStart)
-                                 ).AsReadOnly();
-
-        }
-
-        #endregion
-
         #region HTTPS(DomainName, Stream)
 
         /// <summary>

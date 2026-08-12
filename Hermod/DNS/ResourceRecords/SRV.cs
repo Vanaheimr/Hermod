@@ -113,28 +113,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructors
 
-        #region SRV(Stream)
-
-        /// <summary>
-        /// Create a new SRV resource record from the given stream.
-        /// </summary>
-        /// <param name="Stream">A stream containing the SRV resource record data.</param>
-        public SRV(Stream Stream)
-
-            : base(Stream,
-                   TypeId)
-
-        {
-
-            this.Priority  = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Weight    = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Port      = IPPort.        Parse((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
-            this.Target    = DNS.DomainName.Parse(DNSTools.ExtractName(Stream));
-
-        }
-
-        #endregion
-
         #region SRV(DomainName, Stream)
 
         /// <summary>
