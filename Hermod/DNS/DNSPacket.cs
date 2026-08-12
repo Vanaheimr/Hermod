@@ -405,20 +405,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 //var rdataLength  =                          stream.ReadUInt32BE(); //(UInt16) ((packet[position++] <<  8) |  packet[position++]);
                 //var rdataOffset  = position;
 
+                // RFC 3597 §2: a type this build has no parser for is opaque data,
+                // not a malformed message. Skipping past it keeps the stream
+                // aligned for whatever follows; throwing here made the server
+                // answer FORMERR to a query whose question it could read
+                // perfectly well, and any record it did not happen to know —
+                // a TSIG, a future type — was enough to trigger it.
+                if (recordType is not DNSResourceRecordTypes.A and
+                                  not DNSResourceRecordTypes.OPT)
+                {
+
+                    Stream.Position += 6;                          // CLASS + TTL
+                    var rdLength     = Stream.ReadUInt16BE();
+                    Stream.Position += rdLength;
+
+                    continue;
+
+                }
+
                 IDNSResourceRecord record = recordType switch {
                     DNSResourceRecordTypes.A     => new A      (DNSServiceName.Parse(name), Stream),
-                //    DNSResourceRecordTypes.A     => new ARecord      (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                //    DNSResourceRecordTypes.AAAA  => new AAAARecord   (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                //    DNSResourceRecordTypes.SRV   => new SRVRecord    (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                //    DNSResourceRecordTypes.URI   => new URIRecord    (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                //    DNSResourceRecordTypes.NAPTR => new NAPTRRecord  (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                //    DNSResourceRecordTypes.OPT   => new OPTRecord    (DNS.DomainName.    Parse(name),             queryClass, rawTTL,     rdataLength, packet, rdataOffset),
                     DNSResourceRecordTypes.OPT   => new OPT    (DNSServiceName.Parse(name), Stream),
-                //    _                            => new GenericRecord(DNS.DomainName.    Parse(name), recordType, queryClass, timeToLive, rdataLength, packet, rdataOffset)
+                    _                            => throw new InvalidDataException($"Unreachable: {recordType}")
                 };
 
                 records.Add(record);
-                //position += rdataLength;
 
             }
 

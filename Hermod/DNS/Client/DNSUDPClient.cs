@@ -63,6 +63,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public IIPAddress  RemoteIPAddress     { get; }
 
         /// <summary>
+        /// The TSIG key to sign queries with, or null to leave them unsigned
+        /// (RFC 8945).
+        /// </summary>
+        public TSIGKey?     TSIGKey            { get; }
+
+
+        /// <summary>
         /// The UDP port of the DNS server to query.
         /// </summary>
         public IPPort?     RemotePort          { get; }
@@ -159,10 +166,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                RecursionDesired   = null,
                             TimeSpan?               QueryTimeout       = null,
                             ILogger<DNSUDPClient>?  Logger             = null,
-                            ILoggerFactory?         LoggerFactory      = null)
+                            ILoggerFactory?         LoggerFactory      = null,
+                            TSIGKey?                TSIGKey            = null)
 
         {
 
+            this.TSIGKey           = TSIGKey;
             this.RemoteIPAddress   = IPAddress;
             this.RemotePort        = Port             ?? IPPort.DNS;
             this.RemoteURL         = IPAddress.IsIPv6
@@ -271,7 +280,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 using var ms = new MemoryStream();
                 dnsQuery.Serialize(ms, false, []);
 
-                await socket.SendToAsync(ms.ToArray(), SocketFlags.None, remoteEndPoint, timeoutCTS.Token).
+                // RFC 8945 §5.3: sign the query, and keep the MAC — the response
+                // folds it in, which is what binds the answer to this question.
+                var wire        = ms.ToArray();
+                var requestMAC  = (Byte[]?) null;
+
+                if (TSIGKey is not null)
+                {
+                    wire        = TSIGSigner.Sign(wire, TSIGKey);
+                    requestMAC  = TSIGSigner.Verify(wire, TSIGKey).MAC;
+                }
+
+                await socket.SendToAsync(wire, SocketFlags.None, remoteEndPoint, timeoutCTS.Token).
                              ConfigureAwait(false);
 
                 var data = new Byte[Math.Max(4096, (Int32) UDPPayloadSize)];
@@ -302,6 +322,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     }
 
+                    var body = new Byte[received];
+                    Buffer.BlockCopy(data, 0, body, 0, received);
+
+                    if (TSIGKey is not null)
+                    {
+
+                        var verdict = TSIGSigner.Verify(body, TSIGKey, RequestMAC: requestMAC);
+
+                        if (!verdict.IsValid)
+                        {
+
+                            // A response that does not authenticate is not an
+                            // answer. Discarding it and waiting takes the same
+                            // posture RFC 5452 §4.2 takes for a mismatched
+                            // transaction id: one forged datagram must not be
+                            // able to end a query.
+                            logger.LogDebug(
+                                "Discarding a DNS UDP response from {RemoteIPAddress}:{RemotePort} that failed TSIG verification: {Reason}",
+                                RemoteIPAddress,
+                                RemotePort,
+                                verdict.Description
+                            );
+
+                            continue;
+
+                        }
+
+                        if (TSIGSigner.TryStripTSIG(body, out var unsignedBody, out _) && unsignedBody is not null)
+                            body = unsignedBody;
+
+                    }
+
                     var response = DNSInfo.ReadResponse(
                                       new DNSServerConfig(
                                           RemoteIPAddress!,
@@ -310,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                           effectiveTimeout
                                       ),
                                       dnsQuery.TransactionId,
-                                      new MemoryStream(data, 0, received),
+                                      new MemoryStream(body),
                                       effectiveTimeout,
                                       stopwatch.Elapsed
                                   );

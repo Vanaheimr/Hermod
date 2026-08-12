@@ -221,6 +221,119 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private) AcceptTSIG              (Buffer, out Message, out Context, out ErrorResponse)
+
+        /// <summary>
+        /// Verify and remove a TSIG record before the message is parsed.
+        /// </summary>
+        /// <param name="Buffer">The datagram or framed message as received.</param>
+        /// <param name="Message">What the rest of the server should parse: the request with its TSIG removed and ARCOUNT corrected.</param>
+        /// <param name="Context">What is needed to sign the reply, or null when the request was unsigned.</param>
+        /// <param name="ErrorResponse">A ready-to-send NOTAUTH reply when verification failed, otherwise null.</param>
+        /// <returns>False when the request must not be served.</returns>
+        /// <remarks>
+        /// Stripping before parsing rather than after is deliberate. It keeps the
+        /// signed bytes exactly as they arrived — which is what the MAC covers —
+        /// and it means <c>DNSPacket.Parse</c> never meets a TSIG record, which
+        /// it has no case for and would throw on.
+        /// </remarks>
+        private Boolean AcceptTSIG(Byte[]              Buffer,
+                                   out Byte[]          Message,
+                                   out TSIGContext?    Context,
+                                   out Byte[]?         ErrorResponse)
+        {
+
+            Message        = Buffer;
+            Context        = null;
+            ErrorResponse  = null;
+
+            var keys = Options.TSIGKeys.ToArray();
+
+            if (keys.Length == 0)
+                return true;
+
+            if (!TSIGSigner.TryStripTSIG(Buffer, out var unsigned, out var tsig) ||
+                unsigned is null || tsig is null)
+                return true;                    // unsigned request: serve it as before
+
+            var result = TSIGSigner.Verify(Buffer, keys);
+
+            if (!result.IsValid)
+            {
+
+                logger.LogWarning(
+                    "Rejecting a TSIG-signed request under key {KeyName}: {Reason}",
+                    tsig.DomainName,
+                    result.Description
+                );
+
+                // §5.2: answer NOTAUTH and report why in the TSIG error field, so
+                // the sender can tell a wrong key from a wrong clock. Silence
+                // would leave it retrying forever.
+                var key        = keys.FirstOrDefault(k => k.Name.FullName.TrimEnd('.').
+                                                            Equals(tsig.DomainName.ToString().TrimEnd('.'),
+                                                                   StringComparison.OrdinalIgnoreCase));
+
+                ErrorResponse  = TSIGSigner.BuildErrorResponse(
+                                     Buffer,
+                                     result.Error,
+                                     result.Error == TSIGSigner.BADTIME ? key : null
+                                 );
+
+                return false;
+
+            }
+
+            Message  = unsigned;
+            Context  = new TSIGContext(
+                           keys.First(k => k.Name.FullName.TrimEnd('.').
+                                             Equals(tsig.DomainName.ToString().TrimEnd('.'),
+                                                    StringComparison.OrdinalIgnoreCase)),
+                           result.MAC!
+                       );
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private) SignIfRequested         (ResponseBytes, Context)
+
+        /// <summary>
+        /// Sign a response when the request that prompted it was signed.
+        /// </summary>
+        /// <param name="ResponseBytes">The serialized response.</param>
+        /// <param name="Context">The key and request MAC, or null to leave the response unsigned.</param>
+        /// <remarks>
+        /// The request's MAC goes into the response's, per RFC 8945 §4.3.1, which
+        /// binds the two together: a signed response lifted from one exchange
+        /// cannot be replayed as the answer to another.
+        /// </remarks>
+        private static Byte[] SignIfRequested(Byte[]        ResponseBytes,
+                                              TSIGContext?  Context)
+
+            => Context is null
+                   ? ResponseBytes
+                   : TSIGSigner.Sign(ResponseBytes,
+                                     Context.Key,
+                                     RequestMAC: Context.RequestMAC);
+
+        #endregion
+
+        #region (private) TSIGContext
+
+        /// <summary>
+        /// What a verified request leaves behind for its response to be signed with.
+        /// </summary>
+        private sealed class TSIGContext(TSIGKey Key, Byte[] RequestMAC)
+        {
+            public TSIGKey  Key         { get; } = Key;
+            public Byte[]   RequestMAC  { get; } = RequestMAC;
+        }
+
+        #endregion
+
         #region (private) SerializeForUDP         (Response, Request)
 
         /// <summary>
@@ -350,6 +463,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var dnsPacket = await udpUnicastListener.ReceiveAsync(CancellationToken);
 
+                    if (!AcceptTSIG(dnsPacket.Buffer, out var udpBody, out var tsigContext, out var tsigError))
+                    {
+
+                        if (tsigError is not null)
+                            await udpUnicastListener.SendAsync(
+                                      new ReadOnlyMemory<Byte>(tsigError),
+                                      dnsPacket.RemoteEndPoint,
+                                      CancellationToken
+                                  );
+
+                        continue;
+
+                    }
+
                     DNSPacket dnsRequest;
 
                     try
@@ -357,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         dnsRequest = DNSPacket.Parse(
                                          ActiveUDPUnicastSocket ?? localSocket,
                                          IPSocket.FromIPEndPoint(dnsPacket.RemoteEndPoint),
-                                         new MemoryStream(dnsPacket.Buffer)
+                                         new MemoryStream(udpBody)
                                      );
                     }
                     catch (Exception parseException)
@@ -400,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     {
 
                         await udpUnicastListener.SendAsync(
-                                  new ReadOnlyMemory<Byte>(SerializeForUDP(dnsResponse, dnsRequest)),
+                                  new ReadOnlyMemory<Byte>(SignIfRequested(SerializeForUDP(dnsResponse, dnsRequest), tsigContext)),
                                   dnsResponse.RemoteSocket.ToIPEndPoint(),
                                   CancellationToken
                               );
@@ -857,10 +984,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (bytesRead != length)
                         throw new EndOfStreamException("Incomplete DNS stream request payload.");
 
+                    if (!AcceptTSIG(sharedBuffer[..bytesRead], out var streamBody, out var tsigContext, out var tsigError))
+                    {
+
+                        if (tsigError is not null)
+                        {
+                            await Stream.WriteAsync(new Byte[] { (Byte) (tsigError.Length >> 8), (Byte) tsigError.Length }, CancellationToken);
+                            await Stream.WriteAsync(tsigError, CancellationToken);
+                            await Stream.FlushAsync(CancellationToken);
+                        }
+
+                        continue;
+
+                    }
+
                     var dnsRequest = DNSPacket.Parse(
                                          LocalSocket,
                                          RemoteSocket,
-                                         new MemoryStream(sharedBuffer, 0, bytesRead)
+                                         new MemoryStream(streamBody)
                                      );
 
                     await LogEvent(
@@ -889,7 +1030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             CompressionOffsets:  []
                         );
 
-                        var responseBytes  = memoryStream.ToArray();
+                        var responseBytes  = SignIfRequested(memoryStream.ToArray(), tsigContext);
 
                         Stream.WriteUInt16BE((UInt16) responseBytes.Length);
 
