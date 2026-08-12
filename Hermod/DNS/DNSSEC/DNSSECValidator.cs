@@ -366,6 +366,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="CancellationToken">An optional cancellation token.</param>
         public async Task<DNSSECValidationResult> ValidateAsync(DNSInfo            Response,
                                                                 CancellationToken  CancellationToken = default)
+
+            => await ValidateAsync(Response, null, CancellationToken).ConfigureAwait(false);
+
+
+        /// <summary>
+        /// Validate a response, including the authenticated denial of existence
+        /// when the answer section is empty.
+        /// </summary>
+        /// <param name="Response">The response to validate.</param>
+        /// <param name="Question">What was asked. Without it a negative answer cannot be checked, because the proof is a statement about a specific name and type.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public async Task<DNSSECValidationResult> ValidateAsync(DNSInfo                                                     Response,
+                                                                (DomainName QName, DNSResourceRecordTypes QType)?           Question,
+                                                                CancellationToken                                           CancellationToken = default)
         {
 
             try
@@ -375,7 +389,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var rrsigRecords = Response.Answers.OfType<RRSIG>().ToList();
 
                 if (rrsigRecords.Count == 0)
+                {
+
+                    // An answer section with no signatures is not necessarily an
+                    // unsigned zone: a negative answer has an empty answer
+                    // section by definition, and carries its proof in the
+                    // authority section instead. Reporting Insecure here without
+                    // looking would accept every NXDOMAIN ever forged.
+                    if (Question is not null &&
+                        Response.Authorities.Any(rr => rr is NSEC or NSEC3))
+                        return await ValidateDenialAsync(
+                                         Response,
+                                         Question.Value.QName,
+                                         Question.Value.QType,
+                                         CancellationToken
+                                     ).ConfigureAwait(false);
+
+                    // No proof at all. Whether that is acceptable depends on
+                    // whether the zone was supposed to have one: under a
+                    // configured trust anchor it was, and a negative answer
+                    // arriving without it is exactly what stripping the records
+                    // produces. Outside any anchor there is nothing to expect,
+                    // and the answer is merely unsigned.
+                    if (Question is not null &&
+                        CoveredByATrustAnchor(Question.Value.QName))
+                        return DNSSECValidationResult.Bogus;
+
                     return DNSSECValidationResult.Insecure;
+
+                }
 
                 // Group answers by type (excluding RRSIG itself) to form RRSets
                 var answerRecords = Response.Answers
@@ -448,6 +490,131 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 return DNSSECValidationResult.Indeterminate;
             }
+
+        }
+
+        #endregion
+
+        #region (private) CoveredByATrustAnchor(Name)
+
+        /// <summary>
+        /// Whether any configured trust anchor sits at or above the given name,
+        /// which is what makes a missing proof a defect rather than a fact about
+        /// an unsigned zone.
+        /// </summary>
+        private Boolean CoveredByATrustAnchor(DomainName Name)
+        {
+
+            var name = Name.FullName.TrimEnd('.');
+
+            return trustAnchors.Any(anchor => {
+
+                var anchorName = anchor.DomainName.ToString().TrimEnd('.');
+
+                // The root anchor covers everything.
+                return anchorName.Length == 0 ||
+                       name.Equals(anchorName, StringComparison.OrdinalIgnoreCase) ||
+                       name.EndsWith("." + anchorName, StringComparison.OrdinalIgnoreCase);
+
+            });
+
+        }
+
+        #endregion
+
+        #region (private) ValidateDenialAsync(Response, QName, QType, CancellationToken)
+
+        /// <summary>
+        /// Validate a negative answer: check that the NSEC or NSEC3 records in
+        /// the authority section are authentic, and that they actually prove
+        /// what the response claims.
+        /// </summary>
+        /// <remarks>
+        /// Both halves are required and neither is sufficient. A signature check
+        /// alone proves the records came from the zone, which an attacker can
+        /// satisfy by replaying genuine records from elsewhere in the namespace;
+        /// a proof check alone proves the records fit the claim, which an
+        /// attacker can satisfy by forging them. Only together do they say "the
+        /// zone asserted that this name is absent".
+        /// </remarks>
+        private async Task<DNSSECValidationResult> ValidateDenialAsync(DNSInfo                 Response,
+                                                                       DomainName              QName,
+                                                                       DNSResourceRecordTypes  QType,
+                                                                       CancellationToken       CancellationToken)
+        {
+
+            var authorities  = Response.Authorities.ToList();
+            var denialSigs   = authorities.OfType<RRSIG>().
+                                           Where(rrsig => rrsig.TypeCovered is DNSResourceRecordTypes.NSEC
+                                                                            or DNSResourceRecordTypes.NSEC3).
+                                           ToList();
+
+            if (denialSigs.Count == 0)
+                return DNSSECValidationResult.Bogus;
+
+            foreach (var rrsig in denialSigs)
+            {
+
+                var rrSet = authorities.OfType<ADNSResourceRecord>().
+                                        Where(rr => rr.Type == rrsig.TypeCovered &&
+                                                    rr.DomainName.FullName.Equals(rrsig.DomainName.FullName,
+                                                                                  StringComparison.OrdinalIgnoreCase)).
+                                        Cast<IDNSResourceRecord>().
+                                        ToList();
+
+                if (rrSet.Count == 0)
+                    return DNSSECValidationResult.Bogus;
+
+                var now = (UInt32) Timestamp.Now.ToUnixTimeSeconds();
+                if (now < rrsig.SignatureInception || now > rrsig.SignatureExpiration)
+                    return DNSSECValidationResult.Bogus;
+
+                var dnskeyResponse = await dnsClient.Query(
+                                               DomainName.Parse(rrsig.SignerName.FullName),
+                                               [DNSResourceRecordTypes.DNSKEY],
+                                               CancellationToken: CancellationToken
+                                           ).ConfigureAwait(false);
+
+                if (!dnskeyResponse.IsValid)
+                    return DNSSECValidationResult.Indeterminate;
+
+                var dnskeys      = dnskeyResponse.Answers.OfType<DNSKEY>().ToList();
+                var matchingKey  = dnskeys.FirstOrDefault(key => ComputeKeyTag(key) == rrsig.KeyTag &&
+                                                                 key.Algorithm      == rrsig.Algorithm);
+
+                if (matchingKey is null)
+                    return DNSSECValidationResult.Bogus;
+
+                var sigResult = ValidateRRSig(rrSet, rrsig, matchingKey);
+                if (sigResult != DNSSECValidationResult.Secure)
+                    return sigResult;
+
+                var chainResult = await WalkChainOfTrust(
+                                           rrsig.SignerName,
+                                           dnskeys,
+                                           matchingKey,
+                                           CancellationToken
+                                       ).ConfigureAwait(false);
+
+                if (chainResult != DNSSECValidationResult.Secure)
+                    return chainResult;
+
+            }
+
+            // The records are authentic. Now: do they prove the claim?
+            return DenialOfExistenceValidator.Verify(QName, QType, authorities) switch {
+
+                DenialOfExistence.NameDoesNotExist  => DNSSECValidationResult.Secure,
+                DenialOfExistence.NoDataForType     => DNSSECValidationResult.Secure,
+
+                // RFC 5155 §6: inside an opt-out span the zone made no promise,
+                // so the absence is unsigned rather than proven — Insecure, not
+                // Bogus. Treating it as Bogus would break every opted-out TLD.
+                DenialOfExistence.OptedOut          => DNSSECValidationResult.Insecure,
+
+                _                                   => DNSSECValidationResult.Bogus
+
+            };
 
         }
 
