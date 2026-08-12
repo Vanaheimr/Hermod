@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -87,6 +93,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The DNS NSEC3 resource record type identifier.
         /// </summary>
         public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.NSEC3;
+
+        /// <summary>
+        /// The only hash algorithm RFC 5155 defines: SHA-1 (IANA "DNSSEC NSEC3
+        /// Hash Algorithms", value 1).
+        /// </summary>
+        public const Byte HashAlgorithmSHA1 = 1;
+
+        /// <summary>
+        /// The Base32hex alphabet of RFC 4648 §7, which RFC 5155 §1.3 mandates
+        /// for hashed owner names. Note it is *not* the ordinary Base32 alphabet:
+        /// this one preserves the sort order of the underlying bytes, which is
+        /// what makes the NSEC3 chain orderable.
+        /// </summary>
+        private const String Base32HexAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
 
         #endregion
 
@@ -230,6 +250,172 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  salt, nextHash, EncodeTypeBitMaps(parts.Skip(5)));
             }
             catch { return null; }
+        }
+
+        #endregion
+
+        #region (static) ComputeHash          (Name, Iterations, Salt, HashAlgorithm = SHA1)
+
+        /// <summary>
+        /// Hash an owner name the way RFC 5155 §5 defines it.
+        /// </summary>
+        /// <param name="Name">The owner name to hash.</param>
+        /// <param name="Iterations">How many *additional* rounds to apply; 0 means a single hash.</param>
+        /// <param name="Salt">The zone's salt, empty for none.</param>
+        /// <param name="HashAlgorithm">The hash algorithm; only SHA-1 (1) is defined.</param>
+        /// <returns>The raw hash, 20 octets for SHA-1.</returns>
+        /// <remarks>
+        /// RFC 5155 §5:
+        /// <code>
+        ///   IH(salt, x, 0) = H(x || salt)
+        ///   IH(salt, x, k) = H(IH(salt, x, k-1) || salt), k > 0
+        ///   H(name)        = IH(salt, name, iterations)
+        /// </code>
+        /// Two details are easy to get wrong and are worth stating. The salt is
+        /// appended on *every* round, not only the first. And the input to round
+        /// zero is the canonical wire form of the name — lowercased, length-
+        /// prefixed, root-terminated — never its presentation text.
+        /// </remarks>
+        public static Byte[] ComputeHash(DomainName  Name,
+                                         UInt16      Iterations,
+                                         Byte[]      Salt,
+                                         Byte        HashAlgorithm   = HashAlgorithmSHA1)
+        {
+
+            if (HashAlgorithm != HashAlgorithmSHA1)
+                throw new NotSupportedException($"RFC 5155 defines only hash algorithm 1 (SHA-1); got {HashAlgorithm}.");
+
+            var salt    = Salt ?? [];
+            var buffer  = DNSTools.SerializeCanonicalName(Name.FullName);
+
+            // Round zero, plus `Iterations` further rounds — so Iterations = 0
+            // still hashes once. The count is of *extra* rounds, not of rounds.
+            for (var round = 0; round <= Iterations; round++)
+            {
+
+                var input = new Byte[buffer.Length + salt.Length];
+                Buffer.BlockCopy(buffer, 0, input, 0,             buffer.Length);
+                Buffer.BlockCopy(salt,   0, input, buffer.Length, salt.Length);
+
+                buffer = System.Security.Cryptography.SHA1.HashData(input);
+
+            }
+
+            return buffer;
+
+        }
+
+        #endregion
+
+        #region (static) ComputeHashedOwnerName(Name, Zone, Iterations, Salt, HashAlgorithm = SHA1)
+
+        /// <summary>
+        /// Hash an owner name and place it under its zone, which is the form an
+        /// NSEC3 record actually owns: the Base32hex of the hash as a single
+        /// leftmost label, followed by the zone.
+        /// </summary>
+        /// <param name="Name">The owner name to hash.</param>
+        /// <param name="Zone">The zone the NSEC3 record lives in.</param>
+        /// <param name="Iterations">How many additional rounds to apply.</param>
+        /// <param name="Salt">The zone's salt, empty for none.</param>
+        /// <param name="HashAlgorithm">The hash algorithm; only SHA-1 (1) is defined.</param>
+        public static DomainName ComputeHashedOwnerName(DomainName  Name,
+                                                        DomainName  Zone,
+                                                        UInt16      Iterations,
+                                                        Byte[]      Salt,
+                                                        Byte        HashAlgorithm   = HashAlgorithmSHA1)
+
+            => DNS.DomainName.Parse(
+                   $"{Base32HexEncode(ComputeHash(Name, Iterations, Salt, HashAlgorithm))}.{Zone.FullName.TrimStart('.')}"
+               );
+
+        #endregion
+
+        #region (static) Base32HexEncode      (Data)
+
+        /// <summary>
+        /// Encode with the Base32hex alphabet of RFC 4648 §7, unpadded — the
+        /// representation RFC 5155 §1.3 gives hashed owner names.
+        /// </summary>
+        /// <param name="Data">The octets to encode.</param>
+        /// <remarks>
+        /// Unpadded is not a stylistic choice: a SHA-1 hash is 160 bits, which is
+        /// exactly 32 base-32 characters, so a conforming NSEC3 owner name never
+        /// has padding to carry.
+        /// </remarks>
+        public static String Base32HexEncode(Byte[] Data)
+        {
+
+            if (Data.Length == 0)
+                return "";
+
+            var result     = new StringBuilder((Data.Length * 8 + 4) / 5);
+            var buffer     = 0;
+            var bitsInBuf  = 0;
+
+            foreach (var octet in Data)
+            {
+
+                buffer     = (buffer << 8) | octet;
+                bitsInBuf += 8;
+
+                while (bitsInBuf >= 5)
+                {
+                    bitsInBuf -= 5;
+                    result.Append(Base32HexAlphabet[(buffer >> bitsInBuf) & 0x1F]);
+                }
+
+            }
+
+            // A trailing partial group is left-aligned, i.e. padded with zero bits.
+            if (bitsInBuf > 0)
+                result.Append(Base32HexAlphabet[(buffer << (5 - bitsInBuf)) & 0x1F]);
+
+            return result.ToString();
+
+        }
+
+        #endregion
+
+        #region (static) Base32HexDecode      (Text)
+
+        /// <summary>
+        /// Decode a Base32hex string produced by <see cref="Base32HexEncode"/>.
+        /// Case-insensitive, since a hashed owner name is a domain name and
+        /// RFC 4343 makes those case-insensitive on the wire.
+        /// </summary>
+        /// <param name="Text">The Base32hex text to decode.</param>
+        public static Byte[] Base32HexDecode(String Text)
+        {
+
+            if (Text.Length == 0)
+                return [];
+
+            var result     = new List<Byte>(Text.Length * 5 / 8);
+            var buffer     = 0;
+            var bitsInBuf  = 0;
+
+            foreach (var character in Text.ToUpperInvariant())
+            {
+
+                var value = Base32HexAlphabet.IndexOf(character);
+
+                if (value < 0)
+                    throw new FormatException($"'{character}' is not a Base32hex character.");
+
+                buffer     = (buffer << 5) | value;
+                bitsInBuf += 5;
+
+                if (bitsInBuf >= 8)
+                {
+                    bitsInBuf -= 8;
+                    result.Add((Byte) ((buffer >> bitsInBuf) & 0xFF));
+                }
+
+            }
+
+            return [.. result];
+
         }
 
         #endregion
