@@ -238,6 +238,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
+        #region RejectedTrailers_DoNotDesyncHPACK()
+
+        /// <summary>
+        /// RFC 9113, Section 4.3: the HPACK context is connection-wide, so a field
+        /// block has to be decoded even when the stream it arrives on is being
+        /// rejected. Trailers without END_STREAM are a stream error (Section 8.1) —
+        /// and the stream error must not become the NEXT request's problem.
+        ///
+        /// This regression is about placement, not about the rule. Rejecting the
+        /// frame before decoding left our decoder one dynamic-table entry behind the
+        /// peer's encoder; the reset stream itself looked perfectly correct, and the
+        /// following request on the same connection died with
+        /// "COMPRESSION_ERROR: HPACK dynamic table index 63 out of range".
+        ///
+        /// The harness caught it only on Linux and only by luck of timing, which is
+        /// the reason it is pinned here as well: the desync is deterministic, the
+        /// symptom was not.
+        /// </summary>
+        [Test]
+        public async Task RejectedTrailers_DoNotDesyncHPACK()
+        {
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var ssl = await H2Raw.ConnectTlsAsync(srv.Port, CancellationToken: cts.Token);
+            await H2Raw.HandshakeAsync(ssl, cts.Token);
+
+            // ONE encoder for the whole connection, as a real peer has: what the
+            // trailers add to its dynamic table is what the next request indexes
+            // against. Two encoders would hide the very thing under test.
+            var encoder = new HPACKEncoder();
+
+            // Stream 1: request with a body, trailers to follow (no END_STREAM yet).
+            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1,
+                encoder.EncodeHeaderBlock(
+                    [(":method", HTTPMethod.POST.ToString()), (":scheme", "https"),
+                     (":authority", $"localhost:{srv.Port}"), (":path", "/echo")]),
+                EndStream: false, EndHeaders: true).Serialize(), cts.Token);
+            await ssl.WriteAsync(HTTP2Frame.CreateData(1, Encoding.ASCII.GetBytes("Hello"), false).Serialize(), cts.Token);
+
+            // The offence: a trailing header block that does NOT end the stream.
+            // It still enters the peer's dynamic table, which is the whole point.
+            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(1,
+                encoder.EncodeHeaderBlock([("x-checksum", "abc123")]),
+                EndStream: false, EndHeaders: true).Serialize(), cts.Token);
+            await ssl.FlushAsync(cts.Token);
+
+            HTTP2ErrorCode? resetCode = null;
+            while (resetCode is null)
+            {
+                var f = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+                if (f is null) break;
+                if (f.Type == HTTP2FrameType.RST_STREAM && f.StreamId == 1)
+                    resetCode = (HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(f.Payload);
+            }
+
+            // Stream 3 deliberately repeats x-checksum, so its block indexes the
+            // entry the rejected trailers created. On a desynced decoder this is the
+            // frame that explodes — and it explodes as a CONNECTION error, two
+            // requests after the one that actually misbehaved.
+            await ssl.WriteAsync(HTTP2Frame.CreateHeaders(3,
+                encoder.EncodeHeaderBlock(
+                    [(":method", HTTPMethod.GET.ToString()), (":scheme", "https"),
+                     (":authority", $"localhost:{srv.Port}"), (":path", "/"), ("x-checksum", "abc123")]),
+                EndStream: true, EndHeaders: true).Serialize(), cts.Token);
+            await ssl.FlushAsync(cts.Token);
+
+            String?         followUpStatus = null;
+            HTTP2ErrorCode? goAwayCode     = null;
+
+            while (followUpStatus is null && goAwayCode is null)
+            {
+                var f = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+                if (f is null) break;
+
+                if (f.Type == HTTP2FrameType.GOAWAY)
+                    goAwayCode = (HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(f.Payload.AsSpan(4, 4));
+
+                else if (f.Type == HTTP2FrameType.HEADERS && f.StreamId == 3)
+                    followUpStatus = new HPACKDecoder().DecodeHeaderBlock(f.Payload)
+                                         .FirstOrDefault(h => h.Name == ":status").Value;
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(resetCode,      Is.EqualTo(HTTP2ErrorCode.PROTOCOL_ERROR),
+                            "trailers without END_STREAM are a stream error");
+                Assert.That(goAwayCode,     Is.Null,
+                            "the rejected block was still decoded, so the connection survives");
+                Assert.That(followUpStatus, Is.EqualTo("200"),
+                            "the next request on the same connection is unaffected");
+            });
+
+            try { ssl.Close(); } catch { }
+
+        }
+
+        #endregion
+
     }
 
 }

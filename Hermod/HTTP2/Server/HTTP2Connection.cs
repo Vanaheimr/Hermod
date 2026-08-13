@@ -878,10 +878,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         $"HEADERS received on closed stream {Frame.StreamId}");
                 }
 
-                // Trailers are the last thing on the stream — they MUST end it.
-                if (!Frame.EndStream)
-                    throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Frame.StreamId,
-                        "Trailing HEADERS frame must set END_STREAM");
+                // "Trailers MUST end the stream" is deliberately NOT checked here —
+                // see CompleteHeaders. Rejecting the frame at this point would skip
+                // the HPACK decode of a block the peer has already folded into its
+                // encoder's dynamic table, and that table is connection-wide state.
 
             }
             else
@@ -1079,8 +1079,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             else
             {
+
+                // RFC 9113, Section 8.1: trailers are the last thing on the stream,
+                // so they MUST end it. Checked here rather than on the frame itself,
+                // and that placement is the whole point: the decode above has to
+                // happen first, whatever then becomes of the stream.
+                //
+                // It used to be rejected earlier, in HandleHeaders, which meant this
+                // block never reached the decoder while the peer HAD already added it
+                // to its encoder's dynamic table. The two tables then differed by one
+                // entry, and it was not this stream that paid for it but the NEXT
+                // request on the connection, which died with
+                //   COMPRESSION_ERROR: HPACK dynamic table index 63 out of range
+                // — a connection error, for a stream error two requests earlier.
+                if (!EndStream)
+                    throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Stream.StreamId,
+                        "Trailing HEADERS frame must set END_STREAM");
+
                 ValidateTrailerHeaders(Stream.StreamId, decoded);
                 Stream.Trailers = decoded;
+
             }
 
             if (Stream.IsConnectTunnel)
@@ -1100,7 +1118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 // Reached either on the initial HEADERS (with END_STREAM already
                 // true, an immediately half-closed tunnel) or on a later
-                // "trailers" block — HandleHeaders already enforced END_STREAM
+                // "trailers" block — the check above already enforced END_STREAM
                 // for that case, so this is always the end of the peer's side.
                 if (EndStream)
                 {
