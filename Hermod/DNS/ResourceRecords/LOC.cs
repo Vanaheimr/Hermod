@@ -133,6 +133,208 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region RFC 1876 §2 — what the octets mean
+
+        /// <summary>
+        /// The diameter of the enclosing sphere in centimetres, or null when the
+        /// octet is one RFC 1876 §2 leaves undefined.
+        /// </summary>
+        public UInt64?  SizeInCentimetres            => DecodeScaled(Size);
+
+        /// <summary>The horizontal precision in centimetres, or null when undefined.</summary>
+        public UInt64?  HorizPrecisionInCentimetres  => DecodeScaled(HorizPrecision);
+
+        /// <summary>The vertical precision in centimetres, or null when undefined.</summary>
+        public UInt64?  VertPrecisionInCentimetres   => DecodeScaled(VertPrecision);
+
+
+        /// <summary>
+        /// The latitude in thousandths of a second of arc, north of the equator
+        /// being positive.
+        /// </summary>
+        /// <remarks>
+        /// §2 stores it unsigned with 2^31 as the equator, which keeps the wire
+        /// form free of a sign convention and makes every reader subtract the
+        /// same constant. Getting the direction of that subtraction wrong puts a
+        /// location on the opposite hemisphere, which is the kind of error that
+        /// looks plausible.
+        /// </remarks>
+        public Int64    LatitudeInMilliArcSeconds    => (Int64) Latitude  - (1L << 31);
+
+        /// <summary>The longitude in thousandths of a second of arc, east of the prime meridian being positive.</summary>
+        public Int64    LongitudeInMilliArcSeconds   => (Int64) Longitude - (1L << 31);
+
+        /// <summary>
+        /// The altitude in centimetres above the WGS 84 reference spheroid.
+        /// </summary>
+        /// <remarks>
+        /// §2 measures it "from a base of 100,000m below" the spheroid, so the
+        /// stored value is the real altitude plus 10,000,000 cm. That offset is
+        /// what lets the field be unsigned and reach from −100000.00 m to
+        /// 42849672.95 m — which is the whole 32-bit range, so no value of the
+        /// field is out of bounds and there is nothing here to range-check.
+        /// </remarks>
+        public Int64    AltitudeInCentimetres        => (Int64) Altitude  - AltitudeReference;
+
+        /// <summary>The 100,000 m the altitude field is measured up from, in centimetres.</summary>
+        public const Int64 AltitudeReference = 10_000_000;
+
+
+        /// <summary>
+        /// Whether every field of this record means what RFC 1876 §2 says it
+        /// means.
+        /// </summary>
+        /// <remarks>
+        /// False for a version this build does not know — §2: "Implementations
+        /// are required to check this field and make no assumptions about the
+        /// format of unrecognized versions" — and for the size or precision
+        /// octets §2 leaves undefined. In either case the record cannot honestly
+        /// be written in the LOC presentation format, because that format is a
+        /// statement about what the octets mean.
+        /// </remarks>
+        public Boolean  IsWellDefined
+
+            => Version == 0                             &&
+               SizeInCentimetres.           HasValue    &&
+               HorizPrecisionInCentimetres. HasValue    &&
+               VertPrecisionInCentimetres.  HasValue;
+
+        #endregion
+
+        #region Defaults (RFC 1876 §3)
+
+        /// <summary>The size RFC 1876 §3 assumes when the master file omits it: 1 m.</summary>
+        public const Byte DefaultSize           = 0x12;
+
+        /// <summary>The horizontal precision assumed when omitted: 10000 m.</summary>
+        public const Byte DefaultHorizPrecision = 0x16;
+
+        /// <summary>The vertical precision assumed when omitted: 10 m.</summary>
+        public const Byte DefaultVertPrecision  = 0x13;
+
+        /// <summary>
+        /// The largest length RFC 1876 §2's scaled octet can express: 9e9 cm,
+        /// which is 90,000 km — seven times the equatorial diameter of the earth.
+        /// </summary>
+        public const UInt64 MaxExpressibleCentimetres = 9_000_000_000;
+
+        #endregion
+
+        #region (private static) ReadScaled(Parts, ref Index, Default)
+
+        /// <summary>
+        /// Read one optional "&lt;metres&gt;m" field of the presentation format,
+        /// falling back to its RFC 1876 §3 default only when it is absent.
+        /// </summary>
+        private static Byte ReadScaled(String[]  Parts,
+                                       ref Int32 Index,
+                                       Byte      Default)
+        {
+
+            if (Index >= Parts.Length)
+                return Default;
+
+            var text = Parts[Index].TrimEnd('m', 'M');
+
+            if (!Double.TryParse(text,
+                                 System.Globalization.NumberStyles.Float,
+                                 System.Globalization.CultureInfo.InvariantCulture,
+                                 out var metres) ||
+                metres < 0)
+            {
+                return Default;
+            }
+
+            Index++;
+
+            return EncodeScaled((UInt64) Math.Round(metres * 100));
+
+        }
+
+        #endregion
+
+        #region (static) DecodeScaled(Encoded) / EncodeScaled(Centimetres)
+
+        /// <summary>
+        /// Decode one of RFC 1876 §2's scaled octets into centimetres.
+        /// </summary>
+        /// <param name="Encoded">The octet: base in the high nibble, power of ten in the low one.</param>
+        /// <returns>The value in centimetres, or null when §2 leaves this octet undefined.</returns>
+        /// <remarks>
+        /// §2: "expressed as a pair of four-bit unsigned integers, each ranging
+        /// from zero to nine ... Four-bit values greater than 9 are undefined, as
+        /// are values with a base of zero and a non-zero exponent."
+        /// <para>
+        /// Both exclusions matter and neither is decorative. Decoding 0xFF as
+        /// 15 × 10¹⁵ cm yields a sphere wider than the solar system, and decoding
+        /// 0x05 as zero quietly agrees with a sender who meant something else —
+        /// the RFC declines to say what, which is exactly why a reader must not
+        /// guess.
+        /// </para>
+        /// </remarks>
+        public static UInt64? DecodeScaled(Byte Encoded)
+        {
+
+            var mantissa = (Encoded >> 4) & 0x0F;
+            var exponent =  Encoded       & 0x0F;
+
+            if (mantissa > 9 || exponent > 9)
+                return null;
+
+            if (mantissa == 0 && exponent != 0)
+                return null;
+
+            UInt64 value = (UInt64) mantissa;
+
+            for (var i = 0; i < exponent; i++)
+                value *= 10;
+
+            return value;
+
+        }
+
+
+        /// <summary>
+        /// Encode a length in centimetres into RFC 1876 §2's scaled octet.
+        /// </summary>
+        /// <param name="Centimetres">The length to encode.</param>
+        /// <remarks>
+        /// The format holds one significant digit, so most values are rounded
+        /// rather than represented: 25 m becomes 20 m, and 9e9 cm (90,000 km) is
+        /// the largest thing it can say at all.
+        /// </remarks>
+        public static Byte EncodeScaled(UInt64 Centimetres)
+        {
+
+            if (Centimetres == 0)
+                return 0x00;
+
+            // Clamp first, and not only for tidiness: the rounding step below
+            // adds 5 before dividing, which wraps for a value near the top of a
+            // UInt64 — and a wrapped value produces a small octet rather than a
+            // large one, so an absurdly big size would come back as an absurdly
+            // small one. 9e9 cm is everything this format can say.
+            if (Centimetres >= MaxExpressibleCentimetres)
+                return 0x99;
+
+            var exponent = 0;
+            var value    = Centimetres;
+
+            while (value > 9)
+            {
+                // Round rather than truncate, so 25 → 3e1 rather than 2e1: one
+                // significant digit is lossy either way, and the nearer answer is
+                // the better one.
+                value = (value + 5) / 10;
+                exponent++;
+            }
+
+            return (Byte) ((value << 4) | (UInt64) exponent);
+
+        }
+
+        #endregion
+
         #region Constructor
 
         #region LOC(DomainName, Stream)
@@ -278,14 +480,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 {
                     var altStr = parts[idx].TrimEnd('m', 'M');
                     if (Double.TryParse(altStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var altM))
-                        altitude = (UInt32) ((Int64)(altM * 100) + 10_000_000);
+                    {
+                        altitude = (UInt32) ((Int64) Math.Round(altM * 100) + AltitudeReference);
+                        idx++;
+                    }
                 }
+
+                // RFC 1876 §3: "size defaults to 1m, horizontal precision
+                // defaults to 10000m, and vertical precision defaults to 10m" —
+                // *if omitted*. They were being defaulted whether or not they
+                // were there, so a zone file saying "30m 40m 50m" loaded as
+                // "1m 10000m 10m" and nothing said a word. Defaults are for
+                // absent values; substituting them for present ones is a way of
+                // discarding data that looks like a specification.
+                var size            = ReadScaled(parts, ref idx, DefaultSize);
+                var horizPrecision  = ReadScaled(parts, ref idx, DefaultHorizPrecision);
+                var vertPrecision   = ReadScaled(parts, ref idx, DefaultVertPrecision);
 
                 return new LOC(Name, DNSQueryClasses.IN, TimeToLive,
                                0,     // Version
-                               0x12,  // Size (1e2 cm = 1m)
-                               0x16,  // HorizPrecision (1e6 cm = 10km)
-                               0x13,  // VertPrecision (1e3 cm = 10m)
+                               size,
+                               horizPrecision,
+                               vertPrecision,
                                latitude,
                                longitude,
                                altitude);
@@ -301,6 +517,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <inheritdoc/>
         protected override String ZoneFileRData()
         {
+
+            // RFC 1876 §2 requires the version to be checked, and RFC 3597 §5
+            // says what to do once it has been: the generic \# form exists partly
+            // for "an RR type where the text format varies depending on a
+            // version ... e.g., a LOC RR with a VERSION other than 0".
+            //
+            // The same applies to a size or precision octet §2 leaves undefined.
+            // Writing either in the LOC presentation format would be a claim
+            // about what the octets mean, and the specification declines to make
+            // one — so the honest output is the octets themselves.
+            if (!IsWellDefined)
+                return UnknownRecord.GenericRData(RDataBytes());
 
             // Latitude:  stored as unsigned 32-bit, 2^31 = equator
             var latMilliseconds  = (Int64) Latitude  - (1L << 31);
@@ -338,6 +566,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var altStr  = $"{altM:0.##}m";
 
             return $"{latStr} {lonStr} {altStr} {DecodePrecision(Size)} {DecodePrecision(HorizPrecision)} {DecodePrecision(VertPrecision)}";
+
+        }
+
+        #endregion
+
+        #region (private) RDataBytes()
+
+        /// <summary>The sixteen RDATA octets of this record, in wire order.</summary>
+        private Byte[] RDataBytes()
+        {
+
+            var rdata = new Byte[16];
+
+            rdata[0] = Version;
+            rdata[1] = Size;
+            rdata[2] = HorizPrecision;
+            rdata[3] = VertPrecision;
+
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(rdata.AsSpan( 4, 4), Latitude);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(rdata.AsSpan( 8, 4), Longitude);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(rdata.AsSpan(12, 4), Altitude);
+
+            return rdata;
 
         }
 
