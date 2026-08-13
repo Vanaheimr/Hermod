@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Buffers;
 using System.Text;
 
 using NUnit.Framework;
@@ -74,6 +75,107 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(result.StandardError,  Does.Contain("a warning"));
                 Assert.That(result.Success,        Is.False);
             });
+
+        }
+
+        #endregion
+
+        #region Exec_SurvivesAPeerThatWalksAwayAfterTheExitStatus
+
+        private static Byte[] OpenSessionChannel(UInt32 SenderChannel)
+        {
+            var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
+            w.WriteByte((Byte) SshMessageNumber.ChannelOpen);
+            w.WriteString("session");
+            w.WriteUInt32(SenderChannel);
+            w.WriteUInt32(64 * 1024);
+            w.WriteUInt32(32 * 1024);
+            return abw.WrittenSpan.ToArray();
+        }
+
+        private static Byte[] ExecRequest(UInt32 RecipientChannel, String Command)
+        {
+            var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
+            w.WriteByte((Byte) SshMessageNumber.ChannelRequest);
+            w.WriteUInt32(RecipientChannel);
+            w.WriteString("exec");
+            w.WriteBoolean(false);
+            w.WriteString(Command);
+            return abw.WrittenSpan.ToArray();
+        }
+
+        /// <summary>
+        /// A peer that walks away once it holds the exit status has <i>ended</i> the session, not broken it.
+        ///
+        /// <para>
+        /// OpenSSH does exactly this: it exits the moment it has our exit-status, without waiting to
+        /// exchange the CHANNEL_CLOSE that <c>ServeExecAsync</c> otherwise returns on — and on Windows that
+        /// process exit reaches us as a TCP reset. Both endings are scripted here, because the transport
+        /// reports them as two different exception types for one and the same event: a pipe completed
+        /// cleanly becomes an <c>SshWireException</c> about a packet cut in half, a pipe completed with an
+        /// I/O failure stays an <c>IOException</c>. Neither may fail the session.
+        /// </para>
+        ///
+        /// <para>
+        /// The client is scripted by hand rather than driven through <c>ExecuteAsync</c>: the polite client
+        /// sends its own CHANNEL_CLOSE, which is precisely the packet whose absence is under test.
+        /// </para>
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Exec_SurvivesAPeerThatWalksAwayAfterTheExitStatus(Boolean AsReset, CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey       = Ed25519KeyPair.Generate();
+            var userKey       = SshHostKey.GenerateEd25519();
+            var authenticator = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob);
+
+            var serverRun = Task.Run(async () =>
+            {
+                using var t = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ServerAuthenticateAsync(t, authenticator, CancellationToken: CancellationToken);
+                await SshConnection.ServeExecAsync(t, "achim", async (context, ct) =>
+                {
+                    await context.WriteAsync("done\n", ct);
+                    return 42;
+                }, CancellationToken);
+            }, CancellationToken);
+
+            using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            Assert.That(await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken), Is.True);
+
+            await client.SendPacketAsync(OpenSessionChannel(0), CancellationToken);
+
+            var serverChannel = 0u;
+            while (true)
+            {
+                var packet = await client.ReceivePacketAsync(CancellationToken);
+                if ((SshMessageNumber) packet[0] == SshMessageNumber.ChannelOpenConfirmation)
+                {
+                    var reader = new SshPacketReader(packet);
+                    reader.ReadByte();
+                    reader.ReadUInt32();                    // our own channel
+                    serverChannel = reader.ReadUInt32();    // theirs
+                    break;
+                }
+            }
+
+            await client.SendPacketAsync(ExecRequest(serverChannel, "whoami"), CancellationToken);
+
+            // Read until the server has said everything it owes us — exit-status, EOF and CLOSE.
+            while ((SshMessageNumber) (await client.ReceivePacketAsync(CancellationToken))[0] != SshMessageNumber.ChannelClose)
+            { }
+
+            // ...and now simply stop existing, without ever sending a CLOSE of our own.
+            await clientPipe.Output.CompleteAsync(AsReset
+                                                      ? new IOException("An existing connection was forcibly closed by the remote host.")
+                                                      : null);
+
+            Assert.That(async () => await serverRun, Throws.Nothing,
+                        "a peer that leaves once it holds the exit status has ended the session, not broken it");
 
         }
 
