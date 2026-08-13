@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Target.Serialize(
                 tempStream,
                 targetOffset,
-                UseCompression,
+                false,   // RFC 2782: "No name compression is to be used for this field."
                 CompressionOffsets
             );
 

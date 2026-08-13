@@ -405,19 +405,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 //var rdataLength  =                          stream.ReadUInt32BE(); //(UInt16) ((packet[position++] <<  8) |  packet[position++]);
                 //var rdataOffset  = position;
 
-                // RFC 3597 §2: a type this build has no parser for is opaque data,
-                // not a malformed message. Skipping past it keeps the stream
-                // aligned for whatever follows; throwing here made the server
-                // answer FORMERR to a query whose question it could read
-                // perfectly well, and any record it did not happen to know —
-                // a TSIG, a future type — was enough to trigger it.
+                // RFC 3597 §2: a type this parser has no case for is opaque data,
+                // not a malformed message. Reading it by its outer shape — CLASS,
+                // TTL, RDLENGTH, then RDLENGTH octets — keeps the stream aligned
+                // for whatever follows; throwing here made the server answer
+                // FORMERR to a query whose question it could read perfectly well,
+                // and any record it did not happen to know — a TSIG, a future
+                // type — was enough to trigger it.
+                //
+                // Keeping the record rather than skipping past it is the other
+                // half of §2: "opaque" is a statement about the RDATA, not a
+                // licence to drop the record. The type stays deliberately narrow
+                // here — this is the request path, and a request that carries an
+                // SSHFP has no business making the server run the SSHFP parser.
                 if (recordType is not DNSResourceRecordTypes.A and
                                   not DNSResourceRecordTypes.OPT)
                 {
 
-                    Stream.Position += 6;                          // CLASS + TTL
-                    var rdLength     = Stream.ReadUInt16BE();
-                    Stream.Position += rdLength;
+                    records.Add(
+                        new UnknownRecord(
+                            // ExtractName gives the root name as the empty string,
+                            // which is not a name any parser will take.
+                            DNSServiceName.Parse(name == "" ? "." : name),
+                            recordType,
+                            Stream
+                        )
+                    );
 
                     continue;
 

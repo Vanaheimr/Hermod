@@ -208,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             NextDomainName.Serialize(
                 tempStream,
                 (Int32) Stream.Position + 2,
-                UseCompression,
+                false,   // RFC 4034 §4.1.1: a sender MUST NOT use name compression on the Next Domain Name.
                 CompressionOffsets
             );
 

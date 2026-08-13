@@ -389,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             TargetName.Serialize(
                 tempStream,
                 targetOffset,
-                UseCompression,
+                false,   // RFC 9460 §2.2: the TargetName goes on the wire uncompressed.
                 CompressionOffsets
             );
 

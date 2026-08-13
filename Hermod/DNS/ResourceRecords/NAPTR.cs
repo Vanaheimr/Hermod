@@ -268,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Replacement.Serialize(
                 tempStream,
                 replacementOffset,
-                UseCompression,
+                false,   // RFC 3597 §4: NAPTR postdates RFC 1035, so its replacement is not compressible.
                 CompressionOffsets
             );
 

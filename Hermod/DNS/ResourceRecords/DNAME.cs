@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Target.Serialize(
                 tempStream,
                 (Int32) Stream.Position + 2,
-                UseCompression,
+                false,   // RFC 3597 §4: DNAME postdates RFC 1035, so its target is not compressible.
                 CompressionOffsets
             );
 
