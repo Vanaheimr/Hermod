@@ -202,6 +202,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) DeleteSentinel(DomainName, ...) / IsDeleteSentinel / IsDeleteSignal(RRset)
+
+        /// <summary>
+        /// The CDS that asks the parent to remove the DS RRset entirely
+        /// (RFC 8078 §4).
+        /// </summary>
+        /// <param name="DomainName">The child zone's apex.</param>
+        /// <param name="Class">The DNS query class.</param>
+        /// <param name="TimeToLive">The time to live.</param>
+        /// <remarks>
+        /// <para>
+        /// RFC 8078 §4 gives algorithm 0 a meaning it has nowhere else: in a CDS
+        /// or CDNSKEY it says "delete the DS RRset". The record is
+        /// <c>CDS 0 0 0 0</c> — every field zero, and the digest a single zero
+        /// octet.
+        /// </para>
+        /// <para>
+        /// Only the algorithm carries the meaning, and the RFC says so in as
+        /// many words: "the CDS record could be 'CDS X 0 X 0' as only the DNSKEY
+        /// algorithm is what signals the DELETE operation, but for clarity, the
+        /// '0 0 0 0' notation is mandated". Mandated, so that is what is written
+        /// here and what <see cref="IsDeleteSignal"/> insists on — a request to
+        /// turn off DNSSEC for a zone is not the place to be liberal in what one
+        /// accepts.
+        /// </para>
+        /// <para>
+        /// The sentinel is RFC 8078. RFC 7344 defines CDS and CDNSKEY themselves
+        /// and says nothing about deletion.
+        /// </para>
+        /// </remarks>
+        public static CDS DeleteSentinel(DomainName       DomainName,
+                                         DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                         TimeSpan?        TimeToLive   = null)
+
+            => new (DomainName,
+                    Class,
+                    TimeToLive ?? TimeSpan.FromHours(1),
+                    KeyTag:      0,
+                    Algorithm:   0,
+                    DigestType:  0,
+                    Digest:      [ 0x00 ]);
+
+
+        /// <summary>
+        /// Whether this record is the RFC 8078 §4 delete sentinel.
+        /// </summary>
+        public Boolean IsDeleteSentinel
+
+            => KeyTag     == 0 &&
+               Algorithm  == 0 &&
+               DigestType == 0 &&
+               Digest.Length == 1 &&
+               Digest[0]  == 0x00;
+
+
+        /// <summary>
+        /// Whether a CDS RRset is the delete signal (RFC 8078 §4).
+        /// </summary>
+        /// <param name="RRset">Every CDS record at the child's apex.</param>
+        /// <remarks>
+        /// §4: "The contents of the CDS or CDNSKEY RRset MUST contain one RR and
+        /// only contain the exact fields as shown below." Both halves matter, and
+        /// the count is the half that is easy to skip: a sentinel sitting beside
+        /// real CDS records is a contradiction — the same RRset asking for a DS
+        /// to be installed and for all of them to be removed — and a parent that
+        /// read only the first record it happened to look at would resolve that
+        /// contradiction by accident.
+        /// </remarks>
+        public static Boolean IsDeleteSignal(IEnumerable<CDS> RRset)
+        {
+
+            var records = RRset.ToArray();
+
+            return records.Length == 1 &&
+                   records[0].IsDeleteSentinel;
+
+        }
+
+        #endregion
+
         #region (protected override) ZoneFileRData()
 
         /// <inheritdoc/>

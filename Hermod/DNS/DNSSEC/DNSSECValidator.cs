@@ -675,6 +675,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="Key">The DNSKEY to verify.</param>
         /// <param name="DelegationSigner">The DS record to match against.</param>
+        /// <summary>
+        /// Whether this build can follow a delegation signed with this algorithm
+        /// and digested this way.
+        /// </summary>
+        /// <param name="Algorithm">The DNSKEY algorithm the DS names.</param>
+        /// <param name="DigestType">The digest algorithm the DS uses.</param>
+        /// <remarks>
+        /// Takes the two fields rather than a record, because CDS asks the same
+        /// question about a record that is not a DS — RFC 7344 §3.1 makes the two
+        /// identical in wire format and different in meaning, and turning one
+        /// into the other just to ask would be a conversion in the wrong
+        /// direction.
+        /// </remarks>
+        public static Boolean IsUsableDelegationSigner(Byte  Algorithm,
+                                                       Byte  DigestType)
+
+            => DigestType is 1 or 2 or 4 &&
+               Algorithm  is 5 or 7 or 8 or 10 or 13 or 14 or 15 or 16;
+
+
+        /// <inheritdoc cref="IsUsableDelegationSigner(Byte, Byte)"/>
+        /// <param name="DelegationSigner">A DS record.</param>
+        public static Boolean IsUsableDelegationSigner(DS DelegationSigner)
+
+            => IsUsableDelegationSigner(DelegationSigner.Algorithm,
+                                        DelegationSigner.DigestType);
+
+
+        /// <summary>
+        /// Whether any DS in this RRset names both a signature algorithm and a
+        /// digest algorithm this build can actually use.
+        /// </summary>
+        /// <param name="DelegationSigners">The parent's DS RRset for the child.</param>
+        /// <remarks>
+        /// <para>
+        /// RFC 6840 §5.2 is the rule, and it is about what a validator concludes
+        /// rather than what it computes:
+        /// </para>
+        /// <para>
+        /// "when determining the security status of a zone, a validator
+        /// disregards any authenticated DS records that specify unknown or
+        /// unsupported DNSKEY algorithms. If none are left, the zone is treated
+        /// as if it were unsigned" — and §5.2 extends the same treatment to
+        /// unsupported *digest* algorithms.
+        /// </para>
+        /// <para>
+        /// Unsigned, not broken. The difference is the whole point: a delegation
+        /// this validator cannot follow is one it has no opinion about, and
+        /// reporting Bogus instead turns "I cannot check this" into "this is
+        /// forged" — which fails the name outright for every client behind the
+        /// validator, over a zone that is very likely perfectly fine and merely
+        /// newer than the code reading it.
+        /// </para>
+        /// </remarks>
+        public static Boolean HasUsableDelegationSigner(IEnumerable<DS> DelegationSigners)
+
+            => DelegationSigners.Any(IsUsableDelegationSigner);
+
+
+        /// <summary>
+        /// Verify that a DNSKEY matches a DS record.
+        /// </summary>
+        /// <param name="Key">The DNSKEY to verify.</param>
+        /// <param name="DelegationSigner">The DS record to match against.</param>
         public static Boolean VerifyDS(DNSKEY  Key,
                                        DS      DelegationSigner)
         {
@@ -847,6 +911,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var dsRecords = dsResponse.Answers.OfType<DS>().ToList();
 
                 if (dsRecords.Count == 0)
+                    return DNSSECValidationResult.Insecure;
+
+                // RFC 6840 §5.2: a DS naming an algorithm or digest this build
+                // cannot use is disregarded rather than failed, and a DS RRset
+                // with nothing left after that is treated exactly like no DS at
+                // all — the delegation is unsigned, not broken.
+                //
+                // Without this the next line reads "no DS verified" and answers
+                // Bogus, which is the difference between a name resolving
+                // insecurely and not resolving at all. It fires the day a child
+                // moves to an algorithm this code has not learned yet, which is
+                // precisely when the answer must not be an outage.
+                if (!HasUsableDelegationSigner(dsRecords))
                     return DNSSECValidationResult.Insecure;
 
                 // Verify the KSK against at least one DS record
@@ -1105,35 +1182,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          HashAlgorithmName HashAlgorithm)
         {
 
-            // Parse RSA public key from DNSKEY wire format (RFC 3110)
-            var offset       = 0;
-            var exponentLen  = (Int32) PublicKey[offset++];
-
-            if (exponentLen == 0)
+            // A key read off the wire is attacker-controlled, so every step below
+            // has to be able to fail without throwing: a DNSKEY too short to hold
+            // its own exponent length, an exponent length that runs past the end,
+            // a modulus the platform refuses. The answer to all of them is the
+            // same — this key does not verify this signature — and it has to be
+            // an answer rather than an exception, because the caller turns a
+            // throw into Indeterminate, which RFC 4033 §5 defines as "no trust
+            // anchor covers this" and not "the key was broken".
+            try
             {
-                // 3-byte length prefix
-                exponentLen = (PublicKey[offset] << 8) | PublicKey[offset + 1];
-                offset += 2;
+
+                // Parse RSA public key from DNSKEY wire format (RFC 3110)
+                var offset       = 0;
+                var exponentLen  = (Int32) PublicKey[offset++];
+
+                if (exponentLen == 0)
+                {
+                    // 3-byte length prefix
+                    exponentLen = (PublicKey[offset] << 8) | PublicKey[offset + 1];
+                    offset += 2;
+                }
+
+                var exponent = PublicKey[offset..(offset + exponentLen)];
+                offset += exponentLen;
+
+                var modulus = PublicKey[offset..];
+
+                using var rsa = RSA.Create();
+
+                rsa.ImportParameters(new RSAParameters {
+                    Exponent = exponent,
+                    Modulus  = modulus
+                });
+
+                return rsa.VerifyData(
+                           Data,
+                           Signature,
+                           HashAlgorithm,
+                           RSASignaturePadding.Pkcs1
+                       );
+
             }
-
-            var exponent = PublicKey[offset..(offset + exponentLen)];
-            offset += exponentLen;
-
-            var modulus = PublicKey[offset..];
-
-            using var rsa = RSA.Create();
-
-            rsa.ImportParameters(new RSAParameters {
-                Exponent = exponent,
-                Modulus  = modulus
-            });
-
-            return rsa.VerifyData(
-                       Data,
-                       Signature,
-                       HashAlgorithm,
-                       RSASignaturePadding.Pkcs1
-                   );
+            catch (Exception)
+            {
+                return false;
+            }
 
         }
 
@@ -1153,26 +1247,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                            HashAlgorithmName HashAlgorithm)
         {
 
-            var keySize = PublicKey.Length / 2;
+            // As in VerifyRSA: a point that is not on the curve, or a key of the
+            // wrong length for it, is a failed verification and not a crash.
+            // ECDsa.Create validates the point and throws, which is the right
+            // thing for it to do and the wrong thing to let out of here.
+            try
+            {
 
-            var qx = PublicKey[..keySize];
-            var qy = PublicKey[keySize..];
+                var keySize = PublicKey.Length / 2;
 
-            using var ecdsa = ECDsa.Create(new ECParameters {
-                Curve = Curve,
-                Q     = new ECPoint {
-                    X = qx,
-                    Y = qy
-                }
-            });
+                var qx = PublicKey[..keySize];
+                var qy = PublicKey[keySize..];
 
-            // DNSSEC ECDSA signature format is r || s (fixed-size, no ASN.1 wrapping)
-            return ecdsa.VerifyData(
-                       Data,
-                       Signature,
-                       HashAlgorithm,
-                       DSASignatureFormat.IeeeP1363FixedFieldConcatenation
-                   );
+                using var ecdsa = ECDsa.Create(new ECParameters {
+                    Curve = Curve,
+                    Q     = new ECPoint {
+                        X = qx,
+                        Y = qy
+                    }
+                });
+
+                // DNSSEC ECDSA signature format is r || s (fixed-size, no ASN.1 wrapping)
+                return ecdsa.VerifyData(
+                           Data,
+                           Signature,
+                           HashAlgorithm,
+                           DSASignatureFormat.IeeeP1363FixedFieldConcatenation
+                       );
+
+            }
+            catch (Exception)
+            {
+                return false;
+            }
 
         }
 

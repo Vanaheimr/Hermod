@@ -202,6 +202,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) DeleteSentinel(DomainName, ...) / IsDeleteSentinel / IsDeleteSignal(RRset)
+
+        /// <summary>
+        /// The CDNSKEY that asks the parent to remove the DS RRset entirely
+        /// (RFC 8078 §4).
+        /// </summary>
+        /// <param name="DomainName">The child zone's apex.</param>
+        /// <param name="Class">The DNS query class.</param>
+        /// <param name="TimeToLive">The time to live.</param>
+        /// <remarks>
+        /// <c>CDNSKEY 0 3 0 0</c>: flags zero, algorithm zero, key material a
+        /// single zero octet — and protocol 3, which is not part of the sentinel
+        /// but of every DNSKEY. RFC 4034 §2.1.2 fixes that field at 3 and says a
+        /// record with any other value "MUST be treated as invalid", so the
+        /// sentinel keeps it rather than zeroing it along with the rest.
+        /// </remarks>
+        public static CDNSKEY DeleteSentinel(DomainName       DomainName,
+                                             DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                             TimeSpan?        TimeToLive   = null)
+
+            => new (DomainName,
+                    Class,
+                    TimeToLive ?? TimeSpan.FromHours(1),
+                    Flags:      0,
+                    Protocol:   3,
+                    Algorithm:  0,
+                    PublicKey:  [ 0x00 ]);
+
+
+        /// <summary>
+        /// Whether this record is the RFC 8078 §4 delete sentinel.
+        /// </summary>
+        public Boolean IsDeleteSentinel
+
+            => Flags     == 0 &&
+               Protocol  == 3 &&
+               Algorithm == 0 &&
+               PublicKey.Length == 1 &&
+               PublicKey[0] == 0x00;
+
+
+        /// <summary>
+        /// Whether a CDNSKEY RRset is the delete signal (RFC 8078 §4).
+        /// </summary>
+        /// <param name="RRset">Every CDNSKEY record at the child's apex.</param>
+        /// <remarks>
+        /// §4 requires the RRset to hold exactly one record. See
+        /// <see cref="CDS.IsDeleteSignal"/> for why the count is the part worth
+        /// insisting on.
+        /// </remarks>
+        public static Boolean IsDeleteSignal(IEnumerable<CDNSKEY> RRset)
+        {
+
+            var records = RRset.ToArray();
+
+            return records.Length == 1 &&
+                   records[0].IsDeleteSentinel;
+
+        }
+
+        #endregion
+
         #region (protected override) ZoneFileRData()
 
         /// <inheritdoc/>
