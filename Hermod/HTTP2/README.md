@@ -58,15 +58,16 @@ listeners, and **517/517** on the
 WebSocket framing (RFC 6455) — the full suite, including `permessage-deflate`
 (RFC 7692) compression.
 
-The PowerShell/Docker harnesses that produced those two numbers did not come
-across when the stack was vendored into Hermod — they stayed in the project this
-stack grew up in, which is still maintained as the demo host and conformance
-driver for it:
+The harnesses that produced those two numbers did not come across when the stack
+was vendored into Hermod — they stayed in the project this stack grew up in,
+which is still maintained as the demo host and conformance driver for it:
 [**Vanaheimr/HTTP2ConformanceTests**](https://github.com/Vanaheimr/HTTP2ConformanceTests).
 It pulls Hermod back in as a submodule and adds the runnable demo, the live-host
-raw-frame harnesses, and the h2spec/Autobahn drivers (`tests/h2spec.ps1`,
-`tests/autobahn.ps1`), so both numbers stay reproducible — just not from inside
-this repository, which has no demo host to point them at.
+raw-frame harnesses, and the conformance drivers, each in a bash and a PowerShell
+variant (`tests/h2spec.sh` / `.ps1`, `tests/autobahn.sh` / `.ps1`,
+`tests/run-tests.sh` / `.ps1`) — so both numbers stay reproducible on Linux and
+Windows alike, just not from inside this repository, which has no demo host to
+point them at.
 
 Ad-hoc `curl` checks against the demo host:
 
