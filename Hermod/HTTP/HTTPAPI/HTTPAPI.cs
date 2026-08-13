@@ -1483,6 +1483,16 @@ Error:
                                                                 await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
                                                                 await stream.WriteAsync("\n\n");
 
+                                                                // The preamble has to leave the buffer NOW, not with the first event.
+                                                                // This StreamWriter has AutoFlush off, and the only other flush is
+                                                                // inside the loop below - so on an event source with nothing new to
+                                                                // send, the client would receive not one byte and sit there until
+                                                                // its own read timeout expired. Silence is also how any failure
+                                                                // between here and the first event presents itself: no data, no
+                                                                // error, just a client waiting. Flushing here makes the stream
+                                                                // start when we say it starts.
+                                                                await stream.FlushAsync(request.CancellationToken);
+
                                                                 await foreach (var httpEvent in eventSource.GetAllEventsGreater(
                                                                                                     streamId ?? request.RemoteSocket.ToString(),
                                                                                                     request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
