@@ -258,13 +258,27 @@ public sealed class QuicClientConnection : QuicEndpoint
 
     /// <summary>
     /// Opens a client-initiated bidirectional stream (e.g. an HTTP/3 request).
+    /// Throws <see cref="QuicStreamLimitException"/> when the peer grants no more (RFC 9000 §4.6).
     /// </summary>
     public QuicStream OpenBidirectionalStream() => OpenLocalStream(bidirectional: true);
 
     /// <summary>
     /// Opens a client-initiated unidirectional stream (e.g. HTTP/3 control/QPACK).
+    /// Throws <see cref="QuicStreamLimitException"/> when the peer grants no more (RFC 9000 §4.6).
     /// </summary>
     public QuicStream OpenUnidirectionalStream() => OpenLocalStream(bidirectional: false);
+
+    /// <summary>
+    /// Opens a client-initiated bidirectional stream, or returns <c>null</c> when the peer's limit
+    /// is exhausted. A STREAMS_BLOCKED frame is queued either way (§19.14).
+    /// </summary>
+    public QuicStream? TryOpenBidirectionalStream() => TryOpenLocalStream(bidirectional: true);
+
+    /// <summary>
+    /// Opens a client-initiated unidirectional stream, or returns <c>null</c> when the peer's limit
+    /// is exhausted. A STREAMS_BLOCKED frame is queued either way (§19.14).
+    /// </summary>
+    public QuicStream? TryOpenUnidirectionalStream() => TryOpenLocalStream(bidirectional: false);
 
     protected override void OnLongHeaderPacket(LongPacketType type, LongHeaderPrefix prefix)
     {

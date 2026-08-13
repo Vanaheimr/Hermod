@@ -172,14 +172,28 @@ public sealed class QuicServerConnection : QuicEndpoint
 
     /// <summary>
     /// Opens a server-initiated unidirectional stream (HTTP/3 control/QPACK).
+    /// Throws <see cref="QuicStreamLimitException"/> when the peer grants no more (RFC 9000 §4.6).
     /// </summary>
     public QuicStream OpenUnidirectionalStream() => OpenLocalStream(bidirectional: false);
 
     /// <summary>
     /// Opens a server-initiated bidirectional stream (e.g. a server-side WebTransport bidi stream,
     /// RFC draft webtrans-http3 §4.2).
+    /// Throws <see cref="QuicStreamLimitException"/> when the peer grants no more (RFC 9000 §4.6).
     /// </summary>
     public QuicStream OpenBidirectionalStream() => OpenLocalStream(bidirectional: true);
+
+    /// <summary>
+    /// Opens a server-initiated unidirectional stream, or returns <c>null</c> when the client's
+    /// limit is exhausted. A STREAMS_BLOCKED frame is queued either way (§19.14).
+    /// </summary>
+    public QuicStream? TryOpenUnidirectionalStream() => TryOpenLocalStream(bidirectional: false);
+
+    /// <summary>
+    /// Opens a server-initiated bidirectional stream, or returns <c>null</c> when the client's
+    /// limit is exhausted. A STREAMS_BLOCKED frame is queued either way (§19.14).
+    /// </summary>
+    public QuicStream? TryOpenBidirectionalStream() => TryOpenLocalStream(bidirectional: true);
 
     /// <summary>
     /// Bidirectional (request) streams newly opened by the client since the last call.

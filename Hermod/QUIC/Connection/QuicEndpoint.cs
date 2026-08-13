@@ -128,10 +128,16 @@ public abstract class QuicEndpoint : IDisposable
     private bool  _peerBlockedUni;
     private readonly HashSet<ulong> _creditedStreams = []; // peer streams already counted, so each counts once
 
-    // What the peer allows US to open. Tracked from its transport parameters and MAX_STREAMS frames;
-    // exposed for diagnostics and tests. See the note on OpenLocalStream about not enforcing it yet.
+    // What the peer allows US to open. Tracked from its transport parameters and MAX_STREAMS frames,
+    // and enforced when opening (§4.6).
     private ulong _peerMaxStreamsBidi;
     private ulong _peerMaxStreamsUni;
+
+    // The limit we last told the peer we were stuck at (§19.14). Remembered per direction so a
+    // caller that retries in a loop produces one STREAMS_BLOCKED per limit rather than one per
+    // attempt - the frame says "I am blocked at N", and repeating it for the same N adds nothing.
+    private ulong? _streamsBlockedReportedBidi;
+    private ulong? _streamsBlockedReportedUni;
 
     // Auto-tuning upper bounds: the receive windows may grow up to here (BDP of large, high-latency paths).
     private const ulong MaxStreamReceiveWindow = 16UL * 1024 * 1024;
@@ -749,18 +755,72 @@ public abstract class QuicEndpoint : IDisposable
 
     // ---- Opening streams -------------------------------------------------------------------
 
+    /// <summary>
+    /// Opens a locally initiated stream, or returns <c>null</c> when the peer's stream limit is
+    /// exhausted (RFC 9000 §4.6) — in which case a STREAMS_BLOCKED frame is queued (§19.14).
+    /// </summary>
     /// <remarks>
-    /// Does not yet refuse to exceed the peer's limit (<see cref="PeerStreamLimitsForTest"/>), which §4.6
-    /// requires: a strict peer answers the first stream past its grant with STREAM_LIMIT_ERROR. It is
-    /// a separate gap from the one this method's callers hit, and closing it means deciding what
-    /// opening a stream should do when there is no credit — block, throw, or queue — which is an API
-    /// question, not a transport one. Tracked rather than silently left out.
+    /// Exceeding the limit is not a soft failure: §4.6 obliges the peer to answer the first stream
+    /// past its grant with STREAM_LIMIT_ERROR, so the alternative to refusing here is losing the
+    /// whole connection a round trip later, for every stream that follows.
+    ///
+    /// Before the peer's transport parameters are decoded its limits are unknown, and this refuses
+    /// nothing. Strictly §4.6 permits opening that early only against limits remembered from a
+    /// resumed session, but refusing instead would stall the handshake itself, which is a worse
+    /// failure than the one being prevented — and in practice nothing opens a stream before the
+    /// parameters arrive: the HTTP/3 layer waits for a confirmed handshake first.
     /// </remarks>
-    protected QuicStream OpenLocalStream(bool bidirectional)
+    protected QuicStream? TryOpenLocalStream(bool bidirectional)
     {
         MaybeDecodePeerParameters();
+
+        ulong nextIndex = bidirectional ? _nextLocalBidiIndex  : _nextLocalUniIndex;
+        ulong limit     = bidirectional ? _peerMaxStreamsBidi  : _peerMaxStreamsUni;
+
+        // The limit counts streams, and the index is zero-based: a grant of N permits indices
+        // 0..N-1, so the Nth stream is the first one too many.
+        if (PeerParams is not null && nextIndex >= limit)
+        {
+            ReportStreamsBlocked(bidirectional, limit);
+            return null;
+        }
+
         ulong index = bidirectional ? _nextLocalBidiIndex++ : _nextLocalUniIndex++;
         return GetOrCreateStream(StreamId.Create(clientInitiated: !IsServer, bidirectional, index));
+    }
+
+    /// <summary>
+    /// Opens a locally initiated stream. Throws <see cref="QuicStreamLimitException"/> when the peer
+    /// grants no more — use <see cref="TryOpenLocalStream"/> to handle that without an exception.
+    /// </summary>
+    protected QuicStream OpenLocalStream(bool bidirectional)
+
+        => TryOpenLocalStream(bidirectional)
+               ?? throw new QuicStreamLimitException(
+                      bidirectional,
+                      bidirectional ? _peerMaxStreamsBidi : _peerMaxStreamsUni
+                  );
+
+    /// <summary>
+    /// Tells the peer we wanted a stream and its limit stopped us (RFC 9000 §19.14). Purely
+    /// informational for the peer, but it is what lets a well-behaved one know to send MAX_STREAMS.
+    /// </summary>
+    private void ReportStreamsBlocked(bool bidirectional, ulong limit)
+    {
+        if (bidirectional)
+        {
+            if (_streamsBlockedReportedBidi == limit)
+                return;
+            _streamsBlockedReportedBidi = limit;
+        }
+        else
+        {
+            if (_streamsBlockedReportedUni == limit)
+                return;
+            _streamsBlockedReportedUni = limit;
+        }
+
+        _pendingControlFrames.Add(new StreamsBlockedFrame(bidirectional, limit));
     }
 
     private QuicStream GetOrCreateStream(StreamId id)
@@ -1664,6 +1724,11 @@ public abstract class QuicEndpoint : IDisposable
     internal (ulong Bidi, ulong Uni) PeerStreamLimitsForTest    => (_peerMaxStreamsBidi, _peerMaxStreamsUni);
 
     /// <summary>
+    /// How many STREAMS_BLOCKED frames arrived — the peer-side view of our own de-duplication.
+    /// </summary>
+    internal int PeerStreamsBlockedCountForTest { get; private set; }
+
+    /// <summary>
     /// Current (possibly auto-tuned) size of the connection receive window — for diagnostics/tests.
     /// </summary>
     internal ulong ConnectionReceiveWindowSize => _connWindowTuner?.Size ?? _localConnMaxData;
@@ -2039,6 +2104,7 @@ public abstract class QuicEndpoint : IDisposable
                         _peerBlockedBidi = true;
                     else
                         _peerBlockedUni = true;
+                    PeerStreamsBlockedCountForTest++;
                     break;
                 case HandshakeDoneFrame:
                     OnHandshakeDoneReceived();
