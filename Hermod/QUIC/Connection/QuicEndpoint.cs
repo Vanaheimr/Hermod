@@ -116,6 +116,23 @@ public abstract class QuicEndpoint : IDisposable
     private ulong _localConnMaxData;
     private ReceiveWindowTuner? _connWindowTuner; // auto-tuning of the connection receive window (phase 9)
 
+    // Stream credit we have granted the peer (RFC 9000 §4.6). These are COUNTS, not stream IDs, and
+    // they are cumulative: the transport parameter grants the first N, and every MAX_STREAMS after
+    // that replaces the total. Without them a connection would carry initial_max_streams requests
+    // and then stall forever, because a stream ID is never reused.
+    private ulong _grantedMaxStreamsBidi;
+    private ulong _grantedMaxStreamsUni;
+    private ulong _pendingStreamCreditBidi;      // finished streams not yet announced
+    private ulong _pendingStreamCreditUni;
+    private bool  _peerBlockedBidi;              // peer sent STREAMS_BLOCKED — answer at the next send
+    private bool  _peerBlockedUni;
+    private readonly HashSet<ulong> _creditedStreams = []; // peer streams already counted, so each counts once
+
+    // What the peer allows US to open. Tracked from its transport parameters and MAX_STREAMS frames;
+    // exposed for diagnostics and tests. See the note on OpenLocalStream about not enforcing it yet.
+    private ulong _peerMaxStreamsBidi;
+    private ulong _peerMaxStreamsUni;
+
     // Auto-tuning upper bounds: the receive windows may grow up to here (BDP of large, high-latency paths).
     private const ulong MaxStreamReceiveWindow = 16UL * 1024 * 1024;
     private const ulong MaxConnReceiveWindow = 24UL * 1024 * 1024;
@@ -181,6 +198,10 @@ public abstract class QuicEndpoint : IDisposable
         _localConnMaxData = LocalParams.InitialMaxDataValue;
         if (LocalParams.InitialMaxDataValue > 0)
             _connWindowTuner = new ReceiveWindowTuner(LocalParams.InitialMaxDataValue, MaxConnReceiveWindow);
+        // The transport parameters ARE the first MAX_STREAMS (§4.6): they grant the initial counts,
+        // and every frame we send later raises these totals.
+        _grantedMaxStreamsBidi = LocalParams.InitialMaxStreamsBidiValue;
+        _grantedMaxStreamsUni  = LocalParams.InitialMaxStreamsUniValue;
         Scid = sourceConnectionId ?? new ConnectionId(RandomNumberGenerator.GetBytes(8));
         _cids = new ConnectionIdManager(Scid); // local handshake CID = sequence 0
         _addressValidated = !IsServer;         // the client regards the server address as validated
@@ -728,6 +749,13 @@ public abstract class QuicEndpoint : IDisposable
 
     // ---- Opening streams -------------------------------------------------------------------
 
+    /// <remarks>
+    /// Does not yet refuse to exceed the peer's limit (<see cref="PeerStreamLimitsForTest"/>), which §4.6
+    /// requires: a strict peer answers the first stream past its grant with STREAM_LIMIT_ERROR. It is
+    /// a separate gap from the one this method's callers hit, and closing it means deciding what
+    /// opening a stream should do when there is no credit — block, throw, or queue — which is an API
+    /// question, not a transport one. Tracked rather than silently left out.
+    /// </remarks>
     protected QuicStream OpenLocalStream(bool bidirectional)
     {
         MaybeDecodePeerParameters();
@@ -1543,6 +1571,8 @@ public abstract class QuicEndpoint : IDisposable
             }
         }
 
+        CollectStreamCreditFrames(frames);
+
         if (_connWindowTuner is not { } connTuner)
             return;
         ulong totalConsumed = 0;
@@ -1555,6 +1585,83 @@ public abstract class QuicEndpoint : IDisposable
             frames.Add(new MaxDataFrame(_localConnMaxData));
         }
     }
+
+    /// <summary>
+    /// Hands the peer fresh stream credit as the streams it opened finish (RFC 9000 §4.6, §19.11).
+    /// </summary>
+    /// <remarks>
+    /// Stream IDs are consumed, never recycled: the peer's Nth stream carries index N whether or not
+    /// the first N-1 are long gone. So a limit that is only ever set by the transport parameter is a
+    /// budget for the lifetime of the connection, and an HTTP/3 client that keeps one connection open
+    /// simply stops after initial_max_streams_bidi requests — 100 by default, which a browser tab
+    /// reaches on a single page. Renewing the credit is not an optimisation; it is what makes a
+    /// connection long-lived.
+    ///
+    /// Two deliberate choices:
+    ///
+    /// * Credit is counted per stream ONCE, tracked in a set rather than derived from a count of
+    ///   "finished" streams — a stream can satisfy the terminal condition on many consecutive send
+    ///   rounds, and paying for it each time would inflate the limit without bound.
+    /// * Frames are not emitted for every single finished stream. That would put a MAX_STREAMS beside
+    ///   almost every response. Credit accumulates until it is worth a frame (an eighth of the initial
+    ///   grant), or until the peer says it is actually blocked — which is answered at once, because at
+    ///   that moment the delay is no longer an optimisation but a stall.
+    /// </remarks>
+    private void CollectStreamCreditFrames(List<Frame> frames)
+    {
+        foreach ((ulong id, QuicStream stream) in StreamMap)
+        {
+            var streamId = new StreamId(id);
+            if (LocallyInitiated(streamId) || _creditedStreams.Contains(id) || !IsTerminated(stream, streamId))
+                continue;
+            _creditedStreams.Add(id);
+            if (streamId.IsUnidirectional)
+                _pendingStreamCreditUni++;
+            else
+                _pendingStreamCreditBidi++;
+        }
+
+        if (ShouldAnnounce(_pendingStreamCreditBidi, LocalParams.InitialMaxStreamsBidiValue, _peerBlockedBidi))
+        {
+            _grantedMaxStreamsBidi += _pendingStreamCreditBidi;
+            _pendingStreamCreditBidi = 0;
+            _peerBlockedBidi = false;
+            frames.Add(new MaxStreamsFrame(Bidirectional: true, _grantedMaxStreamsBidi));
+        }
+
+        if (ShouldAnnounce(_pendingStreamCreditUni, LocalParams.InitialMaxStreamsUniValue, _peerBlockedUni))
+        {
+            _grantedMaxStreamsUni += _pendingStreamCreditUni;
+            _pendingStreamCreditUni = 0;
+            _peerBlockedUni = false;
+            frames.Add(new MaxStreamsFrame(Bidirectional: false, _grantedMaxStreamsUni));
+        }
+
+        static bool ShouldAnnounce(ulong pending, ulong initialGrant, bool peerBlocked)
+            => pending > 0 && (peerBlocked || pending >= Math.Max(1, initialGrant / 8));
+    }
+
+    /// <summary>
+    /// Whether a peer-initiated stream will never carry anything again, in either direction — the
+    /// condition for handing its credit back.
+    /// </summary>
+    /// <remarks>
+    /// A unidirectional stream the peer opened only ever flows towards us, so its receive side ending
+    /// is the whole story. A bidirectional one also carries our answer, and crediting it while we are
+    /// still writing the response would let the peer open a stream we have not finished paying for.
+    /// </remarks>
+    private static bool IsTerminated(QuicStream stream, StreamId id)
+    {
+        bool receiveDone = stream.Receive.IsComplete || stream.Receive.ResetReceived;
+        return id.IsUnidirectional ? receiveDone : receiveDone && stream.Send.IsComplete;
+    }
+
+    /// <summary>
+    /// Stream limits, for diagnostics and tests: what we currently allow the peer (bidi, uni) and what
+    /// it allows us.
+    /// </summary>
+    internal (ulong Bidi, ulong Uni) GrantedStreamLimitsForTest => (_grantedMaxStreamsBidi, _grantedMaxStreamsUni);
+    internal (ulong Bidi, ulong Uni) PeerStreamLimitsForTest    => (_peerMaxStreamsBidi, _peerMaxStreamsUni);
 
     /// <summary>
     /// Current (possibly auto-tuned) size of the connection receive window — for diagnostics/tests.
@@ -1905,6 +2012,34 @@ public abstract class QuicEndpoint : IDisposable
                 case MaxDataFrame md:
                     _connSendLimit = Math.Max(_connSendLimit, md.MaximumData);
                     break;
+                case MaxStreamsFrame ms:
+                    // §19.11: the value is a cumulative TOTAL, not an increment, and frames may
+                    // arrive reordered — so the larger one wins rather than the later one.
+                    // §4.6: above 2^60 the stream ID would not fit a varint at all.
+                    if (ms.MaximumStreams > (1UL << 60))
+                    {
+                        CloseWithTransportError(TransportError.FrameEncodingError, "MAX_STREAMS above 2^60");
+                        return;
+                    }
+                    if (ms.Bidirectional)
+                        _peerMaxStreamsBidi = Math.Max(_peerMaxStreamsBidi, ms.MaximumStreams);
+                    else
+                        _peerMaxStreamsUni = Math.Max(_peerMaxStreamsUni, ms.MaximumStreams);
+                    break;
+                case StreamsBlockedFrame sb:
+                    // §19.14: the peer wanted a stream and our limit stopped it. Purely informational
+                    // — it does not oblige us to grant more — but if credit is already sitting here
+                    // waiting for the batching threshold, this is the moment to stop waiting.
+                    if (sb.MaximumStreams > (1UL << 60))
+                    {
+                        CloseWithTransportError(TransportError.StreamLimitError, "STREAMS_BLOCKED above 2^60");
+                        return;
+                    }
+                    if (sb.Bidirectional)
+                        _peerBlockedBidi = true;
+                    else
+                        _peerBlockedUni = true;
+                    break;
                 case HandshakeDoneFrame:
                     OnHandshakeDoneReceived();
                     break;
@@ -2126,10 +2261,15 @@ public abstract class QuicEndpoint : IDisposable
     internal ConnectionId DcidForTest => Dcid;
 
     /// <summary>
-    /// The stream limit (count) we granted for the category of <paramref name="id"/>.
+    /// The stream limit (count) we currently grant for the category of <paramref name="id"/> — the
+    /// initial transport parameter plus every MAX_STREAMS we have sent since (RFC 9000 §4.6).
     /// </summary>
+    /// <remarks>
+    /// This must be the granted total and not the transport parameter, or the endpoint would answer
+    /// the very streams it just invited with STREAM_LIMIT_ERROR.
+    /// </remarks>
     private ulong StreamLimitFor(StreamId id)
-        => id.IsUnidirectional ? LocalParams.InitialMaxStreamsUniValue : LocalParams.InitialMaxStreamsBidiValue;
+        => id.IsUnidirectional ? _grantedMaxStreamsUni : _grantedMaxStreamsBidi;
 
     /// <summary>
     /// Processes a peer RESET_STREAM (RFC 9000 §19.4): validates stream state/limit, adopts the final
@@ -2578,6 +2718,10 @@ public abstract class QuicEndpoint : IDisposable
 
         PeerParams = p;
         _connSendLimit = p.InitialMaxDataValue;
+        // The peer's opening stream grant (§4.6). Max, not assignment: a MAX_STREAMS can legitimately
+        // arrive before we get around to decoding the parameters, and it must not be undone here.
+        _peerMaxStreamsBidi = Math.Max(_peerMaxStreamsBidi, p.InitialMaxStreamsBidiValue);
+        _peerMaxStreamsUni  = Math.Max(_peerMaxStreamsUni,  p.InitialMaxStreamsUniValue);
         // RFC 9002 §6.2: the PTO includes the PEER's max_ack_delay — it is the delay the peer told
         // us it may add, so budgeting our own value here would make us probe too early.
         _recovery.MaxAckDelay = TimeSpan.FromMilliseconds(p.MaxAckDelayMs);
