@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -221,31 +222,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) AcceptTSIG              (Buffer, out Message, out Context, out ErrorResponse)
+        #region (private) AcceptSignedRequest     (Buffer, out Message, out Context, out ErrorResponse)
 
         /// <summary>
-        /// Verify and remove a TSIG record before the message is parsed.
+        /// Verify and remove a transaction signature — TSIG or SIG(0) — before
+        /// the message is parsed.
         /// </summary>
         /// <param name="Buffer">The datagram or framed message as received.</param>
-        /// <param name="Message">What the rest of the server should parse: the request with its TSIG removed and ARCOUNT corrected.</param>
+        /// <param name="Message">What the rest of the server should parse: the request with its signature removed and ARCOUNT corrected.</param>
         /// <param name="Context">What is needed to sign the reply, or null when the request was unsigned.</param>
-        /// <param name="ErrorResponse">A ready-to-send NOTAUTH reply when verification failed, otherwise null.</param>
+        /// <param name="ErrorResponse">A ready-to-send refusal when verification failed, otherwise null.</param>
         /// <returns>False when the request must not be served.</returns>
         /// <remarks>
         /// Stripping before parsing rather than after is deliberate. It keeps the
-        /// signed bytes exactly as they arrived — which is what the MAC covers —
-        /// and it means <c>DNSPacket.Parse</c> never meets a TSIG record, which
-        /// it has no case for and would throw on.
+        /// signed bytes exactly as they arrived — which is what the signature
+        /// covers — and it means <c>DNSPacket.Parse</c> never meets a meta-RR it
+        /// has no case for.
         /// </remarks>
-        private Boolean AcceptTSIG(Byte[]              Buffer,
-                                   out Byte[]          Message,
-                                   out TSIGContext?    Context,
-                                   out Byte[]?         ErrorResponse)
+        private Boolean AcceptSignedRequest(Byte[]                            Buffer,
+                                            out Byte[]                        Message,
+                                            out TransactionSecurityContext?   Context,
+                                            out Byte[]?                       ErrorResponse)
         {
 
             Message        = Buffer;
             Context        = null;
             ErrorResponse  = null;
+
+            // RFC 2931 §3.2: "Requests and responses can either have a single
+            // TSIG or one SIG(0) but not both." A message carrying both is
+            // malformed rather than unauthentic, so it gets FORMERR — the RFC
+            // names no RCODE for this, and answering "your message is wrong" is
+            // more useful than "you are not authorized".
+            if (SIG0Signer.CarriesBothTSIGAndSIG0(Buffer))
+            {
+
+                logger.LogWarning("Rejecting a request that carries both a TSIG and a SIG(0)");
+
+                ErrorResponse = BuildFormatErrorResponse(Buffer);
+
+                return false;
+
+            }
+
+            return AcceptTSIG(Buffer, ref Message, ref Context, ref ErrorResponse) &&
+                   AcceptSIG0(Buffer, ref Message, ref Context, ref ErrorResponse);
+
+        }
+
+        #endregion
+
+        #region (private) AcceptTSIG              (Buffer, ref Message, ref Context, ref ErrorResponse)
+
+        private Boolean AcceptTSIG(Byte[]                            Buffer,
+                                   ref Byte[]                        Message,
+                                   ref TransactionSecurityContext?   Context,
+                                   ref Byte[]?                       ErrorResponse)
+        {
 
             var keys = Options.TSIGKeys.ToArray();
 
@@ -285,14 +318,148 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             Message  = unsigned;
-            Context  = new TSIGContext(
-                           keys.First(k => k.Name.FullName.TrimEnd('.').
-                                             Equals(tsig.DomainName.ToString().TrimEnd('.'),
-                                                    StringComparison.OrdinalIgnoreCase)),
-                           result.MAC!
-                       );
+            Context  = new TransactionSecurityContext {
+                           TSIGKey     = keys.First(k => k.Name.FullName.TrimEnd('.').
+                                                           Equals(tsig.DomainName.ToString().TrimEnd('.'),
+                                                                  StringComparison.OrdinalIgnoreCase)),
+                           RequestMAC  = result.MAC!
+                       };
 
             return true;
+
+        }
+
+        #endregion
+
+        #region (private) AcceptSIG0              (Buffer, ref Message, ref Context, ref ErrorResponse)
+
+        /// <summary>
+        /// Verify and remove a SIG(0), RFC 2931 §3.
+        /// </summary>
+        /// <remarks>
+        /// Nothing happens without configured keys. §3.2 has a server that does
+        /// not implement request SIGs "ignore them without error where they are
+        /// optional", and for an ordinary query they are optional — so an
+        /// unconfigured server serves a signed request exactly as it serves an
+        /// unsigned one, rather than refusing what it cannot check.
+        /// </remarks>
+        private Boolean AcceptSIG0(Byte[]                            Buffer,
+                                   ref Byte[]                        Message,
+                                   ref TransactionSecurityContext?   Context,
+                                   ref Byte[]?                       ErrorResponse)
+        {
+
+            var keys = Options.SIG0Keys.ToArray();
+
+            if (keys.Length == 0)
+                return true;
+
+            if (!SIG0Signer.TryStripSIG0(Buffer, out var unsigned, out var sig) ||
+                unsigned is null || sig is null || !sig.IsTransactionSignature)
+                return true;                    // unsigned request: serve it as before
+
+            var result = SIG0Signer.Verify(Buffer, keys);
+
+            if (!result.IsValid)
+            {
+
+                logger.LogWarning(
+                    "Rejecting a SIG(0)-signed request from {SignerName} (key tag {KeyTag}): {Reason}",
+                    sig.SignerName,
+                    sig.KeyTag,
+                    result.Description
+                );
+
+                // RFC 2931 names no RCODE for a failed request signature — §3.1
+                // only says a server is "not required to check" one. Having
+                // chosen to check, NOTAUTH is the answer that says why, and it
+                // is what TSIG uses for the same situation (RFC 8945 §5.2).
+                //
+                // The refusal is unsigned. There is nothing to gain by signing
+                // it: a sender whose key we just rejected cannot tell our
+                // signature apart from anyone else's, and signing costs the
+                // public-key operation §2.4 warns about spending on unverified
+                // input.
+                ErrorResponse = BuildNotAuthorizedResponse(unsigned);
+
+                return false;
+
+            }
+
+            Message  = unsigned;
+            Context  = new TransactionSecurityContext {
+                           SIG0Key        = Options.SIG0ResponseKey,
+                           SignedRequest  = Buffer
+                       };
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private) BuildNotAuthorizedResponse(Request)
+
+        /// <summary>
+        /// The bare NOTAUTH reply for a request whose signature did not verify:
+        /// the header and question as they arrived, QR set, and no records.
+        /// </summary>
+        private static Byte[]? BuildNotAuthorizedResponse(Byte[] Request)
+        {
+
+            if (Request.Length < 12)
+                return null;
+
+            var response = new Byte[Request.Length];
+            Buffer.BlockCopy(Request, 0, response, 0, Request.Length);
+
+            var flags    = BinaryPrimitives.ReadUInt16BigEndian(response.AsSpan(2, 2));
+            flags        = (UInt16) ((flags | 0x8000) & 0xFFF0 | (UInt16) DNSResponseCodes.NotAuthorized);
+            BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(2, 2), flags);
+
+            // No answers of any kind travel with an authentication failure.
+            BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(6,  2), 0);
+            BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(8,  2), 0);
+            BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(10, 2), 0);
+
+            // …and neither does anything the request happened to carry after its
+            // question, which the counts above have just disowned.
+            var end = FindEndOfQuestions(response);
+
+            return end < 0
+                       ? null
+                       : response[..end];
+
+        }
+
+
+        /// <summary>The offset just past the last question, or -1 if they do not parse.</summary>
+        private static Int32 FindEndOfQuestions(Byte[] Message)
+        {
+
+            try
+            {
+
+                using var stream = new MemoryStream(Message);
+                stream.Position  = 12;
+
+                var qdCount = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(4, 2));
+
+                for (var i = 0; i < qdCount; i++)
+                {
+                    DNSTools.ExtractName(stream);
+                    stream.Position += 4;                  // QTYPE + QCLASS
+                }
+
+                return stream.Position <= Message.Length
+                           ? (Int32) stream.Position
+                           : -1;
+
+            }
+            catch
+            {
+                return -1;
+            }
 
         }
 
@@ -304,32 +471,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Sign a response when the request that prompted it was signed.
         /// </summary>
         /// <param name="ResponseBytes">The serialized response.</param>
-        /// <param name="Context">The key and request MAC, or null to leave the response unsigned.</param>
+        /// <param name="Context">What the verified request left behind, or null to leave the response unsigned.</param>
         /// <remarks>
-        /// The request's MAC goes into the response's, per RFC 8945 §4.3.1, which
-        /// binds the two together: a signed response lifted from one exchange
+        /// Both mechanisms bind the reply to the question it answers, and both do
+        /// it by folding the request into the signature — TSIG through the
+        /// request's MAC (RFC 8945 §4.3.1), SIG(0) through the whole query
+        /// (RFC 2931 §3.1). Either way a signed response lifted from one exchange
         /// cannot be replayed as the answer to another.
         /// </remarks>
-        private static Byte[] SignIfRequested(Byte[]        ResponseBytes,
-                                              TSIGContext?  Context)
+        private static Byte[] SignIfRequested(Byte[]                          ResponseBytes,
+                                              TransactionSecurityContext?     Context)
+        {
 
-            => Context is null
-                   ? ResponseBytes
-                   : TSIGSigner.Sign(ResponseBytes,
-                                     Context.Key,
-                                     RequestMAC: Context.RequestMAC);
+            if (Context is null)
+                return ResponseBytes;
+
+            if (Context.TSIGKey is not null)
+                return TSIGSigner.Sign(ResponseBytes,
+                                       Context.TSIGKey,
+                                       RequestMAC: Context.RequestMAC);
+
+            if (Context.SIG0Key is not null)
+                return SIG0Signer.Sign(ResponseBytes,
+                                       Context.SIG0Key,
+                                       Request: Context.SignedRequest);
+
+            return ResponseBytes;
+
+        }
 
         #endregion
 
-        #region (private) TSIGContext
+        #region (private) TransactionSecurityContext
 
         /// <summary>
         /// What a verified request leaves behind for its response to be signed with.
         /// </summary>
-        private sealed class TSIGContext(TSIGKey Key, Byte[] RequestMAC)
+        private sealed class TransactionSecurityContext
         {
-            public TSIGKey  Key         { get; } = Key;
-            public Byte[]   RequestMAC  { get; } = RequestMAC;
+
+            /// <summary>The TSIG key the request was signed with (RFC 8945).</summary>
+            public TSIGKey?  TSIGKey        { get; init; }
+
+            /// <summary>The MAC of that request, which the reply's MAC folds in.</summary>
+            public Byte[]?   RequestMAC     { get; init; }
+
+            /// <summary>The key to sign the reply with, when the request carried a SIG(0) and this server has one (RFC 2931).</summary>
+            public SIG0Key?  SIG0Key        { get; init; }
+
+            /// <summary>The request exactly as received, SIG(0) included — the "full query" of RFC 2931 §3.1.</summary>
+            public Byte[]?   SignedRequest  { get; init; }
+
         }
 
         #endregion
@@ -463,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var dnsPacket = await udpUnicastListener.ReceiveAsync(CancellationToken);
 
-                    if (!AcceptTSIG(dnsPacket.Buffer, out var udpBody, out var tsigContext, out var tsigError))
+                    if (!AcceptSignedRequest(dnsPacket.Buffer, out var udpBody, out var tsigContext, out var tsigError))
                     {
 
                         if (tsigError is not null)
@@ -984,7 +1176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (bytesRead != length)
                         throw new EndOfStreamException("Incomplete DNS stream request payload.");
 
-                    if (!AcceptTSIG(sharedBuffer[..bytesRead], out var streamBody, out var tsigContext, out var tsigError))
+                    if (!AcceptSignedRequest(sharedBuffer[..bytesRead], out var streamBody, out var tsigContext, out var tsigError))
                     {
 
                         if (tsigError is not null)
