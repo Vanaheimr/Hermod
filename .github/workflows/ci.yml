@@ -37,8 +37,10 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+            leg: windows-latest
           - os: ubuntu-latest
             container: debian:13
+            leg: debian-13-container
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
@@ -95,4 +97,22 @@ jobs:
       - name: Test (everything except live DNS)
         timeout-minutes: 45
         working-directory: Hermod
-        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "TestCategory!=LiveDNS" --logger "console;verbosity=normal"
+        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "TestCategory!=LiveDNS" --logger "console;verbosity=normal" --logger "trx;LogFileName=${{ matrix.leg }}.trx" --results-directory artifacts
+
+      # The console log answers "did it pass" and almost nothing else. Finding the single red
+      # test in run #59 meant pulling 200 kB of step log and grepping it — and the 45 skips on
+      # the Debian leg were not explained there at all, because a skip reason never reaches the
+      # console at normal verbosity. TRX keeps both per test: outcome, duration, error message,
+      # stack trace and the Assert.Ignore reason. It also survives the run: `gh run download`
+      # gets structured results where the log view needs a signed-in browser session.
+      #
+      # !cancelled() rather than success(): a red run is when these files matter most, so
+      # uploading only on green would discard the evidence in exactly that case. A build that
+      # fails before the test step leaves no .trx, which upload-artifact reports as a warning
+      # rather than a second failure — the compile error is the finding there.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.leg }}
+          path: Hermod/artifacts/*.trx

@@ -30,8 +30,10 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+            leg: windows-latest
           - os: ubuntu-latest
             container: debian:13
+            leg: debian-13-container
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
@@ -73,7 +75,7 @@ jobs:
       - name: Test (everything except live DNS)
         timeout-minutes: 90
         working-directory: Hermod
-        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "TestCategory!=LiveDNS" --logger "console;verbosity=normal"
+        run: dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build --filter "TestCategory!=LiveDNS" --logger "console;verbosity=normal" --logger "trx;LogFileName=${{ matrix.leg }}.trx" --results-directory artifacts
 
       # The live DNS probes (Category "LiveDNS"): real queries to Cloudflare,
       # Google and charging.cloud over UDP/TCP/TLS/HTTPS/JSON. Informational on
@@ -92,7 +94,8 @@ jobs:
         run: |
           set +e
           dotnet test HermodTests/HermodTests.csproj --configuration Release --no-build \
-            --filter "TestCategory=LiveDNS" --logger "console;verbosity=normal" 2>&1 | tee livedns.txt
+            --filter "TestCategory=LiveDNS" --logger "console;verbosity=normal" \
+            --logger "trx;LogFileName=${{ matrix.leg }}-livedns.trx" --results-directory artifacts 2>&1 | tee livedns.txt
           {
             echo '## Live DNS probes (informational, ${{ runner.os }})'
             echo
@@ -103,3 +106,19 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit 0
+
+      # Two .trx files per leg: the gated set and the live probes. The step summary
+      # above reduces the probes to five counters, which is the right amount to read
+      # every morning but the wrong amount when a night looks odd — it cannot say
+      # WHICH of the 115 failed, so "84 failed" and "84 different ones failed" are
+      # indistinguishable across two nights. The probe .trx names them, and keeping
+      # it makes the trend the comment above asks for actually checkable.
+      #
+      # continue-on-error on the probe step means it counts as successful here, so
+      # !cancelled() collects both files even on a night the live probes went red.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.leg }}
+          path: Hermod/artifacts/*.trx
