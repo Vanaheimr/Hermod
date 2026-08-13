@@ -20,6 +20,9 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 
+using Org.BouncyCastle.Crypto.Macs;
+using Org.BouncyCastle.Crypto.Parameters;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
@@ -39,13 +42,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// from anywhere else.
     /// </para>
     /// <para>
-    /// The layout here follows the shape RFC 9018 §4 later standardised — a
-    /// version octet, a timestamp, and a truncated keyed hash — but not its
-    /// algorithm, which is SipHash-2-4. That difference is deliberate and
-    /// harmless in the ordinary case: the only reason RFC 9018 pins the algorithm
-    /// is so that the members of an anycast cluster sharing one secret can
-    /// validate each other's cookies. A single server validating its own needs
-    /// agreement with nobody.
+    /// The construction is RFC 9018's: version octet, three reserved octets, a
+    /// timestamp, and the low 64 bits of SipHash-2-4 over all of it plus the
+    /// client cookie and the client's address, keyed by the server secret (§4).
+    /// </para>
+    /// <para>
+    /// A single server validating its own cookies needs agreement with nobody, so
+    /// any keyed hash would do — which is what this used before. RFC 9018 exists
+    /// for the case where that stops being true: an anycast cluster whose members
+    /// share one secret, where a cookie issued by one node arrives at another and
+    /// has to be recognised. Following it costs nothing and removes the day
+    /// somebody puts a second server behind the same address and discovers that
+    /// every other query needs an extra round trip.
     /// </para>
     /// <para>
     /// The timestamp is what keeps a stolen cookie from being useful forever, and
@@ -58,21 +66,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        /// <summary>The size of the server cookies produced here: 16 octets, the smallest RFC 7873 §4.2 allows.</summary>
+        /// <summary>The size of an RFC 9018 §4 server cookie: 16 octets, which is also the smallest RFC 7873 §4.2 allows.</summary>
         public const Int32 ServerCookieSize = 16;
 
-        /// <summary>The version octet this implementation writes and accepts.</summary>
+        /// <summary>The version RFC 9018 §4.1 assigns to this structure.</summary>
         public const Byte  Version          = 1;
+
+        /// <summary>
+        /// The size of the server secret: 16 octets, because SipHash-2-4 takes a
+        /// 128-bit key and RFC 9018 §4.4 names no other.
+        /// </summary>
+        public const Int32 SecretSize       = 16;
 
         /// <summary>
         /// How long a server cookie stays valid, and how much clock skew towards
         /// the future is tolerated.
         /// </summary>
         /// <remarks>
-        /// An hour of validity and five minutes of skew, which is what RFC 9018
-        /// §4.3 recommends for the same fields. The asymmetry is the point: a
-        /// cookie from the past is merely old, while one from the future can only
-        /// come from a clock that disagrees — or from someone guessing.
+        /// RFC 9018 §4.3: servers "SHOULD allow cookies within a 1-hour period in
+        /// the past and a 5-minute period into the future". The asymmetry is the
+        /// point: a cookie from the past is merely old, while one from the future
+        /// can only come from a clock that disagrees — or from someone guessing.
         /// </remarks>
         public static readonly TimeSpan DefaultValidity  = TimeSpan.FromHours(1);
         public static readonly TimeSpan DefaultClockSkew = TimeSpan.FromMinutes(5);
@@ -145,13 +159,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return false;
             }
 
-            var now       = Now ?? DateTimeOffset.UtcNow;
-            var issued    = DateTimeOffset.FromUnixTimeSeconds(
-                                BinaryPrimitives.ReadUInt32BigEndian(ServerCookie.AsSpan(4, 4))
-                            );
+            var now       = (UInt32) (Now ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds();
+            var issued    = BinaryPrimitives.ReadUInt32BigEndian(ServerCookie.AsSpan(4, 4));
 
-            if (issued > now + (ClockSkew ?? DefaultClockSkew) ||
-                issued < now - (Validity  ?? DefaultValidity))
+            // RFC 9018 §4.3: "the Timestamp value prevents Replay Attacks ...
+            // Note that, since the Timestamp is a 32-bit field, comparisons must
+            // use serial number arithmetic [RFC1982]."
+            //
+            // A wrapping subtraction read as signed *is* that arithmetic for
+            // 32 bits: it gives the shorter of the two distances round the
+            // circle, so a cookie issued just before the field wraps in 2106 is
+            // still seconds old rather than 136 years in the future. Comparing
+            // the two as absolute instants instead would reject every cookie for
+            // an hour, once, in a way nobody would be able to reproduce.
+            var age       = unchecked((Int32) (now - issued));
+
+            if (age >  (Int32) (Validity  ?? DefaultValidity). TotalSeconds ||
+                age < -(Int32) (ClockSkew ?? DefaultClockSkew).TotalSeconds)
             {
                 return false;
             }
@@ -171,10 +195,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (static) GenerateSecret()
 
         /// <summary>
-        /// A fresh server secret.
+        /// A fresh server secret: the 128 bits SipHash-2-4 takes as its key.
         /// </summary>
         public static Byte[] GenerateSecret()
-            => RandomNumberGenerator.GetBytes(32);
+            => RandomNumberGenerator.GetBytes(SecretSize);
 
         #endregion
 
@@ -184,18 +208,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The keyed hash over everything the cookie is bound to.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// RFC 9018 §4.4 states it as a formula:
+        /// </para>
+        /// <para>
+        /// <c>Hash = SipHash-2-4(Client Cookie | Version | Reserved | Timestamp |
+        /// Client-IP, Server Secret)</c>
+        /// </para>
+        /// <para>
         /// The preamble — version, reserved and timestamp — is hashed along with
         /// the rest so that none of it can be edited after the fact. The client
         /// address is in there because without it a cookie is a bearer token:
         /// anyone who saw one on the wire could present it from anywhere, and a
         /// mechanism whose whole purpose is to prove where a query came from
         /// would be proving nothing.
+        /// </para>
+        /// <para>
+        /// The 64-bit result goes into the field little-endian, which §4.4 does
+        /// not say and Appendix A settles: all four of its vectors reproduce that
+        /// way and none the other. SipHash's own reference implementation
+        /// serialises little-endian, so the RFC is relying on the algorithm's
+        /// convention rather than restating it.
+        /// </para>
         /// </remarks>
         private static Byte[] Hash(Byte[]              ClientCookie,
                                    IIPAddress          ClientAddress,
                                    Byte[]              Secret,
                                    ReadOnlySpan<Byte>  Preamble)
         {
+
+            if (Secret.Length != SecretSize)
+                throw new ArgumentException($"An RFC 9018 server secret is exactly {SecretSize} octets — SipHash-2-4 takes a 128-bit key.", nameof(Secret));
 
             var addressBytes = ClientAddress.GetBytes();
             var input        = new Byte[ClientCookie.Length + Preamble.Length + addressBytes.Length];
@@ -204,7 +247,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Preamble.    CopyTo(input.AsSpan(ClientCookie.Length));
             addressBytes.CopyTo(input.AsSpan(ClientCookie.Length + Preamble.Length));
 
-            return HMACSHA256.HashData(Secret, input)[..8];
+            var sipHash = new SipHash();          // 2-4 is BouncyCastle's default
+
+            sipHash.Init(new KeyParameter(Secret));
+            sipHash.BlockUpdate(input, 0, input.Length);
+
+            var hash = new Byte[8];
+            sipHash.DoFinal(hash, 0);
+
+            return hash;
 
         }
 
