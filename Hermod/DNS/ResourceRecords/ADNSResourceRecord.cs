@@ -874,6 +874,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) CloneWithOwner(ResourceRecord, NewOwner)
+
+        /// <summary>
+        /// The same resource record under a different owner name.
+        /// </summary>
+        /// <param name="ResourceRecord">The record to rewrite.</param>
+        /// <param name="NewOwner">The owner name the copy should carry.</param>
+        /// <remarks>
+        /// <para>
+        /// Wildcards are what this is for. RFC 4592 §3.3.1 has a server answer
+        /// from a record whose owner name is <c>*.example.</c> while the answer
+        /// section must show the queried name — the wildcard label never appears
+        /// in the response, or a resolver would cache the answer under a name no
+        /// one asked about.
+        /// </para>
+        /// <para>
+        /// It goes through the wire form on purpose. Every record type is
+        /// reachable from the registry by (name, stream), so splicing a new owner
+        /// name in front of the untouched TYPE/CLASS/TTL/RDATA works for all of
+        /// them, including types this method has never heard of. Nothing here
+        /// needs to know what the RDATA means — which is the point, because an
+        /// RRSIG rewritten this way must keep its <c>labels</c> field pointing at
+        /// the wildcard (RFC 4035 §3.1.3.3), and a method that understood the
+        /// RDATA would be tempted to "fix" it.
+        /// </para>
+        /// </remarks>
+        public static IDNSResourceRecord CloneWithOwner(IDNSResourceRecord  ResourceRecord,
+                                                        DNSServiceName      NewOwner)
+        {
+
+            if (ResourceRecord.DomainName.Equals(NewOwner))
+                return ResourceRecord;
+
+            using var original = new MemoryStream();
+
+            ResourceRecord.Serialize(original, UseCompression: false, CompressionOffsets: []);
+            original.Position = 0;
+
+            // Skip the old owner name; everything after it is copied verbatim.
+            DNSTools.ExtractName(original);
+
+            var tail = new Byte[original.Length - original.Position];
+            original.ReadExactly(tail);
+
+            using var rewritten = new MemoryStream();
+
+            NewOwner.Serialize(rewritten, 0, UseCompression: false, Offsets: []);
+            rewritten.Write(tail, 0, tail.Length);
+            rewritten.Position = 0;
+
+            return DNSInfo.ReadResourceRecord(rewritten)
+                       ?? throw new InvalidOperationException($"A {ResourceRecord.Type} record cannot be read back after rewriting its owner name!");
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

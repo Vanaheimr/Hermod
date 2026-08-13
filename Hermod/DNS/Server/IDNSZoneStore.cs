@@ -23,7 +23,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         Found,
         NoData,
-        NameError
+        NameError,
+
+        /// <summary>
+        /// The name lives below a delegation point: this server is not
+        /// authoritative for it, and RFC 1034 §4.3.2 step 3b says to answer with
+        /// the child zone's NS records rather than with data. The response
+        /// carries no answer, and AA is clear.
+        /// </summary>
+        Referral
 
     }
 
@@ -87,14 +95,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AdditionalRRs ?? []
                );
 
+
+        /// <summary>
+        /// The name is below a zone cut. The NS records of the child zone travel
+        /// in the authority section, any glue in the additional section, and the
+        /// answer section stays empty (RFC 1034 §4.3.2 step 3b).
+        /// </summary>
+        public static DNSZoneLookupResult Referral(IEnumerable<IDNSResourceRecord>  AuthorityRRs,
+                                                   IEnumerable<IDNSResourceRecord>? AdditionalRRs   = null)
+
+            => new (
+                   DNSZoneLookupStatus.Referral,
+                   [],
+                   AuthorityRRs,
+                   AdditionalRRs ?? []
+               );
+
     }
 
 
     public interface IDNSZoneStore
     {
 
-        Task<DNSZoneLookupResult> Lookup(DNSQuestion       Question,
-                                         CancellationToken  CancellationToken = default);
+        /// <summary>
+        /// Answer one question from this zone.
+        /// </summary>
+        /// <param name="Question">The question to answer.</param>
+        /// <param name="DNSSECOK">Whether the querier set the EDNS DO bit (RFC 4035 §3.2.1) and therefore wants the RRSIGs and the NSEC/NSEC3 records that prove a negative answer. A store holding no signatures may ignore this.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        Task<DNSZoneLookupResult> Lookup(DNSQuestion        Question,
+                                         Boolean            DNSSECOK            = false,
+                                         CancellationToken  CancellationToken   = default);
 
     }
 

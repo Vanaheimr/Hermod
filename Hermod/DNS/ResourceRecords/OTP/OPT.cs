@@ -49,6 +49,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Byte                     ExtendedRCODE     { get; }
         public Byte                     Version           { get; }
         public UInt16                   Flags             { get; }
+
+        /// <summary>
+        /// The "DNSSEC OK" bit — the most significant bit of the flags field
+        /// (RFC 3225 §3, RFC 4035 §3.2.1). A querier sets it to say it can make
+        /// use of the RRSIG and NSEC/NSEC3 records, and a responder that sees it
+        /// clear MUST leave them out.
+        /// </summary>
+        public Boolean                  DnssecOK
+            => (Flags & 0x8000) != 0;
         public IEnumerable<EDNSOption>  Options           { get; } = [];
 
 

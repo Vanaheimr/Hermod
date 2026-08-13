@@ -68,6 +68,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) FindLastRecordOffset(Message)
+
+        /// <summary>
+        /// Walk every record of a serialized DNS message and return the offset at
+        /// which the last one begins, or -1 when the message does not parse
+        /// cleanly from end to end.
+        /// </summary>
+        /// <param name="Message">A complete DNS message in wire format.</param>
+        /// <remarks>
+        /// Both meta-RRs need this and neither can use the ordinary parser to get
+        /// it. TSIG (RFC 8945 §5.1) and SIG(0) (RFC 2931 §3) must be the last
+        /// record in the additional section, and each is authenticated over the
+        /// exact octets that precede it — so what matters is where those octets
+        /// stop, not what an object graph re-serializes to.
+        ///
+        /// The trailing-byte check is deliberate: a message with anything after
+        /// its last record is not a message with a signature at the end, and
+        /// returning an offset for it would authenticate a prefix of something
+        /// the peer never sent.
+        /// </remarks>
+        public static Int32 FindLastRecordOffset(Byte[] Message)
+        {
+
+            if (Message.Length < 12)
+                return -1;
+
+            using var stream = new MemoryStream(Message);
+            stream.Position  = 12;
+
+            var qdCount      = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(4,  2));
+            var anCount      = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(6,  2));
+            var nsCount      = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(8,  2));
+            var arCount      = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(10, 2));
+
+            for (var i = 0; i < qdCount; i++)
+            {
+                ExtractName(stream);
+                stream.Position += 4;                  // QTYPE + QCLASS
+            }
+
+            var lastOffset   = -1;
+
+            for (var i = 0; i < anCount + nsCount + arCount; i++)
+            {
+
+                lastOffset       = (Int32) stream.Position;
+
+                ExtractName(stream);
+                stream.Position += 8;                  // TYPE + CLASS + TTL
+
+                var rdLength     = stream.ReadUInt16BE();
+                stream.Position += rdLength;
+
+                if (stream.Position > Message.Length)
+                    return -1;
+
+            }
+
+            return stream.Position == Message.Length
+                       ? lastOffset
+                       : -1;
+
+        }
+
+        #endregion
+
 
         public static Byte[] ExtractByteArray(Stream DNSStream, UInt32 LengthOfSegment)
         {
