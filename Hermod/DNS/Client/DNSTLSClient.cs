@@ -74,6 +74,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Boolean           DnssecOK                  { get; set; }
 
         /// <summary>
+        /// How this client signs its queries and checks the replies — TSIG
+        /// (RFC 8945) or SIG(0) (RFC 2931). Unsigned by default.
+        /// </summary>
+        /// <remarks>
+        /// A transaction signature covers the DNS message, so it is indifferent
+        /// to what carries it: DoT is RFC 7766 framing inside a TLS session, and
+        /// the signed octets are the same ones the datagram path signs. TLS
+        /// authenticates the *server* to the client and secures the channel; it
+        /// says nothing about who sent the query, which is the question these
+        /// mechanisms answer.
+        /// </remarks>
+        public DNSTransactionSecurity  TransactionSecurity { get; set; } = DNSTransactionSecurity.None;
+
+        /// <summary>
         /// The server-advertised idle timeout from the last EDNS TCP Keepalive
         /// response option (RFC 7828). Null if no keepalive option was received.
         /// The connection should be closed after this duration of inactivity.
@@ -312,19 +326,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            );
 
 
-            Byte[] data;
+            using var queryStream = new MemoryStream();
+            dnsQuery.Serialize(queryStream, false, []);
 
-            using (var ms = new MemoryStream())
-            {
-                ms.WriteByte(0);
-                ms.WriteByte(0);
-                dnsQuery.Serialize(ms, false, []);
-                data = ms.ToArray();
-            }
+            // RFC 8945 §5.3 / RFC 2931 §3.1 — the signature covers the message,
+            // not the transport. DoT is RFC 7766 framing inside TLS, so the
+            // signed bytes are the same ones the datagram path signs; only the
+            // two-octet length prefix goes around them.
+            var signedQuery = TransactionSecurity.SignQuery(queryStream.ToArray(), out var requestMAC);
 
-            var dataLength  = data.Length - 2;
-            data[0] = (Byte) (dataLength >> 8);
-            data[1] = (Byte) (dataLength & 0xFF);
+            var data        = new Byte[signedQuery.Length + 2];
+            data[0] = (Byte) (signedQuery.Length >> 8);
+            data[1] = (Byte) (signedQuery.Length & 0xFF);
+            Buffer.BlockCopy(signedQuery, 0, data, 2, signedQuery.Length);
 
             #region TLS (serialized via semaphore, auto-reconnect on broken connection)
 
@@ -351,13 +365,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 try
                 {
-                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, timeoutCTS.Token).
                                      ConfigureAwait(false);
                 }
                 catch (IOException)
                 {
                     await ReconnectAsync(CancellationToken).ConfigureAwait(false);
-                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, timeoutCTS.Token).
                                      ConfigureAwait(false);
                 }
 
@@ -440,6 +454,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private async Task<DNSInfo> SendAndReceiveTLSAsync(SslStream           TLSStream,
                                                            Byte[]              Data,
                                                            DNSPacket           DNSQuery,
+                                                           Byte[]              SignedQuery,
+                                                           Byte[]?             RequestMAC,
                                                            TimeSpan            EffectiveTimeout,
                                                            CancellationToken   CancellationToken)
         {
@@ -483,6 +499,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
+            var body = buffer[..totalRead];
+
+            if (!TransactionSecurity.TryAcceptResponse(ref body, RequestMAC, SignedQuery, out var reason))
+            {
+
+                await Log($"Discarding a DoT response from {RemoteIPAddress}:{RemotePort} that failed transaction-signature verification: {reason}");
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress!,
+                               RemotePort ?? IPPort.DNS_TLS,
+                               DNSTransport.TLS,
+                               EffectiveTimeout
+                           ),
+                           DNSQuery.TransactionId,
+                           EffectiveTimeout
+                       );
+
+            }
+
             var response = DNSInfo.ReadResponse(
                                new DNSServerConfig(
                                    RemoteIPAddress!,
@@ -491,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                    EffectiveTimeout
                                ),
                                DNSQuery.TransactionId,
-                               new MemoryStream(buffer, 0, totalRead),
+                               new MemoryStream(body),
                                EffectiveTimeout,
                                stopwatch.Elapsed
                            );

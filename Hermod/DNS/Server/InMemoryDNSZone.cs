@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // RFC 1034 §4.3.2 step 3b: a zone cut between the apex and QNAME ends
             // the search here. The child's NS records are the answer, and this
             // server is not authoritative for what lies below them.
-            if (FindDelegation(qname, zone) is { } delegationName)
+            if (FindDelegation(qname, Question.QueryType, zone) is { } delegationName)
                 return Refer(delegationName, zone, DNSSECOK);
 
             // Step 3a: an exact match on the name.
@@ -577,13 +577,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// QNAME is served from this zone directly.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The apex is excluded on purpose: every zone has NS records at its own
         /// apex, and treating those as a delegation would turn the zone into a
-        /// referral to itself. QNAME itself *is* included — a query for the
-        /// delegated name is answered with the referral, not from the parent.
+        /// referral to itself. QNAME itself is normally included — a query for
+        /// the delegated name is answered with the referral, not from the parent.
+        /// </para>
+        /// <para>
+        /// DS is the exception, and RFC 4035 §3.1.4.1 is explicit about it: "The
+        /// DS RRset and its associated RRSIG RRs are authoritative data in the
+        /// parent zone." So a DS query *at* a zone cut is the one question about
+        /// that name the parent must answer itself. Referring it downwards would
+        /// send a validator to ask the child whether the child is signed — the
+        /// one party whose answer cannot be trusted for it — and the chain of
+        /// trust would stall at every delegation.
+        /// </para>
         /// </remarks>
-        private DNSServiceName? FindDelegation(String     QName,
-                                               ZoneIndex  Zone)
+        private DNSServiceName? FindDelegation(String                  QName,
+                                               DNSResourceRecordTypes  QueryType,
+                                               ZoneIndex               Zone)
         {
 
             if (Zone.Origin is null)
@@ -592,7 +604,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var labels    = ZoneDenialOfExistence.LabelsOf(QName);
             var apexDepth = ZoneDenialOfExistence.LabelsOf(Zone.Origin.FullName).Length;
 
-            for (var skip = 0; labels.Length - skip > apexDepth; skip++)
+            // A delegation *above* QNAME still ends the search, even for DS: that
+            // name is genuinely in the child's half of the tree.
+            var firstLabel = QueryType == DNSResourceRecordTypes.DS ? 1 : 0;
+
+            for (var skip = firstLabel; labels.Length - skip > apexDepth; skip++)
             {
 
                 var candidate = DNSServiceName.Parse(ZoneDenialOfExistence.Join(labels, skip));

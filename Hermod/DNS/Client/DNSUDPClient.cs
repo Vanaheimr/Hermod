@@ -66,26 +66,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The TSIG key to sign queries with, or null to leave them unsigned
         /// (RFC 8945).
         /// </summary>
-        public TSIGKey?     TSIGKey            { get; }
+        public TSIGKey?     TSIGKey
+            => TransactionSecurity.TSIGKey;
 
         /// <summary>
         /// The SIG(0) key to sign queries with, or null to leave them unsigned
         /// (RFC 2931).
         /// </summary>
-        public SIG0Key?     SIG0Key            { get; }
+        public SIG0Key?     SIG0Key
+            => TransactionSecurity.SIG0Key;
 
         /// <summary>
-        /// The KEY records this client will check a signed *response* against.
+        /// How this client signs its queries and checks the replies — shared
+        /// with every other transport rather than reimplemented per socket.
         /// </summary>
-        /// <remarks>
-        /// Separate from <see cref="SIG0Key"/> because SIG(0) is asymmetric: the
-        /// key this client signs with is not the key the server signs with, and
-        /// there is no shared secret to stand in for both. Left empty, a SIG(0)
-        /// on a response is stripped and ignored — RFC 2931 §3.2 makes checking
-        /// one optional for anything but a TKEY response, and says a party that
-        /// does not implement it "MUST ignore them without error".
-        /// </remarks>
-        public IEnumerable<KEY>  SIG0ServerKeys { get; }
+        public DNSTransactionSecurity  TransactionSecurity   { get; }
 
 
         /// <summary>
@@ -192,9 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.TSIGKey           = TSIGKey;
-            this.SIG0Key           = SIG0Key;
-            this.SIG0ServerKeys    = SIG0ServerKeys ?? [];
+            this.TransactionSecurity = new DNSTransactionSecurity(TSIGKey, SIG0Key, SIG0ServerKeys);
             this.RemoteIPAddress   = IPAddress;
             this.RemotePort        = Port             ?? IPPort.DNS;
             this.RemoteURL         = IPAddress.IsIPv6
@@ -308,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // RFC 8945 §5.3 / RFC 2931 §3.1: sign the query, and keep what the
                 // response's own signature will fold in — the MAC for TSIG, and
                 // for SIG(0) the query as it went on the wire, signature and all.
-                var wire = SignQuery(ms.ToArray(), out var requestMAC);
+                var wire = TransactionSecurity.SignQuery(ms.ToArray(), out var requestMAC);
 
                 await socket.SendToAsync(wire, SocketFlags.None, remoteEndPoint, timeoutCTS.Token).
                              ConfigureAwait(false);
@@ -492,121 +485,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) SignQuery(Wire, out RequestMAC)
-
-        /// <summary>
-        /// Apply whichever transaction signature this client is configured for.
-        /// </summary>
-        /// <param name="Wire">The serialized query.</param>
-        /// <param name="RequestMAC">The TSIG MAC of the signed query, which the response's MAC folds in (RFC 8945 §4.3.1); null for SIG(0) or an unsigned query.</param>
-        /// <returns>The query as it goes on the wire.</returns>
-        /// <remarks>
-        /// TSIG and SIG(0) are mutually exclusive on one message (RFC 2931 §3.2),
-        /// so this applies at most one of them and TSIG wins when both are
-        /// configured — a caller that set up a shared secret and a key pair has
-        /// said something contradictory, and quietly signing with the cheaper one
-        /// is the least surprising reading.
-        /// </remarks>
-        private Byte[] SignQuery(Byte[] Wire, out Byte[]? RequestMAC)
-        {
-
-            RequestMAC = null;
-
-            if (TSIGKey is not null)
-            {
-                var signed  = TSIGSigner.Sign(Wire, TSIGKey);
-                RequestMAC  = TSIGSigner.Verify(signed, TSIGKey).MAC;
-                return signed;
-            }
-
-            if (SIG0Key is not null)
-                return SIG0Signer.Sign(Wire, SIG0Key);
-
-            return Wire;
-
-        }
-
-        #endregion
-
         #region (private) TryAcceptSignedResponse(ref Body, RequestMAC, SignedQuery, Transport)
 
         /// <summary>
-        /// Check a response's transaction signature, and strip it so the rest of
-        /// the client sees an ordinary message.
+        /// Check and strip a response's transaction signature, logging why when
+        /// it is rejected.
         /// </summary>
-        /// <param name="Body">The response as received; replaced by the message without its signature.</param>
-        /// <param name="RequestMAC">The MAC of the query, for TSIG.</param>
-        /// <param name="SignedQuery">The query exactly as sent — the "full query" a SIG(0) response signature covers (RFC 2931 §3.1).</param>
-        /// <param name="Transport">For the log line.</param>
-        /// <returns>False when the response must not be believed.</returns>
         private Boolean TryAcceptSignedResponse(ref Byte[]  Body,
                                                 Byte[]?     RequestMAC,
                                                 Byte[]      SignedQuery,
                                                 String      Transport)
         {
 
-            if (TSIGKey is not null)
-            {
-
-                var verdict = TSIGSigner.Verify(Body, TSIGKey, RequestMAC: RequestMAC);
-
-                if (!verdict.IsValid)
-                {
-
-                    logger.LogDebug(
-                        "Discarding a DNS {Transport} response from {RemoteIPAddress}:{RemotePort} that failed TSIG verification: {Reason}",
-                        Transport,
-                        RemoteIPAddress,
-                        RemotePort,
-                        verdict.Description
-                    );
-
-                    return false;
-
-                }
-
-                if (TSIGSigner.TryStripTSIG(Body, out var withoutTSIG, out _) && withoutTSIG is not null)
-                    Body = withoutTSIG;
-
+            if (TransactionSecurity.TryAcceptResponse(ref Body, RequestMAC, SignedQuery, out var reason))
                 return true;
 
-            }
+            logger.LogDebug(
+                "Discarding a DNS {Transport} response from {RemoteIPAddress}:{RemotePort} that failed transaction-signature verification: {Reason}",
+                Transport,
+                RemoteIPAddress,
+                RemotePort,
+                reason
+            );
 
-            if (SIG0Signer.IsSIG0Signed(Body))
-            {
-
-                // RFC 2931 §3.2 makes checking a response SIG(0) a MAY outside
-                // TKEY, and tells a party that does not implement it to "ignore
-                // them without error". With no key configured there is nothing to
-                // decide, so the record is dropped rather than trusted.
-                if (SIG0ServerKeys.Any())
-                {
-
-                    var verdict = SIG0Signer.Verify(Body, SIG0ServerKeys, Request: SignedQuery);
-
-                    if (!verdict.IsValid)
-                    {
-
-                        logger.LogDebug(
-                            "Discarding a DNS {Transport} response from {RemoteIPAddress}:{RemotePort} that failed SIG(0) verification: {Reason}",
-                            Transport,
-                            RemoteIPAddress,
-                            RemotePort,
-                            verdict.Description
-                        );
-
-                        return false;
-
-                    }
-
-                }
-
-                if (SIG0Signer.TryStripSIG0(Body, out var withoutSIG0, out _) && withoutSIG0 is not null)
-                    Body = withoutSIG0;
-
-            }
-
-            return true;
+            return false;
 
         }
 
@@ -654,7 +556,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // the caller believes is authenticated simply is not — precisely
                 // when the answer was too big for a datagram, which for a signed
                 // zone is the ordinary case rather than the rare one.
-                var signedQuery  = SignQuery(ms.ToArray(), out var requestMAC);
+                var signedQuery  = TransactionSecurity.SignQuery(ms.ToArray(), out var requestMAC);
 
                 var data         = new Byte[signedQuery.Length + 2];
                 data[0] = (Byte) (signedQuery.Length >> 8);

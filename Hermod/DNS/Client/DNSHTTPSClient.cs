@@ -96,6 +96,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <inheritdoc />
         public Boolean           DnssecOK         { get; set; }
 
+        /// <summary>
+        /// How this client signs its queries and checks the replies — TSIG
+        /// (RFC 8945) or SIG(0) (RFC 2931). Unsigned by default.
+        /// </summary>
+        /// <remarks>
+        /// Wire mode only. RFC 8484 §4.1 carries a DNS message, and a signature
+        /// over that message survives base64url encoding untouched. The JSON APIs
+        /// this client also speaks are a different thing entirely: Google's and
+        /// Cloudflare's <c>application/dns-json</c> carries a *rendering* of an
+        /// answer rather than the answer, so there are no octets to authenticate
+        /// and neither mechanism applies. <c>TryParseJSONResponse</c> accordingly
+        /// never consults this.
+        /// </remarks>
+        public DNSTransactionSecurity  TransactionSecurity { get; set; } = DNSTransactionSecurity.None;
+
         #endregion
 
         #region Constructor(s)
@@ -692,7 +707,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 [.. resourceRecordTypes]
                             );
 
-            var dnsBytes  = dnsQuery.ToByteArray();
+            // RFC 8484 §4.1 carries an ordinary DNS message; the signature covers
+            // that message, so it is applied before the base64url encoding or the
+            // POST body, exactly as on any other transport. HTTPS authenticates
+            // the resolver and hides the query from the path — neither of which
+            // says who asked.
+            var dnsBytes  = TransactionSecurity.SignQuery(dnsQuery.ToByteArray(), out var requestMAC);
 
             var effectiveTimeout = Timeout ?? QueryTimeout;
 
@@ -825,6 +845,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         RemoteIPAddress,
                         RemotePort,
                         body.Length
+                    );
+
+                    return DNSInfo.Failed(
+                               serverConfig,
+                               dnsQuery.TransactionId,
+                               effectiveTimeout
+                           );
+
+                }
+
+                if (!TransactionSecurity.TryAcceptResponse(ref body, requestMAC, dnsBytes, out var reason))
+                {
+
+                    logger.LogWarning(
+                        "Discarding a DNS HTTPS response from {RemoteIPAddress}:{RemotePort} that failed transaction-signature verification: {Reason}",
+                        RemoteIPAddress,
+                        RemotePort,
+                        reason
                     );
 
                     return DNSInfo.Failed(
