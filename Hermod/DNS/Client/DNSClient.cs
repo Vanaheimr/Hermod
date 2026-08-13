@@ -809,26 +809,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                   Select(cname => cname.CName.FullName).
                                                   LastOrDefault();
 
-                            // RFC 6672: If no CNAME, check for DNAME and synthesize the rewritten name
+                            // RFC 6672: If no CNAME, check for DNAME and synthesize the rewritten name.
+                            //
+                            // The substitution is the same one the authoritative
+                            // side performs, and it is shared rather than repeated:
+                            // it is defined on *labels* (§2.2, "the suffix labels
+                            // of the name being sought"), and a second
+                            // implementation of it here is a second chance to
+                            // compare the two names as strings instead.
+                            //
+                            // Which is what this did. A string suffix match finds
+                            // boundaries inside a label, so a DNAME at
+                            // "old.example." matched "notold.example." — a
+                            // different name, quite possibly somebody else's — and
+                            // rewrote it to "notnew.example."; and it matched the
+                            // owner name itself with an empty prefix, redirecting
+                            // the one name §2.3 exempts. Neither had any length
+                            // check behind it, so an over-long result left the
+                            // resolver throwing out of the chase rather than
+                            // answering.
                             if (cnameTarget is null)
                             {
+
                                 var dname = currentResponse.Answers.
                                                 OfType<DNAME>().
                                                 LastOrDefault();
 
-                                if (dname is not null)
+                                if (dname is not null &&
+                                    DNSServiceName.TryParse(currentName, out var currentServiceName, out _) &&
+                                    DNAME.TrySubstitute(
+                                        currentServiceName,
+                                        dname.DomainName,
+                                        dname.Target,
+                                        out var rewritten
+                                    ) == DNAMESubstitution.Redirected)
                                 {
-                                    // Synthesize: replace the DNAME owner suffix in the queried name
-                                    // with the DNAME target.  E.g. if querying "x.old.example." and
-                                    // DNAME owner is "old.example." with target "new.example.",
-                                    // the rewritten name becomes "x.new.example."
-                                    var ownerSuffix = dname.DomainName.ToString();
-                                    if (currentName.EndsWith(ownerSuffix, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        var prefix = currentName[..^ownerSuffix.Length];
-                                        cnameTarget = prefix + dname.Target.FullName;
-                                    }
+                                    cnameTarget = rewritten.FullName;
                                 }
+
                             }
 
                             if (cnameTarget is null || !visited.Add(cnameTarget))

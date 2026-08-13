@@ -254,6 +254,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (FindDelegation(qname, Question.QueryType, zone) is { } delegationName)
                 return Refer(delegationName, zone, DNSSECOK);
 
+            // RFC 6672 §3.2 step 3c: a DNAME *above* QNAME redirects it. This
+            // runs before the exact match on purpose — the DNAME owns its whole
+            // subtree, so anything found at a name below it is occluded (§2.4:
+            // "Resource records MUST NOT exist at any subdomain of the owner of a
+            // DNAME RR"), and answering from an occluded record would hide a
+            // malformed zone rather than redirect as the zone says.
+            //
+            // Only strict ancestors are searched, which is what keeps the owner
+            // name itself out of it (§2.3) — a query for the DNAME's own name
+            // falls through to the exact match below and is answered from
+            // whatever else lives there.
+            if (FindRedirection(qname, zone) is { } dnameName &&
+                TryGetRecords(dnameName, out var atDName))
+            {
+                return DNSZoneLookupResult.Redirect(
+                           WithSignatures(
+                               [.. atDName.Where(resourceRecord => resourceRecord.Type == DNSResourceRecordTypes.DNAME)],
+                               atDName,
+                               DNSSECOK
+                           )
+                       );
+            }
+
             // Step 3a: an exact match on the name.
             if (TryGetRecords(Question.DomainName, out var atName))
             {
@@ -615,6 +638,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 if (TryGetRecords(candidate, out var atCandidate) &&
                     atCandidate.Any(resourceRecord => resourceRecord.Type == DNSResourceRecordTypes.NS))
+                {
+                    return candidate;
+                }
+
+            }
+
+            return null;
+
+        }
+
+
+        /// <summary>
+        /// The closest strict ancestor of QNAME holding a DNAME, or null.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Closest rather than highest, because that is where RFC 1034's descent
+        /// stops: labels are matched downward from the apex until one cannot be,
+        /// and RFC 6672 §3.2 step 3c then looks for a DNAME at the last name that
+        /// did match. In a zone that obeys §2.4 there is only ever one candidate
+        /// anyway — nothing may exist below a DNAME owner, so DNAMEs cannot nest
+        /// within one zone — and picking the closest is what makes a zone that
+        /// breaks the rule behave predictably rather than by dictionary order.
+        /// </para>
+        /// <para>
+        /// The search starts one label below QNAME, never at QNAME: §2.3 leaves
+        /// the owner name itself unredirected.
+        /// </para>
+        /// </remarks>
+        private DNSServiceName? FindRedirection(String     QName,
+                                                ZoneIndex  Zone)
+        {
+
+            if (Zone.Origin is null)
+                return null;
+
+            var labels    = ZoneDenialOfExistence.LabelsOf(QName);
+            var apexDepth = ZoneDenialOfExistence.LabelsOf(Zone.Origin.FullName).Length;
+
+            for (var skip = 1; labels.Length - skip >= apexDepth; skip++)
+            {
+
+                var candidate = DNSServiceName.Parse(ZoneDenialOfExistence.Join(labels, skip));
+
+                if (TryGetRecords(candidate, out var atCandidate) &&
+                    atCandidate.Any(resourceRecord => resourceRecord.Type == DNSResourceRecordTypes.DNAME))
                 {
                     return candidate;
                 }

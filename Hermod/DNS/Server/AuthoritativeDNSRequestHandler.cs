@@ -34,6 +34,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private const Int32 MaxCanonicalNameChainLength = 16;
 
+        /// <summary>
+        /// How many DNAME redirections will be applied to one question before
+        /// giving up.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6672 §2.2 notes that "fairly lengthy valid chains of DNAME RRs"
+        /// are legitimate, so this is not a conformance limit but a stop. The
+        /// case it exists for is a DNAME pointing inside its own subtree —
+        /// <c>example. DNAME sub.example.</c> — which rewrites a name into a
+        /// longer one every pass. That does terminate, because the 255-octet
+        /// limit eventually refuses it, but only after adding a label at a time;
+        /// this ends it in a bounded number of lookups instead.
+        /// </remarks>
+        private const Int32 MaxRedirectionChainLength   = 16;
+
 
         public Boolean  RecursionAvailable  { get; }
 
@@ -248,37 +263,107 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             foreach (var question in questions)
             {
 
-                var lookupResult = await zoneStore.Lookup(question, dnssecOK, CancellationToken).
-                                                   ConfigureAwait(false);
+                // RFC 6672 §3.2 loops back to the start of the algorithm after a
+                // DNAME substitution, so the question being answered is not
+                // necessarily the one that was asked.
+                var currentQuestion = question;
 
-                authorities.      AddRange(lookupResult.AuthorityRRs);
-                additionalRecords.AddRange(lookupResult.AdditionalRRs);
-
-                if (lookupResult.Status == DNSZoneLookupStatus.Found)
-                {
-                    foundName = true;
-                    answers.AddRange(lookupResult.AnswerRRs);
-                }
-                else if (lookupResult.Status == DNSZoneLookupStatus.NoData)
+                for (var redirection = 0; ; redirection++)
                 {
 
-                    foundName = true;
+                    var lookupResult = await zoneStore.Lookup(currentQuestion, dnssecOK, CancellationToken).
+                                                       ConfigureAwait(false);
 
-                    // The name exists but holds nothing of the requested type. That is
-                    // NODATA — unless the node is an alias, in which case RFC 1034
-                    // §4.3.2 requires the CNAME to be returned instead.
-                    await FollowCanonicalNames(
-                              question,
-                              answers,
-                              dnssecOK,
-                              CancellationToken
-                          ).ConfigureAwait(false);
+                    authorities.      AddRange(lookupResult.AuthorityRRs);
+                    additionalRecords.AddRange(lookupResult.AdditionalRRs);
 
-                }
-                else if (lookupResult.Status == DNSZoneLookupStatus.Referral)
-                {
-                    foundName = true;
-                    referred  = true;
+                    if (lookupResult.Status == DNSZoneLookupStatus.Redirect)
+                    {
+
+                        foundName = true;
+
+                        // §3.1: the DNAME goes into the answer "in all cases" —
+                        // before the substitution is attempted, because §2.2 wants
+                        // it there as the proof even when the substitution is what
+                        // fails.
+                        answers.AddRange(lookupResult.AnswerRRs);
+
+                        var dname = lookupResult.AnswerRRs.OfType<DNAME>().FirstOrDefault();
+
+                        if (dname is null || redirection >= MaxRedirectionChainLength)
+                            break;
+
+                        var substitution = DNAME.TrySubstitute(
+                                               currentQuestion.DomainName,
+                                               dname.DomainName,
+                                               dname.Target,
+                                               out var rewritten
+                                           );
+
+                        if (substitution == DNAMESubstitution.ExceedsNameLimit)
+                        {
+                            // §2.2: "the server returns an RCODE of YXDOMAIN". The
+                            // name it could not build is longer than a name can be,
+                            // which is a different thing from the name not existing
+                            // — NXDOMAIN here would have resolvers cache the
+                            // absence of a whole subtree.
+                            responseCode = DNSResponseCodes.YXDomain;
+                            break;
+                        }
+
+                        if (substitution != DNAMESubstitution.Redirected)
+                            break;
+
+                        // §3.1: the synthesized CNAME, for resolvers that do not
+                        // implement DNAME. Its owner is the name that was asked
+                        // for, not the DNAME's.
+                        answers.Add(
+                            DNAME.SynthesizeCNAME(
+                                currentQuestion.DomainName,
+                                rewritten!,
+                                dname.TimeToLive
+                            )
+                        );
+
+                        currentQuestion = new DNSQuestion(
+                                              rewritten!,
+                                              currentQuestion.QueryType,
+                                              currentQuestion.QueryClass
+                                          );
+
+                        continue;
+
+                    }
+
+                    if (lookupResult.Status == DNSZoneLookupStatus.Found)
+                    {
+                        foundName = true;
+                        answers.AddRange(lookupResult.AnswerRRs);
+                    }
+                    else if (lookupResult.Status == DNSZoneLookupStatus.NoData)
+                    {
+
+                        foundName = true;
+
+                        // The name exists but holds nothing of the requested type. That is
+                        // NODATA — unless the node is an alias, in which case RFC 1034
+                        // §4.3.2 requires the CNAME to be returned instead.
+                        await FollowCanonicalNames(
+                                  currentQuestion,
+                                  answers,
+                                  dnssecOK,
+                                  CancellationToken
+                              ).ConfigureAwait(false);
+
+                    }
+                    else if (lookupResult.Status == DNSZoneLookupStatus.Referral)
+                    {
+                        foundName = true;
+                        referred  = true;
+                    }
+
+                    break;
+
                 }
 
             }

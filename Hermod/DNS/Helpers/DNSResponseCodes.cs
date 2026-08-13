@@ -32,13 +32,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         Refused         = 5,
 
         /// <summary>
+        /// The name exists when it should not (RFC 2136 §2.2) — and, for a server
+        /// that has no dynamic updates at all, the answer RFC 6672 §2.2 requires
+        /// when a DNAME substitution would produce a name longer than the 255
+        /// octets a domain name has room for. The DNAME that could not be applied
+        /// travels in the answer section as the proof.
+        /// </summary>
+        YXDomain        = 6,
+
+        /// <summary>
+        /// An RRset exists when it should not (RFC 2136 §2.2).
+        /// </summary>
+        YXRRSet         = 7,
+
+        /// <summary>
+        /// An RRset that should exist does not (RFC 2136 §2.2).
+        /// </summary>
+        NXRRSet         = 8,
+
+        /// <summary>
         /// Not authoritative / not authorized (RFC 8945 §5.2). A TSIG-signed
         /// request that fails verification is answered with this, and the reason
         /// travels in the TSIG record's own Error field rather than here.
         /// </summary>
         NotAuthorized   = 9,
 
-        Reserved        = 6 | 7 | 8 | 10 | 11 | 12 | 13 | 14 | 15,
+        /// <summary>
+        /// The name is not contained in the zone (RFC 2136 §2.2).
+        /// </summary>
+        NotZone         = 10,
 
         /// <summary>
         /// Bad EDNS version (RFC 6891 §9). An extended RCODE: the low 4 bits

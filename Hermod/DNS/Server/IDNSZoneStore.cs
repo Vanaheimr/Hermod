@@ -31,7 +31,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// the child zone's NS records rather than with data. The response
         /// carries no answer, and AA is clear.
         /// </summary>
-        Referral
+        Referral,
+
+        /// <summary>
+        /// A DNAME above the name redirects it into another subtree (RFC 6672).
+        /// The DNAME travels in <see cref="DNSZoneLookupResult.AnswerRRs"/>, and
+        /// the caller performs the substitution and restarts the query — the same
+        /// division of labour the CNAME rule already uses, and for the same
+        /// reason: the rewritten name may be answered from this zone, from
+        /// another DNAME, or from nowhere at all.
+        /// </summary>
+        Redirect
 
     }
 
@@ -109,6 +119,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    [],
                    AuthorityRRs,
                    AdditionalRRs ?? []
+               );
+
+
+        /// <summary>
+        /// A DNAME above the queried name redirects it (RFC 6672 §3.2 step 3c).
+        /// The DNAME — and its RRSIG, when the querier asked for signatures — go
+        /// into the answer section, because RFC 6672 §3.1 has the server include
+        /// it "in all cases": it is what a validating resolver authenticates, and
+        /// the synthesized CNAME beside it cannot be signed.
+        /// </summary>
+        public static DNSZoneLookupResult Redirect(IEnumerable<IDNSResourceRecord>  AnswerRRs)
+
+            => new (
+                   DNSZoneLookupStatus.Redirect,
+                   AnswerRRs,
+                   [],
+                   []
                );
 
     }
