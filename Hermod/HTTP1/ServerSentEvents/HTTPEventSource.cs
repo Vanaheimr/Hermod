@@ -844,8 +844,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
                 data = "data: " + data.Trim();
 
+            // Read the counter ONCE. It used to be incremented for the Id and then read again for
+            // the serialized "id:" line, which are two different values the moment a second thread
+            // submits in between - and the wire is the one a client resumes from via Last-Event-ID.
+            // A client would then ask to continue after an id that belongs to a different event.
+            var eventId    = (UInt64) Interlocked.Increment(ref IdCounter);
+
             var httpEvent  = new HTTPEvent<T>(
-                                 (UInt64) Interlocked.Increment(ref IdCounter),
+                                 eventId,
                                  Timestamp,
                                  SubEvent,
                                  Data,
@@ -853,7 +859,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      SubEvent.IsNotNullOrEmpty()
                                          ? "event: " + SubEvent + Environment.NewLine
                                          : String.Empty,
-                                     "id: ",   IdCounter,         Environment.NewLine
+                                     "id: ",   eventId,           Environment.NewLine
                                  ),
                                  data
                              );

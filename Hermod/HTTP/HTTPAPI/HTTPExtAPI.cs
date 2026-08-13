@@ -4024,6 +4024,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        await stream.WriteAsync(((UInt32) eventSource.RetryInterval.TotalMilliseconds).ToString());
                                                                        await stream.WriteAsync("\n\n");
 
+                                                                       // Same reason as in HTTPAPI.MapEventSource: AutoFlush is off and
+                                                                       // the only other flush is inside the loop, so without this a
+                                                                       // client on a quiet event source receives nothing at all.
+                                                                       await stream.FlushAsync(request.CancellationToken);
+
                                                                        await foreach (var httpEvent in eventSource.GetAllEventsGreater(
                                                                                                            streamId ?? request.RemoteSocket.ToString(),
                                                                                                            request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
