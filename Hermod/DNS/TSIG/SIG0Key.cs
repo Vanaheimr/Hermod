@@ -58,8 +58,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>The DNSSEC algorithm number (RFC 8624 §3.1).</summary>
         public Byte                 Algorithm    { get; }
 
-        /// <summary>The private key. Never serialized, never leaves this object.</summary>
-        public AsymmetricAlgorithm  PrivateKey   { get; }
+        /// <summary>
+        /// The private key, which never leaves this object — <see cref="Sign"/>
+        /// is the only thing that touches it.
+        /// </summary>
+        /// <remarks>
+        /// It used to be a public property, and typed <c>AsymmetricAlgorithm</c>.
+        /// The Edwards curves are what ended that: RFC 8080 §3 gives them raw
+        /// octet strings rather than key objects, .NET has no EdDSA type to hold
+        /// one, and the two shapes have nothing in common to expose. Keeping both
+        /// behind a <c>Sign</c> method rather than widening the property to
+        /// <c>Object</c> also makes the sentence that was already in this comment
+        /// true.
+        /// </remarks>
+        private readonly AsymmetricAlgorithm?  asymmetricPrivateKey;
+        private readonly Byte[]?               rawPrivateKey;
 
         /// <summary>The KEY record a verifier needs, ready to be published or handed over.</summary>
         public KEY                  PublicKey    { get; }
@@ -88,12 +101,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!DNSSECSigning.IsSupportedForSigning(Algorithm))
                 throw new NotSupportedException($"DNSSEC algorithm {Algorithm} cannot be used for signing here — see DNSSECSigning.IsSupportedForSigning.");
 
-            this.Name        = Name;
-            this.Algorithm   = Algorithm;
-            this.PrivateKey  = PrivateKey;
-            this.PublicKey   = KEY.FromPublicKey(Name, Algorithm, PrivateKey, TimeToLive: TimeToLive);
+            if (DNSSECSigning.UsesRawPrivateKey(Algorithm))
+                throw new ArgumentException($"DNSSEC algorithm {Algorithm} has a raw private key — use the Byte[] constructor.", nameof(PrivateKey));
+
+            this.Name                  = Name;
+            this.Algorithm             = Algorithm;
+            this.asymmetricPrivateKey  = PrivateKey;
+            this.PublicKey             = KEY.FromPublicKey(Name, Algorithm, PrivateKey, TimeToLive: TimeToLive);
 
         }
+
+        /// <summary>
+        /// Create a SIG(0) key from a raw private key — the Edwards curves
+        /// (RFC 8080).
+        /// </summary>
+        /// <param name="Name">The name to sign under.</param>
+        /// <param name="Algorithm">The DNSSEC algorithm number, 15 or 16.</param>
+        /// <param name="PrivateKey">The raw private key: 32 octets for Ed25519, 57 for Ed448.</param>
+        /// <param name="TimeToLive">The TTL of the published KEY record.</param>
+        /// <remarks>
+        /// The public half is derived rather than taken alongside, which removes
+        /// a way to get a key pair wrong: a KEY record published against the
+        /// wrong private key produces signatures that verify nowhere, and nothing
+        /// on the signing side would notice.
+        /// </remarks>
+        public SIG0Key(DomainName  Name,
+                       Byte        Algorithm,
+                       Byte[]      PrivateKey,
+                       TimeSpan?   TimeToLive   = null)
+        {
+
+            if (!DNSSECSigning.UsesRawPrivateKey(Algorithm))
+                throw new ArgumentException($"DNSSEC algorithm {Algorithm} does not have a raw private key.", nameof(Algorithm));
+
+            this.Name            = Name;
+            this.Algorithm       = Algorithm;
+            this.rawPrivateKey   = PrivateKey;
+            this.PublicKey       = KEY.FromPublicKeyBytes(
+                                       Name,
+                                       Algorithm,
+                                       DNSSECSigning.PublicKeyFromPrivateKey(Algorithm, PrivateKey),
+                                       TimeToLive: TimeToLive
+                                   );
+
+        }
+
+        #endregion
+
+        #region Sign(Data)
+
+        /// <summary>
+        /// Sign data with this key, in the signature encoding its algorithm defines.
+        /// </summary>
+        /// <param name="Data">The data to sign.</param>
+        public Byte[] Sign(Byte[] Data)
+
+            => rawPrivateKey is not null
+                   ? DNSSECSigning.Sign(Algorithm, rawPrivateKey,        Data)
+                   : DNSSECSigning.Sign(Algorithm, asymmetricPrivateKey!, Data);
 
         #endregion
 
@@ -109,15 +174,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                        Byte        Algorithm    = 8,
                                        TimeSpan?   TimeToLive   = null)
 
-            => new (Name,
-                    Algorithm,
-                    Algorithm switch {
-                        8 or 10  => RSA.  Create(2048),
-                        13       => ECDsa.Create(ECCurve.NamedCurves.nistP256),
-                        14       => ECDsa.Create(ECCurve.NamedCurves.nistP384),
-                        _        => throw new NotSupportedException($"DNSSEC algorithm {Algorithm} cannot be generated here.")
-                    },
-                    TimeToLive);
+            => DNSSECSigning.UsesRawPrivateKey(Algorithm)
+
+                   ? new SIG0Key(Name,
+                                 Algorithm,
+                                 DNSSECSigning.GeneratePrivateKey(Algorithm),
+                                 TimeToLive)
+
+                   : new SIG0Key(Name,
+                                 Algorithm,
+                                 Algorithm switch {
+                                     8 or 10  => RSA.  Create(2048),
+                                     13       => ECDsa.Create(ECCurve.NamedCurves.nistP256),
+                                     14       => ECDsa.Create(ECCurve.NamedCurves.nistP384),
+                                     _        => throw new NotSupportedException($"DNSSEC algorithm {Algorithm} cannot be generated here.")
+                                 },
+                                 TimeToLive);
 
         #endregion
 

@@ -97,6 +97,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   Byte[]?              Request      = null,
                                   DateTimeOffset?      Inception    = null,
                                   DateTimeOffset?      Expiration   = null)
+
+            => Sign(Message,
+                    SignerName,
+                    Algorithm,
+                    data => DNSSECSigning.Sign(Algorithm, PrivateKey, data),
+                    KeyTag,
+                    Request,
+                    Inception,
+                    Expiration);
+
+        #endregion
+
+        #region (static) Sign(Message, SignerName, Algorithm, SignWith, KeyTag, ...)
+
+        /// <summary>
+        /// Append a SIG(0) to a serialized DNS message, signing everything before
+        /// it with the given signing function.
+        /// </summary>
+        /// <param name="Message">The complete DNS message, without a SIG(0).</param>
+        /// <param name="SignerName">The owner name of the KEY record holding the public half.</param>
+        /// <param name="Algorithm">The DNSSEC algorithm number of that key.</param>
+        /// <param name="SignWith">Produces the signature over the assembled signed data.</param>
+        /// <param name="KeyTag">The key tag of the KEY record (RFC 4034 Appendix B).</param>
+        /// <param name="Request">When signing a *response*, the request that produced it — §3.1 folds the whole query into the signature, so a response cannot be replayed against a different question.</param>
+        /// <param name="Inception">When the signature becomes valid; five minutes ago when omitted.</param>
+        /// <param name="Expiration">When it stops being valid; five minutes from now when omitted.</param>
+        /// <remarks>
+        /// The signing step is a parameter because private keys no longer share a
+        /// type: RSA and ECDSA are <see cref="AsymmetricAlgorithm"/>s, and the
+        /// Edwards curves of RFC 8080 are octet strings with no .NET type at all.
+        /// Everything above and below the signature is identical either way, and
+        /// that is the part worth not writing twice.
+        /// </remarks>
+        /// <returns>The message with the SIG(0) appended and ARCOUNT incremented.</returns>
+        public static Byte[] Sign(Byte[]                Message,
+                                  DomainName            SignerName,
+                                  Byte                  Algorithm,
+                                  Func<Byte[], Byte[]>  SignWith,
+                                  UInt16                KeyTag,
+                                  Byte[]?               Request      = null,
+                                  DateTimeOffset?       Inception    = null,
+                                  DateTimeOffset?       Expiration   = null)
         {
 
             if (Message.Length < 12)
@@ -114,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                               inception,
                                               KeyTag);
 
-            var signature   = DNSSECSigning.Sign(Algorithm, PrivateKey, signedData);
+            var signature   = SignWith(signedData);
 
             var record      = BuildSIG0Record(SignerName,
                                               Algorithm,
@@ -158,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => Sign(Message,
                     Key.Name,
                     Key.Algorithm,
-                    Key.PrivateKey,
+                    Key.Sign,
                     Key.KeyTag,
                     Request,
                     Inception,

@@ -243,6 +243,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     Algorithm,
                     DNSSECSigning.EncodePublicKey(Algorithm, PublicKey));
 
+
+        /// <summary>
+        /// Publish a public key that is already in its wire form as a KEY record.
+        /// </summary>
+        /// <param name="DomainName">The name to publish it at.</param>
+        /// <param name="Algorithm">The DNSSEC algorithm number of the key.</param>
+        /// <param name="PublicKey">The public key, encoded as its algorithm defines.</param>
+        /// <param name="Class">The DNS query class.</param>
+        /// <param name="TimeToLive">The time to live.</param>
+        /// <param name="Flags">The flags field. Zero — no use restrictions — is what a SIG(0) key carries.</param>
+        /// <remarks>
+        /// The Edwards curves need this: RFC 8080 §3 gives their public keys no
+        /// encoding beyond the raw point, so there is no structured key object to
+        /// hand to the overload above and nothing for it to encode.
+        /// </remarks>
+        public static KEY FromPublicKeyBytes(DomainName       DomainName,
+                                             Byte             Algorithm,
+                                             Byte[]           PublicKey,
+                                             DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                             TimeSpan?        TimeToLive   = null,
+                                             UInt16           Flags        = 0)
+
+            => new (DomainName,
+                    Class,
+                    TimeToLive ?? TimeSpan.FromHours(1),
+                    Flags,
+                    ProtocolDNSSEC,
+                    Algorithm,
+                    PublicKey);
+
         #endregion
 
         #region (static) TryParseFromJSON(Name, TimeToLive, Data)
