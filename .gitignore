@@ -40,3 +40,7 @@ TestResults/
 # that is a throwaway directory an upload-artifact step collects; run the same
 # command locally to reproduce a CI result and it lands in the working tree.
 artifacts/
+
+# Claude Code creates its worktrees in here, and each one is a full checkout of
+# this repository. They belong to a single session, not to the history.
+.claude/worktrees/
