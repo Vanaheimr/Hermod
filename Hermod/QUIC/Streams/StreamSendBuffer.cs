@@ -97,6 +97,19 @@ public sealed class StreamSendBuffer(ulong streamId)
     /// </summary>
     public bool IsBlocked => !IsReset && _pending.Count > 0 && _sentOffset >= MaxData;
 
+    /// <summary>
+    /// Nothing more will ever be sent on this stream: either it was reset, or the FIN has gone out
+    /// and no data is waiting behind it.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not "and everything was acknowledged". This drives stream-credit accounting
+    /// (RFC 9000 §4.6), where being early is harmless — the credit is handed to the peer, not taken
+    /// from it — while being late stalls the peer for a round trip it did not need to wait.
+    /// Note the asymmetry with <see cref="HasPending"/>: a stream on which the application has
+    /// written nothing and called nothing has no pending data either, but it is not complete.
+    /// </remarks>
+    public bool IsComplete => IsReset || (_finQueued && _finSent && _pending.Count == 0);
+
     public void Write(ReadOnlySpan<byte> data)
     {
         if (IsReset)
