@@ -139,6 +139,136 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) Sign  (Message, Key, Request = null, Inception = null, Expiration = null)
+
+        /// <summary>
+        /// Append a SIG(0) to a serialized DNS message, signing everything before it.
+        /// </summary>
+        /// <param name="Message">The complete DNS message, without a SIG(0).</param>
+        /// <param name="Key">The signing key.</param>
+        /// <param name="Request">When signing a *response*, the request that produced it — as received, SIG(0) included, since §3.1 folds in the "full query".</param>
+        /// <param name="Inception">When the signature becomes valid; five minutes ago when omitted.</param>
+        /// <param name="Expiration">When it stops being valid; five minutes from now when omitted.</param>
+        public static Byte[] Sign(Byte[]           Message,
+                                  SIG0Key          Key,
+                                  Byte[]?          Request      = null,
+                                  DateTimeOffset?  Inception    = null,
+                                  DateTimeOffset?  Expiration   = null)
+
+            => Sign(Message,
+                    Key.Name,
+                    Key.Algorithm,
+                    Key.PrivateKey,
+                    Key.KeyTag,
+                    Request,
+                    Inception,
+                    Expiration);
+
+        #endregion
+
+        #region (static) Verify(SignedMessage, Keys, Now = null, Request = null)
+
+        /// <summary>
+        /// Verify a received message against whichever of the given KEY records
+        /// it claims to be signed under.
+        /// </summary>
+        /// <param name="SignedMessage">The message as received.</param>
+        /// <param name="Keys">The KEY records this party trusts.</param>
+        /// <param name="Now">The time to check the validity window against.</param>
+        /// <param name="Request">When verifying a response, the request that was sent.</param>
+        /// <remarks>
+        /// A verifier cannot know which key to use before looking: the signature
+        /// names its key by the signer's name and key tag, both of which are
+        /// inside the message it is about to authenticate. Reading them first is
+        /// safe — it selects a candidate, it grants nothing.
+        ///
+        /// The key tag only narrows the field (RFC 4034 §5.3): it is a 16-bit
+        /// checksum, so two trusted keys at one name can share one, and both have
+        /// to be tried before the message is called unauthentic.
+        /// </remarks>
+        public static SIG0VerificationResult Verify(Byte[]            SignedMessage,
+                                                    IEnumerable<KEY>  Keys,
+                                                    DateTimeOffset?   Now       = null,
+                                                    Byte[]?           Request   = null)
+        {
+
+            if (!TryStripSIG0(SignedMessage, out _, out var sig) || sig is null)
+                return SIG0VerificationResult.Failed(SIG0Failure.NotSigned,
+                                                     "The message carries no SIG record as its last additional record.");
+
+            var candidates = Keys.Where(key => key.DomainName.FullName.TrimEnd('.').
+                                                   Equals(sig.SignerName.FullName.TrimEnd('.'),
+                                                          StringComparison.OrdinalIgnoreCase)).
+                                  ToArray();
+
+            if (candidates.Length == 0)
+                return SIG0VerificationResult.Failed(SIG0Failure.UnknownKey,
+                                                     $"No KEY is configured for signer '{sig.SignerName}'.",
+                                                     sig);
+
+            SIG0VerificationResult? lastFailure = null;
+
+            foreach (var key in candidates)
+            {
+
+                var result = Verify(SignedMessage, key, Now, Request);
+
+                if (result.IsValid)
+                    return result;
+
+                lastFailure = result;
+
+            }
+
+            return lastFailure!;
+
+        }
+
+        #endregion
+
+        #region (static) IsSIG0Signed(Message) / CarriesBothTSIGAndSIG0(Message)
+
+        /// <summary>
+        /// Whether a message ends in a SIG(0) — a SIG record whose type covered
+        /// is zero.
+        /// </summary>
+        public static Boolean IsSIG0Signed(Byte[] Message)
+
+            => TryStripSIG0(Message, out _, out var sig) &&
+               sig is not null &&
+               sig.IsTransactionSignature;
+
+
+        /// <summary>
+        /// Whether a message carries a TSIG *and* a SIG(0).
+        /// </summary>
+        /// <remarks>
+        /// RFC 2931 §3.2: "Requests and responses can either have a single TSIG
+        /// or one SIG(0) but not both a TSIG and a SIG(0)." Both are last-record
+        /// meta-RRs, so the only way to have both is to append one after the
+        /// other — which is what this looks for.
+        ///
+        /// Worth refusing rather than tolerating: a verifier that checks only the
+        /// outermost one and serves the request anyway lets a sender attach a
+        /// valid signature of the kind that *is* checked and a decorative one of
+        /// the kind that is not, and be treated as authenticated under whichever
+        /// identity the server happens to log.
+        /// </remarks>
+        public static Boolean CarriesBothTSIGAndSIG0(Byte[] Message)
+        {
+
+            if (TryStripSIG0(Message, out var withoutSIG0, out _) && withoutSIG0 is not null)
+                return TSIGSigner.TryStripTSIG(withoutSIG0, out _, out _);
+
+            if (TSIGSigner.TryStripTSIG(Message, out var withoutTSIG, out _) && withoutTSIG is not null)
+                return IsSIG0Signed(withoutTSIG);
+
+            return false;
+
+        }
+
+        #endregion
+
         #region (static) Verify(SignedMessage, Key, Now = null, Request = null)
 
         /// <summary>

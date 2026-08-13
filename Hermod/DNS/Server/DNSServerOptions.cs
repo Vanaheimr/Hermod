@@ -77,6 +77,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         public IEnumerable<TSIGKey>  TSIGKeys      { get; init; } = [];
 
+        /// <summary>
+        /// The KEY records whose SIG(0) signatures this server accepts (RFC 2931).
+        /// </summary>
+        /// <remarks>
+        /// Empty by default, and the default is conformant rather than lazy:
+        /// §3.2 says a server that does not implement request SIGs "MUST ignore
+        /// them without error where they are optional", and §3.1 adds that
+        /// "servers are not required to check a request SIG(0)" outside the
+        /// privileged operations — an update, a TKEY — that Hermod does not have.
+        /// So an unconfigured server answers a signed query exactly as it answers
+        /// an unsigned one.
+        ///
+        /// Configuring keys turns verification on, and from then on a request
+        /// signed by a key that does not verify is refused. An *unsigned* request
+        /// is still served: refusing those is a policy decision, and RFC 2931
+        /// does not make it here.
+        /// </remarks>
+        public IEnumerable<KEY>      SIG0Keys      { get; init; } = [];
+
+        /// <summary>
+        /// The key this server signs its replies with when the request carried a
+        /// SIG(0). Null leaves replies unsigned.
+        /// </summary>
+        /// <remarks>
+        /// Off by default because RFC 2931 §3.1 makes response signing optional —
+        /// "a DNS reply may be optionally signed" — where RFC 8945 §5.2 makes
+        /// TSIG's mandatory. The asymmetry is not an oversight in either
+        /// specification: a public-key signature per reply is the expensive
+        /// operation §2.4 warns about spending freely, and a client that cannot
+        /// check it gains nothing from it.
+        /// </remarks>
+        public SIG0Key?              SIG0ResponseKey  { get; init; }
+
         public Boolean   UseCompression         { get; init; } = false;
 
         /// <summary>
