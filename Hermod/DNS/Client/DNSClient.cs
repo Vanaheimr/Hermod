@@ -58,7 +58,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// After each response the server cookie is extracted and stored,
         /// then sent back in subsequent queries to that server.
         /// </summary>
-        private readonly        ConcurrentDictionary<String, EDNSCookieOption>  cookieStore = new(StringComparer.OrdinalIgnoreCase);
+        private readonly        ConcurrentDictionary<String, Byte[]>            cookieStore = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Where the client half of every DNS Cookie comes from (RFC 7873 §4.1).
+        /// </summary>
+        /// <remarks>
+        /// The store above holds only the *server* half now. The client half is
+        /// derived per server rather than remembered, which is what §4.1 asks for
+        /// and what keeps it from becoming a value that follows this client
+        /// across changes of address.
+        /// </remarks>
+        private readonly        DNSClientCookies                                clientCookies = new();
 
         /// <summary>
         /// Pooled transport clients for connection-oriented transports (TCP, TLS, HTTPS).
@@ -1084,10 +1095,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var serverKey       = DNSServer.IPAddress.ToString();
             var effectiveQuery  = DNSQuery;
 
-            // RFC 7873: Always send a COOKIE option.
-            // If we already have a server cookie, include it; otherwise send a fresh client cookie.
-            if (!cookieStore.TryGetValue(serverKey, out var storedCookie))
-                storedCookie = EDNSCookieOption.CreateInitial();
+            // RFC 7873 §5.1: always offer a cookie. The client half is derived
+            // from this server's address (§4.1), so it is the same on every query
+            // to it — which is what makes a server cookie worth keeping, since a
+            // server cookie is bound to the client cookie it was issued for. The
+            // server half is included once there is one.
+            cookieStore.TryGetValue(serverKey, out var storedServerCookie);
+
+            var storedCookie = clientCookies.OptionFor(
+                                   System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString()),
+                                   storedServerCookie
+                               );
 
             var optionsWithCookie = EDNSOptions
                                         .Where (o => o.Code != (UInt16) EDNSOptionCode.Cookie)
@@ -1204,14 +1222,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     {
 
                         cookieRetried  = true;
-                        storedCookie   = refreshedCookie;
+
+                        // The client half is derived again rather than carried
+                        // over, which changes nothing — it is the same eight
+                        // octets — and keeps one rule about where it comes from.
+                        storedCookie   = clientCookies.OptionFor(
+                                             System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString()),
+                                             refreshedCookie
+                                         );
 
                         var cookieIndex = transportClient.EDNSOptions.FindIndex(option => option.Code == (UInt16) EDNSOptionCode.Cookie);
 
                         if (cookieIndex >= 0)
-                            transportClient.EDNSOptions[cookieIndex] = refreshedCookie;
+                            transportClient.EDNSOptions[cookieIndex] = storedCookie;
                         else
-                            transportClient.EDNSOptions.Add(refreshedCookie);
+                            transportClient.EDNSOptions.Add(storedCookie);
 
                         logger.LogTrace(
                             "DNS server {DNSServer} returned BADCOOKIE; retrying with the server cookie it supplied",
@@ -1314,11 +1339,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
+            // Only the server half is kept. The client half is derived from the
+            // server's address and this client's secret every time it is needed,
+            // so there is nothing here to store and nothing to go stale.
             if (responseCookie.HasServerCookie)
-                cookieStore[ServerKey] = new EDNSCookieOption(
-                                             Sent.ClientCookie,
-                                             responseCookie.ServerCookie
-                                         );
+                cookieStore[ServerKey] = responseCookie.ServerCookie!;
 
             return true;
 
