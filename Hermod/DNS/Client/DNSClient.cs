@@ -1141,7 +1141,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSInfo response;
 
                 // Retry logic for SERVFAIL responses
-                var attempts = 0;
+                var attempts      = 0;
+
+                // RFC 7873 §5.3 allows exactly one more try after a BADCOOKIE,
+                // and one is enough: the response that carried it also carried a
+                // valid server cookie, so a second BADCOOKIE means something is
+                // wrong that asking again will not fix.
+                var cookieRetried = false;
+
                 do
                 {
 
@@ -1163,9 +1170,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          CancellationToken
                                      ).ConfigureAwait(false);
 
-                    // RFC 7873: Extract and store server cookie from response OPT record
-                    ExtractAndStoreCookie(serverKey, response);
-
                     logger.LogTrace(
                         "DNS server {DNSServer} via {Transport} returned {ResponseCode} with {AnswerCount} answer(s) in {Runtime}ms",
                         DNSServer,
@@ -1174,6 +1178,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         response.Answers.Count(),
                         response.Runtime.TotalMilliseconds
                     );
+
+                    // RFC 7873 §5.3: the COOKIE decides whether this response may
+                    // be used at all, so it is checked before the RCODE is read.
+                    if (!AcceptCookie(serverKey, storedCookie, response))
+                    {
+
+                        response = DNSInfo.Invalid(DNSServer, response.QueryId);
+
+                        attempts++;
+
+                        if (attempts <= MaxRetries)
+                            continue;
+
+                        break;
+
+                    }
+
+                    // §5.3: BADCOOKIE is not a refusal to answer, it is a request
+                    // to ask again — the response that carried it also carried a
+                    // valid server cookie, which AcceptCookie has just stored.
+                    if (response.ResponseCode == DNSResponseCodes.BadCookie &&
+                        !cookieRetried &&
+                        cookieStore.TryGetValue(serverKey, out var refreshedCookie))
+                    {
+
+                        cookieRetried  = true;
+                        storedCookie   = refreshedCookie;
+
+                        var cookieIndex = transportClient.EDNSOptions.FindIndex(option => option.Code == (UInt16) EDNSOptionCode.Cookie);
+
+                        if (cookieIndex >= 0)
+                            transportClient.EDNSOptions[cookieIndex] = refreshedCookie;
+                        else
+                            transportClient.EDNSOptions.Add(refreshedCookie);
+
+                        logger.LogTrace(
+                            "DNS server {DNSServer} returned BADCOOKIE; retrying with the server cookie it supplied",
+                            DNSServer
+                        );
+
+                        continue;
+
+                    }
 
                     if (response.ResponseCode != DNSResponseCodes.ServerFailure)
                         break;
@@ -1211,22 +1258,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) ExtractAndStoreCookie(ServerKey, Response)
+        #region (private) AcceptCookie(ServerKey, Sent, Response)
 
         /// <summary>
-        /// RFC 7873: Extract the server cookie from the response OPT record
-        /// and store it so that subsequent queries to the same server include it.
+        /// Check the COOKIE option of a response and, if it is the answer to the
+        /// cookie that was sent, remember its server half (RFC 7873 §5.3).
         /// </summary>
-        private void ExtractAndStoreCookie(String   ServerKey,
-                                           DNSInfo  Response)
+        /// <param name="ServerKey">The server the query went to.</param>
+        /// <param name="Sent">The COOKIE option that was sent with the query.</param>
+        /// <param name="Response">The response.</param>
+        /// <returns>False when §5.3 requires the response to be discarded.</returns>
+        /// <remarks>
+        /// <para>
+        /// §5.3: a client "MUST discard the response if it contains an illegal
+        /// COOKIE option length or an incorrect Client Cookie value". The client
+        /// cookie is the whole mechanism — an unpredictable value that comes back
+        /// only from someone who saw the query — so a response echoing a
+        /// different one is, by construction, from someone who did not.
+        /// </para>
+        /// <para>
+        /// The other half of the fix is what gets stored. This used to keep the
+        /// entire option from the response, client cookie included, and use it
+        /// for the next query. One spoofed response was therefore enough to
+        /// *replace* the client's own cookie with the attacker's for as long as
+        /// the entry lived: every later query carried a value the attacker had
+        /// chosen, so every later spoof was trivially able to echo it. The
+        /// mechanism defeated itself, permanently, from a single packet. Only the
+        /// server half is a value the server gets to choose.
+        /// </para>
+        /// </remarks>
+        private Boolean AcceptCookie(String            ServerKey,
+                                     EDNSCookieOption  Sent,
+                                     DNSInfo           Response)
         {
 
-            var responseCookie = Response.EDNSOptions
-                                         .OfType<EDNSCookieOption>()
-                                         .FirstOrDefault();
+            var responseCookie = Response.EDNSOptions.
+                                          OfType<EDNSCookieOption>().
+                                          FirstOrDefault();
 
-            if (responseCookie?.HasServerCookie == true)
-                cookieStore[ServerKey] = responseCookie;
+            // No cookie coming back is not an error: §5.2.1 lets a server that
+            // does not implement cookies answer normally, and there is nothing
+            // to check or store.
+            if (responseCookie is null)
+                return true;
+
+            if (!responseCookie.ClientCookie.SequenceEqual(Sent.ClientCookie))
+            {
+
+                logger.LogWarning(
+                    "DNS server {ServerKey} returned a COOKIE echoing a client cookie that was never sent; discarding the response (RFC 7873 §5.3)",
+                    ServerKey
+                );
+
+                return false;
+
+            }
+
+            if (responseCookie.HasServerCookie)
+                cookieStore[ServerKey] = new EDNSCookieOption(
+                                             Sent.ClientCookie,
+                                             responseCookie.ServerCookie
+                                         );
+
+            return true;
 
         }
 

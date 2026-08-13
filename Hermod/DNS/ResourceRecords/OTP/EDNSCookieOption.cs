@@ -126,6 +126,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) IsValidLength(Length) / TryParse(Data, out Cookie)
+
+        /// <summary>
+        /// Whether an option of this length is a legal COOKIE (RFC 7873 §5.2.2).
+        /// </summary>
+        /// <param name="Length">The length of the option data, in octets.</param>
+        /// <remarks>
+        /// §5.2.2 spells the answer out — "valid cookie lengths are 8 and 16 to 40
+        /// inclusive" — and the gap between them is the interesting part. Nine to
+        /// fifteen octets is not a short server cookie, it is a malformed option:
+        /// §4.2 gives the server cookie a minimum of 8, so anything between the
+        /// two is a length no correct sender produces. A receiver that split it
+        /// anyway would carry a server cookie the issuing server can never
+        /// recognise.
+        /// </remarks>
+        public static Boolean IsValidLength(Int32 Length)
+
+            => Length == 8 ||
+              (Length >= 16 && Length <= 40);
+
+
+        #endregion
+
         #region (static) Parse(Data)
 
         /// <summary>
@@ -135,8 +158,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static EDNSCookieOption Parse(Byte[] Data)
         {
 
-            if (Data.Length < 8)
-                throw new ArgumentException("EDNS COOKIE option must contain at least 8 bytes (client cookie)!", nameof(Data));
+            // RFC 7873 §5.2.2 in one place: a length outside 8 and 16..40 is
+            // malformed, and the server answers FORMERR rather than guessing at
+            // where the client cookie ends.
+            if (!IsValidLength(Data.Length))
+                throw new ArgumentException($"An EDNS COOKIE option is 8 octets, or 16 to 40 (RFC 7873 §5.2.2) — not {Data.Length}!", nameof(Data));
 
             var clientCookie = new Byte[8];
             Array.Copy(Data, 0, clientCookie, 0, 8);

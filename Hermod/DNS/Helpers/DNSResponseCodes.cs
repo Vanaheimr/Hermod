@@ -67,7 +67,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// travel in the message header, the upper 8 in the OPT record's TTL
         /// field, so this value only reaches the wire when an OPT is present.
         /// </summary>
-        BadVersion      = 16
+        BadVersion      = 16,
+
+        /// <summary>
+        /// Bad or missing server cookie (RFC 7873 §5.2.3, §8). Not a failure so
+        /// much as an invitation: the response carries a fresh, valid server
+        /// cookie, and the client is expected to ask again with it (§5.3).
+        /// </summary>
+        /// <remarks>
+        /// Like BADVERS this is an extended RCODE and only reaches the wire when
+        /// the response carries an OPT record — which a cookie response always
+        /// does, since the cookie travels in one.
+        /// </remarks>
+        BadCookie       = 23
 
     }
 

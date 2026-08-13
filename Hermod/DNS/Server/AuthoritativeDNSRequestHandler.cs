@@ -60,15 +60,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public UInt16   UDPPayloadSize      { get; }
 
+        /// <summary>
+        /// The secret this server issues and recognises DNS Cookies with
+        /// (RFC 7873). Null leaves cookies switched off entirely.
+        /// </summary>
+        public Byte[]?  DNSCookieSecret     { get; }
+
+        /// <summary>
+        /// Whether a query must carry a valid server cookie to be answered.
+        /// </summary>
+        /// <remarks>
+        /// RFC 7873 §5.2.3 leaves this to the server: a query with only a client
+        /// cookie may be answered, or answered BADCOOKIE with a fresh server
+        /// cookie so the client can ask again. Answering is the friendlier
+        /// default and the useless one — the point of cookies is to make a
+        /// spoofed source address expensive, and that only happens once an
+        /// answer costs a round trip the spoofer cannot complete. So this is the
+        /// switch that turns the mechanism from decoration into defence, and it
+        /// is off by default because turning it on changes what every existing
+        /// client sees.
+        /// </remarks>
+        public Boolean  RequireDNSCookies   { get; }
+
 
         public AuthoritativeDNSRequestHandler(IDNSZoneStore  ZoneStore,
                                               Boolean        RecursionAvailable   = false,
-                                              UInt16         UDPPayloadSize       = 1232)
+                                              UInt16         UDPPayloadSize       = 1232,
+                                              Byte[]?        DNSCookieSecret      = null,
+                                              Boolean        RequireDNSCookies    = false)
         {
 
             this.zoneStore           = ZoneStore;
             this.RecursionAvailable  = RecursionAvailable;
             this.UDPPayloadSize      = UDPPayloadSize;
+            this.DNSCookieSecret     = DNSCookieSecret;
+            this.RequireDNSCookies   = RequireDNSCookies;
 
         }
 
@@ -97,7 +123,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        UDPPayloadSize:  UDPPayloadSize,
                        ExtendedRCODE:   (Byte) ((Int32) ResponseCode >> 4),
                        Version:         0,
-                       Flags:           0
+                       Flags:           0,
+                       Options:         BuildResponseCookie(Request) is { } cookie ? [ cookie ] : null
+                   );
+
+        }
+
+        #endregion
+
+        #region (private) BuildResponseCookie(Request) / ReadRequestCookie(Request) / HasValidServerCookie(Request)
+
+        /// <summary>
+        /// The COOKIE option to send back, or null when there is nothing to say.
+        /// </summary>
+        /// <remarks>
+        /// RFC 7873 §5.2.3: a query carrying only a client cookie gets a server
+        /// cookie in reply — "servers MUST, at least occasionally, respond to
+        /// such requests to inform the client of the correct Server Cookie",
+        /// because a client that is never told one can never present one. The
+        /// client cookie is echoed exactly, since §5.3 has the client discard any
+        /// response where it is not.
+        /// </remarks>
+        private EDNSCookieOption? BuildResponseCookie(DNSPacket Request)
+        {
+
+            if (DNSCookieSecret is null)
+                return null;
+
+            var requestCookie = ReadRequestCookie(Request);
+
+            if (requestCookie is null)
+                return null;
+
+            return new EDNSCookieOption(
+                       requestCookie.ClientCookie,
+                       DNSCookies.Create(
+                           requestCookie.ClientCookie,
+                           Request.RemoteSocket.IPAddress,
+                           DNSCookieSecret
+                       )
+                   );
+
+        }
+
+
+        private static EDNSCookieOption? ReadRequestCookie(DNSPacket Request)
+
+            => Request.AdditionalRRs.
+                       OfType<OPT>().
+                       FirstOrDefault()?.
+                       Options.
+                       OfType<EDNSCookieOption>().
+                       FirstOrDefault();
+
+
+        /// <summary>
+        /// Whether the request returned a server cookie this server issued, to
+        /// this client cookie, from this address, recently enough.
+        /// </summary>
+        private Boolean HasValidServerCookie(DNSPacket Request)
+        {
+
+            if (DNSCookieSecret is null)
+                return false;
+
+            var requestCookie = ReadRequestCookie(Request);
+
+            return requestCookie?.ServerCookie is not null &&
+                   DNSCookies.Validate(
+                       requestCookie.ServerCookie,
+                       requestCookie.ClientCookie,
+                       Request.RemoteSocket.IPAddress,
+                       DNSCookieSecret
                    );
 
         }
@@ -243,6 +340,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (Request.Opcode != 0)
                 return Error(DNSResponseCodes.NotImplemented);
+
+            // RFC 7873 §5.2.3/§5.2.4: without a server cookie this server issued,
+            // the query is answered BADCOOKIE — and the reply carries a fresh one,
+            // so the client's next attempt succeeds. That round trip is the whole
+            // mechanism: it costs a legitimate client nothing it cannot pay, and
+            // costs a spoofed source address an answer it will never see.
+            if (DNSCookieSecret is not null &&
+                RequireDNSCookies           &&
+                ReadRequestCookie(Request) is not null &&
+                !HasValidServerCookie(Request))
+            {
+                return Error(DNSResponseCodes.BadCookie);
+            }
 
             var questions = Request.Questions.ToArray();
             if (questions.Length == 0)
