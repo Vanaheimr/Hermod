@@ -219,7 +219,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     if (!receiveTask.IsCompleted)
                         continue;
 
-                    var payload = await receiveTask.ConfigureAwait(false);
+                    Byte[] payload;
+
+                    try
+                    {
+                        payload = await receiveTask.ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (closeSent && exception is not OperationCanceledException)
+                    {
+                        // The same reasoning as in ServeExecAsync: once exit-status, EOF and CLOSE have
+                        // gone out, a peer that vanishes has ended the session rather than broken it.
+                        return;
+                    }
+
                     receiveTask = null;
 
                     var message = (SshMessageNumber) payload[0];
@@ -475,7 +487,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             while (true)
             {
 
-                var payload = await Transport.ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+                Byte[] payload;
+
+                try
+                {
+                    payload = await Transport.ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (closeSent && exception is not OperationCanceledException)
+                {
+                    // Everything this session owes the peer has gone out — exit-status, EOF and CLOSE — so
+                    // a peer that now disappears has ended the session rather than broken it. OpenSSH does
+                    // exactly that: it exits the moment it holds our exit-status, and on Windows a process
+                    // exit turns into a TCP reset often enough to matter. How that arrives here is a matter
+                    // of timing rather than of meaning — a reset surfaces as an IOException, a close
+                    // between packets as an SshWireException about a packet cut in half — and neither can
+                    // change the outcome any more. Only cancellation still means what it says.
+                    return;
+                }
+
                 var message = (SshMessageNumber) payload[0];
 
                 switch (message)
