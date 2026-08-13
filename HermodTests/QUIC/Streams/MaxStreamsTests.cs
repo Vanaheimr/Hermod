@@ -152,6 +152,84 @@ public class MaxStreamsTests
 
     #endregion
 
+    #region We do not exceed the peer's limit either
+
+    [Test]
+    public void OpeningPastThePeersLimit_IsRefused_NotAttempted()
+    {
+        // The server grants two bidirectional streams and no more.
+        var parameters = new TransportParameters { InitialMaxStreamsBidiValue = 2 };
+        (QuicClientConnection client, QuicServerConnection server, ServerCertificate cert) =
+            HandshakeInProcess(serverParameters: parameters);
+        using ServerCertificate _ = cert;
+        using QuicClientConnection c = client;
+        using QuicServerConnection s = server;
+
+        Assert.That(client.TryOpenBidirectionalStream(), Is.Not.Null);
+        Assert.That(client.TryOpenBidirectionalStream(), Is.Not.Null);
+
+        // The third is one too many. Opening it anyway would oblige the server to kill the whole
+        // connection with STREAM_LIMIT_ERROR (§4.6), taking the two working streams with it.
+        Assert.That(client.TryOpenBidirectionalStream(), Is.Null);
+        Assert.Throws<QuicStreamLimitException>(() => client.OpenBidirectionalStream());
+
+        // And the connection is fine: refusing is not an error condition.
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Assert.That(client.IsClosing, Is.False);
+        Assert.That(server.IsClosing, Is.False);
+    }
+
+    [Test]
+    public void BeingBlocked_TellsThePeer_Once()
+    {
+        var parameters = new TransportParameters { InitialMaxStreamsBidiValue = 1 };
+        (QuicClientConnection client, QuicServerConnection server, ServerCertificate cert) =
+            HandshakeInProcess(serverParameters: parameters);
+        using ServerCertificate _ = cert;
+        using QuicClientConnection c = client;
+        using QuicServerConnection s = server;
+
+        client.TryOpenBidirectionalStream();
+
+        // Several attempts at the same limit. §19.14 wants the peer told; it does not want to be
+        // told once per attempt, and a caller retrying in a loop would otherwise flood the link.
+        for (int i = 0; i < 5; i++)
+            Assert.That(client.TryOpenBidirectionalStream(), Is.Null);
+
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+
+        Assert.That(server.PeerStreamsBlockedCountForTest, Is.EqualTo(1),
+                    "five refusals at one limit should produce one STREAMS_BLOCKED, not five");
+        Assert.That(server.IsClosing, Is.False);
+    }
+
+    [Test]
+    public void AfterMaxStreams_TheRefusalLifts()
+    {
+        var parameters = new TransportParameters { InitialMaxStreamsBidiValue = 1 };
+        (QuicClientConnection client, QuicServerConnection server, ServerCertificate cert) =
+            HandshakeInProcess(serverParameters: parameters);
+        using ServerCertificate _ = cert;
+        using QuicClientConnection c = client;
+        using QuicServerConnection s = server;
+
+        client.TryOpenBidirectionalStream();
+        Assert.That(client.TryOpenBidirectionalStream(), Is.Null, "one granted, one used");
+
+        // The whole point of STREAMS_BLOCKED is that a peer can answer it.
+        server.SendApplicationFrameForTest(new MaxStreamsFrame(Bidirectional: true, 3));
+        for (int round = 0; round < 3; round++)
+            Pump(client, server);
+
+        Assert.That(client.TryOpenBidirectionalStream(), Is.Not.Null);
+        Assert.That(client.TryOpenBidirectionalStream(), Is.Not.Null);
+        Assert.That(client.TryOpenBidirectionalStream(), Is.Null, "and it stops again at the new limit");
+    }
+
+    #endregion
+
     #region Frame semantics
 
     [Test]

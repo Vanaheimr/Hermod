@@ -92,10 +92,19 @@ public class TransportErrorTests
             Pump(client, server);
         Assert.That(client.HandshakeConfirmed, Is.True);
 
-        // The client opens TWO streams (0 and 1) and sends on both — stream 1 violates the limit.
+        // The first stream is within the grant and goes out the normal way.
         client.OpenBidirectionalStream().Write([1]);
-        QuicStream second = client.OpenBidirectionalStream();
-        second.Write([2]);
+
+        // The second one does not, and since the peer-limit enforcement landed our own client
+        // refuses to open it — which is the point of that change, and why this test can no longer
+        // use our client to misbehave. The violation now arrives the way it would in the wild: a
+        // raw STREAM frame for a stream id past the grant, from a peer that does not care what we
+        // allowed.
+        //
+        // Client-initiated bidirectional ids run 0, 4, 8, … so index 1 is id 4.
+        ulong overTheLimit = StreamId.Create(clientInitiated: true, bidirectional: true, index: 1).Value;
+        client.SendApplicationFrameForTest(new StreamFrame(overTheLimit, 0, new byte[] { 2 }, Fin: false));
+
         for (int round = 0; round < 10; round++)
             Pump(client, server);
 
