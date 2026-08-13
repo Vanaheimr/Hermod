@@ -115,6 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="CancellationToken">An optional cancellation token.</param>
         private async Task FollowCanonicalNames(DNSQuestion               Question,
                                                 List<IDNSResourceRecord>  Answers,
+                                                Boolean                   DNSSECOK,
                                                 CancellationToken         CancellationToken)
         {
 
@@ -144,6 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                 DNSResourceRecordTypes.CNAME,
                                                 Question.QueryClass
                                             ),
+                                            DNSSECOK,
                                             CancellationToken
                                         ).ConfigureAwait(false);
 
@@ -169,6 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                  Question.QueryType,
                                                  Question.QueryClass
                                              ),
+                                             DNSSECOK,
                                              CancellationToken
                                          ).ConfigureAwait(false);
 
@@ -235,11 +238,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var additionalRecords  = new List<IDNSResourceRecord>();
             var responseCode       = DNSResponseCodes.NoError;
             var foundName          = false;
+            var referred           = false;
+
+            // RFC 4035 §3.2.1: the DO bit is what licenses this server to send
+            // RRSIG and NSEC/NSEC3 records at all. A responder that ships them
+            // unasked bloats every answer of every legacy client.
+            var dnssecOK           = requestOPT?.DnssecOK == true;
 
             foreach (var question in questions)
             {
 
-                var lookupResult = await zoneStore.Lookup(question, CancellationToken).
+                var lookupResult = await zoneStore.Lookup(question, dnssecOK, CancellationToken).
                                                    ConfigureAwait(false);
 
                 authorities.      AddRange(lookupResult.AuthorityRRs);
@@ -261,9 +270,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     await FollowCanonicalNames(
                               question,
                               answers,
+                              dnssecOK,
                               CancellationToken
                           ).ConfigureAwait(false);
 
+                }
+                else if (lookupResult.Status == DNSZoneLookupStatus.Referral)
+                {
+                    foundName = true;
+                    referred  = true;
                 }
 
             }
@@ -279,14 +294,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             return Request.CreateResponse(
                        Opcode:               Request.Opcode,
-                       AuthoritativeAnswer:  true,
                        Truncation:           false,
                        RecursionDesired:     Request.RecursionDesired,
                        RecursionAvailable:   RecursionAvailable,
                        ResponseCode:         responseCode,
                        AnswerRRs:            answers,
                        AuthorityRRs:         authorities,
-                       AdditionalRRs:        additionalRecords
+                       AdditionalRRs:        additionalRecords,
+
+                       // RFC 1035 §4.1.1: AA covers the name in the question, and a
+                       // referral is precisely the case where this server does not
+                       // own it — the NS records in the authority section are a
+                       // pointer somewhere else, not an authoritative answer.
+                       AuthoritativeAnswer:  !referred
                    );
 
         }

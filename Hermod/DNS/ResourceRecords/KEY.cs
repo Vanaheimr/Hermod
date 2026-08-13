@@ -105,6 +105,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Boolean IsNoKey
             => (Flags & 0xC000) == 0xC000;
 
+        /// <summary>
+        /// The key tag of this record (RFC 4034 Appendix B over the same RDATA
+        /// layout). A SIG(0) names its key by this number plus the signer's name
+        /// (RFC 2931 §3), so a verifier holding several keys at one name can pick
+        /// the right one without trying each in turn.
+        /// </summary>
+        /// <remarks>
+        /// A tag is not an identifier. It is a 16-bit checksum, collisions happen,
+        /// and RFC 4034 §5.3 is explicit that it may only narrow the candidates —
+        /// never decide. Two keys at one name with the same tag both have to be
+        /// tried.
+        /// </remarks>
+        public UInt16 KeyTag
+            => DNSSECValidator.ComputeKeyTag(Flags, Protocol, Algorithm, PublicKey);
+
         #endregion
 
         #region Constructor
@@ -201,6 +216,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+        #region (static) FromPublicKey(DomainName, Algorithm, PublicKey, Class = IN, TimeToLive = 1h, Flags = 0)
+
+        /// <summary>
+        /// Publish a public key as a KEY record.
+        /// </summary>
+        /// <param name="DomainName">The name to publish it at. A SIG(0) signer names this in its signer field, so it has to be the name the verifier will look up.</param>
+        /// <param name="Algorithm">The DNSSEC algorithm number of the key.</param>
+        /// <param name="PublicKey">An <see cref="System.Security.Cryptography.RSA"/> or <see cref="System.Security.Cryptography.ECDsa"/>; only the public half is read.</param>
+        /// <param name="Class">The DNS query class.</param>
+        /// <param name="TimeToLive">The time to live.</param>
+        /// <param name="Flags">The flags field. Zero — no use restrictions — is what a SIG(0) key carries.</param>
+        public static KEY FromPublicKey(DomainName                                    DomainName,
+                                        Byte                                          Algorithm,
+                                        System.Security.Cryptography.AsymmetricAlgorithm  PublicKey,
+                                        DNSQueryClasses                               Class        = DNSQueryClasses.IN,
+                                        TimeSpan?                                     TimeToLive   = null,
+                                        UInt16                                        Flags        = 0)
+
+            => new (DomainName,
+                    Class,
+                    TimeToLive ?? TimeSpan.FromHours(1),
+                    Flags,
+                    ProtocolDNSSEC,
+                    Algorithm,
+                    DNSSECSigning.EncodePublicKey(Algorithm, PublicKey));
+
+        #endregion
 
         #region (static) TryParseFromJSON(Name, TimeToLive, Data)
 

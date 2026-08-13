@@ -110,6 +110,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         AFSDB        = 18,
 
         /// <summary>
+        /// Signature record (RFC 2535 §4). The predecessor of <see cref="RRSIG"/>,
+        /// with the same RDATA layout and, since RFC 3755, only one job left: a
+        /// "type covered" of zero makes it a SIG(0), the per-message signature of
+        /// RFC 2931 that authenticates a single request or response rather than
+        /// an RRset in a zone.
+        /// </summary>
+        SIG          = 24,
+
+        /// <summary>
         /// Public key record (RFC 2535 §3). Not a DNSSEC record: RFC 3445 removed
         /// its zone-signing role and left it to applications, which today means
         /// the Diffie-Hellman half of TKEY (RFC 2930 §4.2, encoded per RFC 2539)

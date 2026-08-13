@@ -361,9 +361,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private  static) ReadResourceRecord(DNSStream)
+        #region (public   static) ReadResourceRecord(DNSStream)
 
-        private static IDNSResourceRecord? ReadResourceRecord(Stream DNSStream)
+        /// <summary>
+        /// Read one resource record — owner name, type, class, TTL, RDATA — from
+        /// a DNS stream, using the reflection registry of record types.
+        /// </summary>
+        /// <param name="DNSStream">A stream positioned at the start of a resource record.</param>
+        /// <returns>The record, or null when no type in this build claims the type code.</returns>
+        public static IDNSResourceRecord? ReadResourceRecord(Stream DNSStream)
         {
 
             var resourceName  = DNSTools.ExtractName(DNSStream);

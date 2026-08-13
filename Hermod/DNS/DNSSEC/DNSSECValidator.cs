@@ -733,12 +733,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <remarks>
         /// Taking the fields rather than the record makes it possible to ask what
         /// the tag *would* be under different flags — which RFC 5011 revocation
-        /// handling needs, because setting the REVOKE bit changes the tag.
+        /// handling needs, because setting the REVOKE bit changes the tag — and to
+        /// tag a KEY record, whose RDATA has the same shape and whose tag SIG(0)
+        /// needs (RFC 2931 §3).
         /// </remarks>
-        private static UInt16 ComputeKeyTag(UInt16  Flags,
-                                            Byte    Protocol,
-                                            Byte    Algorithm,
-                                            Byte[]  PublicKey)
+        public static UInt16 ComputeKeyTag(UInt16  Flags,
+                                           Byte    Protocol,
+                                           Byte    Algorithm,
+                                           Byte[]  PublicKey)
         {
 
             // DNSKEY RDATA: Flags (2 bytes) + Protocol (1 byte) + Algorithm (1 byte) + PublicKey
@@ -1036,15 +1038,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private static) VerifySignature(Algorithm, PublicKey, Data, Signature)
+        #region (static) VerifySignature(Algorithm, PublicKey, Data, Signature)
 
         /// <summary>
-        /// Verify a cryptographic signature using the appropriate algorithm.
+        /// Verify a signature made with a DNSSEC algorithm over arbitrary data.
         /// </summary>
-        private static Boolean VerifySignature(Byte    Algorithm,
-                                               Byte[]  PublicKey,
-                                               Byte[]  Data,
-                                               Byte[]  Signature)
+        /// <param name="Algorithm">The DNSSEC algorithm number (RFC 8624 §3.1).</param>
+        /// <param name="PublicKey">The public key in the wire form its algorithm defines — RFC 3110 for RSA, RFC 6605 for ECDSA, RFC 8080 for the Edwards curves.</param>
+        /// <param name="Data">The signed data.</param>
+        /// <param name="Signature">The signature to check.</param>
+        /// <remarks>
+        /// Public because RRSIG is not the only thing DNS signs with these
+        /// algorithms and these key encodings: SIG(0) (RFC 2931) signs a whole
+        /// message under a KEY record, and it would be a poor idea to grow a
+        /// second implementation of the same six algorithms next to this one.
+        /// </remarks>
+        public static Boolean VerifySignature(Byte    Algorithm,
+                                              Byte[]  PublicKey,
+                                              Byte[]  Data,
+                                              Byte[]  Signature)
         {
 
             return Algorithm switch {

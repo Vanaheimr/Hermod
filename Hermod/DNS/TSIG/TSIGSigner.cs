@@ -394,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // Walk the message to find where the last record starts. TSIG must
                 // be the last additional record (§5.1), so anything else is not a
                 // signed message as far as this code is concerned.
-                var offset = FindLastRecordOffset(SignedMessage);
+                var offset = DNSTools.FindLastRecordOffset(SignedMessage);
 
                 if (offset < 0)
                     return false;
@@ -477,55 +477,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             record.Write(rdataBytes, 0, rdataBytes.Length);
 
             return record.ToArray();
-
-        }
-
-        #endregion
-
-        #region (private static) FindLastRecordOffset(Message)
-
-        /// <summary>
-        /// Walk every record in a message and return the offset at which the
-        /// last one begins, or -1 if the message does not parse cleanly.
-        /// </summary>
-        private static Int32 FindLastRecordOffset(Byte[] Message)
-        {
-
-            using var stream  = new MemoryStream(Message);
-            stream.Position   = 12;
-
-            var qdCount       = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(4,  2));
-            var anCount       = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(6,  2));
-            var nsCount       = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(8,  2));
-            var arCount       = BinaryPrimitives.ReadUInt16BigEndian(Message.AsSpan(10, 2));
-
-            for (var i = 0; i < qdCount; i++)
-            {
-                DNSTools.ExtractName(stream);
-                stream.Position += 4;                  // QTYPE + QCLASS
-            }
-
-            var lastOffset    = -1;
-
-            for (var i = 0; i < anCount + nsCount + arCount; i++)
-            {
-
-                lastOffset       = (Int32) stream.Position;
-
-                DNSTools.ExtractName(stream);
-                stream.Position += 8;                  // TYPE + CLASS + TTL
-
-                var rdLength     = stream.ReadUInt16BE();
-                stream.Position += rdLength;
-
-                if (stream.Position > Message.Length)
-                    return -1;
-
-            }
-
-            return stream.Position == Message.Length
-                       ? lastOffset
-                       : -1;
 
         }
 
