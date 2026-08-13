@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Mailbox.Serialize(
                 tempStream,
                 mailboxOffset,
-                UseCompression,
+                false,   // RFC 3597 §4: RP postdates RFC 1035, so its mailbox is not compressible.
                 CompressionOffsets
             );
 
@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             TxtDomainName.Serialize(
                 tempStream,
                 txtOffset,
-                UseCompression,
+                false,   // RFC 3597 §4: the same holds for the TXT domain name.
                 CompressionOffsets
             );
 

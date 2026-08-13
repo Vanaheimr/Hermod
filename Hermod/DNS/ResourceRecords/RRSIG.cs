@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             SignerName.Serialize(
                 tempStream,
                 (Int32) Stream.Position + 2 + (Int32) tempStream.Position,
-                UseCompression,
+                false,   // RFC 4034 §3.1.7: the Signer's Name MUST NOT be compressed.
                 CompressionOffsets
             );
 

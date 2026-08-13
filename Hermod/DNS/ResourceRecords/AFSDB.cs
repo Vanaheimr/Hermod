@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Hostname.Serialize(
                 tempStream,
                 hostnameOffset,
-                UseCompression,
+                false,   // RFC 3597 §4: AFSDB postdates RFC 1035, so its hostname is not compressible.
                 CompressionOffsets
             );
 

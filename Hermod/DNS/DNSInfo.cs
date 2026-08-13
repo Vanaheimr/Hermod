@@ -179,7 +179,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                            Assembly.GetTypes().
                                            Where(type => type.IsClass &&
                                                 !type.IsAbstract &&
-                                                 type.IsSubclassOf(typeof(ADNSResourceRecord))))
+                                                 type.IsSubclassOf(typeof(ADNSResourceRecord)) &&
+                                                 // UnknownRecord is deliberately outside the index. The index
+                                                 // maps one type code to one class, and this class answers for
+                                                 // every code that has none — it carries its type as a
+                                                 // constructor argument rather than a TypeId constant, and
+                                                 // ReadResourceRecord reaches it after the lookup fails, not
+                                                 // through it.
+                                                 type != typeof(UnknownRecord)))
             {
 
                 var constructor_DomainName      = actualType.GetConstructor([ typeof(DomainName),     typeof(Stream) ]);
@@ -368,7 +375,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// a DNS stream, using the reflection registry of record types.
         /// </summary>
         /// <param name="DNSStream">A stream positioned at the start of a resource record.</param>
-        /// <returns>The record, or null when no type in this build claims the type code.</returns>
+        /// <returns>
+        /// The record — as an <see cref="UnknownRecord"/> holding opaque RDATA when
+        /// no type in this build claims the type code (RFC 3597 §2).
+        /// </returns>
         public static IDNSResourceRecord? ReadResourceRecord(Stream DNSStream)
         {
 
@@ -400,9 +410,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                 DNSStream
                                             ]);
 
-            DebugX.LogT($"Unknown DNS resource record '{typeId}' for '{resourceName}' received!");
-
-            return null;
+            // RFC 3597 §2: no parser for this type is not a reason to lose the
+            // record — and, more urgently, not a reason to leave the stream where
+            // it is. Everything after the TYPE field is still readable by shape
+            // alone, so the record is taken as opaque data and the reader ends up
+            // exactly where the next record starts.
+            //
+            // Returning early here instead cost the rest of the message: the
+            // caller's next call began reading an owner name out of this record's
+            // CLASS field, and what it made of the remaining bytes was anyone's
+            // guess.
+            return new UnknownRecord(
+                       DNSServiceName.Parse(resourceName),
+                       typeId,
+                       DNSStream
+                   );
 
         }
 

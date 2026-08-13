@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Algorithm.Serialize(
                 tempStream,
                 algorithmOffset,
-                UseCompression,
+                false,   // RFC 3597 §4: TKEY postdates RFC 1035, so its algorithm name is not compressible.
                 CompressionOffsets
             );
 

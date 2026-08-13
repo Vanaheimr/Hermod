@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             AlgorithmName.Serialize(
                 tempStream,
                 algorithmOffset,
-                UseCompression,
+                false,   // RFC 8945 §4.2: the Algorithm Name is sent in uncompressed wire format.
                 CompressionOffsets
             );
 

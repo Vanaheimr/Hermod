@@ -176,6 +176,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                      [NotNullWhen(true)] out IDNSResourceRecord?  ResourceRecord)
         {
 
+            // RFC 3597 §5: the generic RDATA encoding. It is tried first because
+            // it is unambiguous — no type-specific presentation format begins
+            // with the \# token — and because it is the only form available for a
+            // type with no parser behind it.
+            if (TryParseGenericRData(RData, out var genericRData))
+            {
+
+                ResourceRecord = ReadBackFromWire(
+                                     DNSServiceName,
+                                     Type,
+                                     Class,
+                                     TimeToLive,
+                                     genericRData
+                                 );
+
+                return ResourceRecord is not null;
+
+            }
+
             if (DomainName is not null)
             {
 
@@ -410,11 +429,120 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private static) TryParseGenericRData(RData, out Bytes)
+
+        /// <summary>
+        /// Try to read RDATA written in the RFC 3597 §5 generic encoding: the
+        /// token <c>\#</c>, the length in octets, and that many octets as
+        /// hexadecimal words.
+        /// </summary>
+        /// <param name="RData">The RDATA portion of a zone-file line.</param>
+        /// <param name="Bytes">The decoded RDATA.</param>
+        private static Boolean TryParseGenericRData(String                            RData,
+                                                    [NotNullWhen(true)] out Byte[]?   Bytes)
+        {
+
+            Bytes = null;
+
+            var words = RData.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (words.Length < 2 || words[0] != @"\#")
+                return false;
+
+            if (!UInt16.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var declaredLength))
+                return false;
+
+            var hexWords = words.Skip(2).ToArray();
+
+            // §5: "each containing an even number of hexadecimal digits". Words
+            // may be split anywhere on an octet boundary and nowhere else, so a
+            // word of odd length is a typo, not a nibble to pad.
+            if (hexWords.Any(word => word.Length % 2 != 0))
+                return false;
+
+            Byte[] rdata;
+
+            try
+            {
+                rdata = Convert.FromHexString(String.Concat(hexWords));
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+
+            // The length is written out as well as implied, so the two can
+            // disagree — and a record whose declared length is wrong would be
+            // silently reshaped by trusting either one over the other.
+            if (rdata.Length != declaredLength)
+                return false;
+
+            Bytes = rdata;
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private static) ReadBackFromWire(DNSServiceName, Type, Class, TimeToLive, RData)
+
+        /// <summary>
+        /// Assemble a resource record from its wire image and read it back.
+        /// </summary>
+        /// <remarks>
+        /// RFC 3597 §5 allows a record of <i>known</i> type to be written in the
+        /// generic form, and then requires that "all further processing by the
+        /// server MUST treat it as a known type". Going through the wire is how
+        /// that requirement is met without a second parser: the octets are handed
+        /// to the same registry that reads them off a socket, so a type with a
+        /// parser comes back as that type and everything else comes back as an
+        /// <see cref="UnknownRecord"/>.
+        /// </remarks>
+        private static IDNSResourceRecord? ReadBackFromWire(DNSServiceName          DNSServiceName,
+                                                            DNSResourceRecordTypes  Type,
+                                                            DNSQueryClasses         Class,
+                                                            TimeSpan                TimeToLive,
+                                                            Byte[]                  RData)
+        {
+
+            if (RData.Length > UInt16.MaxValue)
+                return null;
+
+            using var wire = new MemoryStream();
+
+            DNSServiceName.Serialize(wire, 0, UseCompression: false, Offsets: []);
+
+            wire.WriteUInt16BE((UInt16) Type);
+            wire.WriteUInt16BE((UInt16) Class);
+            wire.WriteUInt32BE((UInt32) Math.Min(TimeToLive.TotalSeconds, UInt32.MaxValue));
+            wire.WriteUInt16BE((UInt16) RData.Length);
+            wire.Write         (RData, 0, RData.Length);
+
+            wire.Position = 0;
+
+            try
+            {
+                return DNSInfo.ReadResourceRecord(wire);
+            }
+            catch (Exception)
+            {
+                // The octets are not a valid instance of a type that does have a
+                // parser. §5 leaves no second chance here: the record must be
+                // treated as that type, so it cannot quietly become opaque.
+                return null;
+            }
+
+        }
+
+        #endregion
+
         #region (private static) TryParseDNSQueryClass(Text, out Class)
 
         private static Boolean TryParseDNSQueryClass(String               Text,
                                                      out DNSQueryClasses  Class)
         {
+
+            Class = default;
 
             if (Enum.TryParse(Text, true, out Class) &&
                 Enum.IsDefined(Class))
@@ -422,12 +550,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return true;
             }
 
-            if (UInt16.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var classId))
+            // RFC 3597 §5: a class with no mnemonic is written "CLASS" followed
+            // by the decimal code — and a bare decimal is therefore not a class
+            // at all. That is the point of the convention rather than a
+            // formality: it is what lets "<name> 3600 IN A ..." and "<name> IN
+            // 3600 A ..." both be read without having to guess which number is
+            // the TTL. Accepting a bare decimal here read the TTL as a class,
+            // which the next token then overwrote, and the record ended up with
+            // whatever default TTL the caller had passed in.
+            if (Text.StartsWith("CLASS", StringComparison.OrdinalIgnoreCase) &&
+                UInt16.TryParse(Text[5..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var classId))
             {
                 Class = (DNSQueryClasses) classId;
                 return true;
             }
 
+            Class = default;
             return false;
 
         }
@@ -671,7 +809,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Format: &lt;name&gt; &lt;TTL&gt; &lt;class&gt; &lt;type&gt; &lt;rdata&gt;
         /// </summary>
         public virtual String ToZoneFileString()
-            => $"{DomainName,-24} {(Int32) TimeToLive.TotalSeconds,-7} {Class,-4} {Type,-10} {ZoneFileRData()}";
+            => $"{DomainName,-24} {(Int32) TimeToLive.TotalSeconds,-7} {ClassName(Class),-4} {TypeName(Type),-10} {ZoneFileRData()}";
+
+
+        /// <summary>
+        /// The presentation form of a resource record type: its mnemonic, or the
+        /// RFC 3597 §5 "TYPE" + decimal code form when it has none.
+        /// </summary>
+        /// <param name="Type">A resource record type.</param>
+        /// <remarks>
+        /// The bare number that <c>ToString()</c> gives for an undefined enum
+        /// value is not a substitute: nothing can read it back, because §5 is
+        /// precisely the rule that a bare number in this position is a TTL.
+        /// </remarks>
+        public static String TypeName(DNSResourceRecordTypes Type)
+
+            => Enum.IsDefined(Type)
+                   ? Type.ToString()
+                   : $"TYPE{(UInt16) Type}";
+
+
+        /// <summary>
+        /// The presentation form of a DNS class: its mnemonic, or the RFC 3597 §5
+        /// "CLASS" + decimal code form when it has none.
+        /// </summary>
+        /// <param name="Class">A DNS class.</param>
+        public static String ClassName(DNSQueryClasses Class)
+
+            => Enum.IsDefined(Class)
+                   ? Class.ToString()
+                   : $"CLASS{(UInt16) Class}";
 
         /// <summary>
         /// Return the RDATA portion of this resource record in zone-file presentation format.
@@ -764,8 +931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         if ((octet & (0x80 >> bit)) != 0)
                         {
                             var typeNumber = windowBlock * 256 + i * 8 + bit;
-                            var rrType     = (DNSResourceRecordTypes) typeNumber;
-                            types.Add(Enum.IsDefined(rrType) ? rrType.ToString() : $"TYPE{typeNumber}");
+                            types.Add(TypeName((DNSResourceRecordTypes) typeNumber));
                         }
                     }
                 }
