@@ -535,18 +535,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             // RFC 8198: Aggressive NSEC caching — check if the queried name
             // falls within a known NSEC range, proving non-existence.
-            var zoneName = DNSServiceName.ToString();
-            // Extract zone from name (use last 2+ labels as approximation)
-            var labels = zoneName.Split('.');
-            if (labels.Length > 2)
-                zoneName = String.Join(".", labels[^3..]);
-
-            if (DNSCache.IsNameNegativelyCachedByNSEC(DNSServiceName.ToString(), zoneName))
+            //
+            // The zone is not guessed from the shape of the name. It used to be
+            // taken as "the last three labels", which is right for a.example.com
+            // and wrong for everything under a longer or shorter zone cut; the
+            // cache then answered from the wrong zone's ranges, or missed. The
+            // lookup now tries every ancestor of the name as a zone, which is
+            // what "which zone holds this name" actually means when you do not
+            // yet know the answer.
+            if (DNSCache.IsNameNegativelyCachedByNSEC(DNSServiceName.ToString()))
             {
                 logger.LogDebug(
-                    "DNS NSEC cache proves non-existence for '{DNSServiceName}' in zone '{ZoneName}'",
-                    DNSServiceName,
-                    zoneName
+                    "DNS NSEC cache proves non-existence for '{DNSServiceName}'",
+                    DNSServiceName
                 );
 
                 return new DNSInfo(
@@ -623,6 +624,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         if (CancellationToken.IsCancellationRequested)
                             throw new OperationCanceledException(CancellationToken);
 
+                        // RFC 8198: cache the NSEC records from the authority
+                        // section, so one proven gap can answer for every name
+                        // inside it.
+                        //
+                        // §3 permits this only for records that have been
+                        // DNSSEC-validated, and that condition is the whole
+                        // safety argument. An NSEC taken on trust is a licence
+                        // to deny a range of names: an off-path attacker who
+                        // lands a single forged response suppresses everything
+                        // in that range for the TTL, without having to win a
+                        // race against any particular query. Caching first and
+                        // validating never is strictly worse than not caching.
+                        //
+                        // Hermod's client does not validate inline — that is the
+                        // caller's job, via DNSSECValidator — so DNSSECStatus is
+                        // normally null here and this path stays dormant. It is
+                        // meant to: dormant is the correct state for a feature
+                        // whose precondition is not met, and the alternative was
+                        // an unauthenticated denial cache.
+                        if (firstResponse?.DNSSECStatus == DNSSECValidationResult.Secure)
+                        {
+
+                            var nsecRecords = firstResponse.Authorities.OfType<NSEC>().ToList();
+
+                            if (nsecRecords.Count > 0)
+                            {
+
+                                // The zone comes from the SOA the responder put
+                                // in the authority section — it is the zone that
+                                // answered — rather than from counting labels of
+                                // the query name, which cannot find a zone cut.
+                                var soa      = firstResponse.Authorities.OfType<SOA>().FirstOrDefault();
+                                var respZone = soa?.DomainName.ToString();
+
+                                if (respZone is not null)
+                                {
+
+                                    var nsecTTL = soa?.TimeToLive ?? DNSCache.DefaultNegativeCacheTTL;
+
+                                    foreach (var nsec in nsecRecords)
+                                        DNSCache.AddNSECRange(respZone, nsec, nsecTTL);
+
+                                }
+
+                            }
+
+                        }
+
                         if (firstResponse?.ResponseCode == DNSResponseCodes.NoError)
                         {
 
@@ -681,26 +730,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                             break;
 
-                        }
-
-                        // RFC 8198: Cache NSEC records from the authority section for aggressive negative caching
-                        if (firstResponse is not null)
-                        {
-                            var nsecRecords = firstResponse.Authorities.OfType<NSEC>().ToList();
-                            if (nsecRecords.Count > 0)
-                            {
-                                var respZone = DNSServiceName.ToString();
-                                var respLabels = respZone.Split('.');
-                                if (respLabels.Length > 2)
-                                    respZone = String.Join(".", respLabels[^3..]);
-
-                                var nsecTTL = firstResponse.Authorities.OfType<SOA>()
-                                                   .Select(soa => soa.TimeToLive)
-                                                   .FirstOrDefault(DNSCache.DefaultNegativeCacheTTL);
-
-                                foreach (var nsec in nsecRecords)
-                                    DNSCache.AddNSECRange(respZone, nsec, nsecTTL);
-                            }
                         }
 
                     }

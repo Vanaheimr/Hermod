@@ -680,6 +680,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The domain name to check.</param>
         /// <param name="ZoneName">The zone to check NSEC ranges for.</param>
         /// <returns>True if the name is proven non-existent by a cached NSEC range.</returns>
+        public Boolean IsNameNegativelyCachedByNSEC(String DomainName)
+        {
+
+            // The caller does not know which zone holds the name — that is what
+            // it is asking. So try every ancestor as a zone: for a.b.example.
+            // that is a.b.example., b.example., example. and the root. Bounded
+            // by the label count, and it removes the need to guess a zone from
+            // the shape of the name, which cannot be done reliably.
+            var labels = DomainName.TrimEnd('.').Split('.');
+
+            for (var skip = 0; skip <= labels.Length; skip++)
+                if (IsNameNegativelyCachedByNSEC(DomainName, String.Join('.', labels.Skip(skip)) + "."))
+                    return true;
+
+            return false;
+
+        }
+
+        /// <summary>
+        /// Check if a domain name falls within a cached NSEC range for a known
+        /// zone, proving its non-existence without a network query (RFC 8198).
+        /// </summary>
+        /// <param name="DomainName">The domain name to check.</param>
+        /// <param name="ZoneName">The zone to check NSEC ranges for.</param>
         public Boolean IsNameNegativelyCachedByNSEC(String  DomainName,
                                                     String  ZoneName)
         {
@@ -696,26 +720,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (expiry <= now)
                     continue;
 
-                var ownerName = record.DomainName.FullName.ToLowerInvariant();
-                var nextName  = record.NextDomainName.FullName.ToLowerInvariant();
+                var ownerName = record.DomainName.FullName;
+                var nextName  = record.NextDomainName.FullName;
 
-                // RFC 4034 Section 6.1: Canonical DNS Name Order
-                // A name is proven non-existent if: owner < name < next
-                // Special case: if next <= owner, the range wraps around (last NSEC in zone)
-                if (String.Compare(nextName, ownerName, StringComparison.Ordinal) > 0)
-                {
-                    // Normal range: owner < name < next
-                    if (String.Compare(queryName, ownerName, StringComparison.Ordinal) > 0 &&
-                        String.Compare(queryName, nextName,  StringComparison.Ordinal) < 0)
-                        return true;
-                }
-                else
-                {
-                    // Wrap-around range (last NSEC): name > owner OR name < next
-                    if (String.Compare(queryName, ownerName, StringComparison.Ordinal) > 0 ||
-                        String.Compare(queryName, nextName,  StringComparison.Ordinal) < 0)
-                        return true;
-                }
+                // RFC 4034 §6.1 canonical order — label by label from the
+                // rightmost, which is emphatically not string order. Comparing
+                // the dotted strings instead lets "c.z.example." look like it
+                // sits between "b.example." and "d.example.", and a resolver
+                // that believes that denies a name the NSEC never spoke about.
+                var afterOwner = DenialOfExistenceValidator.CompareCanonical(queryName, ownerName) > 0;
+                var beforeNext = DenialOfExistenceValidator.CompareCanonical(queryName, nextName)  < 0;
+
+                // The last NSEC of a zone points back at the apex, so its span
+                // wraps: everything after the owner, or before the next.
+                var wraps      = DenialOfExistenceValidator.CompareCanonical(nextName, ownerName) <= 0;
+
+                if (wraps ? (afterOwner || beforeNext)
+                          : (afterOwner && beforeNext))
+                    return true;
 
             }
 
