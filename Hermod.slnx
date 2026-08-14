@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../Styx/Styx/Styx.csproj" />
+  <Project Path="../Styx/StyxTests/StyxTests.csproj" />
+  <Project Path="Hermod/Hermod.csproj" />
+  <Project Path="HermodTests/HermodTests.csproj" />
+</Solution>
