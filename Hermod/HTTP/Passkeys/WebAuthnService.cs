@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Text;
-using System.Formats.Cbor;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
@@ -423,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
                                                          X9ECParameters  EllipticCurve)
         {
 
-            var reader    = new CborReader(COSEKeyBytes);
+            var reader    = new CBORReader(COSEKeyBytes);
             var mapLength = reader.ReadStartMap();
 
             byte[]? x = null;
@@ -432,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
             for (var i = 0; i < mapLength; i++)
             {
 
-                var key = reader.ReadInt32();
+                var key = reader.ReadInt64();
 
                 switch (key)
                 {
