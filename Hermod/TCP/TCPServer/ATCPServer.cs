@@ -102,12 +102,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The TCP port this TCP EchoTest server is listening on.
         /// </summary>
-        public IPPort       TCPPort           { get; }
+        /// <remarks>
+        /// The port that was actually bound, which is only different from the
+        /// one that was asked for in one case: port 0, where the operating
+        /// system chooses. <see cref="Start"/> writes the assignment back here,
+        /// so a caller that passed 0 can learn what it got.
+        ///
+        /// That case is worth supporting rather than leaving to callers,
+        /// because the obvious workaround is a race. "Bind port 0, read the
+        /// number, close the socket, hand the number on" leaves a window in
+        /// which anybody may take the port, and whoever binds it for real then
+        /// fails with AddressAlreadyInUse - rarely, and more often on Linux,
+        /// where the ephemeral range cycles faster. Letting the server keep the
+        /// socket it was given closes the window instead of narrowing it.
+        /// </remarks>
+        public IPPort       TCPPort           { get; private set; }
 
         /// <summary>
         /// The IP socket this TCP EchoTest server is listening on.
         /// </summary>
-        public IPSocket     IPSocket          { get; }
+        public IPSocket     IPSocket          { get; private set; }
 
         /// <summary>
         /// The optional multilingual description of this TCP EchoTest server.
@@ -557,6 +571,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (IPAddress.IsIPv4 && tcpListenerIPv4 is not null)
                 {
                     tcpListenerIPv4.Start((Int32) MaxClientConnections);
+                }
+
+                // Port 0 means "whichever is free", and the choice is only made
+                // here, by the operating system, at the moment of the bind. Read
+                // it back so that whoever asked for 0 can find out what they
+                // got - otherwise the only way to learn it is to bind a
+                // throwaway socket first, note the number and close it, which
+                // is a race: between the closing and the real bind the port is
+                // free for anybody.
+                //
+                // Written unconditionally rather than only for 0. For any other
+                // port this assigns the same value it already had, and a branch
+                // would be a claim that the two can differ.
+                //
+                // IPv6 first, because on a dual-mode socket that is the one
+                // that was bound and the IPv4 listener is not separately
+                // started.
+                var bound = (IPAddress.IsIPv6 ? tcpListenerIPv6 : tcpListenerIPv4)?.LocalEndpoint
+                                as System.Net.IPEndPoint;
+
+                // IPSocket too, and not only TCPPort: it is built from the port
+                // in the constructor, so leaving it behind would give two
+                // properties of the same object that disagree about which port
+                // this server is on - and the one nobody updated is the one
+                // somebody logs.
+                if (bound is not null)
+                {
+                    TCPPort   = IPPort.Parse(bound.Port);
+                    IPSocket  = new IPSocket(IPAddress, TCPPort);
                 }
 
                 serverTask = Task.Factory.StartNew(async () => {
