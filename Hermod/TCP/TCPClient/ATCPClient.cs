@@ -87,8 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// the client's is killed by the very reconnect it asked for, so
         /// SendRequest's retry loop reconnected, cancelled itself, found the
         /// token dead on the next two attempts, ran out of retries, and returned
-        /// a fabricated "HTTP 400 - Maximum HTTP retries reached!" that the DNS
-        /// clients then reported as the resolver's own answer.
+        /// a response no server had sent - back then an "HTTP 400 - Maximum HTTP
+        /// retries reached!", which the DNS clients duly reported as the
+        /// resolver's own answer. It says 0-ClientError now.
         ///
         /// A reconnect tears down a socket. It has no business ending the
         /// request that provoked it.

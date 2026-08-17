@@ -503,8 +503,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // calls this from inside a request whose token derives from the
                 // client's, so cancelling that one here ended the request that
                 // asked for the reconnect, left the next two retries starting
-                // from an already-cancelled token, and turned into a fabricated
-                // "HTTP 400 - Maximum HTTP retries reached!".
+                // from an already-cancelled token, and ended in the response the
+                // loop fabricates when it runs out - back then an "HTTP 400 -
+                // Maximum HTTP retries reached!".
                 CycleConnectionToken();
 
                 StopBackgroundConnectionRenewal();
@@ -859,13 +860,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    var retry = 1;
+                    var maxNumberOfRetries  = MaxNumberOfRetries ?? this.MaxNumberOfRetries;
+                    var retry               = 1;
 
-                    while (retry <= (MaxNumberOfRetries ?? this.MaxNumberOfRetries))
+                    // Why the loop gave up, in the words of whatever actually
+                    // went wrong. Without it the caller was told nothing beyond
+                    // "maximum retries reached", which names the symptom.
+                    var lastError           = (String?) null;
+
+                    while (retry <= maxNumberOfRetries)
                     {
 
                         if (retry > 1)
-                            DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{retry} of {MaxNumberOfRetries}...");
+                            DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{retry} of {maxNumberOfRetries}...");
 
                         if (!IsConnected || !IsHTTPConnected || IsConnectionClosed || IsConnectionLifetimeExceeded)
                         {
@@ -876,8 +883,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 if (!connectionResult.IsSuccess)
                                 {
-                                    await Log($"Error in SendRequest: {connectionResult.Errors.AggregateWith(", ")}");
-                                    DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)}: {connectionResult.Errors.AggregateWith(", ")}");
+                                    lastError = connectionResult.Errors.AggregateWith(", ");
+                                    await Log($"Error in SendRequest: {lastError}");
+                                    DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)}: {lastError}");
                                     IsHTTPConnected = false;
                                     retry++;
                                     continue;
@@ -886,6 +894,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
                             catch (Exception ex)
                             {
+                                lastError = $"[{ex.GetType().Name}] {ex.Message}";
                                 await Log($"Error in SendRequest: {ex.Message}");
                                 DebugX.LogException(ex, nameof(AHTTPClient) + "." + nameof(SendRequest));
                                 IsHTTPConnected = false;
@@ -896,6 +905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (httpStream is null)
                         {
+                            lastError = "HTTP stream is not available!";
                             await Log("HTTP stream is not available!");
                             DebugX.Log($"{nameof(AHTTPClient)}.{nameof(SendRequest)} HTTP stream is not available!");
                             IsHTTPConnected = false;
@@ -1075,14 +1085,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 if (!TryValidateResponseFraming(responseHeader, out var responseFramingError))
                                 {
+
                                     bufferOwner?.Dispose();
 
+                                    // This client refusing the server's framing,
+                                    // reported as the server refusing the
+                                    // client's request. The server said no such
+                                    // thing - it said whatever is in
+                                    // responseHeader, and this code would not
+                                    // parse it.
                                     return new HTTPResponse.Builder(Request) {
-                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                               HTTPStatusCode  = HTTPStatusCode.ClientError,
                                                Content         = responseFramingError.ToUTF8Bytes(),
                                                ContentType     = HTTPContentType.Text.PLAIN,
                                                Runtime         = stopwatch.Elapsed
                                            };
+
                                 }
 
                                  if (IsInterimResponse(responseHeader))
@@ -1347,6 +1365,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             // Persistend HTTP connection was probably just closed...
+                            lastError = $"[{ex.GetType().Name}] {ex.Message}";
+
                             if (retry > 1 || ex.InnerException is not SocketException)
                             {
                                 await Log($"Error in SendRequest: {ex.Message}");
@@ -1364,9 +1384,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
+                    // This one is written here, not received: the request was
+                    // never sent, or the exchange never finished.
+                    // HTTPStatusCode.ClientError is code 0 and exists for exactly
+                    // that - no server can return it, so no caller can mistake it
+                    // for a verdict. BadRequest was such a mistake waiting to
+                    // happen, and DNSHTTPSClient duly made it, passing the
+                    // client's own 400 on as "the resolver returned HTTP 400".
                     return new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                               Content         = "Maximum HTTP retries reached!".ToUTF8Bytes(),
+                               HTTPStatusCode  = HTTPStatusCode.ClientError,
+                               Content         = $"Giving up on this HTTP request to {RemoteURL} after {maxNumberOfRetries} {(maxNumberOfRetries == 1 ? "attempt" : "attempts")}: {lastError ?? "no reason was recorded"}".ToUTF8Bytes(),
                                ContentType     = HTTPContentType.Text.PLAIN,
                                Runtime         = TimeSpan.Zero
                            };
@@ -1378,7 +1405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     DebugX.LogT(e.Message);
 
                     return new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                               HTTPStatusCode  = HTTPStatusCode.ClientError,
                                Content         = JSONObject.Create(
                                                      new JProperty("message",     $"Exception in {nameof(AHTTPClient)}.{nameof(SendRequest)}: {e.Message}"),
                                                      new JProperty("exception",   e.Message),
@@ -1412,8 +1439,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
+            // Also nothing from a server: this request never even reached the
+            // sending code.
             return new HTTPResponse.Builder(Request) {
-                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       HTTPStatusCode  = HTTPStatusCode.ClientError,
                        Content         = $"Could not acquire semaphore for {nameof(AHTTPClient)}.{nameof(SendRequest)}.".ToUTF8Bytes(),
                        ContentType     = HTTPContentType.Text.PLAIN,
                        Runtime         = TimeSpan.Zero

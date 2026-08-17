@@ -103,6 +103,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public TimeSpan?         ServerKeepaliveTimeout    { get; private set; }
 
+
+        /// <summary>
+        /// How to name this resolver in a log line.
+        /// </summary>
+        /// <remarks>
+        /// RemoteIPAddress is only ever set by the constructor which is given
+        /// one; the URL constructor beside it learns the address when the socket
+        /// connects and knows none at all when it never did. See
+        /// <see cref="DNSHTTPSClient"/>, where logging that field directly is
+        /// what produced "(null):443".
+        /// </remarks>
+        private String DNSServerLabel
+        {
+            get
+            {
+
+                var ipAddress = CurrentRemoteIPAddress ?? RemoteIPAddress;
+
+                if (ipAddress is null)
+                    return RemoteURL.ToString();
+
+                // Brackets, or "2001:...:8844:853" is anyone's guess as to where
+                // the address stops and the port starts - RFC 3986 §3.2.2.
+                return ipAddress.IsIPv6
+                           ? $"[{ipAddress}]:{RemotePort ?? IPPort.DNS_TLS}"
+                           :   $"{ipAddress}:{RemotePort ?? IPPort.DNS_TLS}";
+
+            }
+        }
+
         #endregion
 
         #region Constructor(s)
@@ -398,9 +428,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     logger.LogWarning(
                         ocx,
-                        "DNS TLS query to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
-                        RemoteIPAddress,
-                        RemotePort
+                        "DNS TLS query to {DNSServer} was cancelled by the client - it did not time out",
+                        DNSServerLabel
                     );
 
                     return DNSInfo.Failed(
@@ -415,9 +444,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
 
                 logger.LogWarning(
-                    "DNS TLS query to {RemoteIPAddress}:{RemotePort} timed out after {Timeout}s",
-                    RemoteIPAddress,
-                    RemotePort,
+                    "DNS TLS query to {DNSServer} timed out after {Timeout}s",
+                    DNSServerLabel,
                     effectiveTimeout.TotalSeconds
                 );
 
@@ -434,7 +462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (SocketException se)
             {
 
-                await Log($"DNS TLS query to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
+                await Log($"DNS TLS query to {DNSServerLabel} socket error: {se.SocketErrorCode} — {se.Message}");
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(
@@ -464,7 +492,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (Exception ex)
             {
 
-                await Log($"DNS TLS query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}");
+                await Log($"DNS TLS query to {DNSServerLabel} failed: [{ex.GetType().Name}] {ex.Message}");
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(
@@ -546,7 +574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!TransactionSecurity.TryAcceptResponse(ref body, RequestMAC, SignedQuery, out var reason))
             {
 
-                await Log($"Discarding a DoT response from {RemoteIPAddress}:{RemotePort} that failed transaction-signature verification: {reason}");
+                await Log($"Discarding a DoT response from {DNSServerLabel} that failed transaction-signature verification: {reason}");
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(
@@ -1058,7 +1086,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Using DNS server: {RemoteIPAddress}:{RemotePort}";
+            => $"Using DNS server: {DNSServerLabel}";
 
         #endregion
 

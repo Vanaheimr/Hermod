@@ -31,6 +31,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
     /// <summary>
     /// Regression tests for HTTP protocol behavior of the Hermod HTTP client.
     /// </summary>
+    /// <remarks>
+    /// The rejections below expect 0-ClientError, not 400 Bad Request. A status
+    /// code the client wrote for itself is not a verdict from the server: these
+    /// servers answered "200 OK" and then truncated the body, or sent a status
+    /// line this client would not parse. Calling that 400 reported them as
+    /// having refused the request, which none of them did — and left a caller
+    /// unable to tell such a 400 from a real one. AHTTPClient does not invent
+    /// server status codes any more; everything it writes itself is code 0.
+    /// </remarks>
     [TestFixture]
     public class HTTPClientProtocolRegressionTests
     {
@@ -96,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.BadRequest));
+            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
@@ -194,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                      RequestTimeout: TimeSpan.FromSeconds(3)
                                  );
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.BadRequest));
+            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
             Assert.That(httpClient.IsHTTPConnected, Is.False);
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
@@ -227,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                      RequestTimeout: TimeSpan.FromSeconds(3)
                                  );
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.BadRequest));
+            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
             Assert.That(httpClient.IsHTTPConnected, Is.False);
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
@@ -260,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                      RequestTimeout: TimeSpan.FromSeconds(3)
                                  );
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.BadRequest));
+            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
             Assert.That(httpClient.IsHTTPConnected, Is.False);
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
@@ -408,7 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.BadRequest));
+            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
@@ -438,7 +447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.BadRequest));
+            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
@@ -467,7 +476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.BadRequest));
+            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 

@@ -111,6 +111,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         public DNSTransactionSecurity  TransactionSecurity { get; set; } = DNSTransactionSecurity.None;
 
+
+        /// <summary>
+        /// How to name this resolver in a log line.
+        /// </summary>
+        /// <remarks>
+        /// RemoteIPAddress is only ever set by the constructors which are given
+        /// one. A client created from a URL — the ordinary way to reach a public
+        /// resolver — learns the address when the socket connects and knows none
+        /// at all when it never did, so logging that field directly is where
+        /// "(null):443" came from. The URL is what such a client was asked to
+        /// reach, and it is known from the start.
+        /// </remarks>
+        private String DNSServerLabel
+        {
+            get
+            {
+
+                var ipAddress = CurrentRemoteIPAddress ?? RemoteIPAddress;
+
+                if (ipAddress is null)
+                    return RemoteURL.ToString();
+
+                // Brackets, or "2001:...:8844:443" is anyone's guess as to where
+                // the address stops and the port starts - RFC 3986 §3.2.2.
+                return ipAddress.IsIPv6
+                           ? $"[{ipAddress}]:{RemotePort ?? IPPort.HTTPS}"
+                           :   $"{ipAddress}:{RemotePort ?? IPPort.HTTPS}";
+
+            }
+        }
+
         #endregion
 
         #region Constructor(s)
@@ -810,12 +841,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     httpResponse.HTTPStatusCode.Code >= 300)
                 {
 
-                    logger.LogWarning(
-                        "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} returned HTTP {HTTPStatusCode}",
-                        RemoteIPAddress,
-                        RemotePort,
-                        httpResponse.HTTPStatusCode.Code
-                    );
+                    // Status code 0 is Hermod's own and no server can send it:
+                    // the HTTP client never got an answer, so there is no status
+                    // from the resolver to report. Everything here used to be
+                    // called "returned HTTP {code}", which credited a resolver
+                    // that had said nothing with the client's own 400.
+                    if (httpResponse.HTTPStatusCode == HTTPStatusCode.ClientError)
+                        logger.LogWarning(
+                            "DNS HTTPS query to {DNSServer} was never answered: {Reason}",
+                            DNSServerLabel,
+                            httpResponse.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN)
+                        );
+
+                    else
+                        logger.LogWarning(
+                            "DNS HTTPS query to {DNSServer} returned HTTP {HTTPStatusCode}",
+                            DNSServerLabel,
+                            httpResponse.HTTPStatusCode.Code
+                        );
 
                     return DNSInfo.Failed(
                                serverConfig,
@@ -845,9 +888,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 {
 
                     logger.LogWarning(
-                        "DNS HTTPS response from {RemoteIPAddress}:{RemotePort} too short: {Length} bytes, minimum 12",
-                        RemoteIPAddress,
-                        RemotePort,
+                        "DNS HTTPS response from {DNSServer} too short: {Length} bytes, minimum 12",
+                        DNSServerLabel,
                         body.Length
                     );
 
@@ -863,9 +905,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 {
 
                     logger.LogWarning(
-                        "Discarding a DNS HTTPS response from {RemoteIPAddress}:{RemotePort} that failed transaction-signature verification: {Reason}",
-                        RemoteIPAddress,
-                        RemotePort,
+                        "Discarding a DNS HTTPS response from {DNSServer} that failed transaction-signature verification: {Reason}",
+                        DNSServerLabel,
                         reason
                     );
 
@@ -904,9 +945,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     logger.LogWarning(
                         ocx,
-                        "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
-                        RemoteIPAddress,
-                        RemotePort
+                        "DNS HTTPS query to {DNSServer} was cancelled by the client - it did not time out",
+                        DNSServerLabel
                     );
 
                     return DNSInfo.Failed(
@@ -921,9 +961,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
 
                 logger.LogWarning(
-                    "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} timed out after {Timeout}s",
-                    RemoteIPAddress,
-                    RemotePort,
+                    "DNS HTTPS query to {DNSServer} timed out after {Timeout}s",
+                    DNSServerLabel,
                     effectiveTimeout.TotalSeconds
                 );
 
@@ -957,12 +996,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 logger.LogError(
                     ex,
-                    "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} failed",
-                    RemoteIPAddress,
-                    RemotePort
+                    "DNS HTTPS query to {DNSServer} failed",
+                    DNSServerLabel
                 );
 
-                await Log($"DNS HTTPS query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}");
+                await Log($"DNS HTTPS query to {DNSServerLabel} failed: [{ex.GetType().Name}] {ex.Message}");
 
                 return DNSInfo.Failed(
                            new DNSServerConfig(
@@ -1507,7 +1545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Using DNS server: {RemoteIPAddress}:{RemotePort}";
+            => $"Using DNS server: {DNSServerLabel}";
 
         #endregion
 

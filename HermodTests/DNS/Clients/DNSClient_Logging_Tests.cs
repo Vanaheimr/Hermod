@@ -23,6 +23,7 @@ using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -156,6 +157,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                 ),
                 Is.True
             );
+
+        }
+
+        #endregion
+
+        #region ADoHClientBuiltFromAURL_IsNamedByThatURL()
+
+        /// <summary>
+        /// RemoteIPAddress is only ever set by the constructors handed one, so a
+        /// client built from a URL knows no address until its socket connects -
+        /// and every log line in DNSHTTPSClient printed that field. This is the
+        /// "(null):443" that a whole day of DoH failures were reported against.
+        /// </summary>
+        [Test]
+        public void ADoHClientBuiltFromAURL_IsNamedByThatURL()
+        {
+
+            using var client = new DNSHTTPSClient(
+                                   URL.Parse("https://dns.example/dns-query")
+                               );
+
+            Assert.Multiple(() => {
+                Assert.That(client.RemoteIPAddress,  Is.Null,  "the premise: there is no address to print yet");
+                Assert.That(client.ToString(),       Is.EqualTo("Using DNS server: https://dns.example/dns-query"));
+            });
+
+        }
+
+        #endregion
+
+        #region AnUnreachableDoHResolver_IsNotQuotedAsHavingAnswered()
+
+        /// <summary>
+        /// A DoH query that never reached its resolver used to be reported as
+        /// "DNS HTTPS query to (null):443 returned HTTP 400" — a status code the
+        /// HTTP client had written itself, credited to a server which had said
+        /// nothing at all.
+        /// </summary>
+        [Test]
+        public async Task AnUnreachableDoHResolver_IsNotQuotedAsHavingAnswered()
+        {
+
+            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            var closedPort = ((IPEndPoint) listener.LocalEndpoint).Port;
+            listener.Stop();
+
+            var url = URL.Parse($"https://127.0.0.1:{closedPort}/dns-query");
+
+            using var loggerFactory = new TestLoggerFactory();
+            using var client        = new DNSHTTPSClient(
+                                          url,
+                                          QueryTimeout:   TimeSpan.FromSeconds(5),
+                                          LoggerFactory:  loggerFactory
+                                      );
+
+            await client.QueryHTTP(
+                      DNSServiceName.Parse("example.org"),
+                      [DNSResourceRecordTypes.A]
+                  );
+
+            var warnings = loggerFactory.Entries.
+                               Where (entry => entry.LogLevel == LogLevel.Warning).
+                               Select(entry => entry.Message).
+                               ToList();
+
+            var report   = String.Join(Environment.NewLine, warnings);
+
+            Assert.Multiple(() => {
+
+                Assert.That(
+                    warnings.Any(message => message.Contains("was never answered", StringComparison.Ordinal) &&
+                                            message.Contains(url.ToString(),       StringComparison.Ordinal)),
+                    Is.True,
+                    report
+                );
+
+                Assert.That(
+                    warnings.Any(message => message.Contains("returned HTTP", StringComparison.Ordinal)),
+                    Is.False,
+                    report
+                );
+
+                Assert.That(
+                    warnings.Any(message => message.Contains("(null)", StringComparison.Ordinal)),
+                    Is.False,
+                    report
+                );
+
+            });
 
         }
 

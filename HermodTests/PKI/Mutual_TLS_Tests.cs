@@ -1801,7 +1801,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var response1    = await httpClient1.GET(HTTPPath.Root);
             var data1        = response1.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
 
-            Assert.That(data1,  Is.EqualTo("Maximum HTTP retries reached!"));
+            // The client rejected the server certificate, so nothing was ever
+            // sent and no server ever answered. 0-ClientError says that; this
+            // used to read "400 Bad Request - Maximum HTTP retries reached!",
+            // which reported a verdict from a server that was never spoken to.
+            Assert.Multiple(() => {
+                Assert.That(response1.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.ClientError),     data1);
+                Assert.That(data1,                     Does.StartWith("Giving up on this HTTP request to "));
+                Assert.That(data1,                     Does.Contain(" after 1 attempt: "));
+            });
 
         }
 
@@ -2164,9 +2172,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             // the image before and after. Locally and on Linux/OpenSSL this path is
             // deterministic, so the tolerance is limited to GitHub-hosted Windows runners.
 
-            if (TolerateCertlessRejectionOnWindowsRunners &&
-                data1 == "Maximum HTTP retries reached!"  &&
-                OperatingSystem.IsWindows()               &&
+            if (TolerateCertlessRejectionOnWindowsRunners                       &&
+                response1.HTTPStatusCode == HTTPStatusCode.ClientError          &&
+                OperatingSystem.IsWindows()                                     &&
                 Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
             {
                 Assert.Inconclusive(
