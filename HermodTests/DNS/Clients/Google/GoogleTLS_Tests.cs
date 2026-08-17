@@ -36,12 +36,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
         public void InitTests()
         {
 
-            client = DNSTLSClient.Google_Random(
+            // _IPv4 - see GoogleTCP_Tests. The mixed pool made this fixture a
+            // coin toss on a host without an IPv6 route.
+            client = DNSTLSClient.Google_Random_IPv4(
                          RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS
-                         //DNSClient:                    new DNSClient(
-                         //                                  SearchForIPv4DNSServers: true,
-                         //                                  SearchForIPv6DNSServers: false
-                         //                              )
                      );
 
         }

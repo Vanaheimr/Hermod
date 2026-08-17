@@ -43,12 +43,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
         public void InitTests()
         {
 
-            client = DNSTLSClient.Cloudflare_DNSName(
-                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
-                         DNSClient:                    new DNSClient(
-                                                           SearchForIPv4DNSServers: true,
-                                                           SearchForIPv6DNSServers: false
-                                                       )
+            // Was Cloudflare_DNSName, and that one failed every run rather than
+            // every other one - a different symptom of the same cause. A name
+            // resolves to an A record and an AAAA record;
+            // IPVersionPreference.PreferIPv6 is the default, being the enum's
+            // first member and therefore the value when nobody sets one; and its
+            // fallback reads "if no IPv6 address is available", where here one
+            // is available and merely unroutable. Cloudflare_DNSName offers no
+            // PreferIPv4 to say otherwise, so this goes the way of the TCP
+            // fixtures instead.
+            //
+            // What is given up with the name is the SNI and the name check in
+            // the certificate. What is gained is a fixture that measures DoT
+            // rather than the host's IPv6 situation.
+            client = DNSTLSClient.Cloudflare_Random_IPv4(
+                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS
                      );
 
         }

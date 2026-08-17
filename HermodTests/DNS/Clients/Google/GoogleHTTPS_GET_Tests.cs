@@ -35,9 +35,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
         public void InitTests()
         {
 
+            // IPv4Only. The endpoint here is a name, it resolves to an A record
+            // and an AAAA record, and IPVersionPreference.PreferIPv6 takes the AAAA -
+            // it is the default, being the enum first member and therefore the value
+            // when nobody sets one, and its fallback reads "if no IPv6 address is
+            // available", where here one is available and merely unroutable. On a host
+            // without an IPv6 route that cost the full query timeout, reported as a
+            // server failure. There is no _Random_IPv4 to reach for on this transport:
+            // DoH goes to a URL, not to an address.
             client  = DNSHTTPSClient.Google(
                           Mode:                         DNSHTTPSMode.GET,
                           RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                          PreferIPv4:                   IPVersionPreference.IPv4Only,
                           DNSClient:                    new DNSClient(
                                                             SearchForIPv4DNSServers: true,
                                                             SearchForIPv6DNSServers: false

@@ -33,10 +33,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
     public class GoogleTCP_Tests : ADNSTests
     {
 
+        /// <remarks>
+        /// <c>_IPv4</c>, as the UDP fixtures have said for a while.
+        /// <c>Google_Random</c> draws from
+        /// <c>[IPv4_1, IPv4_2, IPv6_1, IPv6_2]</c>, once per fixture, so on a
+        /// machine without an IPv6 route this whole fixture passed or failed by
+        /// coin toss - measured over five runs, the set of failing fixtures
+        /// moved every time. What is examined here is the TCP transport, not
+        /// whether the host happens to have IPv6.
+        /// </remarks>
         [OneTimeSetUp]
         public void InitTests()
         {
-            client = DNSTCPClient.Google_Random();
+            client = DNSTCPClient.Google_Random_IPv4();
         }
 
     }

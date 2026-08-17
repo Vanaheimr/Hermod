@@ -34,10 +34,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
     public class CloudflareTCP_Tests : ADNSTests
     {
 
+        /// <remarks>
+        /// <c>_IPv4</c> - see <c>GoogleTCP_Tests</c> for why the mixed pool
+        /// made this a coin toss on a host without an IPv6 route.
+        /// </remarks>
         [OneTimeSetUp]
         public void InitTests()
         {
-            client = DNSTCPClient.Cloudflare_Random();
+            client = DNSTCPClient.Cloudflare_Random_IPv4();
         }
 
     }
