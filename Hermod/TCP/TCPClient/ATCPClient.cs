@@ -811,11 +811,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     try
                     {
 
+                        // IPv4Only and IPv6Only used to have no arm of their own
+                        // and fell through to the default one, which picks from
+                        // both families at random - the exact opposite of what
+                        // their names and their documentation promise. The
+                        // trailing "?? GetRandomElement()" then finished the job:
+                        // it applied to every arm, so even a matched preference
+                        // could end up on the other family.
+                        //
+                        // That is why the DoH fixtures stayed flaky after being
+                        // set to IPv4Only. On a host with no IPv6 route the pick
+                        // was a coin toss, three times per query, and a query
+                        // failed when all three came up AAAA - "Error connecting
+                        // ATCPClient: Network is unreachable".
+                        //
+                        // Only means only: these two may find nothing, and then
+                        // the connection fails saying so, rather than quietly
+                        // using the family the caller ruled out.
                         ResolvedIPAddress  = IPVersionPreference switch {
-                                                 IPVersionPreference.PreferIPv4  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement(),
-                                                 IPVersionPreference.PreferIPv6  => ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement(),
-                                                 _                               => ResolvedIPAddresses.GetRandomElement()
-                                             } ?? ResolvedIPAddresses.GetRandomElement();
+
+                                                 IPVersionPreference.IPv4Only    =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement(),
+                                                 IPVersionPreference.IPv6Only    =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement(),
+
+                                                 IPVersionPreference.PreferIPv4  =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement()
+                                                                                         ?? ResolvedIPAddresses.GetRandomElement(),
+
+                                                 IPVersionPreference.PreferIPv6  =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement()
+                                                                                         ?? ResolvedIPAddresses.GetRandomElement(),
+
+                                                 _                               =>  ResolvedIPAddresses.GetRandomElement()
+
+                                             };
+
+                        if (ResolvedIPAddress is null)
+                        {
+                            ResolvedIPAddresses.Clear();
+                            return TCPConnectionResult.Failed($"{nameof(ATCPClient)}: {IPVersionPreference} was asked for, and none of the resolved addresses is of that family!");
+                        }
 
                         var connectTask    = tcpClient.ConnectAsync(
                                                  ResolvedIPAddress.ToDotNet(),
