@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
         {
 
             // IPv6 seems to be broken sometimes!
-            client = DNSUDPClient.Google_Random_IPv4();
+            client = DNSUDPClient.Google_Random_IPv4(LoggerFactory: logs);
 
         }
 

@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
         {
 
             // IPv6 seems to be broken sometimes!
-            client = DNSUDPClient.Cloudflare_Random_IPv4();
+            client = DNSUDPClient.Cloudflare_Random_IPv4(LoggerFactory: logs);
 
         }
 

@@ -54,7 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
                           DNSClient:                    new DNSClient(
                                                             SearchForIPv4DNSServers: true,
                                                             SearchForIPv6DNSServers: false
-                                                        )
+                                                        ),
+                          LoggerFactory:                logs
                       );
 
         }

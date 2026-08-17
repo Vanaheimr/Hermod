@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Google
         [OneTimeSetUp]
         public void InitTests()
         {
-            client = DNSTCPClient.Google_Random_IPv4();
+            client = DNSTCPClient.Google_Random_IPv4(LoggerFactory: logs);
         }
 
     }

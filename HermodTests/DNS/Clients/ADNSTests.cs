@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -34,6 +35,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         protected IDNSClientWithTransport? client;
 
+        /// <summary>
+        /// What this fixture's client said while a test ran. Every fixture hands
+        /// it to the client it builds, and Explain quotes it - without that, a
+        /// live-DNS failure said only "Expected: True, But was: False".
+        /// </summary>
+        protected readonly DNSTestLoggerFactory logs = new();
+
+        #endregion
+
+        #region Setup
+
+        /// <summary>
+        /// One test must not quote the log of the one before it.
+        /// </summary>
+        [SetUp]
+        public void ClearTheLog()
+        {
+            logs.Clear();
+        }
+
         #endregion
 
         #region Teardown
@@ -43,6 +64,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         {
             client?.Dispose();
         }
+
+        #endregion
+
+        #region (protected) Explain(Response)
+
+        /// <summary>
+        /// What a DNS response says about itself.
+        /// </summary>
+        /// <remarks>
+        /// Without this a live-DNS failure reads "Expected: True, But was:
+        /// False" and nothing further, which is how a 23 second failure against
+        /// charging.cloud stayed unexplained through several rounds of looking
+        /// at it.
+        ///
+        /// Origin is deliberately absent: DNSServerConfig.ToString() dereferences
+        /// its IPAddress, and a DoH client built from a URL has none to give it.
+        /// </remarks>
+        protected String Explain(DNSInfo Response)
+
+            => $"{client?.GetType().Name} {client?.RemoteURL}: {Response.ResponseCode}, valid: {Response.IsValid}, timeout: {Response.IsTimeout} (of {Math.Round(Response.Timeout.TotalSeconds, 1)}s), runtime: {Math.Round(Response.Runtime.TotalMilliseconds)} ms, answers: {Response.Answers.Count()}" +
+
+               (logs.Entries.Any()
+                    ? Environment.NewLine + logs.Entries.AggregateWith(Environment.NewLine)
+                    : "");
 
         #endregion
 
@@ -61,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<A>(DomainName.Parse("charging.cloud"));
 
             Assert.That(response,                        Is.Not.Null);
-            Assert.That(response.IsValid,                Is.True);
+            Assert.That(response.IsValid,                Is.True,   Explain(response));
             Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not A answer)
@@ -94,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<AAAA>(DomainName.Parse("charging.cloud"));
 
             Assert.That(response,                        Is.Not.Null);
-            Assert.That(response.IsValid,                Is.True);
+            Assert.That(response.IsValid,                Is.True,   Explain(response));
             Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not AAAA answer)
@@ -127,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<MX>(DomainName.Parse("charging.cloud"));
 
             Assert.That(response,                       Is.Not.Null);
-            Assert.That(response.IsValid,               Is.True);
+            Assert.That(response.IsValid,               Is.True,   Explain(response));
             Assert.That(response.Answers.Count,         Is.EqualTo(1));
 
             if (response.Answers.First() is not MX answer)
@@ -161,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<TXT>(DomainName.Parse("charging.cloud"));
 
             Assert.That(response,                        Is.Not.Null);
-            Assert.That(response.IsValid,                Is.True);
+            Assert.That(response.IsValid,                Is.True,   Explain(response));
             Assert.That(response.Answers.Count,          Is.EqualTo(3));
 
             if (response.Answers.ElementAt(0) is not TXT answer1)
@@ -223,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<A>(DomainName.Parse("open.charging.cloud"));
 
             Assert.That(response,                        Is.Not.Null);
-            Assert.That(response.IsValid,                Is.True);
+            Assert.That(response.IsValid,                Is.True,   Explain(response));
             Assert.That(response.Answers.Count,          Is.EqualTo(2));
 
             if (response.Answers.First(c => c.Type == DNSResourceRecordTypes.CNAME) is not CNAME answer1)
@@ -267,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<AAAA>(DomainName.Parse("open.charging.cloud"));
 
             Assert.That(response,                        Is.Not.Null);
-            Assert.That(response.IsValid,                Is.True);
+            Assert.That(response.IsValid,                Is.True,   Explain(response));
             Assert.That(response.Answers.Count,          Is.EqualTo(2));
 
             if (response.Answers.First(c => c.Type == DNSResourceRecordTypes.CNAME) is not CNAME answer1)
@@ -311,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<MX>(DomainName.Parse("open.charging.cloud"));
 
             Assert.That(response,                       Is.Not.Null);
-            Assert.That(response.IsValid,               Is.True);
+            Assert.That(response.IsValid,               Is.True,   Explain(response));
             Assert.That(response.Answers.Count,          Is.EqualTo(2));
 
             if (response.Answers.First(c => c.Type == DNSResourceRecordTypes.CNAME) is not CNAME answer1)
@@ -356,7 +401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var response = await client.Query<SRV>(DNSServiceName.Parse("_ocpp._tcp.api.charging.cloud"));
 
             Assert.That(response,                        Is.Not.Null);
-            Assert.That(response.IsValid,                Is.True);
+            Assert.That(response.IsValid,                Is.True,   Explain(response));
             Assert.That(response.Answers.Count,          Is.EqualTo(3));
 
             if (response.Answers.ElementAt(0) is not SRV answer1)

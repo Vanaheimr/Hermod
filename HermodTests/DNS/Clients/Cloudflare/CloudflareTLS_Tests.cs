@@ -57,7 +57,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
             // the certificate. What is gained is a fixture that measures DoT
             // rather than the host's IPv6 situation.
             client = DNSTLSClient.Cloudflare_Random_IPv4(
-                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS
+                         RemoteCertificateValidator:   TLSValidationExtensions.AskTheOS,
+                         LoggerFactory:                logs
                      );
 
         }

@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients.Cloudflare
         [OneTimeSetUp]
         public void InitTests()
         {
-            client = DNSTCPClient.Cloudflare_Random_IPv4();
+            client = DNSTCPClient.Cloudflare_Random_IPv4(LoggerFactory: logs);
         }
 
     }

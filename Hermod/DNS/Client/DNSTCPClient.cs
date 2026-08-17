@@ -424,10 +424,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Google_Random(Boolean?   RecursionDesired   = null,
-                                                 TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Google_Random(Boolean?         RecursionDesired = null,
+                                                 TimeSpan?        QueryTimeout     = null,
+                                                 ILoggerFactory?  LoggerFactory    = null)
         {
-            var all = Google_All(RecursionDesired, QueryTimeout).ToList();
+            var all = Google_All(RecursionDesired, QueryTimeout, LoggerFactory).ToList();
             return all[Random.Shared.Next(all.Count)];
         }
 
@@ -436,10 +437,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Google_Random_IPv4(Boolean?   RecursionDesired   = null,
-                                                      TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Google_Random_IPv4(Boolean?         RecursionDesired = null,
+                                                      TimeSpan?        QueryTimeout     = null,
+                                                      ILoggerFactory?  LoggerFactory    = null)
         {
-            var all = Google_All_IPv4(RecursionDesired, QueryTimeout).ToList();
+            var all = Google_All_IPv4(RecursionDesired, QueryTimeout, LoggerFactory).ToList();
             return all[Random.Shared.Next(all.Count)];
         }
 
@@ -451,10 +453,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Google_Random_IPv6(Boolean?   RecursionDesired   = null,
-                                                      TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Google_Random_IPv6(Boolean?         RecursionDesired = null,
+                                                      TimeSpan?        QueryTimeout     = null,
+                                                      ILoggerFactory?  LoggerFactory    = null)
         {
-            var all = Google_All_IPv6(RecursionDesired, QueryTimeout).ToList();
+            var all = Google_All_IPv6(RecursionDesired, QueryTimeout, LoggerFactory).ToList();
             return all[Random.Shared.Next(all.Count)];
         }
 
@@ -467,14 +470,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static IEnumerable<DNSTCPClient> Google_All(Boolean?   RecursionDesired   = null,
-                                                           TimeSpan?  QueryTimeout       = null)
+        public static IEnumerable<DNSTCPClient> Google_All(Boolean?         RecursionDesired = null,
+                                                           TimeSpan?        QueryTimeout     = null,
+                                                           ILoggerFactory?  LoggerFactory    = null)
 
             => [
-                   Google_IPv4_1(RecursionDesired, QueryTimeout),
-                   Google_IPv4_2(RecursionDesired, QueryTimeout),
-                   Google_IPv6_1(RecursionDesired, QueryTimeout),
-                   Google_IPv6_2(RecursionDesired, QueryTimeout)
+                   Google_IPv4_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Google_IPv4_2(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Google_IPv6_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Google_IPv6_2(RecursionDesired, QueryTimeout, LoggerFactory)
                ];
 
         /// <summary>
@@ -482,12 +486,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static IEnumerable<DNSTCPClient> Google_All_IPv4(Boolean?   RecursionDesired   = null,
-                                                                TimeSpan?  QueryTimeout       = null)
+        public static IEnumerable<DNSTCPClient> Google_All_IPv4(Boolean?         RecursionDesired = null,
+                                                                TimeSpan?        QueryTimeout     = null,
+                                                                ILoggerFactory?  LoggerFactory    = null)
 
             => [
-                   Google_IPv4_1(RecursionDesired, QueryTimeout),
-                   Google_IPv4_2(RecursionDesired, QueryTimeout)
+                   Google_IPv4_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Google_IPv4_2(RecursionDesired, QueryTimeout, LoggerFactory)
                ];
 
         /// <summary>
@@ -498,12 +503,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static IEnumerable<DNSTCPClient> Google_All_IPv6(Boolean?   RecursionDesired   = null,
-                                                                TimeSpan?  QueryTimeout       = null)
+        public static IEnumerable<DNSTCPClient> Google_All_IPv6(Boolean?         RecursionDesired = null,
+                                                                TimeSpan?        QueryTimeout     = null,
+                                                                ILoggerFactory?  LoggerFactory    = null)
 
             => [
-                   Google_IPv6_1(RecursionDesired, QueryTimeout),
-                   Google_IPv6_2(RecursionDesired, QueryTimeout)
+                   Google_IPv6_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Google_IPv6_2(RecursionDesired, QueryTimeout, LoggerFactory)
                ];
 
 
@@ -512,15 +518,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Google_IPv4_1(Boolean?   RecursionDesired   = null,
-                                                 TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Google_IPv4_1(Boolean?         RecursionDesired = null,
+                                                 TimeSpan?        QueryTimeout     = null,
+                                                 ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv4Address.Parse("8.8.8.8"),
                    IPPort.DNS,
                    I18NString.Create("Google (8.8.8.8)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -528,15 +536,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Google_IPv4_2(Boolean?   RecursionDesired   = null,
-                                                 TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Google_IPv4_2(Boolean?         RecursionDesired = null,
+                                                 TimeSpan?        QueryTimeout     = null,
+                                                 ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv4Address.Parse("8.8.4.4"),
                    IPPort.DNS,
                    I18NString.Create("Google (8.8.4.4)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
 
@@ -545,15 +555,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Google_IPv6_1(Boolean?   RecursionDesired   = null,
-                                                 TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Google_IPv6_1(Boolean?         RecursionDesired = null,
+                                                 TimeSpan?        QueryTimeout     = null,
+                                                 ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv6Address.Parse("2001:4860:4860::8888"),
                    IPPort.DNS,
                    I18NString.Create("Google (2001:4860:4860::8888)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -561,15 +573,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Google_IPv6_2(Boolean?   RecursionDesired   = null,
-                                                 TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Google_IPv6_2(Boolean?         RecursionDesired = null,
+                                                 TimeSpan?        QueryTimeout     = null,
+                                                 ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv6Address.Parse("2001:4860:4860::8844"),
                    IPPort.DNS,
                    I18NString.Create("Google (2001:4860:4860::8844)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         #endregion
@@ -584,10 +598,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_Random(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_Random(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
         {
-            var all = Cloudflare_All(RecursionDesired, QueryTimeout).ToList();
+            var all = Cloudflare_All(RecursionDesired, QueryTimeout, LoggerFactory).ToList();
             return all[Random.Shared.Next(all.Count)];
         }
 
@@ -596,10 +611,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_Random_IPv4(Boolean?   RecursionDesired   = null,
-                                                          TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_Random_IPv4(Boolean?         RecursionDesired = null,
+                                                          TimeSpan?        QueryTimeout     = null,
+                                                          ILoggerFactory?  LoggerFactory    = null)
         {
-            var all = Cloudflare_All_IPv4(RecursionDesired, QueryTimeout).ToList();
+            var all = Cloudflare_All_IPv4(RecursionDesired, QueryTimeout, LoggerFactory).ToList();
             return all[Random.Shared.Next(all.Count)];
         }
 
@@ -611,10 +627,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_Random_IPv6(Boolean?   RecursionDesired   = null,
-                                                          TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_Random_IPv6(Boolean?         RecursionDesired = null,
+                                                          TimeSpan?        QueryTimeout     = null,
+                                                          ILoggerFactory?  LoggerFactory    = null)
         {
-            var all = Cloudflare_All_IPv6(RecursionDesired, QueryTimeout).ToList();
+            var all = Cloudflare_All_IPv6(RecursionDesired, QueryTimeout, LoggerFactory).ToList();
             return all[Random.Shared.Next(all.Count)];
         }
 
@@ -627,18 +644,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static IEnumerable<DNSTCPClient> Cloudflare_All(Boolean?   RecursionDesired   = null,
-                                                               TimeSpan?  QueryTimeout       = null)
+        public static IEnumerable<DNSTCPClient> Cloudflare_All(Boolean?         RecursionDesired = null,
+                                                               TimeSpan?        QueryTimeout     = null,
+                                                               ILoggerFactory?  LoggerFactory    = null)
 
             => [
-                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout)
+                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout, LoggerFactory)
                ];
 
         /// <summary>
@@ -646,14 +664,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static IEnumerable<DNSTCPClient> Cloudflare_All_IPv4(Boolean?   RecursionDesired   = null,
-                                                                    TimeSpan?  QueryTimeout       = null)
+        public static IEnumerable<DNSTCPClient> Cloudflare_All_IPv4(Boolean?         RecursionDesired = null,
+                                                                    TimeSpan?        QueryTimeout     = null,
+                                                                    ILoggerFactory?  LoggerFactory    = null)
 
             => [
-                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout, LoggerFactory),
                ];
 
         /// <summary>
@@ -664,14 +683,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static IEnumerable<DNSTCPClient> Cloudflare_All_IPv6(Boolean?   RecursionDesired   = null,
-                                                                    TimeSpan?  QueryTimeout       = null)
+        public static IEnumerable<DNSTCPClient> Cloudflare_All_IPv6(Boolean?         RecursionDesired = null,
+                                                                    TimeSpan?        QueryTimeout     = null,
+                                                                    ILoggerFactory?  LoggerFactory    = null)
 
             => [
-                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout),
-                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout)
+                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout, LoggerFactory),
+                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout, LoggerFactory)
                ];
 
 
@@ -680,15 +700,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv4_1(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv4_1(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv4Address.Parse("1.1.1.1"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (1.1.1.1)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -696,15 +718,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv4_2(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv4_2(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv4Address.Parse("1.0.0.1"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (1.0.0.1)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -712,15 +736,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv4_3(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv4_3(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv4Address.Parse("162.159.36.1"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (162.159.36.1)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -728,15 +754,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv4_4(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv4_4(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv4Address.Parse("162.159.46.1"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (162.159.46.1)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
 
@@ -745,15 +773,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv6_1(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv6_1(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv6Address.Parse("2606:4700:4700::1001"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (2606:4700:4700::1001)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -761,15 +791,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv6_2(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv6_2(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv6Address.Parse("2606:4700:4700::1111"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (2606:4700:4700::1111)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -777,15 +809,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv6_3(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv6_3(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv6Address.Parse("2606:4700:4700::0064"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (2606:4700:4700::0064)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         /// <summary>
@@ -793,15 +827,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
-        public static DNSTCPClient Cloudflare_IPv6_4(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        public static DNSTCPClient Cloudflare_IPv6_4(Boolean?         RecursionDesired = null,
+                                                     TimeSpan?        QueryTimeout     = null,
+                                                     ILoggerFactory?  LoggerFactory    = null)
 
             => new (
                    IPv6Address.Parse("2606:4700:4700::6400"),
                    IPPort.DNS,
                    I18NString.Create("Cloudflare (2606:4700:4700::6400)"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   LoggerFactory: LoggerFactory
                );
 
         #endregion
