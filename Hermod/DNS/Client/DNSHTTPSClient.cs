@@ -726,10 +726,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     await ReconnectAsync(CancellationToken).ConfigureAwait(false);
 
                 stopwatch.Restart();
-                clientCancellationTokenSource ??= new CancellationTokenSource();
 
+                // LiveClient..., not ??=: the latter fills in a token source
+                // which is missing, never one which has already been cancelled -
+                // and ReconnectAsync cancels this one. Linked to a spent token,
+                // timeoutCTS is dead before the first await, and the catch below
+                // then reports that as this query's own timeout.
                 using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
-                                           clientCancellationTokenSource.Token,
+                                           LiveClientCancellationTokenSource.Token,
                                            CancellationToken
                                        );
                 timeoutCTS.CancelAfter(effectiveTimeout);
@@ -882,8 +886,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
-            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException ocx) when (!CancellationToken.IsCancellationRequested)
             {
+
+                // Two different things arrive here and they are not the same
+                // failure: this query's own CancelAfter firing, which is a
+                // timeout, and the client's token being cancelled from
+                // elsewhere - a reconnect - which is not.
+                //
+                // This branch used to call both of them a timeout and say
+                // nothing about either. That is how a cancellation which
+                // happened in under a millisecond was reported as a 23.5 second
+                // timeout, silently, and stayed unexplained for as long as it
+                // did: the two neighbouring catches log, this one did not.
+                if (clientCancellationTokenSource?.IsCancellationRequested == true)
+                {
+
+                    logger.LogWarning(
+                        ocx,
+                        "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
+                        RemoteIPAddress,
+                        RemotePort
+                    );
+
+                    return DNSInfo.Failed(
+                               new DNSServerConfig(
+                                   RemoteIPAddress!,
+                                   RemotePort ?? IPPort.HTTPS
+                               ),
+                               dnsQuery.TransactionId,
+                               effectiveTimeout
+                           );
+
+                }
+
+                logger.LogWarning(
+                    "DNS HTTPS query to {RemoteIPAddress}:{RemotePort} timed out after {Timeout}s",
+                    RemoteIPAddress,
+                    RemotePort,
+                    effectiveTimeout.TotalSeconds
+                );
 
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(

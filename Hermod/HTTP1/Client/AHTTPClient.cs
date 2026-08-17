@@ -905,8 +905,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                           RequestTimeout ?? this.RequestTimeout
                                                                       );
 
+                            // LiveClient..., not the field: after a reconnect the
+                            // field can hold a source which has been cancelled,
+                            // and linking to it hands this request a token that
+                            // is dead before it is used.
                             using var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
-                                                                    clientCancellationTokenSource.Token,
+                                                                    LiveClientCancellationTokenSource.Token,
                                                                     CancellationToken,
                                                                     requestTimeoutCancellationToken.Token
                                                                 );
@@ -1632,19 +1636,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var stopwatch = Stopwatch.StartNew();
                 var stream = tcpClient.GetStream();
-                clientCancellationTokenSource ??= new CancellationTokenSource();
+
+                // Taken once, and from LiveClient... rather than with ??=: the
+                // latter fills in a token source which is missing, never one
+                // which has already been cancelled.
+                var clientToken = LiveClientCancellationTokenSource.Token;
 
                 // Send the data
-                await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), clientCancellationTokenSource.Token).ConfigureAwait(false);
-                await stream.FlushAsync(clientCancellationTokenSource.Token).ConfigureAwait(false);
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), clientToken).ConfigureAwait(false);
+                await stream.FlushAsync(clientToken).ConfigureAwait(false);
 
                 using var responseStream = new MemoryStream();
                 var buffer = new Byte[8192];
                 var bytesRead = 0;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false)) > 0)
+                while ((bytesRead = await stream.ReadAsync(buffer, clientToken).ConfigureAwait(false)) > 0)
                 {
-                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientCancellationTokenSource.Token).ConfigureAwait(false);
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientToken).ConfigureAwait(false);
                 }
 
                 stopwatch.Stop();

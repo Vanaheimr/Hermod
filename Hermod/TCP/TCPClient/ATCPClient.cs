@@ -446,6 +446,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region (protected) LiveClientCancellationTokenSource
+
+        /// <summary>
+        /// The client's cancellation token source, replaced if the one on hand
+        /// has already been cancelled.
+        /// </summary>
+        /// <remarks>
+        /// Every place that reaches for this used to say
+        /// <c>clientCancellationTokenSource ??= new CancellationTokenSource()</c>,
+        /// and that asks the wrong question: <c>??=</c> fills in a token source
+        /// which is <b>missing</b>, never one which is <b>spent</b>. Cancelling
+        /// it does not make it null.
+        ///
+        /// What that cost is worth writing down, because the symptom named
+        /// nothing. <see cref="ReconnectAsync"/> cancels this source to tear the
+        /// old connection down, and the reconnect below installs a fresh one -
+        /// but between the two, and on every path that cancels without getting
+        /// that far, the field holds a source which is already spent. A caller
+        /// then links its own timeout to a token that is dead on arrival, the
+        /// very first await throws <c>TaskCanceledException</c>, and it does so
+        /// in under a millisecond of, say, a 23.5 second budget. In the DNS over
+        /// HTTPS client that arrived as "the query timed out" - silently, and
+        /// after no time at all.
+        ///
+        /// Not thread-safe, and no less so than the <c>??=</c> it replaces: two
+        /// callers arriving together can still each make one. Whoever needs more
+        /// than that wants a lock here, not a second field.
+        /// </remarks>
+        protected CancellationTokenSource LiveClientCancellationTokenSource
+        {
+            get
+            {
+
+                // Deliberately not disposed. A query still in flight may hold a
+                // linked source built from it, and disposing underneath that one
+                // trades this fault for an ObjectDisposedException. The teardown
+                // path in ReconnectAsync disposes, because there nothing is left
+                // to be in flight.
+                if (clientCancellationTokenSource is null ||
+                    clientCancellationTokenSource.IsCancellationRequested)
+                {
+                    clientCancellationTokenSource = new CancellationTokenSource();
+                }
+
+                return clientCancellationTokenSource;
+
+            }
+        }
+
+        #endregion
+
+
         #region ReconnectAsync(CancellationToken = default)
 
         public virtual async Task<TCPConnectionResult>
@@ -665,13 +717,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     RemotePort     ??= remotePort;
 
-                    if (clientCancellationTokenSource.IsCancellationRequested)
-                        clientCancellationTokenSource = new CancellationTokenSource();
-
                     var connectTokenSource  = new CancellationTokenSource();
                     var linkedTokenSource   = CancellationTokenSource.CreateLinkedTokenSource(
-                                                  clientCancellationTokenSource.Token,
-                                                  connectTokenSource.           Token
+                                                  LiveClientCancellationTokenSource.Token,
+                                                  connectTokenSource.               Token
                                               );
 
                     tcpClient               = new TcpClient {

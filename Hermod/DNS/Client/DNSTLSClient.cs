@@ -24,6 +24,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -69,6 +70,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Optional EDNS0 options to include in every DNS query.
         /// </summary>
         public List<EDNSOption>  EDNSOptions               { get; } = [];
+
+        /// <summary>
+        /// Where this client says what went wrong. The <c>Logger</c> parameter
+        /// its constructors have always taken was passed no further than the
+        /// signature; the base class keeps its own private, so a failure down
+        /// here had nowhere to go.
+        /// </summary>
+        private readonly ILogger<DNSTLSClient>  logger;
 
         /// <inheritdoc />
         public Boolean           DnssecOK                  { get; set; }
@@ -179,6 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
+            this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
 
         }
 
@@ -266,6 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
+            this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
 
             RemotePort ??= URL.Port ?? IPPort.DNS_TLS;
 
@@ -355,10 +366,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               ConfigureAwait(false);
 
                 var stopwatch = Stopwatch.StartNew();
-                clientCancellationTokenSource ??= new CancellationTokenSource();
 
+                // LiveClient..., not ??= - see DNSHTTPSClient for what a spent
+                // token source costs here.
                 using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
-                                           clientCancellationTokenSource.Token,
+                                           LiveClientCancellationTokenSource.Token,
                                            CancellationToken
                                        );
                 timeoutCTS.CancelAfter(effectiveTimeout);
@@ -376,8 +388,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
 
             }
-            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException ocx) when (!CancellationToken.IsCancellationRequested)
             {
+
+                // A cancellation from elsewhere is not a timeout - see
+                // DNSHTTPSClient for what calling it one silently cost.
+                if (clientCancellationTokenSource?.IsCancellationRequested == true)
+                {
+
+                    logger.LogWarning(
+                        ocx,
+                        "DNS TLS query to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
+                        RemoteIPAddress,
+                        RemotePort
+                    );
+
+                    return DNSInfo.Failed(
+                               new DNSServerConfig(
+                                   RemoteIPAddress!,
+                                   RemotePort ?? IPPort.DNS_TLS
+                               ),
+                               dnsQuery.TransactionId,
+                               effectiveTimeout
+                           );
+
+                }
+
+                logger.LogWarning(
+                    "DNS TLS query to {RemoteIPAddress}:{RemotePort} timed out after {Timeout}s",
+                    RemoteIPAddress,
+                    RemotePort,
+                    effectiveTimeout.TotalSeconds
+                );
 
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(

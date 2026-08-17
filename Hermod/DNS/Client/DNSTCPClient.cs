@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -65,6 +66,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Optional EDNS0 options to include in every DNS query.
         /// </summary>
         public List<EDNSOption>  EDNSOptions  { get; } = [];
+
+        /// <summary>
+        /// Where this client says what went wrong, as
+        /// <see cref="DNSHTTPSClient"/> has always had one. The base class keeps
+        /// its own logger private, so a failure down here had nowhere to go -
+        /// which is how a cancellation reported as a timeout stayed unexplained.
+        /// </summary>
+        private readonly ILogger<DNSTCPClient>  logger;
 
         /// <inheritdoc />
         public Boolean           DnssecOK     { get; set; }
@@ -116,6 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
+            this.logger            = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTCPClient>();
 
         }
 
@@ -202,10 +212,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var stopwatch = Stopwatch.StartNew();
                 var tcpStream = tcpClient!.GetStream();
-                clientCancellationTokenSource ??= new CancellationTokenSource();
 
+                // LiveClient..., not ??= - see DNSHTTPSClient for what a spent
+                // token source costs here.
                 using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
-                                           clientCancellationTokenSource.Token,
+                                           LiveClientCancellationTokenSource.Token,
                                            CancellationToken
                                        );
                 timeoutCTS.CancelAfter(effectiveTimeout);
@@ -224,8 +235,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
 
             }
-            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException ocx) when (!CancellationToken.IsCancellationRequested)
             {
+
+                // A cancellation from elsewhere is not a timeout - see
+                // DNSHTTPSClient for what calling it one silently cost.
+                if (clientCancellationTokenSource?.IsCancellationRequested == true)
+                {
+
+                    logger.LogWarning(
+                        ocx,
+                        "DNS TCP query to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
+                        RemoteIPAddress,
+                        RemotePort
+                    );
+
+                    return DNSInfo.Failed(
+                               new DNSServerConfig(
+                                   RemoteIPAddress!,
+                                   RemotePort ?? IPPort.DNS
+                               ),
+                               dnsQuery.TransactionId,
+                               effectiveTimeout
+                           );
+
+                }
+
+                logger.LogWarning(
+                    "DNS TCP query to {RemoteIPAddress}:{RemotePort} timed out after {Timeout}s",
+                    RemoteIPAddress,
+                    RemotePort,
+                    effectiveTimeout.TotalSeconds
+                );
 
                 return DNSInfo.TimedOut(
                            new DNSServerConfig(
