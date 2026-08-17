@@ -28,33 +28,51 @@ using org.GraphDefined.Vanaheimr.Hermod;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The trust marker on a <c>known_hosts</c> line.</summary>
+    /// <summary>
+    /// The trust marker on a <c>known_hosts</c> line.
+    /// </summary>
     public enum KnownHostMarker
     {
-        /// <summary>An ordinary host-key line.</summary>
+        /// <summary>
+        /// An ordinary host-key line.
+        /// </summary>
         None,
-        /// <summary><c>@cert-authority</c> — the key is a CA that signs host certificates.</summary>
+        /// <summary>
+        /// <c>@cert-authority</c> — the key is a CA that signs host certificates.
+        /// </summary>
         CertAuthority,
-        /// <summary><c>@revoked</c> — the key is explicitly distrusted.</summary>
+        /// <summary>
+        /// <c>@revoked</c> — the key is explicitly distrusted.
+        /// </summary>
         Revoked
     }
 
 
-    /// <summary>One parsed <c>known_hosts</c> entry: an optional marker, the host patterns and the key.</summary>
+    /// <summary>
+    /// One parsed <c>known_hosts</c> entry: an optional marker, the host patterns and the key.
+    /// </summary>
     public sealed class KnownHostEntry
     {
 
-        /// <summary>The trust marker (<see cref="KnownHostMarker.None"/> for a plain entry).</summary>
+        /// <summary>
+        /// The trust marker (<see cref="KnownHostMarker.None"/> for a plain entry).
+        /// </summary>
         public KnownHostMarker  Marker        { get; init; }
 
-        /// <summary>The raw host-pattern field (comma-separated patterns or a hashed <c>|1|…</c> token).</summary>
+        /// <summary>
+        /// The raw host-pattern field (comma-separated patterns or a hashed <c>|1|…</c> token).
+        /// </summary>
         public String           HostPatterns  { get; init; } = "";
 
-        /// <summary>The host key.</summary>
+        /// <summary>
+        /// The host key.
+        /// </summary>
         public required SshPublicKey  PublicKey  { get; init; }
 
 
-        /// <summary>Whether this entry applies to the given host and port.</summary>
+        /// <summary>
+        /// Whether this entry applies to the given host and port.
+        /// </summary>
         public Boolean Matches(String Host, IPPort Port)
         {
 
@@ -119,7 +137,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>All parsed entries.</summary>
+        /// <summary>
+        /// All parsed entries.
+        /// </summary>
         public IReadOnlyList<KnownHostEntry> Entries => entries;
 
         #endregion
@@ -136,7 +156,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) Parse(Text)
 
-        /// <summary>Parse the full text of a <c>known_hosts</c> file.</summary>
+        /// <summary>
+        /// Parse the full text of a <c>known_hosts</c> file.
+        /// </summary>
         public static KnownHostsFile Parse(String Text)
         {
 
@@ -189,7 +211,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Lookup(Host, Port)
 
-        /// <summary>All entries whose host patterns match the given host and port.</summary>
+        /// <summary>
+        /// All entries whose host patterns match the given host and port.
+        /// </summary>
         public IReadOnlyList<KnownHostEntry> Lookup(String Host, IPPort Port)
             => entries.Where(entry => entry.Matches(Host, Port)).ToList();
 

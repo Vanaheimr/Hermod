@@ -76,7 +76,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Parse(Text)
 
-        /// <summary>Parse the full text of an <c>authorized_keys</c> file.</summary>
+        /// <summary>
+        /// Parse the full text of an <c>authorized_keys</c> file.
+        /// </summary>
         public static IReadOnlyList<AuthorizedKey> Parse(String Text)
         {
 
@@ -102,7 +104,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region TryParseLine(Line, out Entry)
 
-        /// <summary>Parse a single <c>authorized_keys</c> line (options optional).</summary>
+        /// <summary>
+        /// Parse a single <c>authorized_keys</c> line (options optional).
+        /// </summary>
         public static Boolean TryParseLine(String Line, out AuthorizedKey? Entry)
         {
 

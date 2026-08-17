@@ -433,7 +433,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
 
-        /// <summary>The offset just past the last question, or -1 if they do not parse.</summary>
+        /// <summary>
+        /// The offset just past the last question, or -1 if they do not parse.
+        /// </summary>
         private static Int32 FindEndOfQuestions(Byte[] Message)
         {
 
@@ -510,16 +512,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private sealed class TransactionSecurityContext
         {
 
-            /// <summary>The TSIG key the request was signed with (RFC 8945).</summary>
+            /// <summary>
+            /// The TSIG key the request was signed with (RFC 8945).
+            /// </summary>
             public TSIGKey?  TSIGKey        { get; init; }
 
-            /// <summary>The MAC of that request, which the reply's MAC folds in.</summary>
+            /// <summary>
+            /// The MAC of that request, which the reply's MAC folds in.
+            /// </summary>
             public Byte[]?   RequestMAC     { get; init; }
 
-            /// <summary>The key to sign the reply with, when the request carried a SIG(0) and this server has one (RFC 2931).</summary>
+            /// <summary>
+            /// The key to sign the reply with, when the request carried a SIG(0) and this server has one (RFC 2931).
+            /// </summary>
             public SIG0Key?  SIG0Key        { get; init; }
 
-            /// <summary>The request exactly as received, SIG(0) included — the "full query" of RFC 2931 §3.1.</summary>
+            /// <summary>
+            /// The request exactly as received, SIG(0) included — the "full query" of RFC 2931 §3.1.
+            /// </summary>
             public Byte[]?   SignedRequest  { get; init; }
 
         }

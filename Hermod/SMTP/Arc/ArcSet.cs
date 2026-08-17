@@ -24,7 +24,9 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    /// <summary>One ARC set (RFC 8617 §4.1): the three header fields sharing an instance number.</summary>
+    /// <summary>
+    /// One ARC set (RFC 8617 §4.1): the three header fields sharing an instance number.
+    /// </summary>
     public sealed record ArcSet(
         Int32            Instance,
         DkimHeaderField  Seal,               // ARC-Seal

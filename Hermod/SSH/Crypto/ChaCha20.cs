@@ -54,13 +54,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constants
 
-        /// <summary>The keystream block size in bytes.</summary>
+        /// <summary>
+        /// The keystream block size in bytes.
+        /// </summary>
         public const Int32 BlockSize = 64;
 
-        /// <summary>The key size in bytes.</summary>
+        /// <summary>
+        /// The key size in bytes.
+        /// </summary>
         public const Int32 KeySize   = 32;
 
-        /// <summary>The nonce size in bytes (Bernstein's original 64-bit nonce).</summary>
+        /// <summary>
+        /// The nonce size in bytes (Bernstein's original 64-bit nonce).
+        /// </summary>
         public const Int32 NonceSize = 8;
 
         // "expand 32-byte k"
@@ -193,7 +199,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Keystream(Key, Nonce, Counter, Output)
 
-        /// <summary>Fill <paramref name="Output"/> with raw keystream (used to derive the Poly1305 key).</summary>
+        /// <summary>
+        /// Fill <paramref name="Output"/> with raw keystream (used to derive the Poly1305 key).
+        /// </summary>
         /// <param name="Key">The 32-byte key.</param>
         /// <param name="Nonce">The 8-byte nonce.</param>
         /// <param name="Counter">The block counter to start at.</param>

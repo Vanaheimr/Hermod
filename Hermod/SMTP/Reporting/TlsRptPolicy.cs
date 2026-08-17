@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
-/// <summary>The parsed TLS-RPT reporting policy of a domain (RFC 8460 §3).</summary>
+/// <summary>
+/// The parsed TLS-RPT reporting policy of a domain (RFC 8460 §3).
+/// </summary>
 public sealed record TlsRptPolicy(IReadOnlyList<String> RuaMailto,
                                   IReadOnlyList<String> RuaHttps)
 {

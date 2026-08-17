@@ -33,21 +33,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public TimeSpan?     KeepAliveInterval  { get; init; }
 
-        /// <summary>Consecutive unanswered keepalive probes tolerated before the peer is declared dead (default 3).</summary>
+        /// <summary>
+        /// Consecutive unanswered keepalive probes tolerated before the peer is declared dead (default 3).
+        /// </summary>
         public Int32         KeepAliveCountMax  { get; init; } = 3;
 
-        /// <summary>The idle timeout on real (channel-data) traffic, or null to disable idle disconnection.</summary>
+        /// <summary>
+        /// The idle timeout on real (channel-data) traffic, or null to disable idle disconnection.
+        /// </summary>
         public TimeSpan?     IdleTimeout        { get; init; }
 
-        /// <summary>The clock used for all liveness timing; defaults to <see cref="TimeProvider.System"/>.</summary>
+        /// <summary>
+        /// The clock used for all liveness timing; defaults to <see cref="TimeProvider.System"/>.
+        /// </summary>
         public TimeProvider  TimeProvider       { get; init; } = TimeProvider.System;
 
 
-        /// <summary>Whether any liveness feature (keepalive or idle timeout) is enabled.</summary>
+        /// <summary>
+        /// Whether any liveness feature (keepalive or idle timeout) is enabled.
+        /// </summary>
         public Boolean HasLiveness
             => KeepAliveInterval is not null || IdleTimeout is not null;
 
-        /// <summary>Build a fresh liveness monitor from these options.</summary>
+        /// <summary>
+        /// Build a fresh liveness monitor from these options.
+        /// </summary>
         public SshLivenessMonitor CreateLivenessMonitor()
             => new (TimeProvider, KeepAliveInterval, KeepAliveCountMax, IdleTimeout);
 
@@ -61,10 +71,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed class SshConnectionLostException : Exception
     {
 
-        /// <summary>Whether the loss was due to the idle timeout (as opposed to unanswered keepalives).</summary>
+        /// <summary>
+        /// Whether the loss was due to the idle timeout (as opposed to unanswered keepalives).
+        /// </summary>
         public Boolean WasIdleTimeout { get; }
 
-        /// <summary>Create a new connection-lost exception.</summary>
+        /// <summary>
+        /// Create a new connection-lost exception.
+        /// </summary>
         public SshConnectionLostException(String Message, Boolean WasIdleTimeout = false)
             : base(Message)
         {

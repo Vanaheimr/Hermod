@@ -170,7 +170,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 yield return Sample[..length];
         }
 
-        /// <summary>Single-bit flips and byte substitutions at pseudo-random positions.</summary>
+        /// <summary>
+        /// Single-bit flips and byte substitutions at pseudo-random positions.
+        /// </summary>
         private static IEnumerable<Byte[]> BitFlips(Byte[] Sample, Random Random, Int32 Count)
         {
             for (var i = 0; i < Count && Sample.Length > 0; i++)
@@ -204,7 +206,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        /// <summary>Pure noise, plus a few degenerate shapes.</summary>
+        /// <summary>
+        /// Pure noise, plus a few degenerate shapes.
+        /// </summary>
         private static IEnumerable<Byte[]> Noise(Random Random, Int32 Count)
         {
 
@@ -222,7 +226,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        /// <summary>The full mutation corpus for one valid sample.</summary>
+        /// <summary>
+        /// The full mutation corpus for one valid sample.
+        /// </summary>
         private static IEnumerable<Byte[]> Corpus(Byte[] Sample, Random Random)
             => Truncations(Sample)
                    .Concat(BitFlips(Sample, Random, 64))
@@ -370,7 +376,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         // through the handshake tests rather than here — widening their visibility just to fuzz them
         // would be the wrong trade.
 
-        /// <summary>The very first bytes of a connection, from a completely unauthenticated peer.</summary>
+        /// <summary>
+        /// The very first bytes of a connection, from a completely unauthenticated peer.
+        /// </summary>
         [Test]
         [CancelAfter(60000)]
         public void Fuzz_IdentificationString()
@@ -430,7 +438,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        /// <summary>Host certificates are parsed before authentication completes.</summary>
+        /// <summary>
+        /// Host certificates are parsed before authentication completes.
+        /// </summary>
         [Test]
         [CancelAfter(120000)]
         public void Fuzz_Certificate_Parsing()
@@ -445,7 +455,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        /// <summary>The proof payload a peer returns for hostkeys-prove — new, and fully attacker-supplied.</summary>
+        /// <summary>
+        /// The proof payload a peer returns for hostkeys-prove — new, and fully attacker-supplied.
+        /// </summary>
         [Test]
         [CancelAfter(60000)]
         public void Fuzz_HostKeyRotation_Proofs()
@@ -511,7 +523,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        /// <summary>Truncations and character corruption of the text seeds.</summary>
+        /// <summary>
+        /// Truncations and character corruption of the text seeds.
+        /// </summary>
         private static IEnumerable<String> TextMutations(IEnumerable<String> Seeds, Random Random)
         {
 

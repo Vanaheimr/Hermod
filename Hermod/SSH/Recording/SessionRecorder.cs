@@ -57,17 +57,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The current metadata for this recording.</summary>
+        /// <summary>
+        /// The current metadata for this recording.
+        /// </summary>
         public SessionRecordingMetadata  Metadata   => metadata;
 
-        /// <summary>Whether the byte cap was hit and recording stopped early (the file is still valid).</summary>
+        /// <summary>
+        /// Whether the byte cap was hit and recording stopped early (the file is still valid).
+        /// </summary>
         public Boolean                   Truncated  => truncated;
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create a recorder over an open recording target.</summary>
+        /// <summary>
+        /// Create a recorder over an open recording target.
+        /// </summary>
         /// <param name="Recording">The recording sink handle.</param>
         /// <param name="Metadata">The session metadata (updated on completion).</param>
         /// <param name="TimeProvider">The clock for event timing; defaults to <see cref="TimeProvider.System"/>.</param>
@@ -92,7 +98,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region StartAsync(Width, Height, Command, Env, CancellationToken)
 
-        /// <summary>Write the asciicast header. Call once before recording any events.</summary>
+        /// <summary>
+        /// Write the asciicast header. Call once before recording any events.
+        /// </summary>
         public async ValueTask StartAsync(Int32                                Width         = 80,
                                           Int32                                Height        = 24,
                                           String?                              Command       = null,
@@ -127,7 +135,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region RecordOutputAsync(Data, CancellationToken)
 
-        /// <summary>Record channel output (stdout/stderr as seen on a terminal replay).</summary>
+        /// <summary>
+        /// Record channel output (stdout/stderr as seen on a terminal replay).
+        /// </summary>
         public ValueTask RecordOutputAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
             => RecordAsync(AsciicastEventCode.Output, Encoding.UTF8.GetString(Data.Span), Data.Length, CancellationToken);
 
@@ -148,7 +158,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region RecordResizeAsync(Columns, Rows, CancellationToken)
 
-        /// <summary>Record a terminal resize.</summary>
+        /// <summary>
+        /// Record a terminal resize.
+        /// </summary>
         public ValueTask RecordResizeAsync(Int32 Columns, Int32 Rows, CancellationToken CancellationToken = default)
         {
             width  = Columns;
@@ -160,7 +172,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region RecordExitAsync(ExitCode, CancellationToken)
 
-        /// <summary>Record the command's exit status as a terminal marker and remember it for the sidecar.</summary>
+        /// <summary>
+        /// Record the command's exit status as a terminal marker and remember it for the sidecar.
+        /// </summary>
         public async ValueTask RecordExitAsync(Int32 ExitCode, CancellationToken CancellationToken = default)
         {
             metadata = metadata with { ExitStatus = ExitCode };
@@ -196,7 +210,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region DisposeAsync()
 
-        /// <summary>Finalize the recording, writing the closing metadata sidecar.</summary>
+        /// <summary>
+        /// Finalize the recording, writing the closing metadata sidecar.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
 

@@ -45,16 +45,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public long? StaleWhileRevalidate { get; private set; }   // RFC 5861
         public long? StaleIfError         { get; private set; }   // RFC 5861
 
-        /// <summary>Request <c>max-stale</c> with a value (seconds); see <see cref="MaxStaleAny"/> for the bare form.</summary>
+        /// <summary>
+        /// Request <c>max-stale</c> with a value (seconds); see <see cref="MaxStaleAny"/> for the bare form.
+        /// </summary>
         public long? MaxStale             { get; private set; }
-        /// <summary>Request bare <c>max-stale</c> (no value) — accept a stale response of any age.</summary>
+        /// <summary>
+        /// Request bare <c>max-stale</c> (no value) — accept a stale response of any age.
+        /// </summary>
         public bool  MaxStaleAny          { get; private set; }
 
         private HTTPCacheControl() { }
 
         public static readonly HTTPCacheControl Empty = new();
 
-        /// <summary>Parse the first <c>cache-control</c> field in a header list (comma-joining multiples).</summary>
+        /// <summary>
+        /// Parse the first <c>cache-control</c> field in a header list (comma-joining multiples).
+        /// </summary>
         public static HTTPCacheControl FromHeaders(List<(string Name, string Value)> Headers)
         {
             var values = Headers.Where(h => h.Name == "cache-control").Select(h => h.Value).ToList();

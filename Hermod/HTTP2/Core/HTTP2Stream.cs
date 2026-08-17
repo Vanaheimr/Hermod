@@ -168,7 +168,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly CancellationTokenSource  requestCancellation  = new();
 
-        /// <summary>Signaled when this stream is reset — see <see cref="requestCancellation"/>.</summary>
+        /// <summary>
+        /// Signaled when this stream is reset — see <see cref="requestCancellation"/>.
+        /// </summary>
         public CancellationToken  CancellationToken  => requestCancellation.Token;
 
 

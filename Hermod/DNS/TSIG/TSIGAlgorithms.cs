@@ -44,16 +44,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static DomainName HMACSHA256    { get; } = DomainName.Parse("hmac-sha256.");
 
-        /// <summary>HMAC-SHA1. Weakening, but still widely deployed.</summary>
+        /// <summary>
+        /// HMAC-SHA1. Weakening, but still widely deployed.
+        /// </summary>
         public static DomainName HMACSHA1      { get; } = DomainName.Parse("hmac-sha1.");
 
-        /// <summary>HMAC-SHA224. Named for completeness; .NET has no primitive for it.</summary>
+        /// <summary>
+        /// HMAC-SHA224. Named for completeness; .NET has no primitive for it.
+        /// </summary>
         public static DomainName HMACSHA224    { get; } = DomainName.Parse("hmac-sha224.");
 
-        /// <summary>HMAC-SHA384.</summary>
+        /// <summary>
+        /// HMAC-SHA384.
+        /// </summary>
         public static DomainName HMACSHA384    { get; } = DomainName.Parse("hmac-sha384.");
 
-        /// <summary>HMAC-SHA512.</summary>
+        /// <summary>
+        /// HMAC-SHA512.
+        /// </summary>
         public static DomainName HMACSHA512    { get; } = DomainName.Parse("hmac-sha512.");
 
         #endregion

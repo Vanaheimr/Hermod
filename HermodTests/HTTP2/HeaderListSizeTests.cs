@@ -47,14 +47,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #region Data / handlers
 
-        /// <summary>What both roles advertise by default (<c>HTTP2Settings</c>).</summary>
+        /// <summary>
+        /// What both roles advertise by default (<c>HTTP2Settings</c>).
+        /// </summary>
         private const Int32 AdvertisedLimit = 8192;
 
         private static Task<(List<(String, String)>, Byte[]?)> Ok(UInt32 s, List<(String Name, String Value)> h, Byte[]? b, CancellationToken ct)
             => Task.FromResult<(List<(String, String)>, Byte[]?)>((
                    [(":status", "200"), ("content-type", "text/plain")], "ok"u8.ToArray()));
 
-        /// <summary>Answers with a header list far past what the client will accept.</summary>
+        /// <summary>
+        /// Answers with a header list far past what the client will accept.
+        /// </summary>
         private static Task<(List<(String, String)>, Byte[]?)> Oversized(UInt32 s, List<(String Name, String Value)> h, Byte[]? b, CancellationToken ct)
             => Task.FromResult<(List<(String, String)>, Byte[]?)>((
                    [(":status", "200"), ("x-huge", new String('r', 9000))], "ok"u8.ToArray()));

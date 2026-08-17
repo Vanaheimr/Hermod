@@ -55,7 +55,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create a KEXINIT message from all its fields.</summary>
+        /// <summary>
+        /// Create a KEXINIT message from all its fields.
+        /// </summary>
         public KexInitMessage(Byte[]    Cookie,
                               String[]  KexAlgorithms,
                               String[]  ServerHostKeyAlgorithms,
@@ -93,7 +95,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) CreateLocal(IsServer)
 
-        /// <summary>The default key-exchange preference list (most preferred first, without the markers).</summary>
+        /// <summary>
+        /// The default key-exchange preference list (most preferred first, without the markers).
+        /// </summary>
         public static readonly String[] DefaultKeyExchanges =
         [
             // Post-quantum hybrids first (OpenSSH's modern default preference).
@@ -109,7 +113,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             SshAlgorithmNames.Kex.DhGroup14Sha256
         ];
 
-        /// <summary>The default host-key algorithm preference list a client accepts (most preferred first).</summary>
+        /// <summary>
+        /// The default host-key algorithm preference list a client accepts (most preferred first).
+        /// </summary>
         public static readonly String[] DefaultHostKeyAlgorithms =
         [
             SshAlgorithmNames.HostKey.Ed25519,
@@ -126,7 +132,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             SshAlgorithmNames.HostKey.SshRsaCert
         ];
 
-        /// <summary>The default cipher preference list (most preferred first).</summary>
+        /// <summary>
+        /// The default cipher preference list (most preferred first).
+        /// </summary>
         public static readonly String[] DefaultCiphers =
         [
             SshAlgorithmNames.Cipher.ChaCha20Poly1305,
@@ -136,7 +144,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             SshAlgorithmNames.Cipher.Aes128Ctr
         ];
 
-        /// <summary>The default MAC preference list (encrypt-then-MAC; ignored when an AEAD cipher wins).</summary>
+        /// <summary>
+        /// The default MAC preference list (encrypt-then-MAC; ignored when an AEAD cipher wins).
+        /// </summary>
         public static readonly String[] DefaultMacs =
         [
             SshAlgorithmNames.Mac.HmacSha2_256Etm,

@@ -47,7 +47,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region RecordInbound(eval, sourceIp)
 
-        /// <summary>Record one evaluated inbound message for the aggregate report.</summary>
+        /// <summary>
+        /// Record one evaluated inbound message for the aggregate report.
+        /// </summary>
         public void RecordInbound(DmarcEvaluation eval, System.Net.IPAddress sourceIp)
         {
             try { aggregator.Record(eval, sourceIp); }
@@ -89,7 +91,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
-        /// <summary>Drain the aggregator and send one report per reportable domain.</summary>
+        /// <summary>
+        /// Drain the aggregator and send one report per reportable domain.
+        /// </summary>
         public async Task GenerateAndSendAggregatesAsync(CancellationToken ct)
         {
             var reports = aggregator.Drain();

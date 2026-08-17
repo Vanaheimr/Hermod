@@ -34,28 +34,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties (fluent)
 
-        /// <summary>The certificate serial number.</summary>
+        /// <summary>
+        /// The certificate serial number.
+        /// </summary>
         public UInt64                        Serial           { get; set; }
 
-        /// <summary>Whether to issue a user or host certificate.</summary>
+        /// <summary>
+        /// Whether to issue a user or host certificate.
+        /// </summary>
         public SshCertType                   Type             { get; set; } = SshCertType.User;
 
-        /// <summary>The key identifier (free-form, shown by <c>ssh-keygen -L</c>).</summary>
+        /// <summary>
+        /// The key identifier (free-form, shown by <c>ssh-keygen -L</c>).
+        /// </summary>
         public String                        KeyId            { get; set; } = "";
 
-        /// <summary>The valid principals (user names or host names); empty = valid for all.</summary>
+        /// <summary>
+        /// The valid principals (user names or host names); empty = valid for all.
+        /// </summary>
         public IReadOnlyList<String>         Principals       { get; set; } = [];
 
-        /// <summary>The start of the validity window (default: now).</summary>
+        /// <summary>
+        /// The start of the validity window (default: now).
+        /// </summary>
         public DateTimeOffset                ValidAfter       { get; set; } = DateTimeOffset.UtcNow;
 
-        /// <summary>The end of the validity window (default: no expiry).</summary>
+        /// <summary>
+        /// The end of the validity window (default: no expiry).
+        /// </summary>
         public DateTimeOffset                ValidBefore      { get; set; } = DateTimeOffset.MaxValue;
 
-        /// <summary>The critical options (name → data).</summary>
+        /// <summary>
+        /// The critical options (name → data).
+        /// </summary>
         public IList<KeyValuePair<String, Byte[]>>  CriticalOptions  { get; } = [];
 
-        /// <summary>The extensions (name → data); default: the usual permissive user-cert extensions.</summary>
+        /// <summary>
+        /// The extensions (name → data); default: the usual permissive user-cert extensions.
+        /// </summary>
         public IList<KeyValuePair<String, Byte[]>>  Extensions       { get; } = [];
 
         #endregion
@@ -63,7 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) DefaultUserExtensions
 
-        /// <summary>The extensions OpenSSH grants a user certificate by default (all permit-* flags).</summary>
+        /// <summary>
+        /// The extensions OpenSSH grants a user certificate by default (all permit-* flags).
+        /// </summary>
         public static IReadOnlyList<KeyValuePair<String, Byte[]>> DefaultUserExtensions =>
         [
             new ("permit-X11-forwarding",     []),

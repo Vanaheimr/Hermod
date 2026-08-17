@@ -45,7 +45,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                       String          Result);
 
 
-    /// <summary>Writes an SFTP transcript as JSON-lines, one <see cref="SftpTranscriptEntry"/> per line, flushed incrementally.</summary>
+    /// <summary>
+    /// Writes an SFTP transcript as JSON-lines, one <see cref="SftpTranscriptEntry"/> per line, flushed incrementally.
+    /// </summary>
     public sealed class SftpTranscriptRecorder : IAsyncDisposable
     {
 
@@ -60,14 +62,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The current metadata for this transcript.</summary>
+        /// <summary>
+        /// The current metadata for this transcript.
+        /// </summary>
         public SessionRecordingMetadata Metadata => metadata;
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create an SFTP transcript recorder over an open recording target.</summary>
+        /// <summary>
+        /// Create an SFTP transcript recorder over an open recording target.
+        /// </summary>
         public SftpTranscriptRecorder(ISessionRecording         Recording,
                                       SessionRecordingMetadata  Metadata,
                                       TimeProvider?             TimeProvider = null)
@@ -82,7 +88,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region RecordAsync(Operation, Path, Result, Offset, Length, CancellationToken)
 
-        /// <summary>Append one transcript entry (timestamped via the recorder's clock).</summary>
+        /// <summary>
+        /// Append one transcript entry (timestamped via the recorder's clock).
+        /// </summary>
         public async ValueTask RecordAsync(String             Operation,
                                            String             Path,
                                            String             Result,
@@ -121,7 +129,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region DisposeAsync()
 
-        /// <summary>Finalize the transcript and write the closing metadata sidecar.</summary>
+        /// <summary>
+        /// Finalize the transcript and write the closing metadata sidecar.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
 
@@ -144,11 +154,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>Parses an SFTP transcript (JSON-lines) back into entries, tolerant of a truncated final line.</summary>
+    /// <summary>
+    /// Parses an SFTP transcript (JSON-lines) back into entries, tolerant of a truncated final line.
+    /// </summary>
     public static class SftpTranscriptReader
     {
 
-        /// <summary>Parse a complete or partially-written SFTP transcript.</summary>
+        /// <summary>
+        /// Parse a complete or partially-written SFTP transcript.
+        /// </summary>
         public static IReadOnlyList<SftpTranscriptEntry> Parse(String Text)
         {
 

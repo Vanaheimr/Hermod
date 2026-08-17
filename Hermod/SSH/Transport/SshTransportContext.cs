@@ -28,35 +28,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The session identifier (the exchange hash H of the first key exchange).</summary>
+        /// <summary>
+        /// The session identifier (the exchange hash H of the first key exchange).
+        /// </summary>
         public Byte[]                SessionId        { get; }
 
-        /// <summary>The exchange hash H of the most recent key exchange.</summary>
+        /// <summary>
+        /// The exchange hash H of the most recent key exchange.
+        /// </summary>
         public Byte[]                ExchangeHash     { get; }
 
-        /// <summary>The algorithms negotiated during KEXINIT.</summary>
+        /// <summary>
+        /// The algorithms negotiated during KEXINIT.
+        /// </summary>
         public NegotiatedAlgorithms  Algorithms       { get; }
 
-        /// <summary>The server's host-key blob (K_S) as received/sent.</summary>
+        /// <summary>
+        /// The server's host-key blob (K_S) as received/sent.
+        /// </summary>
         public Byte[]                ServerHostKey    { get; }
 
-        /// <summary>The cipher protecting outbound packets.</summary>
+        /// <summary>
+        /// The cipher protecting outbound packets.
+        /// </summary>
         public SshTransportCipher    SendCipher       { get; }
 
-        /// <summary>The cipher protecting inbound packets.</summary>
+        /// <summary>
+        /// The cipher protecting inbound packets.
+        /// </summary>
         public SshTransportCipher    ReceiveCipher    { get; }
 
-        /// <summary>The encrypt-then-MAC for outbound packets, or null for AEAD ciphers.</summary>
+        /// <summary>
+        /// The encrypt-then-MAC for outbound packets, or null for AEAD ciphers.
+        /// </summary>
         public ISshMac?              SendMac          { get; }
 
-        /// <summary>The encrypt-then-MAC for inbound packets, or null for AEAD ciphers.</summary>
+        /// <summary>
+        /// The encrypt-then-MAC for inbound packets, or null for AEAD ciphers.
+        /// </summary>
         public ISshMac?              ReceiveMac       { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create an established transport context.</summary>
+        /// <summary>
+        /// Create an established transport context.
+        /// </summary>
         public SshTransportContext(Byte[]                SessionId,
                                    Byte[]                ExchangeHash,
                                    NegotiatedAlgorithms  Algorithms,
@@ -81,7 +99,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Dispose()
 
-        /// <summary>Dispose the directional ciphers and MACs, wiping their key material.</summary>
+        /// <summary>
+        /// Dispose the directional ciphers and MACs, wiping their key material.
+        /// </summary>
         public void Dispose()
         {
             SendCipher.   Dispose();

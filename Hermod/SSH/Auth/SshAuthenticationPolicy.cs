@@ -37,7 +37,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The methods advertised to a client before any success (RFC 4252).</summary>
+        /// <summary>
+        /// The methods advertised to a client before any success (RFC 4252).
+        /// </summary>
         public IReadOnlyList<String> OfferedMethods
         {
             get
@@ -55,14 +57,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region WithPublicKey / WithAuthorizedKeys
 
-        /// <summary>Enable <c>publickey</c> with a custom authorization callback.</summary>
+        /// <summary>
+        /// Enable <c>publickey</c> with a custom authorization callback.
+        /// </summary>
         public SshAuthenticationPolicy WithPublicKey(Func<SshPublicKeyAuthRequest, CancellationToken, ValueTask<Boolean>> AuthorizePublicKey)
         {
             publicKey = AuthorizePublicKey;
             return this;
         }
 
-        /// <summary>Enable <c>publickey</c> against parsed authorized-keys entries (validity windows enforced).</summary>
+        /// <summary>
+        /// Enable <c>publickey</c> against parsed authorized-keys entries (validity windows enforced).
+        /// </summary>
         public SshAuthenticationPolicy WithAuthorizedKeys(IEnumerable<AuthorizedKey> AuthorizedKeys, TimeProvider? TimeProvider = null)
         {
             var keys   = AuthorizedKeys.ToArray();
@@ -113,7 +119,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region WithPassword
 
-        /// <summary>Enable <c>password</c> authentication with a validation callback.</summary>
+        /// <summary>
+        /// Enable <c>password</c> authentication with a validation callback.
+        /// </summary>
         public SshAuthenticationPolicy WithPassword(Func<String, String, CancellationToken, ValueTask<Boolean>> CheckPassword)
         {
             password = CheckPassword;
@@ -124,7 +132,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region WithKeyboardInteractive / WithSecondFactor
 
-        /// <summary>Enable a keyboard-interactive factor per user (as the sole factor).</summary>
+        /// <summary>
+        /// Enable a keyboard-interactive factor per user (as the sole factor).
+        /// </summary>
         public SshAuthenticationPolicy WithKeyboardInteractive(Func<String, ISshKeyboardInteractiveFactor?> Factor)
         {
             keyboardInteractive = Factor;

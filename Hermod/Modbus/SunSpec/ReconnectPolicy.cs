@@ -37,10 +37,14 @@ public sealed record ReconnectPolicy
     /// </summary>
     public int MaxAttempts { get; init; } = 5;
 
-    /// <summary>Initial delay before the first retry. Doubles per attempt.</summary>
+    /// <summary>
+    /// Initial delay before the first retry. Doubles per attempt.
+    /// </summary>
     public TimeSpan BaseDelay { get; init; } = TimeSpan.FromMilliseconds(200);
 
-    /// <summary>Cap on the per-attempt backoff delay (before jitter).</summary>
+    /// <summary>
+    /// Cap on the per-attempt backoff delay (before jitter).
+    /// </summary>
     public TimeSpan MaxDelay { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
@@ -75,10 +79,14 @@ public sealed record ReconnectPolicy
 
     // ----- Common presets -----
 
-    /// <summary>No retry. The client behaves like a single-shot connection.</summary>
+    /// <summary>
+    /// No retry. The client behaves like a single-shot connection.
+    /// </summary>
     public static ReconnectPolicy None { get; } = new() { MaxAttempts = 1 };
 
-    /// <summary>5 attempts, 200ms..30s exponential backoff, reads only.</summary>
+    /// <summary>
+    /// 5 attempts, 200ms..30s exponential backoff, reads only.
+    /// </summary>
     public static ReconnectPolicy Default { get; } = new();
 
     /// <summary>

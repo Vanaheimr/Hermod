@@ -59,10 +59,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        /// <summary>The class a SIG(0) record carries: ANY (RFC 2931 §3).</summary>
+        /// <summary>
+        /// The class a SIG(0) record carries: ANY (RFC 2931 §3).
+        /// </summary>
         public const UInt16    SIG0ClassANY     = 255;
 
-        /// <summary>The TTL a SIG(0) record carries: zero (RFC 2931 §3).</summary>
+        /// <summary>
+        /// The TTL a SIG(0) record carries: zero (RFC 2931 §3).
+        /// </summary>
         public const UInt32    SIG0TimeToLive   = 0;
 
         /// <summary>

@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
-/// <summary>Serializes a <see cref="TlsRptDomainReport"/> to the RFC 8460 §4 JSON schema.</summary>
+/// <summary>
+/// Serializes a <see cref="TlsRptDomainReport"/> to the RFC 8460 §4 JSON schema.
+/// </summary>
 public static class TlsRptReportJson
 {
 

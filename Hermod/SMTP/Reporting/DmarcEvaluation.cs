@@ -54,7 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     )
     {
 
-        /// <summary>True when the message failed DMARC (neither SPF nor DKIM aligned).</summary>
+        /// <summary>
+        /// True when the message failed DMARC (neither SPF nor DKIM aligned).
+        /// </summary>
         public Boolean Failed => Result == DmarcResult.Fail;
 
     }

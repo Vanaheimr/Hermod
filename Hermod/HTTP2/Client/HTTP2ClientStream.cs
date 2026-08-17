@@ -60,10 +60,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             responseTrailers = ResponseTrailers;
         }
 
-        /// <summary>The stream ID this exchange runs on.</summary>
+        /// <summary>
+        /// The stream ID this exchange runs on.
+        /// </summary>
         public UInt32 StreamId => stream.StreamId;
 
-        /// <summary>Send a chunk of request body as flow-controlled DATA frame(s) — never END_STREAM.</summary>
+        /// <summary>
+        /// Send a chunk of request body as flow-controlled DATA frame(s) — never END_STREAM.
+        /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default)
             => connection.SendStreamDataAsync(stream, Data, CancellationToken);
 
@@ -90,11 +94,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Await the response head (status + headers) — completes when the response HEADERS arrive.</summary>
+        /// <summary>
+        /// Await the response head (status + headers) — completes when the response HEADERS arrive.
+        /// </summary>
         public Task<HTTP2ResponseHead> GetResponseAsync(CancellationToken CancellationToken = default)
             => responseHead.WaitAsync(CancellationToken);
 
-        /// <summary>Read the next response body chunk as it arrives, or null once the response ends (END_STREAM / reset).</summary>
+        /// <summary>
+        /// Read the next response body chunk as it arrives, or null once the response ends (END_STREAM / reset).
+        /// </summary>
         public async Task<byte[]?> ReadAsync(CancellationToken CancellationToken = default)
         {
             if (await responseChunks.WaitToReadAsync(CancellationToken) && responseChunks.TryRead(out var chunk))
@@ -102,7 +110,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             return null;
         }
 
-        /// <summary>The response trailer fields (RFC 9113 §8.1) — completes when the response ends. Empty if none.</summary>
+        /// <summary>
+        /// The response trailer fields (RFC 9113 §8.1) — completes when the response ends. Empty if none.
+        /// </summary>
         public Task<List<(string Name, string Value)>> GetTrailersAsync()
             => responseTrailers;
 

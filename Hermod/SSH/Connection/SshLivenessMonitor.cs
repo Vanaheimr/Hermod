@@ -18,16 +18,26 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>What a <see cref="SshLivenessMonitor"/> asks its caller to do at a given moment.</summary>
+    /// <summary>
+    /// What a <see cref="SshLivenessMonitor"/> asks its caller to do at a given moment.
+    /// </summary>
     public enum SshLivenessAction
     {
-        /// <summary>Nothing to do yet — keep waiting.</summary>
+        /// <summary>
+        /// Nothing to do yet — keep waiting.
+        /// </summary>
         None,
-        /// <summary>Send a keepalive probe to the peer (and expect a reply).</summary>
+        /// <summary>
+        /// Send a keepalive probe to the peer (and expect a reply).
+        /// </summary>
         SendKeepAlive,
-        /// <summary>The peer failed to answer <c>KeepAliveCountMax</c> probes — treat the connection as dead.</summary>
+        /// <summary>
+        /// The peer failed to answer <c>KeepAliveCountMax</c> probes — treat the connection as dead.
+        /// </summary>
         PeerIsDead,
-        /// <summary>The session exceeded its idle timeout with no real traffic — close it.</summary>
+        /// <summary>
+        /// The session exceeded its idle timeout with no real traffic — close it.
+        /// </summary>
         IdleTimeout
     }
 
@@ -61,16 +71,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The interval between keepalive probes, or null to disable keepalives.</summary>
+        /// <summary>
+        /// The interval between keepalive probes, or null to disable keepalives.
+        /// </summary>
         public TimeSpan?  KeepAliveInterval  { get; }
 
-        /// <summary>How many consecutive unanswered probes are tolerated before the peer is declared dead.</summary>
+        /// <summary>
+        /// How many consecutive unanswered probes are tolerated before the peer is declared dead.
+        /// </summary>
         public Int32      KeepAliveCountMax  { get; }
 
-        /// <summary>The idle timeout (no real traffic), or null to disable idle disconnection.</summary>
+        /// <summary>
+        /// The idle timeout (no real traffic), or null to disable idle disconnection.
+        /// </summary>
         public TimeSpan?  IdleTimeout        { get; }
 
-        /// <summary>How many keepalive probes are currently outstanding (unanswered).</summary>
+        /// <summary>
+        /// How many keepalive probes are currently outstanding (unanswered).
+        /// </summary>
         public Int32      OutstandingProbes  { get { lock (sync) return outstandingProbes; } }
 
         #endregion

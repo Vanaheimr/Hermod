@@ -48,7 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly Object                        nonceCountLock = new();
         private readonly Dictionary<String, UInt32>    nonceCounts    = new(StringComparer.Ordinal);
 
-        /// <summary>Strongest first — see the class remarks.</summary>
+        /// <summary>
+        /// Strongest first — see the class remarks.
+        /// </summary>
         private static readonly String[] SchemePreference = ["Digest", "Bearer", "Token", "Basic"];
 
         #endregion
@@ -304,7 +306,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>The next nonce count for this server nonce, starting at 1.</summary>
+        /// <summary>
+        /// The next nonce count for this server nonce, starting at 1.
+        /// </summary>
         private UInt32 NextNonceCount(String Nonce)
         {
             lock (nonceCountLock)

@@ -210,61 +210,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Ethernet
 
         #region Well-known EtherTypes
 
-        /// <summary>Internet Protocol version 4 (0x0800).</summary>
+        /// <summary>
+        /// Internet Protocol version 4 (0x0800).
+        /// </summary>
         public static EtherType  IPv4                      { get; } = new (0x0800);
 
-        /// <summary>Address Resolution Protocol (0x0806).</summary>
+        /// <summary>
+        /// Address Resolution Protocol (0x0806).
+        /// </summary>
         public static EtherType  ARP                       { get; } = new (0x0806);
 
-        /// <summary>Wake-on-LAN (0x0842).</summary>
+        /// <summary>
+        /// Wake-on-LAN (0x0842).
+        /// </summary>
         public static EtherType  WakeOnLAN                 { get; } = new (0x0842);
 
-        /// <summary>Reverse Address Resolution Protocol (0x8035).</summary>
+        /// <summary>
+        /// Reverse Address Resolution Protocol (0x8035).
+        /// </summary>
         public static EtherType  RARP                      { get; } = new (0x8035);
 
-        /// <summary>IEEE 802.1Q customer VLAN tag / C-Tag (0x8100).</summary>
+        /// <summary>
+        /// IEEE 802.1Q customer VLAN tag / C-Tag (0x8100).
+        /// </summary>
         public static EtherType  VLAN                      { get; } = new (0x8100);
 
-        /// <summary>Internet Protocol version 6 (0x86DD).</summary>
+        /// <summary>
+        /// Internet Protocol version 6 (0x86DD).
+        /// </summary>
         public static EtherType  IPv6                      { get; } = new (0x86DD);
 
-        /// <summary>IEEE 802.3x MAC Control, e.g. PAUSE frames (0x8808).</summary>
+        /// <summary>
+        /// IEEE 802.3x MAC Control, e.g. PAUSE frames (0x8808).
+        /// </summary>
         public static EtherType  MACControl                { get; } = new (0x8808);
 
-        /// <summary>Slow protocols, e.g. LACP and Link OAM (0x8809).</summary>
+        /// <summary>
+        /// Slow protocols, e.g. LACP and Link OAM (0x8809).
+        /// </summary>
         public static EtherType  SlowProtocols             { get; } = new (0x8809);
 
-        /// <summary>MPLS unicast (0x8847).</summary>
+        /// <summary>
+        /// MPLS unicast (0x8847).
+        /// </summary>
         public static EtherType  MPLSUnicast               { get; } = new (0x8847);
 
-        /// <summary>MPLS multicast (0x8848).</summary>
+        /// <summary>
+        /// MPLS multicast (0x8848).
+        /// </summary>
         public static EtherType  MPLSMulticast             { get; } = new (0x8848);
 
-        /// <summary>PPPoE discovery stage (0x8863).</summary>
+        /// <summary>
+        /// PPPoE discovery stage (0x8863).
+        /// </summary>
         public static EtherType  PPPoEDiscovery            { get; } = new (0x8863);
 
-        /// <summary>PPPoE session stage (0x8864).</summary>
+        /// <summary>
+        /// PPPoE session stage (0x8864).
+        /// </summary>
         public static EtherType  PPPoESession              { get; } = new (0x8864);
 
-        /// <summary>IEEE 802.1X EAP over LAN (0x888E).</summary>
+        /// <summary>
+        /// IEEE 802.1X EAP over LAN (0x888E).
+        /// </summary>
         public static EtherType  EAPOL                     { get; } = new (0x888E);
 
-        /// <summary>IEEE 802.1ad service VLAN tag / S-Tag, "QinQ" (0x88A8).</summary>
+        /// <summary>
+        /// IEEE 802.1ad service VLAN tag / S-Tag, "QinQ" (0x88A8).
+        /// </summary>
         public static EtherType  ProviderBridging          { get; } = new (0x88A8);
 
-        /// <summary>Link Layer Discovery Protocol (0x88CC).</summary>
+        /// <summary>
+        /// Link Layer Discovery Protocol (0x88CC).
+        /// </summary>
         public static EtherType  LLDP                      { get; } = new (0x88CC);
 
-        /// <summary>IEEE 802.1AE MAC Security (0x88E5).</summary>
+        /// <summary>
+        /// IEEE 802.1AE MAC Security (0x88E5).
+        /// </summary>
         public static EtherType  MACsec                    { get; } = new (0x88E5);
 
-        /// <summary>IEEE 802.1ah Provider Backbone Bridging / I-Tag (0x88E7).</summary>
+        /// <summary>
+        /// IEEE 802.1ah Provider Backbone Bridging / I-Tag (0x88E7).
+        /// </summary>
         public static EtherType  ProviderBackboneBridging  { get; } = new (0x88E7);
 
-        /// <summary>IEEE 1588 Precision Time Protocol over Ethernet (0x88F7).</summary>
+        /// <summary>
+        /// IEEE 1588 Precision Time Protocol over Ethernet (0x88F7).
+        /// </summary>
         public static EtherType  PTP                       { get; } = new (0x88F7);
 
-        /// <summary>Legacy vendor QinQ Tag Protocol Identifier (0x9100).</summary>
+        /// <summary>
+        /// Legacy vendor QinQ Tag Protocol Identifier (0x9100).
+        /// </summary>
         public static EtherType  LegacyQinQ                { get; } = new (0x9100);
 
         #endregion

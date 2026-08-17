@@ -26,7 +26,9 @@ using System.Threading.Channels;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>An inbound channel-open request the multiplexer is asked to accept or reject.</summary>
+    /// <summary>
+    /// An inbound channel-open request the multiplexer is asked to accept or reject.
+    /// </summary>
     /// <param name="ChannelType">The channel type (e.g. <c>session</c>, <c>direct-tcpip</c>, <c>forwarded-tcpip</c>).</param>
     /// <param name="SenderChannel">The peer's channel id.</param>
     /// <param name="InitialWindow">The peer's initial window.</param>
@@ -34,7 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <param name="TypeData">The remaining type-specific bytes (e.g. host/port for direct-tcpip).</param>
     public readonly record struct SshChannelOpenInfo(String ChannelType, UInt32 SenderChannel, UInt32 InitialWindow, UInt32 MaxPacket, Byte[] TypeData);
 
-    /// <summary>An inbound global request (e.g. <c>tcpip-forward</c>).</summary>
+    /// <summary>
+    /// An inbound global request (e.g. <c>tcpip-forward</c>).
+    /// </summary>
     /// <param name="Name">The request name.</param>
     /// <param name="WantReply">Whether the peer expects a reply.</param>
     /// <param name="Data">The remaining request-specific bytes.</param>
@@ -49,13 +53,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public readonly record struct SshGlobalRequestReply(Boolean Success, Byte[] Data)
     {
 
-        /// <summary>A successful reply without a payload.</summary>
+        /// <summary>
+        /// A successful reply without a payload.
+        /// </summary>
         public static SshGlobalRequestReply Ok       { get; } = new (true,  []);
 
-        /// <summary>A REQUEST_FAILURE reply.</summary>
+        /// <summary>
+        /// A REQUEST_FAILURE reply.
+        /// </summary>
         public static SshGlobalRequestReply Failed   { get; } = new (false, []);
 
-        /// <summary>A successful reply carrying a response payload.</summary>
+        /// <summary>
+        /// A successful reply carrying a response payload.
+        /// </summary>
         public static SshGlobalRequestReply WithData(Byte[] Data) => new (true, Data);
 
     }
@@ -95,13 +105,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The underlying transport.</summary>
+        /// <summary>
+        /// The underlying transport.
+        /// </summary>
         public SshTransport Transport => transport;
 
-        /// <summary>The session identifier of the underlying transport (the first exchange hash).</summary>
+        /// <summary>
+        /// The session identifier of the underlying transport (the first exchange hash).
+        /// </summary>
         public Byte[] SessionId => transport.SessionId;
 
-        /// <summary>Whether this end is the server.</summary>
+        /// <summary>
+        /// Whether this end is the server.
+        /// </summary>
         public Boolean IsServer => transport.IsServer;
 
         /// <summary>
@@ -132,13 +148,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s) / Start
 
-        /// <summary>Create a multiplexer over an established transport (call <see cref="Start"/> to run the loop).</summary>
+        /// <summary>
+        /// Create a multiplexer over an established transport (call <see cref="Start"/> to run the loop).
+        /// </summary>
         public SshChannelMultiplexer(SshTransport Transport)
         {
             this.transport = Transport;
         }
 
-        /// <summary>Start the background receive/dispatch loop.</summary>
+        /// <summary>
+        /// Start the background receive/dispatch loop.
+        /// </summary>
         public SshChannelMultiplexer Start()
         {
             runTask = Task.Run(RunAsync);
@@ -172,7 +192,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region AcceptChannelAsync(CancellationToken)
 
-        /// <summary>Await the next inbound channel that <see cref="ChannelAcceptor"/> accepted.</summary>
+        /// <summary>
+        /// Await the next inbound channel that <see cref="ChannelAcceptor"/> accepted.
+        /// </summary>
         public async ValueTask<SshMuxChannel> AcceptChannelAsync(CancellationToken CancellationToken = default)
             => await accepted.Reader.ReadAsync(CancellationToken).ConfigureAwait(false);
 
@@ -180,7 +202,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region SendGlobalRequestAsync(Name, WantReply, Data, CancellationToken)
 
-        /// <summary>Send a global request (e.g. <c>tcpip-forward</c>); when <paramref name="WantReply"/>, await the SUCCESS/FAILURE reply.</summary>
+        /// <summary>
+        /// Send a global request (e.g. <c>tcpip-forward</c>); when <paramref name="WantReply"/>, await the SUCCESS/FAILURE reply.
+        /// </summary>
         public async ValueTask<Boolean> SendGlobalRequestAsync(String Name, Boolean WantReply, Byte[] Data, CancellationToken CancellationToken = default)
             => (await SendGlobalRequestWithReplyAsync(Name, WantReply, Data, CancellationToken).ConfigureAwait(false)).Success;
 
@@ -442,7 +466,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region DisposeAsync()
 
-        /// <summary>Stop the multiplexer and tear down all channels.</summary>
+        /// <summary>
+        /// Stop the multiplexer and tear down all channels.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             await cts.CancelAsync().ConfigureAwait(false);

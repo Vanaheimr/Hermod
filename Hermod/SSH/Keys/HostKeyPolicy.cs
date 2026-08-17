@@ -24,24 +24,38 @@ using org.GraphDefined.Vanaheimr.Hermod;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The verdict a host-key source reaches for a presented key.</summary>
+    /// <summary>
+    /// The verdict a host-key source reaches for a presented key.
+    /// </summary>
     public enum HostKeyVerdict
     {
-        /// <summary>Accept the key (trusted).</summary>
+        /// <summary>
+        /// Accept the key (trusted).
+        /// </summary>
         Accept,
-        /// <summary>Reject the key (explicitly distrusted, e.g. a mismatch or revocation).</summary>
+        /// <summary>
+        /// Reject the key (explicitly distrusted, e.g. a mismatch or revocation).
+        /// </summary>
         Reject,
-        /// <summary>No opinion — defer to the next source in the chain.</summary>
+        /// <summary>
+        /// No opinion — defer to the next source in the chain.
+        /// </summary>
         Unknown
     }
 
 
-    /// <summary>The context passed to an interactive TOFU callback.</summary>
+    /// <summary>
+    /// The context passed to an interactive TOFU callback.
+    /// </summary>
     public sealed record HostKeyPrompt(String Host, IPPort Port, SshPublicKey PublicKey)
     {
-        /// <summary>The <c>SHA256:…</c> fingerprint of the presented key.</summary>
+        /// <summary>
+        /// The <c>SHA256:…</c> fingerprint of the presented key.
+        /// </summary>
         public String Sha256Fingerprint => PublicKey.Sha256Fingerprint;
-        /// <summary>The legacy <c>MD5:…</c> fingerprint of the presented key.</summary>
+        /// <summary>
+        /// The legacy <c>MD5:…</c> fingerprint of the presented key.
+        /// </summary>
         public String Md5Fingerprint    => PublicKey.Md5Fingerprint;
     }
 
@@ -105,11 +119,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Start a policy that pins the exact given public key.</summary>
+        /// <summary>
+        /// Start a policy that pins the exact given public key.
+        /// </summary>
         public static HostKeyPolicy PinKey(SshPublicKey Key)
             => Pin(Key.ToAuthorizedKeyLine());
 
-        /// <summary>Start a policy that accepts host certificates signed by a trusted host CA.</summary>
+        /// <summary>
+        /// Start a policy that accepts host certificates signed by a trusted host CA.
+        /// </summary>
         public static HostKeyPolicy HostCertificate(SshCertificateAuthorityTrust Trust, TimeProvider? TimeProvider = null)
             => new HostKeyPolicy([]).OrHostCertificate(Trust, TimeProvider);
 
@@ -201,7 +219,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Add a <c>known_hosts</c> file source from a path (missing file ⇒ no entries).</summary>
+        /// <summary>
+        /// Add a <c>known_hosts</c> file source from a path (missing file ⇒ no entries).
+        /// </summary>
         public HostKeyPolicy OrKnownHostsFile(String Path)
             => OrKnownHosts(KnownHostsFile.Parse(File.Exists(Path) ? File.ReadAllText(Path) : ""));
 
@@ -219,7 +239,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return this;
         }
 
-        /// <summary>Add a custom source returning a verdict.</summary>
+        /// <summary>
+        /// Add a custom source returning a verdict.
+        /// </summary>
         public HostKeyPolicy Or(Func<HostKeyPrompt, HostKeyVerdict> Source)
         {
             sources.Add(Source);
@@ -231,7 +253,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Verify(Host, Port, HostKeyBlob)
 
-        /// <summary>Evaluate the chain for a presented host-key blob.</summary>
+        /// <summary>
+        /// Evaluate the chain for a presented host-key blob.
+        /// </summary>
         public Boolean Verify(String Host, IPPort Port, Byte[] HostKeyBlob)
         {
 

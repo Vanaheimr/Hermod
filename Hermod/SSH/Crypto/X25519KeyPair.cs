@@ -37,14 +37,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private readonly X25519PrivateKeyParameters  privateKey;
 
-        /// <summary>The length in bytes of an X25519 public key or shared secret (32).</summary>
+        /// <summary>
+        /// The length in bytes of an X25519 public key or shared secret (32).
+        /// </summary>
         public const     Int32                       KeySize = 32;
 
         #endregion
 
         #region Properties
 
-        /// <summary>The 32-byte public key (Q) to send to the peer.</summary>
+        /// <summary>
+        /// The 32-byte public key (Q) to send to the peer.
+        /// </summary>
         public Byte[] PublicKey { get; }
 
         #endregion

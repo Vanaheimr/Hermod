@@ -27,8 +27,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                  Byte[]  PublicKeyBlob);
 
 
-    /// <summary>The outcome of a successful user authentication.</summary>
-    /// <summary>The outcome of a successful authentication.</summary>
+    /// <summary>
+    /// The outcome of a successful user authentication.
+    /// </summary>
+    /// <summary>
+    /// The outcome of a successful authentication.
+    /// </summary>
     /// <param name="Username">The authenticated account.</param>
     /// <param name="Method">The RFC 4252 method name that succeeded.</param>
     /// <param name="Restrictions">
@@ -50,7 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public interface ISshUserAuthenticator
     {
 
-        /// <summary>The authentication methods offered to clients (RFC 4252 names), e.g. <c>publickey</c>.</summary>
+        /// <summary>
+        /// The authentication methods offered to clients (RFC 4252 names), e.g. <c>publickey</c>.
+        /// </summary>
         IReadOnlyList<String> OfferedMethods { get; }
 
         /// <summary>
@@ -73,13 +79,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                CancellationToken        CancellationToken = default)
             => ValueTask.FromResult(SshSessionRestrictions.None);
 
-        /// <summary>Whether the given password authenticates the user (RFC 4252 §8). Default: no.</summary>
+        /// <summary>
+        /// Whether the given password authenticates the user (RFC 4252 §8). Default: no.
+        /// </summary>
         ValueTask<Boolean> AuthorizePasswordAsync(String             Username,
                                                   String             Password,
                                                   CancellationToken  CancellationToken = default)
             => ValueTask.FromResult(false);
 
-        /// <summary>The keyboard-interactive factor for the user (e.g. a TOTP prompt), or null. Default: none.</summary>
+        /// <summary>
+        /// The keyboard-interactive factor for the user (e.g. a TOTP prompt), or null. Default: none.
+        /// </summary>
         ISshKeyboardInteractiveFactor? GetKeyboardInteractive(String Username)
             => null;
 
@@ -115,7 +125,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create an authenticator from a public-key authorization callback.</summary>
+        /// <summary>
+        /// Create an authenticator from a public-key authorization callback.
+        /// </summary>
         public SshUserAuthenticator(Func<SshPublicKeyAuthRequest, CancellationToken, ValueTask<Boolean>>  AuthorizePublicKey,
                                     IReadOnlyList<String>?                                                 OfferedMethods = null)
         {
@@ -179,7 +191,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             => authorizePublicKey(Request, CancellationToken);
 
-        /// <summary>Supplies the restrictions of the entry that authorized the key, if any.</summary>
+        /// <summary>
+        /// Supplies the restrictions of the entry that authorized the key, if any.
+        /// </summary>
         public Func<SshPublicKeyAuthRequest, ValueTask<SshSessionRestrictions>>? Restrictions { get; init; }
 
         /// <inheritdoc />

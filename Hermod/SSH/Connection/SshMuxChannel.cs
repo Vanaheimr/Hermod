@@ -27,19 +27,27 @@ using System.Threading.Channels;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>An inbound channel request routed to a channel (e.g. <c>exec</c>, <c>pty-req</c>, <c>exit-status</c>).</summary>
+    /// <summary>
+    /// An inbound channel request routed to a channel (e.g. <c>exec</c>, <c>pty-req</c>, <c>exit-status</c>).
+    /// </summary>
     /// <param name="Type">The request type.</param>
     /// <param name="WantReply">Whether the sender wants a CHANNEL_SUCCESS/FAILURE reply.</param>
     /// <param name="Data">The request-specific bytes (after type + want-reply).</param>
     public readonly record struct SshChannelRequest(String Type, Boolean WantReply, Byte[] Data);
 
 
-    /// <summary>Thrown when a channel open is refused by the peer.</summary>
+    /// <summary>
+    /// Thrown when a channel open is refused by the peer.
+    /// </summary>
     public sealed class SshChannelOpenException : Exception
     {
-        /// <summary>The SSH_MSG_CHANNEL_OPEN_FAILURE reason code.</summary>
+        /// <summary>
+        /// The SSH_MSG_CHANNEL_OPEN_FAILURE reason code.
+        /// </summary>
         public UInt32 Reason { get; }
-        /// <summary>Create a channel-open exception.</summary>
+        /// <summary>
+        /// Create a channel-open exception.
+        /// </summary>
         public SshChannelOpenException(UInt32 Reason, String Message) : base(Message) { this.Reason = Reason; }
     }
 
@@ -75,22 +83,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>Our local channel id.</summary>
+        /// <summary>
+        /// Our local channel id.
+        /// </summary>
         public UInt32   LocalId      { get; }
 
-        /// <summary>The channel type (<c>session</c>, <c>direct-tcpip</c>, <c>forwarded-tcpip</c>, …).</summary>
+        /// <summary>
+        /// The channel type (<c>session</c>, <c>direct-tcpip</c>, <c>forwarded-tcpip</c>, …).
+        /// </summary>
         public String   ChannelType  { get; }
 
-        /// <summary>The type-specific open bytes (e.g. the host/port block for a forwarding channel).</summary>
+        /// <summary>
+        /// The type-specific open bytes (e.g. the host/port block for a forwarding channel).
+        /// </summary>
         public Byte[]   OpenData     { get; }
 
-        /// <summary>The inbound data stream (stdout); reading it returns receive-window credit to the peer.</summary>
+        /// <summary>
+        /// The inbound data stream (stdout); reading it returns receive-window credit to the peer.
+        /// </summary>
         public Stream   Input   => inputStream ??= new ChannelReadStream(stdout.Reader, n => Replenish((UInt32) n));
 
-        /// <summary>The inbound extended-data stream (stderr); reading it also returns window credit.</summary>
+        /// <summary>
+        /// The inbound extended-data stream (stderr); reading it also returns window credit.
+        /// </summary>
         public Stream   Error   => errorStream ??= new ChannelReadStream(stderr.Reader, n => Replenish((UInt32) n));
 
-        /// <summary>Completes when the channel is fully closed.</summary>
+        /// <summary>
+        /// Completes when the channel is fully closed.
+        /// </summary>
         public Task     Closed  => closeTcs.Task;
 
         internal Task   OpenAwaitable => openTcs.Task;
@@ -112,7 +132,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Outbound
 
-        /// <summary>Send bytes as channel data, chunked to the max packet and honouring the peer's window.</summary>
+        /// <summary>
+        /// Send bytes as channel data, chunked to the max packet and honouring the peer's window.
+        /// </summary>
         public async ValueTask SendDataAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
         {
             var offset = 0;
@@ -136,11 +158,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
         }
 
-        /// <summary>Send bytes as extended (stderr) channel data.</summary>
+        /// <summary>
+        /// Send bytes as extended (stderr) channel data.
+        /// </summary>
         public async ValueTask SendErrorAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
             => await mux.SendAsync(SshChannelWire.ChannelExtendedData(remoteId, 1, Data.Span), CancellationToken).ConfigureAwait(false);
 
-        /// <summary>Send a channel request; when <paramref name="WantReply"/>, await the SUCCESS/FAILURE reply.</summary>
+        /// <summary>
+        /// Send a channel request; when <paramref name="WantReply"/>, await the SUCCESS/FAILURE reply.
+        /// </summary>
         public async ValueTask<Boolean> SendRequestAsync(String Type, Boolean WantReply, Byte[] Payload, CancellationToken CancellationToken = default)
         {
             TaskCompletionSource<Boolean>? tcs = null;
@@ -149,7 +175,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return tcs is null || await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
         }
 
-        /// <summary>Send EOF (no more outbound data).</summary>
+        /// <summary>
+        /// Send EOF (no more outbound data).
+        /// </summary>
         public async ValueTask SendEofAsync(CancellationToken CancellationToken = default)
         {
             Boolean send;
@@ -157,7 +185,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (send) await mux.SendAsync(SshChannelWire.Eof(remoteId), CancellationToken).ConfigureAwait(false);
         }
 
-        /// <summary>Send EOF and CLOSE for this channel.</summary>
+        /// <summary>
+        /// Send EOF and CLOSE for this channel.
+        /// </summary>
         public async ValueTask CloseAsync(CancellationToken CancellationToken = default)
         {
             Boolean sendEof, sendClose;
@@ -170,7 +200,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Inbound
 
-        /// <summary>Read the next inbound channel request (e.g. the server reads <c>exec</c>, the client reads <c>exit-status</c>); null at end.</summary>
+        /// <summary>
+        /// Read the next inbound channel request (e.g. the server reads <c>exec</c>, the client reads <c>exit-status</c>); null at end.
+        /// </summary>
         public async ValueTask<SshChannelRequest?> ReadRequestAsync(CancellationToken CancellationToken = default)
         {
             try
@@ -182,7 +214,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             catch (ChannelClosedException) { return null; }
         }
 
-        /// <summary>Reply to the most recent want-reply request (rarely needed directly; used by request handlers).</summary>
+        /// <summary>
+        /// Reply to the most recent want-reply request (rarely needed directly; used by request handlers).
+        /// </summary>
         public ValueTask ReplyAsync(Boolean Success, CancellationToken CancellationToken = default)
             => mux.SendAsync(Success ? SshChannelWire.ChannelSuccess(remoteId) : SshChannelWire.ChannelFailure(remoteId), CancellationToken);
 
@@ -190,7 +224,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region AsStream()
 
-        /// <summary>View this channel's data plane as a bidirectional <see cref="Stream"/> (read = stdout, write = channel data).</summary>
+        /// <summary>
+        /// View this channel's data plane as a bidirectional <see cref="Stream"/> (read = stdout, write = channel data).
+        /// </summary>
         public Stream AsStream() => new MuxChannelDuplexStream(this);
 
         private sealed class MuxChannelDuplexStream : Stream

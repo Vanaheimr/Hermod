@@ -29,13 +29,21 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
-/// <summary>Which TLS security policy governed an outbound delivery attempt (RFC 8460 §4.2).</summary>
+/// <summary>
+/// Which TLS security policy governed an outbound delivery attempt (RFC 8460 §4.2).
+/// </summary>
 public enum TlsRptPolicyType
 {
-    /// <summary>MTA-STS policy (RFC 8461).</summary>
+    /// <summary>
+    /// MTA-STS policy (RFC 8461).
+    /// </summary>
     Sts,
-    /// <summary>DANE / TLSA policy (RFC 7672).</summary>
+    /// <summary>
+    /// DANE / TLSA policy (RFC 7672).
+    /// </summary>
     Tlsa,
-    /// <summary>No STS or DANE policy applied to the session.</summary>
+    /// <summary>
+    /// No STS or DANE policy applied to the session.
+    /// </summary>
     NoPolicyFound
 }

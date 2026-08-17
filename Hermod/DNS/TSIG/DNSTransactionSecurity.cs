@@ -42,23 +42,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        /// <summary>Nothing configured — the common case, and free.</summary>
+        /// <summary>
+        /// Nothing configured — the common case, and free.
+        /// </summary>
         public static readonly DNSTransactionSecurity None = new (null, null, null);
 
         #endregion
 
         #region Properties
 
-        /// <summary>The shared secret to sign queries with (RFC 8945), or null.</summary>
+        /// <summary>
+        /// The shared secret to sign queries with (RFC 8945), or null.
+        /// </summary>
         public TSIGKey?          TSIGKey          { get; }
 
-        /// <summary>The key pair to sign queries with (RFC 2931), or null.</summary>
+        /// <summary>
+        /// The key pair to sign queries with (RFC 2931), or null.
+        /// </summary>
         public SIG0Key?          SIG0Key          { get; }
 
-        /// <summary>The KEY records a signed *response* is checked against.</summary>
+        /// <summary>
+        /// The KEY records a signed *response* is checked against.
+        /// </summary>
         public IEnumerable<KEY>  SIG0ServerKeys   { get; }
 
-        /// <summary>Whether anything at all is configured.</summary>
+        /// <summary>
+        /// Whether anything at all is configured.
+        /// </summary>
         public Boolean IsActive
             => TSIGKey is not null || SIG0Key is not null || SIG0ServerKeys.Any();
 

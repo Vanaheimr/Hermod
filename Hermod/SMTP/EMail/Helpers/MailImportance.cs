@@ -25,11 +25,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// </summary>
     public enum MailImportance
     {
-        /// <summary>Low importance ("Importance: Low", X-Priority 5).</summary>
+        /// <summary>
+        /// Low importance ("Importance: Low", X-Priority 5).
+        /// </summary>
         Low,
-        /// <summary>Normal importance — the default; no header is emitted.</summary>
+        /// <summary>
+        /// Normal importance — the default; no header is emitted.
+        /// </summary>
         Normal,
-        /// <summary>High importance ("Importance: High", X-Priority 1).</summary>
+        /// <summary>
+        /// High importance ("Importance: High", X-Priority 1).
+        /// </summary>
         High
     }
 

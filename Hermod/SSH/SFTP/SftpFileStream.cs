@@ -169,7 +169,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
-        /// <summary>Not supported: SFTP v3 has no in-place truncation on this stream.</summary>
+        /// <summary>
+        /// Not supported: SFTP v3 has no in-place truncation on this stream.
+        /// </summary>
         public override void SetLength(Int64 value)
             => throw new NotSupportedException("SFTP v3 file streams do not support SetLength.");
 

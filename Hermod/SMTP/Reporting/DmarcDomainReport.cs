@@ -25,7 +25,9 @@ using System.Text.Json.Serialization;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    /// <summary>A per-domain aggregate report ready for XML serialization + delivery.</summary>
+    /// <summary>
+    /// A per-domain aggregate report ready for XML serialization + delivery.
+    /// </summary>
     public sealed record DmarcDomainReport(
         String            PolicyDomain,
         String            Rua,

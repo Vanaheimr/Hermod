@@ -67,7 +67,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Boolean UsesNSEC3
             => nsec3Records.Length > 0;
 
-        /// <summary>Whether this zone can prove anything at all — an unsigned zone cannot.</summary>
+        /// <summary>
+        /// Whether this zone can prove anything at all — an unsigned zone cannot.
+        /// </summary>
         public Boolean IsSigned
             => nsec3Records.Length > 0 || nsecRecords.Length > 0;
 
@@ -279,7 +281,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private) MatchingNSEC (Name) / CoveringNSEC (Name)
 
-        /// <summary>The NSEC whose owner name *is* the given name.</summary>
+        /// <summary>
+        /// The NSEC whose owner name *is* the given name.
+        /// </summary>
         private NSEC? MatchingNSEC(String Name)
 
             => nsecRecords.FirstOrDefault(nsec => DenialOfExistenceValidator.CompareCanonical(
@@ -287,7 +291,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                       Name
                                                   ) == 0);
 
-        /// <summary>The NSEC whose span strictly contains the given name.</summary>
+        /// <summary>
+        /// The NSEC whose span strictly contains the given name.
+        /// </summary>
         private NSEC? CoveringNSEC(String Name)
         {
 
@@ -318,7 +324,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private) MatchingNSEC3(Name) / CoveringNSEC3(Name)
 
-        /// <summary>The NSEC3 whose owner hash is the hash of the given name.</summary>
+        /// <summary>
+        /// The NSEC3 whose owner hash is the hash of the given name.
+        /// </summary>
         private NSEC3? MatchingNSEC3(String? Name)
         {
 
@@ -335,7 +343,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
-        /// <summary>The NSEC3 whose hash span strictly contains the hash of the given name.</summary>
+        /// <summary>
+        /// The NSEC3 whose hash span strictly contains the hash of the given name.
+        /// </summary>
         private NSEC3? CoveringNSEC3(String? Name)
         {
 
@@ -522,7 +532,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
-        /// <summary>The wildcard name at a given owner: <c>*.owner</c>.</summary>
+        /// <summary>
+        /// The wildcard name at a given owner: <c>*.owner</c>.
+        /// </summary>
         private static String Wildcard(String Owner)
             => Owner == "." ? "*." : $"*.{Owner}";
 

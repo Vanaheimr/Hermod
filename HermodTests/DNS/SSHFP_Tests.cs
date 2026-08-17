@@ -50,7 +50,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
             SSHFP_FingerprintType.SHA256
         ];
 
-        /// <summary>Every algorithm × fingerprint-type combination.</summary>
+        /// <summary>
+        /// Every algorithm × fingerprint-type combination.
+        /// </summary>
         public static IEnumerable<TestCaseData> AllCombinations()
         {
             foreach (var algorithm in algorithms)
@@ -58,7 +60,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                     yield return new TestCaseData(algorithm, type).SetName($"{{m}}({algorithm},{type})");
         }
 
-        /// <summary>SHA-1 fingerprints are 20 bytes, SHA-256 are 32 — in BYTES, not hex characters.</summary>
+        /// <summary>
+        /// SHA-1 fingerprints are 20 bytes, SHA-256 are 32 — in BYTES, not hex characters.
+        /// </summary>
         private static Int32 LengthOf(SSHFP_FingerprintType Type)
             => Type == SSHFP_FingerprintType.SHA1 ? 20 : 32;
 
@@ -219,7 +223,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region (DoH / JSON) Parsing
 
-        /// <summary>The DoH client parses RDATA from JSON text: "&lt;algorithm&gt; &lt;type&gt; &lt;hex&gt;".</summary>
+        /// <summary>
+        /// The DoH client parses RDATA from JSON text: "&lt;algorithm&gt; &lt;type&gt; &lt;hex&gt;".
+        /// </summary>
         [Test]
         [TestCaseSource(nameof(AllCombinations))]
         public void Json_Parse_AllAlgorithmsAndTypes(SSHFP_Algorithm Algorithm, SSHFP_FingerprintType Type)
@@ -244,7 +250,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Rejection of malformed records
 
-        /// <summary>The length guard must still reject a genuinely malformed fingerprint.</summary>
+        /// <summary>
+        /// The length guard must still reject a genuinely malformed fingerprint.
+        /// </summary>
         [Test]
         [TestCase(SSHFP_FingerprintType.SHA1,   19)]
         [TestCase(SSHFP_FingerprintType.SHA1,   32)]
@@ -261,7 +269,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                               new Byte[WrongLength]));
         }
 
-        /// <summary>An unassigned fingerprint type cannot be length-checked, so it must be refused.</summary>
+        /// <summary>
+        /// An unassigned fingerprint type cannot be length-checked, so it must be refused.
+        /// </summary>
         [Test]
         public void Rejects_UnknownFingerprintTypeOnTheWire()
         {
@@ -270,7 +280,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
                         Throws.Exception);
         }
 
-        /// <summary>An algorithm number that is not assigned is refused rather than silently mis-typed.</summary>
+        /// <summary>
+        /// An algorithm number that is not assigned is refused rather than silently mis-typed.
+        /// </summary>
         [Test]
         public void Rejects_UnknownAlgorithmOnTheWire()
         {
@@ -283,7 +295,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Rendering
 
-        /// <summary>RText and the zone-file RDATA must show the fingerprint in hex, not "System.Byte[]".</summary>
+        /// <summary>
+        /// RText and the zone-file RDATA must show the fingerprint in hex, not "System.Byte[]".
+        /// </summary>
         [Test]
         public void Rendering_ShowsTheFingerprintAsHex()
         {
@@ -304,7 +318,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Cache extension
 
-        /// <summary>The CacheSSHFP helper must accept every algorithm, Ed25519 included.</summary>
+        /// <summary>
+        /// The CacheSSHFP helper must accept every algorithm, Ed25519 included.
+        /// </summary>
         [Test]
         [TestCaseSource(nameof(AllCombinations))]
         public void CacheSSHFP_AcceptsEveryAlgorithm(SSHFP_Algorithm Algorithm, SSHFP_FingerprintType Type)

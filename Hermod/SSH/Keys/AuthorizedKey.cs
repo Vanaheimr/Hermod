@@ -35,25 +35,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The public key this entry authorizes.</summary>
+        /// <summary>
+        /// The public key this entry authorizes.
+        /// </summary>
         public SshPublicKey       PublicKey    { get; }
 
-        /// <summary>Whether the key is a certificate authority (<c>cert-authority</c> option).</summary>
+        /// <summary>
+        /// Whether the key is a certificate authority (<c>cert-authority</c> option).
+        /// </summary>
         public Boolean            IsCertAuthority  { get; init; }
 
-        /// <summary>The certificate principals this entry allows (<c>principals="…"</c>), if any.</summary>
+        /// <summary>
+        /// The certificate principals this entry allows (<c>principals="…"</c>), if any.
+        /// </summary>
         public IReadOnlyList<String>  Principals  { get; init; } = [];
 
-        /// <summary>Not valid before this instant, if set (<c>not-before="…"</c>).</summary>
+        /// <summary>
+        /// Not valid before this instant, if set (<c>not-before="…"</c>).
+        /// </summary>
         public DateTimeOffset?    NotBefore    { get; init; }
 
-        /// <summary>Not valid after this instant, if set (<c>not-after="…"</c> / <c>expiry-time="…"</c>).</summary>
+        /// <summary>
+        /// Not valid after this instant, if set (<c>not-after="…"</c> / <c>expiry-time="…"</c>).
+        /// </summary>
         public DateTimeOffset?    NotAfter     { get; init; }
 
-        /// <summary>A forced command (<c>command="…"</c>), if set.</summary>
+        /// <summary>
+        /// A forced command (<c>command="…"</c>), if set.
+        /// </summary>
         public String?            ForcedCommand  { get; init; }
 
-        /// <summary>The raw option tokens as parsed, preserved for options we do not model explicitly.</summary>
+        /// <summary>
+        /// The raw option tokens as parsed, preserved for options we do not model explicitly.
+        /// </summary>
         public IReadOnlyList<String>  Options  { get; init; } = [];
 
         /// <summary>
@@ -68,7 +82,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create an authorized-key entry for the given public key.</summary>
+        /// <summary>
+        /// Create an authorized-key entry for the given public key.
+        /// </summary>
         public AuthorizedKey(SshPublicKey PublicKey)
         {
             this.PublicKey = PublicKey;
@@ -101,7 +117,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Matches(PublicKeyBlob)
 
-        /// <summary>Whether this entry's public key equals the given wire blob.</summary>
+        /// <summary>
+        /// Whether this entry's public key equals the given wire blob.
+        /// </summary>
         public Boolean Matches(ReadOnlySpan<Byte> PublicKeyBlob)
             => PublicKey.Blob.AsSpan().SequenceEqual(PublicKeyBlob);
 

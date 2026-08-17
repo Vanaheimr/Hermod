@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
-/// <summary>One failure-details entry of a TLS-RPT report (RFC 8460 §4.4).</summary>
+/// <summary>
+/// One failure-details entry of a TLS-RPT report (RFC 8460 §4.4).
+/// </summary>
 public sealed record TlsRptFailureRow(String   ResultType,
                                       String?  SendingMtaIp,
                                       String?  ReceivingMxHostname,

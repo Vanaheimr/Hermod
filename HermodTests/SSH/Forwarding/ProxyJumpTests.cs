@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M8: ProxyJump / SSH-over-SSH — reach a TCP target through one (and two) in-process bastions, with end-to-end target host-key verification and auth.</summary>
+    /// <summary>
+    /// M8: ProxyJump / SSH-over-SSH — reach a TCP target through one (and two) in-process bastions, with end-to-end target host-key verification and auth.
+    /// </summary>
     [TestFixture]
     public class ProxyJumpTests
     {

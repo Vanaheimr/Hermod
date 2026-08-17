@@ -26,7 +26,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M7: the token-bucket rate limiter, paced deterministically by a manual clock.</summary>
+    /// <summary>
+    /// M7: the token-bucket rate limiter, paced deterministically by a manual clock.
+    /// </summary>
     [TestFixture]
     public class TokenBucketRateLimiterTests
     {

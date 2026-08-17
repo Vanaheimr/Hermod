@@ -38,7 +38,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                             Boolean     SameOrigin)
     {
 
-        /// <summary>The target as an absolute URI string, for logging or handing onwards.</summary>
+        /// <summary>
+        /// The target as an absolute URI string, for logging or handing onwards.
+        /// </summary>
         public override String ToString()
             => $"{Scheme}://{Authority}{Path}";
 

@@ -60,10 +60,14 @@ public sealed class RetryTokenGenerator
     /// </summary>
     public enum TokenKind : byte
     {
-        /// <summary>Issued in a Retry packet; usable immediately and only for this attempt.</summary>
+        /// <summary>
+        /// Issued in a Retry packet; usable immediately and only for this attempt.
+        /// </summary>
         Retry = 0x01,
 
-        /// <summary>Issued in a NEW_TOKEN frame (§8.1.3), for a <i>later</i> connection.</summary>
+        /// <summary>
+        /// Issued in a NEW_TOKEN frame (§8.1.3), for a <i>later</i> connection.
+        /// </summary>
         NewToken = 0x02,
     }
 

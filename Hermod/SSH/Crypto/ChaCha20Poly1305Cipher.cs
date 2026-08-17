@@ -47,10 +47,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        /// <summary>The required key length in bytes (two 32-byte ChaCha20 keys).</summary>
+        /// <summary>
+        /// The required key length in bytes (two 32-byte ChaCha20 keys).
+        /// </summary>
         public const Int32  KeyLength   = 64;
 
-        /// <summary>The Poly1305 tag length in bytes.</summary>
+        /// <summary>
+        /// The Poly1305 tag length in bytes.
+        /// </summary>
         public const Int32  TagLen      = 16;
 
         private readonly Byte[]  mainKey;     // key[0..32]  — payload + Poly1305 key
@@ -68,7 +72,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create a ChaCha20-Poly1305 cipher for one direction from 64 bytes of key material.</summary>
+        /// <summary>
+        /// Create a ChaCha20-Poly1305 cipher for one direction from 64 bytes of key material.
+        /// </summary>
         public ChaCha20Poly1305Cipher(ReadOnlySpan<Byte> Key)
         {
 
@@ -169,7 +175,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region DecryptLength(SequenceNumber, EncryptedLength)
 
-        /// <summary>Decrypt the 4-byte packet length field (header key) so the caller can read the rest.</summary>
+        /// <summary>
+        /// Decrypt the 4-byte packet length field (header key) so the caller can read the rest.
+        /// </summary>
         public UInt32 DecryptLength(UInt32 SequenceNumber, ReadOnlySpan<Byte> EncryptedLength)
         {
             Span<Byte> nonce = stackalloc Byte[ChaCha20.NonceSize];

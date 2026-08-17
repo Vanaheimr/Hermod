@@ -99,7 +99,9 @@ public static class ModbusPDU
 
     }
 
-    /// <summary>Decode the register payload of an FC03/FC04 response.</summary>
+    /// <summary>
+    /// Decode the register payload of an FC03/FC04 response.
+    /// </summary>
     public static ushort[] DecodeReadResponse(ReadOnlySpan<byte> pdu)
     {
 

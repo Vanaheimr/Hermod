@@ -55,7 +55,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public DomainName           Name         { get; }
 
-        /// <summary>The DNSSEC algorithm number (RFC 8624 §3.1).</summary>
+        /// <summary>
+        /// The DNSSEC algorithm number (RFC 8624 §3.1).
+        /// </summary>
         public Byte                 Algorithm    { get; }
 
         /// <summary>
@@ -74,10 +76,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly AsymmetricAlgorithm?  asymmetricPrivateKey;
         private readonly Byte[]?               rawPrivateKey;
 
-        /// <summary>The KEY record a verifier needs, ready to be published or handed over.</summary>
+        /// <summary>
+        /// The KEY record a verifier needs, ready to be published or handed over.
+        /// </summary>
         public KEY                  PublicKey    { get; }
 
-        /// <summary>The key tag of <see cref="PublicKey"/>, which every signature names.</summary>
+        /// <summary>
+        /// The key tag of <see cref="PublicKey"/>, which every signature names.
+        /// </summary>
         public UInt16               KeyTag
             => PublicKey.KeyTag;
 

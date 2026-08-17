@@ -39,23 +39,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        /// <summary>The maximum length of the identification line including CR LF (RFC 4253).</summary>
+        /// <summary>
+        /// The maximum length of the identification line including CR LF (RFC 4253).
+        /// </summary>
         public const Int32 MaxLineLength = 255;
 
         #endregion
 
         #region Properties
 
-        /// <summary>The protocol version, normally "2.0".</summary>
+        /// <summary>
+        /// The protocol version, normally "2.0".
+        /// </summary>
         public String   ProtocolVersion    { get; }
 
-        /// <summary>The software version, printable US-ASCII without spaces or minus signs.</summary>
+        /// <summary>
+        /// The software version, printable US-ASCII without spaces or minus signs.
+        /// </summary>
         public String   SoftwareVersion    { get; }
 
-        /// <summary>Optional free-text comments (everything after the first space).</summary>
+        /// <summary>
+        /// Optional free-text comments (everything after the first space).
+        /// </summary>
         public String?  Comments           { get; }
 
-        /// <summary>The identification line as sent on the wire, without the trailing CR LF.</summary>
+        /// <summary>
+        /// The identification line as sent on the wire, without the trailing CR LF.
+        /// </summary>
         public String   Line
 
             => Comments is null
@@ -93,7 +103,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #endregion
 
 
-        /// <summary>The default HermodSSH identification string.</summary>
+        /// <summary>
+        /// The default HermodSSH identification string.
+        /// </summary>
         public static SshIdentificationString Default { get; } = new ("HermodSSH_0.1");
 
 
@@ -190,7 +202,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (override) ToString()
 
-        /// <summary>Return the identification line (without CR LF).</summary>
+        /// <summary>
+        /// Return the identification line (without CR LF).
+        /// </summary>
         public override String ToString()
             => Line;
 

@@ -51,7 +51,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region MissingVerifier_IsRefused
 
-        /// <summary>A handshake with no verifier must fail rather than silently accept the peer's key.</summary>
+        /// <summary>
+        /// A handshake with no verifier must fail rather than silently accept the peer's key.
+        /// </summary>
         [Test]
         [CancelAfter(20000)]
         public async Task MissingVerifier_IsRefused(CancellationToken CancellationToken)
@@ -77,7 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region WrongHostKey_IsRejected
 
-        /// <summary>A verifier that says no must actually stop the handshake.</summary>
+        /// <summary>
+        /// A verifier that says no must actually stop the handshake.
+        /// </summary>
         [Test]
         [CancelAfter(20000)]
         public async Task WrongHostKey_IsRejected(CancellationToken CancellationToken)
@@ -104,7 +108,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region CorrectHostKey_IsAccepted
 
-        /// <summary>Failing closed must not break the legitimate case.</summary>
+        /// <summary>
+        /// Failing closed must not break the legitimate case.
+        /// </summary>
         [Test]
         [CancelAfter(20000)]
         public async Task CorrectHostKey_IsAccepted(CancellationToken CancellationToken)

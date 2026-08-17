@@ -27,37 +27,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 
 public sealed record RateLimitConfig
 {
-    /// <summary>Maximum concurrent connections total</summary>
+    /// <summary>
+    /// Maximum concurrent connections total
+    /// </summary>
     public int      MaxTotalConnections         { get; init; } = 100;
 
-    /// <summary>Maximum concurrent connections per IP</summary>
+    /// <summary>
+    /// Maximum concurrent connections per IP
+    /// </summary>
     public int      MaxConnectionsPerIp         { get; init; } = 10;
 
-    /// <summary>Maximum new connections per IP per minute</summary>
+    /// <summary>
+    /// Maximum new connections per IP per minute
+    /// </summary>
     public int      MaxConnectionsPerIpPerMinute{ get; init; } = 30;
 
-    /// <summary>Maximum AUTH attempts per IP per hour</summary>
+    /// <summary>
+    /// Maximum AUTH attempts per IP per hour
+    /// </summary>
     public int      MaxAuthAttemptsPerIpPerHour { get; init; } = 10;
 
-    /// <summary>Maximum RCPT TO commands per session</summary>
+    /// <summary>
+    /// Maximum RCPT TO commands per session
+    /// </summary>
     public int      MaxRcptPerSession           { get; init; } = 100;
 
-    /// <summary>Maximum messages per authenticated session</summary>
+    /// <summary>
+    /// Maximum messages per authenticated session
+    /// </summary>
     public int      MaxMessagesPerSession       { get; init; } = 100;
 
-    /// <summary>Maximum messages per IP per hour (unauthenticated)</summary>
+    /// <summary>
+    /// Maximum messages per IP per hour (unauthenticated)
+    /// </summary>
     public int      MaxMessagesPerIpPerHour     { get; init; } = 50;
 
-    /// <summary>Maximum invalid commands before disconnect</summary>
+    /// <summary>
+    /// Maximum invalid commands before disconnect
+    /// </summary>
     public int      MaxInvalidCommands          { get; init; } = 5;
 
-    /// <summary>Delay after failed AUTH (milliseconds)</summary>
+    /// <summary>
+    /// Delay after failed AUTH (milliseconds)
+    /// </summary>
     public int      AuthFailDelayMs             { get; init; } = 3000;
 
-    /// <summary>IPs that bypass rate limiting</summary>
+    /// <summary>
+    /// IPs that bypass rate limiting
+    /// </summary>
     public HashSet<string> WhitelistedIps       { get; init; } = ["127.0.0.1", "::1"];
 
-    /// <summary>IPs that are always blocked</summary>
+    /// <summary>
+    /// IPs that are always blocked
+    /// </summary>
     public HashSet<string> BlacklistedIps       { get; init; } = [];
 
 }

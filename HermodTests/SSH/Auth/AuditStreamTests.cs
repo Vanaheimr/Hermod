@@ -26,7 +26,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M4 typed audit stream: the server emits structured events during authentication.</summary>
+    /// <summary>
+    /// M4 typed audit stream: the server emits structured events during authentication.
+    /// </summary>
     [TestFixture]
     public class AuditStreamTests
     {

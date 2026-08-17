@@ -32,13 +32,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed class DuplexPipe : IDuplexPipe
     {
 
-        /// <summary>The reader half.</summary>
+        /// <summary>
+        /// The reader half.
+        /// </summary>
         public PipeReader  Input     { get; }
 
-        /// <summary>The writer half.</summary>
+        /// <summary>
+        /// The writer half.
+        /// </summary>
         public PipeWriter  Output    { get; }
 
-        /// <summary>Create a duplex pipe from a reader and a writer.</summary>
+        /// <summary>
+        /// Create a duplex pipe from a reader and a writer.
+        /// </summary>
         public DuplexPipe(PipeReader Input, PipeWriter Output)
         {
             this.Input   = Input;

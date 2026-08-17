@@ -79,25 +79,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The session identifier (the exchange hash of the <i>first</i> key exchange); stable across rekeys.</summary>
+        /// <summary>
+        /// The session identifier (the exchange hash of the <i>first</i> key exchange); stable across rekeys.
+        /// </summary>
         public Byte[]                SessionId         => sessionId;
 
-        /// <summary>The exchange hash H of the most recent key exchange.</summary>
+        /// <summary>
+        /// The exchange hash H of the most recent key exchange.
+        /// </summary>
         public Byte[]                ExchangeHash      => exchangeHash;
 
-        /// <summary>The algorithms negotiated in the most recent key exchange.</summary>
+        /// <summary>
+        /// The algorithms negotiated in the most recent key exchange.
+        /// </summary>
         public NegotiatedAlgorithms  Algorithms        => algorithms;
 
-        /// <summary>The peer's host-key blob (K_S) from the most recent key exchange.</summary>
+        /// <summary>
+        /// The peer's host-key blob (K_S) from the most recent key exchange.
+        /// </summary>
         public Byte[]                ServerHostKey     => serverHostKey;
 
-        /// <summary>Whether this end is the server.</summary>
+        /// <summary>
+        /// Whether this end is the server.
+        /// </summary>
         public Boolean               IsServer          => isServer;
 
-        /// <summary>How many key exchanges have completed (1 after the handshake, +1 per rekey).</summary>
+        /// <summary>
+        /// How many key exchanges have completed (1 after the handshake, +1 per rekey).
+        /// </summary>
         public Int32                 KeyExchangeCount  { get; private set; }
 
-        /// <summary>The extensions received from the peer via SSH_MSG_EXT_INFO (RFC 8308), if any.</summary>
+        /// <summary>
+        /// The extensions received from the peer via SSH_MSG_EXT_INFO (RFC 8308), if any.
+        /// </summary>
         public IReadOnlyDictionary<String, String>  PeerExtensions  => peerExtensions;
 
         /// <summary>
@@ -528,7 +542,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Dispose()
 
-        /// <summary>Dispose the current directional ciphers and MACs, wiping their key material.</summary>
+        /// <summary>
+        /// Dispose the current directional ciphers and MACs, wiping their key material.
+        /// </summary>
         public void Dispose()
         {
             DisposeCipher(sendCipher);

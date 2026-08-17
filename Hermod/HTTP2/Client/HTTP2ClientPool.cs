@@ -88,19 +88,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Public read-only stats
 
-        /// <summary>How many live connections the pool currently holds.</summary>
+        /// <summary>
+        /// How many live connections the pool currently holds.
+        /// </summary>
         public int  ConnectionCount { get { lock (gate) return connections.Count; } }
 
-        /// <summary>The target number of connections the pool keeps warm.</summary>
+        /// <summary>
+        /// The target number of connections the pool keeps warm.
+        /// </summary>
         public int  MaxConnections  => maxConnections;
 
-        /// <summary>How many connections have been (re)opened to replace dead ones since construction.</summary>
+        /// <summary>
+        /// How many connections have been (re)opened to replace dead ones since construction.
+        /// </summary>
         public long Reconnects      => Interlocked.Read(ref reconnects);
 
-        /// <summary>How many requests were re-issued on another connection after a not-processed failure.</summary>
+        /// <summary>
+        /// How many requests were re-issued on another connection after a not-processed failure.
+        /// </summary>
         public long Failovers       => Interlocked.Read(ref failovers);
 
-        /// <summary>Total requests submitted to the pool.</summary>
+        /// <summary>
+        /// Total requests submitted to the pool.
+        /// </summary>
         public long TotalRequests   => Interlocked.Read(ref totalRequests);
 
         #endregion
@@ -287,7 +297,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Connection lifecycle (open / watch / replenish)
 
-        /// <summary>Dial one new connection, register it, and start watching it for death. Throws if the dial fails.</summary>
+        /// <summary>
+        /// Dial one new connection, register it, and start watching it for death. Throws if the dial fails.
+        /// </summary>
         private async Task<HTTP2ClientConnection> OpenConnectionAsync(CancellationToken CancellationToken)
         {
 
@@ -407,7 +419,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Disposal
 
-        /// <summary>Close every pooled connection (best-effort GOAWAY each) and stop maintenance.</summary>
+        /// <summary>
+        /// Close every pooled connection (best-effort GOAWAY each) and stop maintenance.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
 

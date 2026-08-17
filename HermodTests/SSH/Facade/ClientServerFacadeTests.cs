@@ -37,7 +37,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
     using IPAddress = System.Net.IPAddress;
 
-    /// <summary>The high-level SshClient/SshServer façade: one connection runs exec and a port-forward concurrently over the multiplexer.</summary>
+    /// <summary>
+    /// The high-level SshClient/SshServer façade: one connection runs exec and a port-forward concurrently over the multiplexer.
+    /// </summary>
     [TestFixture]
     public class ClientServerFacadeTests
     {

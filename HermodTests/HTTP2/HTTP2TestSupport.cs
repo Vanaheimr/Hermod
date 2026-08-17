@@ -44,7 +44,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     internal static class H2
     {
 
-        /// <summary>Accept any server certificate (self-signed test certs).</summary>
+        /// <summary>
+        /// Accept any server certificate (self-signed test certs).
+        /// </summary>
         public static readonly RemoteCertificateValidationCallback AcceptAnyServerCert = (_, _, _, _) => true;
 
         /// <summary>
@@ -173,10 +175,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private readonly Task        runTask;
         private          Int32       stopped;
 
-        /// <summary>The ephemeral loopback port the server is listening on.</summary>
+        /// <summary>
+        /// The ephemeral loopback port the server is listening on.
+        /// </summary>
         public Int32 Port { get; }
 
-        /// <summary>The server's accept loop task — completes once the listener stops.</summary>
+        /// <summary>
+        /// The server's accept loop task — completes once the listener stops.
+        /// </summary>
         public Task Running => runTask;
 
         private TestH2Server(HTTP2Server Server, Int32 Port, Task RunTask)
@@ -186,7 +192,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             this.runTask = RunTask;
         }
 
-        /// <summary>Gracefully stop (GOAWAY + listener teardown). Idempotent.</summary>
+        /// <summary>
+        /// Gracefully stop (GOAWAY + listener teardown). Idempotent.
+        /// </summary>
         public async Task StopAsync()
         {
             if (Interlocked.Exchange(ref stopped, 1) == 0)
@@ -252,7 +260,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     internal static class H2Raw
     {
 
-        /// <summary>The RFC 9113 client connection preface.</summary>
+        /// <summary>
+        /// The RFC 9113 client connection preface.
+        /// </summary>
         public static readonly Byte[] Preface = Encoding.ASCII.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
 
         /// <summary>
@@ -280,7 +290,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
-        /// <summary>Read exactly <paramref name="buf"/>.Length bytes; false on EOF.</summary>
+        /// <summary>
+        /// Read exactly <paramref name="buf"/>.Length bytes; false on EOF.
+        /// </summary>
         public static async Task<Boolean> ReadExactAsync(Stream Stream, Byte[] buf, CancellationToken CancellationToken)
         {
             var off = 0;
@@ -293,7 +305,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             return true;
         }
 
-        /// <summary>Read one whole frame (9-byte header + payload); null on EOF.</summary>
+        /// <summary>
+        /// Read one whole frame (9-byte header + payload); null on EOF.
+        /// </summary>
         public static async Task<HTTP2Frame?> ReadFrameAsync(Stream Stream, CancellationToken CancellationToken)
         {
             var header = new Byte[9];
@@ -366,7 +380,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private readonly Func<Int32, SslStream, HTTP2Frame, HPACKEncoder, Task> onFrame;
         private          Int32                   connIndex = -1;
 
-        /// <summary>The ephemeral loopback port the mock is listening on.</summary>
+        /// <summary>
+        /// The ephemeral loopback port the mock is listening on.
+        /// </summary>
         public Int32 Port => ((IPEndPoint) listener.LocalEndpoint).Port;
 
         private MockH2Server(Int32 Mcs, Func<Int32, SslStream, HTTP2Frame, HPACKEncoder, Task> OnFrame)
@@ -378,7 +394,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             _ = AcceptLoopAsync();
         }
 
-        /// <summary>Start a mock advertising <paramref name="mcs"/> (0 = don't send MCS).</summary>
+        /// <summary>
+        /// Start a mock advertising <paramref name="mcs"/> (0 = don't send MCS).
+        /// </summary>
         public static MockH2Server Start(Int32 mcs, Func<Int32, SslStream, HTTP2Frame, HPACKEncoder, Task> onFrame)
             => new(mcs, onFrame);
 
@@ -428,14 +446,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             catch { /* connection ended / cancelled */ }
         }
 
-        /// <summary>Write one frame to the mock's connection stream.</summary>
+        /// <summary>
+        /// Write one frame to the mock's connection stream.
+        /// </summary>
         public static async Task WriteFrameAsync(SslStream ssl, HTTP2Frame f)
         {
             await ssl.WriteAsync(f.Serialize());
             await ssl.FlushAsync();
         }
 
-        /// <summary>Send a 200 "ok" response on a stream.</summary>
+        /// <summary>
+        /// Send a 200 "ok" response on a stream.
+        /// </summary>
         public static async Task Respond200Async(SslStream ssl, HPACKEncoder enc, UInt32 streamId)
         {
             await WriteFrameAsync(ssl, HTTP2Frame.CreateHeaders(streamId,

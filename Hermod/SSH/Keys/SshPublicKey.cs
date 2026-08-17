@@ -34,26 +34,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The key-type / algorithm name (e.g. <c>ssh-ed25519</c>), read from the blob.</summary>
+        /// <summary>
+        /// The key-type / algorithm name (e.g. <c>ssh-ed25519</c>), read from the blob.
+        /// </summary>
         public String  Algorithm  { get; }
 
-        /// <summary>The SSH public-key wire blob.</summary>
+        /// <summary>
+        /// The SSH public-key wire blob.
+        /// </summary>
         public Byte[]  Blob       { get; }
 
-        /// <summary>An optional comment (e.g. <c>user@host</c>).</summary>
+        /// <summary>
+        /// An optional comment (e.g. <c>user@host</c>).
+        /// </summary>
         public String  Comment    { get; }
 
-        /// <summary>The <c>SHA256:…</c> fingerprint.</summary>
+        /// <summary>
+        /// The <c>SHA256:…</c> fingerprint.
+        /// </summary>
         public String  Sha256Fingerprint  => SshFingerprint.Sha256(Blob);
 
-        /// <summary>The legacy <c>MD5:…</c> fingerprint.</summary>
+        /// <summary>
+        /// The legacy <c>MD5:…</c> fingerprint.
+        /// </summary>
         public String  Md5Fingerprint     => SshFingerprint.Md5(Blob);
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create a public key from its wire blob and an optional comment.</summary>
+        /// <summary>
+        /// Create a public key from its wire blob and an optional comment.
+        /// </summary>
         public SshPublicKey(Byte[] Blob, String Comment = "")
         {
             this.Blob       = Blob;
@@ -66,7 +78,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) FromHostKey(HostKey, Comment = "")
 
-        /// <summary>The public key of a signing key (host or user key).</summary>
+        /// <summary>
+        /// The public key of a signing key (host or user key).
+        /// </summary>
         public static SshPublicKey FromHostKey(ISshHostKey HostKey, String Comment = "")
             => new (HostKey.PublicKeyBlob, Comment);
 
@@ -83,7 +97,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                    ? key!
                    : throw new SshWireException($"'{Line}' is not a valid SSH public-key line.");
 
-        /// <summary>Try to parse an <c>authorized_keys</c> / <c>.pub</c> line.</summary>
+        /// <summary>
+        /// Try to parse an <c>authorized_keys</c> / <c>.pub</c> line.
+        /// </summary>
         public static Boolean TryParse(String Line, out SshPublicKey? PublicKey)
         {
 
@@ -117,7 +133,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region ToAuthorizedKeyLine()
 
-        /// <summary>Emit the one-line <c>authorized_keys</c> / <c>.pub</c> representation.</summary>
+        /// <summary>
+        /// Emit the one-line <c>authorized_keys</c> / <c>.pub</c> representation.
+        /// </summary>
         public String ToAuthorizedKeyLine()
         {
             var line = Algorithm + " " + Convert.ToBase64String(Blob);
@@ -128,7 +146,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region RFC 4716 (SSH2 public key file)
 
-        /// <summary>Emit the multi-line RFC 4716 <c>---- BEGIN SSH2 PUBLIC KEY ----</c> representation.</summary>
+        /// <summary>
+        /// Emit the multi-line RFC 4716 <c>---- BEGIN SSH2 PUBLIC KEY ----</c> representation.
+        /// </summary>
         public String ToRfc4716()
         {
 
@@ -147,7 +167,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Parse an RFC 4716 <c>---- BEGIN SSH2 PUBLIC KEY ----</c> block.</summary>
+        /// <summary>
+        /// Parse an RFC 4716 <c>---- BEGIN SSH2 PUBLIC KEY ----</c> block.
+        /// </summary>
         public static SshPublicKey ParseRfc4716(String Text)
         {
 

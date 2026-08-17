@@ -296,7 +296,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Content Negotiation (RFC 9110, Section 12)
 
-        /// <summary>The chosen variant (null = 406) plus the request-header field names that influenced selection.</summary>
+        /// <summary>
+        /// The chosen variant (null = 406) plus the request-header field names that influenced selection.
+        /// </summary>
         private sealed record NegotiationOutcome(HTTPResource? Chosen, List<string> Vary);
 
         /// <summary>
@@ -642,7 +644,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private static readonly string[] SupportedCodings = HTTPContentCoding.Supported;
 
-        /// <summary>Bodies smaller than this aren't worth the compression overhead.</summary>
+        /// <summary>
+        /// Bodies smaller than this aren't worth the compression overhead.
+        /// </summary>
         private const int MinCompressSize = 256;
 
         /// <summary>
@@ -744,7 +748,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Whether a media type is worth compressing (text and text-like structured formats).</summary>
+        /// <summary>
+        /// Whether a media type is worth compressing (text and text-like structured formats).
+        /// </summary>
         private static bool IsCompressible(string ContentType)
         {
 
@@ -977,7 +983,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private static bool TryParseHttpDate(string Value, out DateTimeOffset Result)
             => HTTPValidators.TryParseDate(Value, out Result);
 
-        /// <summary>HTTP-date has no sub-second precision — compare at 1-second granularity.</summary>
+        /// <summary>
+        /// HTTP-date has no sub-second precision — compare at 1-second granularity.
+        /// </summary>
         private static DateTimeOffset Truncate(DateTimeOffset Value)
             => HTTPValidators.Truncate(Value);
 
@@ -1252,14 +1260,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             return ([(":status", "404"), ("content-type", "text/plain; charset=utf-8"), ("content-length", body.Length.ToString())], body);
         }
 
-        /// <summary>RFC 9110, Section 15.5.1: a malformed request the server won't process (e.g. RFC 10008's missing Content-Type on a QUERY).</summary>
+        /// <summary>
+        /// RFC 9110, Section 15.5.1: a malformed request the server won't process (e.g. RFC 10008's missing Content-Type on a QUERY).
+        /// </summary>
         private static (List<(string Name, string Value)> Headers, byte[]? Body) BadRequest(string Reason)
         {
             var body = System.Text.Encoding.UTF8.GetBytes("400 Bad Request: " + Reason);
             return ([(":status", "400"), ("content-type", "text/plain; charset=utf-8"), ("content-length", body.Length.ToString())], body);
         }
 
-        /// <summary>RFC 9110, Section 15.5.6: a 405 MUST include Allow.</summary>
+        /// <summary>
+        /// RFC 9110, Section 15.5.6: a 405 MUST include Allow.
+        /// </summary>
         private static (List<(string Name, string Value)> Headers, byte[]? Body) MethodNotAllowed(string Allow)
             => ([(":status", "405"), ("allow", Allow)], null);
 

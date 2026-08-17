@@ -66,7 +66,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region ProofData_MatchesTheSpecifiedPreimage
 
-        /// <summary>The signature is computed over string("hostkeys-prove-00@openssh.com") || string(session-id) || string(hostkey).</summary>
+        /// <summary>
+        /// The signature is computed over string("hostkeys-prove-00@openssh.com") || string(session-id) || string(hostkey).
+        /// </summary>
         [Test]
         public void ProofData_MatchesTheSpecifiedPreimage()
         {
@@ -116,7 +118,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region SignProofs_RefusesKeysWeDoNotHold
 
-        /// <summary>A server must never sign a proof for a blob it was merely handed — that would let a peer harvest signatures.</summary>
+        /// <summary>
+        /// A server must never sign a proof for a blob it was merely handed — that would let a peer harvest signatures.
+        /// </summary>
         [Test]
         public void SignProofs_RefusesKeysWeDoNotHold()
         {
@@ -176,7 +180,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region VerifyProofs_AllOrNothing
 
-        /// <summary>One bad signature invalidates the entire update — no partial trust.</summary>
+        /// <summary>
+        /// One bad signature invalidates the entire update — no partial trust.
+        /// </summary>
         [Test]
         public void VerifyProofs_AllOrNothing()
         {

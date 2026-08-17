@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
-/// <summary>A per-domain TLS-RPT report ready for JSON serialization + delivery.</summary>
+/// <summary>
+/// A per-domain TLS-RPT report ready for JSON serialization + delivery.
+/// </summary>
 public sealed record TlsRptDomainReport(String                            PolicyDomain,
                                         DateTimeOffset                    WindowBegin,
                                         DateTimeOffset                    WindowEnd,

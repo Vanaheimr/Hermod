@@ -58,7 +58,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create a fresh hybrid key exchange over the given KEM and hash.</summary>
+        /// <summary>
+        /// Create a fresh hybrid key exchange over the given KEM and hash.
+        /// </summary>
         public HybridKeyExchange(SshKem Kem, HashAlgorithmName HashAlgorithm, String Name)
         {
             this.kem            = Kem;

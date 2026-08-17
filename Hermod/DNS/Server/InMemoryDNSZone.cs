@@ -91,7 +91,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DomainName? Origin
             => Index().Origin;
 
-        /// <summary>Whether the zone carries the NSEC/NSEC3 records needed to deny authenticated.</summary>
+        /// <summary>
+        /// Whether the zone carries the NSEC/NSEC3 records needed to deny authenticated.
+        /// </summary>
         public Boolean IsSigned
             => Index().Denial?.IsSigned == true;
 

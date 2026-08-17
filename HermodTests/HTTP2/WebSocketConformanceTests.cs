@@ -455,7 +455,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #region (nested) TcpTunnel
 
-        /// <summary>Minimal IHTTP2Tunnel over a raw TCP stream (mirrors the Autobahn echo server).</summary>
+        /// <summary>
+        /// Minimal IHTTP2Tunnel over a raw TCP stream (mirrors the Autobahn echo server).
+        /// </summary>
         private sealed class TcpTunnel(NetworkStream Stream) : IHTTP2Tunnel
         {
             private readonly Byte[] buf = new Byte[64 * 1024];

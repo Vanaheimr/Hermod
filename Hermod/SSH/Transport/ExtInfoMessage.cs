@@ -65,10 +65,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The extensions, in order (name → value; the value is extension-specific).</summary>
+        /// <summary>
+        /// The extensions, in order (name → value; the value is extension-specific).
+        /// </summary>
         public IReadOnlyList<KeyValuePair<String, String>>  Extensions    { get; }
 
-        /// <summary>The value of the given extension, or null if absent.</summary>
+        /// <summary>
+        /// The value of the given extension, or null if absent.
+        /// </summary>
         public String? this[String Name]
         {
             get
@@ -84,13 +88,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create an EXT_INFO message from a set of extensions.</summary>
+        /// <summary>
+        /// Create an EXT_INFO message from a set of extensions.
+        /// </summary>
         public ExtInfoMessage(IReadOnlyList<KeyValuePair<String, String>> Extensions)
         {
             this.Extensions = Extensions;
         }
 
-        /// <summary>Create an EXT_INFO message from a set of extensions.</summary>
+        /// <summary>
+        /// Create an EXT_INFO message from a set of extensions.
+        /// </summary>
         public ExtInfoMessage(params (String Name, String Value)[] Extensions)
         {
             this.Extensions = [.. Extensions.Select(e => new KeyValuePair<String, String>(e.Name, e.Value))];

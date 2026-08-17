@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
-/// <summary>Static options for <see cref="TlsRptReportService"/>.</summary>
+/// <summary>
+/// Static options for <see cref="TlsRptReportService"/>.
+/// </summary>
 public sealed record TlsRptReportingOptions(String    OrgName,
                                             String    ReportFromDisplay,   // e.g. "TLS Reports <tls-reports@mx.example>"
                                             String    ReportFromAddress,   // bare address used as envelope sender

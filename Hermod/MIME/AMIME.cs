@@ -38,7 +38,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
     {
 
 
-        /// <summary>Looks for the next occurrence of a sequence in a byte array</summary>
+        /// <summary>
+        /// Looks for the next occurrence of a sequence in a byte array
+        /// </summary>
         /// <param name="array">Array that will be scanned</param>
         /// <param name="start">Index in the array at which scanning will begin</param>
         /// <param name="sequence">Sequence the array will be scanned for</param>

@@ -28,10 +28,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed record SshCommand
     {
 
-        /// <summary>The command line to run (empty string requests an interactive shell instead).</summary>
+        /// <summary>
+        /// The command line to run (empty string requests an interactive shell instead).
+        /// </summary>
         public String                       CommandLine           { get; init; }
 
-        /// <summary>An optional stream piped to the remote command's standard input; null for no input.</summary>
+        /// <summary>
+        /// An optional stream piped to the remote command's standard input; null for no input.
+        /// </summary>
         public Stream?                      Input                 { get; init; }
 
         /// <summary>
@@ -40,20 +44,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public Dictionary<String, String>   EnvironmentVariables  { get; init; } = [];
 
-        /// <summary>Whether to request a pseudo-terminal (<c>pty-req</c>); without a PTY stdout/stderr stay separate.</summary>
+        /// <summary>
+        /// Whether to request a pseudo-terminal (<c>pty-req</c>); without a PTY stdout/stderr stay separate.
+        /// </summary>
         public Boolean                      UsePty                { get; init; }
 
-        /// <summary>The terminal type advertised in the <c>pty-req</c> (default <c>xterm-256color</c>).</summary>
+        /// <summary>
+        /// The terminal type advertised in the <c>pty-req</c> (default <c>xterm-256color</c>).
+        /// </summary>
         public String                       TerminalType          { get; init; } = "xterm-256color";
 
-        /// <summary>The terminal width in columns for the <c>pty-req</c>.</summary>
+        /// <summary>
+        /// The terminal width in columns for the <c>pty-req</c>.
+        /// </summary>
         public UInt32                       TerminalColumns       { get; init; } = 80;
 
-        /// <summary>The terminal height in rows for the <c>pty-req</c>.</summary>
+        /// <summary>
+        /// The terminal height in rows for the <c>pty-req</c>.
+        /// </summary>
         public UInt32                       TerminalRows          { get; init; } = 24;
 
 
-        /// <summary>Create a command specification for the given command line.</summary>
+        /// <summary>
+        /// Create a command specification for the given command line.
+        /// </summary>
         public SshCommand(String CommandLine)
         {
             this.CommandLine = CommandLine;

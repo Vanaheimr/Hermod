@@ -33,10 +33,14 @@ public sealed record DsnParameters(DsnNotify   Notify   = DsnNotify.Never,
                                    string?     EnvId    = null)
 {
 
-    /// <summary>No DSN requested — the receiver applies its default (usually failures only).</summary>
+    /// <summary>
+    /// No DSN requested — the receiver applies its default (usually failures only).
+    /// </summary>
     public static readonly DsnParameters None = new (DsnNotify.Never);
 
-    /// <summary>Whether a DSN was actually requested (a NOTIFY other than Never, or an ENVID).</summary>
+    /// <summary>
+    /// Whether a DSN was actually requested (a NOTIFY other than Never, or an ENVID).
+    /// </summary>
     public bool IsRequested => Notify != DsnNotify.Never || EnvId is not null;
 
 }

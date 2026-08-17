@@ -33,32 +33,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public interface ISshHostKey
     {
 
-        /// <summary>The signature algorithm names this key supports, most preferred first.</summary>
+        /// <summary>
+        /// The signature algorithm names this key supports, most preferred first.
+        /// </summary>
         IReadOnlyList<String> AlgorithmNames { get; }
 
-        /// <summary>The SSH public-key blob (K_S).</summary>
+        /// <summary>
+        /// The SSH public-key blob (K_S).
+        /// </summary>
         Byte[] PublicKeyBlob { get; }
 
-        /// <summary>Sign the given data with the requested algorithm, returning the SSH signature blob.</summary>
+        /// <summary>
+        /// Sign the given data with the requested algorithm, returning the SSH signature blob.
+        /// </summary>
         Byte[] Sign(String AlgorithmName, ReadOnlySpan<Byte> Data);
 
     }
 
 
-    /// <summary>Factory methods for generating SSH host keys.</summary>
+    /// <summary>
+    /// Factory methods for generating SSH host keys.
+    /// </summary>
     public static class SshHostKey
     {
 
-        /// <summary>Generate a fresh Ed25519 host key.</summary>
+        /// <summary>
+        /// Generate a fresh Ed25519 host key.
+        /// </summary>
         public static ISshHostKey GenerateEd25519()
             => Ed25519KeyPair.Generate();
 
-        /// <summary>Generate a fresh ECDSA host key for one of the NIST curves.</summary>
+        /// <summary>
+        /// Generate a fresh ECDSA host key for one of the NIST curves.
+        /// </summary>
         /// <param name="Algorithm">One of the <c>ecdsa-sha2-nistp256/384/521</c> names.</param>
         public static ISshHostKey GenerateEcdsa(String Algorithm)
             => new EcdsaHostKey(Algorithm);
 
-        /// <summary>Generate a fresh RSA host key.</summary>
+        /// <summary>
+        /// Generate a fresh RSA host key.
+        /// </summary>
         /// <param name="KeySizeInBits">The RSA key size (default 3072).</param>
         public static ISshHostKey GenerateRsa(Int32 KeySizeInBits = 3072)
             => new RsaHostKey(KeySizeInBits);
@@ -66,7 +80,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>An ECDSA host key over a NIST prime curve (RFC 5656).</summary>
+    /// <summary>
+    /// An ECDSA host key over a NIST prime curve (RFC 5656).
+    /// </summary>
     public sealed class EcdsaHostKey : ISshHostKey
     {
 
@@ -76,7 +92,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly String             curveId;
         private readonly Int32              fieldSize;
 
-        /// <summary>Create a fresh ECDSA host key for the given algorithm.</summary>
+        /// <summary>
+        /// Create a fresh ECDSA host key for the given algorithm.
+        /// </summary>
         public EcdsaHostKey(String Algorithm)
         {
             (hash, var curve, curveId, fieldSize) = SshSignature.EcdsaParametersFor(Algorithm);
@@ -84,7 +102,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             ecdsa      = ECDsa.Create(curve);
         }
 
-        /// <summary>Reconstruct an ECDSA host key from private EC parameters (key import).</summary>
+        /// <summary>
+        /// Reconstruct an ECDSA host key from private EC parameters (key import).
+        /// </summary>
         internal EcdsaHostKey(String Algorithm, ECParameters PrivateParameters)
         {
             (hash, _, curveId, fieldSize) = SshSignature.EcdsaParametersFor(Algorithm);
@@ -92,13 +112,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             ecdsa      = ECDsa.Create(PrivateParameters);
         }
 
-        /// <summary>The SSH curve identifier (e.g. <c>nistp256</c>).</summary>
+        /// <summary>
+        /// The SSH curve identifier (e.g. <c>nistp256</c>).
+        /// </summary>
         internal String  CurveId    => curveId;
 
-        /// <summary>The coordinate field size in bytes.</summary>
+        /// <summary>
+        /// The coordinate field size in bytes.
+        /// </summary>
         internal Int32   FieldSize  => fieldSize;
 
-        /// <summary>Export the private EC parameters (key export).</summary>
+        /// <summary>
+        /// Export the private EC parameters (key export).
+        /// </summary>
         internal ECParameters ExportPrivateParameters() => ecdsa.ExportParameters(true);
 
         public IReadOnlyList<String> AlgorithmNames => [ algorithm ];
@@ -148,25 +174,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>An RSA host key producing SHA-2 signatures (RFC 8332). One key serves both rsa-sha2-256 and -512.</summary>
+    /// <summary>
+    /// An RSA host key producing SHA-2 signatures (RFC 8332). One key serves both rsa-sha2-256 and -512.
+    /// </summary>
     public sealed class RsaHostKey : ISshHostKey
     {
 
         private readonly RSA rsa;
 
-        /// <summary>Create a fresh RSA host key of the given size.</summary>
+        /// <summary>
+        /// Create a fresh RSA host key of the given size.
+        /// </summary>
         public RsaHostKey(Int32 KeySizeInBits = 3072)
         {
             rsa = RSA.Create(KeySizeInBits);
         }
 
-        /// <summary>Reconstruct an RSA host key from private RSA parameters (key import).</summary>
+        /// <summary>
+        /// Reconstruct an RSA host key from private RSA parameters (key import).
+        /// </summary>
         internal RsaHostKey(RSAParameters PrivateParameters)
         {
             rsa = RSA.Create(PrivateParameters);
         }
 
-        /// <summary>Export the private RSA parameters (key export).</summary>
+        /// <summary>
+        /// Export the private RSA parameters (key export).
+        /// </summary>
         internal RSAParameters ExportPrivateParameters() => rsa.ExportParameters(true);
 
         public IReadOnlyList<String> AlgorithmNames =>

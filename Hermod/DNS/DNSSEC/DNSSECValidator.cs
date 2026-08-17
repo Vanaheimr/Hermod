@@ -38,16 +38,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public enum DNSSECValidationResult
     {
 
-        /// <summary>Signature verified, chain of trust intact.</summary>
+        /// <summary>
+        /// Signature verified, chain of trust intact.
+        /// </summary>
         Secure,
 
-        /// <summary>No DNSSEC signatures present.</summary>
+        /// <summary>
+        /// No DNSSEC signatures present.
+        /// </summary>
         Insecure,
 
-        /// <summary>Signature verification failed.</summary>
+        /// <summary>
+        /// Signature verification failed.
+        /// </summary>
         Bogus,
 
-        /// <summary>Validation could not be completed (e.g. network error fetching keys).</summary>
+        /// <summary>
+        /// Validation could not be completed (e.g. network error fetching keys).
+        /// </summary>
         Indeterminate
 
     }

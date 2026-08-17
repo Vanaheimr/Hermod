@@ -29,32 +29,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed record ForwardingPolicy
     {
 
-        /// <summary>The ACL for outbound <c>direct-tcpip</c> destinations, or null to forbid it.</summary>
+        /// <summary>
+        /// The ACL for outbound <c>direct-tcpip</c> destinations, or null to forbid it.
+        /// </summary>
         public NetworkAcl?  DirectTcpIp   { get; init; }
 
-        /// <summary>The ACL for <c>tcpip-forward</c> listen (bind) addresses, or null to forbid it.</summary>
+        /// <summary>
+        /// The ACL for <c>tcpip-forward</c> listen (bind) addresses, or null to forbid it.
+        /// </summary>
         public NetworkAcl?  TcpIpForward  { get; init; }
 
 
         #region Presets
 
-        /// <summary>No forwarding at all (the default, and hard-off for SFTP-only profiles).</summary>
+        /// <summary>
+        /// No forwarding at all (the default, and hard-off for SFTP-only profiles).
+        /// </summary>
         public static ForwardingPolicy None
             => new ();
 
-        /// <summary>Allow forwarding only to/from loopback (services on the SSH host itself).</summary>
+        /// <summary>
+        /// Allow forwarding only to/from loopback (services on the SSH host itself).
+        /// </summary>
         public static ForwardingPolicy LoopbackOnly
             => new () { DirectTcpIp = NetworkAcl.LoopbackOnly, TcpIpForward = NetworkAcl.LoopbackOnly };
 
-        /// <summary>Allow <c>direct-tcpip</c> only to private / link-local networks.</summary>
+        /// <summary>
+        /// Allow <c>direct-tcpip</c> only to private / link-local networks.
+        /// </summary>
         public static ForwardingPolicy PrivateNetworks
             => new () { DirectTcpIp = NetworkAcl.PrivateNetworksOnly };
 
-        /// <summary>Allow <c>direct-tcpip</c> only within the given subnet.</summary>
+        /// <summary>
+        /// Allow <c>direct-tcpip</c> only within the given subnet.
+        /// </summary>
         public static ForwardingPolicy Subnet(String Cidr)
             => new () { DirectTcpIp = NetworkAcl.Subnet(Cidr) };
 
-        /// <summary>A custom policy from explicit ACLs.</summary>
+        /// <summary>
+        /// A custom policy from explicit ACLs.
+        /// </summary>
         public static ForwardingPolicy Custom(NetworkAcl? DirectTcpIp = null, NetworkAcl? TcpIpForward = null)
             => new () { DirectTcpIp = DirectTcpIp, TcpIpForward = TcpIpForward };
 
@@ -69,11 +83,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Boolean AllowsDirectTcpIp(IEnumerable<IIPAddress> ResolvedAddresses, UInt16 Port, String? Host = null)
             => DirectTcpIp?.AllowsAll(ResolvedAddresses, Port, Host) ?? false;
 
-        /// <summary>Whether a single resolved <c>direct-tcpip</c> destination is permitted.</summary>
+        /// <summary>
+        /// Whether a single resolved <c>direct-tcpip</c> destination is permitted.
+        /// </summary>
         public Boolean AllowsDirectTcpIp(IIPAddress Address, UInt16 Port, String? Host = null)
             => DirectTcpIp?.Allows(Address, Port, Host) ?? false;
 
-        /// <summary>Whether a <c>tcpip-forward</c> listen on the given bind address / port is permitted.</summary>
+        /// <summary>
+        /// Whether a <c>tcpip-forward</c> listen on the given bind address / port is permitted.
+        /// </summary>
         public Boolean AllowsListen(IIPAddress BindAddress, UInt16 Port)
             => TcpIpForward?.Allows(BindAddress, Port) ?? false;
 

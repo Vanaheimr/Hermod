@@ -29,12 +29,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     // System.Net type — alias it inside the namespace block so the alias wins (a file-scoped alias would lose).
     using IPAddress = System.Net.IPAddress;
 
-    /// <summary>Whether an ACL rule permits or forbids a matching request.</summary>
+    /// <summary>
+    /// Whether an ACL rule permits or forbids a matching request.
+    /// </summary>
     public enum NetworkAclAction
     {
-        /// <summary>The request is permitted.</summary>
+        /// <summary>
+        /// The request is permitted.
+        /// </summary>
         Allow,
-        /// <summary>The request is forbidden.</summary>
+        /// <summary>
+        /// The request is forbidden.
+        /// </summary>
         Deny
     }
 
@@ -59,7 +65,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.family      = Family;
         }
 
-        /// <summary>Parse a CIDR or a bare address.</summary>
+        /// <summary>
+        /// Parse a CIDR or a bare address.
+        /// </summary>
         public static IpCidr Parse(String Text)
         {
 
@@ -79,7 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Whether the given address falls within this prefix.</summary>
+        /// <summary>
+        /// Whether the given address falls within this prefix.
+        /// </summary>
         public Boolean Contains(IPAddress Address)
         {
 
@@ -120,7 +130,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #region PortSet
 
-    /// <summary>A set of TCP ports expressed as individual ports and/or inclusive ranges (e.g. <c>80,443,8000-8999</c>).</summary>
+    /// <summary>
+    /// A set of TCP ports expressed as individual ports and/or inclusive ranges (e.g. <c>80,443,8000-8999</c>).
+    /// </summary>
     public readonly struct PortSet
     {
 
@@ -131,7 +143,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.ranges = Ranges;
         }
 
-        /// <summary>Parse a comma-separated list of ports and <c>lo-hi</c> ranges.</summary>
+        /// <summary>
+        /// Parse a comma-separated list of ports and <c>lo-hi</c> ranges.
+        /// </summary>
         public static PortSet Parse(String Text)
         {
             var ranges = new List<(UInt16, UInt16)>();
@@ -153,11 +167,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return new PortSet(ranges.ToArray());
         }
 
-        /// <summary>A port set from explicit ports.</summary>
+        /// <summary>
+        /// A port set from explicit ports.
+        /// </summary>
         public static PortSet Of(params UInt16[] Ports)
             => new (Ports.Select(p => (p, p)).ToArray());
 
-        /// <summary>Whether the given port is in the set.</summary>
+        /// <summary>
+        /// Whether the given port is in the set.
+        /// </summary>
         public Boolean Contains(UInt16 Port)
         {
             foreach (var (lo, hi) in ranges)
@@ -180,16 +198,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed class NetworkAclRule
     {
 
-        /// <summary>Allow or deny when this rule matches.</summary>
+        /// <summary>
+        /// Allow or deny when this rule matches.
+        /// </summary>
         public NetworkAclAction  Action       { get; }
 
-        /// <summary>The address prefix this rule applies to (null = any address).</summary>
+        /// <summary>
+        /// The address prefix this rule applies to (null = any address).
+        /// </summary>
         public IpCidr?           Cidr         { get; }
 
-        /// <summary>The ports this rule applies to (null = any port).</summary>
+        /// <summary>
+        /// The ports this rule applies to (null = any port).
+        /// </summary>
         public PortSet?          Ports        { get; }
 
-        /// <summary>A hostname wildcard pattern this rule applies to (null = any / not host-scoped).</summary>
+        /// <summary>
+        /// A hostname wildcard pattern this rule applies to (null = any / not host-scoped).
+        /// </summary>
         public String?           HostPattern  { get; }
 
         internal NetworkAclRule(NetworkAclAction Action, IpCidr? Cidr, PortSet? Ports, String? HostPattern)
@@ -200,7 +226,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.HostPattern  = HostPattern;
         }
 
-        /// <summary>Whether this rule matches the given target.</summary>
+        /// <summary>
+        /// Whether this rule matches the given target.
+        /// </summary>
         public Boolean Matches(IPAddress? Address, UInt16 Port, String? Host)
         {
             if (Cidr is { } cidr && (Address is null || !cidr.Contains(Address)))
@@ -237,27 +265,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private readonly List<NetworkAclRule> rules = [];
 
-        /// <summary>The action taken when no rule matches (defaults to <see cref="NetworkAclAction.Deny"/>).</summary>
+        /// <summary>
+        /// The action taken when no rule matches (defaults to <see cref="NetworkAclAction.Deny"/>).
+        /// </summary>
         public NetworkAclAction DefaultAction { get; private set; } = NetworkAclAction.Deny;
 
-        /// <summary>The rules, in evaluation order.</summary>
+        /// <summary>
+        /// The rules, in evaluation order.
+        /// </summary>
         public IReadOnlyList<NetworkAclRule> Rules => rules;
 
         #endregion
 
         #region Fluent construction
 
-        /// <summary>An ACL that denies everything unless a later rule allows it.</summary>
+        /// <summary>
+        /// An ACL that denies everything unless a later rule allows it.
+        /// </summary>
         public static NetworkAcl DenyByDefault() => new ();
 
-        /// <summary>An ACL that allows everything unless a later rule denies it.</summary>
+        /// <summary>
+        /// An ACL that allows everything unless a later rule denies it.
+        /// </summary>
         public static NetworkAcl AllowByDefault() => new () { DefaultAction = NetworkAclAction.Allow };
 
-        /// <summary>Append an allow rule (any null dimension is a wildcard).</summary>
+        /// <summary>
+        /// Append an allow rule (any null dimension is a wildcard).
+        /// </summary>
         public NetworkAcl Allow(String? Cidr = null, String? Ports = null, String? Host = null)
             => Add(NetworkAclAction.Allow, Cidr, Ports, Host);
 
-        /// <summary>Append a deny rule (any null dimension is a wildcard).</summary>
+        /// <summary>
+        /// Append a deny rule (any null dimension is a wildcard).
+        /// </summary>
         public NetworkAcl Deny(String? Cidr = null, String? Ports = null, String? Host = null)
             => Add(NetworkAclAction.Deny, Cidr, Ports, Host);
 
@@ -274,11 +314,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Evaluation
 
-        /// <summary>Whether a single resolved target is permitted.</summary>
+        /// <summary>
+        /// Whether a single resolved target is permitted.
+        /// </summary>
         public Boolean Allows(IIPAddress Address, UInt16 Port, String? Host = null)
             => Allows(Address.ToDotNet(), Port, Host);
 
-        /// <summary>Whether a single resolved target is permitted.</summary>
+        /// <summary>
+        /// Whether a single resolved target is permitted.
+        /// </summary>
         public Boolean Allows(IPAddress Address, UInt16 Port, String? Host = null)
         {
             foreach (var rule in rules)
@@ -304,7 +348,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return any;
         }
 
-        /// <summary>DNS-rebinding-safe evaluation over already-resolved <see cref="IPAddress"/>es.</summary>
+        /// <summary>
+        /// DNS-rebinding-safe evaluation over already-resolved <see cref="IPAddress"/>es.
+        /// </summary>
         public Boolean AllowsAll(IEnumerable<IPAddress> Addresses, UInt16 Port, String? Host = null)
         {
             var any = false;
@@ -321,11 +367,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Presets
 
-        /// <summary>Allow only loopback destinations (<c>127.0.0.0/8</c> and <c>::1</c>).</summary>
+        /// <summary>
+        /// Allow only loopback destinations (<c>127.0.0.0/8</c> and <c>::1</c>).
+        /// </summary>
         public static NetworkAcl LoopbackOnly
             => DenyByDefault().Allow(Cidr: "127.0.0.0/8").Allow(Cidr: "::1/128");
 
-        /// <summary>Allow only private / link-local networks (RFC 1918, ULA <c>fc00::/7</c>, link-local).</summary>
+        /// <summary>
+        /// Allow only private / link-local networks (RFC 1918, ULA <c>fc00::/7</c>, link-local).
+        /// </summary>
         public static NetworkAcl PrivateNetworksOnly
             => DenyByDefault()
                    .Allow(Cidr: "10.0.0.0/8")
@@ -337,7 +387,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                    .Allow(Cidr: "fe80::/10")
                    .Allow(Cidr: "::1/128");
 
-        /// <summary>Allow only destinations within the given subnet (any port).</summary>
+        /// <summary>
+        /// Allow only destinations within the given subnet (any port).
+        /// </summary>
         public static NetworkAcl Subnet(String Cidr)
             => DenyByDefault().Allow(Cidr: Cidr);
 

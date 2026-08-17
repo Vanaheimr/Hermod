@@ -32,12 +32,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public required List<(string Name, string Value)> Headers        { get; set; }
         public required byte[]                            Body           { get; set; }
 
-        /// <summary>When the cache sent the request that produced this response (for the age correction, Section 4.2.3).</summary>
+        /// <summary>
+        /// When the cache sent the request that produced this response (for the age correction, Section 4.2.3).
+        /// </summary>
         public required DateTimeOffset                    RequestTime    { get; set; }
-        /// <summary>When the cache received this response (the reference point for resident time).</summary>
+        /// <summary>
+        /// When the cache received this response (the reference point for resident time).
+        /// </summary>
         public required DateTimeOffset                    ResponseTime   { get; set; }
 
-        /// <summary>The values of the request-header fields named by this response's <c>Vary</c>, captured at store time.</summary>
+        /// <summary>
+        /// The values of the request-header fields named by this response's <c>Vary</c>, captured at store time.
+        /// </summary>
         public required List<(string Name, string Value)> VaryKeyHeaders { get; set; }
 
         public string? Header(string Name) => Headers.FirstOrDefault(h => h.Name == Name).Value;

@@ -36,16 +36,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                                                       UInt64  MaxNameLength)
     {
 
-        /// <summary>The total capacity in bytes.</summary>
+        /// <summary>
+        /// The total capacity in bytes.
+        /// </summary>
         public UInt64 TotalBytes      => TotalBlocks     * FundamentalBlockSize;
 
-        /// <summary>The space available to the client in bytes.</summary>
+        /// <summary>
+        /// The space available to the client in bytes.
+        /// </summary>
         public UInt64 AvailableBytes  => AvailableBlocks * FundamentalBlockSize;
 
     }
 
 
-    /// <summary>The server's protocol limits as returned by the <c>limits@openssh.com</c> extension.</summary>
+    /// <summary>
+    /// The server's protocol limits as returned by the <c>limits@openssh.com</c> extension.
+    /// </summary>
     /// <param name="MaxPacketLength">The largest SFTP packet the server accepts.</param>
     /// <param name="MaxReadLength">The largest READ length the server will honour in one request.</param>
     /// <param name="MaxWriteLength">The largest WRITE payload the server will accept in one request.</param>

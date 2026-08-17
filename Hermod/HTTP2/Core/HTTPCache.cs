@@ -91,7 +91,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Age + freshness (Section 4.2)
 
-        /// <summary>Current age of a stored response (RFC 9111, Section 4.2.3).</summary>
+        /// <summary>
+        /// Current age of a stored response (RFC 9111, Section 4.2.3).
+        /// </summary>
         public static TimeSpan CurrentAge(HTTPStoredResponse Stored, DateTimeOffset Now)
         {
 
@@ -277,7 +279,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                               .Distinct()
                               .ToList();
 
-        /// <summary>Capture the values of the Vary-selected request headers, for storing alongside a response.</summary>
+        /// <summary>
+        /// Capture the values of the Vary-selected request headers, for storing alongside a response.
+        /// </summary>
         public static List<(string Name, string Value)> SelectRequestHeaders(
             List<(string Name, string Value)> RequestHeaders,
             List<string>                      VaryNames)

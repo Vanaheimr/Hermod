@@ -37,20 +37,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private readonly Ed25519PrivateKeyParameters  privateKey;
 
-        /// <summary>The length in bytes of an Ed25519 public key / seed (32).</summary>
+        /// <summary>
+        /// The length in bytes of an Ed25519 public key / seed (32).
+        /// </summary>
         public const     Int32                        KeySize        = 32;
 
-        /// <summary>The length in bytes of an Ed25519 signature (64).</summary>
+        /// <summary>
+        /// The length in bytes of an Ed25519 signature (64).
+        /// </summary>
         public const     Int32                        SignatureSize  = 64;
 
         #endregion
 
         #region Properties
 
-        /// <summary>The 32-byte public key.</summary>
+        /// <summary>
+        /// The 32-byte public key.
+        /// </summary>
         public Byte[] PublicKey { get; }
 
-        /// <summary>The 32-byte private seed (for key export).</summary>
+        /// <summary>
+        /// The 32-byte private seed (for key export).
+        /// </summary>
         internal Byte[] PrivateSeed => privateKey.GetEncoded();
 
         #endregion
@@ -117,13 +125,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region ISshHostKey
 
-        /// <summary>The signature algorithm this key supports (<c>ssh-ed25519</c>).</summary>
+        /// <summary>
+        /// The signature algorithm this key supports (<c>ssh-ed25519</c>).
+        /// </summary>
         public IReadOnlyList<String> AlgorithmNames => [ SshAlgorithmNames.HostKey.Ed25519 ];
 
-        /// <summary>The SSH public-key blob (<c>string "ssh-ed25519" || string publickey</c>).</summary>
+        /// <summary>
+        /// The SSH public-key blob (<c>string "ssh-ed25519" || string publickey</c>).
+        /// </summary>
         public Byte[] PublicKeyBlob => SshEd25519.EncodePublicKeyBlob(PublicKey);
 
-        /// <summary>Sign the data and return the SSH signature blob (<c>string "ssh-ed25519" || string sig</c>).</summary>
+        /// <summary>
+        /// Sign the data and return the SSH signature blob (<c>string "ssh-ed25519" || string sig</c>).
+        /// </summary>
         public Byte[] Sign(String AlgorithmName, ReadOnlySpan<Byte> Data)
             => SshEd25519.EncodeSignatureBlob(Sign(Data));
 

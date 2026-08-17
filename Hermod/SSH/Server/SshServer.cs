@@ -38,25 +38,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
     /// </summary>
     public sealed record SshServerOptions
     {
-        /// <summary>The host keys offered during the handshake (the first is used; certificates supported).</summary>
+        /// <summary>
+        /// The host keys offered during the handshake (the first is used; certificates supported).
+        /// </summary>
         public required IReadOnlyList<ISshHostKey>  HostKeys          { get; init; }
 
-        /// <summary>The user authenticator (public keys / certificates / password / 2FA).</summary>
+        /// <summary>
+        /// The user authenticator (public keys / certificates / password / 2FA).
+        /// </summary>
         public required ISshUserAuthenticator       Authenticator     { get; init; }
 
-        /// <summary>Handles <c>exec</c>/<c>shell</c> sessions; when null (and no SFTP), session channels are refused.</summary>
+        /// <summary>
+        /// Handles <c>exec</c>/<c>shell</c> sessions; when null (and no SFTP), session channels are refused.
+        /// </summary>
         public SshExecHandler?                      ExecHandler       { get; init; }
 
-        /// <summary>Enables the <c>sftp</c> subsystem over the given file system; when null, SFTP is refused.</summary>
+        /// <summary>
+        /// Enables the <c>sftp</c> subsystem over the given file system; when null, SFTP is refused.
+        /// </summary>
         public ISftpFileSystem?                     SftpFileSystem    { get; init; }
 
-        /// <summary>Optional SFTP access profile (least-privilege gating).</summary>
+        /// <summary>
+        /// Optional SFTP access profile (least-privilege gating).
+        /// </summary>
         public SshAccessProfile?                    SftpProfile       { get; init; }
 
-        /// <summary>Optional SFTP quotas / bandwidth limits.</summary>
+        /// <summary>
+        /// Optional SFTP quotas / bandwidth limits.
+        /// </summary>
         public SftpLimits?                          SftpLimits        { get; init; }
 
-        /// <summary>The port-forwarding policy (default: off).</summary>
+        /// <summary>
+        /// The port-forwarding policy (default: off).
+        /// </summary>
         public ForwardingPolicy                     ForwardingPolicy  { get; init; } = ForwardingPolicy.None;
 
         /// <summary>
@@ -65,7 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// </summary>
         public SshAddressResolver?                  AddressResolver   { get; init; }
 
-        /// <summary>An optional typed audit-event sink.</summary>
+        /// <summary>
+        /// An optional typed audit-event sink.
+        /// </summary>
         public ISshAuditSink?                       AuditSink         { get; init; }
 
         /// <summary>
@@ -97,14 +113,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         #region Properties
 
-        /// <summary>The bound endpoint (after <see cref="StartAsync"/>).</summary>
+        /// <summary>
+        /// The bound endpoint (after <see cref="StartAsync"/>).
+        /// </summary>
         public IPSocket LocalEndPoint => listener!.LocalEndPoint;
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create a server with the given options (call <see cref="StartAsync"/> to bind and listen).</summary>
+        /// <summary>
+        /// Create a server with the given options (call <see cref="StartAsync"/> to bind and listen).
+        /// </summary>
         public SshServer(SshServerOptions Options)
         {
             this.options = Options;
@@ -115,7 +135,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         #region StartAsync(Endpoint, CancellationToken)
 
-        /// <summary>Bind the listener and start accepting connections.</summary>
+        /// <summary>
+        /// Bind the listener and start accepting connections.
+        /// </summary>
         public ValueTask StartAsync(IPSocket Endpoint, CancellationToken CancellationToken = default)
         {
             listener   = SshTcpListener.Start(Endpoint);
@@ -371,7 +393,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         #region DisposeAsync()
 
-        /// <summary>Stop accepting and shut down.</summary>
+        /// <summary>
+        /// Stop accepting and shut down.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             if (cts is not null) await cts.CancelAsync().ConfigureAwait(false);

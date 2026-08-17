@@ -93,10 +93,14 @@ public static class SunSpecMeterMap
     public const ushort OffEndModelId      = 96;
     public const ushort OffEndModelLen     = 97;
 
-    /// <summary>Total number of holding registers we expose (base + 98).</summary>
+    /// <summary>
+    /// Total number of holding registers we expose (base + 98).
+    /// </summary>
     public const ushort RegisterCount      = 98;
 
-    /// <summary>Convert a 0-based offset into a Modbus address.</summary>
+    /// <summary>
+    /// Convert a 0-based offset into a Modbus address.
+    /// </summary>
     public static ushort Addr(ushort offset) => (ushort)(BaseAddress + offset);
 
     /// <summary>

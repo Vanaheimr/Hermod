@@ -31,7 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public static class SshEd25519
     {
 
-        /// <summary>The wire algorithm name.</summary>
+        /// <summary>
+        /// The wire algorithm name.
+        /// </summary>
         public const String AlgorithmName = SshAlgorithmNames.HostKey.Ed25519;
 
 

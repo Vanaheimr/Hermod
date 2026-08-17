@@ -29,11 +29,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public string? HeaderValue(string Name)
             => Headers.FirstOrDefault(h => h.Name == Name).Value;
 
-        /// <summary>The <c>ETag</c>, if the server sent one (RFC 9110, Section 8.8.3).</summary>
+        /// <summary>
+        /// The <c>ETag</c>, if the server sent one (RFC 9110, Section 8.8.3).
+        /// </summary>
         public string? ETag
             => HeaderValue("etag");
 
-        /// <summary>The <c>Last-Modified</c> date, if present and parseable (Section 8.8.2).</summary>
+        /// <summary>
+        /// The <c>Last-Modified</c> date, if present and parseable (Section 8.8.2).
+        /// </summary>
         public DateTimeOffset? LastModified
             => HeaderValue("last-modified") is String value &&
                HTTPValidators.TryParseDate(value, out var parsed)
@@ -58,7 +62,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public bool AcceptsByteRanges
             => HeaderValue("accept-ranges")?.Contains("bytes", StringComparison.OrdinalIgnoreCase) == true;
 
-        /// <summary>The parsed <c>Content-Range</c> of a 206 or 416, if present and well-formed.</summary>
+        /// <summary>
+        /// The parsed <c>Content-Range</c> of a 206 or 416, if present and well-formed.
+        /// </summary>
         public HTTPContentRange? ContentRange
             => HeaderValue("content-range") is String value &&
                HTTPContentRange.TryParse(value, out var parsed)

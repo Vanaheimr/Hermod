@@ -23,9 +23,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// </summary>
     public enum DispositionSendingMode
     {
-        /// <summary>The MDN was sent because the user chose to send it.</summary>
+        /// <summary>
+        /// The MDN was sent because the user chose to send it.
+        /// </summary>
         SentManually,
-        /// <summary>The MDN was sent automatically.</summary>
+        /// <summary>
+        /// The MDN was sent automatically.
+        /// </summary>
         SentAutomatically
     }
 

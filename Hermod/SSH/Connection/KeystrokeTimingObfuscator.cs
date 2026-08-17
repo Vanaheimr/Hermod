@@ -18,37 +18,57 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>Options for keystroke-timing obfuscation on interactive PTY sessions.</summary>
+    /// <summary>
+    /// Options for keystroke-timing obfuscation on interactive PTY sessions.
+    /// </summary>
     public sealed record KeystrokeTimingObfuscation
     {
 
-        /// <summary>Whether obfuscation is enabled.</summary>
+        /// <summary>
+        /// Whether obfuscation is enabled.
+        /// </summary>
         public Boolean   Enabled   { get; init; } = true;
 
-        /// <summary>The fixed cadence on which packets are emitted while typing (default ≈ 20 ms grid).</summary>
+        /// <summary>
+        /// The fixed cadence on which packets are emitted while typing (default ≈ 20 ms grid).
+        /// </summary>
         public TimeSpan  Interval  { get; init; } = TimeSpan.FromMilliseconds(20);
 
-        /// <summary>How long after the last keystroke the chaff cadence keeps running before stopping (default ≈ 1 s).</summary>
+        /// <summary>
+        /// How long after the last keystroke the chaff cadence keeps running before stopping (default ≈ 1 s).
+        /// </summary>
         public TimeSpan  IdleStop  { get; init; } = TimeSpan.FromSeconds(1);
 
 
-        /// <summary>The OpenSSH-like default: on for interactive PTY sessions.</summary>
+        /// <summary>
+        /// The OpenSSH-like default: on for interactive PTY sessions.
+        /// </summary>
         public static KeystrokeTimingObfuscation InteractiveDefault => new ();
 
-        /// <summary>Obfuscation disabled.</summary>
+        /// <summary>
+        /// Obfuscation disabled.
+        /// </summary>
         public static KeystrokeTimingObfuscation Off => new () { Enabled = false };
 
     }
 
 
-    /// <summary>What a <see cref="KeystrokeTimingObfuscator"/> emits at a cadence tick.</summary>
+    /// <summary>
+    /// What a <see cref="KeystrokeTimingObfuscator"/> emits at a cadence tick.
+    /// </summary>
     public enum KeystrokeEmit
     {
-        /// <summary>Emit a real, queued keystroke packet.</summary>
+        /// <summary>
+        /// Emit a real, queued keystroke packet.
+        /// </summary>
         Real,
-        /// <summary>Emit a chaff <c>SSH_MSG_PING</c> (no real data was ready).</summary>
+        /// <summary>
+        /// Emit a chaff <c>SSH_MSG_PING</c> (no real data was ready).
+        /// </summary>
         Chaff,
-        /// <summary>Nothing to emit — typing has paused past the idle window; the cadence stops.</summary>
+        /// <summary>
+        /// Nothing to emit — typing has paused past the idle window; the cadence stops.
+        /// </summary>
         Idle
     }
 
@@ -79,17 +99,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The fixed cadence between emissions.</summary>
+        /// <summary>
+        /// The fixed cadence between emissions.
+        /// </summary>
         public TimeSpan Interval => interval;
 
-        /// <summary>How many real keystrokes are queued.</summary>
+        /// <summary>
+        /// How many real keystrokes are queued.
+        /// </summary>
         public Int32 PendingCount { get { lock (sync) return pending.Count; } }
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create an obfuscator.</summary>
+        /// <summary>
+        /// Create an obfuscator.
+        /// </summary>
         public KeystrokeTimingObfuscator(KeystrokeTimingObfuscation? Options = null, TimeProvider? TimeProvider = null)
         {
             var options        = Options ?? KeystrokeTimingObfuscation.InteractiveDefault;
@@ -104,7 +130,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Enqueue(Keystroke)
 
-        /// <summary>Queue a real keystroke packet to be released on the next cadence tick; (re)activates the cadence.</summary>
+        /// <summary>
+        /// Queue a real keystroke packet to be released on the next cadence tick; (re)activates the cadence.
+        /// </summary>
         public void Enqueue(Byte[] Keystroke)
         {
             lock (sync)

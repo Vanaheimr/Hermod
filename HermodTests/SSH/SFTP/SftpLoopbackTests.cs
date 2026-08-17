@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M7 SFTP: our client transfers and manages files against our server over a loopback pipe.</summary>
+    /// <summary>
+    /// M7 SFTP: our client transfers and manages files against our server over a loopback pipe.
+    /// </summary>
     [TestFixture]
     public class SftpLoopbackTests
     {

@@ -75,7 +75,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region IsSupported (Algorithm)
 
-        /// <summary>Whether an algorithm token names something we can compute.</summary>
+        /// <summary>
+        /// Whether an algorithm token names something we can compute.
+        /// </summary>
         public static Boolean IsSupported(String Algorithm)
 
             => Supported.Contains(Algorithm.Trim(), StringComparer.OrdinalIgnoreCase);
@@ -84,7 +86,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Compute (Content, Algorithm)
 
-        /// <summary>Digest of Content under one of <see cref="Supported"/>.</summary>
+        /// <summary>
+        /// Digest of Content under one of <see cref="Supported"/>.
+        /// </summary>
         public static Byte[] Compute(Byte[] Content, String Algorithm)
 
             => Algorithm.Trim().ToLowerInvariant() switch {

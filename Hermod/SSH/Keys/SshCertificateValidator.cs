@@ -18,12 +18,18 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The outcome of validating a certificate against a trust store.</summary>
+    /// <summary>
+    /// The outcome of validating a certificate against a trust store.
+    /// </summary>
     public sealed record SshCertificateValidation(Boolean IsValid, String? Reason)
     {
-        /// <summary>A successful validation.</summary>
+        /// <summary>
+        /// A successful validation.
+        /// </summary>
         public static readonly SshCertificateValidation Ok = new (true, null);
-        /// <summary>A failed validation with a reason (for the audit log, never the wire).</summary>
+        /// <summary>
+        /// A failed validation with a reason (for the audit log, never the wire).
+        /// </summary>
         public static SshCertificateValidation Fail(String Reason) => new (false, Reason);
     }
 
@@ -40,26 +46,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly HashSet<String>  revokedKeyIds   = [];
         private readonly List<Byte[]>     revokedKeys     = [];
 
-        /// <summary>Trust a CA public key (its wire blob).</summary>
+        /// <summary>
+        /// Trust a CA public key (its wire blob).
+        /// </summary>
         public SshCertificateAuthorityTrust TrustCA(Byte[] CaPublicKeyBlob) { caKeys.Add(CaPublicKeyBlob); return this; }
 
-        /// <summary>Trust a CA signing key.</summary>
+        /// <summary>
+        /// Trust a CA signing key.
+        /// </summary>
         public SshCertificateAuthorityTrust TrustCA(ISshHostKey CaKey) => TrustCA(CaKey.PublicKeyBlob);
 
-        /// <summary>Revoke a certificate by serial number.</summary>
+        /// <summary>
+        /// Revoke a certificate by serial number.
+        /// </summary>
         public SshCertificateAuthorityTrust RevokeSerial(UInt64 Serial) { revokedSerials.Add(Serial); return this; }
 
-        /// <summary>Revoke all certificates with a given key id.</summary>
+        /// <summary>
+        /// Revoke all certificates with a given key id.
+        /// </summary>
         public SshCertificateAuthorityTrust RevokeKeyId(String KeyId) { revokedKeyIds.Add(KeyId); return this; }
 
-        /// <summary>Revoke a specific subject public key (its wire blob).</summary>
+        /// <summary>
+        /// Revoke a specific subject public key (its wire blob).
+        /// </summary>
         public SshCertificateAuthorityTrust RevokeKey(Byte[] SubjectPublicKeyBlob) { revokedKeys.Add(SubjectPublicKeyBlob); return this; }
 
-        /// <summary>Whether the given CA key blob is trusted.</summary>
+        /// <summary>
+        /// Whether the given CA key blob is trusted.
+        /// </summary>
         public Boolean IsCaTrusted(Byte[] CaPublicKeyBlob)
             => caKeys.Any(k => k.AsSpan().SequenceEqual(CaPublicKeyBlob));
 
-        /// <summary>Whether the certificate is on the revocation list (by serial, key id or subject key).</summary>
+        /// <summary>
+        /// Whether the certificate is on the revocation list (by serial, key id or subject key).
+        /// </summary>
         public Boolean IsRevoked(SshCertificate Certificate)
             => revokedSerials.Contains(Certificate.Serial) ||
                revokedKeyIds.Contains(Certificate.KeyId)   ||
@@ -91,7 +111,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Validate(Certificate, ExpectedType, Principal, Trust, Now)
 
-        /// <summary>Validate a certificate for a principal against the trust store at a given instant.</summary>
+        /// <summary>
+        /// Validate a certificate for a principal against the trust store at a given instant.
+        /// </summary>
         /// <param name="Certificate">The certificate to validate.</param>
         /// <param name="ExpectedType">Whether a user or a host certificate is expected.</param>
         /// <param name="Principal">The principal (login name / hostname) being authenticated.</param>

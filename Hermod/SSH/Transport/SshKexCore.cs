@@ -85,12 +85,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region MakeDeriver / BuildDirection / BuildMac
 
-        /// <summary>A closure deriving <c>length</c> key bytes for a key-derivation letter (RFC 4253 §7.2).</summary>
+        /// <summary>
+        /// A closure deriving <c>length</c> key bytes for a key-derivation letter (RFC 4253 §7.2).
+        /// </summary>
         public static Func<Byte, Int32, Byte[]> MakeDeriver(HashAlgorithmName HashAlgorithm, Byte[] SharedSecretMPInt, Byte[] H, Byte[] SessionId)
             => (letter, length) => Kdf.Derive(HashAlgorithm, SharedSecretMPInt, H, letter, SessionId, length);
 
 
-        /// <summary>Build the cipher (and, for CTR, the encrypt-then-MAC) for one direction.</summary>
+        /// <summary>
+        /// Build the cipher (and, for CTR, the encrypt-then-MAC) for one direction.
+        /// </summary>
         public static (SshTransportCipher Cipher, ISshMac? Mac) BuildDirection(String                    CipherName,
                                                                                String                    MacName,
                                                                                Func<Byte, Int32, Byte[]> Derive,

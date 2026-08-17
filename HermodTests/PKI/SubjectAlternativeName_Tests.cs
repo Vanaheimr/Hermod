@@ -131,7 +131,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
         #region GetIPAddresses_ReturnsBothFamilies()
 
-        /// <summary>iPAddress entries, IPv4 and IPv6 alike.</summary>
+        /// <summary>
+        /// iPAddress entries, IPv4 and IPv6 alike.
+        /// </summary>
         [Test]
         public void GetIPAddresses_ReturnsBothFamilies()
         {

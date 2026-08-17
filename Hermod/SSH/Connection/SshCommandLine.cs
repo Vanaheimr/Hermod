@@ -78,11 +78,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Join(Arguments)
 
-        /// <summary>Quote and space-join arguments into a single command line safe for a remote <c>exec</c>.</summary>
+        /// <summary>
+        /// Quote and space-join arguments into a single command line safe for a remote <c>exec</c>.
+        /// </summary>
         public static String Join(params String[] Arguments)
             => String.Join(' ', Arguments.Select(Quote));
 
-        /// <summary>Quote and space-join arguments into a single command line safe for a remote <c>exec</c>.</summary>
+        /// <summary>
+        /// Quote and space-join arguments into a single command line safe for a remote <c>exec</c>.
+        /// </summary>
         public static String Join(IEnumerable<String> Arguments)
             => String.Join(' ', Arguments.Select(Quote));
 

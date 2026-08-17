@@ -250,7 +250,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region AllowedTarget_StillWorks
 
-        /// <summary>The tightening must not break legitimate forwarding.</summary>
+        /// <summary>
+        /// The tightening must not break legitimate forwarding.
+        /// </summary>
         [Test]
         [CancelAfter(25000)]
         public async Task AllowedTarget_StillWorks(CancellationToken CancellationToken)

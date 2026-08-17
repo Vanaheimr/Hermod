@@ -33,16 +33,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
-        /// <summary>Whether the message is authentic.</summary>
+        /// <summary>
+        /// Whether the message is authentic.
+        /// </summary>
         public Boolean            IsValid       { get; }
 
-        /// <summary>What went wrong, or None.</summary>
+        /// <summary>
+        /// What went wrong, or None.
+        /// </summary>
         public SIG0Failure        Failure       { get; }
 
-        /// <summary>A description for logs rather than for the wire.</summary>
+        /// <summary>
+        /// A description for logs rather than for the wire.
+        /// </summary>
         public String?            Description   { get; }
 
-        /// <summary>The SIG record that was checked, when there was one.</summary>
+        /// <summary>
+        /// The SIG record that was checked, when there was one.
+        /// </summary>
         public SIG?               Record        { get; }
 
         #endregion
@@ -67,13 +75,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (static) Success(Record) / Failed(Failure, Description, Record = null)
 
-        /// <summary>The message is authentic.</summary>
+        /// <summary>
+        /// The message is authentic.
+        /// </summary>
         public static SIG0VerificationResult Success(SIG Record)
 
             => new (true, SIG0Failure.None, null, Record);
 
 
-        /// <summary>The message is not authentic.</summary>
+        /// <summary>
+        /// The message is not authentic.
+        /// </summary>
         public static SIG0VerificationResult Failed(SIG0Failure  Failure,
                                                     String       Description,
                                                     SIG?         Record   = null)
@@ -103,25 +115,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public enum SIG0Failure
     {
 
-        /// <summary>No failure.</summary>
+        /// <summary>
+        /// No failure.
+        /// </summary>
         None,
 
-        /// <summary>The message carries no SIG(0) as its last additional record.</summary>
+        /// <summary>
+        /// The message carries no SIG(0) as its last additional record.
+        /// </summary>
         NotSigned,
 
-        /// <summary>The signer's name or key tag does not match the KEY offered to verify with.</summary>
+        /// <summary>
+        /// The signer's name or key tag does not match the KEY offered to verify with.
+        /// </summary>
         UnknownKey,
 
-        /// <summary>The signature does not verify under that key.</summary>
+        /// <summary>
+        /// The signature does not verify under that key.
+        /// </summary>
         BadSignature,
 
-        /// <summary>The current time is outside the inception/expiration window (RFC 2931 §3.1).</summary>
+        /// <summary>
+        /// The current time is outside the inception/expiration window (RFC 2931 §3.1).
+        /// </summary>
         OutsideValidityPeriod,
 
-        /// <summary>The algorithm is one this implementation cannot check.</summary>
+        /// <summary>
+        /// The algorithm is one this implementation cannot check.
+        /// </summary>
         UnsupportedAlgorithm,
 
-        /// <summary>The record is not a SIG(0) at all — its "type covered" is not zero.</summary>
+        /// <summary>
+        /// The record is not a SIG(0) at all — its "type covered" is not zero.
+        /// </summary>
         NotATransactionSignature
 
     }

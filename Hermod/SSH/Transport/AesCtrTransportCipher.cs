@@ -39,7 +39,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        /// <summary>The AES block / counter size in bytes.</summary>
+        /// <summary>
+        /// The AES block / counter size in bytes.
+        /// </summary>
         public const Int32  CounterLength = 16;
 
         // How many counter blocks are encrypted per AES call. One block per call meant 2048 separate

@@ -24,12 +24,18 @@ using System.Buffers;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The kind of OpenSSH certificate.</summary>
+    /// <summary>
+    /// The kind of OpenSSH certificate.
+    /// </summary>
     public enum SshCertType : UInt32
     {
-        /// <summary>A user certificate (authenticates a client).</summary>
+        /// <summary>
+        /// A user certificate (authenticates a client).
+        /// </summary>
         User = 1,
-        /// <summary>A host certificate (authenticates a server).</summary>
+        /// <summary>
+        /// A host certificate (authenticates a server).
+        /// </summary>
         Host = 2
     }
 
@@ -45,70 +51,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constants
 
-        /// <summary>The suffix that marks an SSH certificate algorithm name.</summary>
+        /// <summary>
+        /// The suffix that marks an SSH certificate algorithm name.
+        /// </summary>
         public const String CertSuffix = "-cert-v01@openssh.com";
 
         #endregion
 
         #region Properties
 
-        /// <summary>The certificate algorithm name (e.g. <c>ssh-ed25519-cert-v01@openssh.com</c>).</summary>
+        /// <summary>
+        /// The certificate algorithm name (e.g. <c>ssh-ed25519-cert-v01@openssh.com</c>).
+        /// </summary>
         public String                                    CertAlgorithm       { get; }
 
-        /// <summary>The full certificate wire blob.</summary>
+        /// <summary>
+        /// The full certificate wire blob.
+        /// </summary>
         public Byte[]                                    Blob                { get; }
 
-        /// <summary>The CA-signed bytes (the whole blob except the trailing signature field).</summary>
+        /// <summary>
+        /// The CA-signed bytes (the whole blob except the trailing signature field).
+        /// </summary>
         public Byte[]                                    SignedBytes         { get; }
 
-        /// <summary>The embedded subject public-key blob as a plain SSH key (for signature verification).</summary>
+        /// <summary>
+        /// The embedded subject public-key blob as a plain SSH key (for signature verification).
+        /// </summary>
         public Byte[]                                    SubjectPublicKey    { get; }
 
-        /// <summary>The subject's base signature algorithm (e.g. <c>ssh-ed25519</c>).</summary>
+        /// <summary>
+        /// The subject's base signature algorithm (e.g. <c>ssh-ed25519</c>).
+        /// </summary>
         public String                                    SubjectAlgorithm    { get; }
 
-        /// <summary>The certificate serial number.</summary>
+        /// <summary>
+        /// The certificate serial number.
+        /// </summary>
         public UInt64                                    Serial              { get; }
 
-        /// <summary>Whether this is a user or host certificate.</summary>
+        /// <summary>
+        /// Whether this is a user or host certificate.
+        /// </summary>
         public SshCertType                               Type                { get; }
 
-        /// <summary>The free-form key identifier (shown by <c>ssh-keygen -L</c>, logged on use).</summary>
+        /// <summary>
+        /// The free-form key identifier (shown by <c>ssh-keygen -L</c>, logged on use).
+        /// </summary>
         public String                                    KeyId               { get; }
 
-        /// <summary>The valid principals (user names or host names); empty means "valid for all".</summary>
+        /// <summary>
+        /// The valid principals (user names or host names); empty means "valid for all".
+        /// </summary>
         public IReadOnlyList<String>                     Principals          { get; }
 
-        /// <summary>The start of the validity window.</summary>
+        /// <summary>
+        /// The start of the validity window.
+        /// </summary>
         public DateTimeOffset                            ValidAfter          { get; }
 
-        /// <summary>The end of the validity window.</summary>
+        /// <summary>
+        /// The end of the validity window.
+        /// </summary>
         public DateTimeOffset                            ValidBefore         { get; }
 
-        /// <summary>The critical options (name → data); an unknown critical option must cause rejection.</summary>
+        /// <summary>
+        /// The critical options (name → data); an unknown critical option must cause rejection.
+        /// </summary>
         public IReadOnlyList<KeyValuePair<String, Byte[]>>  CriticalOptions  { get; }
 
-        /// <summary>The extensions (name → data); unknown extensions are ignored.</summary>
+        /// <summary>
+        /// The extensions (name → data); unknown extensions are ignored.
+        /// </summary>
         public IReadOnlyList<KeyValuePair<String, Byte[]>>  Extensions       { get; }
 
-        /// <summary>The CA's public-key blob (the signer).</summary>
+        /// <summary>
+        /// The CA's public-key blob (the signer).
+        /// </summary>
         public Byte[]                                    SignatureKey        { get; }
 
-        /// <summary>The CA's signature over <see cref="SignedBytes"/>.</summary>
+        /// <summary>
+        /// The CA's signature over <see cref="SignedBytes"/>.
+        /// </summary>
         public Byte[]                                    Signature           { get; }
 
-        /// <summary>The SHA-256 fingerprint of the CA key.</summary>
+        /// <summary>
+        /// The SHA-256 fingerprint of the CA key.
+        /// </summary>
         public String CaFingerprint => SshFingerprint.Sha256(SignatureKey);
 
         #endregion
 
         #region VerifyCaSignature() / IsValidAt(Now)
 
-        /// <summary>Verify the CA's signature over the certificate (does not check CA trust or validity).</summary>
+        /// <summary>
+        /// Verify the CA's signature over the certificate (does not check CA trust or validity).
+        /// </summary>
         public Boolean VerifyCaSignature()
             => SshSignature.Verify(SignatureKey, SignedBytes, Signature);
 
-        /// <summary>Whether the certificate's validity window contains the given instant.</summary>
+        /// <summary>
+        /// Whether the certificate's validity window contains the given instant.
+        /// </summary>
         public Boolean IsValidAt(DateTimeOffset Now)
             => ValidAfter <= Now && Now < ValidBefore;
 
@@ -144,7 +188,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) IsCertificateAlgorithm(Name)
 
-        /// <summary>Whether a key/algorithm name denotes an OpenSSH certificate.</summary>
+        /// <summary>
+        /// Whether a key/algorithm name denotes an OpenSSH certificate.
+        /// </summary>
         public static Boolean IsCertificateAlgorithm(String Name)
             => Name.EndsWith(CertSuffix, StringComparison.Ordinal);
 
@@ -152,7 +198,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) Parse(Blob) / TryParse
 
-        /// <summary>Parse an OpenSSH certificate from its wire blob.</summary>
+        /// <summary>
+        /// Parse an OpenSSH certificate from its wire blob.
+        /// </summary>
         public static SshCertificate Parse(Byte[] Blob)
         {
 
@@ -188,7 +236,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Try to parse an OpenSSH certificate.</summary>
+        /// <summary>
+        /// Try to parse an OpenSSH certificate.
+        /// </summary>
         public static Boolean TryParse(Byte[] Blob, out SshCertificate? Certificate)
         {
             try   { Certificate = Parse(Blob); return true; }

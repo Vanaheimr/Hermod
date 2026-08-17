@@ -25,7 +25,9 @@ using System.Text.Json.Serialization;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    /// <summary>One aggregated &lt;record&gt; row of a DMARC aggregate report.</summary>
+    /// <summary>
+    /// One aggregated &lt;record&gt; row of a DMARC aggregate report.
+    /// </summary>
     public sealed record DmarcReportRow(
         String   SourceIp,
         Int64    Count,

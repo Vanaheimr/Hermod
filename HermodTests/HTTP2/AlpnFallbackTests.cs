@@ -48,7 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             => Task.FromResult<(List<(String, String)>, Byte[]?)>(
                    ([(":status", "200")], Encoding.UTF8.GetBytes("h2")));
 
-        /// <summary>Connect and complete a TLS handshake offering exactly these ALPN protocols.</summary>
+        /// <summary>
+        /// Connect and complete a TLS handshake offering exactly these ALPN protocols.
+        /// </summary>
         private static async Task<SslStream> ConnectOfferingAsync(Int32 Port, params SslApplicationProtocol[] Protocols)
         {
 

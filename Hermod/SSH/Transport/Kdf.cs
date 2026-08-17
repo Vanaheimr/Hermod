@@ -34,20 +34,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region KeyLetter
 
-        /// <summary>The six key-derivation letters of RFC 4253, section 7.2.</summary>
+        /// <summary>
+        /// The six key-derivation letters of RFC 4253, section 7.2.
+        /// </summary>
         public static class KeyLetter
         {
-            /// <summary>Initial IV, client to server.</summary>
+            /// <summary>
+            /// Initial IV, client to server.
+            /// </summary>
             public const Byte InitialIVClientToServer         = (Byte) 'A';
-            /// <summary>Initial IV, server to client.</summary>
+            /// <summary>
+            /// Initial IV, server to client.
+            /// </summary>
             public const Byte InitialIVServerToClient         = (Byte) 'B';
-            /// <summary>Encryption key, client to server.</summary>
+            /// <summary>
+            /// Encryption key, client to server.
+            /// </summary>
             public const Byte EncryptionKeyClientToServer     = (Byte) 'C';
-            /// <summary>Encryption key, server to client.</summary>
+            /// <summary>
+            /// Encryption key, server to client.
+            /// </summary>
             public const Byte EncryptionKeyServerToClient     = (Byte) 'D';
-            /// <summary>Integrity (MAC) key, client to server.</summary>
+            /// <summary>
+            /// Integrity (MAC) key, client to server.
+            /// </summary>
             public const Byte IntegrityKeyClientToServer      = (Byte) 'E';
-            /// <summary>Integrity (MAC) key, server to client.</summary>
+            /// <summary>
+            /// Integrity (MAC) key, server to client.
+            /// </summary>
             public const Byte IntegrityKeyServerToClient      = (Byte) 'F';
         }
 

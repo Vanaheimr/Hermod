@@ -42,10 +42,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             stream     = Stream;
         }
 
-        /// <summary>Whether the response HEADERS have gone out yet (drives error fallback).</summary>
+        /// <summary>
+        /// Whether the response HEADERS have gone out yet (drives error fallback).
+        /// </summary>
         internal bool HeadersSent => headersSent;
 
-        /// <summary>Whether the response has been completed (END_STREAM sent).</summary>
+        /// <summary>
+        /// Whether the response has been completed (END_STREAM sent).
+        /// </summary>
         internal bool Completed   => completed;
 
         public async Task WriteInterimResponseAsync(int Status, IEnumerable<(string Name, string Value)> Headers, CancellationToken CancellationToken = default)
@@ -112,7 +116,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 await connection.EnqueueOutboundAsync(stream, [], EndStream: true);
         }
 
-        /// <summary>Auto-complete when a handler returns without ending the response itself.</summary>
+        /// <summary>
+        /// Auto-complete when a handler returns without ending the response itself.
+        /// </summary>
         internal Task EnsureCompletedAsync()
             => completed ? Task.CompletedTask : CompleteAsync();
 

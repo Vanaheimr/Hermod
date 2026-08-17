@@ -26,7 +26,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M6: POSIX-shell argument quoting for safe remote command composition.</summary>
+    /// <summary>
+    /// M6: POSIX-shell argument quoting for safe remote command composition.
+    /// </summary>
     [TestFixture]
     public class SshCommandLineTests
     {

@@ -93,13 +93,17 @@ public static class SunSpecInverterMap
     public const ushort VendorCommandStandby = 2;
     public const ushort VendorCommandFault   = 7;
 
-    /// <summary>Network-critical registers - NetworkAdministrator+ only.</summary>
+    /// <summary>
+    /// Network-critical registers - NetworkAdministrator+ only.
+    /// </summary>
     public static readonly IReadOnlySet<ushort> ProtectedAddresses = new HashSet<ushort>
     {
         Addr(SunSpecCommon.OffCommonDA),    // device address
     };
 
-    /// <summary>Commanded / autonomous-function registers - GridService+ may write.</summary>
+    /// <summary>
+    /// Commanded / autonomous-function registers - GridService+ may write.
+    /// </summary>
     public static readonly IReadOnlySet<ushort> CommandedAddresses = new HashSet<ushort>
     {
         Addr(OffInvStVnd),                  // vendor-state (e.g. external curtailment command)

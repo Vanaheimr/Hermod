@@ -33,7 +33,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public interface ISshMac : IDisposable
     {
 
-        /// <summary>The MAC length in bytes appended to each packet.</summary>
+        /// <summary>
+        /// The MAC length in bytes appended to each packet.
+        /// </summary>
         Int32 Length { get; }
 
         /// <summary>
@@ -63,7 +65,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The MAC length in bytes (32 for SHA-256, 64 for SHA-512).</summary>
+        /// <summary>
+        /// The MAC length in bytes (32 for SHA-256, 64 for SHA-512).
+        /// </summary>
         public Int32 Length { get; }
 
         #endregion
@@ -79,11 +83,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #endregion
 
 
-        /// <summary>Create an <c>hmac-sha2-256</c> MAC from a 32-byte key.</summary>
+        /// <summary>
+        /// Create an <c>hmac-sha2-256</c> MAC from a 32-byte key.
+        /// </summary>
         public static HmacSha2Mac Sha256(ReadOnlySpan<Byte> Key)
             => new (IncrementalHash.CreateHMAC(HashAlgorithmName.SHA256, Key), 32);
 
-        /// <summary>Create an <c>hmac-sha2-512</c> MAC from a 64-byte key.</summary>
+        /// <summary>
+        /// Create an <c>hmac-sha2-512</c> MAC from a 64-byte key.
+        /// </summary>
         public static HmacSha2Mac Sha512(ReadOnlySpan<Byte> Key)
             => new (IncrementalHash.CreateHMAC(HashAlgorithmName.SHA512, Key), 64);
 

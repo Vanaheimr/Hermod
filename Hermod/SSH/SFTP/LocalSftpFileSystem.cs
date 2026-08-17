@@ -53,7 +53,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region Constructor(s)
 
-        /// <summary>Create a root-jailed local SFTP file system.</summary>
+        /// <summary>
+        /// Create a root-jailed local SFTP file system.
+        /// </summary>
         /// <param name="RootDirectory">The directory that becomes the SFTP root <c>/</c> (created if missing).</param>
         /// <param name="ReadOnly">When true, all mutating operations are refused with permission denied.</param>
         public LocalSftpFileSystem(String RootDirectory, Boolean ReadOnly = false)

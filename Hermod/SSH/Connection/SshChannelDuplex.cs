@@ -66,7 +66,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region SendAsync(Data, CancellationToken)
 
-        /// <summary>Send bytes as channel data, chunked to the maximum packet size.</summary>
+        /// <summary>
+        /// Send bytes as channel data, chunked to the maximum packet size.
+        /// </summary>
         public async ValueTask SendAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
         {
 
@@ -85,7 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region ReadExactAsync(Count, CancellationToken)
 
-        /// <summary>Read exactly <paramref name="Count"/> bytes from the channel (throws at EOF).</summary>
+        /// <summary>
+        /// Read exactly <paramref name="Count"/> bytes from the channel (throws at EOF).
+        /// </summary>
         public async ValueTask<Byte[]> ReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
         {
 
@@ -109,7 +113,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Try to read exactly <paramref name="Count"/> bytes; returns null at a clean EOF.</summary>
+        /// <summary>
+        /// Try to read exactly <paramref name="Count"/> bytes; returns null at a clean EOF.
+        /// </summary>
         public async ValueTask<Byte[]?> TryReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
         {
             try   { return await ReadExactAsync(Count, CancellationToken).ConfigureAwait(false); }
@@ -144,7 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region CloseAsync(CancellationToken)
 
-        /// <summary>Send EOF and CLOSE for this channel.</summary>
+        /// <summary>
+        /// Send EOF and CLOSE for this channel.
+        /// </summary>
         public async ValueTask CloseAsync(CancellationToken CancellationToken = default)
         {
             await transport.SendPacketAsync(Simple(SshMessageNumber.ChannelEof,   remoteChannel), CancellationToken).ConfigureAwait(false);
@@ -254,10 +262,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>Thrown when a channel is closed while more data was expected.</summary>
+    /// <summary>
+    /// Thrown when a channel is closed while more data was expected.
+    /// </summary>
     public sealed class SshChannelClosedException : Exception
     {
-        /// <summary>Create a new channel-closed exception.</summary>
+        /// <summary>
+        /// Create a new channel-closed exception.
+        /// </summary>
         public SshChannelClosedException() : base("The SSH channel was closed.") { }
     }
 

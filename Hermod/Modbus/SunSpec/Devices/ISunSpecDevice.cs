@@ -39,10 +39,14 @@ public interface ISunSpecDevice : IDisposable
     /// </summary>
     ushort BaseAddress { get; }
 
-    /// <summary>Number of holding registers exposed by this device.</summary>
+    /// <summary>
+    /// Number of holding registers exposed by this device.
+    /// </summary>
     int RegisterCount { get; }
 
-    /// <summary>Short, human-readable device label (used for logging).</summary>
+    /// <summary>
+    /// Short, human-readable device label (used for logging).
+    /// </summary>
     string DisplayName { get; }
 
     /// <summary>
@@ -65,10 +69,14 @@ public interface ISunSpecDevice : IDisposable
     /// </summary>
     ushort[]? ReadHolding(ushort startAddress, ushort quantity);
 
-    /// <summary>Write a single holding register. Returns false on range / read-only violation.</summary>
+    /// <summary>
+    /// Write a single holding register. Returns false on range / read-only violation.
+    /// </summary>
     bool WriteHolding(ushort address, ushort value);
 
-    /// <summary>Write multiple holding registers atomically (per device).</summary>
+    /// <summary>
+    /// Write multiple holding registers atomically (per device).
+    /// </summary>
     bool WriteHolding(ushort address, ReadOnlySpan<ushort> values);
 
 }

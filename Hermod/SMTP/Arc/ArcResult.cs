@@ -24,7 +24,9 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    /// <summary>The Authenticated Received Chain validation status (RFC 8617 §2, the cv= value).</summary>
+    /// <summary>
+    /// The Authenticated Received Chain validation status (RFC 8617 §2, the cv= value).
+    /// </summary>
     public enum ArcResult {
         None,   // no ARC header sets present
         Pass,   // the chain is intact and validates

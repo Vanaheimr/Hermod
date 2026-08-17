@@ -46,7 +46,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Data
 
-        /// <summary>RFC 7838, Section 3.1: <c>ma</c> defaults to 24 hours.</summary>
+        /// <summary>
+        /// RFC 7838, Section 3.1: <c>ma</c> defaults to 24 hours.
+        /// </summary>
         public static readonly TimeSpan DefaultMaxAge = TimeSpan.FromHours(24);
 
         #endregion
@@ -161,7 +163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Parse an <c>Alt-Svc</c> value, ignoring whether it was "clear".</summary>
+        /// <summary>
+        /// Parse an <c>Alt-Svc</c> value, ignoring whether it was "clear".
+        /// </summary>
         public static IReadOnlyList<HTTPAlternativeService> Parse(String FieldValue)
             => Parse(FieldValue, out _);
 

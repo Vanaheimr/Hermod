@@ -32,31 +32,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Transport layer (RFC 4253)
 
-        /// <summary>SSH_MSG_DISCONNECT (1) — terminate the connection with a reason code.</summary>
+        /// <summary>
+        /// SSH_MSG_DISCONNECT (1) — terminate the connection with a reason code.
+        /// </summary>
         Disconnect                    =   1,
 
-        /// <summary>SSH_MSG_IGNORE (2) — a message to be ignored (e.g. traffic-analysis padding).</summary>
+        /// <summary>
+        /// SSH_MSG_IGNORE (2) — a message to be ignored (e.g. traffic-analysis padding).
+        /// </summary>
         Ignore                        =   2,
 
-        /// <summary>SSH_MSG_UNIMPLEMENTED (3) — response to an unrecognized message.</summary>
+        /// <summary>
+        /// SSH_MSG_UNIMPLEMENTED (3) — response to an unrecognized message.
+        /// </summary>
         Unimplemented                 =   3,
 
-        /// <summary>SSH_MSG_DEBUG (4) — optional debug information.</summary>
+        /// <summary>
+        /// SSH_MSG_DEBUG (4) — optional debug information.
+        /// </summary>
         Debug                         =   4,
 
-        /// <summary>SSH_MSG_SERVICE_REQUEST (5) — request a service by name (e.g. "ssh-userauth").</summary>
+        /// <summary>
+        /// SSH_MSG_SERVICE_REQUEST (5) — request a service by name (e.g. "ssh-userauth").
+        /// </summary>
         ServiceRequest                =   5,
 
-        /// <summary>SSH_MSG_SERVICE_ACCEPT (6) — the requested service was accepted.</summary>
+        /// <summary>
+        /// SSH_MSG_SERVICE_ACCEPT (6) — the requested service was accepted.
+        /// </summary>
         ServiceAccept                 =   6,
 
-        /// <summary>SSH_MSG_EXT_INFO (7) — extension negotiation (RFC 8308).</summary>
+        /// <summary>
+        /// SSH_MSG_EXT_INFO (7) — extension negotiation (RFC 8308).
+        /// </summary>
         ExtInfo                       =   7,
 
-        /// <summary>SSH_MSG_KEXINIT (20) — start key exchange, carrying the algorithm name-lists.</summary>
+        /// <summary>
+        /// SSH_MSG_KEXINIT (20) — start key exchange, carrying the algorithm name-lists.
+        /// </summary>
         KexInit                       =  20,
 
-        /// <summary>SSH_MSG_NEWKEYS (21) — subsequent packets use the newly negotiated keys.</summary>
+        /// <summary>
+        /// SSH_MSG_NEWKEYS (21) — subsequent packets use the newly negotiated keys.
+        /// </summary>
         NewKeys                       =  21,
 
         #endregion
@@ -79,16 +97,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region User authentication (RFC 4252)
 
-        /// <summary>SSH_MSG_USERAUTH_REQUEST (50).</summary>
+        /// <summary>
+        /// SSH_MSG_USERAUTH_REQUEST (50).
+        /// </summary>
         UserAuthRequest               =  50,
 
-        /// <summary>SSH_MSG_USERAUTH_FAILURE (51) — carries the remaining methods and a partial-success flag.</summary>
+        /// <summary>
+        /// SSH_MSG_USERAUTH_FAILURE (51) — carries the remaining methods and a partial-success flag.
+        /// </summary>
         UserAuthFailure               =  51,
 
-        /// <summary>SSH_MSG_USERAUTH_SUCCESS (52).</summary>
+        /// <summary>
+        /// SSH_MSG_USERAUTH_SUCCESS (52).
+        /// </summary>
         UserAuthSuccess               =  52,
 
-        /// <summary>SSH_MSG_USERAUTH_BANNER (53) — pre-authentication banner text.</summary>
+        /// <summary>
+        /// SSH_MSG_USERAUTH_BANNER (53) — pre-authentication banner text.
+        /// </summary>
         UserAuthBanner                =  53,
 
         /// <summary>
@@ -98,63 +124,97 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         UserAuth60                    =  60,
 
-        /// <summary>SSH_MSG_USERAUTH_INFO_RESPONSE (61) — "keyboard-interactive" response (RFC 4256).</summary>
+        /// <summary>
+        /// SSH_MSG_USERAUTH_INFO_RESPONSE (61) — "keyboard-interactive" response (RFC 4256).
+        /// </summary>
         UserAuthInfoResponse          =  61,
 
         #endregion
 
         #region Connection protocol (RFC 4254)
 
-        /// <summary>SSH_MSG_GLOBAL_REQUEST (80).</summary>
+        /// <summary>
+        /// SSH_MSG_GLOBAL_REQUEST (80).
+        /// </summary>
         GlobalRequest                 =  80,
 
-        /// <summary>SSH_MSG_REQUEST_SUCCESS (81).</summary>
+        /// <summary>
+        /// SSH_MSG_REQUEST_SUCCESS (81).
+        /// </summary>
         RequestSuccess                =  81,
 
-        /// <summary>SSH_MSG_REQUEST_FAILURE (82).</summary>
+        /// <summary>
+        /// SSH_MSG_REQUEST_FAILURE (82).
+        /// </summary>
         RequestFailure                =  82,
 
-        /// <summary>SSH_MSG_CHANNEL_OPEN (90).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_OPEN (90).
+        /// </summary>
         ChannelOpen                   =  90,
 
-        /// <summary>SSH_MSG_CHANNEL_OPEN_CONFIRMATION (91).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_OPEN_CONFIRMATION (91).
+        /// </summary>
         ChannelOpenConfirmation       =  91,
 
-        /// <summary>SSH_MSG_CHANNEL_OPEN_FAILURE (92).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_OPEN_FAILURE (92).
+        /// </summary>
         ChannelOpenFailure            =  92,
 
-        /// <summary>SSH_MSG_CHANNEL_WINDOW_ADJUST (93).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_WINDOW_ADJUST (93).
+        /// </summary>
         ChannelWindowAdjust           =  93,
 
-        /// <summary>SSH_MSG_CHANNEL_DATA (94).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_DATA (94).
+        /// </summary>
         ChannelData                   =  94,
 
-        /// <summary>SSH_MSG_CHANNEL_EXTENDED_DATA (95) — e.g. stderr (SSH_EXTENDED_DATA_STDERR).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_EXTENDED_DATA (95) — e.g. stderr (SSH_EXTENDED_DATA_STDERR).
+        /// </summary>
         ChannelExtendedData           =  95,
 
-        /// <summary>SSH_MSG_CHANNEL_EOF (96).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_EOF (96).
+        /// </summary>
         ChannelEof                    =  96,
 
-        /// <summary>SSH_MSG_CHANNEL_CLOSE (97).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_CLOSE (97).
+        /// </summary>
         ChannelClose                  =  97,
 
-        /// <summary>SSH_MSG_CHANNEL_REQUEST (98).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_REQUEST (98).
+        /// </summary>
         ChannelRequest                =  98,
 
-        /// <summary>SSH_MSG_CHANNEL_SUCCESS (99).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_SUCCESS (99).
+        /// </summary>
         ChannelSuccess                =  99,
 
-        /// <summary>SSH_MSG_CHANNEL_FAILURE (100).</summary>
+        /// <summary>
+        /// SSH_MSG_CHANNEL_FAILURE (100).
+        /// </summary>
         ChannelFailure                = 100,
 
         #endregion
 
         #region Local extensions / private use (192..255)
 
-        /// <summary>SSH_MSG_PING (192) — OpenSSH "ping@openssh.com" keep-alive / keystroke-timing chaff.</summary>
+        /// <summary>
+        /// SSH_MSG_PING (192) — OpenSSH "ping@openssh.com" keep-alive / keystroke-timing chaff.
+        /// </summary>
         Ping                          = 192,
 
-        /// <summary>SSH_MSG_PONG (193) — OpenSSH response to <see cref="Ping"/>.</summary>
+        /// <summary>
+        /// SSH_MSG_PONG (193) — OpenSSH response to <see cref="Ping"/>.
+        /// </summary>
         Pong                          = 193
 
         #endregion

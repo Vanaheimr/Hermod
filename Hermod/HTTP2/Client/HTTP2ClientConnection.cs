@@ -91,10 +91,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly Lock flowLock = new();
         private TaskCompletionSource windowChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        /// <summary>Connection-level receive window we raise to at startup (above the 65535 default).</summary>
+        /// <summary>
+        /// Connection-level receive window we raise to at startup (above the 65535 default).
+        /// </summary>
         private const long ConnectionRecvWindowTarget = 1024 * 1024;   // 1 MiB
 
-        /// <summary>Bytes consumed connection-wide since our last connection-level WINDOW_UPDATE (batched replenish).</summary>
+        /// <summary>
+        /// Bytes consumed connection-wide since our last connection-level WINDOW_UPDATE (batched replenish).
+        /// </summary>
         private long connectionPendingRecvUpdate;
 
         private readonly TaskCompletionSource settingsReceived = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -135,7 +139,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private TaskCompletionSource?    pendingPingAck;
         private byte[]                   pendingPingPayload   = [];
 
-        /// <summary>In-flight requests keyed by their stream ID (guarded by <see cref="exchangesLock"/>).</summary>
+        /// <summary>
+        /// In-flight requests keyed by their stream ID (guarded by <see cref="exchangesLock"/>).
+        /// </summary>
         private readonly Dictionary<UInt32, ClientExchange>  exchanges       = [];
         private readonly Lock                                exchangesLock   = new();
 
@@ -287,7 +293,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public bool IsUsable => !goawayReceived && !cancellationToken.IsCancellationRequested;
 
-        /// <summary>Number of requests currently in flight on this connection.</summary>
+        /// <summary>
+        /// Number of requests currently in flight on this connection.
+        /// </summary>
         public int ActiveStreamCount
         {
             get { lock (exchangesLock) return exchanges.Count; }
@@ -1046,7 +1054,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Wait until fewer than MAX_CONCURRENT_STREAMS outbound streams are in flight.</summary>
+        /// <summary>
+        /// Wait until fewer than MAX_CONCURRENT_STREAMS outbound streams are in flight.
+        /// </summary>
         private async Task WaitForStreamSlotAsync(CancellationToken Token)
         {
             while (true)
@@ -1065,7 +1075,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
         }
 
-        /// <summary>Send the request body, then half-close our side. Runs concurrently with other streams.</summary>
+        /// <summary>
+        /// Send the request body, then half-close our side. Runs concurrently with other streams.
+        /// </summary>
         private async Task SendBodyThenCloseAsync(ClientExchange Exchange)
         {
             try
@@ -1081,14 +1093,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
         }
 
-        /// <summary>Await the assembled response, honoring both the connection and the per-request cancellation.</summary>
+        /// <summary>
+        /// Await the assembled response, honoring both the connection and the per-request cancellation.
+        /// </summary>
         private async Task<HTTP2Response> AwaitResponseAsync(ClientExchange Exchange)
         {
             using var reqCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Exchange.RequestToken);
             return await Exchange.Completion.Task.WaitAsync(reqCts.Token);
         }
 
-        /// <summary>Re-issue a refused request on a fresh stream, reusing its Completion (RFC 9113 §8.1).</summary>
+        /// <summary>
+        /// Re-issue a refused request on a fresh stream, reusing its Completion (RFC 9113 §8.1).
+        /// </summary>
         private async Task RetryExchangeAsync(ClientExchange Exchange)
         {
             try
@@ -1243,7 +1259,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Send tunnel bytes as flow-controlled DATA frames (never END_STREAM).</summary>
+        /// <summary>
+        /// Send tunnel bytes as flow-controlled DATA frames (never END_STREAM).
+        /// </summary>
         internal async Task SendTunnelDataAsync(HTTP2Stream Stream, byte[] Data, CancellationToken CancellationToken)
         {
 
@@ -1275,7 +1293,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         internal Task SendStreamDataAsync(HTTP2Stream Stream, byte[] Data, CancellationToken CancellationToken)
             => SendTunnelDataAsync(Stream, Data, CancellationToken);
 
-        /// <summary>End our side of the tunnel with a zero-length END_STREAM DATA frame.</summary>
+        /// <summary>
+        /// End our side of the tunnel with a zero-length END_STREAM DATA frame.
+        /// </summary>
         internal async Task EndTunnelAsync(HTTP2Stream Stream)
         {
             try { await SendFrameAsync(HTTP2Frame.CreateData(Stream.StreamId, [], EndStream: true)); }
@@ -1362,7 +1382,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Write a header block as HEADERS (+ CONTINUATION if oversized), atomically under the write lock.</summary>
+        /// <summary>
+        /// Write a header block as HEADERS (+ CONTINUATION if oversized), atomically under the write lock.
+        /// </summary>
         private async Task SendHeaderBlockAsync(UInt32 StreamId, byte[] HeaderBlock, bool EndStream)
         {
 
@@ -2018,7 +2040,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Fail an exchange, routing to the streaming vehicles or the buffered Completion as appropriate.</summary>
+        /// <summary>
+        /// Fail an exchange, routing to the streaming vehicles or the buffered Completion as appropriate.
+        /// </summary>
         private static void FailExchange(ClientExchange Exchange, Exception Ex)
         {
             if (Exchange.IsStreaming)
@@ -2029,7 +2053,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 Exchange.Completion.TrySetException(Ex);
         }
 
-        /// <summary>Propagate a failure to a streaming exchange's head, body channel, and trailers.</summary>
+        /// <summary>
+        /// Propagate a failure to a streaming exchange's head, body channel, and trailers.
+        /// </summary>
         private static void FailStreaming(ClientExchange Exchange, Exception Ex)
         {
             Exchange.ResponseHead?.TrySetException(Ex);

@@ -104,7 +104,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Byte[]                  Signature             { get; }
 
 
-        /// <summary>Whether this is a SIG(0) — a signature over a message rather than over an RRset.</summary>
+        /// <summary>
+        /// Whether this is a SIG(0) — a signature over a message rather than over an RRset.
+        /// </summary>
         public Boolean IsTransactionSignature
             => TypeCovered == TransactionSignature;
 

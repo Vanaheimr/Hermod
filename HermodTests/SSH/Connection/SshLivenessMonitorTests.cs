@@ -37,7 +37,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (helper) ManualClock
 
-        /// <summary>A trivial hand-advanced <see cref="TimeProvider"/> for deterministic Poll() testing.</summary>
+        /// <summary>
+        /// A trivial hand-advanced <see cref="TimeProvider"/> for deterministic Poll() testing.
+        /// </summary>
         private sealed class ManualClock : TimeProvider
         {
             private DateTimeOffset now;

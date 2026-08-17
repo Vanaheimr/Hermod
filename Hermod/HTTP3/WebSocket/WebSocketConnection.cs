@@ -62,7 +62,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
         /// </summary>
         private readonly bool           perMessageDeflate;
 
-        /// <summary>Bytes read from the tunnel but not yet consumed by frame parsing.</summary>
+        /// <summary>
+        /// Bytes read from the tunnel but not yet consumed by frame parsing.
+        /// </summary>
         private byte[] buffer      = [];
         private int    bufferStart;
 
@@ -267,7 +269,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
 
         #region permessage-deflate (RFC 7692)
 
-        /// <summary>The 4-octet tail (an empty DEFLATE block) permessage-deflate strips when sending and re-appends when receiving (RFC 7692 Section 7.2).</summary>
+        /// <summary>
+        /// The 4-octet tail (an empty DEFLATE block) permessage-deflate strips when sending and re-appends when receiving (RFC 7692 Section 7.2).
+        /// </summary>
         private static readonly byte[] DeflateTail = [0x00, 0x00, 0xFF, 0xFF];
 
         /// <summary>
@@ -325,7 +329,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
 
         #endregion
 
-        /// <summary>Whether the whole byte sequence decodes as valid UTF-8 (RFC 6455 Section 8.1).</summary>
+        /// <summary>
+        /// Whether the whole byte sequence decodes as valid UTF-8 (RFC 6455 Section 8.1).
+        /// </summary>
         private static bool IsValidUtf8(byte[] Bytes)
         {
             try { StrictUtf8.GetCharCount(Bytes); return true; }

@@ -34,7 +34,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region ExecuteAsync(Mux, Command, CancellationToken) — client
 
-        /// <summary>Open a session channel, run <paramref name="Command"/> and capture stdout/stderr + exit status.</summary>
+        /// <summary>
+        /// Open a session channel, run <paramref name="Command"/> and capture stdout/stderr + exit status.
+        /// </summary>
         public static async ValueTask<SshCommandResult> ExecuteAsync(SshChannelMultiplexer Mux, String Command, CancellationToken CancellationToken = default)
         {
             var channel = await Mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
@@ -42,7 +44,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return await CaptureAsync(channel, CancellationToken).ConfigureAwait(false);
         }
 
-        /// <summary>Capture a session channel's stdout/stderr and its exit status.</summary>
+        /// <summary>
+        /// Capture a session channel's stdout/stderr and its exit status.
+        /// </summary>
         public static async ValueTask<SshCommandResult> CaptureAsync(SshMuxChannel Channel, CancellationToken CancellationToken = default)
         {
 
@@ -153,7 +157,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (helpers) encode / decode
 
-        /// <summary>Encode a single SSH string (for an <c>exec</c> command payload).</summary>
+        /// <summary>
+        /// Encode a single SSH string (for an <c>exec</c> command payload).
+        /// </summary>
         public static Byte[] EncodeString(String Value)
         {
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
@@ -161,7 +167,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return abw.WrittenSpan.ToArray();
         }
 
-        /// <summary>Encode a single uint32 (for an <c>exit-status</c> payload).</summary>
+        /// <summary>
+        /// Encode a single uint32 (for an <c>exit-status</c> payload).
+        /// </summary>
         public static Byte[] EncodeUInt32(UInt32 Value)
         {
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
@@ -184,13 +192,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>Bidirectional stream relay for tunnels (channel ↔ socket): copies both ways until either side ends, then tears down.</summary>
+    /// <summary>
+    /// Bidirectional stream relay for tunnels (channel ↔ socket): copies both ways until either side ends, then tears down.
+    /// </summary>
     public static class SshChannelRelay
     {
 
         private const Int32 Buffer = 32 * 1024;
 
-        /// <summary>Relay bytes both ways between two streams until either ends; disposes both on completion.</summary>
+        /// <summary>
+        /// Relay bytes both ways between two streams until either ends; disposes both on completion.
+        /// </summary>
         public static async Task RelayAsync(Stream A, Stream B, CancellationToken CancellationToken = default)
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);

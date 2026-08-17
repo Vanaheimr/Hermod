@@ -24,25 +24,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public enum CDSAcceptanceResult
     {
 
-        /// <summary>The RRset passed every rule and names the DS RRset the parent should publish.</summary>
+        /// <summary>
+        /// The RRset passed every rule and names the DS RRset the parent should publish.
+        /// </summary>
         Accepted,
 
-        /// <summary>The RRset asks for the DS RRset to be removed (RFC 8078 §4).</summary>
+        /// <summary>
+        /// The RRset asks for the DS RRset to be removed (RFC 8078 §4).
+        /// </summary>
         AcceptedAsDelete,
 
-        /// <summary>There was nothing to act on.</summary>
+        /// <summary>
+        /// There was nothing to act on.
+        /// </summary>
         NoRecords,
 
-        /// <summary>The records are not at the child zone's apex.</summary>
+        /// <summary>
+        /// The records are not at the child zone's apex.
+        /// </summary>
         NotAtApex,
 
-        /// <summary>Nothing signed the RRset, or nothing that signed it is trusted.</summary>
+        /// <summary>
+        /// Nothing signed the RRset, or nothing that signed it is trusted.
+        /// </summary>
         NotSignedByATrustedKey,
 
-        /// <summary>Applying it would leave the delegation with no usable DS.</summary>
+        /// <summary>
+        /// Applying it would leave the delegation with no usable DS.
+        /// </summary>
         WouldBreakTheDelegation,
 
-        /// <summary>A delete sentinel was mixed with ordinary records (RFC 8078 §4).</summary>
+        /// <summary>
+        /// A delete sentinel was mixed with ordinary records (RFC 8078 §4).
+        /// </summary>
         InconsistentDeleteSignal
 
     }

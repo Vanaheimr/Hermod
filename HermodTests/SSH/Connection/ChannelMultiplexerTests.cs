@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M-mux: the connection multiplexer runs many channels concurrently on one connection.</summary>
+    /// <summary>
+    /// M-mux: the connection multiplexer runs many channels concurrently on one connection.
+    /// </summary>
     [TestFixture]
     public class ChannelMultiplexerTests
     {

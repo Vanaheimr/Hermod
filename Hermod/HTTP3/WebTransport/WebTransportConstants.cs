@@ -25,7 +25,9 @@ public static class WebTransportConstants
 {
     // ---- HTTP/3 SETTINGS (§9.2) -----------------------------------------------------------
 
-    /// <summary>SETTINGS_WT_MAX_SESSIONS — max. concurrent sessions; &gt;1 activates flow control (§5.1).</summary>
+    /// <summary>
+    /// SETTINGS_WT_MAX_SESSIONS — max. concurrent sessions; &gt;1 activates flow control (§5.1).
+    /// </summary>
     public const ulong SettingMaxSessions = 0x14e9cd29;
 
     /// <summary>
@@ -42,10 +44,14 @@ public static class WebTransportConstants
 
     // ---- Stream/frame signals (§4.1/§4.2, §9.3/§9.4) --------------------------------------
 
-    /// <summary>Uni-stream type: 0x54 ‖ session ID ‖ payload (§4.1).</summary>
+    /// <summary>
+    /// Uni-stream type: 0x54 ‖ session ID ‖ payload (§4.1).
+    /// </summary>
     public const ulong UniStreamType = 0x54;
 
-    /// <summary>WT_STREAM signal at the start of a bidi stream: 0x41 ‖ session ID ‖ payload (§4.2).</summary>
+    /// <summary>
+    /// WT_STREAM signal at the start of a bidi stream: 0x41 ‖ session ID ‖ payload (§4.2).
+    /// </summary>
     public const ulong BidiStreamSignal = 0x41;
 
     // ---- Error codes (§9.5) ---------------------------------------------------------------
@@ -53,7 +59,9 @@ public static class WebTransportConstants
     public const ulong BufferedStreamRejected = 0x3994bd84;
     public const ulong SessionGone = 0x170d7b68;
 
-    /// <summary>WT_APPLICATION_ERROR range (§4.3): 32-bit app codes are mapped into it.</summary>
+    /// <summary>
+    /// WT_APPLICATION_ERROR range (§4.3): 32-bit app codes are mapped into it.
+    /// </summary>
     public const ulong ApplicationErrorFirst = 0x52e4a40fa8db;
     public const ulong ApplicationErrorLast = 0x52e5ac983162;
 

@@ -40,7 +40,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.ResponseHeaders = ResponseHeaders;
         }
 
-        /// <summary>The tunnel's stream ID.</summary>
+        /// <summary>
+        /// The tunnel's stream ID.
+        /// </summary>
         public UInt32 StreamId => stream.StreamId;
 
         /// <summary>
@@ -51,7 +53,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public IReadOnlyList<(string Name, string Value)> ResponseHeaders { get; }
 
-        /// <summary>Read the next chunk the peer sent, or null once the tunnel ends (END_STREAM / reset).</summary>
+        /// <summary>
+        /// Read the next chunk the peer sent, or null once the tunnel ends (END_STREAM / reset).
+        /// </summary>
         public async Task<byte[]?> ReadAsync(CancellationToken CancellationToken)
         {
             var reader = stream.TunnelInbound!.Reader;
@@ -62,11 +66,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             return null;
         }
 
-        /// <summary>Send a chunk of bytes to the peer as flow-controlled DATA frame(s).</summary>
+        /// <summary>
+        /// Send a chunk of bytes to the peer as flow-controlled DATA frame(s).
+        /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken)
             => connection.SendTunnelDataAsync(stream, Data, CancellationToken);
 
-        /// <summary>End our side of the tunnel (a zero-length END_STREAM DATA frame).</summary>
+        /// <summary>
+        /// End our side of the tunnel (a zero-length END_STREAM DATA frame).
+        /// </summary>
         public Task CloseAsync()
             => connection.EndTunnelAsync(stream);
 

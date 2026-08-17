@@ -30,7 +30,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M7 SFTP: the seekable <see cref="SftpFileStream"/> and pipelined large transfers.</summary>
+    /// <summary>
+    /// M7 SFTP: the seekable <see cref="SftpFileStream"/> and pipelined large transfers.
+    /// </summary>
     [TestFixture]
     public class SftpStreamingTests
     {

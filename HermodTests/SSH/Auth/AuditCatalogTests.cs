@@ -26,7 +26,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M9: the typed audit-event catalog — envelope stamping, monotonic sequence numbers and bounded-queue overflow accounting.</summary>
+    /// <summary>
+    /// M9: the typed audit-event catalog — envelope stamping, monotonic sequence numbers and bounded-queue overflow accounting.
+    /// </summary>
     [TestFixture]
     public class AuditCatalogTests
     {

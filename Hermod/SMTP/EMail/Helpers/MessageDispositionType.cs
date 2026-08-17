@@ -23,13 +23,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// </summary>
     public enum MessageDispositionType
     {
-        /// <summary>The message was displayed to the user (a classic "read receipt").</summary>
+        /// <summary>
+        /// The message was displayed to the user (a classic "read receipt").
+        /// </summary>
         Displayed,
-        /// <summary>The message was deleted without being displayed.</summary>
+        /// <summary>
+        /// The message was deleted without being displayed.
+        /// </summary>
         Deleted,
-        /// <summary>The message was forwarded/redirected without the user necessarily seeing it.</summary>
+        /// <summary>
+        /// The message was forwarded/redirected without the user necessarily seeing it.
+        /// </summary>
         Dispatched,
-        /// <summary>The message was processed by some automatic agent without being displayed.</summary>
+        /// <summary>
+        /// The message was processed by some automatic agent without being displayed.
+        /// </summary>
         Processed
     }
 

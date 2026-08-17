@@ -29,10 +29,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
     /// </summary>
     public interface IHTTP2Tunnel
     {
-        /// <summary>Read the next chunk from the peer, or null once the peer has ended its side.</summary>
+        /// <summary>
+        /// Read the next chunk from the peer, or null once the peer has ended its side.
+        /// </summary>
         Task<byte[]?> ReadAsync(CancellationToken CancellationToken);
 
-        /// <summary>Send a chunk of bytes to the peer.</summary>
+        /// <summary>
+        /// Send a chunk of bytes to the peer.
+        /// </summary>
         Task WriteAsync(byte[] Data, CancellationToken CancellationToken);
     }
 

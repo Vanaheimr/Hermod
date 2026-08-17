@@ -39,29 +39,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public abstract class SshKem
     {
 
-        /// <summary>The KEM name (for diagnostics).</summary>
+        /// <summary>
+        /// The KEM name (for diagnostics).
+        /// </summary>
         public abstract String  Name              { get; }
 
-        /// <summary>The encoded length of a public (encapsulation) key.</summary>
+        /// <summary>
+        /// The encoded length of a public (encapsulation) key.
+        /// </summary>
         public abstract Int32   PublicKeyLength    { get; }
 
-        /// <summary>The encoded length of a ciphertext.</summary>
+        /// <summary>
+        /// The encoded length of a ciphertext.
+        /// </summary>
         public abstract Int32   CiphertextLength   { get; }
 
-        /// <summary>Client side: generate a fresh ephemeral key pair to receive an encapsulation into.</summary>
+        /// <summary>
+        /// Client side: generate a fresh ephemeral key pair to receive an encapsulation into.
+        /// </summary>
         public abstract SshKemKeyPair GenerateKeyPair();
 
-        /// <summary>Server side: encapsulate against a client's public key, yielding a ciphertext and the shared secret.</summary>
+        /// <summary>
+        /// Server side: encapsulate against a client's public key, yielding a ciphertext and the shared secret.
+        /// </summary>
         public abstract (Byte[] Ciphertext, Byte[] SharedSecret) Encapsulate(ReadOnlySpan<Byte> PublicKey);
 
 
         #region (static) MlKem768() / SNtruP761()
 
-        /// <summary>ML-KEM-768 (FIPS 203), via the .NET BCL.</summary>
+        /// <summary>
+        /// ML-KEM-768 (FIPS 203), via the .NET BCL.
+        /// </summary>
         public static SshKem MlKem768()
             => new MlKem768Kem();
 
-        /// <summary>Streamlined NTRU Prime sntrup761, via BouncyCastle.</summary>
+        /// <summary>
+        /// Streamlined NTRU Prime sntrup761, via BouncyCastle.
+        /// </summary>
         public static SshKem SNtruP761()
             => new SNtruPrime761Kem();
 
@@ -77,13 +91,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public abstract class SshKemKeyPair : IDisposable
     {
 
-        /// <summary>The encoded public (encapsulation) key to send to the server.</summary>
+        /// <summary>
+        /// The encoded public (encapsulation) key to send to the server.
+        /// </summary>
         public abstract Byte[] PublicKey { get; }
 
-        /// <summary>Recover the shared secret from the server's ciphertext.</summary>
+        /// <summary>
+        /// Recover the shared secret from the server's ciphertext.
+        /// </summary>
         public abstract Byte[] Decapsulate(ReadOnlySpan<Byte> Ciphertext);
 
-        /// <summary>Release any key material.</summary>
+        /// <summary>
+        /// Release any key material.
+        /// </summary>
         public virtual void Dispose()
             => GC.SuppressFinalize(this);
 
@@ -92,7 +112,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #region ML-KEM-768 (BCL)
 
-    /// <summary>ML-KEM-768 (FIPS 203) via <see cref="System.Security.Cryptography.MLKem"/>.</summary>
+    /// <summary>
+    /// ML-KEM-768 (FIPS 203) via <see cref="System.Security.Cryptography.MLKem"/>.
+    /// </summary>
     internal sealed class MlKem768Kem : SshKem
     {
 
@@ -140,7 +162,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #region sntrup761 (BouncyCastle)
 
-    /// <summary>Streamlined NTRU Prime sntrup761 via BouncyCastle's <c>SNtruPrime</c> KEM.</summary>
+    /// <summary>
+    /// Streamlined NTRU Prime sntrup761 via BouncyCastle's <c>SNtruPrime</c> KEM.
+    /// </summary>
     internal sealed class SNtruPrime761Kem : SshKem
     {
 

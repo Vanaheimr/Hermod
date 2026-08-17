@@ -34,22 +34,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constants
 
-        /// <summary>The authentication service name requested after the transport is up.</summary>
+        /// <summary>
+        /// The authentication service name requested after the transport is up.
+        /// </summary>
         public const String AuthService        = "ssh-userauth";
 
-        /// <summary>The service a successful authentication grants access to (the connection protocol).</summary>
+        /// <summary>
+        /// The service a successful authentication grants access to (the connection protocol).
+        /// </summary>
         public const String ConnectionService  = "ssh-connection";
 
-        /// <summary>The <c>publickey</c> authentication method (RFC 4252 §7).</summary>
+        /// <summary>
+        /// The <c>publickey</c> authentication method (RFC 4252 §7).
+        /// </summary>
         public const String PublicKeyMethod     = "publickey";
 
-        /// <summary>The <c>password</c> authentication method (RFC 4252 §8).</summary>
+        /// <summary>
+        /// The <c>password</c> authentication method (RFC 4252 §8).
+        /// </summary>
         public const String PasswordMethod       = "password";
 
-        /// <summary>The <c>keyboard-interactive</c> authentication method (RFC 4256) — carries TOTP prompts.</summary>
+        /// <summary>
+        /// The <c>keyboard-interactive</c> authentication method (RFC 4256) — carries TOTP prompts.
+        /// </summary>
         public const String KeyboardInteractiveMethod = "keyboard-interactive";
 
-        /// <summary>The <c>none</c> method — used only to probe which methods the server will accept.</summary>
+        /// <summary>
+        /// The <c>none</c> method — used only to probe which methods the server will accept.
+        /// </summary>
         public const String NoneMethod          = "none";
 
         #endregion
@@ -250,7 +262,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region ClientPasswordAuthenticateAsync(Transport, Username, Password, …)
 
-        /// <summary>Run the client side of <c>password</c> authentication (RFC 4252 §8).</summary>
+        /// <summary>
+        /// Run the client side of <c>password</c> authentication (RFC 4252 §8).
+        /// </summary>
         public static async ValueTask<Boolean> ClientPasswordAuthenticateAsync(SshTransport             Transport,
                                                                                String                   Username,
                                                                                String                   Password,
@@ -763,10 +777,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>Thrown when SSH user authentication fails or is exhausted.</summary>
+    /// <summary>
+    /// Thrown when SSH user authentication fails or is exhausted.
+    /// </summary>
     public sealed class SshAuthenticationException : Exception
     {
-        /// <summary>Create a new authentication exception.</summary>
+        /// <summary>
+        /// Create a new authentication exception.
+        /// </summary>
         public SshAuthenticationException(String Message) : base(Message) { }
     }
 

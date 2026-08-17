@@ -141,10 +141,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public UInt64?  SizeInCentimetres            => DecodeScaled(Size);
 
-        /// <summary>The horizontal precision in centimetres, or null when undefined.</summary>
+        /// <summary>
+        /// The horizontal precision in centimetres, or null when undefined.
+        /// </summary>
         public UInt64?  HorizPrecisionInCentimetres  => DecodeScaled(HorizPrecision);
 
-        /// <summary>The vertical precision in centimetres, or null when undefined.</summary>
+        /// <summary>
+        /// The vertical precision in centimetres, or null when undefined.
+        /// </summary>
         public UInt64?  VertPrecisionInCentimetres   => DecodeScaled(VertPrecision);
 
 
@@ -161,7 +165,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         public Int64    LatitudeInMilliArcSeconds    => (Int64) Latitude  - (1L << 31);
 
-        /// <summary>The longitude in thousandths of a second of arc, east of the prime meridian being positive.</summary>
+        /// <summary>
+        /// The longitude in thousandths of a second of arc, east of the prime meridian being positive.
+        /// </summary>
         public Int64    LongitudeInMilliArcSeconds   => (Int64) Longitude - (1L << 31);
 
         /// <summary>
@@ -176,7 +182,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         public Int64    AltitudeInCentimetres        => (Int64) Altitude  - AltitudeReference;
 
-        /// <summary>The 100,000 m the altitude field is measured up from, in centimetres.</summary>
+        /// <summary>
+        /// The 100,000 m the altitude field is measured up from, in centimetres.
+        /// </summary>
         public const Int64 AltitudeReference = 10_000_000;
 
 
@@ -203,13 +211,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Defaults (RFC 1876 §3)
 
-        /// <summary>The size RFC 1876 §3 assumes when the master file omits it: 1 m.</summary>
+        /// <summary>
+        /// The size RFC 1876 §3 assumes when the master file omits it: 1 m.
+        /// </summary>
         public const Byte DefaultSize           = 0x12;
 
-        /// <summary>The horizontal precision assumed when omitted: 10000 m.</summary>
+        /// <summary>
+        /// The horizontal precision assumed when omitted: 10000 m.
+        /// </summary>
         public const Byte DefaultHorizPrecision = 0x16;
 
-        /// <summary>The vertical precision assumed when omitted: 10 m.</summary>
+        /// <summary>
+        /// The vertical precision assumed when omitted: 10 m.
+        /// </summary>
         public const Byte DefaultVertPrecision  = 0x13;
 
         /// <summary>
@@ -573,7 +587,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private) RDataBytes()
 
-        /// <summary>The sixteen RDATA octets of this record, in wire order.</summary>
+        /// <summary>
+        /// The sixteen RDATA octets of this record, in wire order.
+        /// </summary>
         private Byte[] RDataBytes()
         {
 

@@ -28,7 +28,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M9: keystroke-timing obfuscation — a constant cadence of real+chaff packets while typing, stopping after the idle window.</summary>
+    /// <summary>
+    /// M9: keystroke-timing obfuscation — a constant cadence of real+chaff packets while typing, stopping after the idle window.
+    /// </summary>
     [TestFixture]
     public class KeystrokeTimingObfuscatorTests
     {

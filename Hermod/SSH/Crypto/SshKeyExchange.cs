@@ -34,10 +34,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public abstract class SshKeyExchange : IDisposable
     {
 
-        /// <summary>The wire name of the key exchange method.</summary>
+        /// <summary>
+        /// The wire name of the key exchange method.
+        /// </summary>
         public abstract String             Name           { get; }
 
-        /// <summary>The hash used for the exchange hash H and the key derivation.</summary>
+        /// <summary>
+        /// The hash used for the exchange hash H and the key derivation.
+        /// </summary>
         public abstract HashAlgorithmName  HashAlgorithm  { get; }
 
 
@@ -88,7 +92,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                };
 
 
-        /// <summary>Release any key material.</summary>
+        /// <summary>
+        /// Release any key material.
+        /// </summary>
         public virtual void Dispose()
             => GC.SuppressFinalize(this);
 

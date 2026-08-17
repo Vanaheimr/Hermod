@@ -25,7 +25,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public static class SshAlgorithmNames
     {
 
-        /// <summary>Key exchange method names and negotiation markers.</summary>
+        /// <summary>
+        /// Key exchange method names and negotiation markers.
+        /// </summary>
         public static class Kex
         {
             public const String Curve25519Sha256         = "curve25519-sha256";
@@ -36,21 +38,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             public const String DhGroup14Sha256          = "diffie-hellman-group14-sha256";
             public const String DhGroup16Sha512          = "diffie-hellman-group16-sha512";
 
-            /// <summary>Post-quantum hybrid ML-KEM-768 + X25519 with SHA-256 (OpenSSH default since 10.0).</summary>
+            /// <summary>
+            /// Post-quantum hybrid ML-KEM-768 + X25519 with SHA-256 (OpenSSH default since 10.0).
+            /// </summary>
             public const String MlKem768X25519Sha256           = "mlkem768x25519-sha256";
-            /// <summary>Post-quantum hybrid sntrup761 + X25519 with SHA-512 (IANA name).</summary>
+            /// <summary>
+            /// Post-quantum hybrid sntrup761 + X25519 with SHA-512 (IANA name).
+            /// </summary>
             public const String SntruP761X25519Sha512          = "sntrup761x25519-sha512";
-            /// <summary>Post-quantum hybrid sntrup761 + X25519 with SHA-512 (original OpenSSH name).</summary>
+            /// <summary>
+            /// Post-quantum hybrid sntrup761 + X25519 with SHA-512 (original OpenSSH name).
+            /// </summary>
             public const String SntruP761X25519Sha512LibSsh    = "sntrup761x25519-sha512@openssh.com";
 
-            /// <summary>Client's "I support ext-info" marker (RFC 8308).</summary>
+            /// <summary>
+            /// Client's "I support ext-info" marker (RFC 8308).
+            /// </summary>
             public const String ExtInfoClient            = "ext-info-c";
-            /// <summary>Server's "I support ext-info" marker (RFC 8308).</summary>
+            /// <summary>
+            /// Server's "I support ext-info" marker (RFC 8308).
+            /// </summary>
             public const String ExtInfoServer            = "ext-info-s";
 
-            /// <summary>Client's strict-KEX marker (Terrapin mitigation, CVE-2023-48795).</summary>
+            /// <summary>
+            /// Client's strict-KEX marker (Terrapin mitigation, CVE-2023-48795).
+            /// </summary>
             public const String StrictKexClient          = "kex-strict-c-v00@openssh.com";
-            /// <summary>Server's strict-KEX marker (Terrapin mitigation, CVE-2023-48795).</summary>
+            /// <summary>
+            /// Server's strict-KEX marker (Terrapin mitigation, CVE-2023-48795).
+            /// </summary>
             public const String StrictKexServer          = "kex-strict-s-v00@openssh.com";
 
             /// <summary>
@@ -80,7 +96,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Host-key / public-key signature algorithm names.</summary>
+        /// <summary>
+        /// Host-key / public-key signature algorithm names.
+        /// </summary>
         public static class HostKey
         {
             public const String Ed25519                  = "ssh-ed25519";
@@ -99,7 +117,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             public const String SshRsaCert              = "ssh-rsa-cert-v01@openssh.com";
         }
 
-        /// <summary>Encryption algorithm names.</summary>
+        /// <summary>
+        /// Encryption algorithm names.
+        /// </summary>
         public static class Cipher
         {
             public const String Aes256Gcm                = "aes256-gcm@openssh.com";
@@ -110,7 +130,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             public const String ChaCha20Poly1305         = "chacha20-poly1305@openssh.com";
         }
 
-        /// <summary>MAC algorithm names (ignored when an AEAD cipher is selected).</summary>
+        /// <summary>
+        /// MAC algorithm names (ignored when an AEAD cipher is selected).
+        /// </summary>
         public static class Mac
         {
             public const String HmacSha2_256Etm          = "hmac-sha2-256-etm@openssh.com";
@@ -119,7 +141,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             public const String HmacSha2_512             = "hmac-sha2-512";
         }
 
-        /// <summary>Compression algorithm names.</summary>
+        /// <summary>
+        /// Compression algorithm names.
+        /// </summary>
         public static class Compression
         {
             public const String None                     = "none";

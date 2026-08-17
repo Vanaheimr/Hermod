@@ -51,10 +51,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region Properties
 
-        /// <summary>The extensions the server advertised in its SSH_FXP_VERSION (name → data).</summary>
+        /// <summary>
+        /// The extensions the server advertised in its SSH_FXP_VERSION (name → data).
+        /// </summary>
         public IReadOnlyDictionary<String, String> ServerExtensions { get; }
 
-        /// <summary>Whether the server advertised the named extension.</summary>
+        /// <summary>
+        /// Whether the server advertised the named extension.
+        /// </summary>
         public Boolean Supports(String Extension) => ServerExtensions.ContainsKey(Extension);
 
         #endregion
@@ -73,11 +77,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region (static) OpenAsync(Transport, CancellationToken)
 
-        /// <summary>Open the <c>sftp</c> subsystem on a single-channel transport and negotiate the protocol version.</summary>
+        /// <summary>
+        /// Open the <c>sftp</c> subsystem on a single-channel transport and negotiate the protocol version.
+        /// </summary>
         public static async ValueTask<SftpClient> OpenAsync(SshTransport Transport, CancellationToken CancellationToken = default)
             => await OpenAsync(await SshConnection.OpenSubsystemAsync(Transport, "sftp", CancellationToken).ConfigureAwait(false), CancellationToken).ConfigureAwait(false);
 
-        /// <summary>Run the SFTP client over an already-established duplex channel (e.g. a multiplexed <c>sftp</c> subsystem channel).</summary>
+        /// <summary>
+        /// Run the SFTP client over an already-established duplex channel (e.g. a multiplexed <c>sftp</c> subsystem channel).
+        /// </summary>
         public static async ValueTask<SftpClient> OpenAsync(ISftpDuplex channel, CancellationToken CancellationToken = default)
         {
 
@@ -167,7 +175,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
-        /// <summary>Download a remote file's contents, pipelining the READ requests across its length.</summary>
+        /// <summary>
+        /// Download a remote file's contents, pipelining the READ requests across its length.
+        /// </summary>
         public async ValueTask<Byte[]> DownloadAsync(String RemotePath, CancellationToken CancellationToken = default)
         {
 
@@ -250,7 +260,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region ListDirectoryAsync(RemotePath)
 
-        /// <summary>List a remote directory (excluding <c>.</c> and <c>..</c>).</summary>
+        /// <summary>
+        /// List a remote directory (excluding <c>.</c> and <c>..</c>).
+        /// </summary>
         public async ValueTask<IReadOnlyList<SftpDirectoryEntry>> ListDirectoryAsync(String RemotePath, CancellationToken CancellationToken = default)
         {
 
@@ -281,7 +293,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region file-management operations
 
-        /// <summary>Get the attributes of a remote path.</summary>
+        /// <summary>
+        /// Get the attributes of a remote path.
+        /// </summary>
         public async ValueTask<SftpFileAttributes> StatAsync(String RemotePath, CancellationToken CancellationToken = default)
         {
             var response = await RoundtripAsync(SftpPacketType.Stat, (ref SshPacketWriter w) => w.WriteString(RemotePath), CancellationToken).ConfigureAwait(false);
@@ -290,23 +304,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             return SftpFileAttributes.Decode(ref reader);
         }
 
-        /// <summary>Create a remote directory.</summary>
+        /// <summary>
+        /// Create a remote directory.
+        /// </summary>
         public ValueTask MakeDirectoryAsync(String RemotePath, CancellationToken CancellationToken = default)
             => ExpectOkAsync(SftpPacketType.MkDir, (ref SshPacketWriter w) => { w.WriteString(RemotePath); SftpFileAttributes.Directory().Encode(ref w); }, CancellationToken);
 
-        /// <summary>Remove a remote file.</summary>
+        /// <summary>
+        /// Remove a remote file.
+        /// </summary>
         public ValueTask RemoveAsync(String RemotePath, CancellationToken CancellationToken = default)
             => ExpectOkAsync(SftpPacketType.Remove, (ref SshPacketWriter w) => w.WriteString(RemotePath), CancellationToken);
 
-        /// <summary>Remove a remote directory.</summary>
+        /// <summary>
+        /// Remove a remote directory.
+        /// </summary>
         public ValueTask RemoveDirectoryAsync(String RemotePath, CancellationToken CancellationToken = default)
             => ExpectOkAsync(SftpPacketType.RmDir, (ref SshPacketWriter w) => w.WriteString(RemotePath), CancellationToken);
 
-        /// <summary>Rename a remote file or directory.</summary>
+        /// <summary>
+        /// Rename a remote file or directory.
+        /// </summary>
         public ValueTask RenameAsync(String OldPath, String NewPath, CancellationToken CancellationToken = default)
             => ExpectOkAsync(SftpPacketType.Rename, (ref SshPacketWriter w) => { w.WriteString(OldPath); w.WriteString(NewPath); }, CancellationToken);
 
-        /// <summary>Atomically rename with replace semantics via <c>posix-rename@openssh.com</c>.</summary>
+        /// <summary>
+        /// Atomically rename with replace semantics via <c>posix-rename@openssh.com</c>.
+        /// </summary>
         public ValueTask PosixRenameAsync(String OldPath, String NewPath, CancellationToken CancellationToken = default)
             => ExpectOkAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => { w.WriteString("posix-rename@openssh.com"); w.WriteString(OldPath); w.WriteString(NewPath); }, CancellationToken);
 
@@ -397,7 +421,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                    w.WriteUInt64((UInt64) DestinationOffset);
                }, CancellationToken);
 
-        /// <summary>Query the server's protocol limits via <c>limits@openssh.com</c>.</summary>
+        /// <summary>
+        /// Query the server's protocol limits via <c>limits@openssh.com</c>.
+        /// </summary>
         public async ValueTask<SftpProtocolLimits> LimitsAsync(CancellationToken CancellationToken = default)
         {
             var response = await RoundtripAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => w.WriteString("limits@openssh.com"), CancellationToken).ConfigureAwait(false);
@@ -406,7 +432,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             return new SftpProtocolLimits(reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadUInt64());
         }
 
-        /// <summary>Query file-system statistics via <c>statvfs@openssh.com</c> (we surface the session quota as free space).</summary>
+        /// <summary>
+        /// Query file-system statistics via <c>statvfs@openssh.com</c> (we surface the session quota as free space).
+        /// </summary>
         public async ValueTask<SftpFileSystemStats> StatVfsAsync(String RemotePath, CancellationToken CancellationToken = default)
         {
             var response = await RoundtripAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => { w.WriteString("statvfs@openssh.com"); w.WriteString(RemotePath); }, CancellationToken).ConfigureAwait(false);
@@ -585,7 +613,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region DisposeAsync()
 
-        /// <summary>Close the SFTP channel and stop the background reader.</summary>
+        /// <summary>
+        /// Close the SFTP channel and stop the background reader.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             try { await channel.CloseAsync().ConfigureAwait(false); } catch { }

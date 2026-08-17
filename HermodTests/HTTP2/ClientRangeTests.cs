@@ -361,7 +361,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
-        /// <summary>A stream that accepts writes but cannot seek — a socket or a pipe.</summary>
+        /// <summary>
+        /// A stream that accepts writes but cannot seek — a socket or a pipe.
+        /// </summary>
         private sealed class ForwardOnlyStream : Stream
         {
             private Int64 length;

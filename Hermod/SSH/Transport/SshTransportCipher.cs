@@ -31,10 +31,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public abstract class SshTransportCipher : IDisposable
     {
 
-        /// <summary>The block size to which the padded region must be aligned (at least 8).</summary>
+        /// <summary>
+        /// The block size to which the padded region must be aligned (at least 8).
+        /// </summary>
         public abstract Int32    BlockSize                          { get; }
 
-        /// <summary>The length of the authentication tag / MAC appended to each packet (0 if none).</summary>
+        /// <summary>
+        /// The length of the authentication tag / MAC appended to each packet (0 if none).
+        /// </summary>
         public abstract Int32    TagLength                          { get; }
 
         /// <summary>
@@ -69,7 +73,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                         Span<Byte>          Plaintext);
 
 
-        /// <summary>Release any key material held by this cipher.</summary>
+        /// <summary>
+        /// Release any key material held by this cipher.
+        /// </summary>
         public virtual void Dispose()
         {
             GC.SuppressFinalize(this);
@@ -85,7 +91,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed class NullTransportCipher : SshTransportCipher
     {
 
-        /// <summary>A shared, stateless instance.</summary>
+        /// <summary>
+        /// A shared, stateless instance.
+        /// </summary>
         public static NullTransportCipher Instance { get; } = new ();
 
         public override Int32    BlockSize                          => 8;

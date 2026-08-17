@@ -32,7 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
     using IPAddress = System.Net.IPAddress;
 
-    /// <summary>M8/mux: remote (<c>-R</c>) forwarding — an external client reaches a client-side service through the server's forwarded listener.</summary>
+    /// <summary>
+    /// M8/mux: remote (<c>-R</c>) forwarding — an external client reaches a client-side service through the server's forwarded listener.
+    /// </summary>
     [TestFixture]
     public class RemoteForwardingTests
     {

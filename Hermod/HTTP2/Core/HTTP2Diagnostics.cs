@@ -48,7 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public const String ActivitySourceName = "Vanaheimr.Hermod.HTTP2";
 
-        /// <summary>The source every span in this stack comes from.</summary>
+        /// <summary>
+        /// The source every span in this stack comes from.
+        /// </summary>
         public static readonly ActivitySource ActivitySource = new(ActivitySourceName);
 
         #endregion
@@ -140,7 +142,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Mark a span as failed, tagging the error the way OTel expects.</summary>
+        /// <summary>
+        /// Mark a span as failed, tagging the error the way OTel expects.
+        /// </summary>
         public static void Fail(Activity? Activity, Exception Error)
         {
 

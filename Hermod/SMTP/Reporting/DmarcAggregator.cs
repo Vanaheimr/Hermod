@@ -87,7 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Record(evaluation, sourceIp)
 
-        /// <summary>Add one evaluated message to the current window for its policy domain.</summary>
+        /// <summary>
+        /// Add one evaluated message to the current window for its policy domain.
+        /// </summary>
         public void Record(DmarcEvaluation eval, System.Net.IPAddress sourceIp)
         {
 

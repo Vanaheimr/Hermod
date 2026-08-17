@@ -28,7 +28,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M8 SSHFP (RFC 4255): record generation (ssh-keygen -r equivalent) and trust-mode verification.</summary>
+    /// <summary>
+    /// M8 SSHFP (RFC 4255): record generation (ssh-keygen -r equivalent) and trust-mode verification.
+    /// </summary>
     [TestFixture]
     public class SshfpTests
     {

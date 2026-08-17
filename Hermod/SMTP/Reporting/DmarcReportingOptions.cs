@@ -26,7 +26,9 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    /// <summary>Static options for <see cref="DmarcReportService"/>.</summary>
+    /// <summary>
+    /// Static options for <see cref="DmarcReportService"/>.
+    /// </summary>
     public sealed record DmarcReportingOptions(
         String    OrgName,
         String    ReportFromDisplay,   // e.g. "DMARC Reports <dmarc-reports@mx.example>"

@@ -87,17 +87,25 @@ public sealed class WebTransportSession
         _localMaxData = host.LocalInitialMaxData;
     }
 
-    /// <summary>The session ID = stream ID of the CONNECT stream (§4).</summary>
+    /// <summary>
+    /// The session ID = stream ID of the CONNECT stream (§4).
+    /// </summary>
     public ulong SessionId { get; }
 
-    /// <summary>The session has ended (§6: CONNECT stream closed or WT_CLOSE_SESSION).</summary>
+    /// <summary>
+    /// The session has ended (§6: CONNECT stream closed or WT_CLOSE_SESSION).
+    /// </summary>
     public bool IsClosed { get; private set; }
 
-    /// <summary>Error code/message of a received (or implicit) WT_CLOSE_SESSION.</summary>
+    /// <summary>
+    /// Error code/message of a received (or implicit) WT_CLOSE_SESSION.
+    /// </summary>
     public uint? CloseErrorCode { get; private set; }
     public string? CloseReason { get; private set; }
 
-    /// <summary>Flow control is active (both sides WT_MAX_SESSIONS &gt; 1, §5.1).</summary>
+    /// <summary>
+    /// Flow control is active (both sides WT_MAX_SESSIONS &gt; 1, §5.1).
+    /// </summary>
     public bool FlowControlEnabled => _host.FlowControlEnabled;
 
     /// <summary>
@@ -176,10 +184,14 @@ public sealed class WebTransportSession
         return stream;
     }
 
-    /// <summary>Accepts the next peer-opened unidirectional stream, if any.</summary>
+    /// <summary>
+    /// Accepts the next peer-opened unidirectional stream, if any.
+    /// </summary>
     public WebTransportStream? AcceptUnidirectionalStream() => _incomingUni.Count > 0 ? _incomingUni.Dequeue() : null;
 
-    /// <summary>Accepts the next peer-opened bidirectional stream, if any.</summary>
+    /// <summary>
+    /// Accepts the next peer-opened bidirectional stream, if any.
+    /// </summary>
     public WebTransportStream? AcceptBidirectionalStream() => _incomingBidi.Count > 0 ? _incomingBidi.Dequeue() : null;
 
     // ---- Datagrams (§4.4) -----------------------------------------------------------------
@@ -191,7 +203,9 @@ public sealed class WebTransportSession
     /// </summary>
     public bool SendDatagram(byte[] payload) => !IsClosed && _host.SendWebTransportDatagram(SessionId, payload);
 
-    /// <summary>Accepts the next received datagram, if any.</summary>
+    /// <summary>
+    /// Accepts the next received datagram, if any.
+    /// </summary>
     public bool TryReceiveDatagram(out byte[]? payload)
     {
         if (_datagrams.Count > 0) { payload = _datagrams.Dequeue(); return true; }
@@ -271,7 +285,9 @@ public sealed class WebTransportSession
         }
     }
 
-    /// <summary>Session end via a closed CONNECT stream (§6, without WT_CLOSE_SESSION = code 0).</summary>
+    /// <summary>
+    /// Session end via a closed CONNECT stream (§6, without WT_CLOSE_SESSION = code 0).
+    /// </summary>
     internal void OnConnectStreamClosed() => MarkClosed(CloseErrorCode ?? 0, CloseReason ?? "");
 
     internal bool TryRecordSentData(int bytes)

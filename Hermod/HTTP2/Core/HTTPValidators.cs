@@ -49,7 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             => DateTimeOffset.TryParseExact(Value, "r", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out Result) ||
                DateTimeOffset.TryParse     (Value,      CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out Result);
 
-        /// <summary>Format an HTTP-date as IMF-fixdate.</summary>
+        /// <summary>
+        /// Format an HTTP-date as IMF-fixdate.
+        /// </summary>
         public static String FormatDate(DateTimeOffset Value)
 
             => Value.ToUniversalTime().ToString("r", CultureInfo.InvariantCulture);
@@ -63,7 +65,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             => new(Value.Year, Value.Month, Value.Day, Value.Hour, Value.Minute, Value.Second, Value.Offset);
 
-        /// <summary>Whether two HTTP-dates denote the same second.</summary>
+        /// <summary>
+        /// Whether two HTTP-dates denote the same second.
+        /// </summary>
         public static Boolean SameInstant(DateTimeOffset Left, DateTimeOffset Right)
 
             => Truncate(Left) == Truncate(Right);
@@ -140,7 +144,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
-        /// <summary>Split an entity-tag into its opaque part and its weakness flag.</summary>
+        /// <summary>
+        /// Split an entity-tag into its opaque part and its weakness flag.
+        /// </summary>
         public static (String Tag, Boolean Weak) SplitETag(String ETag)
         {
 

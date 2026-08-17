@@ -48,7 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #region Data / handlers
 
-        /// <summary>Big enough to be worth compressing, and compressible.</summary>
+        /// <summary>
+        /// Big enough to be worth compressing, and compressible.
+        /// </summary>
         private static readonly Byte[] Text =
             Encoding.UTF8.GetBytes(String.Concat(Enumerable.Repeat("The quick brown fox jumps over the lazy dog. ", 40)));
 
@@ -59,7 +61,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                    CompressResponses: Compress,
                    ContentDigests:    true);
 
-        /// <summary>Reports back which <c>want-…</c> fields the client actually sent.</summary>
+        /// <summary>
+        /// Reports back which <c>want-…</c> fields the client actually sent.
+        /// </summary>
         private static Task<(List<(String, String)>, Byte[]?)> EchoWants(UInt32 s, List<(String Name, String Value)> h, Byte[]? b, CancellationToken ct)
             => Task.FromResult<(List<(String, String)>, Byte[]?)>((
                    [(":status", "200"),

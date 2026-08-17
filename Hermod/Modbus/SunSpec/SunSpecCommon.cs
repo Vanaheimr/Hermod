@@ -24,13 +24,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 /// </summary>
 public static class SunSpecCommon
 {
-    /// <summary>Standard SunSpec base address (one of 40000 / 50000 / 0).</summary>
+    /// <summary>
+    /// Standard SunSpec base address (one of 40000 / 50000 / 0).
+    /// </summary>
     public const ushort BaseAddress = 40000;
 
-    /// <summary>SunSpec start marker. Per spec, the value 0x53756e53 ("SunS").</summary>
+    /// <summary>
+    /// SunSpec start marker. Per spec, the value 0x53756e53 ("SunS").
+    /// </summary>
     public const uint SunSpecMarker = 0x53756E53;
 
-    /// <summary>End-of-models marker.</summary>
+    /// <summary>
+    /// End-of-models marker.
+    /// </summary>
     public const ushort EndModelId  = 0xFFFF;
 
     // ----- Common Model 1 (mandatory) -----
@@ -49,6 +55,8 @@ public static class SunSpecCommon
     public const ushort OffCommonDA        = 68;  // 1 reg   (Device Address)
     public const ushort OffCommonPad       = 69;  // 1 reg
 
-    /// <summary>First offset AFTER Common Model 1, i.e. where the next model header starts.</summary>
+    /// <summary>
+    /// First offset AFTER Common Model 1, i.e. where the next model header starts.
+    /// </summary>
     public const ushort FirstModelOffset   = 70;
 }

@@ -46,7 +46,9 @@ public sealed class TlsRptReportService(TlsRptAggregator        aggregator,
 
     #region Record(ev)
 
-    /// <summary>Record one outbound TLS session outcome for the aggregate report.</summary>
+    /// <summary>
+    /// Record one outbound TLS session outcome for the aggregate report.
+    /// </summary>
     public void Record(TlsRptEvent ev)
     {
         try { aggregator.Record(ev); }
@@ -86,7 +88,9 @@ public sealed class TlsRptReportService(TlsRptAggregator        aggregator,
 
     }
 
-    /// <summary>Drain the aggregator and send one report per domain that publishes a TLS-RPT policy.</summary>
+    /// <summary>
+    /// Drain the aggregator and send one report per domain that publishes a TLS-RPT policy.
+    /// </summary>
     public async Task GenerateAndSendAsync(CancellationToken ct)
     {
         foreach (var report in aggregator.Drain())

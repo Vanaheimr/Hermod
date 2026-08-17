@@ -57,10 +57,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constants
 
-        /// <summary>The global request a server sends to advertise its host keys.</summary>
+        /// <summary>
+        /// The global request a server sends to advertise its host keys.
+        /// </summary>
         public const String AnnouncementRequestName  = "hostkeys-00@openssh.com";
 
-        /// <summary>The global request a client sends to challenge advertised host keys.</summary>
+        /// <summary>
+        /// The global request a client sends to challenge advertised host keys.
+        /// </summary>
         public const String ProveRequestName         = "hostkeys-prove-00@openssh.com";
 
         #endregion
@@ -86,14 +90,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Whether a key blob appears in an advertised key set.</summary>
+        /// <summary>
+        /// Whether a key blob appears in an advertised key set.
+        /// </summary>
         /// <param name="AnnouncedKeys">The advertised key blobs.</param>
         /// <param name="KeyBlob">The key blob to look for; null is never advertised.</param>
         public static Boolean Advertises(IReadOnlyList<Byte[]> AnnouncedKeys, Byte[]? KeyBlob)
             => KeyBlob is not null &&
                AnnouncedKeys.Any(blob => blob.AsSpan().SequenceEqual(KeyBlob));
 
-        /// <summary>Decode a <c>string[] hostkeys</c> payload back into the individual blobs.</summary>
+        /// <summary>
+        /// Decode a <c>string[] hostkeys</c> payload back into the individual blobs.
+        /// </summary>
         /// <param name="Data">The request payload following the request name and want-reply flag.</param>
         public static IReadOnlyList<Byte[]> DecodeKeyList(Byte[] Data)
         {

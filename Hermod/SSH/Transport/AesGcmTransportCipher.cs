@@ -39,10 +39,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        /// <summary>The AES-GCM authentication tag length in bytes.</summary>
+        /// <summary>
+        /// The AES-GCM authentication tag length in bytes.
+        /// </summary>
         public  const Int32  GcmTagLength   = 16;
 
-        /// <summary>The AES-GCM nonce length in bytes.</summary>
+        /// <summary>
+        /// The AES-GCM nonce length in bytes.
+        /// </summary>
         public  const Int32  NonceLength    = 12;
 
         private readonly AesGcm       aesGcm;

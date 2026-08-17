@@ -322,7 +322,9 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     // ---- IWebTransportHost (draft-webtrans-http3) -----------------------------------------
 
-    /// <summary>Initial flow-control limits we grant per session (draft §5.5).</summary>
+    /// <summary>
+    /// Initial flow-control limits we grant per session (draft §5.5).
+    /// </summary>
     internal ulong LocalInitialMaxStreamsUni { get; init; } = 16;
     internal ulong LocalInitialMaxStreamsBidi { get; init; } = 16;
     internal ulong LocalInitialMaxData { get; init; } = 1_048_576;
@@ -1504,7 +1506,9 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         /// </summary>
         public Http3RequestBody? RequestBody { get; set; }
 
-        /// <summary>End of body already signalled to the reader (FIN or abort).</summary>
+        /// <summary>
+        /// End of body already signalled to the reader (FIN or abort).
+        /// </summary>
         public bool BodyCompleted { get; set; }
 
         /// <summary>

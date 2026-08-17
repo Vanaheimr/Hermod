@@ -36,7 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public static class WebSocketDeflate
     {
 
-        /// <summary>The permessage-deflate extension token (RFC 7692 Section 7).</summary>
+        /// <summary>
+        /// The permessage-deflate extension token (RFC 7692 Section 7).
+        /// </summary>
         public const string ExtensionName = "permessage-deflate";
 
         /// <summary>
@@ -75,7 +77,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public static bool WasAccepted(string? ServerResponse)
             => Lists(ServerResponse);
 
-        /// <summary>Whether a comma-separated Sec-WebSocket-Extensions value lists permessage-deflate.</summary>
+        /// <summary>
+        /// Whether a comma-separated Sec-WebSocket-Extensions value lists permessage-deflate.
+        /// </summary>
         private static bool Lists(string? HeaderValue)
             => HeaderValue is not null &&
                HeaderValue.Split(',').Any(e => e.Trim().StartsWith(ExtensionName, StringComparison.OrdinalIgnoreCase));

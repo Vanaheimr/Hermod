@@ -27,7 +27,9 @@ using System.Text.RegularExpressions;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 
-/// <summary>One policy block of a received TLS-RPT report (RFC 8460 §4).</summary>
+/// <summary>
+/// One policy block of a received TLS-RPT report (RFC 8460 §4).
+/// </summary>
 public sealed record TlsRptReceivedPolicy(String                                PolicyType,
                                           String?                               PolicyDomain,
                                           IReadOnlyList<String>                 MxHosts,

@@ -70,13 +70,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The remote command's standard output as it streams in.</summary>
+        /// <summary>
+        /// The remote command's standard output as it streams in.
+        /// </summary>
         public Stream  StandardOutput  => stdoutPipe.Reader.AsStream();
 
-        /// <summary>The remote command's standard error as it streams in.</summary>
+        /// <summary>
+        /// The remote command's standard error as it streams in.
+        /// </summary>
         public Stream  StandardError   => stderrPipe.Reader.AsStream();
 
-        /// <summary>A stream that writes to the remote command's standard input; closing it sends EOF.</summary>
+        /// <summary>
+        /// A stream that writes to the remote command's standard input; closing it sends EOF.
+        /// </summary>
         public Stream  StandardInput   { get; }
 
         #endregion
@@ -147,7 +153,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region WaitForExitAsync(CancellationToken)
 
-        /// <summary>Wait for the remote command to finish and return its exit status.</summary>
+        /// <summary>
+        /// Wait for the remote command to finish and return its exit status.
+        /// </summary>
         /// <exception cref="SshConnectionLostException">The peer stopped responding (dead peer or idle timeout).</exception>
         public Task<Int32> WaitForExitAsync(CancellationToken CancellationToken = default)
             => exitTcs.Task.WaitAsync(CancellationToken);
@@ -475,7 +483,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region DisposeAsync()
 
-        /// <summary>Close the channel and stop the background pump and liveness loop.</summary>
+        /// <summary>
+        /// Close the channel and stop the background pump and liveness loop.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
 
@@ -650,7 +660,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (private) ChannelInputStream
 
-        /// <summary>A write-only stream that forwards writes to the remote command's standard input.</summary>
+        /// <summary>
+        /// A write-only stream that forwards writes to the remote command's standard input.
+        /// </summary>
         private sealed class ChannelInputStream : Stream
         {
 

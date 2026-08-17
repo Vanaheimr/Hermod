@@ -26,7 +26,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M7 SFTP quotas: the per-session size/count tracker rejects at the boundary and names the file to discard.</summary>
+    /// <summary>
+    /// M7 SFTP quotas: the per-session size/count tracker rejects at the boundary and names the file to discard.
+    /// </summary>
     [TestFixture]
     public class SftpQuotaTests
     {

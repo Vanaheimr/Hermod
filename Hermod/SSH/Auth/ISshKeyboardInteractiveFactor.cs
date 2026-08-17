@@ -18,7 +18,9 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>One keyboard-interactive prompt (RFC 4256): the text and whether the response should echo.</summary>
+    /// <summary>
+    /// One keyboard-interactive prompt (RFC 4256): the text and whether the response should echo.
+    /// </summary>
     public sealed record SshPrompt(String Text, Boolean Echo);
 
 
@@ -39,16 +41,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public interface ISshKeyboardInteractiveFactor
     {
 
-        /// <summary>The challenge name (often empty).</summary>
+        /// <summary>
+        /// The challenge name (often empty).
+        /// </summary>
         String  Name         { get; }
 
-        /// <summary>The instruction shown above the prompts (often empty).</summary>
+        /// <summary>
+        /// The instruction shown above the prompts (often empty).
+        /// </summary>
         String  Instruction  { get; }
 
-        /// <summary>The prompts to present (usually a single "Verification code:" with echo off).</summary>
+        /// <summary>
+        /// The prompts to present (usually a single "Verification code:" with echo off).
+        /// </summary>
         IReadOnlyList<SshPrompt>  Prompts  { get; }
 
-        /// <summary>Validate the responses in prompt order.</summary>
+        /// <summary>
+        /// Validate the responses in prompt order.
+        /// </summary>
         ValueTask<Boolean> ValidateAsync(IReadOnlyList<String>  Responses,
                                          CancellationToken      CancellationToken = default);
 

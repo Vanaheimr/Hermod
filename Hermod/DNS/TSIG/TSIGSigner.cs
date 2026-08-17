@@ -48,22 +48,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        /// <summary>The class every TSIG record carries: ANY (RFC 8945 §4.2).</summary>
+        /// <summary>
+        /// The class every TSIG record carries: ANY (RFC 8945 §4.2).
+        /// </summary>
         public const UInt16  TSIGClassANY      = 255;
 
-        /// <summary>The TTL every TSIG record carries: zero (RFC 8945 §4.2).</summary>
+        /// <summary>
+        /// The TTL every TSIG record carries: zero (RFC 8945 §4.2).
+        /// </summary>
         public const UInt32  TSIGTimeToLive    = 0;
 
-        /// <summary>The default fudge in seconds; RFC 8945 §10 recommends 300.</summary>
+        /// <summary>
+        /// The default fudge in seconds; RFC 8945 §10 recommends 300.
+        /// </summary>
         public const UInt16  DefaultFudge      = 300;
 
-        /// <summary>TSIG error: the signature does not verify (RFC 8945 §4.3).</summary>
+        /// <summary>
+        /// TSIG error: the signature does not verify (RFC 8945 §4.3).
+        /// </summary>
         public const UInt16  BADSIG            = 16;
 
-        /// <summary>TSIG error: the key is not known to the verifier.</summary>
+        /// <summary>
+        /// TSIG error: the key is not known to the verifier.
+        /// </summary>
         public const UInt16  BADKEY            = 17;
 
-        /// <summary>TSIG error: the time signed falls outside the fudge window.</summary>
+        /// <summary>
+        /// TSIG error: the time signed falls outside the fudge window.
+        /// </summary>
         public const UInt16  BADTIME           = 18;
 
         #endregion

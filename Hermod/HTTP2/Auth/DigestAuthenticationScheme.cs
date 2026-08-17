@@ -157,7 +157,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             || Algorithm.Equals("MD5",          StringComparison.OrdinalIgnoreCase)
             || Algorithm.Equals("MD5-sess",     StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>Hex-encode H(input) with the algorithm's hash (SHA-256 unless the client chose MD5).</summary>
+        /// <summary>
+        /// Hex-encode H(input) with the algorithm's hash (SHA-256 unless the client chose MD5).
+        /// </summary>
         private static string H(string Algorithm, string Input)
         {
             var bytes  = Encoding.UTF8.GetBytes(Input);
@@ -167,7 +169,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             return Convert.ToHexStringLower(digest);
         }
 
-        /// <summary>A stateless nonce: <c>base64(ticks ":" base64(HMAC-SHA256(secret, ticks)))</c>.</summary>
+        /// <summary>
+        /// A stateless nonce: <c>base64(ticks ":" base64(HMAC-SHA256(secret, ticks)))</c>.
+        /// </summary>
         private string CreateNonce()
         {
             var ticks = timeProvider.GetUtcNow().UtcTicks.ToString();
@@ -175,7 +179,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             return Convert.ToBase64String(Encoding.ASCII.GetBytes($"{ticks}:{Convert.ToBase64String(mac)}"));
         }
 
-        /// <summary>Validate a nonce we issued: HMAC integrity + not older than <see cref="nonceMaxAge"/>.</summary>
+        /// <summary>
+        /// Validate a nonce we issued: HMAC integrity + not older than <see cref="nonceMaxAge"/>.
+        /// </summary>
         private bool ValidateNonce(string Nonce)
         {
             try

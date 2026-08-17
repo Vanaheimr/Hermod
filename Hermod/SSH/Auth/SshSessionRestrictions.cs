@@ -61,7 +61,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                 Boolean                AllowPortForwarding  = true)
     {
 
-        /// <summary>No restrictions — an ordinary, unrestricted credential.</summary>
+        /// <summary>
+        /// No restrictions — an ordinary, unrestricted credential.
+        /// </summary>
         public static SshSessionRestrictions None { get; } = new ();
 
         /// <summary>
@@ -90,11 +92,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>The critical options this implementation actually enforces.</summary>
+        /// <summary>
+        /// The critical options this implementation actually enforces.
+        /// </summary>
         public static IReadOnlySet<String> EnforcedCriticalOptions { get; }
             = new HashSet<String>(StringComparer.Ordinal) { "force-command", "source-address" };
 
-        /// <summary>Whether anything is actually restricted.</summary>
+        /// <summary>
+        /// Whether anything is actually restricted.
+        /// </summary>
         public Boolean IsRestricted
             => ForcedCommand is not null || SourceAddresses?.Count > 0 || !AllowPty || !AllowPortForwarding;
 
@@ -127,7 +133,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>The command a session should actually run, given what the client asked for.</summary>
+        /// <summary>
+        /// The command a session should actually run, given what the client asked for.
+        /// </summary>
         /// <param name="RequestedCommand">The command the client requested (empty for a shell).</param>
         public String EffectiveCommand(String RequestedCommand)
             => ForcedCommand ?? RequestedCommand;

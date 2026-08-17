@@ -139,7 +139,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public int      MaxRedirects            { get; init; }
 
-        /// <summary>The default options.</summary>
+        /// <summary>
+        /// The default options.
+        /// </summary>
         public static readonly HTTP2ClientOptions Default = new();
 
     }

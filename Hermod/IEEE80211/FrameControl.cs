@@ -62,135 +62,217 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IEEE80211
 
         #region Management (0x0X)
 
-        /// <summary>Association request.</summary>
+        /// <summary>
+        /// Association request.
+        /// </summary>
         ManagementAssociationRequest     = 0x00,
 
-        /// <summary>Association response.</summary>
+        /// <summary>
+        /// Association response.
+        /// </summary>
         ManagementAssociationResponse    = 0x01,
 
-        /// <summary>Reassociation request.</summary>
+        /// <summary>
+        /// Reassociation request.
+        /// </summary>
         ManagementReassociationRequest   = 0x02,
 
-        /// <summary>Reassociation response.</summary>
+        /// <summary>
+        /// Reassociation response.
+        /// </summary>
         ManagementReassociationResponse  = 0x03,
 
-        /// <summary>Probe request.</summary>
+        /// <summary>
+        /// Probe request.
+        /// </summary>
         ManagementProbeRequest           = 0x04,
 
-        /// <summary>Probe response.</summary>
+        /// <summary>
+        /// Probe response.
+        /// </summary>
         ManagementProbeResponse          = 0x05,
 
-        /// <summary>Timing advertisement (IEEE 802.11p).</summary>
+        /// <summary>
+        /// Timing advertisement (IEEE 802.11p).
+        /// </summary>
         ManagementTimingAdvertisement    = 0x06,
 
-        /// <summary>Beacon.</summary>
+        /// <summary>
+        /// Beacon.
+        /// </summary>
         ManagementBeacon                 = 0x08,
 
-        /// <summary>Announcement traffic indication message.</summary>
+        /// <summary>
+        /// Announcement traffic indication message.
+        /// </summary>
         ManagementATIM                   = 0x09,
 
-        /// <summary>Disassociation.</summary>
+        /// <summary>
+        /// Disassociation.
+        /// </summary>
         ManagementDisassociation         = 0x0A,
 
-        /// <summary>Authentication.</summary>
+        /// <summary>
+        /// Authentication.
+        /// </summary>
         ManagementAuthentication         = 0x0B,
 
-        /// <summary>Deauthentication.</summary>
+        /// <summary>
+        /// Deauthentication.
+        /// </summary>
         ManagementDeauthentication       = 0x0C,
 
-        /// <summary>Action.</summary>
+        /// <summary>
+        /// Action.
+        /// </summary>
         ManagementAction                 = 0x0D,
 
-        /// <summary>Action, no acknowledgment (IEEE 802.11w).</summary>
+        /// <summary>
+        /// Action, no acknowledgment (IEEE 802.11w).
+        /// </summary>
         ManagementActionNoAck            = 0x0E,
 
         #endregion
 
         #region Control (0x1X)
 
-        /// <summary>Beamforming report poll (IEEE 802.11ac).</summary>
+        /// <summary>
+        /// Beamforming report poll (IEEE 802.11ac).
+        /// </summary>
         ControlBeamformingReportPoll     = 0x14,
 
-        /// <summary>VHT null data packet announcement (IEEE 802.11ac).</summary>
+        /// <summary>
+        /// VHT null data packet announcement (IEEE 802.11ac).
+        /// </summary>
         ControlVHTNDPAnnouncement        = 0x15,
 
-        /// <summary>Control frame extension.</summary>
+        /// <summary>
+        /// Control frame extension.
+        /// </summary>
         ControlFrameExtension            = 0x16,
 
-        /// <summary>Control wrapper.</summary>
+        /// <summary>
+        /// Control wrapper.
+        /// </summary>
         ControlWrapper                   = 0x17,
 
-        /// <summary>Block acknowledgment request.</summary>
+        /// <summary>
+        /// Block acknowledgment request.
+        /// </summary>
         ControlBlockAckRequest           = 0x18,
 
-        /// <summary>Block acknowledgment.</summary>
+        /// <summary>
+        /// Block acknowledgment.
+        /// </summary>
         ControlBlockAck                  = 0x19,
 
-        /// <summary>Power save poll.</summary>
+        /// <summary>
+        /// Power save poll.
+        /// </summary>
         ControlPSPoll                    = 0x1A,
 
-        /// <summary>Request to send.</summary>
+        /// <summary>
+        /// Request to send.
+        /// </summary>
         ControlRTS                       = 0x1B,
 
-        /// <summary>Clear to send.</summary>
+        /// <summary>
+        /// Clear to send.
+        /// </summary>
         ControlCTS                       = 0x1C,
 
-        /// <summary>Acknowledgment.</summary>
+        /// <summary>
+        /// Acknowledgment.
+        /// </summary>
         ControlACK                       = 0x1D,
 
-        /// <summary>Contention free period end.</summary>
+        /// <summary>
+        /// Contention free period end.
+        /// </summary>
         ControlCFEnd                     = 0x1E,
 
-        /// <summary>Contention free period end + contention free acknowledgment.</summary>
+        /// <summary>
+        /// Contention free period end + contention free acknowledgment.
+        /// </summary>
         ControlCFEndCFAck                = 0x1F,
 
         #endregion
 
         #region Data (0x2X)
 
-        /// <summary>Data.</summary>
+        /// <summary>
+        /// Data.
+        /// </summary>
         Data                             = 0x20,
 
-        /// <summary>Data + contention free acknowledgment.</summary>
+        /// <summary>
+        /// Data + contention free acknowledgment.
+        /// </summary>
         DataCFAck                        = 0x21,
 
-        /// <summary>Data + contention free poll.</summary>
+        /// <summary>
+        /// Data + contention free poll.
+        /// </summary>
         DataCFPoll                       = 0x22,
 
-        /// <summary>Data + contention free acknowledgment + poll.</summary>
+        /// <summary>
+        /// Data + contention free acknowledgment + poll.
+        /// </summary>
         DataCFAckCFPoll                  = 0x23,
 
-        /// <summary>Null function, no data.</summary>
+        /// <summary>
+        /// Null function, no data.
+        /// </summary>
         DataNull                         = 0x24,
 
-        /// <summary>Contention free acknowledgment, no data.</summary>
+        /// <summary>
+        /// Contention free acknowledgment, no data.
+        /// </summary>
         DataCFAckNoData                  = 0x25,
 
-        /// <summary>Contention free poll, no data.</summary>
+        /// <summary>
+        /// Contention free poll, no data.
+        /// </summary>
         DataCFPollNoData                 = 0x26,
 
-        /// <summary>Contention free acknowledgment + poll, no data.</summary>
+        /// <summary>
+        /// Contention free acknowledgment + poll, no data.
+        /// </summary>
         DataCFAckCFPollNoData            = 0x27,
 
-        /// <summary>QoS data (IEEE 802.11e).</summary>
+        /// <summary>
+        /// QoS data (IEEE 802.11e).
+        /// </summary>
         DataQoS                          = 0x28,
 
-        /// <summary>QoS data + contention free acknowledgment.</summary>
+        /// <summary>
+        /// QoS data + contention free acknowledgment.
+        /// </summary>
         DataQoSCFAck                     = 0x29,
 
-        /// <summary>QoS data + contention free poll.</summary>
+        /// <summary>
+        /// QoS data + contention free poll.
+        /// </summary>
         DataQoSCFPoll                    = 0x2A,
 
-        /// <summary>QoS data + contention free acknowledgment + poll.</summary>
+        /// <summary>
+        /// QoS data + contention free acknowledgment + poll.
+        /// </summary>
         DataQoSCFAckCFPoll               = 0x2B,
 
-        /// <summary>QoS null, no data.</summary>
+        /// <summary>
+        /// QoS null, no data.
+        /// </summary>
         DataQoSNull                      = 0x2C,
 
-        /// <summary>QoS contention free poll, no data.</summary>
+        /// <summary>
+        /// QoS contention free poll, no data.
+        /// </summary>
         DataQoSCFPollNoData              = 0x2E,
 
-        /// <summary>QoS contention free acknowledgment + poll, no data.</summary>
+        /// <summary>
+        /// QoS contention free acknowledgment + poll, no data.
+        /// </summary>
         DataQoSCFAckCFPollNoData         = 0x2F
 
         #endregion

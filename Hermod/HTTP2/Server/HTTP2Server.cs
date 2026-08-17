@@ -85,7 +85,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP11FallbackHandler? http11Fallback;
         private readonly CancellationTokenSource cts = new();
 
-        /// <summary>Default buffered-request-body cap handed to each connection: 16 MiB.</summary>
+        /// <summary>
+        /// Default buffered-request-body cap handed to each connection: 16 MiB.
+        /// </summary>
         public const long DefaultMaxRequestBodySize = 16 * 1024 * 1024;
 
         /// <summary>

@@ -18,12 +18,18 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The on-disk format of a session recording.</summary>
+    /// <summary>
+    /// The on-disk format of a session recording.
+    /// </summary>
     public enum RecordingFormat
     {
-        /// <summary>An interactive/exec recording as asciicast v2 (<c>.cast</c>).</summary>
+        /// <summary>
+        /// An interactive/exec recording as asciicast v2 (<c>.cast</c>).
+        /// </summary>
         AsciicastV2,
-        /// <summary>An SFTP operation transcript as JSON-lines (<c>.jsonl</c>).</summary>
+        /// <summary>
+        /// An SFTP operation transcript as JSON-lines (<c>.jsonl</c>).
+        /// </summary>
         SftpTranscript
     }
 
@@ -36,52 +42,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed record SessionRecordingMetadata
     {
 
-        /// <summary>A stable identifier for this recording (also the base file name).</summary>
+        /// <summary>
+        /// A stable identifier for this recording (also the base file name).
+        /// </summary>
         public String           RecordingId      { get; init; } = Guid.NewGuid().ToString("N");
 
-        /// <summary>The session id of the SSH transport (hex), correlating with the audit stream.</summary>
+        /// <summary>
+        /// The session id of the SSH transport (hex), correlating with the audit stream.
+        /// </summary>
         public String?          SessionId        { get; init; }
 
-        /// <summary>The authenticated user name.</summary>
+        /// <summary>
+        /// The authenticated user name.
+        /// </summary>
         public String?          Username         { get; init; }
 
-        /// <summary>The public-key fingerprint the user authenticated with (SHA256:…), if any.</summary>
+        /// <summary>
+        /// The public-key fingerprint the user authenticated with (SHA256:…), if any.
+        /// </summary>
         public String?          KeyFingerprint   { get; init; }
 
-        /// <summary>The certificate key-id, if the user authenticated with a certificate.</summary>
+        /// <summary>
+        /// The certificate key-id, if the user authenticated with a certificate.
+        /// </summary>
         public String?          CertificateKeyId { get; init; }
 
-        /// <summary>The certificate principal that matched, if any.</summary>
+        /// <summary>
+        /// The certificate principal that matched, if any.
+        /// </summary>
         public String?          Principal        { get; init; }
 
-        /// <summary>The peer endpoint (host:port) the session came from.</summary>
+        /// <summary>
+        /// The peer endpoint (host:port) the session came from.
+        /// </summary>
         public String?          PeerEndpoint     { get; init; }
 
-        /// <summary>The name of the access profile in force.</summary>
+        /// <summary>
+        /// The name of the access profile in force.
+        /// </summary>
         public String?          AccessProfile    { get; init; }
 
-        /// <summary>The command that was run (for an <c>exec</c> session).</summary>
+        /// <summary>
+        /// The command that was run (for an <c>exec</c> session).
+        /// </summary>
         public String?          Command          { get; init; }
 
-        /// <summary>When the session started.</summary>
+        /// <summary>
+        /// When the session started.
+        /// </summary>
         public DateTimeOffset   StartedAt        { get; init; }
 
-        /// <summary>When the session ended (set on completion).</summary>
+        /// <summary>
+        /// When the session ended (set on completion).
+        /// </summary>
         public DateTimeOffset?  EndedAt          { get; init; }
 
-        /// <summary>The command's exit status, once known.</summary>
+        /// <summary>
+        /// The command's exit status, once known.
+        /// </summary>
         public Int32?           ExitStatus       { get; init; }
 
-        /// <summary>Why the session ended (normal, idle timeout, dead peer, size cap, …).</summary>
+        /// <summary>
+        /// Why the session ended (normal, idle timeout, dead peer, size cap, …).
+        /// </summary>
         public String?          DisconnectReason { get; init; }
 
     }
 
 
-    /// <summary>A pluggable target for session recordings (files, blob storage, a SIEM, Hermod logging).</summary>
+    /// <summary>
+    /// A pluggable target for session recordings (files, blob storage, a SIEM, Hermod logging).
+    /// </summary>
     public interface ISessionRecordingSink
     {
-        /// <summary>Begin a recording; the returned handle appends JSON-lines and finalizes the sidecar.</summary>
+        /// <summary>
+        /// Begin a recording; the returned handle appends JSON-lines and finalizes the sidecar.
+        /// </summary>
         ValueTask<ISessionRecording> BeginAsync(SessionRecordingMetadata Metadata,
                                                 RecordingFormat          Format,
                                                 CancellationToken        CancellationToken = default);
@@ -95,10 +131,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public interface ISessionRecording : IAsyncDisposable
     {
 
-        /// <summary>The JSON-lines sink for this recording (one record per line).</summary>
+        /// <summary>
+        /// The JSON-lines sink for this recording (one record per line).
+        /// </summary>
         TextWriter Writer { get; }
 
-        /// <summary>Flush and write the final metadata sidecar (end time, exit status, disconnect reason).</summary>
+        /// <summary>
+        /// Flush and write the final metadata sidecar (end time, exit status, disconnect reason).
+        /// </summary>
         ValueTask CompleteAsync(SessionRecordingMetadata FinalMetadata, CancellationToken CancellationToken = default);
 
     }

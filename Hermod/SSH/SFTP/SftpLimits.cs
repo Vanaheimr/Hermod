@@ -26,33 +26,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     public sealed record SftpLimits
     {
 
-        /// <summary>The maximum size of any single uploaded file, in bytes.</summary>
+        /// <summary>
+        /// The maximum size of any single uploaded file, in bytes.
+        /// </summary>
         public Int64?         MaxFileSize             { get; init; }
 
-        /// <summary>The maximum total number of bytes a session may write.</summary>
+        /// <summary>
+        /// The maximum total number of bytes a session may write.
+        /// </summary>
         public Int64?         MaxBytesPerSession      { get; init; }
 
-        /// <summary>The maximum number of files a session may create.</summary>
+        /// <summary>
+        /// The maximum number of files a session may create.
+        /// </summary>
         public Int32?         MaxFileCount            { get; init; }
 
-        /// <summary>The upload (client→server write) throughput cap, in bytes per second.</summary>
+        /// <summary>
+        /// The upload (client→server write) throughput cap, in bytes per second.
+        /// </summary>
         public Int64?         UploadBytesPerSecond    { get; init; }
 
-        /// <summary>The download (server→client read) throughput cap, in bytes per second.</summary>
+        /// <summary>
+        /// The download (server→client read) throughput cap, in bytes per second.
+        /// </summary>
         public Int64?         DownloadBytesPerSecond  { get; init; }
 
-        /// <summary>The burst capacity for the bandwidth caps; defaults to one second's worth of the rate.</summary>
+        /// <summary>
+        /// The burst capacity for the bandwidth caps; defaults to one second's worth of the rate.
+        /// </summary>
         public Int64?         BurstBytes              { get; init; }
 
-        /// <summary>The clock used for bandwidth pacing; defaults to <see cref="TimeProvider.System"/>.</summary>
+        /// <summary>
+        /// The clock used for bandwidth pacing; defaults to <see cref="TimeProvider.System"/>.
+        /// </summary>
         public TimeProvider   TimeProvider            { get; init; } = TimeProvider.System;
 
 
-        /// <summary>Whether any size/count quota is configured.</summary>
+        /// <summary>
+        /// Whether any size/count quota is configured.
+        /// </summary>
         public Boolean HasSizeQuota
             => MaxFileSize is not null || MaxBytesPerSession is not null || MaxFileCount is not null;
 
-        /// <summary>Whether any bandwidth cap is configured.</summary>
+        /// <summary>
+        /// Whether any bandwidth cap is configured.
+        /// </summary>
         public Boolean HasBandwidthCap
             => UploadBytesPerSecond is > 0 || DownloadBytesPerSecond is > 0;
 
@@ -66,10 +84,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     public sealed class SftpQuotaExceededException : SftpException
     {
 
-        /// <summary>The path of the partially-written file to remove after the failed write, if any.</summary>
+        /// <summary>
+        /// The path of the partially-written file to remove after the failed write, if any.
+        /// </summary>
         public String? PathToCleanup { get; }
 
-        /// <summary>Create a quota-exceeded exception.</summary>
+        /// <summary>
+        /// Create a quota-exceeded exception.
+        /// </summary>
         public SftpQuotaExceededException(String Message, String? PathToCleanup = null)
             : base(SftpStatusCode.Failure, Message)
         {
@@ -100,17 +122,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region Properties
 
-        /// <summary>The total bytes written so far this session.</summary>
+        /// <summary>
+        /// The total bytes written so far this session.
+        /// </summary>
         public Int64  SessionBytesWritten  { get { lock (gate) return sessionBytes; } }
 
-        /// <summary>The number of files created so far this session.</summary>
+        /// <summary>
+        /// The number of files created so far this session.
+        /// </summary>
         public Int32  FilesCreated         { get { lock (gate) return filesCreated; } }
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create a quota tracker for the given limits.</summary>
+        /// <summary>
+        /// Create a quota tracker for the given limits.
+        /// </summary>
         public SftpQuotaTracker(SftpLimits Limits)
         {
             this.limits = Limits;
@@ -121,7 +149,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region CheckCanCreate(Path)
 
-        /// <summary>Verify a new file may be created (file-count quota) — throws before anything is created.</summary>
+        /// <summary>
+        /// Verify a new file may be created (file-count quota) — throws before anything is created.
+        /// </summary>
         public void CheckCanCreate(String Path)
         {
             lock (gate)
@@ -133,7 +163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region RegisterWritable(Handle, Path, WasCreated)
 
-        /// <summary>Register a writable handle (counting a creation, if any) so later writes can be metered.</summary>
+        /// <summary>
+        /// Register a writable handle (counting a creation, if any) so later writes can be metered.
+        /// </summary>
         public void RegisterWritable(String Handle, String Path, Boolean WasCreated)
         {
             lock (gate)
@@ -148,7 +180,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region OnWrite(Handle, Offset, Length)
 
-        /// <summary>Meter a write against the per-file and per-session size quotas.</summary>
+        /// <summary>
+        /// Meter a write against the per-file and per-session size quotas.
+        /// </summary>
         public void OnWrite(String Handle, Int64 Offset, Int32 Length)
         {
             lock (gate)
@@ -175,7 +209,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region OnClose(Handle)
 
-        /// <summary>Forget a handle when it closes.</summary>
+        /// <summary>
+        /// Forget a handle when it closes.
+        /// </summary>
         public void OnClose(String Handle)
         {
             lock (gate)

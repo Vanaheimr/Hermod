@@ -35,7 +35,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
     /// </summary>
     public sealed record SshClientOptions
     {
-        /// <summary>The user to authenticate as.</summary>
+        /// <summary>
+        /// The user to authenticate as.
+        /// </summary>
         public required String                    Username       { get; init; }
 
         /// <summary>
@@ -52,7 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// </summary>
         public required Func<Byte[], Boolean>     VerifyHostKey  { get; init; }
 
-        /// <summary>The public-key credentials to try, in order.</summary>
+        /// <summary>
+        /// The public-key credentials to try, in order.
+        /// </summary>
         public IReadOnlyList<ISshHostKey>         Credentials    { get; init; } = [];
 
         /// <summary>
@@ -83,7 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Properties
 
-        /// <summary>The underlying multiplexer, for advanced channel operations.</summary>
+        /// <summary>
+        /// The underlying multiplexer, for advanced channel operations.
+        /// </summary>
         public SshChannelMultiplexer Multiplexer => mux;
 
         #endregion
@@ -101,7 +107,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region (static) ConnectAsync(Host, Port, Options, CancellationToken)
 
-        /// <summary>Connect, verify the host key, authenticate with the first working credential and start multiplexing.</summary>
+        /// <summary>
+        /// Connect, verify the host key, authenticate with the first working credential and start multiplexing.
+        /// </summary>
         public static async ValueTask<SshClient> ConnectAsync(String host, UInt16 port, SshClientOptions Options, CancellationToken CancellationToken = default)
         {
 
@@ -167,7 +175,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region ExecuteAsync(Command, CancellationToken)
 
-        /// <summary>Run a command on the server and capture its stdout/stderr + exit status (log in once, run, capture, log out).</summary>
+        /// <summary>
+        /// Run a command on the server and capture its stdout/stderr + exit status (log in once, run, capture, log out).
+        /// </summary>
         public ValueTask<SshCommandResult> ExecuteAsync(String Command, CancellationToken CancellationToken = default)
             => SshSessionChannel.ExecuteAsync(mux, Command, CancellationToken);
 
@@ -175,7 +185,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region OpenTcpStreamAsync(Host, Port, CancellationToken)
 
-        /// <summary>Open a <c>direct-tcpip</c> tunnel to <paramref name="Host"/>:<paramref name="Port"/> through the server as a plain <see cref="Stream"/>.</summary>
+        /// <summary>
+        /// Open a <c>direct-tcpip</c> tunnel to <paramref name="Host"/>:<paramref name="Port"/> through the server as a plain <see cref="Stream"/>.
+        /// </summary>
         public async ValueTask<Stream> OpenTcpStreamAsync(String Host, UInt16 Port, CancellationToken CancellationToken = default)
         {
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
@@ -188,7 +200,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region OpenSftpClientAsync(CancellationToken)
 
-        /// <summary>Open the <c>sftp</c> subsystem over a multiplexed channel and return an SFTP client (runs concurrently with exec/tunnels).</summary>
+        /// <summary>
+        /// Open the <c>sftp</c> subsystem over a multiplexed channel and return an SFTP client (runs concurrently with exec/tunnels).
+        /// </summary>
         public async ValueTask<SftpClient> OpenSftpClientAsync(CancellationToken CancellationToken = default)
         {
             var channel = await mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
@@ -201,7 +215,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region DisposeAsync()
 
-        /// <summary>Close the connection and stop multiplexing.</summary>
+        /// <summary>
+        /// Close the connection and stop multiplexing.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             await mux.DisposeAsync().ConfigureAwait(false);

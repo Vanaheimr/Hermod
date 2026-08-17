@@ -35,7 +35,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Wrap an established channel as a stream.</summary>
+        /// <summary>
+        /// Wrap an established channel as a stream.
+        /// </summary>
         public SshChannelStream(SshChannelDuplex Channel)
         {
             this.channel = Channel;

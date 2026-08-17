@@ -56,7 +56,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         private const String WinAdj = "winadj@putty.projects.tartarus.org";
 
-        /// <summary>A connected client/server multiplexer pair over an in-memory pipe.</summary>
+        /// <summary>
+        /// A connected client/server multiplexer pair over an in-memory pipe.
+        /// </summary>
         private static async Task<(SshChannelMultiplexer Client, SshChannelMultiplexer Server, SshTransport ClientTransport, SshTransport ServerTransport)>
             ConnectedPairAsync(CancellationToken CancellationToken)
         {

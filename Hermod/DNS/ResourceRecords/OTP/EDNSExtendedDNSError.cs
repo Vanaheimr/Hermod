@@ -30,94 +30,154 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public enum ExtendedDNSErrorCode : UInt16
     {
 
-        /// <summary>Other (0) — unclassified error.</summary>
+        /// <summary>
+        /// Other (0) — unclassified error.
+        /// </summary>
         Other                           =  0,
 
-        /// <summary>Unsupported DNSKEY Algorithm (1).</summary>
+        /// <summary>
+        /// Unsupported DNSKEY Algorithm (1).
+        /// </summary>
         UnsupportedDNSKEYAlgorithm      =  1,
 
-        /// <summary>Unsupported DS Digest Type (2).</summary>
+        /// <summary>
+        /// Unsupported DS Digest Type (2).
+        /// </summary>
         UnsupportedDSDigestType         =  2,
 
-        /// <summary>Stale Answer (3) — answer from expired cache.</summary>
+        /// <summary>
+        /// Stale Answer (3) — answer from expired cache.
+        /// </summary>
         StaleAnswer                     =  3,
 
-        /// <summary>Forged Answer (4) — modified by middlebox.</summary>
+        /// <summary>
+        /// Forged Answer (4) — modified by middlebox.
+        /// </summary>
         ForgedAnswer                    =  4,
 
-        /// <summary>DNSSEC Indeterminate (5).</summary>
+        /// <summary>
+        /// DNSSEC Indeterminate (5).
+        /// </summary>
         DNSSECIndeterminate             =  5,
 
-        /// <summary>DNSSEC Bogus (6) — validation failure.</summary>
+        /// <summary>
+        /// DNSSEC Bogus (6) — validation failure.
+        /// </summary>
         DNSSECBogus                     =  6,
 
-        /// <summary>Signature Expired (7).</summary>
+        /// <summary>
+        /// Signature Expired (7).
+        /// </summary>
         SignatureExpired                 =  7,
 
-        /// <summary>Signature Not Yet Valid (8).</summary>
+        /// <summary>
+        /// Signature Not Yet Valid (8).
+        /// </summary>
         SignatureNotYetValid            =  8,
 
-        /// <summary>DNSKEY Missing (9).</summary>
+        /// <summary>
+        /// DNSKEY Missing (9).
+        /// </summary>
         DNSKEYMissing                   =  9,
 
-        /// <summary>RRSIGs Missing (10).</summary>
+        /// <summary>
+        /// RRSIGs Missing (10).
+        /// </summary>
         RRSIGsMissing                   = 10,
 
-        /// <summary>No Zone Key Bit Set (11).</summary>
+        /// <summary>
+        /// No Zone Key Bit Set (11).
+        /// </summary>
         NoZoneKeyBitSet                 = 11,
 
-        /// <summary>NSEC Missing (12).</summary>
+        /// <summary>
+        /// NSEC Missing (12).
+        /// </summary>
         NSECMissing                     = 12,
 
-        /// <summary>Cached Error (13).</summary>
+        /// <summary>
+        /// Cached Error (13).
+        /// </summary>
         CachedError                     = 13,
 
-        /// <summary>Not Ready (14) — server not yet ready to serve.</summary>
+        /// <summary>
+        /// Not Ready (14) — server not yet ready to serve.
+        /// </summary>
         NotReady                        = 14,
 
-        /// <summary>Blocked (15) — query blocked by policy.</summary>
+        /// <summary>
+        /// Blocked (15) — query blocked by policy.
+        /// </summary>
         Blocked                         = 15,
 
-        /// <summary>Censored (16) — answer censored by policy.</summary>
+        /// <summary>
+        /// Censored (16) — answer censored by policy.
+        /// </summary>
         Censored                        = 16,
 
-        /// <summary>Filtered (17) — answer filtered by policy.</summary>
+        /// <summary>
+        /// Filtered (17) — answer filtered by policy.
+        /// </summary>
         Filtered                        = 17,
 
-        /// <summary>Prohibited (18) — query prohibited.</summary>
+        /// <summary>
+        /// Prohibited (18) — query prohibited.
+        /// </summary>
         Prohibited                      = 18,
 
-        /// <summary>Stale NXDOMAIN Answer (19).</summary>
+        /// <summary>
+        /// Stale NXDOMAIN Answer (19).
+        /// </summary>
         StaleNXDOMAINAnswer             = 19,
 
-        /// <summary>Not Authoritative (20).</summary>
+        /// <summary>
+        /// Not Authoritative (20).
+        /// </summary>
         NotAuthoritative                = 20,
 
-        /// <summary>Not Supported (21).</summary>
+        /// <summary>
+        /// Not Supported (21).
+        /// </summary>
         NotSupported                    = 21,
 
-        /// <summary>No Reachable Authority (22).</summary>
+        /// <summary>
+        /// No Reachable Authority (22).
+        /// </summary>
         NoReachableAuthority            = 22,
 
-        /// <summary>Network Error (23).</summary>
+        /// <summary>
+        /// Network Error (23).
+        /// </summary>
         NetworkError                    = 23,
 
-        /// <summary>Invalid Data (24).</summary>
+        /// <summary>
+        /// Invalid Data (24).
+        /// </summary>
         InvalidData                     = 24,
 
-        /// <summary>Signature Expired before Valid (25).</summary>
+        /// <summary>
+        /// Signature Expired before Valid (25).
+        /// </summary>
         SignatureExpiredBeforeValid      = 25,
 
-        /// <summary>Too Early (26) — RFC 9461.</summary>
+        /// <summary>
+        /// Too Early (26) — RFC 9461.
+        /// </summary>
         TooEarly                        = 26,
 
-        /// <summary>Unsupported NSEC3 Iterations Value (27).</summary>
+        /// <summary>
+        /// Unsupported NSEC3 Iterations Value (27).
+        /// </summary>
         UnsupportedNSEC3IterationsValue = 27,
 
-        /// <summary>Unable to conform to policy (28).</summary>
+        /// <summary>
+        /// Unable to conform to policy (28).
+        /// </summary>
         UnableToConformToPolicy         = 28,
 
-        /// <summary>Synthesized (29).</summary>
+        /// <summary>
+        /// Synthesized (29).
+        /// </summary>
         Synthesized                     = 29
 
     }

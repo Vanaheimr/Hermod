@@ -27,7 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     using IPAddress = System.Net.IPAddress;
 
-    /// <summary>Resolves a forwarding target host name to the addresses that will actually be dialed.</summary>
+    /// <summary>
+    /// Resolves a forwarding target host name to the addresses that will actually be dialed.
+    /// </summary>
     public delegate ValueTask<IReadOnlyList<IPAddress>> SshAddressResolver(String Host, CancellationToken CancellationToken);
 
 
@@ -301,10 +303,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>Thrown when a port-forwarding channel cannot be established.</summary>
+    /// <summary>
+    /// Thrown when a port-forwarding channel cannot be established.
+    /// </summary>
     public sealed class SshForwardingException : Exception
     {
-        /// <summary>Create a new forwarding exception.</summary>
+        /// <summary>
+        /// Create a new forwarding exception.
+        /// </summary>
         public SshForwardingException(String Message) : base(Message) { }
     }
 

@@ -24,31 +24,53 @@ using System.Security.Cryptography;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The SSHFP host-key algorithm numbers (RFC 4255 §3.1 + updates).</summary>
+    /// <summary>
+    /// The SSHFP host-key algorithm numbers (RFC 4255 §3.1 + updates).
+    /// </summary>
     public enum SshfpAlgorithm : Byte
     {
-        /// <summary>Reserved.</summary>
+        /// <summary>
+        /// Reserved.
+        /// </summary>
         Reserved  = 0,
-        /// <summary>RSA.</summary>
+        /// <summary>
+        /// RSA.
+        /// </summary>
         Rsa       = 1,
-        /// <summary>DSA (legacy).</summary>
+        /// <summary>
+        /// DSA (legacy).
+        /// </summary>
         Dsa       = 2,
-        /// <summary>ECDSA.</summary>
+        /// <summary>
+        /// ECDSA.
+        /// </summary>
         Ecdsa     = 3,
-        /// <summary>Ed25519.</summary>
+        /// <summary>
+        /// Ed25519.
+        /// </summary>
         Ed25519   = 4,
-        /// <summary>Ed448.</summary>
+        /// <summary>
+        /// Ed448.
+        /// </summary>
         Ed448     = 6
     }
 
-    /// <summary>The SSHFP fingerprint type numbers (RFC 4255 §3.2).</summary>
+    /// <summary>
+    /// The SSHFP fingerprint type numbers (RFC 4255 §3.2).
+    /// </summary>
     public enum SshfpFingerprintType : Byte
     {
-        /// <summary>Reserved.</summary>
+        /// <summary>
+        /// Reserved.
+        /// </summary>
         Reserved  = 0,
-        /// <summary>SHA-1 (legacy, at best advisory).</summary>
+        /// <summary>
+        /// SHA-1 (legacy, at best advisory).
+        /// </summary>
         Sha1      = 1,
-        /// <summary>SHA-256 (preferred).</summary>
+        /// <summary>
+        /// SHA-256 (preferred).
+        /// </summary>
         Sha256    = 2
     }
 
@@ -66,28 +88,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                      Byte[]                Fingerprint)
     {
 
-        /// <summary>The fingerprint as a lowercase hex string (as it appears in a zone file).</summary>
+        /// <summary>
+        /// The fingerprint as a lowercase hex string (as it appears in a zone file).
+        /// </summary>
         public String FingerprintHex => Convert.ToHexStringLower(Fingerprint);
 
-        /// <summary>Whether this record's fingerprint matches the given host-key blob.</summary>
+        /// <summary>
+        /// Whether this record's fingerprint matches the given host-key blob.
+        /// </summary>
         public Boolean Matches(Byte[] HostKeyBlob)
         {
             var expected = Hash(FingerprintType, HostKeyBlob);
             return expected is not null && CryptographicOperations.FixedTimeEquals(expected, Fingerprint);
         }
 
-        /// <summary>Render an <c>IN SSHFP</c> zone-file line for the given owner name.</summary>
+        /// <summary>
+        /// Render an <c>IN SSHFP</c> zone-file line for the given owner name.
+        /// </summary>
         public String ToZoneLine(String Hostname)
             => $"{Hostname} IN SSHFP {(Byte) Algorithm} {(Byte) FingerprintType} {FingerprintHex}";
 
 
         #region (static) FromHostKey / FromBlob
 
-        /// <summary>Emit the SHA-256 and SHA-1 SSHFP records for a host key (matching <c>ssh-keygen -r</c>).</summary>
+        /// <summary>
+        /// Emit the SHA-256 and SHA-1 SSHFP records for a host key (matching <c>ssh-keygen -r</c>).
+        /// </summary>
         public static IReadOnlyList<SshfpRecord> FromHostKey(ISshHostKey HostKey)
             => FromBlob(HostKey.PublicKeyBlob);
 
-        /// <summary>Emit the SHA-256 and SHA-1 SSHFP records for a host-key wire blob.</summary>
+        /// <summary>
+        /// Emit the SHA-256 and SHA-1 SSHFP records for a host-key wire blob.
+        /// </summary>
         public static IReadOnlyList<SshfpRecord> FromBlob(Byte[] HostKeyBlob)
         {
             var algorithm = AlgorithmOf(HostKeyBlob);

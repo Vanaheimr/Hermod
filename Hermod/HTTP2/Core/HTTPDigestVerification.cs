@@ -31,7 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public enum HTTPDigestVerification
     {
 
-        /// <summary>No digest field was present — nothing was checked.</summary>
+        /// <summary>
+        /// No digest field was present — nothing was checked.
+        /// </summary>
         NotPresent,
 
         /// <summary>
@@ -41,10 +43,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         Unsupported,
 
-        /// <summary>The digest was computed and matched the octets.</summary>
+        /// <summary>
+        /// The digest was computed and matched the octets.
+        /// </summary>
         Match,
 
-        /// <summary>The digest was computed and did <b>not</b> match the octets.</summary>
+        /// <summary>
+        /// The digest was computed and did <b>not</b> match the octets.
+        /// </summary>
         Mismatch
 
     }

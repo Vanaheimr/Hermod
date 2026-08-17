@@ -33,7 +33,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public static class ScramSha256Client
     {
 
-        /// <summary>SaltedPassword = PBKDF2-HMAC-SHA256(password, salt, iterations) (32 bytes).</summary>
+        /// <summary>
+        /// SaltedPassword = PBKDF2-HMAC-SHA256(password, salt, iterations) (32 bytes).
+        /// </summary>
         public static Byte[] SaltedPassword(String password, Byte[] salt, Int32 iterations)
             => Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, iterations, HashAlgorithmName.SHA256, 32);
 

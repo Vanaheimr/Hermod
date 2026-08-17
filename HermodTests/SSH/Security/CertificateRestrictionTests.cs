@@ -160,7 +160,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region UnrestrictedCertificate_RunsTheClientsCommand
 
-        /// <summary>Enforcement must not disturb an ordinary, unrestricted certificate.</summary>
+        /// <summary>
+        /// Enforcement must not disturb an ordinary, unrestricted certificate.
+        /// </summary>
         [Test]
         [CancelAfter(25000)]
         public async Task UnrestrictedCertificate_RunsTheClientsCommand(CancellationToken CancellationToken)
@@ -252,7 +254,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region Restrictions_AreParsedFromTheCertificate
 
-        /// <summary>Unit-level: the option values decode, and an unevaluable peer address is refused.</summary>
+        /// <summary>
+        /// Unit-level: the option values decode, and an unevaluable peer address is refused.
+        /// </summary>
         [Test]
         public void Restrictions_AreParsedFromTheCertificate()
         {

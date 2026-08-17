@@ -58,7 +58,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private uint PeerInitiatedParity => Role == HTTP2Role.Server ? 1u : 0u;
 
-        /// <summary>The low bit of stream IDs *we* initiate — the mirror of <see cref="PeerInitiatedParity"/>.</summary>
+        /// <summary>
+        /// The low bit of stream IDs *we* initiate — the mirror of <see cref="PeerInitiatedParity"/>.
+        /// </summary>
         private uint LocalInitiatedParity => Role == HTTP2Role.Server ? 0u : 1u;
 
         public HTTP2StreamManager(HTTP2Role Role = HTTP2Role.Server)

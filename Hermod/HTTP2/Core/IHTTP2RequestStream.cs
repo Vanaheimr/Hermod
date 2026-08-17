@@ -49,7 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public interface IHTTP2RequestStream
     {
 
-        /// <summary>The decoded request header fields (pseudo-headers included).</summary>
+        /// <summary>
+        /// The decoded request header fields (pseudo-headers included).
+        /// </summary>
         IReadOnlyList<(string Name, string Value)> Headers { get; }
 
         /// <summary>

@@ -74,7 +74,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region QueryAsync(Host, CancellationToken = default)
 
-        /// <summary>Look up the SSHFP records for a host.</summary>
+        /// <summary>
+        /// Look up the SSHFP records for a host.
+        /// </summary>
         /// <param name="Host">The hostname to look up.</param>
         /// <param name="CancellationToken">An optional token to cancel this request.</param>
         public async ValueTask<SshfpLookupResult> QueryAsync(String             Host,

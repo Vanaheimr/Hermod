@@ -18,7 +18,9 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 {
 
-    /// <summary>SFTP protocol message types (draft-ietf-secsh-filexfer-02, version 3).</summary>
+    /// <summary>
+    /// SFTP protocol message types (draft-ietf-secsh-filexfer-02, version 3).
+    /// </summary>
     public enum SftpPacketType : Byte
     {
         Init      =   1,
@@ -51,7 +53,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     }
 
 
-    /// <summary>SFTP status codes (SSH_FX_*).</summary>
+    /// <summary>
+    /// SFTP status codes (SSH_FX_*).
+    /// </summary>
     public enum SftpStatusCode : UInt32
     {
         Ok               = 0,
@@ -66,7 +70,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     }
 
 
-    /// <summary>SFTP open flags (SSH_FXF_*).</summary>
+    /// <summary>
+    /// SFTP open flags (SSH_FXF_*).
+    /// </summary>
     [Flags]
     public enum SftpOpenFlags : UInt32
     {
@@ -79,10 +85,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     }
 
 
-    /// <summary>The SFTP protocol version this implementation speaks.</summary>
+    /// <summary>
+    /// The SFTP protocol version this implementation speaks.
+    /// </summary>
     public static class SftpVersion
     {
-        /// <summary>Version 3 — the de-facto standard.</summary>
+        /// <summary>
+        /// Version 3 — the de-facto standard.
+        /// </summary>
         public const UInt32 Three = 3;
     }
 
@@ -101,29 +111,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         private const UInt32 ModeDirectory   = 0x4000;   // S_IFDIR >> 4? no — see IsDirectory
         private const UInt32 IfmtDirectory   = 0x4000;   // S_IFDIR (0040000 octal) high bits
 
-        /// <summary>The file size in bytes, if known.</summary>
+        /// <summary>
+        /// The file size in bytes, if known.
+        /// </summary>
         public Int64?           Size          { get; init; }
 
-        /// <summary>The POSIX permission/type bits, if known.</summary>
+        /// <summary>
+        /// The POSIX permission/type bits, if known.
+        /// </summary>
         public UInt32?          Permissions   { get; init; }
 
-        /// <summary>The last-modified time, if known.</summary>
+        /// <summary>
+        /// The last-modified time, if known.
+        /// </summary>
         public DateTimeOffset?  ModifyTime    { get; init; }
 
-        /// <summary>Whether the permission bits mark this as a directory.</summary>
+        /// <summary>
+        /// Whether the permission bits mark this as a directory.
+        /// </summary>
         public Boolean IsDirectory => Permissions is { } p && (p & 0xF000) == 0x4000;
 
 
-        /// <summary>Attributes for a regular file of the given size.</summary>
+        /// <summary>
+        /// Attributes for a regular file of the given size.
+        /// </summary>
         public static SftpFileAttributes File(Int64 Size, UInt32 Mode = 0x81A4 /* 0100644 */)
             => new () { Size = Size, Permissions = Mode };
 
-        /// <summary>Attributes for a directory.</summary>
+        /// <summary>
+        /// Attributes for a directory.
+        /// </summary>
         public static SftpFileAttributes Directory(UInt32 Mode = 0x41ED /* 040755 */)
             => new () { Permissions = Mode };
 
 
-        /// <summary>Encode the ATTRS structure.</summary>
+        /// <summary>
+        /// Encode the ATTRS structure.
+        /// </summary>
         public void Encode(ref SshPacketWriter Writer)
         {
 
@@ -140,7 +164,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
-        /// <summary>Decode an ATTRS structure.</summary>
+        /// <summary>
+        /// Decode an ATTRS structure.
+        /// </summary>
         public static SftpFileAttributes Decode(ref SshPacketReader Reader)
         {
 

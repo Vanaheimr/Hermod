@@ -140,7 +140,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly long    maxRequestBodySize;
 
-        /// <summary>Default <see cref="maxRequestBodySize"/>: 16 MiB.</summary>
+        /// <summary>
+        /// Default <see cref="maxRequestBodySize"/>: 16 MiB.
+        /// </summary>
         private const long   DefaultMaxRequestBodySize = 16 * 1024 * 1024;
 
         /// <summary>
@@ -172,10 +174,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private int         unproductiveFrames;
 
-        /// <summary>Upper bound on CONTINUATION frames per single header block.</summary>
+        /// <summary>
+        /// Upper bound on CONTINUATION frames per single header block.
+        /// </summary>
         private const int   MaxContinuationFrames  = 64;
 
-        /// <summary>Upper bound on consecutive control frames without request progress.</summary>
+        /// <summary>
+        /// Upper bound on consecutive control frames without request progress.
+        /// </summary>
         private const int   MaxUnproductiveFrames  = 1000;
 
         /// <summary>
@@ -233,7 +239,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly System.Security.Cryptography.X509Certificates.X509Certificate2? clientCertificate;
 
-        /// <summary>Slowloris/idle timeouts for this connection.</summary>
+        /// <summary>
+        /// Slowloris/idle timeouts for this connection.
+        /// </summary>
         private readonly HTTP2Timeouts  timeouts;
 
         /// <summary>

@@ -176,7 +176,9 @@ public abstract class ASunSpecDeviceBase : ISunSpecDevice
         Registers[offset + 1] = 0;
     }
 
-    /// <summary>Pack an ASCII string into <paramref name="dst"/>, big-endian, padded with NUL.</summary>
+    /// <summary>
+    /// Pack an ASCII string into <paramref name="dst"/>, big-endian, padded with NUL.
+    /// </summary>
     protected static void WriteString(Span<ushort> dst, string s)
     {
         var bytes = new byte[dst.Length * 2];
@@ -186,11 +188,15 @@ public abstract class ASunSpecDeviceBase : ISunSpecDevice
             dst[i] = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(2 * i, 2));
     }
 
-    /// <summary>Read a uint32 stored across two big-endian holding registers.</summary>
+    /// <summary>
+    /// Read a uint32 stored across two big-endian holding registers.
+    /// </summary>
     protected uint ReadUInt32(ushort offset)
         => ((uint)Registers[offset] << 16) | Registers[offset + 1];
 
-    /// <summary>Write a uint32 across two big-endian holding registers.</summary>
+    /// <summary>
+    /// Write a uint32 across two big-endian holding registers.
+    /// </summary>
     protected void WriteUInt32(ushort offset, uint value)
     {
         Registers[offset]     = (ushort)(value >> 16);

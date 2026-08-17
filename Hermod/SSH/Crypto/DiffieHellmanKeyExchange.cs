@@ -138,7 +138,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) MODP groups (RFC 3526)
 
-        /// <summary>RFC 3526 §3 — the 2048-bit MODP Group (id 14) prime, generator g = 2.</summary>
+        /// <summary>
+        /// RFC 3526 §3 — the 2048-bit MODP Group (id 14) prime, generator g = 2.
+        /// </summary>
         public static readonly BigInteger Group14Prime = ParseHex(
             "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
             "29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -152,7 +154,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             "DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
             "15728E5A8AACAA68FFFFFFFFFFFFFFFF");
 
-        /// <summary>RFC 3526 §5 — the 4096-bit MODP Group (id 16) prime, generator g = 2.</summary>
+        /// <summary>
+        /// RFC 3526 §5 — the 4096-bit MODP Group (id 16) prime, generator g = 2.
+        /// </summary>
         public static readonly BigInteger Group16Prime = ParseHex(
             "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
             "29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +

@@ -28,7 +28,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M7 SFTP: the root-jailed local file system — real-disk round-trips and traversal containment.</summary>
+    /// <summary>
+    /// M7 SFTP: the root-jailed local file system — real-disk round-trips and traversal containment.
+    /// </summary>
     [TestFixture]
     public class LocalSftpFileSystemTests
     {

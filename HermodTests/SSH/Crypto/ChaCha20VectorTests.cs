@@ -52,7 +52,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region Rfc8439_BlockFunction_Section232
 
-        /// <summary>RFC 8439 §2.3.2 — the block function, key 00..1f, nonce 00:00:00:09:00:00:00:4a:00:00:00:00, counter 1.</summary>
+        /// <summary>
+        /// RFC 8439 §2.3.2 — the block function, key 00..1f, nonce 00:00:00:09:00:00:00:4a:00:00:00:00, counter 1.
+        /// </summary>
         [Test]
         public void Rfc8439_BlockFunction_Section232()
         {

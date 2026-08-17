@@ -27,7 +27,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M5 OpenSSH certificates: the mini-CA builder, parser/validator and certificate-based auth.</summary>
+    /// <summary>
+    /// M5 OpenSSH certificates: the mini-CA builder, parser/validator and certificate-based auth.
+    /// </summary>
     [TestFixture]
     public class CertificateTests
     {

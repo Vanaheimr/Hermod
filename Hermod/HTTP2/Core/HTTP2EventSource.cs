@@ -43,7 +43,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Data
 
-        /// <summary>The singleton every part of the stack writes to.</summary>
+        /// <summary>
+        /// The singleton every part of the stack writes to.
+        /// </summary>
         public static readonly HTTP2EventSource Log = new();
 
         private IncrementingEventCounter? connectionsStarted;
@@ -100,7 +102,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             connectionErrors?.Increment();
         }
 
-        /// <summary>A connection turned away before HTTP/2 began — e.g. RFC 9113 §9.2.2.</summary>
+        /// <summary>
+        /// A connection turned away before HTTP/2 began — e.g. RFC 9113 §9.2.2.
+        /// </summary>
         [Event(6, Level = EventLevel.Warning, Message = "Rejected {0}: {1}")]
         public void ConnectionRejected(String RemoteEndPoint, String Reason)
         {

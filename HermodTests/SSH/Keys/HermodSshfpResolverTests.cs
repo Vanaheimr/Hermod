@@ -101,7 +101,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region Resolver_FeedsTheSshfpVerifier
 
-        /// <summary>The adapter must slot into SshfpVerifier and produce a match under Advisory trust.</summary>
+        /// <summary>
+        /// The adapter must slot into SshfpVerifier and produce a match under Advisory trust.
+        /// </summary>
         [Test]
         [CancelAfter(20000)]
         public async Task Resolver_FeedsTheSshfpVerifier(CancellationToken CancellationToken)
@@ -130,7 +132,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region Resolver_UnknownHost_IsEmpty
 
-        /// <summary>An unresolvable name yields no records rather than throwing — SSHFP must never break a login.</summary>
+        /// <summary>
+        /// An unresolvable name yields no records rather than throwing — SSHFP must never break a login.
+        /// </summary>
         [Test]
         [CancelAfter(20000)]
         public async Task Resolver_UnknownHost_IsEmpty(CancellationToken CancellationToken)

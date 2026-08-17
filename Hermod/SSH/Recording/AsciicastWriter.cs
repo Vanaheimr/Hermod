@@ -42,7 +42,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create an asciicast writer over the given text sink.</summary>
+        /// <summary>
+        /// Create an asciicast writer over the given text sink.
+        /// </summary>
         public AsciicastWriter(TextWriter Writer)
         {
             this.writer = Writer;
@@ -53,7 +55,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region WriteHeaderAsync(Header, CancellationToken)
 
-        /// <summary>Write the header line (must be called exactly once, before any events).</summary>
+        /// <summary>
+        /// Write the header line (must be called exactly once, before any events).
+        /// </summary>
         public async ValueTask WriteHeaderAsync(AsciicastHeader Header, CancellationToken CancellationToken = default)
         {
 
@@ -97,7 +101,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region WriteEventAsync(Event, CancellationToken)
 
-        /// <summary>Append one event line and flush it.</summary>
+        /// <summary>
+        /// Append one event line and flush it.
+        /// </summary>
         public async ValueTask WriteEventAsync(AsciicastEvent Event, CancellationToken CancellationToken = default)
         {
 
@@ -120,7 +126,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) FormatElapsed(Seconds)
 
-        /// <summary>Format an elapsed value the way asciicast expects (invariant, up to 6 decimals).</summary>
+        /// <summary>
+        /// Format an elapsed value the way asciicast expects (invariant, up to 6 decimals).
+        /// </summary>
         public static String FormatElapsed(Double Seconds)
             => Math.Round(Seconds, 6).ToString("0.######", CultureInfo.InvariantCulture);
 

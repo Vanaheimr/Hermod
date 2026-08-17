@@ -37,11 +37,15 @@ public sealed record DaneResult(DaneStatus            Status,
                                 String?               Detail   = null)
 {
 
-    /// <summary>DANE applies and the certificate must be matched against <see cref="Records"/>.</summary>
+    /// <summary>
+    /// DANE applies and the certificate must be matched against <see cref="Records"/>.
+    /// </summary>
     public Boolean  IsUsable
         => Status == DaneStatus.Secure && Records.Count > 0;
 
-    /// <summary>The lookup proved the destination is DANE-protected but the records could not be trusted; delivery must be deferred.</summary>
+    /// <summary>
+    /// The lookup proved the destination is DANE-protected but the records could not be trusted; delivery must be deferred.
+    /// </summary>
     public Boolean  MustDefer
         => Status == DaneStatus.Bogus;
 

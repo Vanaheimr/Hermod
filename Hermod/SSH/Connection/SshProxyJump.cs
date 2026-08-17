@@ -28,7 +28,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed record SshJumpHost(String Host, UInt16 Port = 22, String? Username = null)
     {
 
-        /// <summary>Parse a single <c>[user@]host[:port]</c> (bracket form <c>[::1]:22</c> for IPv6 literals).</summary>
+        /// <summary>
+        /// Parse a single <c>[user@]host[:port]</c> (bracket form <c>[::1]:22</c> for IPv6 literals).
+        /// </summary>
         public static SshJumpHost Parse(String Text)
         {
 
@@ -67,7 +69,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Parse a comma-separated jump chain (<c>-J host1,host2</c>), in traversal order.</summary>
+        /// <summary>
+        /// Parse a comma-separated jump chain (<c>-J host1,host2</c>), in traversal order.
+        /// </summary>
         public static IReadOnlyList<SshJumpHost> ParseChain(String Text)
             => Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                    .Select(Parse)
@@ -84,7 +88,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed class SshTunneledConnection : IAsyncDisposable
     {
 
-        /// <summary>The end-to-end transport to the target (its host-key verification and auth ran through the tunnel).</summary>
+        /// <summary>
+        /// The end-to-end transport to the target (its host-key verification and auth ran through the tunnel).
+        /// </summary>
         public SshTransport Transport { get; }
 
         private readonly SshChannelStream tunnel;
@@ -95,7 +101,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.tunnel     = Tunnel;
         }
 
-        /// <summary>Tear down this hop: dispose the tunneled transport, then the tunnel stream.</summary>
+        /// <summary>
+        /// Tear down this hop: dispose the tunneled transport, then the tunnel stream.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             try { Transport.Dispose(); } catch { }
@@ -105,7 +113,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     }
 
 
-    /// <summary>ProxyJump / jump-host chaining: run a fresh SSH transport over a <c>direct-tcpip</c> tunnel opened on a bastion.</summary>
+    /// <summary>
+    /// ProxyJump / jump-host chaining: run a fresh SSH transport over a <c>direct-tcpip</c> tunnel opened on a bastion.
+    /// </summary>
     public static class SshProxyJump
     {
 
@@ -152,7 +162,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        /// <summary>Open a tunnel to a <see cref="SshJumpHost"/>'s host/port through the bastion.</summary>
+        /// <summary>
+        /// Open a tunnel to a <see cref="SshJumpHost"/>'s host/port through the bastion.
+        /// </summary>
         public static ValueTask<SshTunneledConnection> ConnectThroughAsync(SshTransport             Bastion,
                                                                            SshJumpHost              Target,
                                                                            Func<Byte[], Boolean>    VerifyHostKey,

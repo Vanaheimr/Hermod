@@ -25,49 +25,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public enum DisconnectReason : UInt32
     {
 
-        /// <summary>SSH_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT (1).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT (1).
+        /// </summary>
         HostNotAllowedToConnect       =  1,
 
-        /// <summary>SSH_DISCONNECT_PROTOCOL_ERROR (2).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_PROTOCOL_ERROR (2).
+        /// </summary>
         ProtocolError                 =  2,
 
-        /// <summary>SSH_DISCONNECT_KEY_EXCHANGE_FAILED (3).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_KEY_EXCHANGE_FAILED (3).
+        /// </summary>
         KeyExchangeFailed             =  3,
 
-        /// <summary>SSH_DISCONNECT_RESERVED (4).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_RESERVED (4).
+        /// </summary>
         Reserved                      =  4,
 
-        /// <summary>SSH_DISCONNECT_MAC_ERROR (5).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_MAC_ERROR (5).
+        /// </summary>
         MacError                      =  5,
 
-        /// <summary>SSH_DISCONNECT_COMPRESSION_ERROR (6).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_COMPRESSION_ERROR (6).
+        /// </summary>
         CompressionError              =  6,
 
-        /// <summary>SSH_DISCONNECT_SERVICE_NOT_AVAILABLE (7).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_SERVICE_NOT_AVAILABLE (7).
+        /// </summary>
         ServiceNotAvailable           =  7,
 
-        /// <summary>SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED (8).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED (8).
+        /// </summary>
         ProtocolVersionNotSupported   =  8,
 
-        /// <summary>SSH_DISCONNECT_HOST_KEY_NOT_VERIFIABLE (9).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_HOST_KEY_NOT_VERIFIABLE (9).
+        /// </summary>
         HostKeyNotVerifiable          =  9,
 
-        /// <summary>SSH_DISCONNECT_CONNECTION_LOST (10).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_CONNECTION_LOST (10).
+        /// </summary>
         ConnectionLost                = 10,
 
-        /// <summary>SSH_DISCONNECT_BY_APPLICATION (11).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_BY_APPLICATION (11).
+        /// </summary>
         ByApplication                 = 11,
 
-        /// <summary>SSH_DISCONNECT_TOO_MANY_CONNECTIONS (12).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_TOO_MANY_CONNECTIONS (12).
+        /// </summary>
         TooManyConnections            = 12,
 
-        /// <summary>SSH_DISCONNECT_AUTH_CANCELLED_BY_USER (13).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_AUTH_CANCELLED_BY_USER (13).
+        /// </summary>
         AuthCancelledByUser           = 13,
 
-        /// <summary>SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE (14).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE (14).
+        /// </summary>
         NoMoreAuthMethodsAvailable    = 14,
 
-        /// <summary>SSH_DISCONNECT_ILLEGAL_USER_NAME (15).</summary>
+        /// <summary>
+        /// SSH_DISCONNECT_ILLEGAL_USER_NAME (15).
+        /// </summary>
         IllegalUserName               = 15
 
     }

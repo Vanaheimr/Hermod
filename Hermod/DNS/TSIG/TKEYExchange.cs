@@ -31,19 +31,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class TKEYModes
     {
 
-        /// <summary>The server picks the key and sends it back (RFC 2930 §4.3).</summary>
+        /// <summary>
+        /// The server picks the key and sends it back (RFC 2930 §4.3).
+        /// </summary>
         public const UInt16 ServerAssignment    = 1;
 
-        /// <summary>Both sides derive a shared secret by Diffie-Hellman (RFC 2930 §4.1).</summary>
+        /// <summary>
+        /// Both sides derive a shared secret by Diffie-Hellman (RFC 2930 §4.1).
+        /// </summary>
         public const UInt16 DiffieHellman       = 2;
 
-        /// <summary>GSS-API negotiation (RFC 2930 §4.2, elaborated by RFC 3645).</summary>
+        /// <summary>
+        /// GSS-API negotiation (RFC 2930 §4.2, elaborated by RFC 3645).
+        /// </summary>
         public const UInt16 GssApi              = 3;
 
-        /// <summary>The resolver picks the key (RFC 2930 §4.4).</summary>
+        /// <summary>
+        /// The resolver picks the key (RFC 2930 §4.4).
+        /// </summary>
         public const UInt16 ResolverAssignment  = 4;
 
-        /// <summary>Delete a previously established key (RFC 2930 §4.5).</summary>
+        /// <summary>
+        /// Delete a previously established key (RFC 2930 §4.5).
+        /// </summary>
         public const UInt16 KeyDeletion         = 5;
 
     }

@@ -123,7 +123,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The local socket the listener is bound to (with the actual port when 0 was requested).</summary>
+        /// <summary>
+        /// The local socket the listener is bound to (with the actual port when 0 was requested).
+        /// </summary>
         public IPSocket LocalEndPoint
             => IPSocket.FromIPEndPoint((IPEndPoint) socket.LocalEndPoint!);
 
@@ -198,7 +200,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Dispose()
 
-        /// <summary>Stop listening.</summary>
+        /// <summary>
+        /// Stop listening.
+        /// </summary>
         public void Dispose()
             => socket.Dispose();
 

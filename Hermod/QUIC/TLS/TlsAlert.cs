@@ -24,16 +24,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 /// </summary>
 public enum TlsAlert : byte
 {
-    /// <summary>An unexpected message arrived for the current state (§6.2).</summary>
+    /// <summary>
+    /// An unexpected message arrived for the current state (§6.2).
+    /// </summary>
     UnexpectedMessage = 10,
 
-    /// <summary>A certificate was unacceptable — e.g. an untrusted chain (§6.2).</summary>
+    /// <summary>
+    /// A certificate was unacceptable — e.g. an untrusted chain (§6.2).
+    /// </summary>
     BadCertificate = 42,
 
-    /// <summary>Negotiation failed; the generic handshake error (§6.2).</summary>
+    /// <summary>
+    /// Negotiation failed; the generic handshake error (§6.2).
+    /// </summary>
     HandshakeFailure = 40,
 
-    /// <summary>A message could not be decoded (§6.2).</summary>
+    /// <summary>
+    /// A message could not be decoded (§6.2).
+    /// </summary>
     DecodeError = 50,
 
     /// <summary>

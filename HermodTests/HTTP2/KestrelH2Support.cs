@@ -41,7 +41,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         private readonly WebApplication app;
 
-        /// <summary>The ephemeral loopback port Kestrel is listening on.</summary>
+        /// <summary>
+        /// The ephemeral loopback port Kestrel is listening on.
+        /// </summary>
         public Int32 Port { get; }
 
         private KestrelH2Server(WebApplication App, Int32 Port)

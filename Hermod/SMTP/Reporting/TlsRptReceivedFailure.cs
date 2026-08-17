@@ -27,7 +27,9 @@ using System.Text.RegularExpressions;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 
-/// <summary>One failure-details entry of a received TLS-RPT report (RFC 8460 §4.4).</summary>
+/// <summary>
+/// One failure-details entry of a received TLS-RPT report (RFC 8460 §4.4).
+/// </summary>
 public sealed record TlsRptReceivedFailure(String   ResultType,
                                            String?  SendingMtaIp,
                                            String?  ReceivingMxHostname,

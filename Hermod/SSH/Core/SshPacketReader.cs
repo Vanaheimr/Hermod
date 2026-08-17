@@ -54,13 +54,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The current read offset within the underlying buffer.</summary>
+        /// <summary>
+        /// The current read offset within the underlying buffer.
+        /// </summary>
         public readonly Int32    Position       => position;
 
-        /// <summary>The number of bytes not yet consumed.</summary>
+        /// <summary>
+        /// The number of bytes not yet consumed.
+        /// </summary>
         public readonly Int32    Remaining      => buffer.Length - position;
 
-        /// <summary>Whether at least one more byte is available.</summary>
+        /// <summary>
+        /// Whether at least one more byte is available.
+        /// </summary>
         public readonly Boolean  HasMoreData    => position < buffer.Length;
 
         #endregion

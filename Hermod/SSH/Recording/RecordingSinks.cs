@@ -29,11 +29,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #region SessionRecordingMetadataJson
 
-    /// <summary>Serializes a <see cref="SessionRecordingMetadata"/> sidecar to JSON.</summary>
+    /// <summary>
+    /// Serializes a <see cref="SessionRecordingMetadata"/> sidecar to JSON.
+    /// </summary>
     public static class SessionRecordingMetadataJson
     {
 
-        /// <summary>Render the metadata sidecar as indented JSON.</summary>
+        /// <summary>
+        /// Render the metadata sidecar as indented JSON.
+        /// </summary>
         public static String ToJson(this SessionRecordingMetadata Metadata)
         {
 
@@ -76,13 +80,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #region InMemoryRecordingSink
 
-    /// <summary>An <see cref="ISessionRecordingSink"/> that keeps recordings in memory — for tests and diagnostics.</summary>
+    /// <summary>
+    /// An <see cref="ISessionRecordingSink"/> that keeps recordings in memory — for tests and diagnostics.
+    /// </summary>
     public sealed class InMemoryRecordingSink : ISessionRecordingSink
     {
 
         private readonly ConcurrentBag<InMemoryRecording> recordings = [];
 
-        /// <summary>All recordings begun on this sink.</summary>
+        /// <summary>
+        /// All recordings begun on this sink.
+        /// </summary>
         public IReadOnlyList<InMemoryRecording> Recordings => recordings.ToArray();
 
         public ValueTask<ISessionRecording> BeginAsync(SessionRecordingMetadata Metadata, RecordingFormat Format, CancellationToken CancellationToken = default)
@@ -93,19 +101,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         }
 
 
-        /// <summary>An in-memory recording: the JSON-lines body plus the final metadata sidecar.</summary>
+        /// <summary>
+        /// An in-memory recording: the JSON-lines body plus the final metadata sidecar.
+        /// </summary>
         public sealed class InMemoryRecording : ISessionRecording
         {
 
             private readonly StringWriter body = new ();
 
-            /// <summary>The recording format.</summary>
+            /// <summary>
+            /// The recording format.
+            /// </summary>
             public RecordingFormat            Format         { get; }
 
-            /// <summary>The metadata at completion (or the initial metadata if still open).</summary>
+            /// <summary>
+            /// The metadata at completion (or the initial metadata if still open).
+            /// </summary>
             public SessionRecordingMetadata   FinalMetadata  { get; private set; }
 
-            /// <summary>The recorded JSON-lines body.</summary>
+            /// <summary>
+            /// The recorded JSON-lines body.
+            /// </summary>
             public String                     Text           => body.ToString();
 
             internal InMemoryRecording(SessionRecordingMetadata Metadata, RecordingFormat Format)
@@ -144,7 +160,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private readonly String directory;
 
-        /// <summary>Create a sink writing into the given directory (created if missing).</summary>
+        /// <summary>
+        /// Create a sink writing into the given directory (created if missing).
+        /// </summary>
         public DirectoryRecordingSink(String Directory)
         {
             this.directory = Directory;

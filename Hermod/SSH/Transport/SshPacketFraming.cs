@@ -37,10 +37,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        /// <summary>The largest accepted packet_length, bounding a peer's allocation demand.</summary>
+        /// <summary>
+        /// The largest accepted packet_length, bounding a peer's allocation demand.
+        /// </summary>
         public const Int32 MaxPacketLength = 256 * 1024;
 
-        /// <summary>The smallest sensible packet_length (1 padding_length byte + minimum 4 padding + margin).</summary>
+        /// <summary>
+        /// The smallest sensible packet_length (1 padding_length byte + minimum 4 padding + margin).
+        /// </summary>
         public const Int32 MinPacketLength = 8;
 
         #endregion

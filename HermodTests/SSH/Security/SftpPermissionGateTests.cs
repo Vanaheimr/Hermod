@@ -146,7 +146,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             return await Duplex.ReadExactAsync((Int32) length, CancellationToken);
         }
 
-        /// <summary>Start a server over the given profile/file system and complete the INIT/VERSION exchange.</summary>
+        /// <summary>
+        /// Start a server over the given profile/file system and complete the INIT/VERSION exchange.
+        /// </summary>
         private static async ValueTask<ISftpDuplex> StartServerAsync(SshAccessProfile        Profile,
                                                                      InMemorySftpFileSystem  FileSystem,
                                                                      CancellationToken       CancellationToken)
@@ -171,7 +173,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        /// <summary>Read a reply and return its status code (fails the test if it is not a STATUS packet).</summary>
+        /// <summary>
+        /// Read a reply and return its status code (fails the test if it is not a STATUS packet).
+        /// </summary>
         private static SftpStatusCode StatusOf(Byte[] Packet)
         {
             Assert.That(Packet[0], Is.EqualTo((Byte) SftpPacketType.Status),
@@ -251,7 +255,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region UploadOnly_CannotRenameViaPosixRenameExtension
 
-        /// <summary>The upload-only (log collection) preset must stay append-only: no clobbering earlier logs.</summary>
+        /// <summary>
+        /// The upload-only (log collection) preset must stay append-only: no clobbering earlier logs.
+        /// </summary>
         [Test]
         [CancelAfter(20000)]
         public async Task UploadOnly_CannotRenameViaPosixRenameExtension(CancellationToken CancellationToken)
@@ -314,7 +320,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region DownloadOnly_PlainReadOpenStillWorks
 
-        /// <summary>The tightening must not break the profile's legitimate use: a plain read still opens.</summary>
+        /// <summary>
+        /// The tightening must not break the profile's legitimate use: a plain read still opens.
+        /// </summary>
         [Test]
         [CancelAfter(20000)]
         public async Task DownloadOnly_PlainReadOpenStillWorks(CancellationToken CancellationToken)

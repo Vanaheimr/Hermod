@@ -24,17 +24,23 @@ using System.Text.Json;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>A parsed asciicast v2 recording: its header plus the sequence of events.</summary>
+    /// <summary>
+    /// A parsed asciicast v2 recording: its header plus the sequence of events.
+    /// </summary>
     /// <param name="Header">The recording header.</param>
     /// <param name="Events">The events, in order.</param>
     public sealed record AsciicastRecording(AsciicastHeader Header, IReadOnlyList<AsciicastEvent> Events)
     {
 
-        /// <summary>Concatenate all output-event data — the terminal transcript a reviewer would see on replay.</summary>
+        /// <summary>
+        /// Concatenate all output-event data — the terminal transcript a reviewer would see on replay.
+        /// </summary>
         public String OutputText
             => String.Concat(Events.Where(e => e.Code == AsciicastEventCode.Output).Select(e => e.Data));
 
-        /// <summary>The exit status recorded as a terminal marker (<c>exit-status=N</c>), or the header value, if any.</summary>
+        /// <summary>
+        /// The exit status recorded as a terminal marker (<c>exit-status=N</c>), or the header value, if any.
+        /// </summary>
         public Int32? ExitStatus
         {
             get
@@ -65,7 +71,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Parse(Text)
 
-        /// <summary>Parse a complete or partially-written asciicast document.</summary>
+        /// <summary>
+        /// Parse a complete or partially-written asciicast document.
+        /// </summary>
         public static AsciicastRecording Parse(String Text)
         {
 
@@ -106,7 +114,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region ParseAsync(Reader, CancellationToken)
 
-        /// <summary>Parse an asciicast document from a text reader.</summary>
+        /// <summary>
+        /// Parse an asciicast document from a text reader.
+        /// </summary>
         public static async ValueTask<AsciicastRecording> ParseAsync(TextReader Reader, CancellationToken CancellationToken = default)
             => Parse(await Reader.ReadToEndAsync(CancellationToken).ConfigureAwait(false));
 

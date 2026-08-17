@@ -32,7 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
     using IPAddress = System.Net.IPAddress;
 
-    /// <summary>M8: <c>direct-tcpip</c> port forwarding — an allowed tunnel reaches an in-process echo server, a denied destination is refused, and the session survives the denial.</summary>
+    /// <summary>
+    /// M8: <c>direct-tcpip</c> port forwarding — an allowed tunnel reaches an in-process echo server, a denied destination is refused, and the session survives the denial.
+    /// </summary>
     [TestFixture]
     public class DirectTcpIpForwardingTests
     {

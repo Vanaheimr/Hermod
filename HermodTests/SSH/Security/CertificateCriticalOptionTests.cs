@@ -116,7 +116,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region CertificateWithoutCriticalOptions_StillValidates
 
-        /// <summary>Failing closed must not break ordinary, unrestricted certificates.</summary>
+        /// <summary>
+        /// Failing closed must not break ordinary, unrestricted certificates.
+        /// </summary>
         [Test]
         public void CertificateWithoutCriticalOptions_StillValidates()
         {
@@ -133,7 +135,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region UnknownCriticalOption_IsStillRejected
 
-        /// <summary>The original PROTOCOL.certkeys rule still holds for genuinely unknown options.</summary>
+        /// <summary>
+        /// The original PROTOCOL.certkeys rule still holds for genuinely unknown options.
+        /// </summary>
         [Test]
         public void UnknownCriticalOption_IsStillRejected()
         {

@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M6 connection layer: remote command execution (open session, exec, capture, exit-status).</summary>
+    /// <summary>
+    /// M6 connection layer: remote command execution (open session, exec, capture, exit-status).
+    /// </summary>
     [TestFixture]
     public class RemoteExecTests
     {

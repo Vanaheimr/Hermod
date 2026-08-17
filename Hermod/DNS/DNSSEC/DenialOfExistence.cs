@@ -25,10 +25,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public enum DenialOfExistence
     {
 
-        /// <summary>The name provably does not exist (RFC 4035 §5.4, RFC 5155 §8.4).</summary>
+        /// <summary>
+        /// The name provably does not exist (RFC 4035 §5.4, RFC 5155 §8.4).
+        /// </summary>
         NameDoesNotExist,
 
-        /// <summary>The name exists, and provably holds no record of the queried type.</summary>
+        /// <summary>
+        /// The name exists, and provably holds no record of the queried type.
+        /// </summary>
         NoDataForType,
 
         /// <summary>

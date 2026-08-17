@@ -27,7 +27,9 @@ using System.Text.RegularExpressions;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 
-/// <summary>A parsed inbound TLS-RPT aggregate report (RFC 8460 §4).</summary>
+/// <summary>
+/// A parsed inbound TLS-RPT aggregate report (RFC 8460 §4).
+/// </summary>
 public sealed record TlsRptReceivedReport(String?                              OrganizationName,
                                           String?                              ReportId,
                                           String?                              ContactInfo,

@@ -41,17 +41,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The sustained rate in bytes per second (0 means unlimited).</summary>
+        /// <summary>
+        /// The sustained rate in bytes per second (0 means unlimited).
+        /// </summary>
         public Double BytesPerSecond => ratePerSecond;
 
-        /// <summary>The burst capacity in bytes.</summary>
+        /// <summary>
+        /// The burst capacity in bytes.
+        /// </summary>
         public Double BurstBytes     => capacity;
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create a rate limiter.</summary>
+        /// <summary>
+        /// Create a rate limiter.
+        /// </summary>
         /// <param name="BytesPerSecond">The sustained rate; 0 or negative means unlimited (never waits).</param>
         /// <param name="TimeProvider">The clock; defaults to <see cref="TimeProvider.System"/>.</param>
         /// <param name="BurstBytes">The burst capacity; defaults to one second's worth of the rate.</param>
@@ -105,7 +111,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region ThrottleAsync(Bytes, CancellationToken)
 
-        /// <summary>Reserve capacity for <paramref name="Bytes"/> and asynchronously wait out any required delay.</summary>
+        /// <summary>
+        /// Reserve capacity for <paramref name="Bytes"/> and asynchronously wait out any required delay.
+        /// </summary>
         public async ValueTask ThrottleAsync(Int64 Bytes, CancellationToken CancellationToken = default)
         {
             var wait = Reserve(Bytes);

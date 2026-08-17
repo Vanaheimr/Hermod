@@ -48,11 +48,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly Dictionary<string, List<HTTPStoredResponse>> store = [];
         private readonly object                                        storeLock = new();
 
-        /// <summary>Fresh/stale cache hits served without an origin round trip.</summary>
+        /// <summary>
+        /// Fresh/stale cache hits served without an origin round trip.
+        /// </summary>
         public int Hits           { get; private set; }
-        /// <summary>Requests that went to the origin because nothing usable was cached.</summary>
+        /// <summary>
+        /// Requests that went to the origin because nothing usable was cached.
+        /// </summary>
         public int Misses         { get; private set; }
-        /// <summary>Stale entries revalidated with the origin via a conditional request.</summary>
+        /// <summary>
+        /// Stale entries revalidated with the origin via a conditional request.
+        /// </summary>
         public int Revalidations  { get; private set; }
 
 
@@ -71,7 +77,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
 
-        /// <summary>Convenience GET.</summary>
+        /// <summary>
+        /// Convenience GET.
+        /// </summary>
         public Task<HTTP2Response> GetAsync(String                             Path,
                                             List<(String Name, String Value)>? ExtraHeaders = null,
                                             CancellationToken                  CancellationToken = default)
@@ -259,7 +267,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 store.Remove(Path);
         }
 
-        /// <summary>Build a response to serve from cache, stamping the computed <c>Age</c> (RFC 9111, Section 5.1).</summary>
+        /// <summary>
+        /// Build a response to serve from cache, stamping the computed <c>Age</c> (RFC 9111, Section 5.1).
+        /// </summary>
         private static HTTP2Response Serve(HTTPStoredResponse Stored, TimeSpan Age)
         {
             var headers = Stored.Headers.Where(h => h.Name != "age").ToList();

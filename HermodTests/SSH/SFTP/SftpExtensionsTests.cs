@@ -375,7 +375,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (private) test doubles
 
-        /// <summary>Passes everything through, but records which handles were asked to flush.</summary>
+        /// <summary>
+        /// Passes everything through, but records which handles were asked to flush.
+        /// </summary>
         private sealed class FlushRecordingFileSystem(ISftpFileSystem Inner) : ISftpFileSystem
         {
 
@@ -403,7 +405,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         }
 
 
-        /// <summary>Two <see cref="ISftpDuplex"/> ends wired to each other in memory — no transport, no crypto.</summary>
+        /// <summary>
+        /// Two <see cref="ISftpDuplex"/> ends wired to each other in memory — no transport, no crypto.
+        /// </summary>
         private sealed class BarePipe : ISftpDuplex
         {
 

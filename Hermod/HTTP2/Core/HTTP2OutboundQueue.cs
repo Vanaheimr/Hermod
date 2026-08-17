@@ -44,7 +44,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly object                   gate  = new();
         private readonly Queue<HTTP2OutboundItem>  items = new();
 
-        /// <summary>True if at least one item is queued (possibly just a zero-length end-of-stream marker).</summary>
+        /// <summary>
+        /// True if at least one item is queued (possibly just a zero-length end-of-stream marker).
+        /// </summary>
         public bool HasPending
         {
             get { lock (gate) return items.Count > 0; }

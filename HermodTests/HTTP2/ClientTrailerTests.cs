@@ -80,7 +80,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private static Task<(List<(String, String)>, Byte[]?)> NotUsed(UInt32 s, List<(String Name, String Value)> h, Byte[]? b, CancellationToken ct)
             => Task.FromResult<(List<(String, String)>, Byte[]?)>(([(":status", "500")], null));
 
-        /// <summary>Read the whole exchange: head, body to EOF, then the response trailers.</summary>
+        /// <summary>
+        /// Read the whole exchange: head, body to EOF, then the response trailers.
+        /// </summary>
         private static async Task<(HTTP2ResponseHead Head, String Body, List<(String Name, String Value)> Trailers)> DrainAsync(HTTP2ClientStream Stream)
         {
 

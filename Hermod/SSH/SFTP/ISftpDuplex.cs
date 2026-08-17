@@ -26,27 +26,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     /// </summary>
     public interface ISftpDuplex
     {
-        /// <summary>Read exactly <paramref name="Count"/> bytes; null at a clean end-of-stream.</summary>
+        /// <summary>
+        /// Read exactly <paramref name="Count"/> bytes; null at a clean end-of-stream.
+        /// </summary>
         ValueTask<Byte[]?> TryReadExactAsync(Int32 Count, CancellationToken CancellationToken = default);
 
-        /// <summary>Read exactly <paramref name="Count"/> bytes (throws at end-of-stream).</summary>
+        /// <summary>
+        /// Read exactly <paramref name="Count"/> bytes (throws at end-of-stream).
+        /// </summary>
         ValueTask<Byte[]> ReadExactAsync(Int32 Count, CancellationToken CancellationToken = default);
 
-        /// <summary>Send bytes.</summary>
+        /// <summary>
+        /// Send bytes.
+        /// </summary>
         ValueTask SendAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default);
 
-        /// <summary>Close the channel.</summary>
+        /// <summary>
+        /// Close the channel.
+        /// </summary>
         ValueTask CloseAsync(CancellationToken CancellationToken = default);
     }
 
 
-    /// <summary>Adapts a bidirectional <see cref="Stream"/> (e.g. a multiplexed channel's <c>AsStream()</c>) to <see cref="ISftpDuplex"/>.</summary>
+    /// <summary>
+    /// Adapts a bidirectional <see cref="Stream"/> (e.g. a multiplexed channel's <c>AsStream()</c>) to <see cref="ISftpDuplex"/>.
+    /// </summary>
     public sealed class StreamSftpDuplex : ISftpDuplex
     {
 
         private readonly Stream stream;
 
-        /// <summary>Wrap a duplex stream.</summary>
+        /// <summary>
+        /// Wrap a duplex stream.
+        /// </summary>
         public StreamSftpDuplex(Stream Stream)
         {
             this.stream = Stream;

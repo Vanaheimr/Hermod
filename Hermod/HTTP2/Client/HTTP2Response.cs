@@ -27,7 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public required List<(string Name, string Value)> Headers  { get; init; }
         public required byte[]                            Body     { get; init; }
 
-        /// <summary>Trailer fields, if the server sent a trailing HEADERS block (RFC 9113, Section 8.1). Empty otherwise.</summary>
+        /// <summary>
+        /// Trailer fields, if the server sent a trailing HEADERS block (RFC 9113, Section 8.1). Empty otherwise.
+        /// </summary>
         public          List<(string Name, string Value)> Trailers { get; init; } = [];
 
         /// <summary>

@@ -83,7 +83,9 @@ public sealed class TlsRptAggregator
 
     #region Record(ev)
 
-    /// <summary>Add one outbound TLS session outcome to the current window for its policy domain.</summary>
+    /// <summary>
+    /// Add one outbound TLS session outcome to the current window for its policy domain.
+    /// </summary>
     public void Record(TlsRptEvent ev)
     {
 

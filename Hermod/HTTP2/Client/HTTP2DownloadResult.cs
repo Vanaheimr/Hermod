@@ -49,7 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                              HTTPDigestVerification            DigestVerification = HTTPDigestVerification.NotPresent)
     {
 
-        /// <summary>Whether the download completed without any interruption at all.</summary>
+        /// <summary>
+        /// Whether the download completed without any interruption at all.
+        /// </summary>
         public Boolean WasUninterrupted
             => Attempts == 1;
 

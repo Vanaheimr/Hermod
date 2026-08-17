@@ -100,13 +100,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public          Boolean   EnableAutoMdn              { get; init; } = false;
 
-        /// <summary>How often aggregate reports are generated (RFC 7489 default 86400 s).</summary>
+        /// <summary>
+        /// How often aggregate reports are generated (RFC 7489 default 86400 s).
+        /// </summary>
         public          TimeSpan  DmarcReportInterval        { get; init; } = TimeSpan.FromHours(24);
 
-        /// <summary>org_name reported in aggregate reports. Defaults to <see cref="Hostname"/>.</summary>
+        /// <summary>
+        /// org_name reported in aggregate reports. Defaults to <see cref="Hostname"/>.
+        /// </summary>
         public          String?   DmarcReportOrgName         { get; init; }
 
-        /// <summary>From/contact address for outgoing reports. Defaults to postmaster@&lt;hostname&gt;.</summary>
+        /// <summary>
+        /// From/contact address for outgoing reports. Defaults to postmaster@&lt;hostname&gt;.
+        /// </summary>
         public          String?   DmarcReportEmail           { get; init; }
 
         #endregion

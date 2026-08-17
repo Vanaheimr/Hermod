@@ -40,7 +40,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region Seeding helpers
 
-        /// <summary>Seed a file with content (for tests/demos).</summary>
+        /// <summary>
+        /// Seed a file with content (for tests/demos).
+        /// </summary>
         public void AddFile(String Path, Byte[] Content)
         {
             var normalized = Normalize(Path);

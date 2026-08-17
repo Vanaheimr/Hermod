@@ -49,7 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             => Task.FromResult<(List<(String, String)>, Byte[]?)>(
                    ([(":status", "200"), ("content-type", "text/plain")], Encoding.UTF8.GetBytes("ok")));
 
-        /// <summary>Captures everything the stack's EventSource emits while alive.</summary>
+        /// <summary>
+        /// Captures everything the stack's EventSource emits while alive.
+        /// </summary>
         private sealed class Capture : EventListener
         {
 

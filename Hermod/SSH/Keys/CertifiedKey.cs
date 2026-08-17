@@ -34,20 +34,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>The certificate presented for this key.</summary>
+        /// <summary>
+        /// The certificate presented for this key.
+        /// </summary>
         public SshCertificate  Certificate  { get; }
 
-        /// <summary>The certificate algorithm (e.g. <c>ssh-ed25519-cert-v01@openssh.com</c>).</summary>
+        /// <summary>
+        /// The certificate algorithm (e.g. <c>ssh-ed25519-cert-v01@openssh.com</c>).
+        /// </summary>
         public IReadOnlyList<String> AlgorithmNames => [ Certificate.CertAlgorithm ];
 
-        /// <summary>The public-key blob presented to the peer — the whole certificate.</summary>
+        /// <summary>
+        /// The public-key blob presented to the peer — the whole certificate.
+        /// </summary>
         public Byte[] PublicKeyBlob => Certificate.Blob;
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Pair a base signing key with a certificate issued for its public key.</summary>
+        /// <summary>
+        /// Pair a base signing key with a certificate issued for its public key.
+        /// </summary>
         public CertifiedKey(ISshHostKey BaseKey, SshCertificate Certificate)
         {
 
@@ -64,7 +72,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) Load(BaseKey, CertificateLine)
 
-        /// <summary>Load a certified key from a base key and an <c>id_*-cert.pub</c> certificate line.</summary>
+        /// <summary>
+        /// Load a certified key from a base key and an <c>id_*-cert.pub</c> certificate line.
+        /// </summary>
         public static CertifiedKey Load(ISshHostKey BaseKey, String CertificateLine)
             => new (BaseKey, SshCertificate.Parse(SshPublicKey.Parse(CertificateLine).Blob));
 

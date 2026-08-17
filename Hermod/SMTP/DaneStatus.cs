@@ -32,16 +32,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 public enum DaneStatus
 {
 
-    /// <summary>No TLSA records are published (or their absence is DNSSEC-authenticated). DANE does not apply; delivery may proceed opportunistically.</summary>
+    /// <summary>
+    /// No TLSA records are published (or their absence is DNSSEC-authenticated). DANE does not apply; delivery may proceed opportunistically.
+    /// </summary>
     NoRecord,
 
-    /// <summary>Usable TLSA records were returned and DNSSEC-validated. TLS MUST be enforced and the server certificate MUST match a TLSA record.</summary>
+    /// <summary>
+    /// Usable TLSA records were returned and DNSSEC-validated. TLS MUST be enforced and the server certificate MUST match a TLSA record.
+    /// </summary>
     Secure,
 
-    /// <summary>TLSA records were returned but DNSSEC validation failed (bogus / indeterminate). The destination MUST be treated as broken and delivery deferred.</summary>
+    /// <summary>
+    /// TLSA records were returned but DNSSEC validation failed (bogus / indeterminate). The destination MUST be treated as broken and delivery deferred.
+    /// </summary>
     Bogus,
 
-    /// <summary>TLSA records were returned but the zone is not DNSSEC-signed, so they are not authenticated and (per RFC 7672 §2.2) not usable for DANE.</summary>
+    /// <summary>
+    /// TLSA records were returned but the zone is not DNSSEC-signed, so they are not authenticated and (per RFC 7672 §2.2) not usable for DANE.
+    /// </summary>
     Insecure
 
 }

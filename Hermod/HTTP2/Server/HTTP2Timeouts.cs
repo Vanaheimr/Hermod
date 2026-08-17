@@ -28,10 +28,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public sealed record HTTP2Timeouts
     {
 
-        /// <summary>TLS handshake (applied by <see cref="HTTP2Server"/> before the connection starts).</summary>
+        /// <summary>
+        /// TLS handshake (applied by <see cref="HTTP2Server"/> before the connection starts).
+        /// </summary>
         public TimeSpan Handshake  { get; init; } = TimeSpan.FromSeconds(10);
 
-        /// <summary>Client connection preface (magic string + first SETTINGS) after TLS.</summary>
+        /// <summary>
+        /// Client connection preface (magic string + first SETTINGS) after TLS.
+        /// </summary>
         public TimeSpan Preface    { get; init; } = TimeSpan.FromSeconds(10);
 
         /// <summary>
@@ -61,7 +65,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
 
-        /// <summary>The default timeout set.</summary>
+        /// <summary>
+        /// The default timeout set.
+        /// </summary>
         public static readonly HTTP2Timeouts Default = new();
 
     }

@@ -121,7 +121,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region From_IsEnforced_EndToEnd
 
-        /// <summary>A key restricted to a subnet the loopback client is not in must not get a session.</summary>
+        /// <summary>
+        /// A key restricted to a subnet the loopback client is not in must not get a session.
+        /// </summary>
         [Test]
         [CancelAfter(25000)]
         public async Task From_IsEnforced_EndToEnd(CancellationToken CancellationToken)

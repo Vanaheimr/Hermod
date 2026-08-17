@@ -29,7 +29,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
     using IPAddress = System.Net.IPAddress;
 
-    /// <summary>M8: the NetworkAcl rule engine — CIDR matching, port sets, first-match ordering, presets and DNS-rebinding safety.</summary>
+    /// <summary>
+    /// M8: the NetworkAcl rule engine — CIDR matching, port sets, first-match ordering, presets and DNS-rebinding safety.
+    /// </summary>
     [TestFixture]
     public class NetworkAclTests
     {

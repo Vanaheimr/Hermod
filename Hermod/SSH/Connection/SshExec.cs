@@ -24,18 +24,26 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The result of running a remote command: the exit status and the captured output.</summary>
+    /// <summary>
+    /// The result of running a remote command: the exit status and the captured output.
+    /// </summary>
     public sealed record SshCommandResult(Int32   ExitCode,
                                           Byte[]  StandardOutputBytes,
                                           Byte[]  StandardErrorBytes)
     {
-        /// <summary>The captured standard output decoded as UTF-8 text.</summary>
+        /// <summary>
+        /// The captured standard output decoded as UTF-8 text.
+        /// </summary>
         public String StandardOutput => Encoding.UTF8.GetString(StandardOutputBytes);
 
-        /// <summary>The captured standard error decoded as UTF-8 text.</summary>
+        /// <summary>
+        /// The captured standard error decoded as UTF-8 text.
+        /// </summary>
         public String StandardError  => Encoding.UTF8.GetString(StandardErrorBytes);
 
-        /// <summary>Whether the command reported success (exit code 0).</summary>
+        /// <summary>
+        /// Whether the command reported success (exit code 0).
+        /// </summary>
         public Boolean Success => ExitCode == 0;
     }
 
@@ -64,10 +72,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public String?  OriginalCommand { get; }
 
-        /// <summary>The authenticated user name.</summary>
+        /// <summary>
+        /// The authenticated user name.
+        /// </summary>
         public String   Username        { get; }
 
-        /// <summary>Whether the client requested a pseudo-terminal (<c>pty-req</c>) for this session.</summary>
+        /// <summary>
+        /// Whether the client requested a pseudo-terminal (<c>pty-req</c>) for this session.
+        /// </summary>
         public Boolean  HasPty         { get; }
 
         /// <summary>
@@ -77,7 +89,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public Stream   StandardInput  { get; }
 
-        /// <summary>Create an exec/shell context (advanced; usually supplied by the server to a handler).</summary>
+        /// <summary>
+        /// Create an exec/shell context (advanced; usually supplied by the server to a handler).
+        /// </summary>
         public SshExecContext(String                                                             command,
                               String                                                             username,
                               Func<ReadOnlyMemory<Byte>, Boolean, CancellationToken, ValueTask>  write,
@@ -93,19 +107,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.HasPty           = hasPty;
         }
 
-        /// <summary>Write bytes to standard output.</summary>
+        /// <summary>
+        /// Write bytes to standard output.
+        /// </summary>
         public ValueTask WriteAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
             => write(Data, false, CancellationToken);
 
-        /// <summary>Write bytes to standard error.</summary>
+        /// <summary>
+        /// Write bytes to standard error.
+        /// </summary>
         public ValueTask WriteErrorAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
             => write(Data, true, CancellationToken);
 
-        /// <summary>Write a UTF-8 string to standard output.</summary>
+        /// <summary>
+        /// Write a UTF-8 string to standard output.
+        /// </summary>
         public ValueTask WriteAsync(String Text, CancellationToken CancellationToken = default)
             => WriteAsync(Encoding.UTF8.GetBytes(Text), CancellationToken);
 
-        /// <summary>Write a UTF-8 string plus a newline to standard output.</summary>
+        /// <summary>
+        /// Write a UTF-8 string plus a newline to standard output.
+        /// </summary>
         public ValueTask WriteLineAsync(String Text, CancellationToken CancellationToken = default)
             => WriteAsync(Encoding.UTF8.GetBytes(Text + "\n"), CancellationToken);
 

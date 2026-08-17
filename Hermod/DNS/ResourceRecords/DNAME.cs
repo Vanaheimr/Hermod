@@ -73,7 +73,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public enum DNAMESubstitution
     {
 
-        /// <summary>The name was rewritten.</summary>
+        /// <summary>
+        /// The name was rewritten.
+        /// </summary>
         Redirected,
 
         /// <summary>
@@ -282,7 +284,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
 
-        /// <summary>The labels of a name, without the empty one a trailing dot leaves behind.</summary>
+        /// <summary>
+        /// The labels of a name, without the empty one a trailing dot leaves behind.
+        /// </summary>
         private static String[] Labels(String Name)
 
             => Name.TrimEnd('.').Length == 0

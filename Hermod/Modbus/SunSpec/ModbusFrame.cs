@@ -42,7 +42,9 @@ public sealed record ModbusFrame(ushort TransactionId, byte UnitId, byte[] Pdu)
     public const int MaxPduLength     = 253;          // [MB] §4.1
     public const int MaxAduLength     = MbapHeaderLength + MaxPduLength;
 
-    /// <summary>Encode the frame into a fresh byte array.</summary>
+    /// <summary>
+    /// Encode the frame into a fresh byte array.
+    /// </summary>
     public byte[] ToBytes()
     {
         if (Pdu.Length is 0 or > MaxPduLength)
@@ -57,7 +59,9 @@ public sealed record ModbusFrame(ushort TransactionId, byte UnitId, byte[] Pdu)
         return buf;
     }
 
-    /// <summary>Read exactly one frame from <paramref name="stream"/>. Throws on protocol error.</summary>
+    /// <summary>
+    /// Read exactly one frame from <paramref name="stream"/>. Throws on protocol error.
+    /// </summary>
     public static async Task<ModbusFrame> ReadAsync(Stream stream, CancellationToken ct)
     {
         var header = new byte[MbapHeaderLength];

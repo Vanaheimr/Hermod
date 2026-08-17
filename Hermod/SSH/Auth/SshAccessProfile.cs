@@ -18,30 +18,52 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
-    /// <summary>The individual SFTP operations an access profile may permit (least-privilege gating).</summary>
+    /// <summary>
+    /// The individual SFTP operations an access profile may permit (least-privilege gating).
+    /// </summary>
     [Flags]
     public enum SftpPermissions : UInt32
     {
-        /// <summary>Nothing is allowed.</summary>
+        /// <summary>
+        /// Nothing is allowed.
+        /// </summary>
         None           = 0,
-        /// <summary>Read file contents.</summary>
+        /// <summary>
+        /// Read file contents.
+        /// </summary>
         Read           = 1 << 0,
-        /// <summary>Write to existing files.</summary>
+        /// <summary>
+        /// Write to existing files.
+        /// </summary>
         Write          = 1 << 1,
-        /// <summary>Create new files (upload).</summary>
+        /// <summary>
+        /// Create new files (upload).
+        /// </summary>
         Create         = 1 << 2,
-        /// <summary>List directories.</summary>
+        /// <summary>
+        /// List directories.
+        /// </summary>
         List           = 1 << 3,
-        /// <summary>Remove files and directories.</summary>
+        /// <summary>
+        /// Remove files and directories.
+        /// </summary>
         Delete         = 1 << 4,
-        /// <summary>Create directories.</summary>
+        /// <summary>
+        /// Create directories.
+        /// </summary>
         MakeDirectory  = 1 << 5,
-        /// <summary>Rename files and directories.</summary>
+        /// <summary>
+        /// Rename files and directories.
+        /// </summary>
         Rename         = 1 << 6,
-        /// <summary>Query attributes (stat) — usually needed by any client.</summary>
+        /// <summary>
+        /// Query attributes (stat) — usually needed by any client.
+        /// </summary>
         Stat           = 1 << 7,
 
-        /// <summary>Everything.</summary>
+        /// <summary>
+        /// Everything.
+        /// </summary>
         All            = Read | Write | Create | List | Delete | MakeDirectory | Rename | Stat
     }
 
@@ -54,14 +76,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public sealed record SshAccessProfile
     {
 
-        /// <summary>The SFTP operations this profile permits.</summary>
+        /// <summary>
+        /// The SFTP operations this profile permits.
+        /// </summary>
         public SftpPermissions Sftp { get; init; } = SftpPermissions.All;
 
-        /// <summary>The port-forwarding policy for this session (defaults to off).</summary>
+        /// <summary>
+        /// The port-forwarding policy for this session (defaults to off).
+        /// </summary>
         public ForwardingPolicy PortForwarding { get; init; } = ForwardingPolicy.None;
 
 
-        /// <summary>Full SFTP access.</summary>
+        /// <summary>
+        /// Full SFTP access.
+        /// </summary>
         public static SshAccessProfile FullSftp
             => new () { Sftp = SftpPermissions.All };
 
@@ -80,7 +108,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             => new () { Sftp = SftpPermissions.Read | SftpPermissions.List | SftpPermissions.Stat };
 
 
-        /// <summary>Whether all of the given SFTP permissions are granted.</summary>
+        /// <summary>
+        /// Whether all of the given SFTP permissions are granted.
+        /// </summary>
         public Boolean AllowsSftp(SftpPermissions Required)
             => (Sftp & Required) == Required;
 

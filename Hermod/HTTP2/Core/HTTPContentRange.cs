@@ -43,7 +43,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public Boolean IsUnsatisfied
             => Start is null || End is null;
 
-        /// <summary>Number of bytes this range covers, or null for the unsatisfied form.</summary>
+        /// <summary>
+        /// Number of bytes this range covers, or null for the unsatisfied form.
+        /// </summary>
         public Int64? Length
             => Start is not null && End is not null
                    ? End.Value - Start.Value + 1
@@ -118,7 +120,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region ToHeaderValue() / RequestFrom(FirstByte)
 
-        /// <summary>This range as a <c>Content-Range</c> field value.</summary>
+        /// <summary>
+        /// This range as a <c>Content-Range</c> field value.
+        /// </summary>
         public String ToHeaderValue()
 
             => IsUnsatisfied

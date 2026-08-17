@@ -54,7 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private static Byte[] Message(SshMessageNumber MessageNumber, params Byte[] Rest)
             => [ (Byte) MessageNumber, .. Rest ];
 
-        /// <summary>A connected, fully handshaked transport pair over an in-memory pipe.</summary>
+        /// <summary>
+        /// A connected, fully handshaked transport pair over an in-memory pipe.
+        /// </summary>
         private static async Task<(SshTransport Client, SshTransport Server)> ConnectedPairAsync(CancellationToken CancellationToken)
         {
 

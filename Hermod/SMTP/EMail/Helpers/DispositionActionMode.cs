@@ -23,9 +23,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// </summary>
     public enum DispositionActionMode
     {
-        /// <summary>The user explicitly triggered the disposition.</summary>
+        /// <summary>
+        /// The user explicitly triggered the disposition.
+        /// </summary>
         ManualAction,
-        /// <summary>The disposition happened without explicit user action.</summary>
+        /// <summary>
+        /// The disposition happened without explicit user action.
+        /// </summary>
         AutomaticAction
     }
 

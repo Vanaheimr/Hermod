@@ -31,20 +31,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public sealed record HTTPClientCredentials
     {
 
-        /// <summary>User name for Basic (RFC 7617) and Digest (RFC 7616).</summary>
+        /// <summary>
+        /// User name for Basic (RFC 7617) and Digest (RFC 7616).
+        /// </summary>
         public String? UserName { get; init; }
 
-        /// <summary>Password for Basic and Digest. Never sent in the clear by Digest.</summary>
+        /// <summary>
+        /// Password for Basic and Digest. Never sent in the clear by Digest.
+        /// </summary>
         public String? Password { get; init; }
 
-        /// <summary>Token for Bearer (RFC 6750) and the non-standard Token scheme.</summary>
+        /// <summary>
+        /// Token for Bearer (RFC 6750) and the non-standard Token scheme.
+        /// </summary>
         public String? Token    { get; init; }
 
-        /// <summary>Credentials for the password-based schemes (Basic, Digest).</summary>
+        /// <summary>
+        /// Credentials for the password-based schemes (Basic, Digest).
+        /// </summary>
         public static HTTPClientCredentials UserNameAndPassword(String UserName, String Password)
             => new() { UserName = UserName, Password = Password };
 
-        /// <summary>Credentials for the token-based schemes (Bearer, Token).</summary>
+        /// <summary>
+        /// Credentials for the token-based schemes (Bearer, Token).
+        /// </summary>
         public static HTTPClientCredentials BearerToken(String Token)
             => new() { Token = Token };
 

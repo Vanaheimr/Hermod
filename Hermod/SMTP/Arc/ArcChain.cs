@@ -32,10 +32,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public sealed class ArcChain
     {
 
-        /// <summary>Sets ordered by instance 1..N (only present when <see cref="WellFormed"/>).</summary>
+        /// <summary>
+        /// Sets ordered by instance 1..N (only present when <see cref="WellFormed"/>).
+        /// </summary>
         public IReadOnlyList<ArcSet> Sets        { get; }
 
-        /// <summary>True when instances 1..N are contiguous and each has all three header fields.</summary>
+        /// <summary>
+        /// True when instances 1..N are contiguous and each has all three header fields.
+        /// </summary>
         public Boolean               WellFormed  { get; }
 
         public Int32 MaxInstance => Sets.Count;
@@ -130,7 +134,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Tag parsing
 
-        /// <summary>Parse a header value's "k=v; k=v" tag list (shared shape with DKIM/DMARC).</summary>
+        /// <summary>
+        /// Parse a header value's "k=v; k=v" tag list (shared shape with DKIM/DMARC).
+        /// </summary>
         public static Dictionary<String, String> ParseTags(String value)
         {
             var tags = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
@@ -144,7 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             return tags;
         }
 
-        /// <summary>The i= instance number of an ARC header value, or 0 if absent/invalid.</summary>
+        /// <summary>
+        /// The i= instance number of an ARC header value, or 0 if absent/invalid.
+        /// </summary>
         public static Int32 InstanceOf(String value)
             => ParseTags(value).TryGetValue("i", out var s) && Int32.TryParse(s, out var i) ? i : 0;
 

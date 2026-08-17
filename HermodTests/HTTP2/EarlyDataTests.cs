@@ -47,7 +47,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #region Data / handlers
 
-        /// <summary>Answers 200 and echoes the method, so a processed request is unmistakable.</summary>
+        /// <summary>
+        /// Answers 200 and echoes the method, so a processed request is unmistakable.
+        /// </summary>
         private static Task<(List<(String, String)>, Byte[]?)> Ok(UInt32 s, List<(String Name, String Value)> h, Byte[]? b, CancellationToken ct)
         {
             var method = h.FirstOrDefault(header => header.Name == ":method").Value ?? "?";
@@ -56,7 +58,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                        Encoding.UTF8.GetBytes($"processed {method}")));
         }
 
-        /// <summary>The streaming twin of <see cref="Ok"/>.</summary>
+        /// <summary>
+        /// The streaming twin of <see cref="Ok"/>.
+        /// </summary>
         private static async Task OkStreaming(IHTTP2RequestStream req, IHTTP2ResponseStream resp, CancellationToken ct)
         {
 

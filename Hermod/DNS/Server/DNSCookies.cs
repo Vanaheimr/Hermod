@@ -66,10 +66,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        /// <summary>The size of an RFC 9018 §4 server cookie: 16 octets, which is also the smallest RFC 7873 §4.2 allows.</summary>
+        /// <summary>
+        /// The size of an RFC 9018 §4 server cookie: 16 octets, which is also the smallest RFC 7873 §4.2 allows.
+        /// </summary>
         public const Int32 ServerCookieSize = 16;
 
-        /// <summary>The version RFC 9018 §4.1 assigns to this structure.</summary>
+        /// <summary>
+        /// The version RFC 9018 §4.1 assigns to this structure.
+        /// </summary>
         public const Byte  Version          = 1;
 
         /// <summary>

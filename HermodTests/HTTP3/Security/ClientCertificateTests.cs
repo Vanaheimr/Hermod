@@ -60,7 +60,9 @@ public class ClientCertificateTests
         return (client, server);
     }
 
-    /// <summary>Trusts exactly the given certificate, and nothing else.</summary>
+    /// <summary>
+    /// Trusts exactly the given certificate, and nothing else.
+    /// </summary>
     private static ClientCertificateOptions Policy(ClientCertificateMode mode, ServerCertificate trusted)
         => new()
         {

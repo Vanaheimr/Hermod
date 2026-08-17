@@ -25,24 +25,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 public static class MtPriority
 {
 
-    /// <summary>The lowest priority (-9).</summary>
+    /// <summary>
+    /// The lowest priority (-9).
+    /// </summary>
     public const SByte Min      = -9;
 
-    /// <summary>The highest priority (9).</summary>
+    /// <summary>
+    /// The highest priority (9).
+    /// </summary>
     public const SByte Max      =  9;
 
-    /// <summary>The default priority (0).</summary>
+    /// <summary>
+    /// The default priority (0).
+    /// </summary>
     public const SByte Default  =  0;
 
-    /// <summary>The EHLO keyword advertising the extension.</summary>
+    /// <summary>
+    /// The EHLO keyword advertising the extension.
+    /// </summary>
     public const String Keyword = "MT-PRIORITY";
 
 
-    /// <summary>Clamp a value into the valid -9..9 range.</summary>
+    /// <summary>
+    /// Clamp a value into the valid -9..9 range.
+    /// </summary>
     public static SByte Clamp(Int32 value)
         => (SByte) Math.Clamp(value, Min, Max);
 
-    /// <summary>Parse a single MT-PRIORITY value; returns <see cref="Default"/> if absent or invalid.</summary>
+    /// <summary>
+    /// Parse a single MT-PRIORITY value; returns <see cref="Default"/> if absent or invalid.
+    /// </summary>
     public static SByte Parse(String? value)
         => SByte.TryParse(value, out var p) ? Clamp(p) : Default;
 

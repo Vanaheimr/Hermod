@@ -80,7 +80,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             }
         }
 
-        /// <summary>A valid header block, as our own encoder would produce it.</summary>
+        /// <summary>
+        /// A valid header block, as our own encoder would produce it.
+        /// </summary>
         private static Byte[] ValidBlock()
             => new HPACKEncoder().EncodeHeaderBlock([
                    (":method",    "GET"),

@@ -34,7 +34,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
     using IPAddress = System.Net.IPAddress;
 
-    /// <summary>M8: the ssh-agent client — listing identities and requesting signatures from a fake agent, and authenticating with an agent-backed key.</summary>
+    /// <summary>
+    /// M8: the ssh-agent client — listing identities and requesting signatures from a fake agent, and authenticating with an agent-backed key.
+    /// </summary>
     [TestFixture]
     public class SshAgentTests
     {

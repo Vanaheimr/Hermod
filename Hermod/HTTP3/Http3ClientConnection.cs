@@ -788,7 +788,9 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
 
     // ---- IWebTransportHost (draft-webtrans-http3) -----------------------------------------
 
-    /// <summary>Initial flow-control limits we grant per session (draft §5.5).</summary>
+    /// <summary>
+    /// Initial flow-control limits we grant per session (draft §5.5).
+    /// </summary>
     internal ulong LocalInitialMaxStreamsUni    { get; init; } = 16;
     internal ulong LocalInitialMaxStreamsBidi   { get; init; } = 16;
     internal ulong LocalInitialMaxData          { get; init; } = 1_048_576;

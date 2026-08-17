@@ -51,7 +51,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constructor(s)
 
-        /// <summary>Create a TOTP instance from a raw shared secret.</summary>
+        /// <summary>
+        /// Create a TOTP instance from a raw shared secret.
+        /// </summary>
         /// <param name="Secret">The shared secret bytes.</param>
         /// <param name="Digits">The code length (6 or 8).</param>
         /// <param name="Algorithm">The HMAC hash (SHA-1 by default; SHA-256/512 supported).</param>
@@ -79,7 +81,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (static) FromBase32(Secret, …)
 
-        /// <summary>Create a TOTP instance from a base32-encoded shared secret (the enrolment format).</summary>
+        /// <summary>
+        /// Create a TOTP instance from a base32-encoded shared secret (the enrolment format).
+        /// </summary>
         public static Totp FromBase32(String              Secret,
                                       Int32               Digits        = 6,
                                       HashAlgorithmName?  Algorithm     = null,
@@ -93,11 +97,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Compute(Time)
 
-        /// <summary>Compute the code valid at the given instant.</summary>
+        /// <summary>
+        /// Compute the code valid at the given instant.
+        /// </summary>
         public String Compute(DateTimeOffset Time)
             => ComputeForCounter(CounterFor(Time));
 
-        /// <summary>Compute the code valid now.</summary>
+        /// <summary>
+        /// Compute the code valid now.
+        /// </summary>
         public String ComputeNow()
             => ComputeForCounter(CounterFor(timeProvider.GetUtcNow()));
 
@@ -263,7 +271,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly Totp    totp;
         private readonly Int32   skewSteps;
 
-        /// <summary>Create a TOTP keyboard-interactive factor.</summary>
+        /// <summary>
+        /// Create a TOTP keyboard-interactive factor.
+        /// </summary>
         public TotpKeyboardInteractive(Totp Totp, Int32 SkewSteps = 1)
         {
             this.totp       = Totp;

@@ -29,7 +29,9 @@ using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
-    /// <summary>M7 SFTP: our client transfers files to/from a root-jailed local file system over the wire.</summary>
+    /// <summary>
+    /// M7 SFTP: our client transfers files to/from a root-jailed local file system over the wire.
+    /// </summary>
     [TestFixture]
     public class LocalSftpLoopbackTests
     {

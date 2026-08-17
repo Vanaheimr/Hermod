@@ -129,7 +129,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
 
-        /// <summary>The COOKIE option to send to this server, carrying a stored server cookie when there is one.</summary>
+        /// <summary>
+        /// The COOKIE option to send to this server, carrying a stored server cookie when there is one.
+        /// </summary>
         /// <param name="ServerAddress">The server the query is going to.</param>
         /// <param name="ServerCookie">The server cookie remembered for it, if any.</param>
         public EDNSCookieOption OptionFor(IPAddress  ServerAddress,

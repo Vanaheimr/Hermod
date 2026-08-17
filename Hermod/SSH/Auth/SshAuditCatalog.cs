@@ -26,58 +26,94 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #region Event catalog (grows with the milestones)
 
-    /// <summary>A connection was opened.</summary>
+    /// <summary>
+    /// A connection was opened.
+    /// </summary>
     public sealed record ConnectionOpenedEvent(DateTimeOffset Timestamp) : SshAuditEvent(Timestamp);
 
-    /// <summary>A connection was closed.</summary>
+    /// <summary>
+    /// A connection was closed.
+    /// </summary>
     public sealed record ConnectionClosedEvent(DateTimeOffset Timestamp) : SshAuditEvent(Timestamp);
 
-    /// <summary>The SSH version strings were exchanged.</summary>
+    /// <summary>
+    /// The SSH version strings were exchanged.
+    /// </summary>
     public sealed record VersionExchangedEvent(DateTimeOffset Timestamp, String LocalVersion, String RemoteVersion) : SshAuditEvent(Timestamp);
 
-    /// <summary>A key exchange completed with the negotiated algorithms.</summary>
+    /// <summary>
+    /// A key exchange completed with the negotiated algorithms.
+    /// </summary>
     public sealed record KexCompletedEvent(DateTimeOffset Timestamp, String KeyExchange, String Cipher, String Mac, String HostKeyAlgorithm, Boolean PostQuantum, Boolean StrictKex) : SshAuditEvent(Timestamp);
 
-    /// <summary>A rekey (key re-exchange) completed.</summary>
+    /// <summary>
+    /// A rekey (key re-exchange) completed.
+    /// </summary>
     public sealed record RekeyedEvent(DateTimeOffset Timestamp, Int32 KeyExchangeCount) : SshAuditEvent(Timestamp);
 
-    /// <summary>The peer's host key was accepted, and how it was trusted (pin / known_hosts / cert / sshfp).</summary>
+    /// <summary>
+    /// The peer's host key was accepted, and how it was trusted (pin / known_hosts / cert / sshfp).
+    /// </summary>
     public sealed record HostKeyAcceptedEvent(DateTimeOffset Timestamp, String Fingerprint, String TrustSource) : SshAuditEvent(Timestamp);
 
-    /// <summary>The peer's host key was rejected, with the real reason.</summary>
+    /// <summary>
+    /// The peer's host key was rejected, with the real reason.
+    /// </summary>
     public sealed record HostKeyRejectedEvent(DateTimeOffset Timestamp, String Fingerprint, String Reason) : SshAuditEvent(Timestamp);
 
-    /// <summary>An authentication attempt was made with a given method and identity.</summary>
+    /// <summary>
+    /// An authentication attempt was made with a given method and identity.
+    /// </summary>
     public sealed record AuthAttemptEvent(DateTimeOffset Timestamp, String Username, String Method, String? Identity) : SshAuditEvent(Timestamp);
 
-    /// <summary>Authentication succeeded and an access profile was assigned.</summary>
+    /// <summary>
+    /// Authentication succeeded and an access profile was assigned.
+    /// </summary>
     public sealed record AuthorizedEvent(DateTimeOffset Timestamp, String Username, String? AccessProfile) : SshAuditEvent(Timestamp);
 
-    /// <summary>A session channel was opened.</summary>
+    /// <summary>
+    /// A session channel was opened.
+    /// </summary>
     public sealed record SessionOpenedEvent(DateTimeOffset Timestamp, String Username) : SshAuditEvent(Timestamp);
 
-    /// <summary>A session channel was closed.</summary>
+    /// <summary>
+    /// A session channel was closed.
+    /// </summary>
     public sealed record SessionClosedEvent(DateTimeOffset Timestamp, String Username) : SshAuditEvent(Timestamp);
 
-    /// <summary>A channel of the given type was opened (session / direct-tcpip / tcpip-forward).</summary>
+    /// <summary>
+    /// A channel of the given type was opened (session / direct-tcpip / tcpip-forward).
+    /// </summary>
     public sealed record ChannelOpenedEvent(DateTimeOffset Timestamp, String ChannelType) : SshAuditEvent(Timestamp);
 
-    /// <summary>A command was requested via <c>exec</c>.</summary>
+    /// <summary>
+    /// A command was requested via <c>exec</c>.
+    /// </summary>
     public sealed record ExecRequestedEvent(DateTimeOffset Timestamp, String Command) : SshAuditEvent(Timestamp);
 
-    /// <summary>A subsystem was requested.</summary>
+    /// <summary>
+    /// A subsystem was requested.
+    /// </summary>
     public sealed record SubsystemRequestedEvent(DateTimeOffset Timestamp, String Subsystem) : SshAuditEvent(Timestamp);
 
-    /// <summary>An SFTP operation was handled.</summary>
+    /// <summary>
+    /// An SFTP operation was handled.
+    /// </summary>
     public sealed record SftpOperationEvent(DateTimeOffset Timestamp, String Operation, String Path, Int64 Bytes, String Result) : SshAuditEvent(Timestamp);
 
-    /// <summary>A request was denied by an ACL, access profile or quota — what and why.</summary>
+    /// <summary>
+    /// A request was denied by an ACL, access profile or quota — what and why.
+    /// </summary>
     public sealed record PolicyDeniedEvent(DateTimeOffset Timestamp, String PolicyType, String Target, String Reason) : SshAuditEvent(Timestamp);
 
-    /// <summary>A configured limit was exceeded.</summary>
+    /// <summary>
+    /// A configured limit was exceeded.
+    /// </summary>
     public sealed record LimitExceededEvent(DateTimeOffset Timestamp, String Limit, String Detail) : SshAuditEvent(Timestamp);
 
-    /// <summary>The connection was disconnected with a code and description.</summary>
+    /// <summary>
+    /// The connection was disconnected with a code and description.
+    /// </summary>
     public sealed record DisconnectedEvent(DateTimeOffset Timestamp, UInt32 Code, String Description) : SshAuditEvent(Timestamp);
 
     #endregion
@@ -97,7 +133,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly String?        peerEndpoint;
         private readonly SshRole        role;
 
-        /// <summary>Create a context that stamps the given envelope onto events routed to <paramref name="Inner"/>.</summary>
+        /// <summary>
+        /// Create a context that stamps the given envelope onto events routed to <paramref name="Inner"/>.
+        /// </summary>
         public SshAuditContext(ISshAuditSink Inner, String ConnectionId, String? PeerEndpoint, SshRole Role)
         {
             this.inner         = Inner;
@@ -119,14 +157,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #region BoundedAuditSink
 
-    /// <summary>How a <see cref="BoundedAuditSink"/> behaves when its queue is full.</summary>
+    /// <summary>
+    /// How a <see cref="BoundedAuditSink"/> behaves when its queue is full.
+    /// </summary>
     public enum AuditOverflowPolicy
     {
-        /// <summary>Drop the oldest queued event to make room (and count it).</summary>
+        /// <summary>
+        /// Drop the oldest queued event to make room (and count it).
+        /// </summary>
         DropOldest,
-        /// <summary>Drop the incoming event (and count it).</summary>
+        /// <summary>
+        /// Drop the incoming event (and count it).
+        /// </summary>
         DropNewest,
-        /// <summary>Apply backpressure — wait for room (may briefly block the caller).</summary>
+        /// <summary>
+        /// Apply backpressure — wait for room (may briefly block the caller).
+        /// </summary>
         Block
     }
 
@@ -153,14 +199,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Properties
 
-        /// <summary>How many events have been dropped due to overflow.</summary>
+        /// <summary>
+        /// How many events have been dropped due to overflow.
+        /// </summary>
         public Int64 DroppedCount => Interlocked.Read(ref dropped);
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>Create a bounded audit sink forwarding to <paramref name="Inner"/>.</summary>
+        /// <summary>
+        /// Create a bounded audit sink forwarding to <paramref name="Inner"/>.
+        /// </summary>
         public BoundedAuditSink(ISshAuditSink Inner, Int32 Capacity = 1024, AuditOverflowPolicy Policy = AuditOverflowPolicy.DropOldest)
         {
             this.inner    = Inner;
@@ -224,7 +274,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region DisposeAsync()
 
-        /// <summary>Complete the queue and flush the pump to the inner sink.</summary>
+        /// <summary>
+        /// Complete the queue and flush the pump to the inner sink.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             channel.Writer.TryComplete();
