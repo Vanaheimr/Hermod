@@ -115,11 +115,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
-        public URLHost? VirtualHostname { get; set; }
+        public HTTPHostname?  VirtualHostname      { get; set; }
 
-        public Boolean UseHTTPPipelining { get; set; }
+        public Boolean        UseHTTPPipelining    { get; set; }
 
-        public Boolean Connected
+        public Boolean        Connected
             => IsHTTPConnected;
 
         #endregion
@@ -237,8 +237,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
                                                                           Host                                       = TCPPort.HasValue
-                                                                                                                           ? URLHost.Parse(IPAddress.ToString(), TCPPort.Value)
-                                                                                                                           : URLHost.Parse(IPAddress.ToString()),
+                                                                                                                           ? HTTPHostname.Parse(IPAddress.ToString(), TCPPort.Value)
+                                                                                                                           : HTTPHostname.Parse(IPAddress.ToString()),
                                                                           Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                           UserAgent                                  = httpClient.HTTPUserAgent,
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                                    Host                                       = URL.Host,
+                                                                                    Host                                       = URL.HostHeader,
                                                                                     Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                     UserAgent                                  = httpClient.HTTPUserAgent,
                                                                                     ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                          Host                                       = URLHost.Parse(DomainName.FullName.TrimEnd('.')),
+                                                                          Host                                       = HTTPHostname.Parse(DomainName.FullName.TrimEnd('.')),
                                                                           Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                           UserAgent                                  = httpClient.HTTPUserAgent,
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,

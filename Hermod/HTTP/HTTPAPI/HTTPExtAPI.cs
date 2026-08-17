@@ -3228,7 +3228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     request  = new HTTPRequest.Builder(httpsClient) {
                                                    HTTPMethod     = notification.Method,
-                                                   Host           = notification.RemoteURL.Host,
+                                                   Host           = notification.RemoteURL.HostHeader,
                                                    Path           = notification.RemoteURL.Path,
                                                    Content        = new JArray(JSONNotification).ToUTF8Bytes(),
                                                    ContentType    = HTTPContentType.Application.JSON_UTF8,

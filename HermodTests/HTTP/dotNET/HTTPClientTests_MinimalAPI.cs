@@ -263,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpClient    = new HTTPClient(URL.Parse(BaseURL));
             var httpResponse  = await httpClient.GET(HTTPPath.Root,
                                                      RequestBuilder: requestBuilder => {
-                                                         requestBuilder.Host = URLHost.Localhost;
+                                                         requestBuilder.Host = HTTPHostname.Localhost;
                                                      }).
                                                  ConfigureAwait(false);
 

@@ -320,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Host
 
-            public URLHost Host
+            public HTTPHostname Host
             {
 
                 get
@@ -1262,7 +1262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Host header field.
             /// </summary>
             /// <param name="Host">Host.</param>
-            public Builder SetHost(URLHost Host)
+            public Builder SetHost(HTTPHostname Host)
             {
                 this.Host = Host;
                 return this;

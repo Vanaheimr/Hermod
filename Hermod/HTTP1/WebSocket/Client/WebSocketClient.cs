@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The virtual HTTP hostname to connect to.
         /// </summary>
-        public URLHost?                                                            VirtualHostname                       { get; }
+        public HTTPHostname?                                                       VirtualHostname                       { get; }
 
         /// <summary>
         /// The remote TLS certificate validator.
@@ -437,7 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                IPPort                                                          TCPPort,
                                I18NString?                                                     Description                      = null,
 
-                               URLHost?                                                        VirtualHostname                  = null,
+                               HTTPHostname?                                                   VirtualHostname                  = null,
                                String?                                                         HTTPUserAgent                    = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                                            HTTPAuthentication               = null,
                                IEnumerable<String>?                                            SecWebSocketProtocols            = null,
@@ -592,7 +592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketClient(URL                                                             URL,
                                I18NString?                                                     Description                      = null,
 
-                               URLHost?                                                        VirtualHostname                  = null,
+                               HTTPHostname?                                                   VirtualHostname                  = null,
                                String?                                                         HTTPUserAgent                    = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                                            HTTPAuthentication               = null,
                                IEnumerable<String>?                                            SecWebSocketProtocols            = null,
@@ -751,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                SRV_Spec                                                        DNSService,
                                I18NString?                                                     Description                      = null,
 
-                               URLHost?                                                        VirtualHostname                  = null,
+                               HTTPHostname?                                                   VirtualHostname                  = null,
                                String?                                                         HTTPUserAgent                    = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                                            HTTPAuthentication               = null,
                                IEnumerable<String>?                                            SecWebSocketProtocols            = null,
@@ -935,7 +935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var httpRequestBuilder  = new HTTPRequest.Builder(this) {
                                           Path                  = RemoteURL.Path,
                                           QueryString           = RemoteURL.QueryString ?? QueryString.Empty,
-                                          Host                  = RemoteURL.Host,
+                                          Host                  = RemoteURL.HostHeader,
                                           Connection            = ConnectionType.Upgrade,
                                           Upgrade               = "websocket",
                                           SecWebSocketKey       = swkaSHA1Base64,

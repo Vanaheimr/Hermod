@@ -809,7 +809,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var httpRequestBuilder = DefaultRequestBuilder(this);
 
-                httpRequestBuilder.SetHost(RemoteURL.Host);
+                httpRequestBuilder.SetHost(RemoteURL.HostHeader);
 
                 if (Mode == DNSHTTPSMode.GET)
                 {

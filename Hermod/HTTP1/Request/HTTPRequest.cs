@@ -920,7 +920,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Host
 
-        public URLHost Host
+        public HTTPHostname Host
 
             => GetHeaderField(HTTPRequestHeaderField.Host);
 

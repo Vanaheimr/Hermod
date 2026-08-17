@@ -392,8 +392,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public static HTTPHostname From(URLHost Host)
-            => Parse(Host.ToString());
+        public static HTTPHostname From(URLHost Host, IPPort? TCPPort)
+            => Parse(TCPPort is not null ? $"{Host}:{TCPPort}" : $"{Host}");
+
+        public static HTTPHostname From(IIPAddress IPAddress, IPPort? TCPPort)
+            => Parse(TCPPort is not null ? $"{IPAddress}:{TCPPort}" : $"{IPAddress}");
 
 
         #region Operator overloading
