@@ -724,24 +724,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             //Counters.ReadHoldingRegisters.IncRequests_OK();
 
-            try
-            {
-
-                if (OnReadHoldingRegistersRequest is not null)
-                    await Task.WhenAll(OnReadHoldingRegistersRequest.GetInvocationList().
-                                       Cast<ReadHoldingRegistersClientRequestDelegate>().
-                                       Select(e => e(startTime,
-                                                     this,
-                                                     RemoteTCPSocket ?? IPSocket.AnyV4(RemoteTCPPort),
-                                                     "",
-                                                     request))).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                DebugX.LogException(e, nameof(ModbusTCPClient) + "." + nameof(OnReadHoldingRegistersRequest));
-            }
+            // The overload with the error sink, not the one with an ILogger:
+            // this class reports through DebugX and has no ILogger to hand over.
+            await OnReadHoldingRegistersRequest.InvokeAllAsync(
+                      handler => handler(
+                                     startTime,
+                                     this,
+                                     RemoteTCPSocket ?? IPSocket.AnyV4(RemoteTCPPort),
+                                     "",
+                                     request
+                                 ),
+                      (exception, eventName) => {
+                          DebugX.LogException(exception, $"{nameof(ModbusTCPClient)}.{eventName}");
+                          return Task.CompletedTask;
+                      }
+                  );
 
             #endregion
 
@@ -776,26 +773,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var endTime = Timestamp.Now;
 
-            try
-            {
-
-                if (OnReadHoldingRegistersResponse is not null)
-                    await Task.WhenAll(OnReadHoldingRegistersResponse.GetInvocationList().
-                                       Cast<ReadHoldingRegistersClientResponseDelegate>().
-                                       Select(e => e(endTime,
-                                                     this,
-                                                     RemoteTCPSocket ?? IPSocket.AnyV4(RemoteTCPPort),
-                                                     "",
-                                                     request,
-                                                     response,
-                                                     endTime - startTime))).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                DebugX.LogException(e, nameof(ModbusTCPClient) + "." + nameof(OnReadHoldingRegistersResponse));
-            }
+            await OnReadHoldingRegistersResponse.InvokeAllAsync(
+                      handler => handler(
+                                     endTime,
+                                     this,
+                                     RemoteTCPSocket ?? IPSocket.AnyV4(RemoteTCPPort),
+                                     "",
+                                     request,
+                                     response,
+                                     endTime - startTime
+                                 ),
+                      (exception, eventName) => {
+                          DebugX.LogException(exception, $"{nameof(ModbusTCPClient)}.{eventName}");
+                          return Task.CompletedTask;
+                      }
+                  );
 
             #endregion
 

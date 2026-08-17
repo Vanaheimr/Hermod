@@ -754,166 +754,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             #region Send OnTextMessageSent    event
 
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
-            {
-                var logger = OnTextMessageSent;
-                if (logger is not null)
-                {
-                    try
-                    {
-
-                        await Task.WhenAll(logger.GetInvocationList().
-                                                OfType<OnWebSocketServerTextMessageSentDelegate>().
-                                                Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                              Timestamp.Now,
-                                                                              this,
-                                                                              Connection,
-                                                                              WebSocketFrame,
-                                                                              EventTrackingId,
-                                                                              WebSocketFrame.Payload.ToUTF8String(),
-                                                                              sentStatus,
-                                                                              CancellationToken
-                                                                          )));
-
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnTextMessageSent));
-                    }
-                }
-            }
+                await OnTextMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload.ToUTF8String(),
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
 
             #endregion
 
             #region Send OnBinaryMessageSent  event
 
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
-            {
-                var logger = OnBinaryMessageSent;
-                if (logger is not null)
-                {
-                    try
-                    {
-
-                        await Task.WhenAll(logger.GetInvocationList().
-                                                OfType<OnWebSocketServerBinaryMessageSentDelegate>().
-                                                Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                              Timestamp.Now,
-                                                                              this,
-                                                                              Connection,
-                                                                              WebSocketFrame,
-                                                                              EventTrackingId,
-                                                                              WebSocketFrame.Payload,
-                                                                              sentStatus,
-                                                                              CancellationToken
-                                                                          )));
-
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnBinaryMessageSent));
-                    }
-                }
-            }
+                await OnBinaryMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload,
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
 
             #endregion
 
             #region Send OnPingMessageSent    event
 
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Ping)
-            {
-                var logger = OnPingMessageSent;
-                if (logger is not null)
-                {
-                    try
-                    {
-
-                        await Task.WhenAll(logger.GetInvocationList().
-                                                OfType<OnWebSocketServerPingMessageSentDelegate>().
-                                                Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                              Timestamp.Now,
-                                                                              this,
-                                                                              Connection,
-                                                                              WebSocketFrame,
-                                                                              EventTrackingId,
-                                                                              WebSocketFrame.Payload,
-                                                                              sentStatus,
-                                                                              CancellationToken
-                                                                          )));
-
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnPingMessageSent));
-                    }
-                }
-            }
+                await OnPingMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload,
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
 
             #endregion
 
             #region Send OnPongMessageSent    event
 
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Pong)
-            {
-                var logger = OnPongMessageSent;
-                if (logger is not null)
-                {
-                    try
-                    {
-
-                        await Task.WhenAll(logger.GetInvocationList().
-                                                OfType<OnWebSocketServerPongMessageSentDelegate>().
-                                                Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                              Timestamp.Now,
-                                                                              this,
-                                                                              Connection,
-                                                                              WebSocketFrame,
-                                                                              EventTrackingId,
-                                                                              WebSocketFrame.Payload,
-                                                                              sentStatus,
-                                                                              CancellationToken
-                                                                          )));
-
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnPongMessageSent));
-                    }
-                }
-            }
+                await OnPongMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload,
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
 
             #endregion
 
             #region Send OnCloseMessageSent   event
 
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Close)
-            {
-                var logger = OnCloseMessageSent;
-                if (logger is not null)
-                {
-                    try
-                    {
-
-                        await Task.WhenAll(logger.GetInvocationList().
-                                                OfType<OnWebSocketServerCloseMessageSentDelegate>().
-                                                Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                              Timestamp.Now,
-                                                                              this,
-                                                                              Connection,
-                                                                              WebSocketFrame,
-                                                                              EventTrackingId,
-                                                                              WebSocketFrame.GetClosingStatusCode(),
-                                                                              WebSocketFrame.GetClosingReason(),
-                                                                              sentStatus,
-                                                                              CancellationToken
-                                                                          )));
-
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnCloseMessageSent));
-                    }
-                }
-            }
+                await OnCloseMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.GetClosingStatusCode(),
+                                         WebSocketFrame.GetClosingReason(),
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
 
             #endregion
 
@@ -1076,65 +1006,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region Send OnNewTCPConnection event
 
-                                                var onNewTCPConnection = OnNewTCPConnection;
-                                                if (onNewTCPConnection is not null)
-                                                {
-                                                    try
-                                                    {
-
-                                                        await Task.WhenAll(
-                                                                  onNewTCPConnection.GetInvocationList().
-                                                                      OfType<OnNewTCPConnectionDelegate>().
-                                                                      Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                                     Timestamp.Now,
-                                                                                                     this,
-                                                                                                     webSocketConnection,
-                                                                                                     EventTracking_Id.New,
-                                                                                                     token2
-                                                                                                 ))
-                                                              );
-
-                                                    }
-                                                    catch (Exception e)
-                                                    {
-                                                        Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnNewTCPConnection));
-                                                    }
-                                                }
+                                                await OnNewTCPConnection.InvokeAllAsync(
+                                                          handler => handler(
+                                                                         Timestamp.Now,
+                                                                         this,
+                                                                         webSocketConnection,
+                                                                         EventTracking_Id.New,
+                                                                         token2
+                                                                     ),
+                                                          Logger
+                                                      );
 
                                                 #endregion
 
                                                 #region Send OnNewTLSConnection event
 
                                                 if (webSocketConnection.ClientCertificate is not null)
-                                                {
-
-                                                    var onNewTLSConnection = OnNewTLSConnection;
-                                                    if (onNewTLSConnection is not null)
-                                                    {
-                                                        try
-                                                        {
-
-                                                            await Task.WhenAll(
-                                                                      onNewTLSConnection.GetInvocationList().
-                                                                          OfType<OnNewTLSConnectionDelegate>().
-                                                                          Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                                         Timestamp.Now,
-                                                                                                         this,
-                                                                                                         webSocketConnection,
-                                                                                                         EventTracking_Id.New,
-                                                                                                         token
-                                                                                                     )).
-                                                                          ToArray()
-                                                                  );
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnNewTLSConnection));
-                                                        }
-                                                    }
-
-                                                }
+                                                    await OnNewTLSConnection.InvokeAllAsync(
+                                                              handler => handler(
+                                                                             Timestamp.Now,
+                                                                             this,
+                                                                             webSocketConnection,
+                                                                             EventTracking_Id.New,
+                                                                             token
+                                                                         ),
+                                                              Logger
+                                                          );
 
                                                 #endregion
 
@@ -1361,6 +1258,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                             #region OnValidateWebSocketConnection
 
+                                                            // Not InvokeAllAsync, and not an oversight. This is not a
+                                                            // notification but a decision: what the handlers return is
+                                                            // the answer to whether this upgrade happens at all.
+                                                            // InvokeAllAsync returns Task and swallows what a handler
+                                                            // throws, which here would turn "the validator failed,
+                                                            // therefore refuse" into "the validator failed, therefore
+                                                            // let them in".
                                                             var onValidateWebSocketConnection = OnValidateWebSocketConnection;
                                                             if (onValidateWebSocketConnection is not null)
                                                             {
@@ -2213,6 +2117,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var validatedTCPConnections = Array.Empty<ConnectionFilterResponse>();
 
+            // Not InvokeAllAsync, and for the same reason as
+            // OnValidateWebSocketConnection above: what comes back decides
+            // whether the connection is accepted, and an invoker that returns
+            // Task and swallows exceptions cannot carry a refusal.
             var onValidateTCPConnection = OnValidateTCPConnection;
             if (onValidateTCPConnection is not null)
             {
@@ -2382,32 +2290,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (private) LogEvent(Logger, LogHandler, ...)
 
-        private async Task LogEvent<TDelegate>(TDelegate?                                         Logger,
-                                               Func<TDelegate, Task>                              LogHandler,
-                                               [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
-                                               [CallerMemberName()]                       String  Command     = "")
+        /// <remarks>
+        /// <c>EventName</c> is passed on rather than left to the compiler a
+        /// second time: down there the call site is this method, so
+        /// <c>CallerArgumentExpression</c> would fill in "Logger" for every
+        /// event there is.
+        /// </remarks>
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                         [CallerMemberName()]                       String  Command     = "")
 
             where TDelegate : Delegate
 
-        {
-            if (Logger is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(
-                              Logger.GetInvocationList().
-                                     OfType<TDelegate>().
-                                     Select(LogHandler)
-                          );
-
-                }
-                catch (Exception e)
-                {
-                    await HandleErrors($"WebSocketClient: {Command}.{EventName}", e);
-                }
-            }
-        }
+            => Logger.InvokeAllAsync(
+                   LogHandler,
+                   (exception, eventName) => HandleErrors($"WebSocketClient: {Command}.{eventName}", exception),
+                   EventName
+               );
 
         #endregion
 

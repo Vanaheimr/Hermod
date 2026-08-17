@@ -1423,33 +1423,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) LogEvent     (Module, Logger, LogHandler, ...)
 
-        protected async Task LogEvent<TDelegate>(String                                             Module,
-                                                 TDelegate?                                         Logger,
-                                                 Func<TDelegate, Task>                              LogHandler,
-                                                 [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
-                                                 [CallerMemberName()]                       String  Command     = "")
+        /// <remarks>
+        /// <c>EventName</c> is passed on rather than left to the compiler a
+        /// second time: down there the call site is this method, so
+        /// <c>CallerArgumentExpression</c> would fill in "Logger" for every
+        /// event there is.
+        /// </remarks>
+        protected Task LogEvent<TDelegate>(String                                             Module,
+                                           TDelegate?                                         Logger,
+                                           Func<TDelegate, Task>                              LogHandler,
+                                           [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                           [CallerMemberName()]                       String  Command     = "")
 
             where TDelegate : Delegate
 
-        {
-            if (Logger is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(
-                              Logger.GetInvocationList().
-                                     OfType<TDelegate>().
-                                     Select(LogHandler)
-                          ).ConfigureAwait(false);
-
-                }
-                catch (Exception e)
-                {
-                    await HandleErrors(Module, $"{Command}.{EventName}", e);
-                }
-            }
-        }
+            => Logger.InvokeAllAsync(
+                   LogHandler,
+                   (exception, eventName) => HandleErrors(Module, $"{Command}.{eventName}", exception),
+                   EventName
+               );
 
         #endregion
 

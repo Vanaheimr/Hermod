@@ -178,30 +178,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                       CancellationToken          CancellationToken)
         {
 
-            var onTextMessageReceived = OnTextMessageReceived;
-            if (onTextMessageReceived is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(onTextMessageReceived.GetInvocationList().
-                                           OfType<OnWebSocketServerTextMessageReceivedDelegate>().
-                                           Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                         RequestTimestamp,
-                                                                         this,
-                                                                         Connection,
-                                                                         TextFrame,
-                                                                         EventTrackingId,
-                                                                         TextMessage,
-                                                                         CancellationToken
-                                                                     )));
-
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Exception while processing {EventName}.", nameof(OnTextMessageReceived));
-                }
-            }
+            await OnTextMessageReceived.InvokeAllAsync(
+                      handler => handler(
+                                     RequestTimestamp,
+                                     this,
+                                     Connection,
+                                     TextFrame,
+                                     EventTrackingId,
+                                     TextMessage,
+                                     CancellationToken
+                                 ),
+                      Logger
+                  );
 
         }
 
@@ -226,30 +214,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         CancellationToken          CancellationToken)
         {
 
-            var onBinaryMessageReceived = OnBinaryMessageReceived;
-            if (onBinaryMessageReceived is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(onBinaryMessageReceived.GetInvocationList().
-                                           OfType<OnWebSocketServerBinaryMessageReceivedDelegate>().
-                                           Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                         RequestTimestamp,
-                                                                         this,
-                                                                         Connection,
-                                                                         BinaryFrame,
-                                                                         EventTrackingId,
-                                                                         BinaryMessage,
-                                                                         CancellationToken
-                                                                     )));
-
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Exception while processing {EventName}.", nameof(OnBinaryMessageReceived));
-                }
-            }
+            await OnBinaryMessageReceived.InvokeAllAsync(
+                      handler => handler(
+                                     RequestTimestamp,
+                                     this,
+                                     Connection,
+                                     BinaryFrame,
+                                     EventTrackingId,
+                                     BinaryMessage,
+                                     CancellationToken
+                                 ),
+                      Logger
+                  );
 
         }
 

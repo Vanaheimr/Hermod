@@ -670,24 +670,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var startTime = Timestamp.Now;
 
-            try
-            {
-
-                if (OnSendEMailRequest is not null)
-                    await Task.WhenAll(OnSendEMailRequest.GetInvocationList().
-                                       Cast<OnSendEMailRequestDelegate>().
-                                       Select(e => e(startTime,
-                                                     this,
-                                                     eventTrackingId,
-                                                     EMailEnvelop,
-                                                     RequestTimeout))).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                smtpLogger.LogError(e, "SMTP OnSendEMailRequest event failed.");
-            }
+            await OnSendEMailRequest.InvokeAllAsync(
+                      handler => handler(
+                                     startTime,
+                                     this,
+                                     eventTrackingId,
+                                     EMailEnvelop,
+                                     RequestTimeout
+                                 ),
+                      smtpLogger
+                  );
 
             #endregion
 
@@ -1193,26 +1185,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var endTime = Timestamp.Now;
 
-            try
-            {
-
-                if (OnSendEMailResponse is not null)
-                    await Task.WhenAll(OnSendEMailResponse.GetInvocationList().
-                                       Cast<OnSendEMailResponseDelegate>().
-                                       Select(e => e(endTime,
-                                                     this,
-                                                     eventTrackingId,
-                                                     EMailEnvelop,
-                                                     RequestTimeout,
-                                                     result,
-                                                     endTime - startTime))).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                smtpLogger.LogError(e, "SMTP OnSendEMailResponse event failed.");
-            }
+            await OnSendEMailResponse.InvokeAllAsync(
+                      handler => handler(
+                                     endTime,
+                                     this,
+                                     eventTrackingId,
+                                     EMailEnvelop,
+                                     RequestTimeout,
+                                     result,
+                                     endTime - startTime
+                                 ),
+                      smtpLogger
+                  );
 
             #endregion
 

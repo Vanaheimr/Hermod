@@ -44,7 +44,14 @@ Hermod is a .NET library for simplified advanced networking tasks...
 - `EventInvocation.InvokeAllAsync` — one way to raise an event, so that a
   handler which throws is a handler which throws and not a connection which
   dies. It awaits every subscriber, in the order subscribed, wraps each of them
-  on its own, and lets nothing back out to whoever raised the event. Written
-  for Ratatoskr, which raises all of its events through it; it lives here
-  because nothing about it is XMPP and because the largest collection of the
-  two mistakes it avoids is in this library.
+  on its own, and lets nothing back out to whoever raised the event. A failing
+  handler is reported either to an `ILogger` or to a sink of the caller's own,
+  for whoever already reports somewhere — an overridable `HandleErrors`, a
+  `DebugX` — and would lose that by handing over a logger.
+
+  Everything in this library that raises an event goes through it, the six
+  copies of the private `LogEvent` helper included. Three places deliberately
+  do not, and say so where they stand: `OnValidateWebSocketConnection`,
+  `OnValidateTCPConnection` and `HTTPTestServer.ProcessHTTP` read what their
+  handlers return, and an invoker that returns `Task` and swallows exceptions
+  cannot carry a refusal.

@@ -89,12 +89,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// decides whether the connection lives. Whoever wants their exception to
         /// have consequences has to say so in their own handler.
         /// </remarks>
-        public static async Task InvokeAllAsync<TDelegate>(this TDelegate?        Handlers,
-                                                           Func<TDelegate, Task>  Invocation,
-                                                           ILogger?               Logger,
+        public static Task InvokeAllAsync<TDelegate>(this TDelegate?        Handlers,
+                                                     Func<TDelegate, Task>  Invocation,
+                                                     ILogger?               Logger,
 
-                                                           [CallerArgumentExpression(nameof(Handlers))]
-                                                           String?                EventName   = null)
+                                                     [CallerArgumentExpression(nameof(Handlers))]
+                                                     String?                EventName   = null)
+
+            where TDelegate : Delegate
+
+            => InvokeAllAsync(Handlers, Invocation, Logger, null, EventName);
+
+        #endregion
+
+        #region InvokeAllAsync(this Handlers, Invocation, OnHandlerFailed, EventName = ...)
+
+        /// <summary>
+        /// Calls every registered handler and waits for it, handing a failing
+        /// one to the caller instead of to a logger.
+        /// </summary>
+        /// <param name="Handlers">The event; null when nobody has subscribed.</param>
+        /// <param name="Invocation">Calls one handler with the arguments of this event.</param>
+        /// <param name="OnHandlerFailed">
+        /// Where a failing handler is reported, with the name of the event as
+        /// the second argument.
+        /// </param>
+        /// <param name="EventName">
+        /// The name of the event - supplied by the compiler from the call site,
+        /// so that it cannot fall out of step with the event it names. Pass it
+        /// on explicitly when forwarding from another such method, or the
+        /// compiler fills in the name of *that* method's parameter.
+        /// </param>
+        /// <remarks>
+        /// For whoever already has somewhere to send it and would lose that by
+        /// handing over an <c>ILogger</c>. Both kinds are in this library: the
+        /// <c>LogEvent</c> helpers report through an overridable
+        /// <c>HandleErrors</c>, and a class that overrides it would find its
+        /// override bypassed; <c>ModbusTCPClient</c> and <c>NullMailer</c>
+        /// report through <c>DebugX</c> and have no <c>ILogger</c> to hand over
+        /// in the first place.
+        ///
+        /// Otherwise exactly as the overload above - one handler after another,
+        /// each in its own try/catch, and nothing back out to the raiser.
+        ///
+        /// <b>A sink that throws is swallowed</b>, and there is nowhere left to
+        /// say so. Letting it out would undo the whole exercise: the raiser
+        /// would be taken down by a subscriber after all, one step further along
+        /// than before.
+        /// </remarks>
+        public static Task InvokeAllAsync<TDelegate>(this TDelegate?                Handlers,
+                                                     Func<TDelegate, Task>          Invocation,
+                                                     Func<Exception, String, Task>  OnHandlerFailed,
+
+                                                     [CallerArgumentExpression(nameof(Handlers))]
+                                                     String?                        EventName   = null)
+
+            where TDelegate : Delegate
+
+            => InvokeAllAsync(Handlers, Invocation, null, OnHandlerFailed, EventName);
+
+        #endregion
+
+        #region (private) InvokeAllAsync(Handlers, Invocation, Logger, OnHandlerFailed, EventName)
+
+        /// <summary>
+        /// The one implementation. Both ways in pass what they have and null
+        /// for the other, so neither pays for a closure that only bridges to
+        /// the other's shape.
+        /// </summary>
+        private static async Task InvokeAllAsync<TDelegate>(TDelegate?                      Handlers,
+                                                            Func<TDelegate, Task>           Invocation,
+                                                            ILogger?                        Logger,
+                                                            Func<Exception, String, Task>?  OnHandlerFailed,
+                                                            String?                         EventName)
 
             where TDelegate : Delegate
 
@@ -118,9 +185,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 catch (Exception e)
                 {
+
                     Logger?.LogError(e,
                                      "A handler of {EventName} threw - the event carries on to the remaining handlers",
                                      EventName ?? "an event");
+
+                    if (OnHandlerFailed is not null)
+                    {
+                        try
+                        {
+                            await OnHandlerFailed(e, EventName ?? "an event").ConfigureAwait(false);
+                        }
+                        catch
+                        { }
+                    }
+
                 }
             }
 

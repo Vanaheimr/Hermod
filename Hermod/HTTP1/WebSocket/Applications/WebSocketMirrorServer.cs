@@ -167,32 +167,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                       CancellationToken          CancellationToken)
         {
 
-            var responses = Array.Empty<WebSocketTextMessageResponse>();
-
-            var onTextMessage = OnTextMessageReceived;
-            if (onTextMessage is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(onTextMessage.GetInvocationList().
-                                           OfType<OnWebSocketServerTextMessageReceivedDelegate>().
-                                           Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                         RequestTimestamp,
-                                                                         this,
-                                                                         Connection,
-                                                                         TextFrame,
-                                                                         EventTrackingId,
-                                                                         TextMessage,
-                                                                         CancellationToken
-                                                                     )));
-
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Exception while processing {EventName}.", nameof(OnTextMessageReceived));
-                }
-            }
+            // The `responses` array that used to stand here went with the
+            // rewrite: it was assigned once, empty, and never read again.
+            await OnTextMessageReceived.InvokeAllAsync(
+                      handler => handler(
+                                     RequestTimestamp,
+                                     this,
+                                     Connection,
+                                     TextFrame,
+                                     EventTrackingId,
+                                     TextMessage,
+                                     CancellationToken
+                                 ),
+                      Logger
+                  );
 
 
             var result = await SendTextMessage(
@@ -228,32 +216,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         CancellationToken          CancellationToken)
         {
 
-            var responses = Array.Empty<WebSocketBinaryMessageResponse>();
-
-            var onBinaryMessage = OnBinaryMessageReceived;
-            if (onBinaryMessage is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(onBinaryMessage.GetInvocationList().
-                                           OfType<OnWebSocketServerBinaryMessageReceivedDelegate>().
-                                           Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                         RequestTimestamp,
-                                                                         this,
-                                                                         Connection,
-                                                                         BinaryFrame,
-                                                                         EventTrackingId,
-                                                                         BinaryMessage,
-                                                                         CancellationToken
-                                                                     )));
-
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Exception while processing {EventName}.", nameof(OnBinaryMessageReceived));
-                }
-            }
+            // As above: the empty `responses` array was never read.
+            await OnBinaryMessageReceived.InvokeAllAsync(
+                      handler => handler(
+                                     RequestTimestamp,
+                                     this,
+                                     Connection,
+                                     BinaryFrame,
+                                     EventTrackingId,
+                                     BinaryMessage,
+                                     CancellationToken
+                                 ),
+                      Logger
+                  );
 
 
             var result = await SendBinaryMessage(

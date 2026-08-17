@@ -329,6 +329,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
         /// <summary>
         /// The logger is optional; the containment is not.
         /// </summary>
+        /// <remarks>
+        /// The cast is not decoration. A bare <c>null</c> fits both overloads -
+        /// an absent <c>ILogger</c> and an absent error sink - and the compiler
+        /// says so rather than guessing. Which of the two is meant is what this
+        /// test is about, so it says which.
+        /// </remarks>
         [Test]
         public async Task WithoutALogger_AFailingHandlerIsStillContained()
         {
@@ -350,10 +356,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
                                      "something",
                                      CancellationToken.None
                                  ),
-                      null
+                      (ILogger?) null
                   );
 
             Assert.That(behind, Is.True);
+
+        }
+
+        #endregion
+
+
+        #region AnErrorSinkIsToldWhatFailedAndWhichEventItWas()
+
+        /// <summary>
+        /// The second way in, for whoever reports somewhere of their own.
+        /// </summary>
+        /// <remarks>
+        /// It exists because handing over an <c>ILogger</c> would be a loss for
+        /// two kinds of caller in this library: the <c>LogEvent</c> helpers
+        /// report through an overridable <c>HandleErrors</c>, and
+        /// <c>ModbusTCPClient</c> and <c>NullMailer</c> report through
+        /// <c>DebugX</c> and have no <c>ILogger</c> at all.
+        /// </remarks>
+        [Test]
+        public async Task AnErrorSinkIsToldWhatFailedAndWhichEventItWas()
+        {
+
+            var reported = new List<(String EventName, String Message)>();
+            var behind   = false;
+
+            OnSomethingHappened += (timestamp, sender, text, ct)
+                => throw new InvalidOperationException("a subscriber's problem");
+
+            OnSomethingHappened += (timestamp, sender, text, ct) => {
+                behind = true;
+                return Task.CompletedTask;
+            };
+
+            await OnSomethingHappened.InvokeAllAsync(
+                      handler => handler(
+                                     Timestamp.Now,
+                                     this,
+                                     "something",
+                                     CancellationToken.None
+                                 ),
+                      (exception, eventName) => {
+                          reported.Add((eventName, exception.Message));
+                          return Task.CompletedTask;
+                      }
+                  );
+
+            Assert.That(reported,               Has.Count.EqualTo(1));
+            Assert.That(reported[0].EventName,  Is.EqualTo(nameof(OnSomethingHappened)));
+            Assert.That(reported[0].Message,    Is.EqualTo("a subscriber's problem"));
+            Assert.That(behind,                 Is.True);
+
+        }
+
+        #endregion
+
+        #region AnErrorSinkThatThrows_DoesNotReachTheRaiserEither()
+
+        /// <summary>
+        /// The last place a fault could still escape, and it does not.
+        /// </summary>
+        /// <remarks>
+        /// A sink that throws is swallowed without a word, because there is no
+        /// second place left to say it - the sink <i>was</i> the place. Letting
+        /// it out would undo the whole exercise: the raiser would be taken down
+        /// by a subscriber after all, one step further along than before.
+        /// </remarks>
+        [Test]
+        public async Task AnErrorSinkThatThrows_DoesNotReachTheRaiserEither()
+        {
+
+            var behind = false;
+
+            OnSomethingHappened += (timestamp, sender, text, ct)
+                => throw new InvalidOperationException("a subscriber's problem");
+
+            OnSomethingHappened += (timestamp, sender, text, ct) => {
+                behind = true;
+                return Task.CompletedTask;
+            };
+
+            await OnSomethingHappened.InvokeAllAsync(
+                      handler => handler(
+                                     Timestamp.Now,
+                                     this,
+                                     "something",
+                                     CancellationToken.None
+                                 ),
+                      (exception, eventName)
+                          => throw new InvalidOperationException("and the reporting is broken too")
+                  );
+
+            Assert.That(behind, Is.True, "The handlers behind it still run.");
 
         }
 

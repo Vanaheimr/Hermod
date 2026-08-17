@@ -199,6 +199,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             HTTPResponse? response = null;
 
+            // Not InvokeAllAsync, and not an oversight: this is not an event
+            // being raised but a request being dispatched. What comes back is
+            // the answer that goes on the wire - note the WhenAny rather than a
+            // WhenAll - and an invoker that returns Task and swallows
+            // exceptions can carry neither.
             if (ProcessHTTP is not null)
             {
                 try

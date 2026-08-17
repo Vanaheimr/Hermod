@@ -200,24 +200,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var startTime = Timestamp.Now;
 
-            try
-            {
-
-                if (OnSendEMailRequest is not null)
-                    await Task.WhenAll(OnSendEMailRequest.GetInvocationList().
-                                        Cast<OnSendEMailRequestDelegate>().
-                                        Select(e => e(startTime,
-                                                      this,
-                                                      eventTrackingId,
-                                                      EMailEnvelop,
-                                                      RequestTimeout))).
-                                        ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                DebugX.LogException(e, nameof(NullMailer) + "." + nameof(OnSendEMailRequest));
-            }
+            // The overload with the error sink, not the one with an ILogger:
+            // this class reports through DebugX and has no ILogger to hand over.
+            await OnSendEMailRequest.InvokeAllAsync(
+                      handler => handler(
+                                     startTime,
+                                     this,
+                                     eventTrackingId,
+                                     EMailEnvelop,
+                                     RequestTimeout
+                                 ),
+                      (exception, eventName) => {
+                          DebugX.LogException(exception, $"{nameof(NullMailer)}.{eventName}");
+                          return Task.CompletedTask;
+                      }
+                  );
 
             #endregion
 
@@ -251,26 +248,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var endTime = Timestamp.Now;
 
-            try
-            {
-
-                if (OnSendEMailResponse is not null)
-                    await Task.WhenAll(OnSendEMailResponse.GetInvocationList().
-                                       Cast<OnSendEMailResponseDelegate>().
-                                       Select(e => e(endTime,
-                                                     this,
-                                                     eventTrackingId,
-                                                     EMailEnvelop,
-                                                     RequestTimeout,
-                                                     result,
-                                                     endTime - startTime))).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                DebugX.LogException(e, nameof(NullMailer) + "." + nameof(OnSendEMailResponse));
-            }
+            await OnSendEMailResponse.InvokeAllAsync(
+                      handler => handler(
+                                     endTime,
+                                     this,
+                                     eventTrackingId,
+                                     EMailEnvelop,
+                                     RequestTimeout,
+                                     result,
+                                     endTime - startTime
+                                 ),
+                      (exception, eventName) => {
+                          DebugX.LogException(exception, $"{nameof(NullMailer)}.{eventName}");
+                          return Task.CompletedTask;
+                      }
+                  );
 
             #endregion
 

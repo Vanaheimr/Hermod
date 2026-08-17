@@ -1969,23 +1969,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #region Call the optional HTTP response log delegate
 
-                    try
-                    {
-
-                        if (ResponseLogDelegate is not null)
-                            await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
-                                                Cast<ClientResponseLogHandler>().
-                                                Select(e => e(Timestamp.Now,
-                                                              this,
-                                                              httpRequest,
-                                                              httpResponse))).
-                                                ConfigureAwait(false);
-
-                    }
-                    catch (Exception e2)
-                    {
-                        Logger.LogError(e2, "Exception while invoking {EventName}.", nameof(ResponseLogDelegate));
-                    }
+                    await ResponseLogDelegate.InvokeAllAsync(
+                              handler => handler(
+                                             Timestamp.Now,
+                                             this,
+                                             httpRequest,
+                                             httpResponse
+                                         ),
+                              Logger
+                          );
 
                     #endregion
 
@@ -2552,33 +2544,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (protected) LogEvent     (Caller, Logger, LogHandler, ...)
 
-        protected new async Task LogEvent<TDelegate>(String                                             Caller,
-                                                     TDelegate?                                         Logger,
-                                                     Func<TDelegate, Task>                              LogHandler,
-                                                     [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
-                                                     [CallerMemberName()]                       String  Command     = "")
+        /// <remarks>
+        /// <c>EventName</c> is passed on rather than left to the compiler a
+        /// second time: down there the call site is this method, so
+        /// <c>CallerArgumentExpression</c> would fill in "Logger" for every
+        /// event there is.
+        /// </remarks>
+        protected new Task LogEvent<TDelegate>(String                                             Caller,
+                                               TDelegate?                                         Logger,
+                                               Func<TDelegate, Task>                              LogHandler,
+                                               [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                               [CallerMemberName()]                       String  Command     = "")
 
             where TDelegate : Delegate
 
-        {
-            if (Logger is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(
-                              Logger.GetInvocationList().
-                                     OfType<TDelegate>().
-                                     Select(LogHandler)
-                          );
-
-                }
-                catch (Exception e)
-                {
-                    await HandleErrors($"{Caller}: {Command}.{EventName}", e);
-                }
-            }
-        }
+            => Logger.InvokeAllAsync(
+                   LogHandler,
+                   (exception, eventName) => HandleErrors($"{Caller}: {Command}.{eventName}", exception),
+                   EventName
+               );
 
         #endregion
 
