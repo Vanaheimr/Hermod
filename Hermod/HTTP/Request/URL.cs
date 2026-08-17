@@ -137,11 +137,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// RFC 3986 section 3.2.3: the port is omitted when it is the scheme's default.
         /// </summary>
         public HTTPHostname  HostHeader
-            => Host.ToHTTPHostname(
-                   Port.HasValue && Port != Scheme?.DefaultPort
-                       ? Port
-                       : null
-               );
+            => Port.HasValue && Port != Scheme?.DefaultPort
+                   ? HTTPHostname.Parse($"{Host}:{Port.Value}")
+                   : HTTPHostname.Parse(Host.ToString());
 
         /// <summary>
         /// The path.

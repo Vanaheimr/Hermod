@@ -172,6 +172,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        #region (static) Parse   (Text)
+
+        /// <summary>
+        /// Parse the given text as the host of an URL.
+        /// </summary>
+        /// <param name="Text">A text representation of an URL host.</param>
+        public static URLHost Parse(String? Text, IPPort Port)
+        {
+
+            if (TryParse($"{Text}:{Port}", out var host, out var errorResponse))
+                return host;
+
+            throw new ArgumentException(errorResponse, nameof(Text));
+
+        }
+
+        #endregion
+
+
+
         #region (static) Parse   (Text)
 
         /// <summary>

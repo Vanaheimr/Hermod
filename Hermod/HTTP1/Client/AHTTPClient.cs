@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
-        public HTTPHostname? VirtualHostname { get; set; }
+        public URLHost? VirtualHostname { get; set; }
 
         public Boolean UseHTTPPipelining { get; set; }
 
@@ -237,8 +237,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
                                                                           Host                                       = TCPPort.HasValue
-                                                                                                                           ? HTTPHostname.Parse(IPAddress.ToString(), TCPPort.Value)
-                                                                                                                           : HTTPHostname.Parse(IPAddress.ToString()),
+                                                                                                                           ? URLHost.Parse(IPAddress.ToString(), TCPPort.Value)
+                                                                                                                           : URLHost.Parse(IPAddress.ToString()),
                                                                           Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                           UserAgent                                  = httpClient.HTTPUserAgent,
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                                    Host                                       = URL.HostHeader,
+                                                                                    Host                                       = URL.Host,
                                                                                     Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                     UserAgent                                  = httpClient.HTTPUserAgent,
                                                                                     ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                          Host                                       = HTTPHostname.Parse(DomainName.FullName.TrimEnd('.')),
+                                                                          Host                                       = URLHost.Parse(DomainName.FullName.TrimEnd('.')),
                                                                           Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                           UserAgent                                  = httpClient.HTTPUserAgent,
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,

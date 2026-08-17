@@ -400,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Operator +  (Path, Text)
+        #region Operator +  (Path,      Text)
 
         /// <summary>
         /// Combines a HTTP path and a string.
@@ -454,6 +454,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return Text.IsNotNullOrEmpty()
                        ? Parse(Path.Value.ToString() + "/" + Text)
                        : Path.Value;
+
+        }
+
+        #endregion
+
+        #region Operator +  (URLHost,   Path)
+
+        /// <summary>
+        /// Combines a HTTP host and HTTP path.
+        /// </summary>
+        /// <param name="URLHost">A HTTP host.</param>
+        /// <param name="Path">A HTTP path.</param>
+        public static String operator + (URLHost   URLHost,
+                                         HTTPPath  Path)
+        {
+
+            if (URLHost.ToString().EndsWith('/') && Path.StartsWith("/"))
+                return URLHost.ToString()[1..] + Path.ToString();
+
+            if (!URLHost.ToString().EndsWith('/') &&  Path.StartsWith("/") ||
+                 URLHost.ToString().EndsWith('/') && !Path.StartsWith("/"))
+                return URLHost + Path.ToString();
+
+            return $"{URLHost}/{Path}";
+
+        }
+
+        /// <summary>
+        /// Combines a HTTP host and HTTP path.
+        /// </summary>
+        /// <param name="URLHost">A HTTP host.</param>
+        /// <param name="Path">A HTTP path.</param>
+        public static String operator + (URLHost    URLHost,
+                                         HTTPPath?  Path)
+        {
+
+            if (!Path.HasValue)
+                return URLHost.ToString();
+
+            if (URLHost.ToString().EndsWith('/') && Path.Value.StartsWith("/"))
+                return URLHost.ToString()[1..] + Path.ToString();
+
+            if (!URLHost.ToString().EndsWith('/') &&  Path.Value.StartsWith("/") ||
+                 URLHost.ToString().EndsWith('/') && !Path.Value.StartsWith("/"))
+                return URLHost + Path.ToString();
+
+            return $"{URLHost}/{Path}";
 
         }
 

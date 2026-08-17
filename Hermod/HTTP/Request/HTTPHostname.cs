@@ -392,6 +392,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        public static HTTPHostname From(URLHost Host)
+            => Parse(Host.ToString());
+
+
         #region Operator overloading
 
         #region Operator == (Hostname1, Hostname2)

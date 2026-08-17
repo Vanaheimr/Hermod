@@ -585,9 +585,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Host: www.w3.org</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPRequestHeaderField<HTTPHostname> Host = new ("Host",
-                                                                                RequestPathSemantic.EndToEnd,
-                                                                                StringParser: HTTPHostname.TryParse);
+        public static readonly HTTPRequestHeaderField<URLHost> Host = new ("Host",
+                                                                           RequestPathSemantic.EndToEnd,
+                                                                           StringParser: URLHost.TryParse);
 
         #endregion
 

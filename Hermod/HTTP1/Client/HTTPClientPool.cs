@@ -728,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The virtual HTTP hostname to connect to.
         /// </summary>
-        public HTTPHostname?                                              VirtualHostname               { get; }
+        public URLHost?                                                   VirtualHostname               { get; }
 
         /// <summary>
         /// The Remote X.509 certificate.
@@ -945,7 +945,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
-                                                                                                   Host               = HTTPHostname.Parse(IPAddress.ToString()),
+                                                                                                   Host               = URLHost.From(IPAddress),
                                                                                                    Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                                    UserAgent          = httpClient.HTTPUserAgent,
                                                                                                    Connection         = ConnectionType.KeepAlive,
@@ -1069,7 +1069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
-                                                                                                   Host               = URL.HostHeader,
+                                                                                                   Host               = URL.Host,
                                                                                                    Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                                    UserAgent          = httpClient.HTTPUserAgent,
                                                                                                    Connection         = ConnectionType.KeepAlive,
@@ -1197,7 +1197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
-                                                                                                   Host               = HTTPHostname.Parse(DomainName.FullName.TrimEnd('.')),
+                                                                                                   Host               = URLHost.Parse(DomainName.FullName.TrimEnd('.')),
                                                                                                    Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                                    UserAgent          = httpClient.HTTPUserAgent,
                                                                                                    Connection         = ConnectionType.KeepAlive,
@@ -1462,7 +1462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var requestBuilder = DefaultRequestBuilder(this);
 
-            requestBuilder.Host                                       = HTTPHostname.Parse(host);
+            requestBuilder.Host                                       = URLHost.Parse(host);
             requestBuilder.HTTPMethod                                 = HTTPMethod;
             requestBuilder.Path                                       = HTTPPath;
             requestBuilder.ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately;

@@ -638,7 +638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                var requestHost = Request.Host;
+                var requestHost = HTTPHostname.Parse(Request.Host.ToString());
 
                 if (requestHost.IsNullOrEmpty)
                     requestHost = HTTPHostname.Any;

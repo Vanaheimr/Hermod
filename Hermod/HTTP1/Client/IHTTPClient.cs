@@ -1255,7 +1255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An optional HTTP virtual hostname.
         /// </summary>
-        HTTPHostname?                                              VirtualHostname               { get; }
+        URLHost?                                                   VirtualHostname               { get; }
 
         /// <summary>
         /// An optional description of this HTTP client.
