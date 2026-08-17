@@ -68,7 +68,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public const              UInt32                   DefaultInternalBufferSize                = 4096;
 
         protected                 TcpClient?               tcpClient;
+
+        /// <summary>
+        /// Cancelled when this <b>client</b> goes away - <see cref="Close"/> and
+        /// <see cref="DisposeAsync"/>, and nothing else. A caller's request
+        /// links its own token to this one, so shutting the client down stops
+        /// what is in flight.
+        /// </summary>
         protected                 CancellationTokenSource  clientCancellationTokenSource;
+
+        /// <summary>
+        /// Cancelled when this <b>connection</b> goes away - every reconnect -
+        /// for whatever belongs to the socket rather than to the caller.
+        /// </summary>
+        /// <remarks>
+        /// The two used to be one, and a reconnect cancelled the client's token.
+        /// That is not a shade of meaning: a request whose token derives from
+        /// the client's is killed by the very reconnect it asked for, so
+        /// SendRequest's retry loop reconnected, cancelled itself, found the
+        /// token dead on the next two attempts, ran out of retries, and returned
+        /// a fabricated "HTTP 400 - Maximum HTTP retries reached!" that the DNS
+        /// clients then reported as the resolver's own answer.
+        ///
+        /// A reconnect tears down a socket. It has no business ending the
+        /// request that provoked it.
+        /// </remarks>
+        protected                 CancellationTokenSource  connectionCancellationTokenSource;
         private                   Int32                    forceDNSCacheUpdateOnNextConnect;
         private                   DateTimeOffset?          connectionEstablishedAt;
 
@@ -292,7 +317,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.loggerFactory                  = LoggerFactory          ?? NullLoggerFactory.Instance;
             this.DNSClient                      = DNSClient              ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
 
-            this.clientCancellationTokenSource  = new CancellationTokenSource();
+            this.clientCancellationTokenSource      = new CancellationTokenSource();
+            this.connectionCancellationTokenSource  = new CancellationTokenSource();
 
         }
 
@@ -497,6 +523,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region (protected) LiveConnectionCancellationTokenSource / CycleConnectionToken()
+
+        /// <summary>
+        /// The current connection's cancellation token source, for work which
+        /// belongs to the socket and should end when the socket does.
+        /// </summary>
+        protected CancellationTokenSource LiveConnectionCancellationTokenSource
+        {
+            get
+            {
+
+                if (connectionCancellationTokenSource is null ||
+                    connectionCancellationTokenSource.IsCancellationRequested)
+                {
+                    connectionCancellationTokenSource = new CancellationTokenSource();
+                }
+
+                return connectionCancellationTokenSource;
+
+            }
+        }
+
+        /// <summary>
+        /// Ends the current connection's token and hands out a fresh one. What
+        /// every reconnect does, and what none of them may do to the client's
+        /// token: a caller's request is linked to that one.
+        /// </summary>
+        protected void CycleConnectionToken()
+        {
+
+            var spent = connectionCancellationTokenSource;
+
+            connectionCancellationTokenSource = new CancellationTokenSource();
+
+            // Cancelled after the replacement is in place, so that anything
+            // waking up on the cancellation already finds the new one.
+            try { spent?.Cancel();  } catch { }
+            try { spent?.Dispose(); } catch { }
+
+        }
+
+        #endregion
+
 
         #region ReconnectAsync(CancellationToken = default)
 
@@ -509,7 +578,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             try
             {
 
-                clientCancellationTokenSource?.Cancel();
+                // The connection's token, not the client's. A caller's request
+                // links to the client's, and this method is most often called
+                // from inside such a request - SendRequest's retry loop - so
+                // cancelling that one here ended the very request that asked
+                // for the reconnect.
+                CycleConnectionToken();
 
                 try { tcpClient?.Client?.Shutdown(SocketShutdown.Both); } catch { }
                 try { tcpClient?.Close();                               } catch { }
@@ -518,8 +592,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 ResolvedIPAddress = null;
                 ResolvedIPAddresses.Clear();
-                clientCancellationTokenSource?.Dispose();
-                clientCancellationTokenSource = new CancellationTokenSource();
                 connectionEstablishedAt = null;
 
                 CurrentLocalEndPoint  = null;
@@ -965,12 +1037,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region Close()
+        #region CloseConnection()
 
         /// <summary>
-        /// Close the TCP connection.
+        /// Drop the socket and end the current connection's token, leaving the
+        /// client itself - and whatever a caller has in flight - alone.
         /// </summary>
-        public async Task Close()
+        /// <remarks>
+        /// What every "close this connection after a failure" wants, and what
+        /// <see cref="Close"/> is not: closing the <i>client</i> cancels the
+        /// token a caller's request is linked to, so a failed attempt inside a
+        /// retry loop used to end the request it was retrying, and every attempt
+        /// after it started from an already-cancelled token.
+        /// </remarks>
+        public async Task CloseConnection()
         {
 
             var tcpClientToClose = tcpClient;
@@ -985,10 +1065,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             LocalSocket           = null;
             RemoteSocket          = null;
 
-            await Log("TCP Client closed!");
+            await Log("TCP connection closed!");
 
             ResolvedIPAddresses.Clear();
 
+            CycleConnectionToken();
+
+        }
+
+        #endregion
+
+        #region Close()
+
+        /// <summary>
+        /// Close the TCP client: the connection, and everything a caller still
+        /// has in flight on it.
+        /// </summary>
+        public async Task Close()
+        {
+
+            await CloseConnection();
+
+            // The client's own token, and here it is right - this client is
+            // going away, so a request waiting on it should stop waiting.
             try { clientCancellationTokenSource?.Cancel(); } catch { }
 
         }
@@ -1013,7 +1112,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public virtual async ValueTask DisposeAsync()
         {
             await Close();
-            clientCancellationTokenSource?.Dispose();
+            connectionCancellationTokenSource?.Dispose();
+            clientCancellationTokenSource?.    Dispose();
             GC.SuppressFinalize(this);
         }
 

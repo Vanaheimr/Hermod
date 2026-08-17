@@ -571,7 +571,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     ResolvedIPAddress = null;
                     ResolvedIPAddresses.Clear();
                     await Log("StartTLS failed, closing the entire TCP connection!");
-                    await Close();
+
+                    // CloseConnection, not Close - the log line beside it says
+                    // "connection" and means it. Close ends the client, and with
+                    // it the token a caller's request is linked to, so a failed
+                    // handshake inside a retry loop killed the request that was
+                    // being retried.
+                    await CloseConnection();
                 }
 
                 return startTLSResult;

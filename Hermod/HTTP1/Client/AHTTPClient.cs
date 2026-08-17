@@ -498,7 +498,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                clientCancellationTokenSource?.Cancel();
+                // The connection's token, not the client's - see
+                // ATCPClient.CycleConnectionToken. SendRequest's retry loop
+                // calls this from inside a request whose token derives from the
+                // client's, so cancelling that one here ended the request that
+                // asked for the reconnect, left the next two retries starting
+                // from an already-cancelled token, and turned into a fabricated
+                // "HTTP 400 - Maximum HTTP retries reached!".
+                CycleConnectionToken();
 
                 StopBackgroundConnectionRenewal();
 
@@ -1607,7 +1614,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                await Close().ConfigureAwait(false);
+                // CloseConnection, not Close. This runs inside SendRequest's
+                // retry loop, and Close cancels the client's token - the one a
+                // caller's request is linked to. So closing "the connection"
+                // after a failed attempt ended the request being retried, and
+                // the attempts after it began already cancelled.
+                await CloseConnection().ConfigureAwait(false);
             }
             catch (Exception e)
             {

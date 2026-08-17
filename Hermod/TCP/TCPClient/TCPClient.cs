@@ -312,19 +312,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 var stopwatch   = Stopwatch.StartNew();
                 var stream      = tcpClient.GetStream();
-                clientCancellationTokenSource           ??= new CancellationTokenSource();
+
+                // Taken once, and from LiveClient... rather than with ??=: the
+                // latter fills in a token source which is missing, never one
+                // which has already been cancelled.
+                var clientToken = LiveClientCancellationTokenSource.Token;
 
                 // Send the data
-                await stream.WriteAsync(Bytes, clientCancellationTokenSource.Token).ConfigureAwait(false);
-                await stream.FlushAsync(clientCancellationTokenSource.Token).ConfigureAwait(false);
+                await stream.WriteAsync(Bytes, clientToken).ConfigureAwait(false);
+                await stream.FlushAsync(clientToken).ConfigureAwait(false);
 
                 using var responseStream = new MemoryStream();
                 var buffer     = new Byte[8192];
                 var bytesRead  = 0;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false)) > 0)
+                while ((bytesRead = await stream.ReadAsync(buffer, clientToken).ConfigureAwait(false)) > 0)
                 {
-                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientCancellationTokenSource.Token).ConfigureAwait(false);
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientToken).ConfigureAwait(false);
                 }
 
                 stopwatch.Stop();
