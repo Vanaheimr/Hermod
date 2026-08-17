@@ -37,3 +37,14 @@ Hermod is a .NET library for simplified advanced networking tasks...
 - HTTP TOTP Authentication
 - Argus
 - Warden
+
+
+## Shared Infrastructure
+
+- `EventInvocation.InvokeAllAsync` — one way to raise an event, so that a
+  handler which throws is a handler which throws and not a connection which
+  dies. It awaits every subscriber, in the order subscribed, wraps each of them
+  on its own, and lets nothing back out to whoever raised the event. Written
+  for Ratatoskr, which raises all of its events through it; it lives here
+  because nothing about it is XMPP and because the largest collection of the
+  two mistakes it avoids is in this library.
