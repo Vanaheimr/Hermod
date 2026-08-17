@@ -558,6 +558,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                        CancellationToken    CancellationToken   = default)
         {
 
+            // The name states a precondition which was never checked. ConnectAsync
+            // above returns early on a failure; ReconnectAsync handed its result
+            // straight in here without looking at it, so a refused connection went
+            // on to a TLS handshake over the TcpClient that ConnectAsync__ had just
+            // disposed - and
+            //
+            //     StartTLS.tlsStream.AuthenticateAsClientAsync:
+            //     Cannot access a disposed object
+            //
+            // took the place of "connection refused" as the reason the caller was
+            // given. Against the same closed port, the plain HTTP client said what
+            // had happened and the HTTPS client did not.
+            if (!TCPConnectionResult.IsSuccess)
+                return TCPConnectionResult;
+
             if (EnforceTLS ||
                 RemoteURL.Scheme == URIScheme.tls   ||
                 RemoteURL.Scheme == URIScheme.https ||

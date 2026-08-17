@@ -510,6 +510,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
+        #region ARefusedConnection_IsReportedAsSuchOverTLSToo()
+
+        /// <summary>
+        /// The same closed port, once without TLS and once with. The plain client
+        /// named the refusal; the TLS client reported
+        /// "StartTLS.tlsStream.AuthenticateAsClientAsync: Cannot access a disposed
+        /// object", because ATLSClient.ReconnectAsync passed a failed connect
+        /// result to AfterSuccessfulConnect without looking at it, and the
+        /// handshake then ran over the TcpClient that the failed connect had
+        /// already disposed.
+        /// </summary>
+        [Test]
+        public async Task ARefusedConnection_IsReportedAsSuchOverTLSToo()
+        {
+
+            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            var closedPort = ((IPEndPoint) listener.LocalEndpoint).Port;
+            listener.Stop();
+
+            using var httpClient   = new HTTPClient(
+                                         URL.Parse($"http://127.0.0.1:{closedPort}"),
+                                         MaxNumberOfRetries: 1
+                                     );
+
+            using var httpsClient  = new HTTPSClient(
+                                         URL.Parse($"https://127.0.0.1:{closedPort}"),
+                                         (sender, certificate, chain, client, errors) => TLSValidationResult.Success(),
+                                         MaxNumberOfRetries: 1
+                                     );
+
+            var plainResponse   = await httpClient. GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(10));
+            var secureResponse  = await httpsClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(10));
+
+            var plainReason     = plainResponse. GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
+            var secureReason    = secureResponse.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
+
+            Assert.Multiple(() => {
+
+                // The refusal text itself comes from the operating system and is
+                // localised; "Error connecting ATCPClient" is Hermod's own.
+                Assert.That(plainReason,   Does.Contain("Error connecting ATCPClient"),  plainReason);
+                Assert.That(secureReason,  Does.Contain("Error connecting ATCPClient"),  secureReason);
+
+                // And no TLS handshake was attempted over a socket that never
+                // opened. This is what replaced the reason above.
+                Assert.That(secureReason,  Does.Not.Contain("AuthenticateAsClientAsync"),  secureReason);
+
+            });
+
+        }
+
+        #endregion
+
         private static async Task SendHeaderlessInformationalResponse(TcpListener  listener,
                                                                         String       informationalResponse,
                                                                         String       finalResponse,
