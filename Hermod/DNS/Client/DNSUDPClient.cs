@@ -411,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var response = DNSInfo.ReadResponse(
                                       new DNSServerConfig(
-                                          RemoteIPAddress!,
+                                          RemoteIPAddress,
                                           RemotePort ?? IPPort.DNS,
                                           DNSTransport.UDP,
                                           effectiveTimeout

@@ -973,6 +973,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
+        #region (private static) AddressOf(DNSServer)
+
+        /// <summary>
+        /// The address to dial for the given DNS server, or a refusal naming the
+        /// configuration that has none.
+        /// </summary>
+        /// <remarks>
+        /// DNSServerConfig serves two purposes: a server to query, and the origin
+        /// of an answer. Only the first needs an address. A DNS-over-HTTPS or
+        /// DNS-over-TLS client created from a URL produces the second without
+        /// one, so this says which configuration was unusable rather than leaving
+        /// a null reference to surface inside whichever client was about to be
+        /// built - or, before the field admitted it could be null, inside
+        /// DNSServerConfig.ToString().
+        /// </remarks>
+        private static IIPAddress AddressOf(DNSServerConfig DNSServer)
+
+            => DNSServer.IPAddress
+                   ?? throw new ArgumentException(
+                          $"The DNS server configuration '{DNSServer}' has no IP address to connect to!",
+                          nameof(DNSServer)
+                      );
+
+        #endregion
+
         #region (private) GetOrCreateTransportClient(DNSServer, Timeout)
 
         /// <summary>
@@ -984,11 +1009,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                    TimeSpan         Timeout)
         {
 
+            var ipAddress = AddressOf(DNSServer);
+
             return DNSServer.Transport switch {
 
                 DNSTransport.UDP =>
                     new DNSUDPClient(
-                        DNSServer.IPAddress,
+                        ipAddress,
                         DNSServer.Port,
                         QueryTimeout:   Timeout,
                         LoggerFactory:  loggerFactory
@@ -997,7 +1024,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSTransport.TCP =>
                     transportClients.GetOrAdd(DNSServer, _ =>
                         new DNSTCPClient(
-                            DNSServer.IPAddress,
+                            ipAddress,
                             DNSServer.Port,
                             QueryTimeout:   Timeout,
                             LoggerFactory:  loggerFactory
@@ -1007,7 +1034,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSTransport.TLS =>
                     transportClients.GetOrAdd(DNSServer, _ =>
                         new DNSTLSClient(
-                            DNSServer.IPAddress,
+                            ipAddress,
                             DNSServer.Port,
                             QueryTimeout:   Timeout,
                             LoggerFactory:  loggerFactory
@@ -1017,7 +1044,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSTransport.HTTPS or DNSTransport.HTTPS_Binary =>
                     transportClients.GetOrAdd(DNSServer, _ =>
                         new DNSHTTPSClient(
-                            DNSServer.IPAddress,
+                            ipAddress,
                             DNSServer.Port,
                             Mode:           DNSHTTPSMode.POST,
                             QueryTimeout:   Timeout,
@@ -1028,7 +1055,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSTransport.HTTPS_JSON =>
                     transportClients.GetOrAdd(DNSServer, _ =>
                         new DNSHTTPSClient(
-                            DNSServer.IPAddress,
+                            ipAddress,
                             DNSServer.Port,
                             Mode:           DNSHTTPSMode.JSON,
                             QueryTimeout:   Timeout,
@@ -1039,7 +1066,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSTransport.HTTPS_GET =>
                     transportClients.GetOrAdd(DNSServer, _ =>
                         new DNSHTTPSClient(
-                            DNSServer.IPAddress,
+                            ipAddress,
                             DNSServer.Port,
                             Mode:           DNSHTTPSMode.GET,
                             QueryTimeout:   Timeout,
@@ -1051,7 +1078,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSTransport.HTTP or DNSTransport.HTTP_Binary =>
                     transportClients.GetOrAdd(DNSServer, _ =>
                         new DNSHTTPSClient(
-                            DNSServer.IPAddress,
+                            ipAddress,
                             DNSServer.Port,
                             Mode:           DNSHTTPSMode.POST,
                             QueryTimeout:   Timeout,
@@ -1062,7 +1089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 DNSTransport.HTTP_JSON =>
                     transportClients.GetOrAdd(DNSServer, _ =>
                         new DNSHTTPSClient(
-                            DNSServer.IPAddress,
+                            ipAddress,
                             DNSServer.Port,
                             Mode:           DNSHTTPSMode.JSON,
                             QueryTimeout:   Timeout,
@@ -1071,7 +1098,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     ),
 
                 _ => new DNSUDPClient(
-                          DNSServer.IPAddress,
+                          ipAddress,
                           DNSServer.Port,
                           QueryTimeout:     Timeout,
                           LoggerFactory:    loggerFactory
@@ -1092,7 +1119,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             // RFC 7873: Inject stored per-server COOKIE into the query.
-            var serverKey       = DNSServer.IPAddress.ToString();
+            var serverIPAddress = AddressOf(DNSServer);
+            var serverKey       = serverIPAddress.ToString();
             var effectiveQuery  = DNSQuery;
 
             // RFC 7873 §5.1: always offer a cookie. The client half is derived
@@ -1103,7 +1131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             cookieStore.TryGetValue(serverKey, out var storedServerCookie);
 
             var storedCookie = clientCookies.OptionFor(
-                                   System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString()),
+                                   System.Net.IPAddress.Parse(AddressOf(DNSServer).ToString()),
                                    storedServerCookie
                                );
 
@@ -1227,7 +1255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // over, which changes nothing — it is the same eight
                         // octets — and keeps one rule about where it comes from.
                         storedCookie   = clientCookies.OptionFor(
-                                             System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString()),
+                                             System.Net.IPAddress.Parse(AddressOf(DNSServer).ToString()),
                                              refreshedCookie
                                          );
 

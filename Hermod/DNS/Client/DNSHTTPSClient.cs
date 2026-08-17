@@ -142,6 +142,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
         }
 
+
+        /// <summary>
+        /// Where an answer from this client came from.
+        /// </summary>
+        /// <remarks>
+        /// The address when there is one - the one actually connected, or the one
+        /// this client was given - and the resolver's name when there is not. A
+        /// client created from a URL has no address until its socket connects and
+        /// none at all if it never does, and it still has to say where an answer
+        /// came from. Every one of these used to be written as RemoteIPAddress!,
+        /// putting a null into a field which did not admit one.
+        /// </remarks>
+        private DNSServerConfig OriginOf(TimeSpan? QueryTimeout = null)
+        {
+
+            var ipAddress   = CurrentRemoteIPAddress ?? RemoteIPAddress ?? RemoteURL.Host.IPAddress;
+            var domainName  = RemoteURL.Host.DomainName;
+
+            // A URL host is one or the other, so this is the name whenever there
+            // is no address at all.
+            return ipAddress is not null
+
+                       ? new DNSServerConfig(
+                             ipAddress,
+                             RemotePort ?? IPPort.HTTPS,
+                             DNSTransport.HTTPS,
+                             QueryTimeout
+                         )
+
+                       : new DNSServerConfig(
+                             domainName!,
+                             RemotePort ?? IPPort.HTTPS,
+                             DNSTransport.HTTPS,
+                             QueryTimeout
+                         );
+
+        }
+
         #endregion
 
         #region Constructor(s)
@@ -827,12 +865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 stopwatch.Stop();
 
-                var serverConfig = new DNSServerConfig(
-                                       RemoteIPAddress!,
-                                       RemotePort ?? IPPort.HTTPS,
-                                       DNSTransport.HTTPS,
-                                       effectiveTimeout
-                                   );
+                var serverConfig = OriginOf(effectiveTimeout);
 
                 // Check HTTP status code before attempting to parse the response body.
                 // Non-2xx responses (429 Rate Limit, 403 Forbidden, 503 Unavailable, etc.)
@@ -950,10 +983,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     );
 
                     return DNSInfo.Failed(
-                               new DNSServerConfig(
-                                   RemoteIPAddress!,
-                                   RemotePort ?? IPPort.HTTPS
-                               ),
+                               OriginOf(),
                                dnsQuery.TransactionId,
                                effectiveTimeout
                            );
@@ -967,10 +997,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 );
 
                 return DNSInfo.TimedOut(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.HTTPS
-                           ),
+                           OriginOf(),
                            dnsQuery.TransactionId,
                            effectiveTimeout
                        );
@@ -982,10 +1009,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // External cancellation (race-cancel or caller-initiated).
                 // Silent return — not a real failure.
                 return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.HTTPS
-                           ),
+                           OriginOf(),
                            dnsQuery.TransactionId,
                            effectiveTimeout
                        );
@@ -1003,10 +1027,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 await Log($"DNS HTTPS query to {DNSServerLabel} failed: [{ex.GetType().Name}] {ex.Message}");
 
                 return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.HTTPS
-                           ),
+                           OriginOf(),
                            dnsQuery.TransactionId,
                            effectiveTimeout
                        );
@@ -1074,10 +1095,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (lastResponse is null)
                 return DNSInfo.TimedOut(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.HTTPS
-                           ),
+                           OriginOf(),
                            0,
                            Timeout ?? QueryTimeout
                        );

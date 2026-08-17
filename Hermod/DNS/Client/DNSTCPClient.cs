@@ -85,6 +85,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public TimeSpan?  ServerKeepaliveTimeout    { get; private set; }
 
+
+        /// <summary>
+        /// Where an answer from this client came from.
+        /// </summary>
+        /// <remarks>
+        /// The address when there is one - the one actually connected, or the one
+        /// this client was given - and the resolver's name when there is not.
+        /// Every one of these used to be written as RemoteIPAddress!, putting a
+        /// null into a field which did not admit one.
+        /// </remarks>
+        private DNSServerConfig OriginOf(TimeSpan? QueryTimeout = null)
+        {
+
+            var ipAddress   = CurrentRemoteIPAddress ?? RemoteIPAddress ?? RemoteURL.Host.IPAddress;
+            var domainName  = RemoteURL.Host.DomainName;
+
+            // A URL host is one or the other, so this is the name whenever there
+            // is no address at all.
+            return ipAddress is not null
+
+                       ? new DNSServerConfig(
+                             ipAddress,
+                             RemotePort ?? IPPort.DNS,
+                             DNSTransport.TCP,
+                             QueryTimeout
+                         )
+
+                       : new DNSServerConfig(
+                             domainName!,
+                             RemotePort ?? IPPort.DNS,
+                             DNSTransport.TCP,
+                             QueryTimeout
+                         );
+
+        }
+
         #endregion
 
         #region Constructor(s)
@@ -251,10 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     );
 
                     return DNSInfo.Failed(
-                               new DNSServerConfig(
-                                   RemoteIPAddress!,
-                                   RemotePort ?? IPPort.DNS
-                               ),
+                               OriginOf(),
                                dnsQuery.TransactionId,
                                effectiveTimeout
                            );
@@ -269,10 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 );
 
                 return DNSInfo.TimedOut(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.DNS
-                           ),
+                           OriginOf(),
                            dnsQuery.TransactionId,
                            effectiveTimeout
                        );
@@ -284,10 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 await Log($"DNS TCP query to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
 
                 return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.DNS
-                           ),
+                           OriginOf(),
                            dnsQuery.TransactionId,
                            effectiveTimeout
                        );
@@ -299,10 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // External cancellation (race-cancel or caller-initiated).
                 // Silent return — not a real failure.
                 return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.DNS
-                           ),
+                           OriginOf(),
                            dnsQuery.TransactionId,
                            effectiveTimeout
                        );
@@ -314,10 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 await Log($"DNS TCP query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}");
 
                 return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.DNS
-                           ),
+                           OriginOf(),
                            dnsQuery.TransactionId,
                            effectiveTimeout
                        );
@@ -358,12 +379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // DNS header requires at least 12 bytes
             if (responseLength < 12)
                 return DNSInfo.Failed(
-                           new DNSServerConfig(
-                               RemoteIPAddress!,
-                               RemotePort ?? IPPort.DNS,
-                               DNSTransport.TCP,
-                               EffectiveTimeout
-                           ),
+                           OriginOf(EffectiveTimeout),
                            DNSQuery.TransactionId,
                            EffectiveTimeout
                        );
@@ -387,12 +403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             var response = DNSInfo.ReadResponse(
-                               new DNSServerConfig(
-                                   RemoteIPAddress!,
-                                   RemotePort ?? IPPort.DNS,
-                                   DNSTransport.TCP,
-                                   EffectiveTimeout
-                               ),
+                               OriginOf(EffectiveTimeout),
                                DNSQuery.TransactionId,
                                new MemoryStream(buffer, 0, totalRead),
                                EffectiveTimeout,
