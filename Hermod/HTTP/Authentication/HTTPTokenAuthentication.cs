@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Parse   (Text)
+        #region (static) Parse    (Text)
 
         /// <summary>
         /// Parse the given text as a HTTP Token Authentication.
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text)
+        #region (static) TryParse (Text)
 
         /// <summary>
         /// Try to parse the given text a HTTP Token Authentication.
@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text, out TokenAuthentication)
+        #region (static) TryParse (Text, out TokenAuthentication)
 
         /// <summary>
         /// Try to parse the given text a HTTP Token Authentication.
@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) ParseHTTPHeader   (Text)
+        #region (static) ParseHTTPHeader    (Text)
 
         /// <summary>
         /// Parse the given text as a HTTP Token Authentication header.
@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParseHTTPHeader(Text)
+        #region (static) TryParseHTTPHeader (Text)
 
         /// <summary>
         /// Try to parse the given text as a HTTP Token Authentication header.
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParseHTTPHeader(Text, out TokenAuthentication)
+        #region (static) TryParseHTTPHeader (Text, out TokenAuthentication)
 
         /// <summary>
         /// Try to parse the given text as a HTTP Token Authentication header.
