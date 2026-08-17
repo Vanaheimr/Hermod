@@ -344,52 +344,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                    (Int32) this.MaxClientConnections
                                                );
 
-            #region Listen on IPv6 or dual mode, ...
+            // Whether the port is the operating system's choice rather than the
+            // caller's. Noted before the IPv6 block below overwrites TCPPort
+            // with what it was given: afterwards "is it zero" answers a
+            // different question than "was it zero".
+            var portChosenBySystem           = this.TCPPort.IsZero;
 
-            if (this.IPAddress.IsIPv6)
+            // How often to ask for another one when the number the IPv6 socket
+            // was given turns out to be taken on IPv4. Small, because each
+            // attempt is a bind and the collision is uncommon; more than one,
+            // because the whole point is that a single attempt is not reliable.
+            const Int32 portAttempts         = 16;
+
+            for (var attempt = 1; ; attempt++)
             {
 
-                this.tcpListenerIPv6         = new TcpListener(
+                #region Listen on IPv6 or dual mode, ...
+
+                if (this.IPAddress.IsIPv6)
+                {
+
+                    this.tcpListenerIPv6     = new TcpListener(
                                                    this.IPAddress.ToDotNet(),
+                                                   portChosenBySystem ? (UInt16) 0 : this.TCPPort.ToUInt16()
+                                               );
+
+                    // Dual mode on ANY address!
+                    if (this.IPAddress.IsAny && this.IPAddress.IsIPv4)
+                        tcpListenerIPv6.Server.DualMode = true;
+
+                    if (portChosenBySystem)
+                        tcpListenerIPv6.Start((Int32) this.MaxClientConnections);
+
+                    // When the TCP port was == 0, then IPv6 will choose a random port!
+                    var localEndpoint        = tcpListenerIPv6?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
+                    this.TCPPort             = IPPort.Parse(localEndpoint.Port);
+
+                }
+
+                #endregion
+
+                // Only the two-socket case can disagree with itself, and only
+                // when the number came from the system. Everything else is
+                // settled by the block above.
+                if (!portChosenBySystem ||
+                    !(this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost))
+                    break;
+
+                // The number the IPv6 socket was given says nothing about IPv4.
+                // They are separate spaces: an outgoing connection from this
+                // machine may already hold 127.0.0.1 on that very port while
+                // [::1] was free, which is how a server "asking for any free
+                // port" ends up demanding one that is taken. Binding it here
+                // rather than in Start() is not enough on its own - it only
+                // moves the failure earlier - so a number that does not work
+                // for both is dropped and another asked for.
+                try
+                {
+
+                    this.tcpListenerIPv4     = new TcpListener(
+                                                   IPv4Address.Localhost,
                                                    this.TCPPort.ToUInt16()
                                                );
 
-                // Dual mode on ANY address!
-                if (this.IPAddress.IsAny && this.IPAddress.IsIPv4)
-                    tcpListenerIPv6.Server.DualMode = true;
+                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
 
-                if (this.TCPPort.IsZero)
-                    tcpListenerIPv6.Start((Int32) this.MaxClientConnections);
+                    break;
 
-                // When the TCP port was == 0, then IPv6 will choose a random port!
-                var localEndpoint            = tcpListenerIPv6?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
-                this.TCPPort                 = IPPort.Parse(localEndpoint.Port);
+                }
+                catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse &&
+                                                attempt < portAttempts)
+                {
+
+                    // Both go, and the IPv6 one especially: holding it would
+                    // keep the operating system from ever offering that number
+                    // again, so the next attempt would walk up the ephemeral
+                    // range one socket at a time.
+                    try { tcpListenerIPv4?.Stop(); } catch { }
+                    try { tcpListenerIPv6?.Stop(); } catch { }
+
+                    this.tcpListenerIPv4     = null;
+                    this.tcpListenerIPv6     = null;
+                    this.TCPPort             = IPPort.Zero;
+
+                }
 
             }
-
-            #endregion
 
             #region ..., or listening on ::1 and 127.0.0.1 as this will require two sockets!
 
             // When port == 0, then IPv6 will choose a random port, and IPv4 will try to bind to the same port!
-            if (this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost)
+            //
+            // Already done for the case where the port came from the system -
+            // the loop above had to bind it there, because agreeing on a number
+            // that works for both sockets is exactly what it retries. What is
+            // left here is the caller who named a port: nothing to agree about,
+            // and the bind stays in Start() as it always did.
+            if (this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost && tcpListenerIPv4 is null)
             {
 
                 this.tcpListenerIPv4         = new TcpListener(
                                                    IPv4Address.Localhost,
                                                    this.TCPPort.ToUInt16()
                                                );
-
-                // When the TCP port is still == 0, then IPv4 will choose a random port!
-                if (this.TCPPort.IsZero)
-                {
-
-                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
-
-                    var localEndpoint        = tcpListenerIPv4?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
-                    this.TCPPort             = IPPort.Parse(localEndpoint.Port);
-
-                }
 
             }
 
