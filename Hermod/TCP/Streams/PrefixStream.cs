@@ -73,28 +73,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                    Int32   Count)
         {
 
-            var bytesRead = 0;
-
+            // What is already in hand is returned on its own. Topping the prefix up from
+            // the inner stream would block for bytes that may not exist: the prefix holds
+            // whatever arrived in the same read as the header, and on a streaming body the
+            // peer sends nothing further until it has something to say. Read owes the
+            // caller the bytes it can deliver now, not a full buffer.
             if (prefixPosition < prefix.Length)
             {
 
                 var toCopy = Math.Min(Count, prefix.Length - prefixPosition);
                 prefix.Slice(prefixPosition, toCopy).Span.CopyTo(Buffer.AsSpan(Offset, toCopy));
                 prefixPosition += toCopy;
-                bytesRead      += toCopy;
 
-                if (toCopy == Count)
-                    return bytesRead;
-
-                Offset += toCopy;
-                Count  -= toCopy;
+                return toCopy;
 
             }
 
-            var innerRead = innerStream.Read(Buffer, Offset, Count);
-            bytesRead += innerRead;
-
-            return bytesRead;
+            return innerStream.Read(Buffer, Offset, Count);
 
         }
 
@@ -106,27 +101,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                          CancellationToken  CancellationToken   = default)
         {
 
-            var bytesRead = 0;
-
+            // See Read(...): the prefix is returned by itself, never topped up from the
+            // inner stream. This is the path an HTTP response body takes, and reading
+            // ahead here is what turned a Server-Sent-Events stream whose preamble had
+            // already arrived into a client that waited for its own timeout.
             if (prefixPosition < prefix.Length)
             {
 
                 var toCopy = Math.Min(Buffer.Length, prefix.Length - prefixPosition);
                 prefix.Slice(prefixPosition, toCopy).CopyTo(Buffer);
                 prefixPosition += toCopy;
-                bytesRead      += toCopy;
 
-                if (toCopy == Buffer.Length)
-                    return bytesRead;
-
-                Buffer = Buffer[toCopy..];
+                return toCopy;
 
             }
 
-            var innerRead = await innerStream.ReadAsync(Buffer, CancellationToken);
-            bytesRead += innerRead;
-
-            return bytesRead;
+            return await innerStream.ReadAsync(Buffer, CancellationToken);
 
         }
 

@@ -29,18 +29,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.ServerSentEvents;
 /// What a Server-Sent-Events client sees at the START of the stream, before any event exists.
 /// </summary>
 /// <remarks>
-/// These come out of a CI failure that could not be reproduced. ClientServer_HTTPServerSentEvents_Test02
-/// hung for its full 30-second read timeout and reported 0 of 3 events, once, on the Debian leg, and
-/// never again in 25 isolated and 6 full-suite repetitions.
+/// These come out of a CI failure that could not be reproduced at the time: ClientServer_HTTPServerSentEvents_Test02
+/// hung for its full 30-second read timeout and reported 0 of 3 events, once, on the Debian leg.
 ///
-/// The cause of that one run stayed unproven. What the search did turn up is why it could present as a
-/// 30-second hang at all: the SSE worker wrote its "retry:" preamble into a StreamWriter with AutoFlush
-/// off and only flushed inside the event loop. On an event source with nothing to send, not one byte
-/// reached the client - so any failure before the first event looked exactly like a healthy connection
-/// on which nothing had happened yet, and the client's own timeout was the only thing that ended it.
+/// The first fix was to the server: the SSE worker wrote its "retry:" preamble into a StreamWriter with
+/// AutoFlush off and only flushed inside the event loop, so an event source with nothing to send never
+/// reached the client at all. That was real, but it was not the flake - the test below then went red on
+/// the Debian leg twice, with the flush in place.
 ///
-/// The test below pins the preamble. It does not reproduce the original flake and does not claim to;
-/// it removes the silence that made the flake unreadable.
+/// The cause is now known, and it is on the client side: PrefixStream.ReadAsync. When a response header
+/// and the first body bytes arrive in the same read, AHTTPClient hands the leftover bytes to a
+/// PrefixStream. That stream copied them out and then, because the caller's buffer was not yet full,
+/// went on to read the inner socket for the rest - and on a quiet SSE stream there is no rest. The bytes
+/// it was already holding were never delivered. Whether it happened came down to whether the server's
+/// header write and preamble write were coalesced into one TCP segment, which is why it needed load and
+/// only ever showed on one platform. Read must return what it has; see PrefixStreamTests.
+///
+/// So the 5-second bound below is not impatience. On both legs this test takes ~50 ms when it works, and
+/// the failures were never slow - they were silent, and would have stayed silent for any timeout.
 /// </remarks>
 [TestFixture]
 public class SSEStreamStartTests
