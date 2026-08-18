@@ -1450,19 +1450,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  CancellationToken             CancellationToken                    = default)
         {
 
-            var host  = VirtualHostname?.  ToString() ??
-                        RemoteURL.Host.ToString();
-
-            if (RemoteURL.Port.HasValue &&
-                RemoteURL.Port != IPPort.HTTP &&
-                RemoteURL.Port != IPPort.HTTPS)
-            {
-                host += ":" + RemoteURL.Port.Value;
-            }
-
             var requestBuilder = DefaultRequestBuilder(this);
 
-            requestBuilder.Host                                       = HTTPHostname.Parse(host);
+            // Note: A virtual hostname is the Host header, not a piece of one: it carries
+            //       its own port when it wants one, which is what made it an HTTPHostname
+            //       rather than an URLHost. Appending RemoteURL.Port to it produced a
+            //       second port -- "virtual.example.org:9999:8443" -- which does not parse.
+            //
+            //       RemoteURL.HostHeader decides the rest. Building the text here instead
+            //       meant deciding twice, and the copy asked whether the port was 80 or 443
+            //       rather than whether it was the default port of the scheme, so
+            //       http://example.org:443/ went out as "Host: example.org" -- a request
+            //       to one port announcing itself as another.
+            requestBuilder.Host                                       = VirtualHostname ?? RemoteURL.HostHeader;
             requestBuilder.HTTPMethod                                 = HTTPMethod;
             requestBuilder.Path                                       = HTTPPath;
             requestBuilder.ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately;
