@@ -392,11 +392,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public static HTTPHostname From(URLHost Host, IPPort? TCPPort)
-            => Parse(TCPPort is not null ? $"{Host}:{TCPPort}" : $"{Host}");
+        #region From (Host,      TCPPort)
 
-        public static HTTPHostname From(IIPAddress IPAddress, IPPort? TCPPort)
-            => Parse(TCPPort is not null ? $"{IPAddress}:{TCPPort}" : $"{IPAddress}");
+        /// <summary>
+        /// Build an HTTP hostname from an already parsed host plus the optional port of
+        /// the connection.
+        ///
+        /// Note: RFC 9110 section 7.2 defines the 'Host' header as "uri-host [ ':' port ]",
+        ///       so the port is passed separately and is left out whenever it is the
+        ///       default port of the scheme.
+        /// </summary>
+        /// <param name="Host">An URL host.</param>
+        /// <param name="TCPPort">An optional TCP/IP port.</param>
+        public static HTTPHostname From(URLHost  Host,
+                                        IPPort?  TCPPort)
+
+            => Parse(TCPPort is not null
+                         ? $"{Host}:{TCPPort}"
+                         : $"{Host}");
+
+        #endregion
+
+        #region From (IPAddress, TCPPort)
+
+        /// <summary>
+        /// Build an HTTP hostname from an IP address plus the optional port of the
+        /// connection.
+        /// </summary>
+        /// <param name="IPAddress">An IP address.</param>
+        /// <param name="TCPPort">An optional TCP/IP port.</param>
+        public static HTTPHostname From(IIPAddress  IPAddress,
+                                        IPPort?     TCPPort)
+
+            // Note: This delegates on purpose, so that the text representation of a host
+            //       is built in exactly one place. Interpolating the IP address directly
+            //       skipped the bracketing URLHost does for IPv6 and therefore threw for
+            //       every address IPv6Address.ToString() does not bracket by itself.
+            => From(URLHost.From(IPAddress),
+                    TCPPort);
+
+        #endregion
 
 
         #region Operator overloading

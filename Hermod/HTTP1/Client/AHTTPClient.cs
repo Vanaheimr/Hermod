@@ -236,9 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                          Host                                       = TCPPort.HasValue
-                                                                                                                           ? HTTPHostname.Parse(IPAddress.ToString(), TCPPort.Value)
-                                                                                                                           : HTTPHostname.Parse(IPAddress.ToString()),
+                                                                          Host                                       = HTTPHostname.From(IPAddress, TCPPort),
                                                                           Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                           UserAgent                                  = httpClient.HTTPUserAgent,
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,

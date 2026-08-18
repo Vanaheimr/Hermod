@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -196,6 +196,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(URLHost.From(DomainName.Parse("example.org")).   ToString(), Is.EqualTo("example.org"));
             Assert.That(URLHost.From(IPv4Address.Parse("10.0.0.1")).      ToString(), Is.EqualTo("10.0.0.1"));
             Assert.That(URLHost.Localhost.IsLocalhost,                               Is.True);
+
+        }
+
+        #endregion
+
+        #region From_IPv6Address_IsBracketedAndSurvivesItsOwnParser()
+
+        /// <summary>
+        /// IPv6Address.ToString() brackets "::" and "::1" but spells every other address
+        /// out bare, so URLHost.From(address).ToString() used to hand back a text its own
+        /// parser rejects -- the bare colons read as the host/port separator. Everything
+        /// built on that text representation threw for an ordinary global address while
+        /// looking perfectly healthy for the loopback tested everywhere else.
+        /// </summary>
+        [Test]
+        public void From_IPv6Address_IsBracketedAndSurvivesItsOwnParser()
+        {
+
+            var global = IPv6Address.Parse("2606:2800:220:1:248:1893:25c8:1946");
+            var text   = URLHost.From(global).ToString();
+
+            Assert.That(text, Does.StartWith("["));
+            Assert.That(text, Does.EndWith("]"));
+
+            // The loopback shortcuts were bracketed all along and must not gain a second pair.
+            Assert.That(URLHost.From(IPv6Address.Localhost).ToString(), Is.EqualTo("[::1]"));
+            Assert.That(URLHost.From(IPv6Address.Any).      ToString(), Is.EqualTo("[::]"));
+
+            // IPv4 and domain names stay untouched.
+            Assert.That(URLHost.From(IPv4Address.Parse("10.0.0.1")).      ToString(), Is.EqualTo("10.0.0.1"));
+            Assert.That(URLHost.From(DomainName.Parse("example.org")).    ToString(), Is.EqualTo("example.org"));
+
+            // ...and the text representation round-trips through the parser again.
+            Assert.That(URLHost.Parse(text), Is.EqualTo(URLHost.From(global)));
+
+        }
+
+        #endregion
+
+        #region ToHTTPHostname_AndFrom_AcceptAGlobalIPv6Address()
+
+        /// <summary>
+        /// Every way of turning an IPv6 address into a Host header goes through that same
+        /// text representation, so all of them threw for a global address.
+        /// </summary>
+        [Test]
+        public void ToHTTPHostname_AndFrom_AcceptAGlobalIPv6Address()
+        {
+
+            var global   = IPv6Address.Parse("2606:2800:220:1:248:1893:25c8:1946");
+            var host     = URLHost.From(global);
+            var port     = IPPort.Parse(8080);
+            var expected = $"{host}:{port}";
+
+            Assert.That(host.ToHTTPHostname(port).       ToString(), Is.EqualTo(expected));
+            Assert.That(HTTPHostname.From(host,   port). ToString(), Is.EqualTo(expected));
+            Assert.That(HTTPHostname.From(global, port). ToString(), Is.EqualTo(expected));
+            Assert.That(HTTPHostname.From(global, null). ToString(), Is.EqualTo(host.ToString()));
+
+            // Without a port the address stands on its own.
+            Assert.That(host.ToHTTPHostname().ToString(), Is.EqualTo(host.ToString()));
 
         }
 

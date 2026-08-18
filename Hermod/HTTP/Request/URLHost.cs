@@ -472,10 +472,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// enclosed in brackets.
         /// </summary>
         public override String ToString()
+        {
 
-            => ipAddress?.ToString()
-                   ?? domainName?.FullName.TrimEnd('.')
-                   ?? "";
+            if (ipAddress is not null)
+            {
+
+                var text = ipAddress.ToString();
+
+                // Note: IPv6Address.ToString() brackets "::" and "::1", but spells every
+                //       other address out bare -- and bare is not what an URL or a Host
+                //       header may carry: its colons would be read as the host/port
+                //       separator, so URLHost.Parse and HTTPHostname.Parse both reject it,
+                //       and URLHost.From(address).ToString() did not survive its own
+                //       parser. Bracket whatever came back unbracketed.
+                return IsIPv6 && !text.StartsWith('[')
+                           ? $"[{text}]"
+                           : text;
+
+            }
+
+            return domainName?.FullName.TrimEnd('.')
+                       ?? "";
+
+        }
 
         #endregion
 
