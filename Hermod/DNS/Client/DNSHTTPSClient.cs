@@ -114,6 +114,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public UInt16            UDPPayloadSize   { get; set; } = DNSPacket.DefaultUDPPayloadSize;
 
         /// <summary>
+        /// Whether every query goes out under a DNS ID of 0 (RFC 8484 §4.1).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// RFC 8484 §4.1: "In order to maximize HTTP cache friendliness, DoH
+        /// clients using media formats that include the ID field from the DNS
+        /// message header, such as 'application/dns-message', SHOULD use a DNS ID
+        /// of 0 in every DNS request. HTTP correlates the request and response,
+        /// thus eliminating the need for the ID in a media type such as
+        /// 'application/dns-message'. The use of a varying DNS ID can cause
+        /// semantically equivalent DNS queries to be cached separately."
+        /// </para>
+        /// <para>
+        /// The last sentence is the whole point, and it is about caches rather
+        /// than about the ID: two requests asking the same question have to be
+        /// byte-identical for an HTTP cache to recognise them as the same
+        /// request. A random ID makes every query unique and every cache entry a
+        /// miss.
+        /// </para>
+        /// <para>
+        /// This gives up nothing on this transport. A random ID is what RFC 5452
+        /// §9.2 asks of a datagram transport, where it is one of the few things
+        /// making an off-path spoof hard; here the HTTP response arrives on the
+        /// connection its request went out on, and there is no second answer to
+        /// tell apart from the first. The client still checks that the response
+        /// carries the ID the query did — now a check that zero came back as
+        /// zero, which is redundant rather than wrong, and costs nothing to keep.
+        /// </para>
+        /// </remarks>
+        public Boolean           ZeroTransactionId { get; set; } = true;
+
+        /// <summary>
         /// The block length queries are padded to, or 0 to send them unpadded.
         /// </summary>
         /// <remarks>
@@ -820,6 +852,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 EDNSOptions.Count > 0 ? EDNSOptions : null,
                                 [.. resourceRecordTypes]
                             );
+
+            // RFC 8484 §4.1: "SHOULD use a DNS ID of 0 in every DNS request."
+            // Before signing, not after — a TSIG or SIG(0) covers the header the
+            // ID sits in, so a signature computed over the old ID would not
+            // verify against the message that goes out.
+            if (ZeroTransactionId)
+                dnsQuery = dnsQuery.WithTransactionId(0);
 
             // RFC 8484 §4.1 carries an ordinary DNS message; the signature covers
             // that message, so it is applied before the base64url encoding or the

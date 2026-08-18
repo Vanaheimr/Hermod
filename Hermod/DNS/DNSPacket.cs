@@ -660,6 +660,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region WithTransactionId(TransactionId)
+
+        /// <summary>
+        /// The same message under a different transaction ID.
+        /// </summary>
+        /// <remarks>
+        /// The ID is chosen at random when a query is built, which is what
+        /// RFC 5452 §9.2 asks of a datagram transport — it is one of the few
+        /// things making an off-path spoof hard. A transport that correlates
+        /// request and response by itself does not need it and can be harmed by
+        /// it, so it needs a way to say so. See RFC 8484 §4.1.
+        /// </remarks>
+        public DNSPacket WithTransactionId(UInt16 TransactionId)
+
+            => new (TransactionId,
+                    QueryOrResponse,
+                    Opcode,
+                    AuthoritativeAnswer,
+                    Truncation,
+                    RecursionDesired,
+                    RecursionAvailable,
+                    ResponseCode,
+
+                    Questions,
+                    AnswerRRs,
+                    AuthorityRRs,
+                    AdditionalRRs,
+
+                    LocalSocket,
+                    RemoteSocket);
+
+        #endregion
+
         public Byte[] ToByteArray()
         {
 
