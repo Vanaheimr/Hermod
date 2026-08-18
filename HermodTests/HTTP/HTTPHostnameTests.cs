@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -129,6 +130,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(hostname.IsNullOrEmpty, Is.True);
             Assert.That(hostname.GetHashCode(), Is.EqualTo(default(HTTPHostname).GetHashCode()));
+
+        }
+
+        #endregion
+
+        #region From_TakesTheHostAndTheOptionalPortSeparately()
+
+        /// <summary>
+        /// The Host header is built from a host that has already been parsed plus the
+        /// port of the connection, and the port is optional: it belongs into the header
+        /// only when it differs from the default port of the scheme. Both overloads must
+        /// agree, whether the caller still holds an URLHost or only the IP address.
+        /// </summary>
+        [Test]
+        public void From_TakesTheHostAndTheOptionalPortSeparately()
+        {
+
+            var port = IPPort.Parse(8080);
+
+            // Without a port the host is used as-is.
+            Assert.That(HTTPHostname.From(URLHost.From(DomainName.Parse("example.org")),  null).ToString(), Is.EqualTo("example.org"));
+            Assert.That(HTTPHostname.From(URLHost.From(IPv4Address.Parse("10.0.0.1")),    null).ToString(), Is.EqualTo("10.0.0.1"));
+            Assert.That(HTTPHostname.From(IPv4Address.Parse("10.0.0.1"),                  null).ToString(), Is.EqualTo("10.0.0.1"));
+
+            // With a port it is appended.
+            Assert.That(HTTPHostname.From(URLHost.From(DomainName.Parse("example.org")),  port).ToString(), Is.EqualTo("example.org:8080"));
+            Assert.That(HTTPHostname.From(URLHost.From(IPv4Address.Parse("10.0.0.1")),    port).ToString(), Is.EqualTo("10.0.0.1:8080"));
+            Assert.That(HTTPHostname.From(IPv4Address.Parse("10.0.0.1"),                  port).ToString(), Is.EqualTo("10.0.0.1:8080"));
+
+            // An IPv6 address keeps its brackets, so that the colons of the address are
+            // not mistaken for the host/port separator.
+            Assert.That(HTTPHostname.From(URLHost.From(IPv6Address.Localhost),            port).ToString(), Is.EqualTo("[::1]:8080"));
+            Assert.That(HTTPHostname.From(IPv6Address.Localhost,                          port).ToString(), Is.EqualTo("[::1]:8080"));
+            Assert.That(HTTPHostname.From(IPv6Address.Localhost,                          null).ToString(), Is.EqualTo("[::1]"));
+
+            // Both overloads describe the same host.
+            Assert.That(HTTPHostname.From(URLHost.From(IPv4Address.Parse("10.0.0.1")), port),
+                        Is.EqualTo(HTTPHostname.From(IPv4Address.Parse("10.0.0.1"),    port)));
+
+        }
+
+        #endregion
+
+        #region TheDefaultValue_HasAnEmptyTextRepresentation()
+
+        /// <summary>
+        /// An HTTP/1.0 request is allowed to arrive without a Host header, and the Host
+        /// property of such a request is the default value of the struct. The server maps
+        /// that case onto the "any" host by asking IsNullOrEmpty, which only works as long
+        /// as the default value stays describable: it must render as the empty string
+        /// rather than throwing on its null name.
+        /// </summary>
+        [Test]
+        public void TheDefaultValue_HasAnEmptyTextRepresentation()
+        {
+
+            var hostname = default(HTTPHostname);
+
+            Assert.That(hostname.IsNullOrEmpty, Is.True);
+            Assert.That(hostname.ToString(),    Is.Empty);
+
+            // ...and it is not a hostname anybody could have sent.
+            Assert.That(HTTPHostname.TryParse(hostname.ToString(), out _), Is.False);
 
         }
 

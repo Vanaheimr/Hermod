@@ -638,7 +638,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                var requestHost = HTTPHostname.Parse(Request.Host.ToString());
+                // Not HTTPHostname.Parse(Request.Host.ToString()): an HTTP/1.0 request
+                // is allowed to arrive without a Host header, and then the header field
+                // is simply absent -- parsing its empty text representation throws and
+                // turns a legal request into a 500, while the IsNullOrEmpty check below
+                // already maps exactly that case onto the 'any' host.
+                var requestHost = Request.Host;
 
                 if (requestHost.IsNullOrEmpty)
                     requestHost = HTTPHostname.Any;
