@@ -21,6 +21,8 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
@@ -40,11 +42,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public Boolean   EnableTLSUnicast       { get; init; } = false;
 
+        /// <summary>
+        /// Serve DNS-over-HTTPS as well (RFC 8484).
+        /// </summary>
+        /// <remarks>
+        /// Requires a <see cref="TLSServerCertificate"/>, exactly as the DoT
+        /// listener does, and for the same reason: RFC 8484 §5 says "This protocol
+        /// MUST be used with the https URI scheme". A cleartext DoH endpoint —
+        /// behind a TLS-terminating proxy, or in a test that wants the HTTP layer
+        /// visible — is a <see cref="DNSOverHTTPSServer"/> started on its own,
+        /// where nothing about the name promises otherwise.
+        /// </remarks>
+        public Boolean   EnableHTTPSUnicast     { get; init; } = false;
+
         public IPSocket  UDPUnicastSocket       { get; init; } = new(IPvXAddress.Any, IPPort.Parse(63));
 
         public IPSocket  TCPUnicastSocket       { get; init; } = new(IPvXAddress.Any, IPPort.Parse(63));
 
         public IPSocket  TLSUnicastSocket       { get; init; } = new(IPvXAddress.Any, IPPort.DNS_TLS);
+
+        public IPSocket  HTTPSUnicastSocket     { get; init; } = new(IPvXAddress.Any, IPPort.HTTPS);
+
+        /// <summary>
+        /// The path the DoH listener answers on. RFC 8484 defines no well-known
+        /// path — §3 leaves the URI to a template the server publishes — so this
+        /// is a convention, and <c>/dns-query</c> is the one everybody kept.
+        /// </summary>
+        public HTTPPath  HTTPSPath              { get; init; } = DNSOverHTTPSServer.DefaultDNSQueryPath;
 
         public IPSocket  UDPMulticastSocket     { get; init; } = new(IPvXAddress.Any, IPPort.Parse(6363));
 

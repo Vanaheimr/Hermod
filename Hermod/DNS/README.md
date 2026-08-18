@@ -29,6 +29,36 @@ The `DNSTransport` enum exposes these as `UDP`, `TCP`, `TLS`, `HTTPS`,
 `HTTPS_Binary`, `HTTPS_JSON`, `HTTPS_GET` (plus unencrypted `HTTP`/`HTTP_Binary`/
 `HTTP_JSON` variants for testing).
 
+### Server side
+
+| Server               | Protocol                        | RFC      |
+|----------------------|---------------------------------|----------|
+| `DNSServer`          | UDP unicast + multicast, TCP, DoT | RFC 1035, 7766, 7858 |
+| `DNSOverHTTPSServer` | DNS over HTTPS (DoH)            | RFC 8484 |
+
+Every transport shares one `DNSMessagePipeline`: the same zone, the same TSIG
+(RFC 8945) and SIG(0) (RFC 2931) verification, the same RFC 7830 / RFC 8467
+padding. A transport decides how a message arrives, never what a valid signature
+is.
+
+`DNSOverHTTPSServer` runs standalone, or as a fifth listener on `DNSServer` via
+`DNSServerOptions.EnableHTTPSUnicast` (which requires a `TLSServerCertificate`,
+since RFC 8484 §5 requires the https scheme). Standalone and without a
+certificate it serves the same resource in cleartext — for a TLS-terminating
+proxy in front, or a test that wants the HTTP layer visible.
+
+Two places where DoH is deliberately *not* like DoT:
+
+- A DNS error is not an HTTP error. NXDOMAIN and SERVFAIL travel with 200;
+  4xx/5xx are reserved for requests that never became a DNS question
+  (RFC 8484 §4.2.1).
+- The requestor's EDNS(0) payload size is ignored, as RFC 8484 §6 requires — so
+  it neither truncates the answer nor shortens its padding.
+
+It is HTTP/1.1, which RFC 8484 §5.2 permits while recommending HTTP/2 as the
+minimum version; the semantics are complete, the cost is per-connection
+parallelism.
+
 
 ## DNSClient — The Orchestrator
 

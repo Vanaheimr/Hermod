@@ -361,8 +361,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 = Register("application", "xml",                        "utf-8", null, null, "xml");
             public static HTTPContentType SOAPXML_UTF8           { get; }
                 = Register("application", "soap+xml",                   "utf-8", null, null, "soap");
+            /// <summary>
+            /// The DNS wire format of RFC 1035 §4.1, as carried by DNS-over-HTTPS.
+            /// </summary>
+            /// <remarks>
+            /// No character set, deliberately. RFC 8484 §7.1 registers this media
+            /// type with "Optional parameters: N/A" and calls the payload "a binary
+            /// format"; a charset on it would be a claim about the bytes that is
+            /// not true of any of them.
+            /// </remarks>
             public static HTTPContentType DNSMessage             { get; }
-                = Register("application", "dns-message",                "utf-8", null, null, "dns");
+                = Register("application", "dns-message",                null,    null, null, "dns");
             public static HTTPContentType DNSJson                { get; }
                 = Register("application", "dns-json",                   null,    null, null, "json");
 
