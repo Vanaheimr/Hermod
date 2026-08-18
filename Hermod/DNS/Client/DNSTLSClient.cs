@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -126,9 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // Brackets, or "2001:...:8844:853" is anyone's guess as to where
                 // the address stops and the port starts - RFC 3986 §3.2.2.
-                return ipAddress.IsIPv6
-                           ? $"[{ipAddress}]:{RemotePort ?? IPPort.DNS_TLS}"
-                           :   $"{ipAddress}:{RemotePort ?? IPPort.DNS_TLS}";
+                return $"{ipAddress.ToIPLiteral()}:{RemotePort ?? IPPort.DNS_TLS}";
 
             }
         }

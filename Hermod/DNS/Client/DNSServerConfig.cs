@@ -230,9 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // RFC 3986 §3.2.2: brackets, or the colon before the port is
                 // indistinguishable from the ones inside the address.
-                return IPAddress.IsIPv6
-                           ? $"[{IPAddress}]"
-                           :     IPAddress.ToString();
+                return IPAddress.ToIPLiteral();
 
             }
         }

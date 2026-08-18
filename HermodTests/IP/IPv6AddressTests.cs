@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -244,6 +244,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
             Assert.That(a.CompareTo(b) > 0, Is.True);
             Assert.That(a > b,              Is.True);
             Assert.That(b < a,              Is.True);
+
+        }
+
+        #endregion
+
+        #region ToIPLiteral_BracketsWhatIsNotBracketedYet()
+
+        /// <summary>
+        /// The authority of an URL carries an IPv6 address in brackets - RFC 3986
+        /// section 3.2.2 - so that the colon before a port stays distinguishable from
+        /// the colons inside the address.
+        ///
+        /// ToString() already brackets "::" and "::1" and spells every other address
+        /// out bare, which is the trap this helper exists for: bracketing every
+        /// address turned the loopback into "[[::1]]", and bracketing none of them
+        /// left a global address unusable as a host.
+        /// </summary>
+        [Test]
+        public void ToIPLiteral_BracketsWhatIsNotBracketedYet()
+        {
+
+            // Spelled out bare by ToString(), so the brackets are added...
+            Assert.That(IPv6Address.Parse("2606:2800:220:1:248:1893:25c8:1946").ToIPLiteral(),
+                        Is.EqualTo("[2606:2800:0220:0001:0248:1893:25c8:1946]"));
+
+            // ...and the two ToString() brackets itself do not get a second pair.
+            Assert.That(IPv6Address.Localhost.ToIPLiteral(), Is.EqualTo("[::1]"));
+            Assert.That(IPv6Address.Any.      ToIPLiteral(), Is.EqualTo("[::]"));
+
+            // An IPv4 address is not an IP-literal and stays as it is.
+            Assert.That(IPv4Address.Parse("10.0.0.1").ToIPLiteral(), Is.EqualTo("10.0.0.1"));
+
+            // Whatever comes out is bracketed exactly once.
+            foreach (var address in new IIPAddress[] {
+                                        IPv6Address.Parse("2606:2800:220:1:248:1893:25c8:1946"),
+                                        IPv6Address.Localhost,
+                                        IPv6Address.Any
+                                    })
+            {
+                var literal = address.ToIPLiteral();
+                Assert.That(literal, Does.StartWith("["));
+                Assert.That(literal, Does.EndWith("]"));
+                Assert.That(literal.StartsWith("[["), Is.False, literal);
+            }
 
         }
 

@@ -18,6 +18,44 @@
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    /// <summary>
+    /// Extension methods for Internet protocol addresses.
+    /// </summary>
+    public static class IIPAddressExtensions
+    {
+
+        #region ToIPLiteral(this IPAddress)
+
+        /// <summary>
+        /// Return this IP address in the shape the authority of an URL may carry it:
+        /// an IPv6 address enclosed in brackets, an IPv4 address as it is.
+        ///
+        /// Note: RFC 3986 section 3.2.2 calls the bracketed form an "IP-literal". The
+        ///       brackets are what keeps the colon in front of a port apart from the
+        ///       colons inside the address.
+        ///
+        ///       IPv6Address.ToString() brackets "::" and "::1" by itself and spells
+        ///       every other address out bare, so this adds brackets only where they
+        ///       are missing. Bracketing unconditionally - which is what the callers
+        ///       of this used to do, each on its own - rendered the loopback as
+        ///       "[[::1]]".
+        /// </summary>
+        /// <param name="IPAddress">An IP address.</param>
+        public static String ToIPLiteral(this IIPAddress IPAddress)
+        {
+
+            var text = IPAddress.ToString();
+
+            return IPAddress.IsIPv6 && !text.StartsWith('[')
+                       ? $"[{text}]"
+                       :   text;
+
+        }
+
+        #endregion
+
+    }
+
     /// <summary> 
     /// A common interface for all kinds of Internet protocol addresses.
     /// </summary>

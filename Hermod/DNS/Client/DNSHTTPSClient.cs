@@ -135,9 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // Brackets, or "2001:...:8844:443" is anyone's guess as to where
                 // the address stops and the port starts - RFC 3986 §3.2.2.
-                return ipAddress.IsIPv6
-                           ? $"[{ipAddress}]:{RemotePort ?? IPPort.HTTPS}"
-                           :   $"{ipAddress}:{RemotePort ?? IPPort.HTTPS}";
+                return $"{ipAddress.ToIPLiteral()}:{RemotePort ?? IPPort.HTTPS}";
 
             }
         }
