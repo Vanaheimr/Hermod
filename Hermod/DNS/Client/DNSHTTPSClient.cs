@@ -97,6 +97,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Boolean           DnssecOK         { get; set; }
 
         /// <summary>
+        /// The EDNS(0) payload size this client advertises (RFC 6891 §6.2.3).
+        /// Set to 0 to send no OPT record at all, which announces no EDNS(0)
+        /// support and rules out padding.
+        /// </summary>
+        /// <remarks>
+        /// The number itself is inert here, and deliberately so. RFC 8484 §6:
+        /// "DoH servers using this media type MUST ignore the value given for
+        /// the EDNS UDP payload size in DNS requests" — there is no datagram to
+        /// size, so nothing on the far side may act on it. What the field is for
+        /// on this transport is the OPT record it forces into existence, since
+        /// that is where the Padding option lives. Note the contrast with DoT,
+        /// where the same value is also the ceiling RFC 7830 §4 puts on the
+        /// reply; over DoH a responder is required to disregard it.
+        /// </remarks>
+        public UInt16            UDPPayloadSize   { get; set; } = DNSPacket.DefaultUDPPayloadSize;
+
+        /// <summary>
+        /// The block length queries are padded to, or 0 to send them unpadded.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// RFC 8467 §4.1: "Clients SHOULD pad queries to the closest multiple of
+        /// 128 octets", qualified by "the recommendation above only applies if
+        /// the DNS transport is encrypted". §1 says which transports that means:
+        /// "Padding DNS messages is useful only when transport is encrypted
+        /// using protocols such as DNS over Transport Layer Security [RFC7858],
+        /// DNS over Datagram Transport Layer Security [RFC8094], or other
+        /// encrypted DNS transports specified in the future." DoH is one of
+        /// those — published the same month, and named nowhere in RFC 8467 —
+        /// so the same block length applies and padding is on by default.
+        /// </para>
+        /// <para>
+        /// RFC 8484 §9 says the same thing from the other side: "DoH servers can
+        /// also add DNS padding [RFC7830] if the DoH client requests it in the
+        /// DNS query." Requesting it is this client's part.
+        /// </para>
+        /// <para>
+        /// This is DNS padding, inside the DNS message. HTTP/2 has padding of
+        /// its own, at a different layer and under nobody's control here —
+        /// RFC 8484 §4.1: "DoH clients can use HTTP/2 padding and compression
+        /// [RFC7540] in the same way that other HTTP/2 clients use (or don't
+        /// use) them."
+        /// </para>
+        /// </remarks>
+        public UInt16            PaddingBlockSize { get; set; } = DNSPadding.QueryBlockSize;
+
+        /// <summary>
         /// How this client signs its queries and checks the replies — TSIG
         /// (RFC 8945) or SIG(0) (RFC 2931). Unsigned by default.
         /// </summary>
@@ -767,7 +814,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery  = DNSPacket.Query(
                                 DNSServiceName,
-                                0,
+                                UDPPayloadSize,
                                 this.RecursionDesired ?? RecursionDesired ?? true,
                                 this.DnssecOK,
                                 EDNSOptions.Count > 0 ? EDNSOptions : null,
@@ -779,7 +826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // POST body, exactly as on any other transport. HTTPS authenticates
             // the resolver and hides the query from the path — neither of which
             // says who asked.
-            var dnsBytes  = TransactionSecurity.SignQuery(dnsQuery.ToByteArray(), out var requestMAC);
+            var dnsBytes  = SerializeQuery(dnsQuery, out var requestMAC);
 
             var effectiveTimeout = Timeout ?? QueryTimeout;
 
@@ -1035,6 +1082,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 httpStreamLock.Release();
             }
+
+        }
+
+        #endregion
+
+        #region (private) SerializeQuery(Query, out RequestMAC)
+
+        /// <summary>
+        /// Serialize a query for an RFC 8484 request: padded if this client pads,
+        /// and signed if it signs.
+        /// </summary>
+        /// <param name="Query">The query to encode into the request.</param>
+        /// <param name="RequestMAC">The TSIG MAC of the query that actually goes out, which the response's MAC folds in (RFC 8945 §4.3.1).</param>
+        /// <remarks>
+        /// <para>
+        /// The same two passes as the other encrypted transports: a trial run
+        /// carrying an empty Padding option, then the real one. RFC 8467 §4.1
+        /// names the trap directly — "An implementor needs to consider that even
+        /// the zero-length 'Padding' option increases the length of the packet by
+        /// 4 octets" — so the trial carries the option rather than the arithmetic
+        /// carrying a constant.
+        /// </para>
+        /// <para>
+        /// Measured after signing, since a TSIG or SIG(0) record is part of what
+        /// an observer counts.
+        /// </para>
+        /// <para>
+        /// What is measured is the DNS message, before base64url widens it by a
+        /// third for a GET. The RFCs pad DNS messages; the encoding of the
+        /// request around one is HTTP's business, and RFC 8484 §4.1 leaves the
+        /// HTTP layer its own padding to use or not use. A block-aligned message
+        /// stays block-aligned in its bucket either way, since base64url is a
+        /// fixed expansion rather than a variable one.
+        /// </para>
+        /// </remarks>
+        private Byte[] SerializeQuery(DNSPacket   Query,
+                                      out Byte[]? RequestMAC)
+        {
+
+            if (PaddingBlockSize == 0 || !DNSPadding.HasEDNS(Query))
+                return TransactionSecurity.SignQuery(Query.ToByteArray(), out RequestMAC);
+
+            var trial   = TransactionSecurity.SignQuery(DNSPadding.WithPadding(Query, 0).ToByteArray(), out var trialMAC);
+
+            var octets  = DNSPadding.OctetsFor(trial.Length, PaddingBlockSize);
+
+            if (octets == 0)
+            {
+                RequestMAC = trialMAC;
+                return trial;
+            }
+
+            return TransactionSecurity.SignQuery(DNSPadding.WithPadding(Query, octets).ToByteArray(), out RequestMAC);
 
         }
 
