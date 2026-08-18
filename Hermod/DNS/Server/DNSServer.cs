@@ -222,6 +222,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private) SerializeStreamResponse (Response, Request, Context)
+
+        /// <summary>
+        /// Serialize a response for a length-prefixed stream: signed if the request
+        /// was signed, and padded if the request asked to be padded.
+        /// </summary>
+        /// <param name="Response">The response to put on the wire.</param>
+        /// <param name="Request">The request that prompted it, which decides both.</param>
+        /// <param name="Context">What the verified request left behind, or null to leave the response unsigned.</param>
+        /// <remarks>
+        /// <para>
+        /// RFC 7830 §4 leaves the responder no say in the matter: "Responders MUST
+        /// pad DNS responses when the respective DNS query included the 'Padding'
+        /// option, unless doing so would violate the maximum UDP payload size."
+        /// What is up to the responder is how much — RFC 8467 §4.1 recommends a
+        /// multiple of 468 octets, and that is a SHOULD.
+        /// </para>
+        /// <para>
+        /// How much padding a message needs depends on how long the message already
+        /// is, and that is only known once it has been serialized. So this
+        /// serializes twice. The trial run carries an empty Padding option, which
+        /// means the four octets of option header are already inside the length
+        /// that comes back and cannot be left out of the arithmetic by mistake.
+        /// </para>
+        /// <para>
+        /// The measurement is taken after signing rather than before. What an
+        /// observer sees is the finished message, TSIG or SIG(0) record included,
+        /// and that is the length which has to land on a block boundary; padding
+        /// the message underneath a signature of some other length would leave the
+        /// observable length as revealing as before. Both RFCs are silent on the
+        /// combination. A transaction signature is a fixed size for a given key and
+        /// algorithm, so the trial run costs one extra signature and reports the
+        /// length the real one will have.
+        /// </para>
+        /// <para>
+        /// A response with no OPT record of its own is sent as it is. There is
+        /// nowhere in it for the option to live, and conjuring an OPT record would
+        /// change what the response says about its own EDNS(0) support in order to
+        /// pad it.
+        /// </para>
+        /// </remarks>
+        private Byte[] SerializeStreamResponse(DNSPacket                    Response,
+                                               DNSPacket                    Request,
+                                               TransactionSecurityContext?  Context)
+        {
+
+            if (!DNSPadding.IsPadded(Request) ||
+                !DNSPadding.HasEDNS (Response))
+            {
+                return SignIfRequested(Serialize(Response), Context);
+            }
+
+            var trial   = SignIfRequested(Serialize(DNSPadding.WithPadding(Response, 0)), Context);
+
+            var octets  = DNSPadding.OctetsFor(
+                              trial.Length,
+                              DNSPadding.ResponseBlockSize,
+                              DNSPadding.PayloadSizeOf(Request)
+                          );
+
+            // Already on a boundary, or held there by the requestor's payload size:
+            // the trial run is the answer, and its empty Padding option is an
+            // honest statement of how many octets were added.
+            return octets == 0
+                       ? trial
+                       : SignIfRequested(Serialize(DNSPadding.WithPadding(Response, octets)), Context);
+
+        }
+
+        #endregion
+
         #region (private) AcceptSignedRequest     (Buffer, out Message, out Context, out ErrorResponse)
 
         /// <summary>
@@ -1224,15 +1295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (dnsResponse is not null)
                     {
 
-                        var memoryStream = new MemoryStream();
-
-                        dnsResponse.Serialize(
-                            memoryStream,
-                            UseCompression:      Options.UseCompression,
-                            CompressionOffsets:  []
-                        );
-
-                        var responseBytes  = SignIfRequested(memoryStream.ToArray(), tsigContext);
+                        var responseBytes  = SerializeStreamResponse(dnsResponse, dnsRequest, tsigContext);
 
                         Stream.WriteUInt16BE((UInt16) responseBytes.Length);
 

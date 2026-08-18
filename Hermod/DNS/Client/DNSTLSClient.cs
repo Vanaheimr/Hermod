@@ -97,6 +97,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSTransactionSecurity  TransactionSecurity { get; set; } = DNSTransactionSecurity.None;
 
         /// <summary>
+        /// The EDNS(0) payload size this client advertises (RFC 6891 §6.2.3),
+        /// which is also the ceiling RFC 7830 §4 puts on how far the responder
+        /// may pad its reply. Set to 0 to send no OPT record at all, which
+        /// announces no EDNS(0) support and rules out padding in either
+        /// direction.
+        /// </summary>
+        public UInt16            UDPPayloadSize            { get; set; } = DNSPacket.DefaultUDPPayloadSize;
+
+        /// <summary>
+        /// The block length queries are padded to, or 0 to send them unpadded.
+        /// </summary>
+        /// <remarks>
+        /// RFC 8467 §4.1: "Clients SHOULD pad queries to the closest multiple of
+        /// 128 octets", with the note that "the recommendation above only applies
+        /// if the DNS transport is encrypted". DoT is encrypted by construction,
+        /// so the recommendation always applies here and padding is on by
+        /// default — a plaintext DNS client would have nothing to gain from it.
+        /// </remarks>
+        public UInt16            PaddingBlockSize          { get; set; } = DNSPadding.QueryBlockSize;
+
+        /// <summary>
         /// The server-advertised idle timeout from the last EDNS TCP Keepalive
         /// response option (RFC 7828). Null if no keepalive option was received.
         /// The connection should be closed after this duration of inactivity.
@@ -393,22 +414,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
-                               0,
+                               UDPPayloadSize,
                                this.RecursionDesired ?? RecursionDesired ?? true,
                                this.DnssecOK,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );
 
-
-            using var queryStream = new MemoryStream();
-            dnsQuery.Serialize(queryStream, false, []);
-
-            // RFC 8945 §5.3 / RFC 2931 §3.1 — the signature covers the message,
-            // not the transport. DoT is RFC 7766 framing inside TLS, so the
-            // signed bytes are the same ones the datagram path signs; only the
-            // two-octet length prefix goes around them.
-            var signedQuery = TransactionSecurity.SignQuery(queryStream.ToArray(), out var requestMAC);
+            var signedQuery = SerializeQuery(dnsQuery, out var requestMAC);
 
             var data        = new Byte[signedQuery.Length + 2];
             data[0] = (Byte) (signedQuery.Length >> 8);
@@ -529,6 +542,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             #endregion
+
+        }
+
+        #endregion
+
+        #region (private) SerializeQuery(Query, out RequestMAC)
+
+        /// <summary>
+        /// Serialize a query for the wire: padded if this client pads, and
+        /// signed if it signs.
+        /// </summary>
+        /// <param name="Query">The query to put on the wire.</param>
+        /// <param name="RequestMAC">The TSIG MAC of the query that actually goes out, which the response's MAC folds in (RFC 8945 §4.3.1).</param>
+        /// <remarks>
+        /// <para>
+        /// RFC 8467 §4.1: "Clients SHOULD pad queries to the closest multiple of
+        /// 128 octets." Queries are short and alike, and a query is the message
+        /// whose length gives away the most — encrypting the transport hides the
+        /// name and leaves the length behind.
+        /// </para>
+        /// <para>
+        /// How much padding a message needs depends on how long it already is, so
+        /// this serializes twice. The trial run carries an empty Padding option,
+        /// which puts the four octets of option header inside the length that
+        /// comes back rather than leaving them to be remembered separately.
+        /// </para>
+        /// <para>
+        /// The measurement is taken after signing. A TSIG or SIG(0) record is
+        /// part of what an observer counts, so it is the signed message that has
+        /// to land on the block boundary; both RFCs are silent on the
+        /// combination. A signature is a fixed size for a given key and
+        /// algorithm, so the trial run reports the length the real one will have.
+        /// </para>
+        /// <para>
+        /// Nothing caps the query's own padding. RFC 7830 §4's ceiling is the
+        /// Requestor's Payload Size, which says what this client is willing to
+        /// receive, not what it may send.
+        /// </para>
+        /// </remarks>
+        private Byte[] SerializeQuery(DNSPacket   Query,
+                                      out Byte[]? RequestMAC)
+        {
+
+            static Byte[] serialize(DNSPacket message)
+            {
+                using var stream = new MemoryStream();
+                message.Serialize(stream, false, []);
+                return stream.ToArray();
+            }
+
+            // No block length, or no OPT record to carry the option: send the
+            // query as it is. Inventing an OPT record here would announce EDNS(0)
+            // support the caller switched off.
+            if (PaddingBlockSize == 0 || !DNSPadding.HasEDNS(Query))
+                return TransactionSecurity.SignQuery(serialize(Query), out RequestMAC);
+
+            var trial   = TransactionSecurity.SignQuery(serialize(DNSPadding.WithPadding(Query, 0)), out var trialMAC);
+
+            var octets  = DNSPadding.OctetsFor(trial.Length, PaddingBlockSize);
+
+            if (octets == 0)
+            {
+                RequestMAC = trialMAC;
+                return trial;
+            }
+
+            return TransactionSecurity.SignQuery(serialize(DNSPadding.WithPadding(Query, octets)), out RequestMAC);
 
         }
 
