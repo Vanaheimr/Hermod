@@ -60,12 +60,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <remarks>
         /// "HTTP/2 […] is the minimum RECOMMENDED version of HTTP for use with
-        /// DoH", so this is the listener a deployment wants; the HTTP/1.1 one
-        /// above conveys the same semantics more slowly. They are separate
-        /// listeners on separate ports rather than one port with ALPN choosing,
-        /// because Hermod's HTTP/1.1 pipeline is a TCP server and cannot be
-        /// handed an already-negotiated stream — so enabling both means giving
-        /// <see cref="HTTP2UnicastSocket"/> a port of its own.
+        /// DoH", so this is the listener a deployment wants — and on its own it
+        /// is usually the only one it needs: over TLS it advertises both
+        /// <c>h2</c> and <c>http/1.1</c> and lets ALPN choose, serving each
+        /// client whichever it brought.
+        /// <see cref="EnableHTTPSUnicast"/> is for the case where HTTP/1.1 wants
+        /// a port of its own, and then it has to be a different one — two
+        /// listeners cannot share a port, and <see cref="DNSServer.Start"/> says
+        /// so rather than letting the second bind fail out of sight.
         /// </remarks>
         public Boolean   EnableHTTP2Unicast     { get; init; } = false;
 

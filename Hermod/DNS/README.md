@@ -48,12 +48,19 @@ listener only renders the result. §5.2 recommends HTTP/2 ("the minimum
 RECOMMENDED version of HTTP for use with DoH") for performance, not for meaning,
 so the two answer identically and differ in parallelism.
 
+Over TLS, `DNSOverHTTP2Server` serves **both versions on one port**: it
+advertises `h2` and `http/1.1`, ALPN picks (RFC 9113 §3.2), and an `http/1.1`
+connection is handed to an HTTP/1.1 renderer over the same resource through
+`AHTTPServer.HandleHTTPStreamAsync`. So it is normally the only DoH listener a
+deployment needs. `ServeHTTP11ViaALPN: false` makes it h2-only, and then it stops
+*advertising* http/1.1 rather than advertising what it will not serve.
+
 Either runs standalone, or as a listener on `DNSServer` via
 `DNSServerOptions.EnableHTTPSUnicast` / `EnableHTTP2Unicast` — both requiring a
-`TLSServerCertificate`, since RFC 8484 §5 requires the https scheme. They are
-separate ports rather than one port with ALPN choosing, because Hermod's
-HTTP/1.1 pipeline is a TCP server and cannot be handed an already-negotiated
-stream; enabling both means giving `HTTP2UnicastSocket` a port of its own.
+`TLSServerCertificate`, since RFC 8484 §5 requires the https scheme.
+`EnableHTTPSUnicast` is for giving HTTP/1.1 a port of its own; two listeners
+cannot share one, and `Start()` says so instead of letting the second bind fail
+out of sight.
 
 Standalone and without a certificate either serves the same resource in
 cleartext — HTTP/1.1, or h2c with prior knowledge (RFC 9113 §3.3) — for a

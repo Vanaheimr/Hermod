@@ -410,6 +410,145 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
         #endregion
 
+        #region DoH2Server_Lets_Alpn_Choose_On_One_Port()
+
+        /// <summary>
+        /// RFC 9113 §3.2 requires ALPN to select h2, and a client that cannot
+        /// speak it asks for http/1.1 in the same handshake. One port, two
+        /// clients, and the negotiation decides which pipeline answers.
+        /// </summary>
+        [Test]
+        public async Task DoH2Server_Lets_Alpn_Choose_On_One_Port()
+        {
+
+            using var certificate = CreateSelfSignedServerCertificate();
+
+            var server = await StartServer(certificate);
+
+            try
+            {
+
+                Assert.That(server.ServesHTTP11, Is.True, "the listener offers http/1.1 as well");
+
+                // One query, sent twice — DNSPacket.Query draws its ID at random,
+                // so two separately built queries would differ in the two octets
+                // the answers echo back.
+                var query = QueryFor("api.example.test.");
+
+                using var overH2  = NewClient();
+                using var overH11 = new HttpClient(
+                                        new HttpClientHandler {
+                                            ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+                                        }
+                                    ) {
+                                        DefaultRequestVersion  = HttpVersion.Version11,
+                                        DefaultVersionPolicy   = HttpVersionPolicy.RequestVersionExact,
+                                        Timeout                = TimeSpan.FromSeconds(10)
+                                    };
+
+                var content2  = new ByteArrayContent(query);
+                content2.Headers.ContentType  = new MediaTypeHeaderValue(DNSMessage);
+
+                var content11 = new ByteArrayContent(query);
+                content11.Headers.ContentType = new MediaTypeHeaderValue(DNSMessage);
+
+                using var h2Response  = await overH2. PostAsync(UrlOf(server), content2);
+                using var h11Response = await overH11.PostAsync(UrlOf(server), content11);
+
+                var h2Body  = await h2Response. Content.ReadAsByteArrayAsync();
+                var h11Body = await h11Response.Content.ReadAsByteArrayAsync();
+
+                Assert.Multiple(() => {
+
+                    Assert.That(h2Response. Version, Is.EqualTo(HttpVersion.Version20),
+                                "a client offering h2 gets h2");
+                    Assert.That(h11Response.Version, Is.EqualTo(HttpVersion.Version11),
+                                "a client offering only http/1.1 is served, not turned away at the handshake");
+
+                    Assert.That((Int32) h2Response. StatusCode, Is.EqualTo(200));
+                    Assert.That((Int32) h11Response.StatusCode, Is.EqualTo(200));
+
+                    Assert.That(h11Response.Content.Headers.ContentType?.MediaType, Is.EqualTo(DNSMessage));
+
+                    // Same port, same resource, same pipeline — so the same octets.
+                    Assert.That(h11Body, Is.EqualTo(h2Body),
+                                "ALPN chooses the framing, never the answer");
+
+                });
+
+            }
+            finally
+            {
+                await server.Stop();
+            }
+
+        }
+
+        #endregion
+
+        #region DoH2Server_Can_Be_H2_Only()
+
+        /// <summary>
+        /// Turning the fallback off has to stop the endpoint *advertising*
+        /// http/1.1, not just stop serving it — offering a protocol and then not
+        /// serving it is worse than not offering it, since a client that could
+        /// have spoken h2 may pick the other one and get nothing.
+        /// </summary>
+        [Test]
+        public async Task DoH2Server_Can_Be_H2_Only()
+        {
+
+            using var certificate = CreateSelfSignedServerCertificate();
+
+            var server = await DNSOverHTTP2Server.StartNew(
+                                   new AuthoritativeDNSRequestHandler(CreateTestZone()),
+                                   new DNSServerOptions { TLSServerCertificate = certificate },
+                                   IPv4Address.Localhost,
+                                   IPPort.Parse(0),
+                                   ServeHTTP11ViaALPN: false
+                               );
+
+            try
+            {
+
+                Assert.That(server.ServesHTTP11, Is.False);
+
+                using var overH2  = NewClient();
+                using var overH11 = new HttpClient(
+                                        new HttpClientHandler {
+                                            ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+                                        }
+                                    ) {
+                                        DefaultRequestVersion  = HttpVersion.Version11,
+                                        DefaultVersionPolicy   = HttpVersionPolicy.RequestVersionExact,
+                                        Timeout                = TimeSpan.FromSeconds(10)
+                                    };
+
+                var content = new ByteArrayContent(QueryFor("api.example.test."));
+                content.Headers.ContentType = new MediaTypeHeaderValue(DNSMessage);
+
+                using var h2Response = await overH2.PostAsync(UrlOf(server), content);
+
+                Assert.That((Int32) h2Response.StatusCode, Is.EqualTo(200), "h2 is still served");
+
+                Assert.ThrowsAsync<HttpRequestException>(
+                    async () => await overH11.PostAsync(
+                                          UrlOf(server),
+                                          new ByteArrayContent(QueryFor("api.example.test."))
+                                      ),
+                    "an http/1.1-only client fails ALPN rather than being accepted and ignored"
+                );
+
+            }
+            finally
+            {
+                await server.Stop();
+            }
+
+        }
+
+        #endregion
+
         #region DNSServer_Serves_Both_DoH_Versions_Side_By_Side()
 
         /// <summary>

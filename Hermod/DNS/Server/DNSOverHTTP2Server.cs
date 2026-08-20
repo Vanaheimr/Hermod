@@ -56,13 +56,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// no opinion of its own about RFC 8484.
     /// </para>
     /// <para>
-    /// <i>One port each.</i> A real deployment serves both versions on 443 and
-    /// lets ALPN choose. Hermod cannot do that in one listener yet: its HTTP/1.1
-    /// pipeline is a TCP server rather than something a negotiated stream can be
-    /// handed to, so <see cref="HTTP2Server"/>'s HTTP/1.1 fallback has nothing to
-    /// hand it to. Until it does, this listener is h2-only and says so in the
-    /// handshake — an ALPN offer of <c>http/1.1</c> alone fails rather than being
-    /// accepted and then not served, which is the honest half of the choice.
+    /// <i>One port, both versions.</i> Over TLS this listener advertises
+    /// <c>h2</c> and <c>http/1.1</c> and lets ALPN choose, which is how a real
+    /// deployment serves 443: RFC 9113 §3.2 requires ALPN to select h2, and a
+    /// client that cannot speak it asks for http/1.1 in the same handshake. The
+    /// h2 side is rendered here; the http/1.1 side is handed to a
+    /// <see cref="DNSOverHTTPSServer"/> that never listens on a port of its own
+    /// and exists only to serve the negotiated stream, through
+    /// <see cref="AHTTPServer.HandleHTTPStreamAsync"/>. Both share this
+    /// listener's <see cref="DNSOverHTTPSResource"/>, so the two versions cannot
+    /// drift apart in what they answer.
+    /// </para>
+    /// <para>
+    /// Set <c>ServeHTTP11ViaALPN</c> to false for an h2-only endpoint, which then
+    /// says so in the handshake — an ALPN offer of <c>http/1.1</c> alone fails
+    /// rather than being accepted and not served. There is no negotiation in
+    /// cleartext at all: h2c is prior knowledge, so the switch is ignored there.
     /// </para>
     /// <para>
     /// <i>Cleartext.</i> Without a certificate this serves h2c with prior
@@ -77,6 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Data
 
         private readonly HTTP2Server                    http2Server;
+        private readonly DNSOverHTTPSServer?            http11Renderer;
         private readonly ILogger<DNSOverHTTP2Server>    dnsLogger;
 
         private          CancellationTokenSource?       cancellationTokenSource;
@@ -125,9 +135,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <inheritdoc />
         public Boolean               IsSecured     { get; }
 
+        /// <summary>
+        /// Whether an ALPN offer of <c>http/1.1</c> is answered on this port too.
+        /// </summary>
+        public Boolean               ServesHTTP11
+            => http11Renderer is not null;
+
         /// <inheritdoc />
         public String                HTTPVersion
-            => IsSecured ? "HTTP/2" : "HTTP/2 (h2c)";
+            => IsSecured
+                   ? ServesHTTP11
+                         ? "HTTP/2 + HTTP/1.1 (ALPN)"
+                         : "HTTP/2"
+                   : "HTTP/2 (h2c)";
 
         /// <summary>
         /// Whether the listener is accepting connections.
@@ -150,13 +170,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSQueryPath">The path to answer on, <c>/dns-query</c> by default.</param>
         /// <param name="Pipeline">An existing pipeline to share with other transports, instead of building one from the two parameters above.</param>
         /// <param name="LoggerFactory">Where to report a query that could not be read.</param>
-        public DNSOverHTTP2Server(IDNSRequestHandler?  RequestHandler     = null,
-                                  DNSServerOptions?    DNSServerOptions   = null,
-                                  IIPAddress?          IPAddress          = null,
-                                  IPPort?              TCPPort            = null,
-                                  HTTPPath?            DNSQueryPath       = null,
-                                  DNSMessagePipeline?  Pipeline           = null,
-                                  ILoggerFactory?      LoggerFactory      = null)
+        /// <param name="ServeHTTP11ViaALPN">
+        /// Answer an ALPN offer of <c>http/1.1</c> on this port as well, by
+        /// handing the negotiated stream to an HTTP/1.1 renderer over the same
+        /// resource. True by default, which is what a deployment on 443 wants.
+        /// False makes the endpoint h2-only, and it stops advertising
+        /// <c>http/1.1</c> rather than advertising what it will not serve. Has no
+        /// effect in cleartext, where h2c is prior knowledge and nothing is
+        /// negotiated.
+        /// </param>
+        public DNSOverHTTP2Server(IDNSRequestHandler?  RequestHandler       = null,
+                                  DNSServerOptions?    DNSServerOptions     = null,
+                                  IIPAddress?          IPAddress            = null,
+                                  IPPort?              TCPPort              = null,
+                                  HTTPPath?            DNSQueryPath         = null,
+                                  DNSMessagePipeline?  Pipeline             = null,
+                                  ILoggerFactory?      LoggerFactory        = null,
+                                  Boolean              ServeHTTP11ViaALPN   = true)
         {
 
             this.dnsLogger    = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSOverHTTP2Server>();
@@ -187,6 +217,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     ? IPPort.Parse(FreeTCPPort())
                                     : TCPPort.Value;
 
+            // The HTTP/1.1 half of the ALPN offer: a DoH server over the very same
+            // resource, constructed but never started. It binds nothing and
+            // accepts nothing — its only job is to render streams this listener
+            // has already negotiated.
+            this.http11Renderer  = ServeHTTP11ViaALPN && certificate is not null
+                                       ? new DNSOverHTTPSServer(
+                                             DNSServerOptions:  pipeline.Options,
+                                             IPAddress:         this.IPAddress,
+                                             TCPPort:           IPPort.Zero,
+                                             DNSQueryPath:      Resource.DNSQueryPath,
+                                             Pipeline:          pipeline,
+                                             LoggerFactory:     LoggerFactory
+                                         )
+                                       : null;
+
             this.http2Server  = new HTTP2Server(
                                     Address:             System.Net.IPAddress.Parse(this.IPAddress.ToString()),
                                     Port:                this.TCPPort.ToUInt16(),
@@ -196,7 +241,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                     // RFC 8484 §6 caps a DNS message at 65535 octets,
                                     // so a longer body cannot be one.
-                                    MaxRequestBodySize:  (Int64) DNSOverHTTPSResource.MaxDNSMessageSize
+                                    MaxRequestBodySize:  (Int64) DNSOverHTTPSResource.MaxDNSMessageSize,
+
+                                    // Supplying this is also what makes the listener
+                                    // advertise http/1.1 in the first place; without
+                                    // it the endpoint is h2-only and says so.
+                                    HTTP11Fallback:      http11Renderer is null
+                                                             ? null
+                                                             : ServeHTTP11StreamAsync
                                 );
 
         }
@@ -211,13 +263,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static async Task<DNSOverHTTP2Server>
 
-            StartNew(IDNSRequestHandler?  RequestHandler     = null,
-                     DNSServerOptions?    DNSServerOptions   = null,
-                     IIPAddress?          IPAddress          = null,
-                     IPPort?              TCPPort            = null,
-                     HTTPPath?            DNSQueryPath       = null,
-                     DNSMessagePipeline?  Pipeline           = null,
-                     ILoggerFactory?      LoggerFactory      = null)
+            StartNew(IDNSRequestHandler?  RequestHandler       = null,
+                     DNSServerOptions?    DNSServerOptions     = null,
+                     IIPAddress?          IPAddress            = null,
+                     IPPort?              TCPPort              = null,
+                     HTTPPath?            DNSQueryPath         = null,
+                     DNSMessagePipeline?  Pipeline             = null,
+                     ILoggerFactory?      LoggerFactory        = null,
+                     Boolean              ServeHTTP11ViaALPN   = true)
 
         {
 
@@ -228,7 +281,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              TCPPort,
                              DNSQueryPath,
                              Pipeline,
-                             LoggerFactory
+                             LoggerFactory,
+                             ServeHTTP11ViaALPN
                          );
 
             await server.Start();
@@ -319,6 +373,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+        #region (private) ServeHTTP11StreamAsync  (Stream, CancellationToken)
+
+        /// <summary>
+        /// Serve a connection whose ALPN negotiation chose <c>http/1.1</c>.
+        /// </summary>
+        /// <remarks>
+        /// The stream arrives authenticated and positioned at the first request
+        /// octet, which is exactly what Hermod's HTTP/1.1 pipeline needs — and
+        /// what it could not be given until <c>HandleHTTPStreamAsync</c> existed,
+        /// because a TCP server cannot be handed a connection it did not accept.
+        ///
+        /// The peer's address is not among what comes through: an
+        /// <c>SslStream</c> does not carry the socket it was built on, and
+        /// <see cref="HTTP2Server"/> passes only the stream. So the request is
+        /// labelled with this listener's own endpoint and a zero remote, the same
+        /// as the HTTP/2 path above — which matters to nothing here, since a DoH
+        /// answer does not depend on who asked.
+        /// </remarks>
+        private Task ServeHTTP11StreamAsync(Stream             Stream,
+                                            CancellationToken  CancellationToken)
+
+            => http11Renderer is null
+                   ? Task.CompletedTask
+                   : http11Renderer.HandleHTTPStreamAsync(
+                         Stream,
+                         new IPSocket(IPAddress, TCPPort),
+                         IPSocket.Zero,
+                         Resource.Pipeline.Options.TLSServerCertificate,
+                         null,
+                         null,
+                         CancellationToken
+                     );
+
+        #endregion
 
         #region (private) HandleHTTP2RequestAsync (StreamId, RequestHeaders, RequestBody, CancellationToken)
 

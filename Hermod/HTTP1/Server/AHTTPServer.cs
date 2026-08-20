@@ -20,6 +20,7 @@
 using System.Net;
 using System.Text;
 using System.Buffers;
+using System.Security.Cryptography.X509Certificates;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
@@ -360,6 +361,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (activeClients.TryRemove(TCPConnection, out var task))
                 activeClients.TryAdd   (connection,    task);
 
+            try
+            {
+
+                var             networkstream  = connection.TCPClient.GetStream();
+                await using var stream         = (connection.SSLStream as Stream) ?? networkstream
+                                                     ?? throw new InvalidOperationException("Stream is not a NetworkStream.");
+
+                await HandleHTTPStreamAsync(
+                          stream,
+                          IPSocket.FromIPEndPoint((networkstream.Socket.LocalEndPoint  as IPEndPoint)!),
+                          IPSocket.FromIPEndPoint((networkstream.Socket.RemoteEndPoint as IPEndPoint)!),
+                          TCPConnection.ServerCertificate,
+                          TCPConnection.ClientCertificate,
+                          connection,
+                          CancellationToken
+                      );
+
+            }
+            catch (Exception e)
+            {
+                httpLogger.LogError(e, "Exception while handling HTTP connection.");
+            }
+            finally
+            {
+
+                activeClients.TryRemove(connection, out _);
+
+                try
+                {
+                    connection.IsClosed = true;
+                    connection.Dispose();
+                }
+                catch (Exception e)
+                {
+                    httpLogger.LogError(e, "Exception while disposing HTTP connection.");
+                }
+            }
+
+        }
+
+        #endregion
+
+        #region HandleHTTPStreamAsync(Stream, LocalSocket, RemoteSocket, ...)
+
+        /// <summary>
+        /// Serve HTTP/1.1 on a stream that is already connected — and, when it
+        /// came through TLS, already authenticated and already past ALPN.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the whole of the HTTP/1.1 pipeline: request parsing, the
+        /// header and body limits, timeouts, pipelining, chunked bodies, and the
+        /// dispatch to <see cref="ProcessHTTPRequest"/>. What it deliberately does
+        /// not do is own the connection — it neither accepts it nor disposes it,
+        /// which is what lets somebody else decide where the stream came from.
+        /// </para>
+        /// <para>
+        /// <see cref="HandleConnection"/> is one such caller, and the ordinary
+        /// one. The other is ALPN: RFC 9113 §3.2 requires it to select <c>h2</c>,
+        /// and a listener offering both protocols on one port has to hand the
+        /// negotiated stream to whichever pipeline won — <c>http/1.1</c> lands
+        /// here. Without this seam such a listener can only ever advertise one
+        /// protocol, because a TCP server cannot be given a connection it did not
+        /// accept.
+        /// </para>
+        /// </remarks>
+        /// <param name="Stream">The stream to serve, positioned at the first request octet.</param>
+        /// <param name="LocalSocket">The local endpoint, for the requests parsed off it.</param>
+        /// <param name="RemoteSocket">The remote endpoint.</param>
+        /// <param name="ServerCertificate">The certificate this side presented, if any.</param>
+        /// <param name="ClientCertificate">The certificate the peer presented, if any.</param>
+        /// <param name="Connection">The connection to keep keep-alive bookkeeping on, when there is one.</param>
+        /// <param name="CancellationToken">Cancelled when the server is shutting down.</param>
+        public async Task HandleHTTPStreamAsync(Stream             Stream,
+                                                IPSocket           LocalSocket,
+                                                IPSocket           RemoteSocket,
+                                                X509Certificate2?  ServerCertificate   = null,
+                                                X509Certificate2?  ClientCertificate   = null,
+                                                HTTPConnection?    Connection          = null,
+                                                CancellationToken  CancellationToken   = default)
+        {
+
             CancellationTokenSource? bodyReadTimeoutCancellation = null;
 
             try
@@ -368,16 +451,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Data
 
                 Int32           bufferSize     = (Int32) BufferSize;
-                var             networkstream  = connection.TCPClient.GetStream();
-                await using var stream         = (connection.SSLStream as Stream) ?? networkstream
-                                                     ?? throw new InvalidOperationException("Stream is not a NetworkStream.");
+                var             stream         = Stream;
                 using var       bufferOwner    = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
                 var             buffer         = bufferOwner.Memory;
                 var             dataLength     = 0;
 
-                var             localSocket    = IPSocket.FromIPEndPoint((networkstream.Socket.LocalEndPoint  as IPEndPoint)!);
-                var             remoteSocket   = IPSocket.FromIPEndPoint((networkstream.Socket.RemoteEndPoint as IPEndPoint)!);
+                var             localSocket    = LocalSocket;
+                var             remoteSocket   = RemoteSocket;
                 var             httpSource     = new HTTPSource(remoteSocket);
+
+                // Kept here rather than on the connection, because there may not
+                // be one: a stream handed over after ALPN has no HTTPConnection
+                // behind it, and the count is still what RFC 9112 §9.3 lets a
+                // server bound.
+                var             messageCount   = 0U;
 
                 #endregion
 
@@ -474,8 +561,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             HTTPBody:                   null,
                             HTTPBodyStream:             null,
                             HTTPServer:                 this,
-                            ServerCertificate:          TCPConnection.ServerCertificate,
-                            ClientCertificate:          TCPConnection.ClientCertificate,
+                            ServerCertificate:          ServerCertificate,
+                            ClientCertificate:          ClientCertificate,
 
                             //HTTPBodyReceiveBufferSize:  null,
                             EventTrackingId:            EventTracking_Id.New,
@@ -484,9 +571,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         ))
                     {
 
-                        connection.IsHTTPKeepAlive        = request.IsKeepAlive;
-                        connection.IncrementKeepAliveMessageCount();
-                        request.   KeepAliveMessageCount  = connection.KeepAliveMessageCount;
+                        messageCount++;
+
+                        if (Connection is not null)
+                        {
+                            Connection.IsHTTPKeepAlive = request.IsKeepAlive;
+                            Connection.IncrementKeepAliveMessageCount();
+                            messageCount               = Connection.KeepAliveMessageCount;
+                        }
+
+                        request.KeepAliveMessageCount = messageCount;
 
                         if (request.HTTPMethod    == HTTPMethod.OPTIONS &&
                             request.RequestTarget == "*")
@@ -841,25 +935,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             finally
             {
-
                 bodyReadTimeoutCancellation?.Dispose();
-                activeClients.TryRemove(connection, out _);
-
-                try
-                {
-                    connection.IsClosed = true;
-                    //await Connection.DisposeAsync();
-                    connection.Dispose();
-                }
-                catch (Exception e)
-                {
-                    httpLogger.LogError(e, "Exception while disposing HTTP connection.");
-                }
             }
 
         }
 
         #endregion
+
 
 
         #region (protected) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
