@@ -2267,7 +2267,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             => WithAndWithoutAnyClientCert_TestRun(
                    IPPort.Parse(9007),
-                   null,
+                   // Tls12|Tls13 rather than null (= Hermod's Tls13-only default),
+                   // and not for protocol reasons — TLS 1.3 still wins the
+                   // negotiation. EnabledSslProtocols is part of the key of
+                   // .NET's process-wide Schannel credential-handle cache, and
+                   // under the Tls13-only key this certificate-less client was
+                   // handed a cached credential that tests 3/4 had primed with
+                   // THEIR client certificate (sent via ClientCertificateContext/
+                   // -Chain, invisible to SslStream.LocalCertificate). Schannel
+                   // then attached that foreign certificate to this client's
+                   // handshake and the server rightly rejected it. A distinct
+                   // protocol set means a distinct cache key means a fresh,
+                   // certificate-free credential.
+                   SslProtocols.Tls12 | SslProtocols.Tls13,
                    TolerateCertlessRejectionOnWindowsRunners: true
                );
 
