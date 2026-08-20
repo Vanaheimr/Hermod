@@ -21,6 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An Internet Protocol Layer 4 Port.
     /// </summary>
+    [System.ComponentModel.TypeConverter(typeof(IPPortConverter))]
     public readonly struct IPPort : IEquatable<IPPort>,
                                     IComparable<IPPort>,
                                     IComparable
