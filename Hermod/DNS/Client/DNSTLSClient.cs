@@ -52,6 +52,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private readonly SemaphoreSlim tlsStreamLock = new(1, 1);
 
+        /// <summary>
+        /// RFC 7828 §3.2.2 for this session: what the server last advertised, and
+        /// the clock that ends the session before that timeout expires.
+        /// </summary>
+        private readonly DNSKeepalivePolicy keepalive;
+
         #endregion
 
         #region Properties
@@ -120,9 +126,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The server-advertised idle timeout from the last EDNS TCP Keepalive
         /// response option (RFC 7828). Null if no keepalive option was received.
-        /// The connection should be closed after this duration of inactivity.
         /// </summary>
-        public TimeSpan?         ServerKeepaliveTimeout    { get; private set; }
+        /// <remarks>
+        /// Acting on it is not left to the caller: RFC 7828 §3.2.2 asks the
+        /// client to close before this expires, and it does. The value is exposed
+        /// because it says what the peer is willing to hold, which is worth
+        /// seeing from outside.
+        /// </remarks>
+        public TimeSpan?         ServerKeepaliveTimeout
+            => keepalive.ServerTimeout;
 
 
         /// <summary>
@@ -274,6 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
+            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseConnection);
 
         }
 
@@ -362,6 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
+            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseConnection);
 
             RemotePort ??= URL.Port ?? IPPort.DNS_TLS;
 
@@ -686,35 +700,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                stopwatch.Elapsed
                            );
 
-            // RFC 7828: Extract server-advertised idle timeout from the response OPT record.
-            var keepalive = response.EDNSOptions
-                                    .OfType<EDNSKeepaliveOption>()
-                                    .FirstOrDefault();
-
-            if (keepalive?.IdleTimeout is not null)
-            {
-
-                ServerKeepaliveTimeout = keepalive.IdleTimeout;
-
-                // RFC 7828 §3.2.2: "A DNS client that receives a response that
-                // includes the edns-tcp-keepalive option with a TIMEOUT value of 0
-                // SHOULD send no more queries on that connection and initiate
-                // closing the connection as soon as it has received all outstanding
-                // responses."
-                //
-                // Queries on this client are serialized by tlsStreamLock, so the
-                // response just read is the only outstanding one and the session can
-                // go immediately. Nothing else has to change: every query begins by
-                // reconnecting when IsConnected is false, so the next one opens a
-                // fresh TLS session on its own.
-                //
-                // The non-zero case is the other half of §3.2.2 and needs an idle
-                // timer this client does not have. It is recorded above and left to
-                // the caller, which is what makes the property worth setting.
-                if (keepalive.IdleTimeout == TimeSpan.Zero)
-                    await CloseConnection().ConfigureAwait(false);
-
-            }
+            // RFC 7828 §3.2.2, both halves: record what the server advertised,
+            // drop the session at once on a TIMEOUT of 0, and otherwise restart
+            // the idle clock so the session does not outlive the timeout it was
+            // given. Nothing else has to change for either — every query begins
+            // by reconnecting when IsConnected is false, so the next one opens a
+            // fresh TLS session on its own.
+            await keepalive.ApplyAsync(response).ConfigureAwait(false);
 
             return response;
 
@@ -1237,6 +1229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public override async ValueTask DisposeAsync()
         {
+            keepalive.Dispose();
             tlsStreamLock.Dispose();
             await base.DisposeAsync();
         }

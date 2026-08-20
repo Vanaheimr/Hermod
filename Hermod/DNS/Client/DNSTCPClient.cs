@@ -48,6 +48,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private readonly SemaphoreSlim tcpStreamLock = new(1, 1);
 
+        /// <summary>
+        /// RFC 7828 §3.2.2 for this connection: what the server last advertised,
+        /// and the clock that ends the connection before that timeout expires.
+        /// </summary>
+        private readonly DNSKeepalivePolicy keepalive;
+
         #endregion
 
         #region Properties
@@ -99,9 +105,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The server-advertised idle timeout from the last EDNS TCP Keepalive
         /// response option (RFC 7828). Null if no keepalive option was received.
-        /// The connection should be closed after this duration of inactivity.
         /// </summary>
-        public TimeSpan?  ServerKeepaliveTimeout    { get; private set; }
+        /// <remarks>
+        /// Acting on it is not left to the caller: RFC 7828 §3.2.2 asks the
+        /// client to close before this expires, and it does. The value is exposed
+        /// because it says what the peer is willing to hold, which is worth
+        /// seeing from outside.
+        /// </remarks>
+        public TimeSpan?  ServerKeepaliveTimeout
+            => keepalive.ServerTimeout;
 
 
         /// <summary>
@@ -180,6 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTCPClient>();
+            this.keepalive         = new DNSKeepalivePolicy(tcpStreamLock, CloseConnection);
 
         }
 
@@ -428,13 +441,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                stopwatch.Elapsed
                            );
 
-            // RFC 7828: Extract server-advertised idle timeout from the response OPT record.
-            var keepalive = response.EDNSOptions
-                                    .OfType<EDNSKeepaliveOption>()
-                                    .FirstOrDefault();
-
-            if (keepalive?.IdleTimeout is not null)
-                ServerKeepaliveTimeout = keepalive.IdleTimeout;
+            // RFC 7828 §3.2.2, both halves: record what the server advertised,
+            // drop the connection at once on a TIMEOUT of 0, and otherwise restart
+            // the idle clock so the connection does not outlive the timeout it was
+            // given. Nothing else has to change for either — every query begins by
+            // reconnecting when IsConnected is false, so the next one opens a fresh
+            // connection on its own.
+            await keepalive.ApplyAsync(response).ConfigureAwait(false);
 
             return response;
 
@@ -886,6 +899,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public override async ValueTask DisposeAsync()
         {
+            keepalive.Dispose();
             tcpStreamLock.Dispose();
             await base.DisposeAsync();
         }
