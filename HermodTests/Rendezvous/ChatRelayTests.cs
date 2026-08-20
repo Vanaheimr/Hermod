@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Net.Sockets;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.Rendezvous;
 
@@ -32,6 +33,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
     [TestFixture]
     public class ChatRelayTests
     {
+
+        #region (private, static) CountOf(Data, Value)
+
+        /// <summary>
+        /// How often the given byte sequence appears within the given data.
+        /// </summary>
+        /// <param name="Data">The data to search within.</param>
+        /// <param name="Value">The byte sequence to look for.</param>
+        private static Int32 CountOf(ReadOnlySpan<Byte>  Data,
+                                     ReadOnlySpan<Byte>  Value)
+        {
+
+            var count   = 0;
+            var offset  = 0;
+
+            while (offset < Data.Length)
+            {
+
+                var index = Data[offset..].IndexOf(Value);
+
+                if (index < 0)
+                    break;
+
+                count++;
+                offset += index + 1;
+
+            }
+
+            return count;
+
+        }
+
+        #endregion
 
         #region (private) ConnectThreeClientsAsync(Host, Command)
 
@@ -126,11 +160,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
             const Int32 messages     = 600;
             const Int32 messageSize  = 4096;
 
-            // Generous queues: this test is about the order of the chunks, not
-            // about what happens to a client that can not keep up.
+            // Roomy queues: this test is about the order of the chunks, not about
+            // what happens to a client that can not keep up. 32 MByte is ample
+            // headroom for the 9.8 MByte in flight, and still a ceiling.
             await using var host = RendezvousTestHost.Create(options => {
-                                       options.Profiles.Interactive.BroadcastQueueLength  = 65536;
-                                       options.Profiles.Interactive.BroadcastQueueBytes   = 256 * 1024 * 1024;
+                                       options.Profiles.Interactive.BroadcastQueueLength  = 8192;
+                                       options.Profiles.Interactive.BroadcastQueueBytes   = 32 * 1024 * 1024;
                                    });
 
             var ports    = TestNet.ParsePorts(host.ExecuteOk($"ConnectPorts([{String.Join(", ", Enumerable.Repeat("?", clients))}], chat, Echo)"));
@@ -153,20 +188,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
                                            Select(i => SendManyAsync(sockets[i], (Char) ('A' + i))).
                                            ToArray();
 
-                var streams   = await Task.WhenAll(sockets.Select(socket => TestNet.ReceiveAsync(socket, expected)));
+                // The received bytes are compared as bytes: turning ten megabytes
+                // into a string would double them, and NUnit would then compare
+                // them element by element.
+                var streams   = await Task.WhenAll(sockets.Select(socket => TestNet.ReceiveExactAsync(socket, expected)));
 
                 await Task.WhenAll(talking);
 
-                Assert.That(streams[0], Has.Length.EqualTo(expected), "The first client did not receive everything!");
+                for (var i = 0; i < clients; i++)
+                    Assert.That(streams[i].Received, Is.EqualTo(expected), $"Client {i} did not receive everything!");
 
                 for (var i = 1; i < clients; i++)
-                    Assert.That(streams[i], Is.EqualTo(streams[0]),
+                    Assert.That(streams[i].Buffer.AsSpan().SequenceEqual(streams[0].Buffer), Is.True,
                                 $"Client {i} saw a different order than client 0 - the service is not the only sequencer!");
 
                 // ...and nothing was lost or duplicated on the way.
                 for (var i = 0; i < senders; i++)
                 {
-                    Assert.That(CountOf(streams[0], $"{(Char) ('A' + i)}0042\n"), Is.EqualTo(1),
+                    Assert.That(CountOf(streams[0].Buffer, Encoding.UTF8.GetBytes($"{(Char) ('A' + i)}0042\n")), Is.EqualTo(1),
                                 "A message did not arrive exactly once!");
                 }
 
@@ -174,22 +213,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
                 {
                     for (var i = 0; i < messages; i++)
                         await TestNet.SendAsync(Client, $"{Prefix}{i:D4}\n".PadRight(messageSize, '.'));
-                }
-
-                static Int32 CountOf(String Text, String Value)
-                {
-
-                    var count  = 0;
-                    var index  = Text.IndexOf(Value, StringComparison.Ordinal);
-
-                    while (index >= 0)
-                    {
-                        count++;
-                        index = Text.IndexOf(Value, index + 1, StringComparison.Ordinal);
-                    }
-
-                    return count;
-
                 }
 
             }
