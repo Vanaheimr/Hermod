@@ -1363,11 +1363,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             // Persistend HTTP connection was probably just closed...
-                            lastError = $"[{ex.GetType().Name}] {ex.Message}";
+
+                            // The whole chain, because the outer message alone can point
+                            // the wrong way: a rejected TLS 1.3 client certificate, for
+                            // example, surfaces here as "The decryption operation failed"
+                            // and only the inner Win32Exception names the actual alert.
+                            lastError = $"[{ex.GetType().Name}/0x{ex.HResult:X8}] {ex.Message}";
+                            for (var innerException = ex.InnerException; innerException is not null; innerException = innerException.InnerException)
+                                lastError += $" <= [{innerException.GetType().Name}/0x{innerException.HResult:X8}" +
+                                             (innerException is System.ComponentModel.Win32Exception win32Exception ? $"/native:{win32Exception.NativeErrorCode}" : "") +
+                                             $"] {innerException.Message}";
 
                             if (retry > 1 || ex.InnerException is not SocketException)
                             {
-                                await Log($"Error in SendRequest: {ex.Message}");
+                                await Log($"Error in SendRequest: {lastError}");
                                 DebugX.LogException(ex, nameof(AHTTPClient) + "." + nameof(SendRequest));
                             }
 
