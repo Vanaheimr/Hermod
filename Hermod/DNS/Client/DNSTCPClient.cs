@@ -63,6 +63,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public TimeSpan  QueryTimeout        { get; set; }
 
         /// <summary>
+        /// The EDNS(0) payload size this client advertises (RFC 6891 §6.2.3).
+        /// Set to 0 to send no OPT record at all, which announces no EDNS(0)
+        /// support.
+        /// </summary>
+        /// <remarks>
+        /// The number itself is a UDP reassembly limit and has nothing to do on
+        /// a stream transport. What the field decides here is whether there is
+        /// an OPT record at all: <see cref="DNSPacket.Query"/> omits the record
+        /// entirely when this is 0, and that record is the only place
+        /// <see cref="DnssecOK"/> can travel - RFC 3225 §3 puts the DO bit in
+        /// the OPT flags - and the only place <see cref="EDNSOptions"/> can.
+        /// Padding is deliberately not applied: RFC 8467 §4.1's recommendation
+        /// "only applies if the DNS transport is encrypted", and this transport
+        /// is not.
+        /// </remarks>
+        public UInt16            UDPPayloadSize            { get; set; } = DNSPacket.DefaultUDPPayloadSize;
+
+        /// <summary>
         /// Optional EDNS0 options to include in every DNS query.
         /// </summary>
         public List<EDNSOption>  EDNSOptions  { get; } = [];
@@ -210,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
-                               0,
+                               UDPPayloadSize,
                                this.RecursionDesired ?? RecursionDesired ?? true,
                                this.DnssecOK,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
