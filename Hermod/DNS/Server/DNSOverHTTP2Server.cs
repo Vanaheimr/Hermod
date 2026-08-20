@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 
@@ -129,8 +128,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public IIPAddress            IPAddress     { get; }
 
-        /// <inheritdoc />
-        public IPPort                TCPPort       { get; }
+        /// <summary>
+        /// The port this listener bound. Known only once <see cref="Start"/> has
+        /// returned, when the caller asked for an ephemeral one.
+        /// </summary>
+        public IPPort                TCPPort       { get; private set; }
 
         /// <inheritdoc />
         public Boolean               IsSecured     { get; }
@@ -166,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="RequestHandler">Whatever answers the questions. Defaults to the demo zone, exactly as <see cref="DNSServer"/> does.</param>
         /// <param name="DNSServerOptions">The DNS-level options: TLS certificate, TSIG/SIG(0) keys, compression.</param>
         /// <param name="IPAddress">The IP address to listen on.</param>
-        /// <param name="TCPPort">The TCP port to listen on. Zero takes a free ephemeral one, since <see cref="HTTP2Server"/> binds inside its accept loop and never reports back what it got.</param>
+        /// <param name="TCPPort">The TCP port to listen on. Zero binds a free ephemeral one, which <see cref="TCPPort"/> reports once <see cref="Start"/> has returned.</param>
         /// <param name="DNSQueryPath">The path to answer on, <c>/dns-query</c> by default.</param>
         /// <param name="Pipeline">An existing pipeline to share with other transports, instead of building one from the two parameters above.</param>
         /// <param name="LoggerFactory">Where to report a query that could not be read.</param>
@@ -208,14 +210,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.IsSecured    = certificate is not null;
             this.IPAddress    = IPAddress ?? IPv4Address.Localhost;
 
-            // HTTP2Server takes the port up front and creates its TcpListener
-            // inside RunAsync, so a port of zero would be bound to something
-            // nobody ever learns. Choosing a free one here keeps "port 0 means
-            // pick one for me" working, at the cost of the usual race — the port
-            // is free a moment before it is taken, not while.
-            this.TCPPort      = TCPPort is null || TCPPort.Value.ToUInt16() == 0
-                                    ? IPPort.Parse(FreeTCPPort())
-                                    : TCPPort.Value;
+            // Zero is passed straight through: HTTP2Server reports back what it
+            // bound, so Start() can read the real port off the listener rather
+            // than grabbing one here and hoping it survives until the bind.
+            this.TCPPort      = TCPPort ?? IPPort.Zero;
 
             // The HTTP/1.1 half of the ALPN offer: a DoH server over the very same
             // resource, constructed but never started. It binds nothing and
@@ -302,8 +300,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <see cref="HTTP2Server.RunAsync"/> runs until cancelled, so it is
         /// started rather than awaited — but returning before the socket is bound
         /// would hand the caller a port that refuses the first connection. So
-        /// this waits for the listener, the same way
-        /// <see cref="DNSServer"/> waits for its own.
+        /// this waits for the listener to report the endpoint it took, which is
+        /// also where a failed bind surfaces: as an exception out of
+        /// <c>Start()</c>, rather than as a listener task that faulted quietly
+        /// while everything downstream carried on.
         /// </remarks>
         public async Task Start()
         {
@@ -311,10 +311,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (IsRunning)
                 return;
 
+            // A stopped listener stays stopped: HTTP2Server cancels itself in
+            // StopAsync and reports its endpoint exactly once, so starting again
+            // would bind nothing and hand back the port of the previous run.
+            // Saying so beats returning as though it had worked.
+            if (http2Server.BoundEndPoint.IsCompleted)
+                throw new InvalidOperationException(
+                          $"This {nameof(DNSOverHTTP2Server)} has already run and cannot be started again. Create a new one."
+                      );
+
             cancellationTokenSource = new CancellationTokenSource();
             listenerTask            = http2Server.RunAsync(cancellationTokenSource.Token);
 
-            await WaitUntilListening(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            var bound = await http2Server.BoundEndPoint.
+                                  WaitAsync(TimeSpan.FromSeconds(5)).
+                                  ConfigureAwait(false);
+
+            TCPPort   = IPPort.Parse((UInt16) bound.Port);
 
             dnsLogger.LogDebug(
                 "DNS-over-HTTPS ({HTTPVersion}) listening on {IPAddress}:{TCPPort}{DNSQueryPath}",
@@ -579,61 +592,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             return null;
-
-        }
-
-        #endregion
-
-        #region (private)        WaitUntilListening (Deadline)
-
-        /// <summary>
-        /// Poll the port until it accepts a connection, or the deadline passes.
-        /// </summary>
-        private async Task WaitUntilListening(TimeSpan Deadline)
-        {
-
-            var until = Timestamp.Now + Deadline;
-
-            while (Timestamp.Now < until)
-            {
-
-                try
-                {
-                    using var probe = new TcpClient();
-                    await probe.ConnectAsync(
-                                   System.Net.IPAddress.Parse(IPAddress.ToString()),
-                                   TCPPort.ToUInt16()
-                               ).ConfigureAwait(false);
-                    return;
-                }
-                catch (SocketException)
-                {
-                    await Task.Delay(20).ConfigureAwait(false);
-                }
-
-            }
-
-            throw new TimeoutException($"The HTTP/2 DoH listener did not bind {IPAddress}:{TCPPort}.");
-
-        }
-
-        #endregion
-
-        #region (private static) FreeTCPPort()
-
-        /// <summary>
-        /// A TCP port that was free a moment ago.
-        /// </summary>
-        private static UInt16 FreeTCPPort()
-        {
-
-            using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-
-            listener.Start();
-            var port = (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
-            listener.Stop();
-
-            return port;
 
         }
 

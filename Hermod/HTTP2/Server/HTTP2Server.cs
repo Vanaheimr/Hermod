@@ -85,6 +85,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP11FallbackHandler? http11Fallback;
         private readonly CancellationTokenSource cts = new();
 
+        private readonly TaskCompletionSource<IPEndPoint> boundEndPoint =
+            new (TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>
+        /// The endpoint the listener actually bound — completed once
+        /// <see cref="RunAsync"/> has bound it, or faulted with whatever
+        /// prevented that.
+        /// </summary>
+        /// <remarks>
+        /// The constructor takes the port to bind, which is not the port that
+        /// gets bound whenever the caller asks for zero. Without somewhere to
+        /// read the answer, a caller wanting an ephemeral port has to grab one
+        /// itself, release it, and hope it is still free a moment later — a race
+        /// it can neither win nor detect, because if something else takes the
+        /// port in between then this listener fails to bind while the caller's
+        /// own probe cheerfully connects to the squatter.
+        /// </remarks>
+        public Task<IPEndPoint> BoundEndPoint
+            => boundEndPoint.Task;
+
         /// <summary>
         /// Default buffered-request-body cap handed to each connection: 16 MiB.
         /// </summary>
@@ -235,9 +255,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var       token     = linkedCts.Token;
 
             var listener = new TcpListener(endpoint);
-            listener.Start();
 
-            HTTP2EventSource.Log.ServerListening(endpoint.ToString());
+            try
+            {
+                listener.Start();
+            }
+            catch (Exception e)
+            {
+                // Tell whoever is waiting for the endpoint why it will never
+                // arrive. Without this the bind failure lives only in this task,
+                // and a caller polling the port cannot tell "not yet" from
+                // "never" — or worse, connects to whatever took the port instead.
+                boundEndPoint.TrySetException(e);
+                throw;
+            }
+
+            boundEndPoint.TrySetResult((IPEndPoint) listener.LocalEndpoint);
+
+            HTTP2EventSource.Log.ServerListening(listener.LocalEndpoint.ToString()!);
 
             try
             {

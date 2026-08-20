@@ -120,6 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// time out) — a deterministic replacement for the fixed start-up delays
         /// the stand-alone harnesses used.
         /// </summary>
+        [Obsolete("Ask the listener instead: HTTP2Server.BoundEndPoint completes when the socket is bound. Polling cannot tell this server apart from whatever else answers on that port.")]
         public static async Task WaitUntilListeningAsync(Int32 Port, CancellationToken CancellationToken = default)
         {
 
@@ -226,17 +227,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Func<List<(String Name, String Value)>, Boolean>? AcceptEarlyData = null)
         {
 
-            var port   = H2.FreePort();
             var cert   = Cleartext ? null : (Certificate ?? H2.MakeCert());
 
-            var server = new HTTP2Server(System.Net.IPAddress.Loopback, port, cert, Handler,
+            // Port zero, and the listener says which one it got. Picking a free
+            // port here and binding it a moment later is a race no test can win:
+            // between the probe and the bind the port can be taken by anything
+            // else on the machine, and then the server fails to bind while the
+            // test happily connects to whatever took it.
+            var server = new HTTP2Server(System.Net.IPAddress.Loopback, 0, cert, Handler,
                                          ConnectHandler, RequireClientCertificate, ValidateClientCertificate,
                                          Timeouts, StreamingHandler, Cleartext, MaxRequestBodySize,
                                          IsBlocklistedCipherSuite, IsAuthorityServed, OriginSet, AlternativeServices,
                                          HTTP11Fallback, AcceptEarlyData);
 
             var runTask = server.RunAsync();
-            await H2.WaitUntilListeningAsync(port);
+
+            // Waiting for the endpoint replaces polling the port for a
+            // connection: it is done when the socket is bound, not when it
+            // happens to answer, and a failed bind arrives here as that
+            // exception rather than as a timeout.
+            var port    = (await server.BoundEndPoint.
+                                     WaitAsync(TimeSpan.FromSeconds(5))).Port;
 
             return new TestH2Server(server, port, runTask);
 
