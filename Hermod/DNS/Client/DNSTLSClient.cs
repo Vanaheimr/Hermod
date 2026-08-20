@@ -692,7 +692,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     .FirstOrDefault();
 
             if (keepalive?.IdleTimeout is not null)
+            {
+
                 ServerKeepaliveTimeout = keepalive.IdleTimeout;
+
+                // RFC 7828 §3.2.2: "A DNS client that receives a response that
+                // includes the edns-tcp-keepalive option with a TIMEOUT value of 0
+                // SHOULD send no more queries on that connection and initiate
+                // closing the connection as soon as it has received all outstanding
+                // responses."
+                //
+                // Queries on this client are serialized by tlsStreamLock, so the
+                // response just read is the only outstanding one and the session can
+                // go immediately. Nothing else has to change: every query begins by
+                // reconnecting when IsConnected is false, so the next one opens a
+                // fresh TLS session on its own.
+                //
+                // The non-zero case is the other half of §3.2.2 and needs an idle
+                // timer this client does not have. It is recorded above and left to
+                // the caller, which is what makes the property worth setting.
+                if (keepalive.IdleTimeout == TimeSpan.Zero)
+                    await CloseConnection().ConfigureAwait(false);
+
+            }
 
             return response;
 
