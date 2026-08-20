@@ -97,6 +97,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region TTL handling (RFC 2181 §8)
+
+        /// <summary>
+        /// The largest TTL RFC 2181 §8 allows on the wire: "a maximum value of
+        /// 2147483647.  That is, a maximum of 2^31 - 1", carried in the low 31
+        /// bits with the sign bit zero.
+        /// </summary>
+        public const UInt32 MaximumTimeToLive = 2147483647;
+
+        /// <summary>
+        /// The TTL a received record actually carries, per RFC 2181 §8.
+        /// </summary>
+        /// <param name="RawTTL">The 32 bits found in the TTL field.</param>
+        /// <remarks>
+        /// §8 settles what RFC 1035 left open — whether the field is signed, and
+        /// how many of its bits count — and for the values that break its rule it
+        /// names one outcome rather than leaving it to taste: "Implementations
+        /// should treat TTL values received with the most significant bit set as
+        /// if the entire value received was zero."
+        ///
+        /// Reading such a value literally is not a harmless over-read. The
+        /// constructor turns the TTL into <see cref="EndOfLife"/>, so 0x80000001
+        /// becomes an expiry 68 years out and 0xFFFFFFFF one 136 years out: an
+        /// entry that never expires again, which is the outcome §8 exists to
+        /// prevent. The freedom §8 grants next — "free to place an upper bound on
+        /// any TTL received" — is a separate matter and is not exercised here.
+        /// </remarks>
+        private static UInt32 ReceivedTimeToLive(UInt32 RawTTL)
+
+            => (RawTTL & 0x80000000) != 0
+                   ? 0
+                   : RawTTL;
+
+        #endregion
+
         #region (protected) ADNSResourceRecord(DNSServiceName, Type, DNSStream)
 
         /// <summary>
@@ -113,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.DomainName  = DNSServiceName;
             this.Type        = Type;
             this.Class       = (DNSQueryClasses)    DNSStream.ReadUInt16BE();  //((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
-            this.TimeToLive  = TimeSpan.FromSeconds(DNSStream.ReadUInt32BE()); // (DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            this.TimeToLive  = TimeSpan.FromSeconds(ReceivedTimeToLive(DNSStream.ReadUInt32BE()));
             this.EndOfLife   = Timestamp.Now + TimeToLive;
 
             //var RDLength     = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
@@ -514,7 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             wire.WriteUInt16BE((UInt16) Type);
             wire.WriteUInt16BE((UInt16) Class);
-            wire.WriteUInt32BE((UInt32) Math.Min(TimeToLive.TotalSeconds, UInt32.MaxValue));
+            wire.WriteUInt32BE((UInt32) Math.Min(TimeToLive.TotalSeconds, MaximumTimeToLive));
             wire.WriteUInt16BE((UInt16) RData.Length);
             wire.Write         (RData, 0, RData.Length);
 
@@ -1028,7 +1063,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             Stream.WriteUInt16BE((UInt16) Type);
             Stream.WriteUInt16BE((UInt16) Class);
-            Stream.WriteUInt32BE((UInt32) Math.Min(TimeToLive.TotalSeconds, UInt32.MaxValue));
+            Stream.WriteUInt32BE((UInt32) Math.Min(TimeToLive.TotalSeconds, MaximumTimeToLive));
 
             SerializeRRData(
                 Stream,
