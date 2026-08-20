@@ -66,6 +66,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                    HTTPPath           DNSQueryPath,
                                                                    CancellationToken  CancellationToken);
 
+    public delegate Task OnDNSHTTP2UnicastListenerStartedDelegate (DateTimeOffset     Timestamp,
+                                                                   DNSServer          Server,
+                                                                   IPSocket           LocalSocket,
+                                                                   HTTPPath           DNSQueryPath,
+                                                                   CancellationToken  CancellationToken);
+
     public delegate Task OnDNSServerStoppedDelegate               (DateTimeOffset     Timestamp,
                                                                    DNSServer          Server,
                                                                    CancellationToken  CancellationToken);
@@ -99,6 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private                  TcpListener?              tcpUnicastListener;
         private                  TcpListener?              tlsUnicastListener;
         private                  DNSOverHTTPSServer?       httpsUnicastListener;
+        private                  DNSOverHTTP2Server?       http2UnicastListener;
 
         private                  CancellationTokenSource?  cancellationTokenSource;
 
@@ -112,6 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public event OnDNSTCPUnicastListenerStartedDelegate?    OnDNSTCPUnicastListenerStarted;
         public event OnDNSTLSUnicastListenerStartedDelegate?    OnDNSTLSUnicastListenerStarted;
         public event OnDNSHTTPSUnicastListenerStartedDelegate?  OnDNSHTTPSUnicastListenerStarted;
+        public event OnDNSHTTP2UnicastListenerStartedDelegate?  OnDNSHTTP2UnicastListenerStarted;
         public event OnDNSServerStoppedDelegate?                OnDNSServerStopped;
 
         public event OnDNSRequestReceivedDelegate?              OnDNSRequestReceived;
@@ -137,11 +145,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public IPSocket?         ActiveHTTPSUnicastSocket { get; private set; }
 
+        public IPSocket?         ActiveHTTP2UnicastSocket { get; private set; }
+
         /// <summary>
-        /// The RFC 8484 listener, while one is running.
+        /// The RFC 8484 listener speaking HTTP/1.1, while one is running.
         /// </summary>
         public DNSOverHTTPSServer?  HTTPSUnicastListener
             => httpsUnicastListener;
+
+        /// <summary>
+        /// The RFC 8484 listener speaking HTTP/2, while one is running.
+        /// </summary>
+        public DNSOverHTTP2Server?  HTTP2UnicastListener
+            => http2UnicastListener;
 
         public Boolean           IsRunning
             => cancellationTokenSource is not null &&
@@ -868,7 +884,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     LoggerFactory:     loggerFactory
                                 );
 
-                dohServer.OnDoHQueryReceived += (timestamp, server, httpRequest, request, cancellationToken)
+                dohServer.OnDoHQueryReceived += (timestamp, server, request, cancellationToken)
                     => LogEvent(
                            OnDNSRequestReceived,
                            loggingDelegate => loggingDelegate.Invoke(
@@ -881,7 +897,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            nameof(OnDNSRequestReceived)
                        );
 
-                dohServer.OnDoHResponseSent += (timestamp, server, httpRequest, response, cancellationToken)
+                dohServer.OnDoHResponseSent += (timestamp, server, response, cancellationToken)
                     => LogEvent(
                            OnDNSResponseSent,
                            loggingDelegate => loggingDelegate.Invoke(
@@ -927,6 +943,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private) StartHTTP2UnicastAsync  (CancellationToken token)
+
+        /// <summary>
+        /// Bring up the RFC 8484 listener again, this time over the version §5.2
+        /// recommends.
+        /// </summary>
+        /// <remarks>
+        /// The same resource, the same pipeline and the same zone as the HTTP/1.1
+        /// listener beside it — only the framing differs, which is exactly what
+        /// §5.2 is about: "Earlier versions of HTTP are capable of conveying the
+        /// semantic requirements of DoH but may result in very poor performance."
+        /// </remarks>
+        private async Task StartHTTP2UnicastAsync(CancellationToken CancellationToken)
+        {
+
+            try
+            {
+
+                var doh2Server = new DNSOverHTTP2Server(
+                                     DNSServerOptions:  Options,
+                                     IPAddress:         Options.HTTP2UnicastSocket.IPAddress,
+                                     TCPPort:           Options.HTTP2UnicastSocket.Port,
+                                     DNSQueryPath:      Options.HTTPSPath,
+                                     Pipeline:          pipeline,
+                                     LoggerFactory:     loggerFactory
+                                 );
+
+                doh2Server.OnDoHQueryReceived += (timestamp, server, request, cancellationToken)
+                    => LogEvent(
+                           OnDNSRequestReceived,
+                           loggingDelegate => loggingDelegate.Invoke(
+                               timestamp,
+                               this,
+                               "HTTP/2 Unicast",
+                               request,
+                               cancellationToken
+                           ),
+                           nameof(OnDNSRequestReceived)
+                       );
+
+                doh2Server.OnDoHResponseSent += (timestamp, server, response, cancellationToken)
+                    => LogEvent(
+                           OnDNSResponseSent,
+                           loggingDelegate => loggingDelegate.Invoke(
+                               timestamp,
+                               this,
+                               "HTTP/2 Unicast",
+                               response,
+                               cancellationToken
+                           ),
+                           nameof(OnDNSResponseSent)
+                       );
+
+                http2UnicastListener = doh2Server;
+
+                await doh2Server.Start().ConfigureAwait(false);
+
+                var localSocket = new IPSocket(
+                                      doh2Server.IPAddress,
+                                      doh2Server.TCPPort
+                                  );
+
+                ActiveHTTP2UnicastSocket = localSocket;
+
+                await LogEvent(
+                          OnDNSHTTP2UnicastListenerStarted,
+                          async loggingDelegate => await loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              localSocket,
+                              doh2Server.DNSQueryPath,
+                              CancellationToken
+                          ),
+                          nameof(OnDNSHTTP2UnicastListenerStarted)
+                      );
+
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error starting HTTP/2 listener");
+            }
+
+        }
+
+        #endregion
+
 
         #region Start()
 
@@ -945,6 +1047,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // may not.
             if (Options.EnableHTTPSUnicast && Options.TLSServerCertificate is null)
                 throw new InvalidOperationException("A TLS server certificate is required for the DNS HTTPS listener.");
+
+            if (Options.EnableHTTP2Unicast && Options.TLSServerCertificate is null)
+                throw new InvalidOperationException("A TLS server certificate is required for the DNS HTTP/2 listener.");
+
+            // Both DoH listeners default to 443, and two listeners cannot have it.
+            // ALPN is what lets one port carry both versions, and this server
+            // cannot do that yet — so say which port the second one should take
+            // rather than letting the bind fail somewhere inside a listener task.
+            if (Options.EnableHTTPSUnicast &&
+                Options.EnableHTTP2Unicast &&
+                Options.HTTPSUnicastSocket.Port == Options.HTTP2UnicastSocket.Port &&
+                Options.HTTPSUnicastSocket.Port != IPPort.Zero)
+            {
+                throw new InvalidOperationException(
+                          $"The HTTP/1.1 and HTTP/2 DoH listeners cannot share port {Options.HTTPSUnicastSocket.Port}. " +
+                           "Give HTTP2UnicastSocket a port of its own, or enable only one of them."
+                      );
+            }
 
             cancellationTokenSource = new CancellationTokenSource();
             listenerTasks.Clear();
@@ -967,6 +1087,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // by the time Start() comes back.
             if (Options.EnableHTTPSUnicast)
                 await StartHTTPSUnicastAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+
+            if (Options.EnableHTTP2Unicast)
+                await StartHTTP2UnicastAsync(cancellationTokenSource.Token).ConfigureAwait(false);
 
             await LogEvent(
                       OnDNSServerStarted,
@@ -1020,6 +1143,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
             }
 
+            if (http2UnicastListener is not null)
+            {
+                try
+                {
+                    await http2UnicastListener.Stop().ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Error stopping HTTP/2 listener");
+                }
+            }
+
             try
             {
                 await Task.WhenAll(listenerTasks).
@@ -1036,11 +1171,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 tcpUnicastListener        = null;
                 tlsUnicastListener        = null;
                 httpsUnicastListener      = null;
+                http2UnicastListener      = null;
                 ActiveUDPUnicastSocket    = null;
                 ActiveUDPMulticastSocket  = null;
                 ActiveTCPUnicastSocket    = null;
                 ActiveTLSUnicastSocket    = null;
                 ActiveHTTPSUnicastSocket  = null;
+                ActiveHTTP2UnicastSocket  = null;
                 listenerTasks.Clear();
 
                 cancellationTokenSource?.Dispose();

@@ -31,21 +31,33 @@ The `DNSTransport` enum exposes these as `UDP`, `TCP`, `TLS`, `HTTPS`,
 
 ### Server side
 
-| Server               | Protocol                        | RFC      |
-|----------------------|---------------------------------|----------|
+| Server               | Protocol                          | RFC                  |
+|----------------------|-----------------------------------|----------------------|
 | `DNSServer`          | UDP unicast + multicast, TCP, DoT | RFC 1035, 7766, 7858 |
-| `DNSOverHTTPSServer` | DNS over HTTPS (DoH)            | RFC 8484 |
+| `DNSOverHTTPSServer` | DNS over HTTPS (DoH), HTTP/1.1    | RFC 8484             |
+| `DNSOverHTTP2Server` | DNS over HTTPS (DoH), HTTP/2      | RFC 8484 §5.2        |
 
 Every transport shares one `DNSMessagePipeline`: the same zone, the same TSIG
 (RFC 8945) and SIG(0) (RFC 2931) verification, the same RFC 7830 / RFC 8467
 padding. A transport decides how a message arrives, never what a valid signature
 is.
 
-`DNSOverHTTPSServer` runs standalone, or as a fifth listener on `DNSServer` via
-`DNSServerOptions.EnableHTTPSUnicast` (which requires a `TLSServerCertificate`,
-since RFC 8484 §5 requires the https scheme). Standalone and without a
-certificate it serves the same resource in cleartext — for a TLS-terminating
-proxy in front, or a test that wants the HTTP layer visible.
+The two DoH listeners go one layer further and share a `DNSOverHTTPSResource` as
+well — every requirement of RFC 8484 §4 lives there, in RFC 9110 terms, and each
+listener only renders the result. §5.2 recommends HTTP/2 ("the minimum
+RECOMMENDED version of HTTP for use with DoH") for performance, not for meaning,
+so the two answer identically and differ in parallelism.
+
+Either runs standalone, or as a listener on `DNSServer` via
+`DNSServerOptions.EnableHTTPSUnicast` / `EnableHTTP2Unicast` — both requiring a
+`TLSServerCertificate`, since RFC 8484 §5 requires the https scheme. They are
+separate ports rather than one port with ALPN choosing, because Hermod's
+HTTP/1.1 pipeline is a TCP server and cannot be handed an already-negotiated
+stream; enabling both means giving `HTTP2UnicastSocket` a port of its own.
+
+Standalone and without a certificate either serves the same resource in
+cleartext — HTTP/1.1, or h2c with prior knowledge (RFC 9113 §3.3) — for a
+TLS-terminating proxy in front, or a test that wants the HTTP layer visible.
 
 Two places where DoH is deliberately *not* like DoT:
 
@@ -55,9 +67,9 @@ Two places where DoH is deliberately *not* like DoT:
 - The requestor's EDNS(0) payload size is ignored, as RFC 8484 §6 requires — so
   it neither truncates the answer nor shortens its padding.
 
-It is HTTP/1.1, which RFC 8484 §5.2 permits while recommending HTTP/2 as the
-minimum version; the semantics are complete, the cost is per-connection
-parallelism.
+Both versions RFC 8484 §5.2 talks about are served. HTTP/3 is not: Hermod has no
+QUIC, and RFC 9250 (DNS over QUIC) is a different transport rather than a third
+rendering of this one.
 
 
 ## DNSClient — The Orchestrator

@@ -55,6 +55,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         public Boolean   EnableHTTPSUnicast     { get; init; } = false;
 
+        /// <summary>
+        /// Serve DNS-over-HTTPS over HTTP/2 as well (RFC 8484 §5.2).
+        /// </summary>
+        /// <remarks>
+        /// "HTTP/2 […] is the minimum RECOMMENDED version of HTTP for use with
+        /// DoH", so this is the listener a deployment wants; the HTTP/1.1 one
+        /// above conveys the same semantics more slowly. They are separate
+        /// listeners on separate ports rather than one port with ALPN choosing,
+        /// because Hermod's HTTP/1.1 pipeline is a TCP server and cannot be
+        /// handed an already-negotiated stream — so enabling both means giving
+        /// <see cref="HTTP2UnicastSocket"/> a port of its own.
+        /// </remarks>
+        public Boolean   EnableHTTP2Unicast     { get; init; } = false;
+
         public IPSocket  UDPUnicastSocket       { get; init; } = new(IPvXAddress.Any, IPPort.Parse(63));
 
         public IPSocket  TCPUnicastSocket       { get; init; } = new(IPvXAddress.Any, IPPort.Parse(63));
@@ -62,6 +76,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public IPSocket  TLSUnicastSocket       { get; init; } = new(IPvXAddress.Any, IPPort.DNS_TLS);
 
         public IPSocket  HTTPSUnicastSocket     { get; init; } = new(IPvXAddress.Any, IPPort.HTTPS);
+
+        public IPSocket  HTTP2UnicastSocket     { get; init; } = new(IPvXAddress.Any, IPPort.HTTPS);
 
         /// <summary>
         /// The path the DoH listener answers on. RFC 8484 defines no well-known
