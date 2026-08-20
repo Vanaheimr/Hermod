@@ -29,18 +29,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
     /// A hand-written recursive descent parser for the rendezvous control protocol.
     ///
     ///     command     = connect | disconnect
-    ///     connect     = "ConnectPorts"    "(" portList [ "," description ] [ "," profile ] ")"
+    ///     connect     = "ConnectPorts"    "(" portList { "," option } ")"
     ///     disconnect  = "DisconnectPorts" "(" ( portList | port { "," port } ) [ "," description ] ")"
+    ///     option      = description | profile | echo
     ///     portList    = "[" portSpec { "," portSpec } "]"
     ///     portSpec    = "?" | 1..65535
     ///     description = 0..256 characters, quoted or without whitespace and "()[],"
     ///     profile     = "Balanced" | "Interactive" | "Bulk" (and aliases)
+    ///     echo        = "Echo" | "NoEcho"
     ///
-    /// Command names and transfer profiles are case-insensitive, whitespace
-    /// between all tokens is ignored.
+    /// Command names, transfer profiles and the echo flag are case-insensitive,
+    /// whitespace between all tokens is ignored.
     ///
-    /// A single unquoted argument after the ports is read as the transfer profile
-    /// when it names one, and as the description otherwise. Quote it to be sure:
+    /// The options after the port list may come in any order, and each of them
+    /// at most once: an unquoted argument naming a transfer profile or the echo
+    /// flag is that, everything else is the description. Quote it to be sure:
     /// ConnectPorts([?,?], "Bulk") describes a rendezvous, ConnectPorts([?,?], Bulk)
     /// configures one.
     /// </summary>
@@ -501,73 +504,116 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
 
             #endregion
 
-            #region ... followed by an optional description and an optional transfer profile
+            #region ... followed by an optional description, transfer profile and echo flag, in any order
 
-            if (Arguments.Count > 3)
+            String?           description   = null;
+            TransferProfile?  profile       = null;
+            Boolean?          echoToSender  = null;
+
+            for (var i = 1; i < Arguments.Count; i++)
             {
 
-                Error = new (ResponseCode.InvalidSyntax,
-                             $"{ConnectPortsCommand.Name} expects a list of ports, an optional description and an optional transfer profile!");
+                var argument = Arguments[i];
 
-                return false;
-
-            }
-
-            String?           description  = null;
-            TransferProfile?  profile      = null;
-
-            // A single unquoted argument is ambiguous: 'Bulk' is a profile,
-            // 'maintenance' is a description. Whatever names a profile is one.
-            if (Arguments.Count == 2 &&
-               !Arguments[1].IsQuoted &&
-               !Arguments[1].IsList   &&
-                TransferProfileExtensions.TryParse(Arguments[1].Values[0], out var onlyProfile))
-            {
-                profile = onlyProfile;
-            }
-
-            else
-            {
-
-                if (Arguments.Count >= 2 &&
-                   !TryGetDescription(Arguments[1], out description, out Error))
+                if (argument.IsList)
                 {
+
+                    Error = new (ResponseCode.InvalidSyntax,
+                                 $"The argument at position {argument.Position} must not be a list!");
+
                     return false;
+
                 }
 
-                if (Arguments.Count == 3)
+                var value = argument.Values[0];
+
+                // An unquoted argument may name a transfer profile or the echo
+                // flag; quoting says "this is a description, whatever it reads like".
+                if (!argument.IsQuoted)
                 {
 
-                    if (Arguments[2].IsList)
+                    if (TransferProfileExtensions.TryParse(value, out var parsedProfile))
                     {
 
-                        Error = new (ResponseCode.InvalidSyntax,
-                                     $"The transfer profile at position {Arguments[2].Position} must not be a list!");
+                        if (profile.HasValue)
+                        {
+                            Error = new (ResponseCode.InvalidSyntax,
+                                         $"The transfer profile is given twice, at position {argument.Position}!");
+                            return false;
+                        }
 
-                        return false;
+                        profile = parsedProfile;
+                        continue;
 
                     }
 
-                    if (!TransferProfileExtensions.TryParse(Arguments[2].Values[0], out var parsedProfile))
+                    if (TryParseEcho(value, out var parsedEcho))
                     {
 
-                        Error = new (ResponseCode.InvalidSyntax,
-                                     $"Unknown transfer profile '{Arguments[2].Values[0]}', expected 'Balanced', 'Interactive' or 'Bulk'!");
+                        if (echoToSender.HasValue)
+                        {
+                            Error = new (ResponseCode.InvalidSyntax,
+                                         $"The echo flag is given twice, at position {argument.Position}!");
+                            return false;
+                        }
 
-                        return false;
+                        echoToSender = parsedEcho;
+                        continue;
 
                     }
-
-                    profile = parsedProfile;
 
                 }
+
+                if (description is not null)
+                {
+
+                    Error = new (ResponseCode.InvalidSyntax,
+                                 $"Unexpected argument '{value}' at position {argument.Position}, expected a description, a transfer profile or 'Echo'!");
+
+                    return false;
+
+                }
+
+                if (!TryGetDescription(argument, out description, out Error))
+                    return false;
 
             }
 
             #endregion
 
-            Command = new ConnectPortsCommand(ports, profile, description);
+            Command = new ConnectPortsCommand(ports, profile, description, echoToSender == true);
             return true;
+
+        }
+
+        #endregion
+
+        #region (private, static) TryParseEcho(Text, out EchoToSender)
+
+        /// <summary>
+        /// Try to read the given text as the echo flag of a rendezvous.
+        /// </summary>
+        private static Boolean TryParseEcho(String       Text,
+                                            out Boolean  EchoToSender)
+        {
+
+            switch (Text.ToLowerInvariant())
+            {
+
+                case "echo":
+                case "echotosender":
+                    EchoToSender = true;
+                    return true;
+
+                case "noecho":
+                    EchoToSender = false;
+                    return true;
+
+                default:
+                    EchoToSender = false;
+                    return false;
+
+            }
 
         }
 

@@ -26,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
     ///     ConnectPorts([?, 30000])
     ///     ConnectPorts([20000, ?],     "SSH rendezvous for maintenance work")
     ///     ConnectPorts([?, ?],         Interactive)
-    ///     ConnectPorts([?, ?, ?],      "The Friday chat", Interactive)
+    ///     ConnectPorts([?, ?, ?],      "The Friday chat", Interactive, Echo)
     ///
     /// The keys that signed the request become the owners of the new rendezvous:
     /// only they - or an administrator key - may close it again.
@@ -34,9 +34,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
     /// <param name="Ports">Two or more requested TCP ports. '?' asks the service to pick a free port.</param>
     /// <param name="Profile">An optional transfer profile, null uses the configured default.</param>
     /// <param name="Description">An optional description of this rendezvous, e.g. "SSH rendezvous for maintenance work".</param>
+    /// <param name="EchoToSender">Whether a client also receives what it sends itself, so that every client sees the very same byte stream.</param>
     public sealed record ConnectPortsCommand(IReadOnlyList<PortSpecification>  Ports,
-                                             TransferProfile?                 Profile       = null,
-                                             String?                          Description   = null)
+                                             TransferProfile?                 Profile        = null,
+                                             String?                          Description    = null,
+                                             Boolean                          EchoToSender   = false)
 
         : RendezvousCommand(Description)
 
@@ -58,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// </summary>
         public override String ToString()
 
-            => $"{Name}([{String.Join(", ", Ports)}]{(Description is not null ? $", \"{Description}\"" : "")}{(Profile.HasValue ? $", {Profile.Value.AsText()}" : "")})";
+            => $"{Name}([{String.Join(", ", Ports)}]{(Description is not null ? $", \"{Description}\"" : "")}{(Profile.HasValue ? $", {Profile.Value.AsText()}" : "")}{(EchoToSender ? ", Echo" : "")})";
 
     }
 

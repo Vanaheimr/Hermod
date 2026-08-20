@@ -33,6 +33,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
     public class RelayTests
     {
 
+        #region The echo to the sender
+
+        [Test]
+        public async Task TwoClients_WithEcho_BothSeeTheVerySameStream()
+        {
+
+            await using var host = RendezvousTestHost.Create();
+
+            // Two clients asking for an echo are relayed by the broadcast as
+            // well, so that both of them see the same conversation.
+            var (_, alice, bob) = await ConnectTwoClientsAsync(host, "ConnectPorts([?,?], \"A conversation\", Echo)");
+
+            using (alice)
+            using (bob)
+            {
+
+                Assert.That(host.Session.EchoToSender, Is.True);
+
+                await TestNet.SendAsync(alice, "Hello!");
+
+                Assert.That(await TestNet.ReceiveAsync(alice, 6), Is.EqualTo("Hello!"), "The sender must be echoed!");
+                Assert.That(await TestNet.ReceiveAsync(bob,   6), Is.EqualTo("Hello!"));
+
+                await TestNet.SendAsync(bob, "Hi!");
+
+                Assert.That(await TestNet.ReceiveAsync(alice, 3), Is.EqualTo("Hi!"));
+                Assert.That(await TestNet.ReceiveAsync(bob,   3), Is.EqualTo("Hi!"));
+
+            }
+
+        }
+
+        [Test]
+        public async Task TwoClients_WithoutEcho_KeepTheirOwnBytes()
+        {
+
+            await using var host = RendezvousTestHost.Create();
+
+            var (_, alice, bob) = await ConnectTwoClientsAsync(host);
+
+            using (alice)
+            using (bob)
+            {
+
+                Assert.That(host.Session.EchoToSender, Is.False, "The echo must be off unless it was asked for!");
+
+                await TestNet.SendAsync(alice, "Hello!");
+
+                Assert.That(await TestNet.ReceiveAsync(bob, 6), Is.EqualTo("Hello!"));
+
+                await Task.Delay(250);
+
+                Assert.That(alice.Available, Is.Zero, "Without an echo a client must never receive its own bytes!");
+
+            }
+
+        }
+
+        #endregion
+
         #region (private) ConnectTwoClientsAsync(Host, Command)
 
         private static async Task<(IPPort[] Ports, TcpClient Alice, TcpClient Bob)>

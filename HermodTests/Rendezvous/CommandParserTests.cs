@@ -285,6 +285,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
         #endregion
 
+        #region ConnectPorts with the echo flag
+
+        [Test]
+        [TestCase("Echo")]
+        [TestCase("echo")]
+        [TestCase("ECHO")]
+        [TestCase("EchoToSender")]
+        public void ConnectPorts_WithTheEchoFlag(String Text)
+        {
+
+            var command = ParseConnect($"ConnectPorts([?,?,?], {Text})");
+
+            Assert.Multiple(() => {
+                Assert.That(command.EchoToSender, Is.True);
+                Assert.That(command.Description,  Is.Null, "The echo flag is not a description!");
+                Assert.That(command.Profile,      Is.Null);
+            });
+
+        }
+
+        [Test]
+        public void ConnectPorts_WithoutTheEchoFlag_DoesNotEcho()
+        {
+
+            Assert.That(ParseConnect("ConnectPorts([?,?,?])").      EchoToSender, Is.False, "The echo must be off by default!");
+            Assert.That(ParseConnect("ConnectPorts([?,?,?], NoEcho)").EchoToSender, Is.False);
+
+        }
+
+        [Test]
+        public void ConnectPorts_WithDescriptionProfileAndEcho_InAnyOrder()
+        {
+
+            var expected = new[] {
+                               "ConnectPorts([?,?,?], \"The Friday chat\", Interactive, Echo)",
+                               "ConnectPorts([?,?,?], Interactive, \"The Friday chat\", Echo)",
+                               "ConnectPorts([?,?,?], Echo, Interactive, \"The Friday chat\")",
+                               "ConnectPorts([?,?,?], Echo, \"The Friday chat\", Interactive)"
+                           };
+
+            foreach (var text in expected)
+            {
+
+                var command = ParseConnect(text);
+
+                Assert.Multiple(() => {
+                    Assert.That(command.Description,  Is.EqualTo("The Friday chat"), text);
+                    Assert.That(command.Profile,      Is.EqualTo(TransferProfile.Interactive), text);
+                    Assert.That(command.EchoToSender, Is.True, text);
+                });
+
+            }
+
+        }
+
+        [Test]
+        public void ConnectPorts_WithAQuotedEcho_IsADescription()
+        {
+
+            var command = ParseConnect("ConnectPorts([?,?], \"Echo\")");
+
+            Assert.Multiple(() => {
+                Assert.That(command.Description,  Is.EqualTo("Echo"));
+                Assert.That(command.EchoToSender, Is.False);
+            });
+
+        }
+
+        [Test]
+        public void ConnectPorts_WithTheEchoFlagTwice_Fails()
+        {
+
+            var error = ParseError("ConnectPorts([?,?], Echo, NoEcho)");
+
+            Assert.That(error.Code, Is.EqualTo(ResponseCode.InvalidSyntax));
+
+        }
+
+        [Test]
+        public void ConnectPorts_ShowsTheEchoFlagWithinToString()
+        {
+
+            var command = ParseConnect("ConnectPorts([?,?,?], \"The Friday chat\", Interactive, Echo)");
+
+            Assert.That(command.ToString(), Is.EqualTo("ConnectPorts([?, ?, ?], \"The Friday chat\", Interactive, Echo)"));
+
+        }
+
+        #endregion
+
         #region ConnectPorts with transfer profiles
 
         [Test]

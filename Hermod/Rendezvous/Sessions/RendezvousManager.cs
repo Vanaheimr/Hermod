@@ -435,6 +435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                                   settings,
                                   Authorization.KeyIds,
                                   Command.Description,
+                                  Command.EchoToSender,
                                   timeProvider,
                                   loggerFactory.CreateLogger<RendezvousSession>()
                               );
@@ -448,13 +449,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
 
                 session.Start();
 
-                logger.LogInformation("Rendezvous {SessionId} opened on TCP/[{Ports}] using the {Profile} profile, by {CreatedBy}{Description}.",
-                                      session.Id, String.Join(", ", session.Ports), profile.AsText(), Authorization,
+                logger.LogInformation("Rendezvous {SessionId} opened on TCP/[{Ports}] using the {Profile} profile{Echo}, by {CreatedBy}{Description}.",
+                                      session.Id, String.Join(", ", session.Ports), profile.AsText(),
+                                      session.EchoToSender ? " and echoing to the sender" : "", Authorization,
                                       session.Description is not null ? $": {session.Description}" : "");
 
                 #endregion
 
-                return (CommandResponse.Ok($"{ConnectPortsCommand.Name}([{String.Join(", ", session.Ports)}], {profile.AsText()})"), session);
+                return (CommandResponse.Ok($"{ConnectPortsCommand.Name}([{String.Join(", ", session.Ports)}], {profile.AsText()}{(session.EchoToSender ? ", Echo" : "")})"), session);
 
             }
 

@@ -40,7 +40,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
     ///       ? 3: tstr,             ; a description of this rendezvous
     ///       ? 4: tstr,             ; the transfer profile
     ///         5: bstr,             ; nonce, 8..64 bytes
-    ///         6: uint              ; seconds since the Unix epoch
+    ///         6: uint,             ; seconds since the Unix epoch
+    ///       ? 7: bool              ; echo everything back to its sender
     ///     }
     ///
     /// </summary>
@@ -70,6 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         private const Int64 keyProfile      = 4;
         private const Int64 keyNonce        = 5;
         private const Int64 keyTimestamp    = 6;
+        private const Int64 keyEcho         = 7;
 
         private readonly Byte[] nonce;
 
@@ -161,6 +163,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
 
             entries.Add(new (CBORValue.FromInt64(keyTimestamp),
                              CBORValue.FromInt64(Timestamp.ToUnixTimeSeconds())));
+
+            // Only sent when asked for: the default travels as the absence of the key.
+            if (Command is ConnectPortsCommand { EchoToSender: true })
+                entries.Add(new (CBORValue.FromInt64  (keyEcho),
+                                 CBORValue.FromBoolean(true)));
 
             return CBORValue.FromMap(entries);
 
@@ -345,8 +352,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
 
                 }
 
+                var echoToSender = false;
+
+                if (CBOR.TryGetValue(CBORValue.FromInt64(keyEcho), out var echoCBOR))
+                {
+
+                    if (echoCBOR.Kind != CBORValueKind.Boolean)
+                    {
+                        ErrorResponse = "The echo flag of a control request must be a boolean!";
+                        return false;
+                    }
+
+                    echoToSender = echoCBOR.AsBoolean();
+
+                }
+
                 Request        = new ControlRequest(
-                                     new ConnectPortsCommand(portSpecifications, profile, description),
+                                     new ConnectPortsCommand(portSpecifications, profile, description, echoToSender),
                                      nonce,
                                      timestamp
                                  );

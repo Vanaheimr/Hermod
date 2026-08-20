@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         #endregion
 
 
-        #region ConnectPortsAsync   (Ports, Profile = null, Description = null, CancellationToken = default)
+        #region ConnectPortsAsync   (Ports, Profile = null, Description = null, EchoToSender = false, CancellationToken = default)
 
         /// <summary>
         /// Ask the service to open a rendezvous.
@@ -138,14 +138,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <param name="Ports">Two or more port specifications, use PortSpecification.Random for '?'.</param>
         /// <param name="Profile">An optional transfer profile.</param>
         /// <param name="Description">An optional description, e.g. "SSH rendezvous for maintenance work".</param>
+        /// <param name="EchoToSender">Whether a client also receives what it sends itself, so that every client sees the very same byte stream. A client that never reads then fills its own queue and is disconnected.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         public Task<ControlClientResponse> ConnectPortsAsync(IEnumerable<PortSpecification>  Ports,
                                                              TransferProfile?                Profile             = null,
                                                              String?                         Description         = null,
+                                                             Boolean                         EchoToSender        = false,
                                                              CancellationToken               CancellationToken   = default)
 
             => SendAsync(
-                   new ConnectPortsCommand([.. Ports], Profile, Description),
+                   new ConnectPortsCommand([.. Ports], Profile, Description, EchoToSender),
                    CancellationToken
                );
 

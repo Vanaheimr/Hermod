@@ -108,6 +108,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         public String?                         Description        { get; }
 
         /// <summary>
+        /// Whether a client also receives what it sends itself.
+        ///
+        /// A sender otherwise never learns where its own bytes ended up within
+        /// the conversation, as the service decides how the senders interleave.
+        /// With the echo every client - the sender included - receives the very
+        /// same byte stream, which makes the service the one and only sequencer.
+        /// </summary>
+        public Boolean                         EchoToSender       { get; }
+
+        /// <summary>
         /// The timestamp when all clients had arrived, or null.
         /// </summary>
         public DateTimeOffset?                 EstablishedUtc     { get; private set; }
@@ -170,6 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <param name="ProfileSettings">The buffer sizes and TCP parameters of this rendezvous.</param>
         /// <param name="CreatedBy">The identifications of the keys that opened this rendezvous.</param>
         /// <param name="Description">An optional description of this rendezvous.</param>
+        /// <param name="EchoToSender">Whether a client also receives what it sends itself.</param>
         /// <param name="TimeProvider">A time provider.</param>
         /// <param name="Logger">A logger.</param>
         internal RendezvousSession(Guid                     Id,
@@ -178,6 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                                    TransferProfileSettings  ProfileSettings,
                                    IEnumerable<String>?     CreatedBy,
                                    String?                  Description,
+                                   Boolean                  EchoToSender,
                                    TimeProvider             TimeProvider,
                                    ILogger                  Logger)
         {
@@ -189,6 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
             this.ProfileSettings    = ProfileSettings;
             this.createdBy          = CreatedBy is null ? [] : [.. CreatedBy];
             this.Description        = Description;
+            this.EchoToSender       = EchoToSender;
             this.timeProvider       = TimeProvider;
             this.logger             = Logger;
             this.CreatedUtc         = TimeProvider.GetUtcNow();
@@ -457,6 +470,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <summary>
         /// Relay data between the clients: a plain pipe for two clients,
         /// a broadcast for three or more clients.
+        ///
+        /// Two clients that want to be echoed are relayed by the broadcast as
+        /// well - the pipe has no queues it could echo into. They then lose the
+        /// half-close propagation of the pipe, which is the right trade: whoever
+        /// asks for an echo is having a conversation, not tunneling a protocol.
         /// </summary>
         private async Task RunRelayAsync()
         {
@@ -466,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
 
                 var sockets = endpoints.Select(endpoint => endpoint.Client!).ToArray();
 
-                if (sockets.Length == 2)
+                if (sockets.Length == 2 && !EchoToSender)
                     await PipeRelay.RunAsync(this,
                                              sockets[0],
                                              sockets[1],
@@ -480,6 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                                                   Ports,
                                                   sockets,
                                                   ProfileSettings,
+                                                  EchoToSender,
                                                   logger,
                                                   lifetime.Token).
                                          ConfigureAwait(false);
@@ -550,6 +569,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         public override String ToString()
 
             => $"{Id}: TCP/[{String.Join(", ", Ports)}], {Profile.AsText()}, {State}" +
+               (EchoToSender ? ", echoing" : "") +
                (createdBy.Length > 0 ? $", opened by {String.Join(", ", createdBy)}" : "") +
                (Description is not null ? $": {Description}" : "");
 

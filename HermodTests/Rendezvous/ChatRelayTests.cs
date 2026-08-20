@@ -90,6 +90,137 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
         }
 
+        #region The echo to the sender
+
+        [Test]
+        public async Task Chat_WithEcho_AlsoSendsBackToTheSender()
+        {
+
+            await using var host = RendezvousTestHost.Create();
+
+            var (_, alice, bob, carol) = await ConnectThreeClientsAsync(host, "ConnectPorts([?,?,?], chat, Echo)");
+
+            using (alice)
+            using (bob)
+            using (carol)
+            {
+
+                Assert.That(host.Session.EchoToSender, Is.True);
+
+                await TestNet.SendAsync(alice, "Hello!");
+
+                Assert.That(await TestNet.ReceiveAsync(alice, 6), Is.EqualTo("Hello!"), "The sender must be echoed!");
+                Assert.That(await TestNet.ReceiveAsync(bob,   6), Is.EqualTo("Hello!"));
+                Assert.That(await TestNet.ReceiveAsync(carol, 6), Is.EqualTo("Hello!"));
+
+            }
+
+        }
+
+        [Test]
+        public async Task Chat_WithEcho_EveryClientSeesTheVerySameByteStream()
+        {
+
+            const Int32 clients      = 5;
+            const Int32 senders      = 4;
+            const Int32 messages     = 600;
+            const Int32 messageSize  = 4096;
+
+            // Generous queues: this test is about the order of the chunks, not
+            // about what happens to a client that can not keep up.
+            await using var host = RendezvousTestHost.Create(options => {
+                                       options.Profiles.Interactive.BroadcastQueueLength  = 65536;
+                                       options.Profiles.Interactive.BroadcastQueueBytes   = 256 * 1024 * 1024;
+                                   });
+
+            var ports    = TestNet.ParsePorts(host.ExecuteOk($"ConnectPorts([{String.Join(", ", Enumerable.Repeat("?", clients))}], chat, Echo)"));
+            var sockets  = new TcpClient[clients];
+
+            for (var i = 0; i < clients; i++)
+                sockets[i] = await TestNet.ConnectAsync(ports[i]);
+
+            try
+            {
+
+                await TestNet.WaitUntilAsync(() => host.Session.State == SessionState.Established,
+                                             "The chat was not established!");
+
+                // Several clients talking at the very same time: whatever order
+                // the service settles on, everybody has to see that one order.
+                var expected  = senders * messages * messageSize;
+
+                var talking   = Enumerable.Range(0, senders).
+                                           Select(i => SendManyAsync(sockets[i], (Char) ('A' + i))).
+                                           ToArray();
+
+                var streams   = await Task.WhenAll(sockets.Select(socket => TestNet.ReceiveAsync(socket, expected)));
+
+                await Task.WhenAll(talking);
+
+                Assert.That(streams[0], Has.Length.EqualTo(expected), "The first client did not receive everything!");
+
+                for (var i = 1; i < clients; i++)
+                    Assert.That(streams[i], Is.EqualTo(streams[0]),
+                                $"Client {i} saw a different order than client 0 - the service is not the only sequencer!");
+
+                // ...and nothing was lost or duplicated on the way.
+                for (var i = 0; i < senders; i++)
+                {
+                    Assert.That(CountOf(streams[0], $"{(Char) ('A' + i)}0042\n"), Is.EqualTo(1),
+                                "A message did not arrive exactly once!");
+                }
+
+                async Task SendManyAsync(TcpClient Client, Char Prefix)
+                {
+                    for (var i = 0; i < messages; i++)
+                        await TestNet.SendAsync(Client, $"{Prefix}{i:D4}\n".PadRight(messageSize, '.'));
+                }
+
+                static Int32 CountOf(String Text, String Value)
+                {
+
+                    var count  = 0;
+                    var index  = Text.IndexOf(Value, StringComparison.Ordinal);
+
+                    while (index >= 0)
+                    {
+                        count++;
+                        index = Text.IndexOf(Value, index + 1, StringComparison.Ordinal);
+                    }
+
+                    return count;
+
+                }
+
+            }
+            finally
+            {
+                foreach (var socket in sockets)
+                    socket.Dispose();
+            }
+
+        }
+
+        [Test]
+        public async Task Chat_WithoutEcho_IsTheDefault()
+        {
+
+            await using var host = RendezvousTestHost.Create();
+
+            var (_, alice, bob, carol) = await ConnectThreeClientsAsync(host);
+
+            using (alice)
+            using (bob)
+            using (carol)
+            {
+                Assert.That(host.Session.EchoToSender, Is.False, "The echo must be off unless it was asked for!");
+            }
+
+        }
+
+        #endregion
+
+
         [Test]
         public async Task Chat_UsesTheInteractiveProfile()
         {

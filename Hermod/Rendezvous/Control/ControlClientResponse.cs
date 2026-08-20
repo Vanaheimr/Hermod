@@ -101,6 +101,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
             => Response?.CreatedBy ?? [];
 
         /// <summary>
+        /// Whether the rendezvous also sends everything back to its sender.
+        /// </summary>
+        public Boolean                        EchoToSender
+            => Response?.EchoToSender == true;
+
+        /// <summary>
         /// A human readable description of what happened.
         /// </summary>
         public String                         Message

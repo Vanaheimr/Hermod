@@ -30,13 +30,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
 
     /// <summary>
     /// Relays data between three or more clients: a chat.
-    /// Everything one client sends is forwarded to all other clients, but never
-    /// back to the sender itself. This service does not add any framing, it is
-    /// a plain byte relay - the chat protocol is up to the clients.
+    /// Everything one client sends is forwarded to all other clients, and with
+    /// EchoToSender back to the sender as well. This service does not add any
+    /// framing, it is a plain byte relay - the chat protocol is up to the clients.
     ///
     /// Every client has its own bounded outbound queue, so that one slow reader
     /// can not stall the whole chat (head-of-line blocking). A client that
     /// exceeds its queue limits is disconnected.
+    ///
+    /// The fan-out of one chunk to all queues happens under a lock: without it
+    /// two clients sending at the same time could reach the queues of the others
+    /// in a different order, and every receiver would see its own version of the
+    /// conversation. With it the service is the one and only sequencer, and all
+    /// receivers see the very same sequence of chunks.
     /// </summary>
     internal sealed class BroadcastRelay
     {
@@ -82,7 +88,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         private readonly RendezvousSession        session;
         private readonly Participant[]            participants;
         private readonly TransferProfileSettings  settings;
+        private readonly Boolean                  echoToSender;
         private readonly ILogger                  logger;
+        private readonly Lock                     fanOutLock  = new();
 
         private          Int32                    activeCount;
 
@@ -94,11 +102,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                                IReadOnlyList<IPPort>    Ports,
                                IReadOnlyList<Socket>    Sockets,
                                TransferProfileSettings  Settings,
+                               Boolean                  EchoToSender,
                                ILogger                  Logger)
         {
 
             this.session       = Session;
             this.settings      = Settings;
+            this.echoToSender  = EchoToSender;
             this.logger        = Logger;
             this.participants  = new Participant[Sockets.Count];
 
@@ -123,16 +133,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <param name="Ports">The TCP ports of the clients, used for logging.</param>
         /// <param name="Sockets">The connected clients.</param>
         /// <param name="Settings">The settings of the transfer profile.</param>
+        /// <param name="EchoToSender">Whether a client also receives what it sends itself.</param>
         /// <param name="Logger">A logger.</param>
         /// <param name="CancellationToken">A token to stop relaying.</param>
         public static Task RunAsync(RendezvousSession        Session,
                                     IReadOnlyList<IPPort>    Ports,
                                     IReadOnlyList<Socket>    Sockets,
                                     TransferProfileSettings  Settings,
+                                    Boolean                  EchoToSender,
                                     ILogger                  Logger,
                                     CancellationToken        CancellationToken)
 
-            => new BroadcastRelay(Session, Ports, Sockets, Settings, Logger).
+            => new BroadcastRelay(Session, Ports, Sockets, Settings, EchoToSender, Logger).
                    RunAsync(CancellationToken);
 
         #endregion
@@ -279,35 +291,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         #region (private) Broadcast(Sender, Data)
 
         /// <summary>
-        /// Queue the given data for every client but the sender.
+        /// Queue the given data for every other client - and for the sender as
+        /// well, when the rendezvous asked to be echoed.
+        ///
+        /// The whole fan-out happens under one lock, so that a chunk reaches all
+        /// queues before the next one reaches any of them. That is what makes the
+        /// service the single sequencer of the conversation: every receiver sees
+        /// the same chunks in the same order. Nothing within the lock blocks -
+        /// a full queue is reported by TryWrite instead of waiting.
         /// </summary>
         private void Broadcast(Participant         Sender,
                                ReadOnlySpan<Byte>  Data)
         {
 
-            foreach (var receiver in participants)
+            lock (fanOutLock)
             {
 
-                if (ReferenceEquals(receiver, Sender) ||
-                    Volatile.Read(ref receiver.HasLeft) != 0)
-                {
-                    continue;
-                }
-
-                var chunk   = RelayChunk.Copy(Data);
-                var queued  = Interlocked.Add(ref receiver.QueuedBytes, chunk.Length);
-
-                if (queued > settings.BroadcastQueueBytes ||
-                   !receiver.Outbox.Writer.TryWrite(chunk))
+                foreach (var receiver in participants)
                 {
 
-                    Interlocked.Add(ref receiver.QueuedBytes, -chunk.Length);
-                    chunk.Return();
+                    if (Volatile.Read(ref receiver.HasLeft) != 0)
+                        continue;
 
-                    logger.LogWarning("Rendezvous {SessionId}: the client on TCP/{Port} can not keep up and is disconnected!",
-                                      session.Id, receiver.Port);
+                    if (ReferenceEquals(receiver, Sender) && !echoToSender)
+                        continue;
 
-                    Leave(receiver, "could not keep up", DiscardQueue: true);
+                    var chunk   = RelayChunk.Copy(Data);
+                    var queued  = Interlocked.Add(ref receiver.QueuedBytes, chunk.Length);
+
+                    if (queued > settings.BroadcastQueueBytes ||
+                       !receiver.Outbox.Writer.TryWrite(chunk))
+                    {
+
+                        Interlocked.Add(ref receiver.QueuedBytes, -chunk.Length);
+                        chunk.Return();
+
+                        logger.LogWarning("Rendezvous {SessionId}: the client on TCP/{Port} can not keep up and is disconnected!",
+                                          session.Id, receiver.Port);
+
+                        Leave(receiver, "could not keep up", DiscardQueue: true);
+
+                    }
 
                 }
 

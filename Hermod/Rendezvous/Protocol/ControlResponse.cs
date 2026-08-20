@@ -38,7 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
     ///         6: uint,             ; seconds since the Unix epoch
     ///       ? 7: tstr,             ; the description of the rendezvous
     ///       ? 8: uint,             ; when the rendezvous was opened
-    ///       ? 9: [* tstr]          ; the keys that opened the rendezvous
+    ///       ? 9: [* tstr],         ; the keys that opened the rendezvous
+    ///      ? 10: bool              ; whether the rendezvous echoes to the sender
     ///     }
     ///
     /// The nonce of the request is echoed, so that a client can tell which
@@ -62,6 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         private const Int64 keyDescription   = 7;
         private const Int64 keyCreated       = 8;
         private const Int64 keyCreatedBy     = 9;
+        private const Int64 keyEchoToSender  = 10;
 
         private readonly Byte[]? requestNonce;
 
@@ -117,6 +119,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         public IReadOnlyList<String>  CreatedBy       { get; }
 
         /// <summary>
+        /// Whether the rendezvous also sends everything back to its sender.
+        /// </summary>
+        public Boolean                EchoToSender    { get; }
+
+        /// <summary>
         /// Whether the command was executed successfully.
         /// </summary>
         public Boolean                IsSuccess
@@ -138,6 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <param name="Description">The description of the rendezvous, if any.</param>
         /// <param name="Created">When the rendezvous was opened, if known.</param>
         /// <param name="CreatedBy">The identifications of the keys that opened the rendezvous.</param>
+        /// <param name="EchoToSender">Whether the rendezvous also sends everything back to its sender.</param>
         public ControlResponse(ResponseCode           Code,
                                String                 Message,
                                IEnumerable<IPPort>?   Ports          = null,
@@ -146,7 +154,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                                DateTimeOffset?        Timestamp      = null,
                                String?                Description    = null,
                                DateTimeOffset?        Created        = null,
-                               IEnumerable<String>?   CreatedBy      = null)
+                               IEnumerable<String>?   CreatedBy      = null,
+                               Boolean                EchoToSender   = false)
         {
 
             this.Code          = Code;
@@ -166,6 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                                      : null;
 
             this.CreatedBy     = CreatedBy is null ? [] : [.. CreatedBy];
+            this.EchoToSender  = EchoToSender;
 
         }
 
@@ -212,6 +222,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                 entries.Add(new (CBORValue.FromInt64(keyCreatedBy),
                                  CBORValue.FromArray(CreatedBy.Select(CBORValue.FromText))));
 
+            if (EchoToSender)
+                entries.Add(new (CBORValue.FromInt64  (keyEchoToSender),
+                                 CBORValue.FromBoolean(true)));
+
             return CBORValue.FromMap(entries);
 
         }
@@ -248,7 +262,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                     Timestamp,
                     Session?.Description,
                     Session?.CreatedUtc,
-                    Session?.CreatedBy);
+                    Session?.CreatedBy,
+                    Session?.EchoToSender == true);
 
         #endregion
 
@@ -360,6 +375,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                 }
             }
 
+            var echoToSender = cbor.TryGetValue(CBORValue.FromInt64(keyEchoToSender), out var echoCBOR) &&
+                               echoCBOR.Kind == CBORValueKind.Boolean &&
+                               echoCBOR.AsBoolean();
+
             Response       = new ControlResponse(
                                  (ResponseCode) codeCBOR.AsInt64(),
                                  message,
@@ -369,7 +388,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
                                  DateTimeOffset.FromUnixTimeSeconds((Int64) unixTimestamp),
                                  description,
                                  created,
-                                 createdBy
+                                 createdBy,
+                                 echoToSender
                              );
 
             ErrorResponse  = null;
@@ -387,7 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// </summary>
         public override String ToString()
 
-            => $"{Code}{(Ports.Count > 0 ? $" [{String.Join(", ", Ports)}]" : "")}{(Profile.HasValue ? $", {Profile.Value.AsText()}" : "")}: {Message}";
+            => $"{Code}{(Ports.Count > 0 ? $" [{String.Join(", ", Ports)}]" : "")}{(Profile.HasValue ? $", {Profile.Value.AsText()}" : "")}{(EchoToSender ? ", Echo" : "")}: {Message}";
 
         #endregion
 
