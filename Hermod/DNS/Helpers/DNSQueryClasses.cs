@@ -25,11 +25,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     {
 
         /// <summary>
-        /// Pseudo class, used for DNS dynamic updates (RFC  2136).
-        /// </summary>
-        NONE  = 0,
-
-        /// <summary>
         /// Internet IPv4/IPv6
         /// </summary>
         IN    = 1,
@@ -50,7 +45,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         HS    = 4,
 
         /// <summary>
-        /// Any class
+        /// QCLASS NONE (RFC 2136 §2.4), used in the prerequisite and update
+        /// sections of a dynamic update to mean "no records of this set".
+        /// </summary>
+        /// <remarks>
+        /// RFC 6895 §3.2 places this at 254 and reserves 0, which has no
+        /// mnemonic at all. Naming 0 here instead put the reserved code point
+        /// under the wrong label in both directions of the presentation
+        /// format: a class-0 record was written as "NONE", which every other
+        /// reader takes for 254, while a record genuinely in class 254 came
+        /// out as RFC 3597 §5's generic "CLASS254".
+        /// </remarks>
+        NONE  = 254,
+
+        /// <summary>
+        /// QCLASS * (RFC 1035 §3.2.5), matching any class. Like NONE this is
+        /// a QCLASS: legal in a question, never on a record.
         /// </summary>
         ANY   = 255
 
