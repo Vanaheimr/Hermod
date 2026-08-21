@@ -320,7 +320,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            Opcode:               Request.Opcode,
                            AuthoritativeAnswer:  false,
                            Truncation:           false,
-                           RecursionDesired:     Request.RecursionDesired,
+
+                           // RFC 1035 §4.1.1 has RD "copied into the response", but
+                           // the bit it describes is the one that "directs the name
+                           // server to pursue the query recursively" — a property of
+                           // a QUERY. A reply of NOTIMP has just said it did not
+                           // understand the request, so echoing a bit whose meaning
+                           // belongs to the opcode it rejected asserts something it
+                           // cannot know. RFC 6895 §2 leaves the combination open;
+                           // ISC's genreport calls the echo a failure and BIND clears
+                           // the bit. Every other flag was already cleared on this
+                           // path — RD was the lone exception.
+                           RecursionDesired:     Request.Opcode == 0 && Request.RecursionDesired,
                            RecursionAvailable:   RecursionAvailable,
                            ResponseCode:         ResponseCode,
                            AnswerRRs:            [],
