@@ -242,12 +242,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var zone   = Index();
             var qname  = ZoneDenialOfExistence.Normalize(Question.DomainName.FullName);
 
-            // No SOA, or a name this store holds outside any zone it is
-            // authoritative for: answer by exact name and cite nothing.
-            if (zone.Origin is null ||
-                !IsAtOrBelow(qname, ZoneDenialOfExistence.Normalize(zone.Origin.FullName)))
-            {
+            // A store with no SOA is a bag of records rather than a zone: there is
+            // no apex to measure the name against, so answer by exact name and
+            // cite nothing.
+            if (zone.Origin is null)
                 return ExactMatchOnly(Question, DNSSECOK);
+
+            // A name outside the apex is still served when this store actually
+            // holds it — the fixtures rely on that to keep a reverse-lookup PTR
+            // beside a forward zone — but only then. Falling through to an exact
+            // match and reporting NXDOMAIN when there is nothing is the part that
+            // is wrong: that is an authoritative claim that a name does not
+            // exist, cacheable for its whole subtree under RFC 8020, about a zone
+            // this server never served.
+            if (!IsAtOrBelow(qname, ZoneDenialOfExistence.Normalize(zone.Origin.FullName)))
+            {
+
+                var outside = ExactMatchOnly(Question, DNSSECOK);
+
+                return outside.Status == DNSZoneLookupStatus.NameError
+                           ? DNSZoneLookupResult.NotAuthoritative()
+                           : outside;
+
             }
 
             // RFC 1034 §4.3.2 step 3b: a zone cut between the apex and QNAME ends

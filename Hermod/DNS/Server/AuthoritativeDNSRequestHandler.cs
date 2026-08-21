@@ -375,6 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var responseCode       = DNSResponseCodes.NoError;
             var foundName          = false;
             var referred           = false;
+            var notAuthoritative   = false;
 
             // RFC 4035 §3.2.1: the DO bit is what licenses this server to send
             // RRSIG and NSEC/NSEC3 records at all. A responder that ships them
@@ -482,6 +483,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         foundName = true;
                         referred  = true;
                     }
+                    else if (lookupResult.Status == DNSZoneLookupStatus.NotAuthoritative)
+                    {
+                        notAuthoritative = true;
+                    }
 
                     break;
 
@@ -489,7 +494,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            if (!foundName)
+            // RFC 1034 §4.3.2: step 2 looks for a zone that is an ancestor of QNAME,
+            // and without one there is no step 3 to run. REFUSED says that;
+            // NXDOMAIN would instead assert the name does not exist anywhere.
+            //
+            // Only when nothing was found at all, though. A CNAME or DNAME chain
+            // that leaves this zone ends on a name out of bailiwick by design —
+            // RFC 6672 §2.2 has the synthesized CNAME returned and the resolver
+            // chase the target — and that answer is NOERROR with what was found,
+            // not a refusal of the question that was answered.
+            var refused = notAuthoritative && !foundName;
+
+            if (refused)
+                responseCode = DNSResponseCodes.Refused;
+
+            else if (!foundName)
                 responseCode = DNSResponseCodes.NameError;
 
             // RFC 6891 §6.1.1: mirror EDNS by carrying an OPT in the response.
@@ -512,7 +531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        // referral is precisely the case where this server does not
                        // own it — the NS records in the authority section are a
                        // pointer somewhere else, not an authoritative answer.
-                       AuthoritativeAnswer:  !referred
+                       AuthoritativeAnswer:  !referred && !refused
                    );
 
         }

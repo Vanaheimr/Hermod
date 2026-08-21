@@ -26,6 +26,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         NameError,
 
         /// <summary>
+        /// The name is not below the apex of any zone this store serves, so
+        /// there is nothing here to search and nothing to report about it.
+        /// </summary>
+        /// <remarks>
+        /// Distinct from <see cref="NameError"/> on purpose, and the distinction
+        /// is the whole point: NXDOMAIN is an authoritative statement that a name
+        /// does not exist, which RFC 8020 lets a resolver cache for the entire
+        /// subtree beneath it. Saying that about a name this server was never
+        /// responsible for asserts something it cannot know. RFC 1034 §4.3.2
+        /// step 2 finds no zone to search in this case; the answer is REFUSED,
+        /// with AA clear.
+        /// </remarks>
+        NotAuthoritative,
+
+        /// <summary>
         /// The name lives below a delegation point: this server is not
         /// authoritative for it, and RFC 1034 §4.3.2 step 3b says to answer with
         /// the child zone's NS records rather than with data. The response
@@ -103,6 +118,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    [],
                    AuthorityRRs  ?? [],
                    AdditionalRRs ?? []
+               );
+
+
+        /// <summary>
+        /// The name lies outside every zone this store serves.
+        /// </summary>
+        public static DNSZoneLookupResult NotAuthoritative()
+
+            => new (
+                   DNSZoneLookupStatus.NotAuthoritative,
+                   [],
+                   [],
+                   []
                );
 
 
