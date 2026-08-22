@@ -293,9 +293,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         public sealed class HttpAuthTriple
         {
-            public String  Username  { get; set; } = "";
-            public String  Totp      { get; set; } = "";
-            public Int32   Type      { get; set; }
+            public String   Login  { get; set; } = "";
+            public String   Totp   { get; set; } = "";
+            public Boolean  Tlscb  { get; set; }
         }
 
         public sealed class HttpAuthExpected
@@ -320,13 +320,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         });
 
-        private static TOTPHTTPHeaderType AsType(Int32 Type)
+        private static TOTPHTTPHeaderType AsType(Boolean Tlscb)
 
-            => Type switch {
-                   0  => TOTPHTTPHeaderType.RAW,
-                   1  => TOTPHTTPHeaderType.TLSChannelBinding,
-                   _  => throw new ArgumentException($"Unknown TOTP type '{Type}' in the vector file!")
-               };
+            => Tlscb
+                   ? TOTPHTTPHeaderType.TLSChannelBinding
+                   : TOTPHTTPHeaderType.RAW;
 
         public static IEnumerable<TestCaseData> HttpAuthBuildVectors()
             => httpAuthFile.Value.Vectors       .Select(vector => new TestCaseData(vector).SetArgDisplayNames(vector.Id));
@@ -367,9 +365,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
         {
 
             var auth = HTTPTOTPAuthentication.Create(
-                           Vector.Input.Username,
+                           Vector.Input.Login,
                            Vector.Input.Totp,
-                           AsType(Vector.Input.Type)
+                           AsType(Vector.Input.Tlscb)
                        );
 
             Assert.That(auth.HTTPText, Is.EqualTo(Vector.Expected.Header), "build");
@@ -379,9 +377,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
                         "The built header must parse again!");
 
             Assert.Multiple(() => {
-                Assert.That(parsed?.Username,  Is.EqualTo(Vector.Input.Username));
-                Assert.That(parsed?.TOTP,      Is.EqualTo(Vector.Input.Totp));
-                Assert.That(parsed?.Type,      Is.EqualTo(AsType(Vector.Input.Type)));
+                Assert.That(parsed?.Login,  Is.EqualTo(Vector.Input.Login));
+                Assert.That(parsed?.TOTP,   Is.EqualTo(Vector.Input.Totp));
+                Assert.That(parsed?.Type,   Is.EqualTo(AsType(Vector.Input.Tlscb)));
             });
 
         }
@@ -399,9 +397,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
                         $"'{Vector.Header}' must parse!");
 
             Assert.Multiple(() => {
-                Assert.That(parsed?.Username,  Is.EqualTo(Vector.Expected.Username));
-                Assert.That(parsed?.TOTP,      Is.EqualTo(Vector.Expected.Totp));
-                Assert.That(parsed?.Type,      Is.EqualTo(AsType(Vector.Expected.Type)));
+                Assert.That(parsed?.Login,  Is.EqualTo(Vector.Expected.Login));
+                Assert.That(parsed?.TOTP,   Is.EqualTo(Vector.Expected.Totp));
+                Assert.That(parsed?.Type,   Is.EqualTo(AsType(Vector.Expected.Tlscb)));
             });
 
         }

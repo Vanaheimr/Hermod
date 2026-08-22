@@ -37,10 +37,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
     public class HTTPTOTPAuthenticationTests
     {
 
-        #region EmptyUsername_IsRejected
+        #region EmptyLogin_IsRejected
 
         [Test]
-        public void EmptyUsername_IsRejected()
+        public void EmptyLogin_IsRejected()
         {
 
             Assert.Multiple(() => {
@@ -52,6 +52,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
                 );
 
             });
+
+        }
+
+        #endregion
+
+        #region Create_DefaultsToTLSChannelBinding
+
+        /// <summary>
+        /// The wire default is tlscb=true, and the API mirrors it: a
+        /// credential that says nothing claims the TLS-bound mode.
+        /// </summary>
+        [Test]
+        public void Create_DefaultsToTLSChannelBinding()
+        {
+
+            Assert.That(HTTPTOTPAuthentication.Create("chargingstation-0001", "gAzxPfYtmRgd").Type,
+                        Is.EqualTo(TOTPHTTPHeaderType.TLSChannelBinding));
 
         }
 
