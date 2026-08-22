@@ -29,11 +29,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
     /// <summary>
     /// The "Authorization: TOTP" scheme of the TOTP HTTP authentication
     /// specification (TOTPConformanceTests, spec/totp-http-authentication.md):
-    /// base64(username):base64(totp), with an OPTIONAL leading type digit as a
-    /// third segment - 0 = raw (also the implied type of the legacy
-    /// two-segment form), 1 = bound to the TLS session. Username and TOTP are
-    /// Base64-encoded SEPARATELY, so - unlike HTTP Basic Auth - both may
-    /// contain a colon. The example tokens are canonical conformance vectors.
+    /// a MANDATORY type digit (0 = raw, 1 = bound to the TLS session), a
+    /// space, then base64(username):base64(totp) - mirroring the "TOTP"
+    /// request header, which puts its type digit before the value in the same
+    /// way. Username and TOTP are Base64-encoded SEPARATELY, so - unlike HTTP
+    /// Basic Auth - both may contain a colon. The example tokens are
+    /// canonical conformance vectors.
     /// </summary>
     [TestFixture]
     public class HTTPTOTPAuthenticationTests
@@ -45,17 +46,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
         private const String rawTOTP     = "CN63y502maVh";              // vector "defaults-mid-slot"
         private const String boundTOTP   = "gAzxPfYtmRgd";              // vector "tls-binding-sha256"
 
-        private const String rawHeader   = "TOTP Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo";
-        private const String boundHeader = "TOTP 1:Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Z0F6eFBmWXRtUmdk";
+        private const String rawHeader   = "TOTP 0 Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo";
+        private const String boundHeader = "TOTP 1 Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Z0F6eFBmWXRtUmdk";
 
         #endregion
 
 
         #region RawTOTP_RoundTrip
 
-        /// <summary>
-        /// A raw TOTP keeps the legacy two-segment wire form - no type digit.
-        /// </summary>
         [Test]
         public void RawTOTP_RoundTrip()
         {
@@ -82,9 +80,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         #region BoundTOTP_RoundTrip
 
-        /// <summary>
-        /// A TLS-channel-bound TOTP carries its type digit as a third segment.
-        /// </summary>
         [Test]
         public void BoundTOTP_RoundTrip()
         {
@@ -106,35 +101,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         #endregion
 
-        #region ExplicitTypeZero_ParsesAsRawAndReEmitsLegacyForm
-
-        /// <summary>
-        /// An explicit "0:" prefix is accepted and canonicalizes to the legacy
-        /// two-segment form on re-emission.
-        /// </summary>
-        [Test]
-        public void ExplicitTypeZero_ParsesAsRawAndReEmitsLegacyForm()
-        {
-
-            Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 0:Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo",
-                                                                  out var parsed), Is.True);
-
-            Assert.Multiple(() => {
-                Assert.That(parsed?.Type,      Is.EqualTo(TOTPHTTPHeaderType.RAW));
-                Assert.That(parsed?.HTTPText,  Is.EqualTo(rawHeader));
-            });
-
-        }
-
-        #endregion
-
         #region SchemeName_IsCaseInsensitive
 
         [Test]
         public void SchemeName_IsCaseInsensitive()
         {
 
-            Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("totp Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo",
+            Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("totp 0 Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo",
                                                                   out var parsed), Is.True);
 
             Assert.That(parsed?.Username, Is.EqualTo(username));
@@ -163,6 +136,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         #endregion
 
+        #region TypeDigit_IsMandatory
+
+        /// <summary>
+        /// The type digit is not optional: credentials without one - including
+        /// the colon-separated forms of earlier drafts - are rejected.
+        /// </summary>
+        [Test]
+        public void TypeDigit_IsMandatory()
+        {
+
+            Assert.Multiple(() => {
+
+                // No type digit.
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo", out _), Is.False);
+
+                // Colon-separated type digit (an earlier draft form).
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 1:Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo", out _), Is.False);
+
+            });
+
+        }
+
+        #endregion
+
         #region MalformedHeaders_AreRejected
 
         [Test]
@@ -172,19 +169,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
             Assert.Multiple(() => {
 
                 // Unknown type digit.
-                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 2:Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo", out _), Is.False);
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 2 Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo", out _), Is.False);
 
-                // Four segments.
-                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 1:1:Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo", out _), Is.False);
+                // Type digit without credentials.
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 1", out _), Is.False);
 
-                // Only one segment.
-                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP Y2hhcmdpbmdzdGF0aW9uLTAwMDE=", out _), Is.False);
+                // Credentials without a colon.
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 0 Y2hhcmdpbmdzdGF0aW9uLTAwMDE=", out _), Is.False);
+
+                // Three colon-separated segments.
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 0 YQ==:YQ==:YQ==", out _), Is.False);
+
+                // A fourth whitespace-separated part.
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 0 Y2hhcmdpbmdzdGF0aW9uLTAwMDE= Q042M3k1MDJtYVZo", out _), Is.False);
 
                 // Not Base64.
-                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP not-base64!:Q042M3k1MDJtYVZo", out _), Is.False);
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("TOTP 0 not-base64!:Q042M3k1MDJtYVZo", out _), Is.False);
 
                 // Wrong scheme.
-                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("Basic Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo", out _), Is.False);
+                Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader("Basic 0 Y2hhcmdpbmdzdGF0aW9uLTAwMDE=:Q042M3k1MDJtYVZo", out _), Is.False);
 
             });
 

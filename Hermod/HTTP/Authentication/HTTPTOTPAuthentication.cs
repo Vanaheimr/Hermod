@@ -61,14 +61,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TOTPHTTPHeaderType  Type        { get; }
 
         /// <summary>
-        /// The HTTP request header representation.
-        /// A raw TOTP keeps the legacy two-segment form; a TLS-channel-bound
-        /// TOTP is prefixed with its type digit as a third segment.
+        /// The HTTP request header representation:
+        /// "TOTP" SP type digit SP base64(username):base64(totp).
         /// </summary>
         public String  HTTPText
-            => Type == TOTPHTTPHeaderType.RAW
-                   ? $"TOTP {Username.ToBase64()}:{TOTP.ToBase64()}"
-                   : $"TOTP {(Byte) Type}:{Username.ToBase64()}:{TOTP.ToBase64()}";
+            => $"TOTP {(Byte) Type} {Username.ToBase64()}:{TOTP.ToBase64()}";
 
         #endregion
 
@@ -239,42 +236,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var splitted = Text.Split(splitter1, StringSplitOptions.RemoveEmptyEntries);
 
-            if (splitted.Length == 2 &&
+            // TOTP <type> base64(username):base64(totp)
+            // with a MANDATORY type digit: 0 = raw, 1 = TLS channel binding.
+            if (splitted.Length == 3 &&
                 String.Equals(splitted[0], "TOTP", StringComparison.OrdinalIgnoreCase))
             {
 
-                // Two segments:   base64(username):base64(totp)             (a raw TOTP, the legacy form)
-                // Three segments: type:base64(username):base64(totp)        (type 0 = raw, 1 = TLS channel binding)
-                var segments = splitted[1].Trim().Split(splitter2, StringSplitOptions.RemoveEmptyEntries);
+                TOTPHTTPHeaderType type;
 
-                var type    = TOTPHTTPHeaderType.RAW;
-                var offset  = 0;
-
-                if (segments.Length == 3)
+                switch (splitted[1])
                 {
 
-                    switch (segments[0])
-                    {
+                    case "0": type = TOTPHTTPHeaderType.RAW;                break;
+                    case "1": type = TOTPHTTPHeaderType.TLSChannelBinding;  break;
 
-                        case "0": type = TOTPHTTPHeaderType.RAW;                break;
-                        case "1": type = TOTPHTTPHeaderType.TLSChannelBinding;  break;
-
-                        default:
-                            return false;
-
-                    }
-
-                    offset = 1;
+                    default:
+                        return false;
 
                 }
 
-                if (segments.Length - offset == 2)
+                var segments = splitted[2].Trim().Split(splitter2, StringSplitOptions.RemoveEmptyEntries);
+
+                if (segments.Length == 2)
                 {
 
-                    if (!segments[offset].    TryParseBASE64_UTF8(out var username, out _))
+                    if (!segments[0].TryParseBASE64_UTF8(out var username, out _))
                         return false;
 
-                    if (!segments[offset + 1].TryParseBASE64_UTF8(out var totp,     out _))
+                    if (!segments[1].TryParseBASE64_UTF8(out var totp,     out _))
                         return false;
 
                     TOTPAuthentication = new HTTPTOTPAuthentication(
