@@ -43,6 +43,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// (e.g., Base32/Base62/custom) and a longer default length increase brute-force cost
     /// without harming usability.
     /// 
+    /// The token format is shared with the TypeScript implementation TOTP.ts
+    /// (https://github.com/OpenChargingCloud/TOTP.ts), which derives its tokens with the
+    /// very same formula and therefore produces byte-identical tokens for the same shared
+    /// secret, time slot, token length and alphabet. Both implementations default to
+    /// HMAC-SHA256 and both also accept HMAC-SHA384 and HMAC-SHA512. The format is thus
+    /// frozen: neither of its two quirks - the modulo bias of the alphabet mapping, and
+    /// the hash being read as a ring buffer (see CalcTOTPSlot below) - can be "fixed"
+    /// without breaking every deployed verifier. TLS v1.3 channel binding has no
+    /// TypeScript counterpart and remains a Hermod-only extension.
+    /// 
     /// Typical use cases include:
     ///  - OCPP QR-Code based payment/authorization flows, e.g. where a short-lived
     ///    token is embedded in a QR Code shown on a charging station display and validated
@@ -61,13 +71,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public const String TLSExporterLabel = "EXPORTER-Time-Based-One-Time-Password-v1";
 
 
-        #region (private) CalcTOTPSlot(CurrentSlot, TOTPLength, Alphabet, HMAC, TLSExporterMaterial = null)
+        #region (private) CalcTOTPSlot(CurrentSlot, TOTPLength, Alphabet, HMAC, HashAlgorithm, TLSExporterMaterial = null)
 
-        private static String CalcTOTPSlot(UInt64      CurrentSlot,
-                                           UInt32      TOTPLength,
-                                           String      Alphabet,
-                                           HMACSHA256  HMAC,
-                                           Byte[]?     TLSExporterMaterial = null)
+        private static String CalcTOTPSlot(UInt64             CurrentSlot,
+                                           UInt32             TOTPLength,
+                                           String             Alphabet,
+                                           HMAC               HMAC,
+                                           TOTPHashAlgorithm  HashAlgorithm,
+                                           Byte[]?            TLSExporterMaterial = null)
         {
 
             var slotBytes = BitConverter.GetBytes(CurrentSlot);
@@ -76,9 +87,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (BitConverter.IsLittleEndian)
                 Array.Reverse(slotBytes);
 
-            var currentHash = TLSExporterMaterial?.Length > 0
-                                  ? new HMACSHA256(TLSExporterMaterial).ComputeHash(HMAC.ComputeHash(slotBytes))
-                                  : HMAC.ComputeHash(slotBytes);
+            Byte[] currentHash;
+
+            if (TLSExporterMaterial?.Length > 0)
+            {
+                // TLS channel binding has no counterpart in TOTP.ts: the second HMAC
+                // uses the same hash algorithm as the first one.
+                using var channelBindingHMAC = HashAlgorithm.CreateHMAC(TLSExporterMaterial);
+                currentHash = channelBindingHMAC.ComputeHash(HMAC.ComputeHash(slotBytes));
+            }
+            else
+                currentHash = HMAC.ComputeHash(slotBytes);
 
             var stringBuilder  = new StringBuilder((Int32) TOTPLength);
 
@@ -88,6 +107,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             // based on the last bit of the hash value (see RFCs)
             var offset         = currentHash[^1] & 0x0F;
 
+            // Both modulo operations below are frozen parts of the shared token format:
+            // TOTP.ts derives its tokens with the very same two operations, and deployed
+            // verifiers on both sides depend on them.
+            //
+            //  * "% Alphabet.Length" has a modulo bias: with the default 62 character
+            //    alphabet 256 = 4*62 + 8, so its first eight characters are 25% more
+            //    likely than the remaining 54. Do not "fix" this by rejection sampling -
+            //    an alphabet whose length divides 256 (e.g. the 64 character base64url
+            //    set) has no bias at all.
+            //
+            //  * "% currentHash.Length" reads the hash as a ring buffer: position
+            //    i + hash length repeats position i verbatim, so tokens longer than
+            //    32/48/64 characters (SHA256/SHA384/SHA512) gain no further entropy.
             for (var i = 0; i < TOTPLength; i++)
                 stringBuilder.Append(Alphabet[currentHash[(offset + i) % currentHash.Length] % Alphabet.Length]);
 
@@ -97,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateTOTP  (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
+        #region GenerateTOTP  (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate the current TOTP and the remaining time until the TOTP will change.
@@ -108,26 +140,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="TOTPTimestamp">The optional timestamp to calculate the TOTP for.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateTOTP(String           SharedSecret,
-                         TimeSpan?        ValidityTime          = null,
-                         UInt32?          TOTPLength            = 12,
-                         String?          Alphabet              = null,
-                         DateTimeOffset?  TOTPTimestamp         = null,
-                         Byte[]?          TLSExporterMaterial   = null)
+            GenerateTOTP(String              SharedSecret,
+                         TimeSpan?           ValidityTime          = null,
+                         UInt32?             TOTPLength            = 12,
+                         String?             Alphabet              = null,
+                         DateTimeOffset?     TOTPTimestamp         = null,
+                         Byte[]?             TLSExporterMaterial   = null,
+                         TOTPHashAlgorithm?  HashAlgorithm         = null)
 
         {
 
             #region Initial Checks
 
-            SharedSecret   = SharedSecret.Trim();
-            ValidityTime ??= TimeSpan.FromSeconds(30);
-            TOTPLength   ??= 12;
-            Alphabet     ??= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            Alphabet       = Alphabet.Trim();
+            SharedSecret    = SharedSecret.Trim();
+            ValidityTime  ??= TimeSpan.FromSeconds(30);
+            TOTPLength    ??= 12;
+            Alphabet      ??= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            Alphabet        = Alphabet.Trim();
+            HashAlgorithm ??= TOTPHashAlgorithm.SHA256;
 
             if (String.IsNullOrEmpty(SharedSecret))
                 throw new ArgumentNullException(nameof(SharedSecret),
@@ -135,15 +170,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (SharedSecret.Any(Char.IsWhiteSpace))
                 throw new ArgumentException    ("The given shared secret must not contain any whitespace characters!",
-                                                nameof(Alphabet));
+                                                nameof(SharedSecret));
 
             if (SharedSecret.Length < 16)
                 throw new ArgumentException    ("The length of the given shared secret must be at least 16 characters!",
-                                                nameof(Alphabet));
+                                                nameof(SharedSecret));
 
-            if (TOTPLength < 4)
+            if (TOTPLength < 4 || TOTPLength > 255)
                 throw new ArgumentException    ("The expected length of the TOTP must be between 4 and 255 characters!",
-                                                nameof(Alphabet));
+                                                nameof(TOTPLength));
+
+            if (!Enum.IsDefined(HashAlgorithm.Value))
+                throw new ArgumentException    ("The hash algorithm must be one of: sha256, sha384, sha512!",
+                                                nameof(HashAlgorithm));
 
             if (String.IsNullOrEmpty(Alphabet))
                 throw new ArgumentNullException(nameof(Alphabet),
@@ -163,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #endregion
 
-            using var hmac       = new HMACSHA256(
+            using var hmac       = HashAlgorithm.Value.CreateHMAC(
                                        Encoding.UTF8.GetBytes(SharedSecret)
                                    );
 
@@ -181,6 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         TOTPLength.Value,
                         Alphabet,
                         hmac,
+                        HashAlgorithm.Value,
                         TLSExporterMaterial
                     ),
                     remainingTime,
@@ -190,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateTOTPs (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
+        #region GenerateTOTPs (           SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate TOTPs and the remaining time until the TOTPs will change.
@@ -201,28 +241,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="TOTPTimestamp">The optional timestamp to calculate the TOTP for.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateTOTPs(String           SharedSecret,
-                          TimeSpan?        ValidityTime          = null,
-                          UInt32?          TOTPLength            = 12,
-                          String?          Alphabet              = null,
-                          DateTimeOffset?  TOTPTimestamp         = null,
-                          Byte[]?          TLSExporterMaterial   = null)
+            GenerateTOTPs(String              SharedSecret,
+                          TimeSpan?           ValidityTime          = null,
+                          UInt32?             TOTPLength            = 12,
+                          String?             Alphabet              = null,
+                          DateTimeOffset?     TOTPTimestamp         = null,
+                          Byte[]?             TLSExporterMaterial   = null,
+                          TOTPHashAlgorithm?  HashAlgorithm         = null)
 
         {
 
             #region Initial Checks
 
-            SharedSecret   = SharedSecret.Trim();
-            ValidityTime ??= TimeSpan.FromSeconds(30);
-            TOTPLength   ??= 12;
-            Alphabet     ??= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            Alphabet       = Alphabet.Trim();
+            SharedSecret    = SharedSecret.Trim();
+            ValidityTime  ??= TimeSpan.FromSeconds(30);
+            TOTPLength    ??= 12;
+            Alphabet      ??= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            Alphabet        = Alphabet.Trim();
+            HashAlgorithm ??= TOTPHashAlgorithm.SHA256;
 
             if (String.IsNullOrEmpty(SharedSecret))
                 throw new ArgumentNullException(nameof(SharedSecret),
@@ -230,15 +273,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (SharedSecret.Any(Char.IsWhiteSpace))
                 throw new ArgumentException    ("The given shared secret must not contain any whitespace characters!",
-                                                nameof(Alphabet));
+                                                nameof(SharedSecret));
 
             if (SharedSecret.Length < 16)
                 throw new ArgumentException    ("The length of the given shared secret must be at least 16 characters!",
-                                                nameof(Alphabet));
+                                                nameof(SharedSecret));
 
-            if (TOTPLength < 4)
+            if (TOTPLength < 4 || TOTPLength > 255)
                 throw new ArgumentException    ("The expected length of the TOTP must be between 4 and 255 characters!",
-                                                nameof(Alphabet));
+                                                nameof(TOTPLength));
+
+            if (!Enum.IsDefined(HashAlgorithm.Value))
+                throw new ArgumentException    ("The hash algorithm must be one of: sha256, sha384, sha512!",
+                                                nameof(HashAlgorithm));
 
             if (String.IsNullOrEmpty(Alphabet))
                 throw new ArgumentNullException(nameof(Alphabet),
@@ -258,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #endregion
 
-            using var hmac       = new HMACSHA256(
+            using var hmac       = HashAlgorithm.Value.CreateHMAC(
                                        Encoding.UTF8.GetBytes(SharedSecret)
                                    );
 
@@ -271,9 +318,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        (currentUnixTime % (Int32) ValidityTime.Value.TotalSeconds)
                                    );
 
-            return (CalcTOTPSlot(currentSlot - 1, TOTPLength.Value, Alphabet, hmac, TLSExporterMaterial),
-                    CalcTOTPSlot(currentSlot,     TOTPLength.Value, Alphabet, hmac, TLSExporterMaterial),
-                    CalcTOTPSlot(currentSlot + 1, TOTPLength.Value, Alphabet, hmac, TLSExporterMaterial),
+            return (CalcTOTPSlot(currentSlot - 1, TOTPLength.Value, Alphabet, hmac, HashAlgorithm.Value, TLSExporterMaterial),
+                    CalcTOTPSlot(currentSlot,     TOTPLength.Value, Alphabet, hmac, HashAlgorithm.Value, TLSExporterMaterial),
+                    CalcTOTPSlot(currentSlot + 1, TOTPLength.Value, Alphabet, hmac, HashAlgorithm.Value, TLSExporterMaterial),
                     remainingTime,
                     timeReference + remainingTime);
 
@@ -281,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateTOTP  (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
+        #region GenerateTOTP  (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate the current TOTP and the remaining time until the TOTP will change.
@@ -292,16 +339,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateTOTP (DateTimeOffset  Timestamp,
-                          String          SharedSecret,
-                          TimeSpan?       ValidityTime          = null,
-                          UInt32?         TOTPLength            = 12,
-                          String?         Alphabet              = null,
-                          Byte[]?         TLSExporterMaterial   = null)
+            GenerateTOTP (DateTimeOffset      Timestamp,
+                          String              SharedSecret,
+                          TimeSpan?           ValidityTime          = null,
+                          UInt32?             TOTPLength            = 12,
+                          String?             Alphabet              = null,
+                          Byte[]?             TLSExporterMaterial   = null,
+                          TOTPHashAlgorithm?  HashAlgorithm         = null)
 
                 => GenerateTOTP(
                        SharedSecret,
@@ -309,12 +358,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TOTPLength,
                        Alphabet,
                        Timestamp,
-                       TLSExporterMaterial
+                       TLSExporterMaterial,
+                       HashAlgorithm
                    );
 
         #endregion
 
-        #region GenerateTOTPs (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
+        #region GenerateTOTPs (Timestamp, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate TOTPs and the remaining time until the TOTPs will change.
@@ -325,18 +375,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateTOTPs(DateTimeOffset  Timestamp,
-                          String          SharedSecret,
-                          TimeSpan?       ValidityTime          = null,
-                          UInt32?         TOTPLength            = 12,
-                          String?         Alphabet              = null,
-                          Byte[]?         TLSExporterMaterial   = null)
+            GenerateTOTPs(DateTimeOffset      Timestamp,
+                          String              SharedSecret,
+                          TimeSpan?           ValidityTime          = null,
+                          UInt32?             TOTPLength            = 12,
+                          String?             Alphabet              = null,
+                          Byte[]?             TLSExporterMaterial   = null,
+                          TOTPHashAlgorithm?  HashAlgorithm         = null)
 
                 => GenerateTOTPs(
                        SharedSecret,
@@ -344,7 +396,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TOTPLength,
                        Alphabet,
                        Timestamp,
-                       TLSExporterMaterial
+                       TLSExporterMaterial,
+                       HashAlgorithm
                    );
 
         #endregion
@@ -410,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateURL  (           URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
+        #region GenerateURL  (           URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate the current TOTP URL and the remaining time until the URL will change.
@@ -422,17 +475,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURL(URL              URLTemplate,
-                        String           SharedSecret,
-                        TimeSpan?        ValidityTime          = null,
-                        UInt32?          TOTPLength            = 12,
-                        String?          Alphabet              = null,
-                        DateTimeOffset?  Timestamp             = null,
-                        Byte[]?          TLSExporterMaterial   = null)
+            GenerateURL(URL                 URLTemplate,
+                        String              SharedSecret,
+                        TimeSpan?           ValidityTime          = null,
+                        UInt32?             TOTPLength            = 12,
+                        String?             Alphabet              = null,
+                        DateTimeOffset?     Timestamp             = null,
+                        Byte[]?             TLSExporterMaterial   = null,
+                        TOTPHashAlgorithm?  HashAlgorithm         = null)
 
         {
 
@@ -444,7 +499,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 TOTPLength,
                                 Alphabet,
                                 Timestamp,
-                                TLSExporterMaterial
+                                TLSExporterMaterial,
+                                HashAlgorithm
                             );
 
             return (
@@ -457,7 +513,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateURLs (           URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null)
+        #region GenerateURLs (           URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null, Timestamp = null, TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate the TOTP URLs and the remaining time until the URLs will change.
@@ -469,19 +525,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="Timestamp">The optional timestamp to calculate the TOTP for.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURLs(URL              URLTemplate,
-                         String           SharedSecret,
-                         TimeSpan?        ValidityTime          = null,
-                         UInt32?          TOTPLength            = 12,
-                         String?          Alphabet              = null,
-                         DateTimeOffset?  Timestamp             = null,
-                         Byte[]?          TLSExporterMaterial   = null)
+            GenerateURLs(URL                 URLTemplate,
+                         String              SharedSecret,
+                         TimeSpan?           ValidityTime          = null,
+                         UInt32?             TOTPLength            = 12,
+                         String?             Alphabet              = null,
+                         DateTimeOffset?     Timestamp             = null,
+                         Byte[]?             TLSExporterMaterial   = null,
+                         TOTPHashAlgorithm?  HashAlgorithm         = null)
 
         {
 
@@ -495,7 +553,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 TOTPLength,
                                 Alphabet,
                                 Timestamp,
-                                TLSExporterMaterial
+                                TLSExporterMaterial,
+                                HashAlgorithm
                             );
 
             return (
@@ -510,7 +569,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateURL  (Timestamp, URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
+        #region GenerateURL  (Timestamp, URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate the current TOTP URL and the remaining time until the URL will change.
@@ -522,17 +581,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Current,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURL(DateTimeOffset  Timestamp,
-                        URL             URLTemplate,
-                        String          SharedSecret,
-                        TimeSpan?       ValidityTime          = null,
-                        UInt32?         TOTPLength            = 12,
-                        String?         Alphabet              = null,
-                        Byte[]?         TLSExporterMaterial   = null)
+            GenerateURL(DateTimeOffset      Timestamp,
+                        URL                 URLTemplate,
+                        String              SharedSecret,
+                        TimeSpan?           ValidityTime          = null,
+                        UInt32?             TOTPLength            = 12,
+                        String?             Alphabet              = null,
+                        Byte[]?             TLSExporterMaterial   = null,
+                        TOTPHashAlgorithm?  HashAlgorithm         = null)
 
         {
 
@@ -544,7 +605,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 TOTPLength,
                                 Alphabet,
                                 Timestamp,
-                                TLSExporterMaterial
+                                TLSExporterMaterial,
+                                HashAlgorithm
                             );
 
             return (
@@ -557,7 +619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region GenerateURLs (Timestamp, URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null)
+        #region GenerateURLs (Timestamp, URLTemplate, SharedSecret, ValidityTime = null, TOTPLength = 12, Alphabet = null,                   TLSExporterMaterial = null, HashAlgorithm = null)
 
         /// <summary>
         /// Calculate the TOTP URLs and the remaining time until the URLs will change.
@@ -569,19 +631,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="TOTPLength">The optional expected length of the TOTP.</param>
         /// <param name="Alphabet">The optional alphabet of the TOTP being used.</param>
         /// <param name="TLSExporterMaterial">Optional TLS exporter material for additional security.</param>
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
         public static (String          Previous,
                        String          Current,
                        String          Next,
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURLs(DateTimeOffset  Timestamp,
-                         URL             URLTemplate,
-                         String          SharedSecret,
-                         TimeSpan?       ValidityTime          = null,
-                         UInt32?         TOTPLength            = 12,
-                         String?         Alphabet              = null,
-                         Byte[]?         TLSExporterMaterial   = null)
+            GenerateURLs(DateTimeOffset      Timestamp,
+                         URL                 URLTemplate,
+                         String              SharedSecret,
+                         TimeSpan?           ValidityTime          = null,
+                         UInt32?             TOTPLength            = 12,
+                         String?             Alphabet              = null,
+                         Byte[]?             TLSExporterMaterial   = null,
+                         TOTPHashAlgorithm?  HashAlgorithm         = null)
 
         {
 
@@ -595,7 +659,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 TOTPLength,
                                 Alphabet,
                                 Timestamp,
-                                TLSExporterMaterial
+                                TLSExporterMaterial,
+                                HashAlgorithm
                             );
 
             return (

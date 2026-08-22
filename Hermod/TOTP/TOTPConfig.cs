@@ -40,27 +40,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The shared secret of the Time-Based One-Time Password.
         /// </summary>
-        public String     SharedSecret              { get; }
+        public String              SharedSecret              { get; }
 
         /// <summary>
         /// The optional validity time of the Time-Based One-Time Password.
         /// </summary>
-        public TimeSpan?  ValidityTime              { get; }
+        public TimeSpan?           ValidityTime              { get; }
 
         /// <summary>
         /// The optional length of the Time-Based One-Time Password.
         /// </summary>
-        public UInt32?    Length                    { get; }
+        public UInt32?             Length                    { get; }
 
         /// <summary>
         /// The optional alphabet of the Time-Based One-Time Password.
         /// </summary>
-        public String?    Alphabet                  { get; }
+        public String?             Alphabet                  { get; }
 
         /// <summary>
         /// Whether to use TLS exporter material for the TOTP generation.
         /// </summary>
-        public Boolean?   UseTLSExporterMaterial    { get; }
+        public Boolean?            UseTLSExporterMaterial    { get; }
+
+        /// <summary>
+        /// The optional HMAC hash algorithm of the Time-Based One-Time Password.
+        /// HMAC-SHA256 by default, which is also the default of TOTP.ts.
+        /// </summary>
+        public TOTPHashAlgorithm?  HashAlgorithm             { get; }
 
         #endregion
 
@@ -74,11 +80,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Length">The optional length of the TOTP.</param>
         /// <param name="Alphabet">The optional alphabet of the TOTP.</param>
         /// <param name="UseTLSExporterMaterial">Whether to use TLS exporter material for the TOTP generation.</param>
-        public TOTPConfig(String     SharedSecret,
-                          TimeSpan?  ValidityTime             = null,
-                          UInt32?    Length                   = null,
-                          String?    Alphabet                 = null,
-                          Boolean?   UseTLSExporterMaterial   = null)
+        /// <param name="HashAlgorithm">The optional HMAC hash algorithm of the TOTP (HMAC-SHA256 by default).</param>
+        public TOTPConfig(String              SharedSecret,
+                          TimeSpan?           ValidityTime             = null,
+                          UInt32?             Length                   = null,
+                          String?             Alphabet                 = null,
+                          Boolean?            UseTLSExporterMaterial   = null,
+                          TOTPHashAlgorithm?  HashAlgorithm            = null)
         {
 
             this.SharedSecret            = SharedSecret;
@@ -86,15 +94,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.Length                  = Length;
             this.Alphabet                = Alphabet;
             this.UseTLSExporterMaterial  = UseTLSExporterMaterial;
+            this.HashAlgorithm           = HashAlgorithm;
 
             unchecked
             {
 
-                this.hashCode = this.SharedSecret.           GetHashCode()       * 11 ^
-                               (this.ValidityTime?.          GetHashCode() ?? 0) *  7 ^
-                               (this.Length?.                GetHashCode() ?? 0) *  5 ^
-                               (this.Alphabet?.              GetHashCode() ?? 0) *  3 ^
-                                this.UseTLSExporterMaterial?.GetHashCode() ?? 0;
+                this.hashCode = this.SharedSecret.           GetHashCode()       * 13 ^
+                               (this.ValidityTime?.          GetHashCode() ?? 0) * 11 ^
+                               (this.Length?.                GetHashCode() ?? 0) *  7 ^
+                               (this.Alphabet?.              GetHashCode() ?? 0) *  5 ^
+                               (this.UseTLSExporterMaterial?.GetHashCode() ?? 0) *  3 ^
+                                this.HashAlgorithm?.         GetHashCode() ?? 0;
 
             }
 
@@ -237,13 +247,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 #endregion
 
+                #region Parse HashAlgorithm             [optional]
+
+                if (JSON.ParseOptionalEnum("hashAlgorithm",
+                                           "hash algorithm of the time-based one-time password",
+                                           out TOTPHashAlgorithm? hashAlgorithm,
+                                           out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
 
                 TOTPConfig = new TOTPConfig(
                                  sharedSecret,
                                  validityTime,
                                  totpLength,
                                  alphabet,
-                                 useTLSExporterMaterial
+                                 useTLSExporterMaterial,
+                                 hashAlgorithm
                              );
 
 
@@ -283,6 +307,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                            UseTLSExporterMaterial.HasValue
                                ? new JProperty("useTLSExporterMaterial",   UseTLSExporterMaterial.Value)
+                               : null,
+
+                           HashAlgorithm.         HasValue
+                               ? new JProperty("hashAlgorithm",            HashAlgorithm.Value.AsText())
                                : null
 
                        );
@@ -307,7 +335,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ValidityTime,
                    Length,
                    Alphabet?.   CloneString(),
-                   UseTLSExporterMaterial
+                   UseTLSExporterMaterial,
+                   HashAlgorithm
                );
 
         #endregion
@@ -463,6 +492,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (c == 0 && UseTLSExporterMaterial.HasValue && TOTPConfig.UseTLSExporterMaterial.HasValue)
                 c = UseTLSExporterMaterial.Value.CompareTo(TOTPConfig.UseTLSExporterMaterial.Value);
 
+            if (c == 0 && HashAlgorithm.HasValue && TOTPConfig.HashAlgorithm.HasValue)
+                c = HashAlgorithm.         Value.CompareTo(TOTPConfig.HashAlgorithm.         Value);
+
             return c;
 
         }
@@ -508,7 +540,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
               (Alphabet is not null            &&  TOTPConfig.Alphabet is not null            && Alphabet.                    Equals(TOTPConfig.Alphabet                    ))) &&
 
             ((!UseTLSExporterMaterial.HasValue && !TOTPConfig.UseTLSExporterMaterial.HasValue) ||
-              (UseTLSExporterMaterial.HasValue &&  TOTPConfig.UseTLSExporterMaterial.HasValue && UseTLSExporterMaterial.Value.Equals(TOTPConfig.UseTLSExporterMaterial.Value)));
+              (UseTLSExporterMaterial.HasValue &&  TOTPConfig.UseTLSExporterMaterial.HasValue && UseTLSExporterMaterial.Value.Equals(TOTPConfig.UseTLSExporterMaterial.Value))) &&
+
+            ((!HashAlgorithm.         HasValue && !TOTPConfig.HashAlgorithm.         HasValue) ||
+              (HashAlgorithm.         HasValue &&  TOTPConfig.HashAlgorithm.         HasValue && HashAlgorithm.         Value.Equals(TOTPConfig.HashAlgorithm.         Value)));
 
         #endregion
 
@@ -533,7 +568,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{SharedSecret}{(ValidityTime.HasValue ? $"{ValidityTime.Value.TotalSeconds} sec." : "")} {(Length.HasValue ? $"{Length.Value} characters" : "")} ({(Alphabet is not null ? Alphabet : "-")}){(UseTLSExporterMaterial == true ? " uses TLS Exporter Material" : "")}";
+            => $"{SharedSecret}{(ValidityTime.HasValue ? $"{ValidityTime.Value.TotalSeconds} sec." : "")} {(Length.HasValue ? $"{Length.Value} characters" : "")} ({(Alphabet is not null ? Alphabet : "-")}){(UseTLSExporterMaterial == true ? " uses TLS Exporter Material" : "")}{(HashAlgorithm.HasValue ? $" {HashAlgorithm.Value.AsText()}" : "")}";
 
         #endregion
 

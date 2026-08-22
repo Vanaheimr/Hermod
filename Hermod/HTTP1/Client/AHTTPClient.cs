@@ -1739,7 +1739,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        null,
                                        TOTPConfig.UseTLSExporterMaterial == true
                                            ? TLSExporterMaterial
-                                           : null
+                                           : null,
+                                       TOTPConfig.HashAlgorithm
                                    );
 
             return new TOTPHTTPHeader(
