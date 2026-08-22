@@ -289,6 +289,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         #endregion
 
+        #region InvalidValidityTime_Throws
+
+        /// <summary>
+        /// The validity time must be a positive integer number of seconds -
+        /// TOTP.ts enforces the same rule, therefore this implementation does
+        /// as well (zero and negative values used to reach the slot arithmetic,
+        /// fractional values used to be accepted silently).
+        /// </summary>
+        [Test]
+        public void InvalidValidityTime_Throws()
+        {
+
+            var zero        = Assert.Throws<ArgumentException>(
+                                  () => TOTPGenerator.GenerateTOTPs(sharedSecret, TimeSpan.Zero,               null, null, timestamp2)
+                              );
+
+            var negative    = Assert.Throws<ArgumentException>(
+                                  () => TOTPGenerator.GenerateTOTPs(sharedSecret, TimeSpan.FromSeconds(-30),   null, null, timestamp2)
+                              );
+
+            var fractional  = Assert.Throws<ArgumentException>(
+                                  () => TOTPGenerator.GenerateTOTPs(sharedSecret, TimeSpan.FromSeconds(4.5),   null, null, timestamp2)
+                              );
+
+            Assert.Multiple(() => {
+                Assert.That(zero?.      Message, Does.StartWith("The validity time must be a positive integer number of seconds!"));
+                Assert.That(negative?.  Message, Does.StartWith("The validity time must be a positive integer number of seconds!"));
+                Assert.That(fractional?.Message, Does.StartWith("The validity time must be a positive integer number of seconds!"));
+            });
+
+        }
+
+        #endregion
+
+        #region TimestampBeforeUnixEpoch_Throws
+
+        /// <summary>
+        /// Timestamps before the Unix epoch are outside the domain of the token
+        /// format - TOTP.ts rejects them with the same message. (They used to
+        /// saturate to slot 0 silently.)
+        /// </summary>
+        [Test]
+        public void TimestampBeforeUnixEpoch_Throws()
+        {
+
+            var exception = Assert.Throws<ArgumentException>(
+                                () => TOTPGenerator.GenerateTOTPs(sharedSecret, null, null, null, DateTimeOffset.FromUnixTimeSeconds(-1000))
+                            );
+
+            Assert.That(exception?.Message, Does.StartWith("The timestamp must be a non-negative Unix timestamp in milliseconds!"));
+
+        }
+
+        #endregion
+
 
         #region TokenFormat_HashIsReadAsARingBuffer
 

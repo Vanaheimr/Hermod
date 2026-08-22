@@ -176,9 +176,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentException    ("The length of the given shared secret must be at least 16 characters!",
                                                 nameof(SharedSecret));
 
+            if (ValidityTime.Value.Ticks <= 0 || ValidityTime.Value.Ticks % TimeSpan.TicksPerSecond != 0)
+                throw new ArgumentException    ("The validity time must be a positive integer number of seconds!",
+                                                nameof(ValidityTime));
+
             if (TOTPLength < 4 || TOTPLength > 255)
                 throw new ArgumentException    ("The expected length of the TOTP must be between 4 and 255 characters!",
                                                 nameof(TOTPLength));
+
+            if (TOTPTimestamp.HasValue && TOTPTimestamp.Value.ToUnixTimeMilliseconds() < 0)
+                throw new ArgumentException    ("The timestamp must be a non-negative Unix timestamp in milliseconds!",
+                                                nameof(TOTPTimestamp));
 
             if (!Enum.IsDefined(HashAlgorithm.Value))
                 throw new ArgumentException    ("The hash algorithm must be one of: sha256, sha384, sha512!",
@@ -279,9 +287,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentException    ("The length of the given shared secret must be at least 16 characters!",
                                                 nameof(SharedSecret));
 
+            if (ValidityTime.Value.Ticks <= 0 || ValidityTime.Value.Ticks % TimeSpan.TicksPerSecond != 0)
+                throw new ArgumentException    ("The validity time must be a positive integer number of seconds!",
+                                                nameof(ValidityTime));
+
             if (TOTPLength < 4 || TOTPLength > 255)
                 throw new ArgumentException    ("The expected length of the TOTP must be between 4 and 255 characters!",
                                                 nameof(TOTPLength));
+
+            if (TOTPTimestamp.HasValue && TOTPTimestamp.Value.ToUnixTimeMilliseconds() < 0)
+                throw new ArgumentException    ("The timestamp must be a non-negative Unix timestamp in milliseconds!",
+                                                nameof(TOTPTimestamp));
 
             if (!Enum.IsDefined(HashAlgorithm.Value))
                 throw new ArgumentException    ("The hash algorithm must be one of: sha256, sha384, sha512!",
