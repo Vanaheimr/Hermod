@@ -12,6 +12,12 @@
     <EmbeddedResource Include="HTTP\HTTPRoot\helloWorld.txt" />
   </ItemGroup>
 
+  <!-- The canonical TOTP conformance vectors, vendored from
+       OpenChargingCloud/TOTPConformanceTests - regenerate them there. -->
+  <ItemGroup>
+    <None Include="TOTP\TestVectors\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.10" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
