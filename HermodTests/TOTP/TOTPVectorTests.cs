@@ -21,6 +21,8 @@ using NUnit.Framework;
 
 using Newtonsoft.Json;
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
@@ -47,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
         /// The optional capabilities this implementation provides
         /// ("requires" lists of vectors).
         /// </summary>
-        private static readonly HashSet<String> capabilities = [ "tlsChannelBinding" ];
+        private static readonly HashSet<String> capabilities = [ "tlsChannelBinding", "httpAuthentication" ];
 
 
         public sealed class VectorFile<T>
@@ -257,6 +259,164 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
             Assert.That(exception?.Message,
                         Does.StartWith(Vector.ExpectedError),
                         $"Expected the shared error message for vector '{Vector.Id}'!");
+
+        }
+
+        #endregion
+
+
+        #region HTTP authentication vectors ("Authorization: TOTP") - models
+
+        public sealed class HttpAuthFile
+        {
+            public List<String>               Requires        { get; set; } = [];
+            public List<HttpAuthVector>       Vectors         { get; set; } = [];
+            public List<HttpAuthParseVector>  ParseVectors    { get; set; } = [];
+            public List<InvalidHeaderVector>  InvalidHeaders  { get; set; } = [];
+        }
+
+        public sealed class HttpAuthVector
+        {
+            public String            Id        { get; set; } = "";
+            public HttpAuthTriple    Input     { get; set; } = new();
+            public HttpAuthExpected  Expected  { get; set; } = new();
+            public override String ToString() => Id;
+        }
+
+        public sealed class HttpAuthParseVector
+        {
+            public String          Id        { get; set; } = "";
+            public String          Header    { get; set; } = "";
+            public HttpAuthTriple  Expected  { get; set; } = new();
+            public override String ToString() => Id;
+        }
+
+        public sealed class HttpAuthTriple
+        {
+            public String  Username  { get; set; } = "";
+            public String  Totp      { get; set; } = "";
+            public Int32   Type      { get; set; }
+        }
+
+        public sealed class HttpAuthExpected
+        {
+            public String  Header  { get; set; } = "";
+        }
+
+        public sealed class InvalidHeaderVector
+        {
+            public String  Id      { get; set; } = "";
+            public String  Header  { get; set; } = "";
+            public override String ToString() => Id;
+        }
+
+
+        private static readonly Lazy<HttpAuthFile> httpAuthFile = new(() => {
+
+            var path = Path.Combine(AppContext.BaseDirectory, "TOTP", "TestVectors", "totp-http-auth-vectors.json");
+
+            return JsonConvert.DeserializeObject<HttpAuthFile>(File.ReadAllText(path))
+                       ?? throw new InvalidOperationException($"Could not parse '{path}'!");
+
+        });
+
+        private static TOTPHTTPHeaderType AsType(Int32 Type)
+
+            => Type switch {
+                   0  => TOTPHTTPHeaderType.RAW,
+                   1  => TOTPHTTPHeaderType.TLSChannelBinding,
+                   _  => throw new ArgumentException($"Unknown TOTP type '{Type}' in the vector file!")
+               };
+
+        public static IEnumerable<TestCaseData> HttpAuthBuildVectors()
+            => httpAuthFile.Value.Vectors       .Select(vector => new TestCaseData(vector).SetArgDisplayNames(vector.Id));
+
+        public static IEnumerable<TestCaseData> HttpAuthParseVectors()
+            => httpAuthFile.Value.ParseVectors  .Select(vector => new TestCaseData(vector).SetArgDisplayNames(vector.Id));
+
+        public static IEnumerable<TestCaseData> HttpAuthInvalidHeaders()
+            => httpAuthFile.Value.InvalidHeaders.Select(vector => new TestCaseData(vector).SetArgDisplayNames(vector.Id));
+
+        #endregion
+
+        #region HttpAuthFile_IsApplicable
+
+        [Test]
+        public void HttpAuthFile_IsApplicable()
+        {
+
+            Assert.Multiple(() => {
+
+                Assert.That(httpAuthFile.Value.Requires,
+                            Is.SubsetOf(capabilities),
+                            "This suite lacks a capability the vector file requires!");
+
+                Assert.That(httpAuthFile.Value.Vectors,        Is.Not.Empty);
+                Assert.That(httpAuthFile.Value.InvalidHeaders, Is.Not.Empty);
+
+            });
+
+        }
+
+        #endregion
+
+        #region BuildsAndRoundTripsAuthorizationHeader (vector-driven)
+
+        [TestCaseSource(nameof(HttpAuthBuildVectors))]
+        public void BuildsAndRoundTripsAuthorizationHeader(HttpAuthVector Vector)
+        {
+
+            var auth = HTTPTOTPAuthentication.Create(
+                           Vector.Input.Username,
+                           Vector.Input.Totp,
+                           AsType(Vector.Input.Type)
+                       );
+
+            Assert.That(auth.HTTPText, Is.EqualTo(Vector.Expected.Header), "build");
+
+            Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader(Vector.Expected.Header, out var parsed),
+                        Is.True,
+                        "The built header must parse again!");
+
+            Assert.Multiple(() => {
+                Assert.That(parsed?.Username,  Is.EqualTo(Vector.Input.Username));
+                Assert.That(parsed?.TOTP,      Is.EqualTo(Vector.Input.Totp));
+                Assert.That(parsed?.Type,      Is.EqualTo(AsType(Vector.Input.Type)));
+            });
+
+        }
+
+        #endregion
+
+        #region ParsesLenientAuthorizationHeader (vector-driven)
+
+        [TestCaseSource(nameof(HttpAuthParseVectors))]
+        public void ParsesLenientAuthorizationHeader(HttpAuthParseVector Vector)
+        {
+
+            Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader(Vector.Header, out var parsed),
+                        Is.True,
+                        $"'{Vector.Header}' must parse!");
+
+            Assert.Multiple(() => {
+                Assert.That(parsed?.Username,  Is.EqualTo(Vector.Expected.Username));
+                Assert.That(parsed?.TOTP,      Is.EqualTo(Vector.Expected.Totp));
+                Assert.That(parsed?.Type,      Is.EqualTo(AsType(Vector.Expected.Type)));
+            });
+
+        }
+
+        #endregion
+
+        #region RejectsInvalidAuthorizationHeader (vector-driven)
+
+        [TestCaseSource(nameof(HttpAuthInvalidHeaders))]
+        public void RejectsInvalidAuthorizationHeader(InvalidHeaderVector Vector)
+        {
+
+            Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader(Vector.Header, out _),
+                        Is.False,
+                        $"'{Vector.Header}' must be rejected!");
 
         }
 
