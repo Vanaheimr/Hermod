@@ -47,18 +47,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The username.
         /// </summary>
-        public String  Username    { get; }
+        public String              Username    { get; }
 
         /// <summary>
         /// The time-based one-time password.
         /// </summary>
-        public String  TOTP        { get; }
+        public String              TOTP        { get; }
+
+        /// <summary>
+        /// The TOTP type: a raw TOTP, or one bound to the TLS session
+        /// via TLS v1.3 exporter material (TLS channel binding).
+        /// </summary>
+        public TOTPHTTPHeaderType  Type        { get; }
 
         /// <summary>
         /// The HTTP request header representation.
+        /// A raw TOTP keeps the legacy two-segment form; a TLS-channel-bound
+        /// TOTP is prefixed with its type digit as a third segment.
         /// </summary>
         public String  HTTPText
-            => $"TOTP {Username.ToBase64()}:{TOTP.ToBase64()}";
+            => Type == TOTPHTTPHeaderType.RAW
+                   ? $"TOTP {Username.ToBase64()}:{TOTP.ToBase64()}"
+                   : $"TOTP {(Byte) Type}:{Username.ToBase64()}:{TOTP.ToBase64()}";
 
         #endregion
 
@@ -69,32 +79,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Username">A username.</param>
         /// <param name="TOTP">A time-based one-time password.</param>
-        private HTTPTOTPAuthentication(String  Username,
-                                       String  TOTP)
+        /// <param name="Type">The optional TOTP type (raw by default, or bound to the TLS session).</param>
+        private HTTPTOTPAuthentication(String              Username,
+                                       String              TOTP,
+                                       TOTPHTTPHeaderType  Type   = TOTPHTTPHeaderType.RAW)
         {
 
             this.Username  = Username;
             this.TOTP      = TOTP;
+            this.Type      = Type;
 
         }
 
         #endregion
 
 
-        #region (static) Create    (Username, TOTP)
+        #region (static) Create    (Username, TOTP, Type = RAW)
 
         /// <summary>
         /// Create a HTTP TOTP Authentication based on the given username and time-based one-time password.
         /// </summary>
         /// <param name="Username">A username.</param>
         /// <param name="TOTP">A time-based one-time password.</param>
-        public static HTTPTOTPAuthentication Create(String  Username,
-                                                    String  TOTP)
+        /// <param name="Type">The optional TOTP type (raw by default, or bound to the TLS session).</param>
+        public static HTTPTOTPAuthentication Create(String              Username,
+                                                    String              TOTP,
+                                                    TOTPHTTPHeaderType  Type   = TOTPHTTPHeaderType.RAW)
         {
 
             if (TryCreate(Username,
                           TOTP,
-                          out var httpTOTPAuthentication))
+                          out var httpTOTPAuthentication,
+                          Type))
             {
                 return httpTOTPAuthentication;
             }
@@ -105,20 +121,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate (Username, TOTP)
+        #region (static) TryCreate (Username, TOTP, Type = RAW)
 
         /// <summary>
         /// Try to create a HTTP TOTP Authentication based on the given username and time-based one-time password.
         /// </summary>
         /// <param name="Username">A username.</param>
         /// <param name="TOTP">A time-based one-time password.</param>
-        public static HTTPTOTPAuthentication? TryCreate(String  Username,
-                                                        String  TOTP)
+        /// <param name="Type">The optional TOTP type (raw by default, or bound to the TLS session).</param>
+        public static HTTPTOTPAuthentication? TryCreate(String              Username,
+                                                        String              TOTP,
+                                                        TOTPHTTPHeaderType  Type   = TOTPHTTPHeaderType.RAW)
         {
 
             if (TryCreate(Username,
                           TOTP,
-                          out var httpTOTPAuthentication))
+                          out var httpTOTPAuthentication,
+                          Type))
             {
                 return httpTOTPAuthentication;
             }
@@ -129,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate (Username, TOTP, out TOTPAuthentication)
+        #region (static) TryCreate (Username, TOTP, out TOTPAuthentication, Type = RAW)
 
         /// <summary>
         /// Try to create a HTTP TOTP Authentication based on the given username and time-based one-time password.
@@ -137,9 +156,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Username">A username.</param>
         /// <param name="TOTP">A time-based one-time password.</param>
         /// <param name="TOTPAuthentication">The created HTTP TOTP Authentication.</param>
+        /// <param name="Type">The optional TOTP type (raw by default, or bound to the TLS session).</param>
         public static Boolean TryCreate(String                                           Username,
                                         String                                           TOTP,
-                                        [NotNullWhen(true)] out HTTPTOTPAuthentication?  TOTPAuthentication)
+                                        [NotNullWhen(true)] out HTTPTOTPAuthentication?  TOTPAuthentication,
+                                        TOTPHTTPHeaderType                               Type   = TOTPHTTPHeaderType.RAW)
         {
 
             TOTPAuthentication = null;
@@ -151,7 +172,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             TOTPAuthentication = new HTTPTOTPAuthentication(
                                      Username,
-                                     TOTP
+                                     TOTP,
+                                     Type
                                  );
 
             return true;
@@ -221,19 +243,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 String.Equals(splitted[0], "TOTP", StringComparison.OrdinalIgnoreCase))
             {
 
-                var loginWithPassword = splitted[1].Trim().Split(splitter2, StringSplitOptions.RemoveEmptyEntries);
-                if (loginWithPassword.Length == 2)
+                // Two segments:   base64(username):base64(totp)             (a raw TOTP, the legacy form)
+                // Three segments: type:base64(username):base64(totp)        (type 0 = raw, 1 = TLS channel binding)
+                var segments = splitted[1].Trim().Split(splitter2, StringSplitOptions.RemoveEmptyEntries);
+
+                var type    = TOTPHTTPHeaderType.RAW;
+                var offset  = 0;
+
+                if (segments.Length == 3)
                 {
 
-                    if (!loginWithPassword[0].TryParseBASE64_UTF8(out var username, out _))
+                    switch (segments[0])
+                    {
+
+                        case "0": type = TOTPHTTPHeaderType.RAW;                break;
+                        case "1": type = TOTPHTTPHeaderType.TLSChannelBinding;  break;
+
+                        default:
+                            return false;
+
+                    }
+
+                    offset = 1;
+
+                }
+
+                if (segments.Length - offset == 2)
+                {
+
+                    if (!segments[offset].    TryParseBASE64_UTF8(out var username, out _))
                         return false;
 
-                    if (!loginWithPassword[1].TryParseBASE64_UTF8(out var totp, out _))
+                    if (!segments[offset + 1].TryParseBASE64_UTF8(out var totp,     out _))
                         return false;
 
                     TOTPAuthentication = new HTTPTOTPAuthentication(
                                              username,
-                                             totp
+                                             totp,
+                                             type
                                          );
 
                     return true;
@@ -391,9 +438,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    StringComparison.Ordinal);
 
             if (c == 0)
-                String.Compare(TOTP,
-                               HTTPTOTPAuthentication.TOTP,
-                               StringComparison.Ordinal);
+                c = String.Compare(TOTP,
+                                   HTTPTOTPAuthentication.TOTP,
+                                   StringComparison.Ordinal);
+
+            if (c == 0)
+                c = Type.CompareTo(HTTPTOTPAuthentication.Type);
 
             return c;
 
@@ -428,7 +478,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => HTTPTOTPAuthentication is not null &&
                Username.Equals(HTTPTOTPAuthentication.Username) &&
-               TOTP.    Equals(HTTPTOTPAuthentication.TOTP);
+               TOTP.    Equals(HTTPTOTPAuthentication.TOTP)     &&
+               Type.    Equals(HTTPTOTPAuthentication.Type);
 
         #endregion
 
@@ -444,8 +495,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             unchecked
             {
 
-                return Username.GetHashCode() * 3 ^
-                       TOTP.    GetHashCode();
+                return Username.GetHashCode() * 5 ^
+                       TOTP.    GetHashCode() * 3 ^
+                       Type.    GetHashCode();
 
             }
         }
@@ -458,7 +510,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => $"TOTP '{Username}':'{TOTP}'";
+
+            => Type == TOTPHTTPHeaderType.RAW
+                   ? $"TOTP '{Username}':'{TOTP}'"
+                   : $"TOTP '{Username}':'{TOTP}' (TLS channel binding)";
 
         #endregion
 
