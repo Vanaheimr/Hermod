@@ -597,7 +597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        TransmissionRetryDelayDelegate?                            TransmissionRetryDelay                = null,
                        UInt16?                                                    MaxNumberOfRetries                    = null,
                        UInt32?                                                    BufferSize                            = null,
-                       DNSClient?                                                 DNSClient                             = null,
+                       IDNSClient?                                                 DNSClient                             = null,
 
                        Boolean?                                                   ConsumeRequestChunkedTEImmediately    = null,
                        Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
@@ -707,7 +707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Boolean?                                                   ConsumeResponseChunkedTEImmediately   = null,
 
                        Boolean?                                                   DisableLogging                        = null,
-                       DNSClient?                                                 DNSClient                             = null)
+                       IDNSClient?                                                 DNSClient                             = null)
 
         {
 

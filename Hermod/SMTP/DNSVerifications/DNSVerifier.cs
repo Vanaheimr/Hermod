@@ -31,7 +31,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public sealed partial class DNSVerifier(DNSClient  DNSClient,
+    public sealed partial class DNSVerifier(IDNSClient  DNSClient,
                                             ILogger    Logger)
     {
 

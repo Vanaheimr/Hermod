@@ -36,12 +36,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 public sealed partial class MtaStsResolver : IDisposable
 {
     private readonly HttpClient _httpClient;
-    private readonly DNSClient _dnsClient;
+    private readonly IDNSClient _dnsClient;
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<string, MtaStsPolicy> _cache = new();
     private readonly SemaphoreSlim _fetchLock = new(5); // Max 5 concurrent fetches
 
-    public MtaStsResolver(DNSClient dnsClient, ILogger logger)
+    public MtaStsResolver(IDNSClient dnsClient, ILogger logger)
     {
         _dnsClient = dnsClient;
         _logger = logger;

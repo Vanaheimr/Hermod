@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// Resolves and caches the TLS-RPT policy (<c>_smtp._tls.&lt;domain&gt;</c> TXT record,
 /// <c>v=TLSRPTv1; rua=...</c>) of a domain (RFC 8460 §3).
 /// </summary>
-public sealed class TlsRptResolver(DNSClient dnsClient, ILogger logger)
+public sealed class TlsRptResolver(IDNSClient dnsClient, ILogger logger)
 {
 
     private readonly Dictionary<String, (TlsRptPolicy Policy, DateTimeOffset Expires)> cache = new (StringComparer.OrdinalIgnoreCase);

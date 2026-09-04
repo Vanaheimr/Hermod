@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// The attached DNS service.
         /// </summary>
-        public DNSClient DNSClient { get; }
+        public IDNSClient DNSClient { get; }
 
         #endregion
 
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                       Boolean            DisableSendNotifications   = false,
                                       PgpPublicKeyRing?  PublicKeyRing              = null,
                                       PgpSecretKeyRing?  SecretKeyRing              = null,
-                                      DNSClient?         DNSClient                  = null)
+                                      IDNSClient?         DNSClient                  = null)
         {
 
             this.HTTPExtAPI                   = HTTPExtAPI;

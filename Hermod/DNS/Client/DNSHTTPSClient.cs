@@ -493,7 +493,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               UInt32?                                                    BufferSize                           = null,
 
                               Boolean?                                                   DisableLogging                       = null,
-                              DNSClient?                                                 DNSClient                            = null,
+                              IDNSClient?                                                 DNSClient                            = null,
                               ILogger<DNSHTTPSClient>?                                   Logger                               = null,
                               ILoggerFactory?                                            LoggerFactory                        = null)
 
@@ -694,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        UInt32?                                                    BufferSize                           = null,
 
                        Boolean?                                                   DisableLogging                       = null,
-                       DNSClient?                                                 DNSClient                            = null,
+                       IDNSClient?                                                 DNSClient                            = null,
                        ILogger<DNSHTTPSClient>?                                   Logger                               = null,
                        ILoggerFactory?                                            LoggerFactory                        = null)
 
@@ -1472,7 +1472,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             String?                                                    HTTPUserAgent                        = null,
 
                                             Boolean?                                                   DisableLogging                       = null,
-                                            DNSClient?                                                 DNSClient                            = null,
+                                            IDNSClient?                                                 DNSClient                            = null,
                                             ILogger<DNSHTTPSClient>?                                   Logger                               = null,
                                             ILoggerFactory?                                            LoggerFactory                        = null)
 
@@ -1539,7 +1539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                         UInt32?                                                    BufferSize                           = null,
 
                                                         Boolean?                                                   DisableLogging                       = null,
-                                                        DNSClient?                                                 DNSClient                            = null,
+                                                        IDNSClient?                                                 DNSClient                            = null,
                                                         ILogger<DNSHTTPSClient>?                                   Logger                               = null,
                                                         ILoggerFactory?                                            LoggerFactory                        = null)
 
@@ -1600,7 +1600,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                        UInt32?                                                    BufferSize                           = null,
 
                                                        Boolean?                                                   DisableLogging                       = null,
-                                                       DNSClient?                                                 DNSClient                            = null)
+                                                       IDNSClient?                                                 DNSClient                            = null)
 
             => new (
                    URL.Parse("https://1.1.1.1/dns-query"),
@@ -1657,7 +1657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                        UInt32?                                                    BufferSize                           = null,
 
                                                        Boolean?                                                   DisableLogging                       = null,
-                                                       DNSClient?                                                 DNSClient                            = null)
+                                                       IDNSClient?                                                 DNSClient                            = null)
 
             => new (
                    URL.Parse("https://1.0.0.1/dns-query"),
