@@ -269,10 +269,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         /// <param name="Stream">A stream positioned at the start of the RDATA.</param>
         /// <param name="RDLength">The RDATA length in octets, as read from the RDLENGTH field.</param>
-        public static IEnumerable<String> ExtractCharacterStrings(Stream  Stream,
-                                                                  Int32   RDLength)
+        /// <param name="Encoding">The text encoding of the character-strings (default: ASCII; DNS-SD TXT records use UTF-8, RFC 6763 §6.5).</param>
+        public static IEnumerable<String> ExtractCharacterStrings(Stream     Stream,
+                                                                  Int32      RDLength,
+                                                                  Encoding?  Encoding   = null)
         {
 
+            var encoding   = Encoding ?? System.Text.Encoding.ASCII;
             var strings    = new List<String>();
             var remaining  = RDLength;
 
@@ -292,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var buffer = new Byte[length];
                 Stream.ReadExactly(buffer, 0, length);
 
-                strings.Add(Encoding.ASCII.GetString(buffer));
+                strings.Add(encoding.GetString(buffer));
                 remaining -= length;
 
             }
