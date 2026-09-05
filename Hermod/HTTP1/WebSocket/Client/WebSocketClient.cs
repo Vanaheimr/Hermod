@@ -1081,7 +1081,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             RequestTimeout ??= this.RequestTimeout;
 
-            HTTPResponse? waitingForHTTPResponse = null;
+            HTTPResponse? waitingForHTTPResponse  = null;
+            HTTPResponse? lastFailureResponse     = null;
 
             if (networkingTask is not null)
                 return new Tuple<WebSocketClientConnection, HTTPResponse>(
@@ -1952,6 +1953,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         #endregion
 
+                        lastFailureResponse = httpResponse;
+
                         await base.Close().ConfigureAwait(false);
                         HTTPStream = null;
 
@@ -1974,6 +1977,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         };
 
                         #endregion
+
+                        lastFailureResponse = httpResponse;
 
                         await base.Close().ConfigureAwait(false);
                         HTTPStream = null;
@@ -2063,11 +2068,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }, CancellationToken);
 
-            var ts = Timestamp.Now;
+            var connectionAttempts  = networkingTask;
+            var ts                  = Timestamp.Now;
 
-            while (waitingForHTTPResponse is null && ts + RequestTimeout > Timestamp.Now) {
+            // Wait for the response to the upgrade request, but not beyond the end of the
+            // networking task: when the connection attempt failed and no reconnect policy
+            // keeps trying, nothing will arrive any more, and the caller gets the failure of
+            // that attempt instead of waiting for the whole request timeout.
+            while (waitingForHTTPResponse is null && !connectionAttempts.IsCompleted && ts + RequestTimeout > Timestamp.Now) {
                 await Task.Delay(10, CancellationToken);
             }
+
+            waitingForHTTPResponse ??= lastFailureResponse;
 
             waitingForHTTPResponse ??= new HTTPResponse.Builder(
 
