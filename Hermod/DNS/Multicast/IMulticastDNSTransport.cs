@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -25,10 +25,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <param name="RemoteSocket">The source of the datagram.</param>
     /// <param name="InterfaceIndex">The index of the network interface that received the datagram, when known.</param>
     /// <param name="Timestamp">The time of reception.</param>
+    /// <param name="DestinationAddress">The local destination address from the IP packet information, when known.</param>
+    /// <param name="SourceIsOnLocalLink">Whether the transport verified that the source belongs to the receiving link.</param>
     public sealed record MulticastDNSDatagram(ReadOnlyMemory<Byte>  Payload,
                                               IPSocket              RemoteSocket,
                                               Int32?                InterfaceIndex,
-                                              DateTimeOffset        Timestamp)
+                                              DateTimeOffset        Timestamp,
+                                              IIPAddress?           DestinationAddress    = null,
+                                              Boolean               SourceIsOnLocalLink   = false)
     {
 
         /// <summary>
@@ -37,6 +41,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Boolean ViaIPv6
             => RemoteSocket.IPAddress.IsIPv6;
 
+        /// <summary>
+        /// Whether the packet information proves multicast delivery.
+        /// </summary>
+        public Boolean WasReceivedViaMulticast
+            => DestinationAddress is not null &&
+               (DestinationAddress.Equals(MulticastDNS.IPv4Group) ||
+                DestinationAddress.Equals(MulticastDNS.IPv6Group));
+
     }
 
 
@@ -44,6 +56,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// A delegate called whenever a Multicast DNS transport received a datagram.
     /// </summary>
     /// <param name="Timestamp">The time of reception.</param>
+    /// <param name="DestinationAddress">The local destination address from the IP packet information, when known.</param>
+    /// <param name="SourceIsOnLocalLink">Whether the transport verified that the source belongs to the receiving link.</param>
     /// <param name="Sender">The transport.</param>
     /// <param name="Datagram">The datagram.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>

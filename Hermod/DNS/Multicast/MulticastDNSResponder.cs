@@ -756,9 +756,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return;
             }
 
-            // RFC 6762 §18.3: silently ignore messages with other opcodes.
-            if (message.Opcode != 0)
+            // RFC 6762 §11, §18.3 and §18.11: only on-link standard messages
+            // with a zero response code participate in Multicast DNS.
+            if (!Datagram.SourceIsOnLocalLink ||
+                 message.Opcode       != 0 ||
+                 message.ResponseCode != DNSResponseCodes.NoError)
+            {
                 return;
+            }
 
             if (message.IsQuery)
                 await HandleQueryAsync(message, Datagram, CancellationToken).ConfigureAwait(false);

@@ -30,6 +30,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNSTools
     {
 
+        private static readonly UTF8Encoding strictUTF8 = new(false, true);
+
         #region (static) SerializeCanonicalName(Name)
 
         /// <summary>
@@ -224,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (DNSStream.Read(buffer, 0, lengthByte) != lengthByte)
                     throw new IOException("Unexpected end of stream while reading DNS label");
 
-                dnsNameBuilder.Append(Encoding.ASCII.GetString(buffer, 0, lengthByte));
+                dnsNameBuilder.Append(DNSServiceName.EscapeLabel(strictUTF8.GetString(buffer, 0, lengthByte)));
 
             }
 

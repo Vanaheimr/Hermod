@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -737,6 +737,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region ResponsesFailClosedOnInvalidTransportOrHeaderMetadata()
+
+        [Test]
+        public async Task ResponsesFailClosedOnInvalidTransportOrHeaderMetadata()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport  = network.CreateTransport(ClientAddress);
+            await using var client     = new MulticastDNSClient(transport, FastClientOptions());
+
+            await client.StartAsync();
+
+            var answer    = new MulticastDNSRecord(
+                                new A(MyHost, DNSQueryClasses.IN, TimeSpan.FromSeconds(120), ServerAddress),
+                                CacheFlush: true
+                            );
+            var response  = MulticastDNSMessage.Response([ answer ]).Serialize();
+            var error     = new MulticastDNSMessage(
+                                0,
+                                true,
+                                0,
+                                true,
+                                false,
+                                false,
+                                DNSResponseCodes.ServerFailure,
+                                null,
+                                [ answer ],
+                                null,
+                                null
+                            ).Serialize();
+
+            await transport.InjectAsync(response, PeerSocket("10.0.0.7", IPPort.Parse(9999)));
+            await transport.InjectAsync(response, PeerSocket("10.0.0.7"), SourceIsOnLocalLink: false);
+            await transport.InjectAsync(response, PeerSocket("10.0.0.7"), DestinationAddress: IPv4Address.Parse("239.1.2.3"));
+            await transport.InjectAsync(error,    PeerSocket("10.0.0.7"));
+            await transport.InjectAsync(response, PeerSocket("10.0.0.7"), DestinationAddress: ClientAddress);
+
+            Assert.That(client.CacheSize, Is.EqualTo(0),
+                        "wrong-port, off-link, wrong-group, non-zero-RCODE and unsolicited unicast responses must be ignored");
+
+            await transport.InjectAsync(response, PeerSocket("10.0.0.7"));
+
+            Assert.That(client.CachedRecords(MyHostName, DNSResourceRecordTypes.A), Has.Count.EqualTo(1),
+                        "a valid on-link multicast response is still accepted");
+
+        }
+
+        #endregion
+
+        #region UnicastResponseRequiresARecentMatchingQUQuestion()
+
+        [Test]
+        public async Task UnicastResponseRequiresARecentMatchingQUQuestion()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport  = network.CreateTransport(ClientAddress);
+            await using var client     = new MulticastDNSClient(transport, FastClientOptions());
+
+            await client.StartAsync();
+            await client.SendQueryAsync([
+                      new MulticastDNSQuestion(MyHostName, DNSResourceRecordTypes.A, UnicastResponseRequested: true)
+                  ]);
+
+            var response = MulticastDNSMessage.Response([
+                               new MulticastDNSRecord(
+                                   new A(MyHost, DNSQueryClasses.IN, TimeSpan.FromSeconds(120), ServerAddress),
+                                   CacheFlush: true
+                               )
+                           ]).Serialize();
+
+            await transport.InjectAsync(response,
+                                        PeerSocket("10.0.0.7"),
+                                        DestinationAddress: ClientAddress);
+
+            Assert.That(client.CachedRecords(MyHostName, DNSResourceRecordTypes.A), Has.Count.EqualTo(1));
+
+        }
+
+        #endregion
     }
 
 }

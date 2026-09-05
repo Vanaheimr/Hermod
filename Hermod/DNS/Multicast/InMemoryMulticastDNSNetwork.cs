@@ -198,7 +198,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               Payload,
                               remoteSocket,
                               null,
-                              timestamp
+                              timestamp,
+                              Destination?.IPAddress ?? (transport.Address.IsIPv6
+                                                             ? MulticastDNS.IPv6Group
+                                                             : MulticastDNS.IPv4Group),
+                              true
                           ),
                           CancellationToken
                       ).ConfigureAwait(false);
@@ -345,14 +349,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="CancellationToken">A token to cancel the processing.</param>
         public Task InjectAsync(ReadOnlyMemory<Byte>  Payload,
                                 IPSocket              RemoteSocket,
-                                CancellationToken     CancellationToken   = default)
+                                CancellationToken     CancellationToken      = default,
+                                IIPAddress?           DestinationAddress     = null,
+                                Boolean               SourceIsOnLocalLink    = true)
 
             => ReceiveAsync(
                    new MulticastDNSDatagram(
                        Payload,
                        RemoteSocket,
                        null,
-                       Network.TimeProvider.GetUtcNow()
+                       Network.TimeProvider.GetUtcNow(),
+                       DestinationAddress ?? (Address.IsIPv6
+                                                  ? MulticastDNS.IPv6Group
+                                                  : MulticastDNS.IPv4Group),
+                       SourceIsOnLocalLink
                    ),
                    CancellationToken
                );

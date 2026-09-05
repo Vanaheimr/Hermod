@@ -64,17 +64,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        public static readonly Regex DNSServiceNameRegExpr  = new Regex(
-                                                                  @"^(?=.{1,254}$)" +                                               // max. 254 Zeichen gesamt inkl. Punkt
-                                                                  @"(?:[A-Za-z0-9_]" +                                              // erstes Label: beginnt mit Buchst./Ziffer/_
-                                                                  @"(?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?" +                         // optional mittlere Zeichen, endet mit Buchst./Ziffer/_
-                                                                  @")" +
-                                                                  @"(?:\.(?:[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?))*" +  // 0…n weitere Labels
-                                                                  @"\.?$",                                                          // optional ein abschließender Punkt
-                                                                  RegexOptions.IgnoreCase |
-                                                                  RegexOptions.Compiled |
-                                                                  RegexOptions.CultureInvariant
-                                                              );
+        /// <summary>
+        /// Checks the lexical presentation syntax. Use <see cref="TryParse(String, out DNSServiceName, out String)"/>
+        /// for authoritative UTF-8 label and wire-length validation.
+        /// </summary>
+        public static readonly Regex DNSServiceNameRegExpr  = new(
+                                                                   @"^(?:\.|(?:\\.|[^.\\])+(?:\.(?:\\.|[^.\\])+)*\.?)$",
+                                                                   RegexOptions.Compiled |
+                                                                   RegexOptions.CultureInvariant
+                                                               );
 
         #endregion
 
@@ -94,16 +92,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         protected DNSServiceName(String DNSService)
         {
 
-            this.FullName  = DNSService;
-            this.labels    = DNSService.TrimEnd('.').Split('.');
+            if (!TryParseLabels(DNSService, out var parsedLabels, out var errorResponse))
+                throw new ArgumentException(errorResponse, nameof(DNSService));
+
+            this.labels    = parsedLabels;
+            this.FullName  = ToPresentationName(parsedLabels);
 
         }
 
         protected DNSServiceName(params String[] DomainLabels)
         {
 
-            this.FullName  = DomainLabels.AggregateWith('.') + ".";
-            this.labels    = DomainLabels;
+            if (!TryValidateLabels(DomainLabels, out var errorResponse))
+                throw new ArgumentException(errorResponse, nameof(DomainLabels));
+
+            this.labels    = [.. DomainLabels];
+            this.FullName  = ToPresentationName(labels);
 
         }
 
@@ -160,68 +164,197 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                        [NotNullWhen(false)] out String?          ErrorResponse)
         {
 
-            DNSService     = null;
+            DNSService = null;
+
+            if (!TryParseLabels(Text, out var parsedLabels, out ErrorResponse))
+                return false;
+
+            DNSService = new DNSServiceName(parsedLabels);
+            return true;
+
+        }
+
+        #endregion
+
+        #region DNS label presentation helpers
+
+        private static readonly UTF8Encoding strictUTF8 = new(false, true);
+
+        internal static Boolean TryParseLabels(String?                              Text,
+                                               [NotNullWhen(true)]  out String[]?   Labels,
+                                               [NotNullWhen(false)] out String?      ErrorResponse)
+        {
+
+            Labels         = null;
             ErrorResponse  = null;
 
-            // RFC 1035 §2.3.3: preserve the case of a received name. Comparisons are
-            // case-insensitive instead (RFC 4343) — see Equals/CompareTo/GetHashCode.
-            Text = Text?.Trim() ?? "";
-
-            if (Text.IsNullOrEmpty())
+            if (String.IsNullOrEmpty(Text))
             {
                 ErrorResponse = "The given DNS service must not be null or empty!";
                 return false;
             }
 
-            if (!Text.EndsWith('.'))
-                Text += ".";
-
-            if (Text.Length > 255)
+            if (Text == ".")
             {
-                ErrorResponse = "The given DNS service exceeds maximum length of 255 characters!";
+                Labels = [];
+                return true;
+            }
+
+            var hasRootTerminator = Text[^1] == '.' && !IsEscaped(Text, Text.Length - 1);
+            var presentation      = hasRootTerminator ? Text[..^1] : Text;
+            var parsedLabels      = new List<String>();
+            var label             = new StringBuilder();
+
+            for (var i = 0; i < presentation.Length; i++)
+            {
+
+                var character = presentation[i];
+
+                if (character == '\\')
+                {
+                    if (++i >= presentation.Length)
+                    {
+                        ErrorResponse = "The DNS service name ends with an incomplete escape sequence!";
+                        return false;
+                    }
+
+                    label.Append(presentation[i]);
+                    continue;
+                }
+
+                if (character == '.')
+                {
+                    if (label.Length == 0)
+                    {
+                        ErrorResponse = "The DNS service name contains an empty label!";
+                        return false;
+                    }
+
+                    parsedLabels.Add(label.ToString());
+                    label.Clear();
+                    continue;
+                }
+
+                label.Append(character);
+
+            }
+
+            if (label.Length == 0)
+            {
+                ErrorResponse = "The DNS service name contains an empty label!";
                 return false;
             }
 
-            // RFC 4592 §2.1.1: a leading single asterisk makes this a wildcard domain
-            // name. This type is what resource records read from the wire are parsed
-            // into, and the NSEC and RRSIG records that prove a wildcard match carry
-            // such an owner name — see DomainName.TryParse for why only the leftmost
-            // position is accepted.
-            var textToValidate = Text.StartsWith("*.")
-                                     ? Text[2..]
-                                     : Text;
+            parsedLabels.Add(label.ToString());
 
-            if (textToValidate != ".")
-            {
-                if (!DNSServiceNameRegExpr.IsMatch(textToValidate))
-                {
-                    ErrorResponse = "The given DNS service does not match the required format!";
-                    return false;
-                }
-            }
+            if (!TryValidateLabels(parsedLabels, out ErrorResponse))
+                return false;
 
-            var labels = Text.TrimEnd('.').Split('.');
-            foreach (var label in labels)
-            {
-
-                if (label.Length > 63)
-                {
-                    ErrorResponse = $"Each label in the DNS service must not exceed 63 characters: '{label}'!";
-                    return false;
-                }
-
-                if (label.StartsWith('-') || label.EndsWith('-'))
-                {
-                    ErrorResponse = $"Each label in the DNS service must not start or end with a hyphen: '{label}'!";
-                    return false;
-                }
-
-            }
-
-            DNSService = new DNSServiceName(Text);
+            Labels = [.. parsedLabels];
             return true;
 
         }
+
+        internal static Boolean TryValidateLabels(IEnumerable<String>               Labels,
+                                                  [NotNullWhen(false)] out String?  ErrorResponse)
+        {
+
+            ErrorResponse = null;
+            var wireLength = 1;
+
+            foreach (var label in Labels)
+            {
+
+                if (String.IsNullOrEmpty(label))
+                {
+                    ErrorResponse = "A DNS service name must not contain an empty label!";
+                    return false;
+                }
+
+                Int32 labelLength;
+
+                try
+                {
+                    labelLength = strictUTF8.GetByteCount(label);
+                }
+                catch (EncoderFallbackException)
+                {
+                    ErrorResponse = $"The DNS label contains invalid Unicode: '{label}'!";
+                    return false;
+                }
+
+                if (labelLength > 63)
+                {
+                    ErrorResponse = $"Each label in the DNS service must not exceed 63 UTF-8 octets: '{label}'!";
+                    return false;
+                }
+
+                wireLength += 1 + labelLength;
+
+            }
+
+            if (wireLength > 255)
+            {
+                ErrorResponse = "The given DNS service exceeds the maximum wire length of 255 octets!";
+                return false;
+            }
+
+            return true;
+
+        }
+
+        private static Boolean IsEscaped(String Text, Int32 Index)
+        {
+
+            var slashCount = 0;
+
+            for (var i = Index - 1; i >= 0 && Text[i] == '\\'; i--)
+                slashCount++;
+
+            return slashCount % 2 == 1;
+
+        }
+
+        internal static String EscapeLabel(String Label)
+
+            => Label.Replace("\\", "\\\\", StringComparison.Ordinal).
+                     Replace(".",  "\\.",   StringComparison.Ordinal);
+
+        internal static String ToPresentationName(IEnumerable<String> Labels)
+        {
+
+            var escapedLabels = Labels.Select(EscapeLabel).ToArray();
+
+            return escapedLabels.Length == 0
+                       ? "."
+                       : $"{String.Join('.', escapedLabels)}.";
+
+        }
+
+        /// <summary>
+        /// Apply the DNS case-folding rule: only ASCII A-Z are equivalent to a-z.
+        /// UTF-8 multibyte characters remain byte-for-byte distinct (RFC 6762 §16).
+        /// </summary>
+        internal static String ASCIICaseFold(String Text)
+
+            => String.Create(
+                   Text.Length,
+                   Text,
+                   static (characters, source) => {
+                       for (var i = 0; i < source.Length; i++)
+                           characters[i] = source[i] is >= 'A' and <= 'Z'
+                                               ? (Char) (source[i] + ('a' - 'A'))
+                                               : source[i];
+                   }
+               );
+
+        /// <summary>
+        /// Create a DNS service name from already separated labels. This is the unambiguous
+        /// form for labels containing dots, backslashes, spaces or Unicode characters.
+        /// </summary>
+        public static DNSServiceName FromLabels(params String[] Labels)
+
+            => new(Labels);
 
         #endregion
 
@@ -255,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Offsets ??= [];
 
             // Case-folded compression key — see DomainName.Serialize (RFC 4343).
-            var compressionKey = FullName.ToLowerInvariant();
+            var compressionKey = ASCIICaseFold(FullName);
 
             // Root domain. A name parsed from "." (or "") is represented as a single empty
             // label; it must serialize to just the terminating zero byte. Emitting a zero-length
@@ -283,13 +416,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             for (var i = 0; i < labels.Length; i++)
             {
 
-                var labelBytes = Encoding.ASCII.GetBytes(labels[i]);
+                var labelBytes = strictUTF8.GetBytes(labels[i]);
                 if (labelBytes.Length > 63)
                     throw new ArgumentException("Label too long");
 
                 // RFC 1035 §4.1.4: pointers carry a 14-bit offset; never record one that
                 // cannot be represented.
-                var suffixKey = String.Join('.', labels.Skip(i)).ToLowerInvariant() + ".";
+                var suffixKey = ASCIICaseFold(ToPresentationName(labels.Skip(i)));
                 if (offset <= 0x3FFF && !Offsets.ContainsKey(suffixKey))
                     Offsets[suffixKey] = offset;
 
@@ -335,7 +468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator == (DNSServiceName DNSService1,
                                            String     DNSService2)
 
-            => DNSService1.FullName.Equals(DNSService2);
+            => ASCIICaseFold(DNSService1.FullName).Equals(ASCIICaseFold(DNSService2), StringComparison.Ordinal);
 
         #endregion
 
@@ -365,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator != (DNSServiceName DNSService1,
                                            String     DNSService2)
 
-            => !DNSService1.FullName.Equals(DNSService2);
+            => !ASCIICaseFold(DNSService1.FullName).Equals(ASCIICaseFold(DNSService2), StringComparison.Ordinal);
 
         #endregion
 
@@ -460,9 +593,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (DNSService is null)
                 throw new ArgumentNullException(nameof(DNSService), "The given DNS service must not be null!");
 
-            return String.Compare(FullName,
-                                  DNSService.FullName,
-                                  StringComparison.OrdinalIgnoreCase);
+            return String.Compare(ASCIICaseFold(FullName),
+                                  ASCIICaseFold(DNSService.FullName),
+                                  StringComparison.Ordinal);
 
         }
 
@@ -495,12 +628,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => DNSService is not null &&
 
-               // RFC 4343: names are case-insensitive. Must agree with GetHashCode(),
-               // which hashes case-insensitively — InMemoryDNSZone keys a dictionary
-               // on this type, so a mismatch here silently loses records.
-               String.Equals(FullName,
-                             DNSService.FullName,
-                             StringComparison.OrdinalIgnoreCase);
+               // RFC 6762 §16: ASCII A-Z are case-insensitive; UTF-8 multibyte
+               // characters remain distinct. This must agree with GetHashCode().
+               String.Equals(ASCIICaseFold(FullName),
+                             ASCIICaseFold(DNSService.FullName),
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -513,7 +645,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override Int32 GetHashCode()
 
-            => FullName.GetHashCode(StringComparison.OrdinalIgnoreCase);
+            => ASCIICaseFold(FullName).GetHashCode(StringComparison.Ordinal);
 
         #endregion
 

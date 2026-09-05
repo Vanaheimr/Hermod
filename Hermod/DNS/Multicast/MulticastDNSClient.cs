@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -217,9 +217,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
+        private sealed record RecentUnicastQuestion(DNSServiceName            Name,
+                                                    DNSResourceRecordTypes    Type,
+                                                    DateTimeOffset            ExpiresAt);
+
+
         private readonly Lock                                          stateLock   = new();
         private readonly Dictionary<String, List<MulticastDNSCacheEntry>>  cache   = [];
         private readonly List<PendingQuery>                            pending     = [];
+        private readonly List<RecentUnicastQuestion>                   recentUnicastQuestions = [];
         private readonly List<MulticastDNSBrowser>                     browsers    = [];
         private readonly ILogger?                                      logger;
         private          CancellationTokenSource?                      cancellationTokenSource;
@@ -367,6 +373,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             foreach (var browser in Browsers)
                 await browser.StopAsync(CancellationToken).ConfigureAwait(false);
+
+            lock (stateLock)
+                recentUnicastQuestions.Clear();
 
             cancellationTokenSource       = null;
             Transport.OnDatagramReceived -= OnDatagramReceivedAsync;
@@ -545,17 +554,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Questions">The questions.</param>
         /// <param name="KnownAnswers">The known answers (with their remaining time-to-live).</param>
         /// <param name="CancellationToken">A token to cancel the sending.</param>
-        public Task SendQueryAsync(IEnumerable<MulticastDNSQuestion>  Questions,
-                                   IEnumerable<MulticastDNSRecord>?   KnownAnswers        = null,
-                                   CancellationToken                  CancellationToken   = default)
+        public async Task SendQueryAsync(IEnumerable<MulticastDNSQuestion>  Questions,
+                                         IEnumerable<MulticastDNSRecord>?   KnownAnswers        = null,
+                                         CancellationToken                  CancellationToken   = default)
         {
 
             if (!Transport.IsRunning)
                 throw new InvalidOperationException("The Multicast DNS transport is not running!");
 
-            var query = MulticastDNSMessage.Query(Questions, KnownAnswers);
+            var questions     = Questions.ToArray();
+            var now           = TimeProvider.GetUtcNow();
+            var registrations = questions.Where(question => question.UnicastResponseRequested).
+                                         Select(question => new RecentUnicastQuestion(
+                                                                question.Name,
+                                                                question.Type,
+                                                                now + Options.QueryTimeout
+                                                            )).
+                                         ToArray();
 
-            return Transport.SendAsync(query.Serialize(), null, null, CancellationToken);
+            lock (stateLock)
+            {
+                recentUnicastQuestions.RemoveAll(question => question.ExpiresAt <= now);
+                recentUnicastQuestions.AddRange(registrations);
+            }
+
+            var query = MulticastDNSMessage.Query(questions, KnownAnswers);
+
+            try
+            {
+                await Transport.SendAsync(query.Serialize(), null, null, CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                lock (stateLock)
+                    foreach (var registration in registrations)
+                        recentUnicastQuestions.Remove(registration);
+
+                throw;
+            }
 
         }
 
@@ -646,16 +682,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!IsRunning)
                 return;
 
+            // RFC 6762 §6 and §11: mDNS responses originate at the mDNS port and
+            // are accepted only when the transport can establish local-link delivery.
+            if (Datagram.RemoteSocket.Port != Transport.Port || !Datagram.SourceIsOnLocalLink)
+                return;
+
             if (!MulticastDNSMessage.TryParse(Datagram.Payload, out var message, out var error))
             {
                 logger?.LogDebug("Multicast DNS client: ignoring an unparsable packet from {Source}: {Error}", Datagram.RemoteSocket, error);
                 return;
             }
 
-            if (!message.IsResponse || message.Opcode != 0)
+            // RFC 6762 §18.3 and §18.11: only standard, successful responses are mDNS.
+            if (!message.IsResponse ||
+                 message.Opcode       != 0 ||
+                 message.ResponseCode != DNSResponseCodes.NoError)
+            {
+                return;
+            }
+
+            // RFC 6762 §6: a unicast response is accepted only after a recent query
+            // explicitly requested one via the QU bit. Unknown delivery metadata is
+            // treated like unicast and therefore also fails closed without correlation.
+            if (!Datagram.WasReceivedViaMulticast && !IsExpectedUnicastResponse(message))
                 return;
 
             await HandleResponseAsync(message, Datagram, CancellationToken).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (private) IsExpectedUnicastResponse(Response)
+
+        private Boolean IsExpectedUnicastResponse(MulticastDNSMessage Response)
+        {
+
+            var now      = TimeProvider.GetUtcNow();
+            var answers  = Response.AllRecords.Select(answer => answer.Record).ToArray();
+
+            lock (stateLock)
+            {
+
+                recentUnicastQuestions.RemoveAll(question => question.ExpiresAt <= now);
+
+                return recentUnicastQuestions.Any(
+                           question => answers.Any(
+                                           answer => question.Name.Equals(answer.DomainName) &&
+                                                     (question.Type == DNSResourceRecordTypes.Any ||
+                                                      question.Type == answer.Type ||
+                                                      answer.Type   == DNSResourceRecordTypes.NSEC)
+                                       )
+                       );
+
+            }
 
         }
 

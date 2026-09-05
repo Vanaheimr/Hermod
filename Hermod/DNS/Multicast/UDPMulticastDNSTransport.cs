@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -89,10 +89,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        private sealed record InterfaceInfo(Int32                Index,
-                                            String               Name,
-                                            IReadOnlyList<System.Net.IPAddress>  IPv4Addresses,
-                                            IReadOnlyList<System.Net.IPAddress>  IPv6Addresses);
+        private sealed record InterfaceSubnet(System.Net.IPAddress  Address,
+                                              Int32                 PrefixLength);
+
+        private sealed record InterfaceInfo(Int32                                    Index,
+                                            Int32?                                   IPv4Index,
+                                            Int32?                                   IPv6Index,
+                                            String                                   Name,
+                                            IReadOnlyList<System.Net.IPAddress>      IPv4Addresses,
+                                            IReadOnlyList<System.Net.IPAddress>      IPv6Addresses,
+                                            IReadOnlyList<InterfaceSubnet>           Subnets);
 
         private readonly ILogger?                  logger;
         private readonly TimeProvider              timeProvider;
@@ -262,13 +268,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var joined = 0;
 
-                    foreach (var info in interfaces.Where(info => info.IPv6Addresses.Count > 0))
+                    foreach (var info in interfaces.Where(info => info.IPv6Addresses.Count > 0 && info.IPv6Index.HasValue))
                     {
                         try
                         {
                             socket6.SetSocketOption(SocketOptionLevel.IPv6,
                                                     SocketOptionName.AddMembership,
-                                                    new IPv6MulticastOption(MulticastDNS.IPv6Group, info.Index));
+                                                    new IPv6MulticastOption(MulticastDNS.IPv6Group, info.IPv6Index!.Value));
                             joined++;
                         }
                         catch (SocketException e)
@@ -390,7 +396,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var port = Options.Port.ToInt32();
 
-                foreach (var info in interfaces.Where(info => !InterfaceIndex.HasValue || info.Index == InterfaceIndex.Value))
+                foreach (var info in interfaces.Where(info => !InterfaceIndex.HasValue            ||
+                                                              info.Index     == InterfaceIndex.Value ||
+                                                              info.IPv4Index == InterfaceIndex.Value ||
+                                                              info.IPv6Index == InterfaceIndex.Value))
                 {
 
                     if (socket4 is not null)
@@ -409,14 +418,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         }
                     }
 
-                    if (socket6 is not null && info.IPv6Addresses.Count > 0)
+                    if (socket6 is not null && info.IPv6Addresses.Count > 0 && info.IPv6Index.HasValue)
                     {
                         try
                         {
-                            socket6.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastInterface, info.Index);
+                            socket6.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastInterface, info.IPv6Index.Value);
                             await socket6.SendToAsync(Payload,
                                                       SocketFlags.None,
-                                                      new IPEndPoint(new System.Net.IPAddress(((System.Net.IPAddress) MulticastDNS.IPv6Group).GetAddressBytes(), info.Index), port),
+                                                      new IPEndPoint(new System.Net.IPAddress(((System.Net.IPAddress) MulticastDNS.IPv6Group).GetAddressBytes(), info.IPv6Index.Value), port),
                                                       CancellationToken).ConfigureAwait(false);
                         }
                         catch (SocketException e)
@@ -458,9 +467,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (result.ReceivedBytes == 0)
                         continue;
 
-                    var payload    = buffer.AsMemory(0, result.ReceivedBytes).ToArray();
-                    var remote     = IPSocket.FromIPEndPoint((IPEndPoint) result.RemoteEndPoint);
-                    var timestamp  = timeProvider.GetUtcNow();
+                    var payload             = buffer.AsMemory(0, result.ReceivedBytes).ToArray();
+                    var remoteEndPoint      = (IPEndPoint) result.RemoteEndPoint;
+                    var destinationAddress  = result.PacketInformation.Address;
+                    var remote              = IPSocket.FromIPEndPoint(remoteEndPoint);
+                    var timestamp           = timeProvider.GetUtcNow();
+                    var sourceIsOnLocalLink = IsSourceOnLocalLink(remoteEndPoint.Address,
+                                                                  destinationAddress,
+                                                                  result.PacketInformation.Interface);
 
                     await OnDatagramReceived.InvokeAllAsync(
                               handler => handler(
@@ -470,7 +484,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                  payload,
                                                  remote,
                                                  result.PacketInformation.Interface,
-                                                 timestamp
+                                                 timestamp,
+                                                 ToHermod(destinationAddress),
+                                                 sourceIsOnLocalLink
                                              ),
                                              CancellationToken
                                          ),
@@ -539,6 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var properties     = networkInterface.GetIPProperties();
                 var ipv4Addresses  = new List<System.Net.IPAddress>();
                 var ipv6Addresses  = new List<System.Net.IPAddress>();
+                var subnets        = new List<InterfaceSubnet>();
 
                 foreach (var unicast in properties.UnicastAddresses)
                 {
@@ -549,32 +566,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     else if (unicast.Address.AddressFamily == AddressFamily.InterNetworkV6)
                         ipv6Addresses.Add(unicast.Address);
 
+                    if (unicast.Address.AddressFamily is AddressFamily.InterNetwork or AddressFamily.InterNetworkV6)
+                        subnets.Add(new InterfaceSubnet(unicast.Address, unicast.PrefixLength));
+
                 }
 
                 if (ipv4Addresses.Count == 0 && ipv6Addresses.Count == 0)
                     continue;
 
-                var index = -1;
+                Int32? ipv4Index = null;
+                Int32? ipv6Index = null;
 
-                try
-                {
-                    index = ipv4Addresses.Count > 0
-                                ? properties.GetIPv4Properties().Index
-                                : properties.GetIPv6Properties().Index;
-                }
-                catch
-                {
-                    try { index = properties.GetIPv6Properties().Index; } catch { }
-                }
+                if (ipv4Addresses.Count > 0)
+                    try { ipv4Index = properties.GetIPv4Properties().Index; } catch { }
 
-                if (index < 0)
+                if (ipv6Addresses.Count > 0)
+                    try { ipv6Index = properties.GetIPv6Properties().Index; } catch { }
+
+                var index = ipv4Index ?? ipv6Index;
+                if (!index.HasValue)
                     continue;
 
-                selected.Add(new InterfaceInfo(index, networkInterface.Name, ipv4Addresses, ipv6Addresses));
+                selected.Add(new InterfaceInfo(index.Value, ipv4Index, ipv6Index, networkInterface.Name, ipv4Addresses, ipv6Addresses, subnets));
 
             }
 
             return selected;
+
+        }
+
+        #endregion
+
+        #region (private) IsSourceOnLocalLink(Source, Destination, InterfaceIndex)
+
+        private Boolean IsSourceOnLocalLink(System.Net.IPAddress Source,
+                                            System.Net.IPAddress Destination,
+                                            Int32                InterfaceIndex)
+        {
+
+            // RFC 6762 §11: multicast delivery itself proves that the packet stayed on-link.
+            if (IsMulticastDNSDestination(Destination))
+                return true;
+
+            var candidates = interfaces.Where(
+                                 info => (Source.AddressFamily == AddressFamily.InterNetwork
+                                              ? info.IPv4Index
+                                              : info.IPv6Index) == InterfaceIndex
+                             );
+
+            return candidates.SelectMany(info => info.Subnets).
+                              Any(subnet => HasSamePrefix(Source, subnet.Address, subnet.PrefixLength));
+
+        }
+
+        private static Boolean IsMulticastDNSDestination(System.Net.IPAddress Address)
+
+            => Address.GetAddressBytes().SequenceEqual(
+                   Address.AddressFamily == AddressFamily.InterNetwork
+                       ? ((System.Net.IPAddress) MulticastDNS.IPv4Group).GetAddressBytes()
+                       : ((System.Net.IPAddress) MulticastDNS.IPv6Group).GetAddressBytes()
+               );
+
+        private static Boolean HasSamePrefix(System.Net.IPAddress Left,
+                                             System.Net.IPAddress Right,
+                                             Int32                PrefixLength)
+        {
+
+            if (Left.AddressFamily != Right.AddressFamily)
+                return false;
+
+            var leftBytes   = Left. GetAddressBytes();
+            var rightBytes  = Right.GetAddressBytes();
+            var fullBytes   = PrefixLength / 8;
+            var remaining   = PrefixLength % 8;
+
+            if (PrefixLength < 0 || PrefixLength > leftBytes.Length * 8)
+                return false;
+
+            for (var i = 0; i < fullBytes; i++)
+                if (leftBytes[i] != rightBytes[i])
+                    return false;
+
+            if (remaining == 0)
+                return true;
+
+            var mask = (Byte) (0xFF << (8 - remaining));
+            return (leftBytes[fullBytes]  & mask) ==
+                   (rightBytes[fullBytes] & mask);
 
         }
 

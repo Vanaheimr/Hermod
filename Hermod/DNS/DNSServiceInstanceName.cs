@@ -65,17 +65,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        public static readonly Regex DNSServiceInstanceNameRegExpr  = new Regex(
-                                                                          @"^(?=.{1,254}$)" +                                               // max. 254 Zeichen gesamt inkl. Punkt
-                                                                          @"(?:[A-Za-z0-9_]" +                                              // erstes Label: beginnt mit Buchst./Ziffer/_
-                                                                          @"(?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?" +                         // optional mittlere Zeichen, endet mit Buchst./Ziffer/_
-                                                                          @")" +
-                                                                          @"(?:\.(?:[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?))*" +  // 0…n weitere Labels
-                                                                          @"\.?$",                                                          // optional ein abschließender Punkt
-                                                                          RegexOptions.IgnoreCase |
-                                                                          RegexOptions.Compiled |
-                                                                          RegexOptions.CultureInvariant
-                                                                      );
+        /// <summary>
+        /// Checks the lexical presentation syntax. Use <see cref="TryParse(String, out DNSServiceInstanceName, out String)"/>
+        /// for authoritative Net-Unicode and wire-length validation.
+        /// </summary>
+        public static readonly Regex DNSServiceInstanceNameRegExpr  = new(
+                                                                           @"^(?:\.|(?:\\.|[^.\\])+(?:\.(?:\\.|[^.\\])+)*\.?)$",
+                                                                           RegexOptions.Compiled |
+                                                                           RegexOptions.CultureInvariant
+                                                                       );
 
         #endregion
 
@@ -95,16 +93,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         protected DNSServiceInstanceName(String DNSServiceInstance)
         {
 
-            this.FullName  = DNSServiceInstance;
-            this.labels    = DNSServiceInstance.TrimEnd('.').Split('.');
+            var serviceName = DNSServiceName.Parse(DNSServiceInstance);
+
+            if (!TryNormalizeLabels(serviceName.Labels, out var normalizedLabels, out var errorResponse))
+                throw new ArgumentException(errorResponse, nameof(DNSServiceInstance));
+
+            this.labels    = normalizedLabels;
+            this.FullName  = DNSServiceName.ToPresentationName(labels);
 
         }
 
         protected DNSServiceInstanceName(params String[] DomainLabels)
         {
 
-            this.FullName  = DomainLabels.AggregateWith('.') + ".";
-            this.labels    = DomainLabels;
+            if (!TryNormalizeLabels(DomainLabels, out var normalizedLabels, out var errorResponse))
+                throw new ArgumentException(errorResponse, nameof(DomainLabels));
+
+            this.labels    = normalizedLabels;
+            this.FullName  = DNSServiceName.ToPresentationName(labels);
 
         }
 
@@ -130,6 +136,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region TryParse (Text)
+
+        /// <summary>
+        /// Try to parse the given text as DNS service instance.
+        /// </summary>
+        /// <param name="Text">The text representation of a DNS service instance.</param>
+        public static DNSServiceInstanceName? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var dnsServiceInstanceName, out _))
+                return dnsServiceInstanceName;
+
+            return null;
+
+        }
+
+        #endregion
+
         #region TryParse(Text, out DNSServiceInstance, out ErrorResponse)
 
         /// <summary>
@@ -138,68 +162,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Text">The text representation of a DNS service instance.</param>
         /// <param name="DNSServiceInstance">The parsed DNS service instance.</param>
         /// <param name="ErrorResponse">An optional error response in case the parsing fails.</param>
-        public static Boolean TryParse(String                                    Text,
+        public static Boolean TryParse(String                                            Text,
                                        [NotNullWhen(true)]  out DNSServiceInstanceName?  DNSServiceInstance,
-                                       [NotNullWhen(false)] out String?          ErrorResponse)
+                                       [NotNullWhen(false)] out String?                  ErrorResponse)
         {
 
-            DNSServiceInstance     = null;
-            ErrorResponse  = null;
+            DNSServiceInstance = null;
 
-            // RFC 1035 §2.3.3: preserve the case of a received name; comparisons are
-            // case-insensitive instead (RFC 4343). This matters twice over here — an
-            // RFC 6763 service instance carries a human-readable Instance label whose
-            // capitalization is meant to be shown to users.
-            Text = Text?.Trim() ?? "";
-
-            if (Text.IsNullOrEmpty())
+            if (!DNSServiceName.TryParse(Text, out var serviceName, out ErrorResponse) ||
+                !TryNormalizeLabels(serviceName.Labels, out var normalizedLabels, out ErrorResponse))
             {
-                ErrorResponse = "The given DNS service instance must not be null or empty!";
                 return false;
             }
 
-            if (!Text.EndsWith('.'))
-                Text += ".";
-
-            if (Text.Length > 255)
-            {
-                ErrorResponse = "The given DNS service instance exceeds maximum length of 255 characters!";
-                return false;
-            }
-
-            if (Text != ".")
-            {
-                if (!DNSServiceInstanceNameRegExpr.IsMatch(Text))
-                {
-                    ErrorResponse = "The given DNS service instance does not match the required format!";
-                    return false;
-                }
-            }
-
-            var labels = Text.TrimEnd('.').Split('.');
-            foreach (var label in labels)
-            {
-
-                if (label.Length > 63)
-                {
-                    ErrorResponse = $"Each label in the DNS service instance must not exceed 63 characters: '{label}'!";
-                    return false;
-                }
-
-                if (label.StartsWith('-') || label.EndsWith('-'))
-                {
-                    ErrorResponse = $"Each label in the DNS service instance must not start or end with a hyphen: '{label}'!";
-                    return false;
-                }
-
-            }
-
-            DNSServiceInstance = new DNSServiceInstanceName(Text);
+            DNSServiceInstance = new DNSServiceInstanceName(normalizedLabels);
             return true;
 
         }
 
         #endregion
+
+        #region (private) TryNormalizeLabels(Labels, out NormalizedLabels, out ErrorResponse)
+
+        private static Boolean TryNormalizeLabels(IReadOnlyList<String>              Labels,
+                                                  [NotNullWhen(true)]  out String[]? NormalizedLabels,
+                                                  [NotNullWhen(false)] out String?   ErrorResponse)
+        {
+
+            NormalizedLabels = null;
+
+            if (Labels.Count == 0)
+            {
+                ErrorResponse = "A DNS service instance name must contain an instance label!";
+                return false;
+            }
+
+            if (Labels[0].Any(character => character <= '\u001F' || character == '\u007F'))
+            {
+                ErrorResponse = "The DNS service instance label must not contain ASCII control characters!";
+                return false;
+            }
+
+            try
+            {
+                NormalizedLabels = Labels.Select(label => label.Normalize(NormalizationForm.FormC)).ToArray();
+            }
+            catch (ArgumentException)
+            {
+                ErrorResponse = "The DNS service instance name contains invalid Unicode!";
+                return false;
+            }
+
+            return DNSServiceName.TryValidateLabels(NormalizedLabels, out ErrorResponse);
+
+        }
+
+        #endregion
+
 
         #region Clone()
 
@@ -218,8 +237,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSServiceInstanceName From(DomainName  DomainName,
                                                   SRV_Spec    DNSServiceSpec,
                                                   String      InstanceName)
+        {
 
-            => new ($"{InstanceName}.{DNSServiceSpec}.{DomainName.FullName}");
+            var suffix = DNSServiceName.Parse($"{DNSServiceSpec}.{DomainName.FullName}");
+
+            return new DNSServiceInstanceName([
+                       InstanceName,
+                       .. suffix.Labels
+                   ]);
+
+        }
 
 
 
@@ -227,51 +254,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               Int32                       CurrentOffset,
                               Boolean                     UseCompression   = true,
                               Dictionary<String, Int32>?  Offsets          = null)
-        {
 
-            Offsets ??= [];
-
-            // Root domain
-            if (Labels.Count == 0)
-            {
-                Stream.WriteByte(0x00);
-                return;
-            }
-
-            // Check for compression
-            if (UseCompression && Offsets.TryGetValue(FullName, out var pointerOffset))
-            {
-                // Pointer: 0xC0 | (offset >> 8), then low byte
-                var pointer = (UInt16) (0xC000 | pointerOffset);
-                Stream.WriteByte((Byte) (pointer >>    8));
-                Stream.WriteByte((Byte) (pointer &  0xFF));
-                return;
-            }
-
-            // Add offset for this name
-            Offsets[FullName] = CurrentOffset;
-
-            foreach (var label in Labels)
-            {
-
-                var labelBytes = Encoding.ASCII.GetBytes(label);
-                if (labelBytes.Length > 63)
-                    throw new ArgumentException("Label too long");
-
-                Stream.WriteByte((Byte) labelBytes.Length);
-                Stream.Write    (labelBytes, 0, labelBytes.Length);
-
-                // Update offset for suffixes
-                var suffix = String.Join(".", labels.AsEnumerable().Skip(Array.IndexOf(labels, label) + 1));
-                if (!String.IsNullOrEmpty(suffix) && !Offsets.ContainsKey(suffix))
-                    Offsets[suffix] = CurrentOffset + 1 + labelBytes.Length;
-
-            }
-
-            // End of name
-            Stream.WriteByte(0x00);
-
-        }
+            => DNSServiceName.FromLabels(labels).
+                              Serialize(Stream, CurrentOffset, UseCompression, Offsets);
 
 
 
@@ -303,7 +288,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator == (DNSServiceInstanceName DNSServiceInstance1,
                                            String     DNSServiceInstance2)
 
-            => DNSServiceInstance1.FullName.Equals(DNSServiceInstance2, StringComparison.OrdinalIgnoreCase);
+            => DNSServiceName.ASCIICaseFold(DNSServiceInstance1.FullName).Equals(
+                   DNSServiceName.ASCIICaseFold(DNSServiceInstance2),
+                   StringComparison.Ordinal
+               );
 
         #endregion
 
@@ -333,7 +321,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Boolean operator != (DNSServiceInstanceName DNSServiceInstance1,
                                            String     DNSServiceInstance2)
 
-            => !DNSServiceInstance1.FullName.Equals(DNSServiceInstance2, StringComparison.OrdinalIgnoreCase);
+            => !DNSServiceName.ASCIICaseFold(DNSServiceInstance1.FullName).Equals(
+                    DNSServiceName.ASCIICaseFold(DNSServiceInstance2),
+                    StringComparison.Ordinal
+                );
 
         #endregion
 
@@ -428,9 +419,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (DNSServiceInstance is null)
                 throw new ArgumentNullException(nameof(DNSServiceInstance), "The given DNS service instance must not be null!");
 
-            return String.Compare(FullName,
-                                  DNSServiceInstance.FullName,
-                                  StringComparison.OrdinalIgnoreCase);
+            return String.Compare(DNSServiceName.ASCIICaseFold(FullName),
+                                  DNSServiceName.ASCIICaseFold(DNSServiceInstance.FullName),
+                                  StringComparison.Ordinal);
 
         }
 
@@ -463,10 +454,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => DNSServiceInstance is not null &&
 
-               // RFC 4343: case-insensitive, and must agree with GetHashCode().
-               String.Equals(FullName,
-                             DNSServiceInstance.FullName,
-                             StringComparison.OrdinalIgnoreCase);
+               // RFC 6762 §16: only ASCII A-Z are case-insensitive.
+               String.Equals(DNSServiceName.ASCIICaseFold(FullName),
+                             DNSServiceName.ASCIICaseFold(DNSServiceInstance.FullName),
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -479,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override Int32 GetHashCode()
 
-            => FullName.GetHashCode(StringComparison.OrdinalIgnoreCase);
+            => DNSServiceName.ASCIICaseFold(FullName).GetHashCode(StringComparison.Ordinal);
 
         #endregion
 

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -22,6 +22,7 @@ using System.Text;
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -139,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             /// </summary>
             public PacketBuilder Label(String Label)
             {
-                var labelBytes = Encoding.ASCII.GetBytes(Label);
+                var labelBytes = Encoding.UTF8.GetBytes(Label);
                 bytes.Add((Byte) labelBytes.Length);
                 bytes.AddRange(labelBytes);
                 return this;
@@ -799,34 +800,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
-        #region Strange records are skipped, not fatal
+        #region UTF-8 and arbitrary DNS-SD labels
 
-        #region RecordWithAnUnrepresentableName_IsSkippedWithAWarning()
+        #region RecordWithUTF8SpacesAndLiteralDot_RoundTripsWithoutLosingLabelBoundaries()
 
         [Test]
-        public void RecordWithAnUnrepresentableName_IsSkippedWithAWarning()
+        public void RecordWithUTF8SpacesAndLiteralDot_RoundTripsWithoutLosingLabelBoundaries()
         {
 
-            // The first record's owner name has a label with a space and an exclamation
-            // mark — legal on the wire, but not a name this library can represent.
             var packet = new PacketBuilder().
                              Header(0, ResponseFlags, 0, 2).
-                             Label("my host!").Label("local").Bytes(0x00).
+                             Label("Büro.Drucker!").Label("local").Bytes(0x00).
                              Fields(DNSResourceRecordTypes.A, ClassIN, 120, 10, 0, 0, 7).
                              Record("other.local.", DNSResourceRecordTypes.A, ClassIN, 120, 10, 0, 0, 8).
                              ToArray();
 
-            var parsed = Parse(packet);
+            var parsed     = Parse(packet);
+            var roundTrip  = Parse(parsed.Serialize());
 
             Assert.Multiple(() => {
 
-                Assert.That(parsed.Answers,                                Has.Count.EqualTo(1), "the strange record is skipped, the good one is delivered");
-                Assert.That(parsed.Answers[0].Name.FullName,               Is.EqualTo("other.local."));
-                Assert.That(((A) parsed.Answers[0].Record).IPv4Address,    Is.EqualTo(IPv4Address.Parse("10.0.0.8")));
-
-                Assert.That(parsed.Warnings,                               Has.Count.EqualTo(1));
-                Assert.That(parsed.Warnings[0],                            Does.Contain("Answer record 1"));
-                Assert.That(parsed.ToString(),                             Does.Contain("1 warning(s)"));
+                Assert.That(parsed.Answers,                                  Has.Count.EqualTo(2));
+                Assert.That(parsed.Answers[0].Name.FullName,                 Is.EqualTo(@"Büro\.Drucker!.local."));
+                Assert.That(parsed.Answers[0].Name.Labels,                   Is.EqualTo(new[] { "Büro.Drucker!", "local" }));
+                Assert.That(((A) parsed.Answers[0].Record).IPv4Address,      Is.EqualTo(IPv4Address.Parse("10.0.0.7")));
+                Assert.That(parsed.Warnings,                                 Is.Empty);
+                Assert.That(roundTrip.Answers[0].Name.FullName,              Is.EqualTo(@"Büro\.Drucker!.local."));
+                Assert.That(roundTrip.Answers[0].Name.Labels,                Is.EqualTo(new[] { "Büro.Drucker!", "local" }));
 
             });
 
@@ -834,26 +834,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
-        #region QuestionWithAnUnrepresentableName_IsSkippedWithAWarning()
+        #region QuestionWithSpaces_IsPreserved()
 
         [Test]
-        public void QuestionWithAnUnrepresentableName_IsSkippedWithAWarning()
+        public void QuestionWithSpaces_IsPreserved()
         {
 
             var packet = new PacketBuilder().
                              Header(0, QueryFlags, 2, 0).
-                             Label("bad name").Label("local").Bytes(0x00).UInt16BE((UInt16) DNSResourceRecordTypes.A).UInt16BE(ClassIN).
-                             Name("myhost.local.").                        UInt16BE((UInt16) DNSResourceRecordTypes.A).UInt16BE(ClassINFlush).
+                             Label("Besprechung 1").Label("local").Bytes(0x00).UInt16BE((UInt16) DNSResourceRecordTypes.A).UInt16BE(ClassIN).
+                             Name("myhost.local.").                               UInt16BE((UInt16) DNSResourceRecordTypes.A).UInt16BE(ClassINFlush).
                              ToArray();
 
             var parsed = Parse(packet);
 
             Assert.Multiple(() => {
-                Assert.That(parsed.Questions,                              Has.Count.EqualTo(1));
-                Assert.That(parsed.Questions[0].Name.FullName,             Is.EqualTo("myhost.local."));
-                Assert.That(parsed.Questions[0].UnicastResponseRequested,  Is.True);
-                Assert.That(parsed.Warnings,                               Has.Count.EqualTo(1));
-                Assert.That(parsed.Warnings[0],                            Does.Contain("Question 1"));
+                Assert.That(parsed.Questions,                              Has.Count.EqualTo(2));
+                Assert.That(parsed.Questions[0].Name.FullName,             Is.EqualTo("Besprechung 1.local."));
+                Assert.That(parsed.Questions[0].Name.Labels[0],            Is.EqualTo("Besprechung 1"));
+                Assert.That(parsed.Questions[0].UnicastResponseRequested,  Is.False);
+                Assert.That(parsed.Questions[1].Name.FullName,             Is.EqualTo("myhost.local."));
+                Assert.That(parsed.Questions[1].UnicastResponseRequested,  Is.True);
+                Assert.That(parsed.Warnings,                               Is.Empty);
             });
 
         }
@@ -1148,6 +1150,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region DNSServiceInstanceName_PreservesUTF8AndLiteralDots()
+
+        [Test]
+        public void DNSServiceInstanceName_PreservesUTF8AndLiteralDots()
+        {
+
+            var instance = DNSServiceInstanceName.From(
+                               DomainName.Parse("local."),
+                               SRV_Spec.TCP("ipp"),
+                               "Bu\u0308ro.Drucker"
+                           );
+
+            using var stream = new MemoryStream();
+            instance.Serialize(stream, 0, UseCompression: false);
+            stream.Position = 0;
+
+            Assert.Multiple(() => {
+                Assert.That(instance.FullName,                    Is.EqualTo(@"Büro\.Drucker._ipp._tcp.local."));
+                Assert.That(instance.Labels,                      Is.EqualTo(new[] { "Büro.Drucker", "_ipp", "_tcp", "local" }));
+                Assert.That(DNSTools.ExtractName(stream),         Is.EqualTo(@"Büro\.Drucker._ipp._tcp.local"));
+                Assert.That(DNSServiceName.TryParse(new String('ü', 32) + ".local."), Is.Null,
+                            "32 two-octet UTF-8 characters exceed the 63-octet DNS label limit");
+                Assert.That(DNSServiceInstanceName.TryParse("Bad\nName._ipp._tcp.local."), Is.Null,
+                            "ASCII control characters are forbidden in DNS-SD instance labels");
+                Assert.That(DNSServiceInstanceName.DNSServiceInstanceNameRegExpr.IsMatch(@"Büro\.Drucker._ipp._tcp.local."), Is.True);
+                Assert.That(DNSServiceName.Parse("PRINTER.local.").Equals(DNSServiceName.Parse("printer.local.")), Is.True);
+                Assert.That(DNSServiceName.Parse("Ä.local.").Equals(DNSServiceName.Parse("ä.local.")), Is.False,
+                            "RFC 6762 folds ASCII A-Z only; UTF-8 multibyte characters compare byte-for-byte");
+            });
+
+        }
+
+        #endregion
     }
 
 }
