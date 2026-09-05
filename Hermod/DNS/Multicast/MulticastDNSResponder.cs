@@ -158,6 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Data
 
         private readonly MulticastDNSResponder responder;
+        private          Int32                 probeStarted;
 
         #endregion
 
@@ -177,6 +178,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The state of this publication.
         /// </summary>
         public MulticastDNSPublicationState       State                  { get; internal set; }
+
+        /// <summary>
+        /// Whether this publication has started sending its probe packets.
+        /// </summary>
+        internal Boolean                          ProbeStarted
+        {
+            get => Volatile.Read(ref probeStarted) != 0;
+            set => Volatile.Write(ref probeStarted, value ? 1 : 0);
+        }
 
         /// <summary>
         /// Whether the records are currently answered (announcing or published).
@@ -572,6 +582,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         uniqueNames.Select(name => new MulticastDNSQuestion(name, DNSResourceRecordTypes.Any, UnicastResponseRequested: true)),
                                         Authorities: uniqueRecords.Select(record => new MulticastDNSRecord(record))
                                     );
+
+                        if (i == 0)
+                            publication.ProbeStarted = true;
 
                         await SendAsync(probe, null, null, linked.Token).ConfigureAwait(false);
 
@@ -977,15 +990,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                CancellationToken     CancellationToken)
         {
 
-            // RFC 6762 §9: a record with one of our unique names, but different data, is a conflict.
             // A goodbye record (TTL 0) only removes data and claims nothing.
-            var received = Response.Answers.Concat(Response.Additionals).
-                                    Where  (record => !record.IsGoodbye).
-                                    GroupBy(record => record.Record.RRSetKey()).
-                                    ToDictionary(group => group.Key, group => group.Select(record => record.Record).ToArray());
+            var receivedRecords = Response.AllRecords.
+                                           Where (record => !record.IsGoodbye).
+                                           Select(record => record.Record).
+                                           ToArray();
 
-            if (received.Count == 0)
+            if (receivedRecords.Length == 0)
                 return;
+
+            // RFC 6762 §9 uses RRsets for conflicts after probing has completed.
+            var receivedByRRSet = receivedRecords.
+                                      GroupBy(record => record.RRSetKey()).
+                                      ToDictionary(group => group.Key, group => group.ToArray());
 
             MulticastDNSPublication[] candidates;
 
@@ -996,10 +1013,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             foreach (var publication in candidates)
             {
 
+                // RFC 6762 §8.1: an ANY probe claims the complete owner name.  While
+                // probing, any live record with that name is therefore a conflict,
+                // regardless of its record type or data.
+                if (publication.State        == MulticastDNSPublicationState.Probing &&
+                    publication.ProbeStarted)
+                {
+
+                    foreach (var nameGroup in publication.UniqueRecords.GroupBy(record => record.DomainName.FullName.ToLowerInvariant()))
+                    {
+
+                        var conflicting = receivedRecords.FirstOrDefault(record => record.DomainName.FullName.Equals(nameGroup.Key, StringComparison.OrdinalIgnoreCase));
+
+                        if (conflicting is null)
+                            continue;
+
+                        var ours = nameGroup.ToArray();
+                        var own  = ours.FirstOrDefault(record => record.IsSameRRSet(conflicting)) ?? ours[0];
+
+                        await SetConflictAsync(publication, own, conflicting, Datagram.RemoteSocket, CancellationToken).ConfigureAwait(false);
+                        break;
+
+                    }
+
+                    continue;
+
+                }
+
                 foreach (var rrset in publication.UniqueRecords.GroupBy(record => record.RRSetKey()))
                 {
 
-                    if (!received.TryGetValue(rrset.Key, out var theirs))
+                    if (!receivedByRRSet.TryGetValue(rrset.Key, out var theirs))
                         continue;
 
                     var ours         = rrset.ToArray();

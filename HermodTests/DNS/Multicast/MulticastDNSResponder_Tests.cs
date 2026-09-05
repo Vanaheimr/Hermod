@@ -45,6 +45,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
         /// </summary>
         private static readonly IPSocket     Querier        = PeerSocket("10.0.0.99");
 
+        private sealed class FirstDelayGateTimeProvider : TimeProvider
+        {
+
+            private readonly TaskCompletionSource<Boolean> firstTimerCreated = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            private Int32        firstTimerClaimed;
+            private GatedTimer?  firstTimer;
+
+            public Task FirstTimerCreated
+                => firstTimerCreated.Task;
+
+            public void ReleaseFirstTimer()
+                => firstTimer?.Fire();
+
+            public override ITimer CreateTimer(TimerCallback  Callback,
+                                               Object?        State,
+                                               TimeSpan       DueTime,
+                                               TimeSpan       Period)
+            {
+
+                if (Interlocked.CompareExchange(ref firstTimerClaimed, 1, 0) == 0)
+                {
+
+                    var timer = new GatedTimer(Callback, State);
+
+                    Volatile.Write(ref firstTimer, timer);
+                    firstTimerCreated.TrySetResult(true);
+
+                    return timer;
+
+                }
+
+                return base.CreateTimer(Callback, State, DueTime, Period);
+
+            }
+
+
+            private sealed class GatedTimer(TimerCallback Callback,
+                                            Object?       State) : ITimer
+            {
+
+                private Int32 disposed;
+                private Int32 fired;
+
+                public Boolean Change(TimeSpan DueTime, TimeSpan Period)
+                    => Volatile.Read(ref disposed) == 0;
+
+                public void Fire()
+                {
+
+                    if (Volatile.Read(ref disposed)               == 0 &&
+                        Interlocked.CompareExchange(ref fired, 1, 0) == 0)
+                    {
+                        Callback(State);
+                    }
+
+                }
+
+                public void Dispose()
+                    => Volatile.Write(ref disposed, 1);
+
+                public ValueTask DisposeAsync()
+                {
+
+                    Dispose();
+                    return ValueTask.CompletedTask;
+
+                }
+
+            }
+
+        }
+
         #endregion
 
 
@@ -86,6 +159,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                     Assert.That(probe.Message.Authorities.All(authority => !authority.CacheFlush),                     Is.True);
                 });
             }
+
+        }
+
+        #endregion
+
+        #region Probing_IgnoresResponsesBeforeTheFirstProbe()
+
+        [Test]
+        public async Task Probing_IgnoresResponsesBeforeTheFirstProbe()
+        {
+
+            var network  = new InMemoryMulticastDNSNetwork();
+            var capture  = new PacketCapture(network);
+            var clock    = new FirstDelayGateTimeProvider();
+            var options  = new MulticastDNSResponderOptions {
+                               ProbeInterval         = TimeSpan.FromMilliseconds(10),
+                               MaxInitialProbeDelay  = TimeSpan.FromMilliseconds(250),
+                               AnnouncementInterval  = TimeSpan.FromMilliseconds(10)
+                           };
+
+            await using var transport  = network.CreateTransport(ServerAddress);
+            await using var responder  = new MulticastDNSResponder(transport, options, clock);
+
+            await responder.StartAsync();
+
+            var conflicts = 0;
+            responder.OnNameConflict += (timestamp, sender, conflicted, own, other, source, ct) => {
+                Interlocked.Increment(ref conflicts);
+                return Task.CompletedTask;
+            };
+
+            var publishing = responder.PublishAsync(
+                                 [ new A(MyHost,
+                                         DNSQueryClasses.IN,
+                                         TimeSpan.FromSeconds(120),
+                                         ServerAddress) ],
+                                 Probe: true
+                             );
+
+            await clock.FirstTimerCreated.WaitAsync(TimeSpan.FromSeconds(1));
+            await WaitUntil(() => responder.Publications.Any(publication => publication.State == MulticastDNSPublicationState.Probing));
+
+            Assert.That(capture.Queries, Is.Empty, "the initial probe delay is still gated");
+
+            await transport.InjectAsync(
+                      MulticastDNSMessage.Response(
+                          [ new MulticastDNSRecord(
+                                new AAAA(MyHost,
+                                         DNSQueryClasses.IN,
+                                         TimeSpan.FromSeconds(120),
+                                         IPv6Address.Parse("fe80::99")),
+                                CacheFlush: true
+                            ) ]
+                      ).Serialize(),
+                      Querier
+                  );
+
+            Assert.Multiple(() => {
+                Assert.That(responder.Publications.Single().State,  Is.EqualTo(MulticastDNSPublicationState.Probing));
+                Assert.That(conflicts,                              Is.EqualTo(0));
+            });
+
+            clock.ReleaseFirstTimer();
+
+            var publication = await publishing.WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.Multiple(() => {
+                Assert.That(publication.State,        Is.EqualTo(MulticastDNSPublicationState.Published));
+                Assert.That(publication.ConflictSource, Is.Null);
+                Assert.That(conflicts,                Is.EqualTo(0));
+                Assert.That(capture.Queries,          Has.Count.EqualTo(3));
+            });
 
         }
 
@@ -1121,10 +1266,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
-        #region Conflict_IdenticalRecordsOnTwoResponders_AreNoConflict()
+        #region Probing_ResponseWithDifferentTypeAtSameName_IsConflict()
 
         [Test]
-        public async Task Conflict_IdenticalRecordsOnTwoResponders_AreNoConflict()
+        public async Task Probing_ResponseWithDifferentTypeAtSameName_IsConflict()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport1  = network.CreateTransport(IPv4Address.Parse("10.0.0.7"));
+            await using var transport2  = network.CreateTransport(IPv4Address.Parse("10.0.0.8"));
+            await using var responder1  = new MulticastDNSResponder(transport1, FastResponderOptions());
+            await using var responder2  = new MulticastDNSResponder(transport2, FastResponderOptions());
+
+            await responder1.StartAsync();
+            await responder2.StartAsync();
+
+            var conflicts = new List<(IDNSResourceRecord Own, IDNSResourceRecord Other, IPSocket Source)>();
+            responder2.OnNameConflict += (timestamp, sender, conflicted, own, other, source, ct) => {
+                lock (conflicts)
+                    conflicts.Add((own, other, source));
+                return Task.CompletedTask;
+            };
+
+            var first = await responder1.PublishAsync(
+                            [ new AAAA(MyHost,
+                                       DNSQueryClasses.IN,
+                                       TimeSpan.FromSeconds(120),
+                                       IPv6Address.Parse("fe80::7")) ],
+                            Probe: false
+                        );
+
+            var second = await responder2.PublishAsync(
+                             [ new A(MyHost,
+                                     DNSQueryClasses.IN,
+                                     TimeSpan.FromSeconds(120),
+                                     IPv4Address.Parse("10.0.0.8")) ],
+                             Probe: true
+                         );
+
+            Assert.Multiple(() => {
+                Assert.That(first.State,                  Is.EqualTo(MulticastDNSPublicationState.Published));
+                Assert.That(second.State,                 Is.EqualTo(MulticastDNSPublicationState.Conflict));
+                Assert.That(second.IsActive,              Is.False);
+                Assert.That(second.OwnConflictedRecord,   Is.TypeOf<A>());
+                Assert.That(second.ConflictingRecord,     Is.TypeOf<AAAA>());
+                Assert.That(second.ConflictSource,        Is.EqualTo(PeerSocket("10.0.0.7")));
+                Assert.That(conflicts,                    Has.Count.EqualTo(1));
+                Assert.That(conflicts[0].Own,             Is.TypeOf<A>());
+                Assert.That(conflicts[0].Other,           Is.TypeOf<AAAA>());
+                Assert.That(conflicts[0].Source,          Is.EqualTo(PeerSocket("10.0.0.7")));
+                Assert.That(responder2.ActiveRecords,     Is.Empty);
+            });
+
+        }
+
+        #endregion
+
+        #region Probing_ResponseWithIdenticalRecordAtSameName_IsConflict()
+
+        [Test]
+        public async Task Probing_ResponseWithIdenticalRecordAtSameName_IsConflict()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport1  = network.CreateTransport(IPv4Address.Parse("10.0.0.7"));
+            await using var transport2  = network.CreateTransport(IPv4Address.Parse("10.0.0.8"));
+            await using var responder1  = new MulticastDNSResponder(transport1, FastResponderOptions());
+            await using var responder2  = new MulticastDNSResponder(transport2, FastResponderOptions());
+
+            await responder1.StartAsync();
+            await responder2.StartAsync();
+
+            var record = new A(MyHost,
+                               DNSQueryClasses.IN,
+                               TimeSpan.FromSeconds(120),
+                               IPv4Address.Parse("10.0.0.7"));
+
+            var first   = await responder1.PublishAsync([ record ], Probe: false);
+            var second  = await responder2.PublishAsync([ record ], Probe: true);
+
+            Assert.Multiple(() => {
+                Assert.That(first.State,                   Is.EqualTo(MulticastDNSPublicationState.Published));
+                Assert.That(second.State,                  Is.EqualTo(MulticastDNSPublicationState.Conflict));
+                Assert.That(second.OwnConflictedRecord,    Is.TypeOf<A>());
+                Assert.That(second.ConflictingRecord,      Is.TypeOf<A>());
+                Assert.That(second.ConflictSource,         Is.EqualTo(PeerSocket("10.0.0.7")));
+                Assert.That(responder2.ActiveRecords,      Is.Empty);
+            });
+
+        }
+
+        #endregion
+
+        #region Published_IdenticalRecordsOnTwoResponders_AreNoConflict()
+
+        [Test]
+        public async Task Published_IdenticalRecordsOnTwoResponders_AreNoConflict()
         {
 
             var network = new InMemoryMulticastDNSNetwork();
@@ -1141,13 +1380,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             responder1.OnNameConflict += (timestamp, sender, conflicted, own, other, source, ct) => { Interlocked.Increment(ref conflicts); return Task.CompletedTask; };
             responder2.OnNameConflict += (timestamp, sender, conflicted, own, other, source, ct) => { Interlocked.Increment(ref conflicts); return Task.CompletedTask; };
 
-            // Same name AND same data: RFC 6762 §8.2 allows a second instance of the same host.
-            var first   = await responder1.PublishAsync([ new A(MyHost, DNSQueryClasses.IN, TimeSpan.FromSeconds(120), IPv4Address.Parse("10.0.0.7")) ]);
-            var second  = await responder2.PublishAsync([ new A(MyHost, DNSQueryClasses.IN, TimeSpan.FromSeconds(120), IPv4Address.Parse("10.0.0.7")) ]);
+            // RFC 6762 §9: identical RDATA is not an ongoing conflict after probing.
+            var first   = await responder1.PublishAsync([ new A(MyHost, DNSQueryClasses.IN, TimeSpan.FromSeconds(120), IPv4Address.Parse("10.0.0.7")) ], Probe: false);
+            var second  = await responder2.PublishAsync([ new A(MyHost, DNSQueryClasses.IN, TimeSpan.FromSeconds(120), IPv4Address.Parse("10.0.0.7")) ], Probe: false);
 
             Assert.Multiple(() => {
                 Assert.That(first. State,              Is.EqualTo(MulticastDNSPublicationState.Published));
                 Assert.That(second.State,              Is.EqualTo(MulticastDNSPublicationState.Published));
+                Assert.That(second.ConflictingRecord,  Is.Null);
+                Assert.That(conflicts,                 Is.EqualTo(0));
+                Assert.That(responder1.ActiveRecords,  Has.Count.EqualTo(1));
+                Assert.That(responder2.ActiveRecords,  Has.Count.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
+        #region Published_DifferentRecordTypesAtSameName_AreNoConflict()
+
+        [Test]
+        public async Task Published_DifferentRecordTypesAtSameName_AreNoConflict()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport1  = network.CreateTransport(IPv4Address.Parse("10.0.0.7"));
+            await using var transport2  = network.CreateTransport(IPv4Address.Parse("10.0.0.8"));
+            await using var responder1  = new MulticastDNSResponder(transport1, FastResponderOptions());
+            await using var responder2  = new MulticastDNSResponder(transport2, FastResponderOptions());
+
+            await responder1.StartAsync();
+            await responder2.StartAsync();
+
+            var conflicts = 0;
+            responder1.OnNameConflict += (timestamp, sender, conflicted, own, other, source, ct) => { Interlocked.Increment(ref conflicts); return Task.CompletedTask; };
+            responder2.OnNameConflict += (timestamp, sender, conflicted, own, other, source, ct) => { Interlocked.Increment(ref conflicts); return Task.CompletedTask; };
+
+            var first = await responder1.PublishAsync(
+                            [ new A(MyHost,
+                                    DNSQueryClasses.IN,
+                                    TimeSpan.FromSeconds(120),
+                                    IPv4Address.Parse("10.0.0.7")) ],
+                            Probe: false
+                        );
+
+            var second = await responder2.PublishAsync(
+                             [ new AAAA(MyHost,
+                                        DNSQueryClasses.IN,
+                                        TimeSpan.FromSeconds(120),
+                                        IPv6Address.Parse("fe80::8")) ],
+                             Probe: false
+                         );
+
+            Assert.Multiple(() => {
+                Assert.That(first.State,               Is.EqualTo(MulticastDNSPublicationState.Published));
+                Assert.That(second.State,              Is.EqualTo(MulticastDNSPublicationState.Published));
+                Assert.That(first.ConflictingRecord,   Is.Null);
                 Assert.That(second.ConflictingRecord,  Is.Null);
                 Assert.That(conflicts,                 Is.EqualTo(0));
                 Assert.That(responder1.ActiveRecords,  Has.Count.EqualTo(1));
