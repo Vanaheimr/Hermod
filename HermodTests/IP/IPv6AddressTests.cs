@@ -190,6 +190,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
         #endregion
 
+        #region ScopedIPv6AddressConversionsPreserveScopeId()
+
+        [Test]
+        public void ScopedIPv6AddressConversionsPreserveScopeId()
+        {
+
+            var addressBytes       = System.Net.IPAddress.Parse("fe80::1234").GetAddressBytes();
+            var systemIPAddress    = new System.Net.IPAddress(addressBytes, 17);
+            var ipv6Address        = IPv6Address.From(systemIPAddress);
+            var genericIPAddress   = IPAddress.FromDotNet(systemIPAddress);
+            var builtIPAddress     = IPAddress.Build(systemIPAddress);
+
+            System.Net.IPAddress implicitRoundtrip = ipv6Address;
+
+            Assert.Multiple(() => {
+                Assert.That(ipv6Address.InterfaceId,                       Is.EqualTo("17"));
+                Assert.That(implicitRoundtrip.ScopeId,                     Is.EqualTo(17));
+                Assert.That(((IPv6Address) genericIPAddress).InterfaceId,  Is.EqualTo("17"));
+                Assert.That(genericIPAddress.ToDotNet().ScopeId,           Is.EqualTo(17));
+                Assert.That(((IPv6Address) builtIPAddress).InterfaceId,    Is.EqualTo("17"));
+                Assert.That(builtIPAddress.ToDotNet().ScopeId,             Is.EqualTo(17));
+            });
+
+        }
+
+        #endregion
+
+        #region UnknownNamedIPv6ScopeIsRejectedByDotNetConversion()
+
+        [Test]
+        public void UnknownNamedIPv6ScopeIsRejectedByDotNetConversion()
+        {
+
+            var ipv6Address = IPv6Address.Parse("fe80::1234%__hermod_missing_interface__");
+
+            Assert.Throws<ArgumentException>(() => ipv6Address.ToDotNet());
+
+        }
+
+        #endregion
+
         #region IPv6AddressFromIPv4()
 
         /// <summary>

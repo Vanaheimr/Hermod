@@ -19,6 +19,8 @@
 
 using System.Text.RegularExpressions;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Net.NetworkInformation;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -220,9 +222,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         /// <summary>
-        /// Convert this IP address into a System.Net.IPAddress.
+        /// Convert the given System.Net.IPAddress into a Hermod IP address.
         /// </summary>
-        /// <param name="IPAddress">An IP address.</param>
+        /// <param name="IPAddress">A System.Net.IPAddress.</param>
         public static IIPAddress FromDotNet(System.Net.IPAddress IPAddress)
         {
 
@@ -232,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 return new IPv4Address(bytes);
 
             else if (bytes.Length == 16)
-                return new IPv6Address(bytes);
+                return IPv6Address.From(IPAddress);
 
             else
                 throw new ArgumentException($"Invalid byte array length for an IP address: {bytes.Length}!",
@@ -242,9 +244,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         /// <summary>
-        /// Convert this IP address into a System.Net.IPAddress.
+        /// Convert this Hermod IP address into a System.Net.IPAddress.
         /// </summary>
-        /// <param name="IPAddress">An IP address.</param>
+        /// <param name="IPAddress">A Hermod IP address.</param>
         public static System.Net.IPAddress ToDotNet(this IIPAddress IPAddress)
         {
 
@@ -256,6 +258,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     return System.Net.IPAddress.IPv6Loopback;
 
                 return System.Net.IPAddress.IPv6Any;
+
+            }
+
+            if (IPAddress is IPv6Address ipv6Address &&
+                ipv6Address.InterfaceId.IsNotNullOrEmpty())
+            {
+
+                if (!TryResolveIPv6ScopeId(ipv6Address.InterfaceId, out var scopeId))
+                    throw new ArgumentException($"Unknown IPv6 interface identification '{ipv6Address.InterfaceId}'!",
+                                                nameof(IPAddress));
+
+                return new System.Net.IPAddress(ipv6Address.GetBytes(), scopeId);
 
             }
 
@@ -295,8 +309,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="IPAddress">A System.Net.IPAddress.</param>
         public static IIPAddress Build(System.Net.IPAddress IPAddress)
+
+            => FromDotNet(IPAddress);
+
+        #endregion
+
+
+        #region (private static) TryResolveIPv6ScopeId(InterfaceId, out ScopeId)
+
+        private static Boolean TryResolveIPv6ScopeId(String InterfaceId, out Int64 ScopeId)
         {
-            return Build(IPAddress.GetAddressBytes());
+
+            if (Int64.TryParse(InterfaceId,
+                               NumberStyles.None,
+                               CultureInfo.InvariantCulture,
+                               out ScopeId))
+            {
+                return ScopeId >= 0;
+            }
+
+            foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+
+                if (!networkInterface.Name.Equals(InterfaceId, StringComparison.Ordinal) &&
+                    !networkInterface.Id.  Equals(InterfaceId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                try
+                {
+
+                    var ipv6Properties = networkInterface.GetIPProperties().GetIPv6Properties();
+
+                    if (ipv6Properties is not null)
+                    {
+                        ScopeId = ipv6Properties.Index;
+                        return true;
+                    }
+
+                }
+                catch (NetworkInformationException)
+                { }
+
+            }
+
+            ScopeId = 0;
+            return false;
+
         }
 
         #endregion
