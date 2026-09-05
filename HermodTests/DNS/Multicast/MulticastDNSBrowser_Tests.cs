@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             Assert.Multiple(() => {
                 Assert.That(resolved.IsResolved,                   Is.True);
-                Assert.That(resolvedWhenAdded,                     Is.EqualTo(new[] { true }), "reported only once host, port and TXT are known");
+                Assert.That(resolvedWhenAdded,                     Is.EqualTo(new[] { true }), "reported only once host and port are known");
                 Assert.That(resolved.InstanceName.FullName,        Is.EqualTo("myhost._test._tcp.local."));
                 Assert.That(resolved.ServiceType,                  Is.EqualTo(TestService));
                 Assert.That(resolved.HostName?.FullName,           Is.EqualTo("myhost.local."));
@@ -120,6 +120,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(resolved.Addresses,  Is.EqualTo(new IIPAddress[] { ServerAddress }));
                 lock (added)
                     Assert.That(added,           Has.Count.EqualTo(1), "reported exactly once");
+            });
+
+        }
+
+        #endregion
+
+        #region Instance_WithoutTXT_IsReported_AndLateTXTUpdatesIt()
+
+        [Test]
+        public async Task Instance_WithoutTXT_IsReported_AndLateTXTUpdatesIt()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+            var capture = new PacketCapture(network);
+
+            await using var serverTransport  = network.CreateTransport(ServerAddress);
+            await using var clientTransport  = network.CreateTransport(ClientAddress);
+            await using var responder        = new MulticastDNSResponder(serverTransport, FastResponderOptions());
+            await using var client           = new MulticastDNSClient   (clientTransport, FastClientOptions());
+
+            await responder.StartAsync();
+            await client.   StartAsync();
+
+            var browser  = await client.BrowseAsync(TestService);
+            var added    = new List<MulticastDNSServiceInstance>();
+            var updated  = new List<MulticastDNSServiceInstance>();
+
+            browser.OnInstanceAdded   += (timestamp, sender, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
+            browser.OnInstanceUpdated += (timestamp, sender, instance, ct) => { lock (updated) updated.Add(instance); return Task.CompletedTask; };
+
+            var serviceRecords = ServiceRecords("myhost.local.", "10.0.0.7", 8443);
+
+            await responder.PublishAsync(serviceRecords.Where(record => record is not TXT), Probe: false);
+
+            await WaitUntil(() => browser.AllInstances.Count == 1 &&
+                                  browser.AllInstances[0].HostName is not null &&
+                                  browser.AllInstances[0].Addresses.Count > 0);
+            await Task.Delay(50);
+
+            var instance = browser.AllInstances[0];
+
+            Assert.Multiple(() => {
+                Assert.That(instance.IsResolved,                  Is.True, "RFC 6763 section 6.1 treats no TXT record like an empty TXT record");
+                Assert.That(instance.HostName?.FullName,          Is.EqualTo("myhost.local."));
+                Assert.That(instance.Port?.ToUInt16(),            Is.EqualTo((UInt16) 8443));
+                Assert.That(instance.TXT,                         Is.Null);
+                Assert.That(instance.Addresses,                   Is.EqualTo(new IIPAddress[] { ServerAddress }));
+                Assert.That(browser.Instances,                    Is.EqualTo(new[] { instance }));
+                Assert.That(capture.Queries.Any(query => query.Message.Questions.Any(question => question.Name.Equals(MyInstance) &&
+                                                                                              question.Type == DNSResourceRecordTypes.TXT)),
+                            Is.True,                               "optional TXT metadata is still queried");
+                lock (added)
+                    Assert.That(added,                            Is.EqualTo(new[] { instance }), "the usable TXT-less service is reported exactly once");
+                lock (updated)
+                    Assert.That(updated,                          Is.Empty);
+            });
+
+            await responder.PublishAsync(serviceRecords.Where(record => record is TXT), Probe: false);
+
+            await WaitUntil(() => { lock (updated) return updated.Count == 1; });
+
+            Assert.Multiple(() => {
+                Assert.That(instance.TXT?.KeyValues["txtver"],   Is.EqualTo("1"));
+                lock (added)
+                    Assert.That(added,                            Is.EqualTo(new[] { instance }), "late TXT data must not add the instance a second time");
+                lock (updated)
+                    Assert.That(updated,                          Is.EqualTo(new[] { instance }));
             });
 
         }
@@ -302,6 +369,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+
+        #region Browser_SeededWithoutTXT_QueriesTheMissingMetadata()
+
+        [Test]
+        public async Task Browser_SeededWithoutTXT_QueriesTheMissingMetadata()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+            var capture = new PacketCapture(network);
+
+            await using var serverTransport  = network.CreateTransport(ServerAddress);
+            await using var clientTransport  = network.CreateTransport(ClientAddress);
+            await using var responder        = new MulticastDNSResponder(serverTransport, FastResponderOptions());
+            await using var client           = new MulticastDNSClient   (clientTransport, FastClientOptions());
+
+            await responder.StartAsync();
+            await client.   StartAsync();
+
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443).
+                                               Where(record => record is not TXT),
+                                           Probe: false);
+
+            Assert.That(client.CacheSize, Is.EqualTo(3));
+
+            capture.Clear();
+
+            var browser  = await client.BrowseAsync(TestService);
+            var added    = new List<MulticastDNSServiceInstance>();
+
+            browser.OnInstanceAdded += (timestamp, sender, instance, ct) => { lock (added) added.Add(instance); return Task.CompletedTask; };
+
+            Assert.Multiple(() => {
+                Assert.That(browser.Instances,                    Has.Count.EqualTo(1));
+                Assert.That(browser.Instances[0].IsResolved,      Is.True);
+                Assert.That(browser.Instances[0].TXT,             Is.Null);
+                Assert.That(capture.Queries.Any(query => query.Message.Questions.Any(question => question.Name.Equals(MyInstance) &&
+                                                                                              question.Type == DNSResourceRecordTypes.TXT)),
+                            Is.True,                               "cache seeding must query details missing from the cache");
+            });
+
+            await Task.Delay(50);
+
+            lock (added)
+                Assert.That(added, Is.Empty, "an instance seeded from the cache is not reported as newly added");
+
+        }
+
+        #endregion
 
         #region Browser_IsSeededFromTheCache_WithoutAnAddedEvent()
 

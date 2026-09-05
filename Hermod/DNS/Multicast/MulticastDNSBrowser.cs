@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     /// <summary>
     /// A DNS-SD service instance discovered by a <see cref="MulticastDNSBrowser"/> (RFC 6763 §4 to §6):
-    /// the instance name (from the PTR record), host and port (SRV), the TXT record and the
+    /// the instance name (from the PTR record), host and port (SRV), the optional TXT record and the
     /// addresses of the host (A/AAAA).
     /// </summary>
     public sealed class MulticastDNSServiceInstance
@@ -87,10 +87,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DateTimeOffset             LastSeen        { get; internal set; }
 
         /// <summary>
-        /// Whether host, port and TXT record are known.
+        /// Whether the host and port needed to contact the service are known.
+        /// RFC 6763 section 6.1 requires clients to treat a missing TXT record like an empty one.
         /// </summary>
         public Boolean                    IsResolved
-            => HostName is not null && Port.HasValue && TXT is not null;
+            => HostName is not null && Port.HasValue;
 
         internal Boolean                  Announced          { get; set; }
         internal Boolean                  RefreshRequested   { get; set; }
@@ -149,9 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A continuous DNS-SD browser (RFC 6763 §4, RFC 6762 §5.2): it repeats the PTR query for a
     /// service type with a growing interval and known-answer lists, resolves every instance
-    /// (SRV, TXT, A/AAAA), refreshes records towards the end of their lifetime and reports
+    /// (SRV, optional TXT, A/AAAA), refreshes records towards the end of their lifetime and reports
     /// appeared, updated and disappeared instances. An instance is reported as appeared once
-    /// host, port and TXT record are known.
+    /// host and port are known.
     /// </summary>
     public sealed class MulticastDNSBrowser : IAsyncDisposable
     {
@@ -253,13 +254,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Start browsing: seed the instances from the cache, subscribe to the client and
         /// start the query loop and the maintenance timer.
         /// </summary>
-        public Task StartAsync(CancellationToken CancellationToken = default)
+        public async Task StartAsync(CancellationToken CancellationToken = default)
         {
 
             ObjectDisposedException.ThrowIf(isDisposed, this);
 
             if (IsRunning)
-                return Task.CompletedTask;
+                return;
 
             cancellationTokenSource   = new CancellationTokenSource();
             var token                 = cancellationTokenSource.Token;
@@ -269,7 +270,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Seed from the cache
 
-            var now = Client.TimeProvider.GetUtcNow();
+            var now      = Client.TimeProvider.GetUtcNow();
+            var toQuery  = new List<MulticastDNSServiceInstance>();
 
             lock (stateLock)
             {
@@ -292,11 +294,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (instance.IsResolved)
                         instance.Announced = true;
 
+                    if (NeedsDetails(instance))
+                        toQuery.Add(instance);
+
                 }
 
             }
 
             #endregion
+
+            foreach (var instance in toQuery.Distinct())
+                await QueryInstanceAsync(instance, CancellationToken).ConfigureAwait(false);
 
             queryLoop         = Task.Run(() => QueryLoopAsync(token), CancellationToken.None);
 
@@ -306,8 +314,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     Client.Options.BrowseMaintenanceInterval,
                                     Client.Options.BrowseMaintenanceInterval
                                 );
-
-            return Task.CompletedTask;
 
         }
 
@@ -481,7 +487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         }
 
-                        if (!instance.IsResolved || instance.Addresses.Count == 0)
+                        if (NeedsDetails(instance))
                             toQuery.Add(instance);
 
                         Announce(instance, added, updated, false);
@@ -816,6 +822,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return false;
 
         }
+
+        /// <summary>
+        /// TXT data is optional for resolution, but keep asking for it so that metadata omitted
+        /// from an earlier response can still arrive as an update.
+        /// </summary>
+        private static Boolean NeedsDetails(MulticastDNSServiceInstance Instance)
+
+            => !Instance.IsResolved ||
+                Instance.TXT is null ||
+                Instance.Addresses.Count == 0;
 
         private static void Announce(MulticastDNSServiceInstance        Instance,
                                      List<MulticastDNSServiceInstance>  Added,
