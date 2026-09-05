@@ -51,9 +51,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region EntireRequestHeader
 
+            /// <summary>
+            /// The request line and the header fields, every line ended with CRLF as
+            /// RFC 9112 requires (not Environment.NewLine: a bare line feed on Linux is
+            /// rejected by strict peers).
+            /// </summary>
             public String EntireRequestHeader
 
-                => $"{HTTPRequestLine}{Environment.NewLine}{ConstructedHTTPHeader}";
+                => $"{HTTPRequestLine}\r\n{ConstructedHTTPHeader}";
 
             #endregion
 

@@ -1172,6 +1172,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        /// <summary>
+        /// HTTP header lines end with CRLF; a bare line feed is tolerated when splitting.
+        /// </summary>
+        private static readonly String[] headerLineSeparators = [ "\r\n", "\n" ];
+
         #region (protected) SendResponse(Stream, Response, CancellationToken = default, KeepStreamOpen = false)
 
         protected async Task SendResponse(Stream             Stream,
@@ -1192,8 +1198,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (useHTTP10CloseDelimitedBody)
                 {
                     responseHeader = String.Join(
-                                         Environment.NewLine,
-                                         responseHeader.Split(Environment.NewLine).
+                                         "\r\n",
+                                         responseHeader.Split(headerLineSeparators, StringSplitOptions.None).
                                                         Where(line => !line.StartsWith("Transfer-Encoding:", StringComparison.OrdinalIgnoreCase) &&
                                                                       !line.StartsWith("Trailer:",           StringComparison.OrdinalIgnoreCase))
                                      );
@@ -1203,7 +1209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Response.Connection != ConnectionType.Close)
                 {
 
-                    var headerLines    = responseHeader.Split(Environment.NewLine);
+                    var headerLines    = responseHeader.Split(headerLineSeparators, StringSplitOptions.None);
                     var hasConnection  = false;
 
                     for (var i = 0; i < headerLines.Length; i++)
@@ -1219,9 +1225,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     responseHeader = hasConnection
-                                         ? String.Join(Environment.NewLine, headerLines)
+                                         ? String.Join("\r\n", headerLines)
                                          : String.Concat(responseHeader,
-                                                         Environment.NewLine,
+                                                         "\r\n",
                                                          "Connection: close");
 
                 }

@@ -61,16 +61,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public TimeSpan?          Runtime                { get; set; }
 
             /// <summary>
-            /// The entire HTTP header.
+            /// The entire HTTP header: the status line, the header fields and the empty line,
+            /// every line ended with CRLF as RFC 9112 requires (not Environment.NewLine: a
+            /// bare line feed on Linux is rejected by strict peers).
             /// </summary>
             public String             HTTPHeader
 
                 => String.Concat(
                       $"{ProtocolName}/{ProtocolVersion} {(HTTPStatusCode ?? HTTPStatusCode.BadRequest).Code} {(HTTPStatusCode ?? HTTPStatusCode.BadRequest).Name}",
-                       Environment.NewLine,
+                       "\r\n",
                        ConstructedHTTPHeader,
-                       Environment.NewLine,
-                       Environment.NewLine
+                       "\r\n"
                    );
 
 
