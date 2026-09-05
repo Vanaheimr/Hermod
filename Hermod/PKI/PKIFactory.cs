@@ -1145,12 +1145,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                     // Self-signed server/client certificate!
                     certGen.SetIssuerDN(new X509Name($"CN={SubjectName}"));
 
-                    // Authority Key Identifier
+                    // Authority Key Identifier: this branch is reached precisely when there is no
+                    // issuer certificate, so the authority is the subject itself. Deriving the
+                    // identifier from the (null) issuer certificate threw.
                     certGen.AddExtension(
                         X509Extensions.AuthorityKeyIdentifier,
                         false,  // non-critical
                         X509ExtensionUtilities.CreateAuthorityKeyIdentifier(
-                            issuerCertificate
+                            SubjectPublicKey
                         )
                     );
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -54,6 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             public List<String>  Queries       { get; } = [];
             public Boolean       IsDisposed    { get; private set; }
+
+            public override String ToString()
+                => "recording DNS client";
 
             public Task<DNSInfo> Query(DomainName                           DomainName,
                                        IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
