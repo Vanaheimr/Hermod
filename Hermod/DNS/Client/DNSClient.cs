@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS client.
     /// </summary>
-    public partial class DNSClient : IDNSClient
+    public partial class DNSClient : IDNSClientWithDNSSEC
     {
 
         #region Data

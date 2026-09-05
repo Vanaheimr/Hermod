@@ -24,7 +24,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// conventional (unicast) DNS client. Hand it to HTTP, WebSocket or TCP clients
     /// that must reach "hostname.local" URLs as well as Internet hosts.
     /// </summary>
-    public sealed class HybridDNSClient : IDNSClient
+    public sealed class HybridDNSClient : IDNSClientWithDNSSEC
     {
 
         #region Data
@@ -50,6 +50,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Whether disposing this client also disposes both inner clients.
         /// </summary>
         public Boolean             OwnsClients        { get; }
+
+        /// <summary>
+        /// Whether the unicast client requests DNSSEC records via the EDNS0 DNSSEC-OK bit.
+        /// </summary>
+        public Boolean             DnssecOK
+        {
+
+            get
+                => UnicastClient is IDNSClientWithDNSSEC dnssecClient &&
+                   dnssecClient.DnssecOK;
+
+            set
+            {
+
+                if (UnicastClient is not IDNSClientWithDNSSEC dnssecClient)
+                    throw new NotSupportedException($"The unicast DNS client '{UnicastClient.GetType().Name}' does not support DNSSEC query configuration!");
+
+                dnssecClient.DnssecOK = value;
+
+            }
+
+        }
 
         #endregion
 

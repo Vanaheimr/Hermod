@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 using static org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast.MulticastDNSTestHelpers;
 
@@ -88,6 +89,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 IsDisposed = true;
                 return ValueTask.CompletedTask;
             }
+
+        }
+
+        #endregion
+
+        #region (class) NullSMTPLogger
+
+        private sealed class NullSMTPLogger : ILogger
+        {
+
+            public void Log(LogLevel  level,
+                            String    message)
+            { }
 
         }
 
@@ -706,6 +720,123 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
         }
 
         #endregion
+
+        #region HybridClient_ForwardsDnssecConfigurationToUnicastClient()
+
+        [Test]
+        public async Task HybridClient_ForwardsDnssecConfigurationToUnicastClient()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport  = network.CreateTransport(ClientAddress);
+            await using var client     = new MulticastDNSClient(transport, FastClientOptions());
+            using       var unicast    = new DNSClient();
+
+            var hybrid = new HybridDNSClient(client, unicast);
+
+            Assert.That(hybrid.DnssecOK, Is.False);
+
+            hybrid.DnssecOK = true;
+
+            Assert.Multiple(() => {
+                Assert.That(hybrid. DnssecOK, Is.True);
+                Assert.That(unicast.DnssecOK, Is.True);
+            });
+
+        }
+
+        #endregion
+
+        #region HybridClient_RejectsDnssecConfigurationWhenUnicastClientDoesNotSupportIt()
+
+        [Test]
+        public async Task HybridClient_RejectsDnssecConfigurationWhenUnicastClientDoesNotSupportIt()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport  = network.CreateTransport(ClientAddress);
+            await using var client     = new MulticastDNSClient(transport, FastClientOptions());
+
+            var hybrid = new HybridDNSClient(client, new RecordingDNSClient());
+
+            Assert.That(hybrid.DnssecOK, Is.False);
+            Assert.Throws<NotSupportedException>(() => hybrid.DnssecOK = true);
+
+        }
+
+        #endregion
+
+        #region SMTPOutboundClient_AcceptsHybridClientAndEnablesDnssecForDane()
+
+        [Test]
+        public async Task SMTPOutboundClient_AcceptsHybridClientAndEnablesDnssecForDane()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport  = network.CreateTransport(ClientAddress);
+            await using var client     = new MulticastDNSClient(transport, FastClientOptions());
+            using       var unicast    = new DNSClient();
+
+            var hybrid = new HybridDNSClient(client, unicast);
+
+            Assert.DoesNotThrow(() => new SMTPOutboundClient(
+                                              new SmtpOutboundConfig {
+                                                  LocalHostname  = "mail.example.org",
+                                                  EnableDane     = true
+                                              },
+                                              null,
+                                              hybrid,
+                                              new NullSMTPLogger()
+                                          ));
+
+            Assert.That(unicast.DnssecOK, Is.True);
+
+        }
+
+        #endregion
+
+        #region SMTPOutboundClient_AcceptsPlainIDNSClientWhenDaneIsDisabled()
+
+        [Test]
+        public void SMTPOutboundClient_AcceptsPlainIDNSClientWhenDaneIsDisabled()
+        {
+
+            Assert.DoesNotThrow(() => new SMTPOutboundClient(
+                                              new SmtpOutboundConfig {
+                                                  LocalHostname  = "mail.example.org",
+                                                  EnableDane     = false
+                                              },
+                                              null,
+                                              new RecordingDNSClient(),
+                                              new NullSMTPLogger()
+                                          ));
+
+        }
+
+        #endregion
+
+        #region DaneResolver_RejectsClientsWithoutDnssecCapability()
+
+        [Test]
+        public void DaneResolver_RejectsClientsWithoutDnssecCapability()
+        {
+
+            var exception = Assert.Throws<ArgumentException>(
+                                () => new DaneResolver(
+                                          new RecordingDNSClient(),
+                                          new NullSMTPLogger()
+                                      )
+                            );
+
+            Assert.That(exception!.ParamName, Is.EqualTo("DNSClient"));
+
+        }
+
+        #endregion
+
 
         #region Query_DomainNameOverload_EqualsTheDNSServiceNameOverload()
 
