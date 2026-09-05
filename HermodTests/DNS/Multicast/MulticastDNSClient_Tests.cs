@@ -398,6 +398,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region SharedRecordUpdate_GoodbyesTheRemovedRData()
+
+        [Test]
+        public async Task SharedRecordUpdate_GoodbyesTheRemovedRData()
+        {
+
+            var network      = new InMemoryMulticastDNSNetwork();
+            var capture      = new PacketCapture(network);
+            var oldInstance  = DNSServiceName.Parse("old._test._tcp.local.");
+            var newInstance  = DNSServiceName.Parse("new._test._tcp.local.");
+
+            await using var serverTransport  = network.CreateTransport(ServerAddress);
+            await using var clientTransport  = network.CreateTransport(ClientAddress);
+            await using var responder        = new MulticastDNSResponder(serverTransport, FastResponderOptions());
+            await using var client           = new MulticastDNSClient   (clientTransport, FastClientOptions());
+
+            await responder.StartAsync();
+            await client.   StartAsync();
+
+            var publication = await responder.PublishAsync([
+                                  new PTR(TestService, DNSQueryClasses.IN, TimeSpan.FromSeconds(4500), oldInstance)
+                              ], Probe: false);
+
+            Assert.That(client.CachedRecords(TestService, DNSResourceRecordTypes.PTR).
+                               Select(entry => ((PTR) entry.Record).Target),
+                        Is.EqualTo(new[] { oldInstance }));
+
+            capture.Clear();
+
+            await publication.UpdateAsync([
+                      new PTR(TestService, DNSQueryClasses.IN, TimeSpan.FromSeconds(4500), newInstance)
+                  ]);
+
+            var responses = capture.Responses;
+            var cached    = client.CachedRecords(TestService, DNSResourceRecordTypes.PTR);
+
+            Assert.Multiple(() => {
+                Assert.That(responses,                                                        Has.Count.EqualTo(3), "one goodbye followed by two announcements");
+                Assert.That(responses[0].Message.Answers,                                     Has.Count.EqualTo(1));
+                Assert.That(responses[0].Message.Answers[0].IsGoodbye,                        Is.True);
+                Assert.That(responses[0].Message.Answers[0].CacheFlush,                       Is.False, "shared records must never set cache-flush");
+                Assert.That(((PTR) responses[0].Message.Answers[0].Record).Target,            Is.EqualTo(oldInstance));
+                Assert.That(responses.Skip(1).All(response => response.Message.Answers.All(answer => !answer.IsGoodbye && !answer.CacheFlush)), Is.True);
+                Assert.That(cached.Select(entry => ((PTR) entry.Record).Target),              Is.EqualTo(new[] { newInstance }), "the removed shared RDATA must not remain cached");
+                Assert.That(publication.Records.Select(record => ((PTR) record).Target),      Is.EqualTo(new[] { newInstance }));
+            });
+
+        }
+
+        #endregion
+
+
         #region Goodbye_ExpiresTheRecords_AndRaisesOnRecordExpired()
 
         [Test]

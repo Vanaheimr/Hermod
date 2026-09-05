@@ -715,11 +715,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, cts.Token);
 
-            // A record whose RRSet still exists is replaced by the cache-flush announcement;
-            // only a vanished RRSet needs a goodbye.
-            var vanished = removed.Where(old => !records.Any(record => record.IsSameRRSet(old))).ToArray();
-            if (vanished.Length > 0)
-                await SendGoodbyeAsync(vanished, linked.Token).ConfigureAwait(false);
+            // Unique records in an RRSet that still exists are replaced by the cache-flush
+            // announcement. Shared records never carry that bit, so every removed shared
+            // RDATA needs an explicit goodbye even when other members of its RRSet remain.
+            var goodbyeRecords = removed.Where(old => !MulticastDNS.IsUniqueRecordType(old.Type) ||
+                                                       !records.Any(record => record.IsSameRRSet(old))).
+                                         ToArray();
+
+            if (goodbyeRecords.Length > 0)
+                await SendGoodbyeAsync(goodbyeRecords, linked.Token).ConfigureAwait(false);
 
             for (var i = 0; i < Options.AnnouncementCount; i++)
             {
