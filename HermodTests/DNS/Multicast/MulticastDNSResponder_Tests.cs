@@ -995,7 +995,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(goodbye.Message.Answers.Select(answer => answer.Type),                   Is.EquivalentTo(new[] { DNSResourceRecordTypes.A, DNSResourceRecordTypes.SRV, DNSResourceRecordTypes.TXT, DNSResourceRecordTypes.PTR }));
                 Assert.That(goodbye.Message.Answers.All(answer => answer.IsGoodbye),                 Is.True, "RFC 6762 §10.1: TTL zero");
                 Assert.That(goodbye.Message.Answers.All(answer => answer.TimeToLive == TimeSpan.Zero), Is.True);
-                Assert.That(goodbye.Message.Answers.All(answer => !answer.CacheFlush),               Is.True);
+                Assert.That(goodbye.Message.Answers.Where(answer => answer.Type != DNSResourceRecordTypes.PTR).
+                                                    All  (answer => answer.CacheFlush),                Is.True,  "RFC 6762 §10.2: unique records retain cache-flush");
+                Assert.That(goodbye.Message.Answers.Single(answer => answer.Type == DNSResourceRecordTypes.PTR).
+                                                    CacheFlush,                                       Is.False, "shared records never set cache-flush");
                 Assert.That(publication.State,                                                       Is.EqualTo(MulticastDNSPublicationState.Withdrawn));
                 Assert.That(publication.IsActive,                                                    Is.False);
                 Assert.That(responder.Publications,                                                  Is.Empty);
@@ -1160,6 +1163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(responses[0].Message.Answers,                                    Has.Count.EqualTo(1));
                 Assert.That(responses[0].Message.Answers[0].Type,                            Is.EqualTo(DNSResourceRecordTypes.TXT));
                 Assert.That(responses[0].Message.Answers[0].IsGoodbye,                       Is.True, "the vanished RRSet gets a goodbye");
+                Assert.That(responses[0].Message.Answers[0].CacheFlush,                      Is.True, "RFC 6762 §10.2 applies to unique goodbyes too");
                 Assert.That(responses[1].Message.Answers.Select(answer => answer.Type),      Is.EquivalentTo(new[] { DNSResourceRecordTypes.A, DNSResourceRecordTypes.SRV, DNSResourceRecordTypes.PTR }));
                 Assert.That(responses[2].Message.Answers.Select(answer => answer.Type),      Is.EquivalentTo(new[] { DNSResourceRecordTypes.A, DNSResourceRecordTypes.SRV, DNSResourceRecordTypes.PTR }));
                 Assert.That(responses.Skip(1).All(announcement => announcement.Message.Answers.All(answer => !answer.IsGoodbye)), Is.True);

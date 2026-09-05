@@ -1177,7 +1177,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var goodbye = MulticastDNSMessage.Response(
-                                  packetAnswers.Select(record => new MulticastDNSRecord(record, false, TimeSpan.Zero))
+                                  packetAnswers.Select(record => new MulticastDNSRecord(
+                                                                      record,
+                                                                      MulticastDNS.IsUniqueRecordType(record.Type),
+                                                                      TimeSpan.Zero
+                                                                  ))
                               );
 
                 await SendAsync(goodbye, null, null, CancellationToken).ConfigureAwait(false);
