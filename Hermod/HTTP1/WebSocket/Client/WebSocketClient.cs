@@ -303,6 +303,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public WebSocketBackpressureBehaviour       BackpressureBehaviour                { get; set; } = WebSocketBackpressureBehaviour.CloseConnection;
 
+        /// <summary>
+        /// The maximum size of an incoming text message. A larger message fails the connection
+        /// with 1009 (message too big). Null (the default) means no limit beyond the maximum
+        /// payload size of a frame. Applied to every connection this client establishes.
+        /// </summary>
+        public UInt64?                              MaxTextMessageSizeIn                 { get; set; }
+
+        /// <summary>
+        /// The maximum size of an outgoing text message. Null (the default) means no limit.
+        /// Applied to every connection this client establishes.
+        /// </summary>
+        public UInt64?                              MaxTextMessageSizeOut                { get; set; }
+
 
         public TimeSpan?                            SlowNetworkSimulationDelay           { get; set; }
 
@@ -1271,8 +1284,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             SlowNetworkSimulationDelay:  null
                                                         );
 
-                            webSocketClientConnection.MaxBackpressure       = MaxBackpressure;
-                            webSocketClientConnection.BackpressureBehaviour  = BackpressureBehaviour;
+                            webSocketClientConnection.MaxBackpressure         = MaxBackpressure;
+                            webSocketClientConnection.BackpressureBehaviour   = BackpressureBehaviour;
+                            webSocketClientConnection.MaxTextMessageSizeIn    = MaxTextMessageSizeIn;
+                            webSocketClientConnection.MaxTextMessageSizeOut   = MaxTextMessageSizeOut;
 
                             // permessage-deflate (RFC 7692): attach the negotiated extension, if the server accepted it.
                             if (EnablePerMessageDeflate)
