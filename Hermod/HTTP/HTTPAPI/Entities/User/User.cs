@@ -1049,7 +1049,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (!UserIdURL.HasValue && !UserIdBody.HasValue)
+                if ((UserIdBody ?? UserIdURL) is not { } userId)
                 {
                     ErrorResponse = "The user identification is missing!";
                     return false;
@@ -1060,8 +1060,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     ErrorResponse = "The optional user identification given within the JSON body does not match the one given in the URI!";
                     return false;
                 }
-
-                var userId = UserIdBody ?? UserIdURL.Value;
 
                 if (userId.Length < MinUserIdLength)
                 {
@@ -1541,7 +1539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CopyAllLinkedDataFrom(OldUser)
 
         public void CopyAllLinkedDataFrom(IUser OldUser)
-            => CopyAllLinkedDataFromBase(OldUser as User);
+            => CopyAllLinkedDataFromBase(OldUser as User ?? throw new ArgumentException($"The given user must be a {nameof(User)}!", nameof(OldUser)));
 
         public override void CopyAllLinkedDataFromBase(User OldUser)
         {
@@ -2418,7 +2416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.EMail                        = Name is not null && Name.IsNotNullOrEmpty()
                                                         ? new EMailAddress(Name.FirstText(), EMail, null, null)
                                                         : new EMailAddress(                  EMail, null, null);
-                this.Name                         = Name;
+                this.Name                         = Name ?? I18NString.Empty;
                 this.Description                  = Description ?? new I18NString();
                 this.PublicKeyRing                = PublicKeyRing;
                 this.SecretKeyRing                = SecretKeyRing;
@@ -2615,7 +2613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region CopyAllLinkedDataFrom(OldUser)
 
             public void CopyAllLinkedDataFrom(IUser OldUser)
-                => CopyAllLinkedDataFromBase(OldUser as User);
+                => CopyAllLinkedDataFromBase(OldUser as User ?? throw new ArgumentException($"The given user must be a {nameof(User)}!", nameof(OldUser)));
 
             public override void CopyAllLinkedDataFromBase(User OldUser)
             {
@@ -2666,7 +2664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="Builder">A user builder.</param>
             public static implicit operator User(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>
@@ -2867,7 +2865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Compares two users.
             /// </summary>
             /// <param name="Builder">An user to compare with.</param>
-            public Int32 CompareTo(Builder Builder)
+            public Int32 CompareTo(Builder? Builder)
 
                 => Builder is not null
                        ? Id.CompareTo(Builder.Id)
