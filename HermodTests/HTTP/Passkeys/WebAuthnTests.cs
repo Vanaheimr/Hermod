@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// What a platform authenticator does, without the platform: one key
         /// pair, one credential id and a signature counter.
         /// </summary>
-        private sealed class SoftwareAuthenticator : IDisposable
+        internal sealed class SoftwareAuthenticator : IDisposable
         {
 
             private readonly ECDsa?  ecdsa;

@@ -34,6 +34,7 @@ using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Passkeys;
 using org.GraphDefined.Vanaheimr.Aegir;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.BouncyCastle;
@@ -1391,6 +1392,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Boolean                        UseSecureCookies                   { get; }
 
+        /// <summary>
+        /// The path attribute of the authentication cookies (default: the root path of this API).
+        /// </summary>
+        public String                         HTTPCookiePath                     { get; }
+
+        /// <summary>
+        /// The optional WebAuthn relying party settings; without them the passkey routes are not registered.
+        /// </summary>
+        public WebAuthnSettings?              WebAuthnSettings                   { get; }
+
 
         /// <summary>
         /// The default language used within this API.
@@ -2295,6 +2306,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
                           HTTPCookieName?                CookieName                       = null,
                           Boolean                        UseSecureCookies                 = true,
+                          String?                        HTTPCookiePath                   = null,
+                          WebAuthnSettings?              WebAuthnSettings                 = null,
                           TimeSpan?                      MaxSignInSessionLifetime         = null,
                           TimeSpan?                      SessionIdleTimeout               = null,
                           Languages?                     DefaultLanguage                  = null,
@@ -2394,6 +2407,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.CookieName                      = CookieName                     ?? DefaultCookieName;
             this.SessionCookieName               = this.CookieName + "Session";
             this.UseSecureCookies                = UseSecureCookies;
+            this.HTTPCookiePath                  = HTTPCookiePath                 ?? RootPath.ToString();
+            this.WebAuthnSettings                = WebAuthnSettings;
             this.DefaultLanguage                 = DefaultLanguage                ?? DefaultDefaultLanguage;
 
             this.MinUserIdLength                 = MinUserIdLength                ?? DefaultMinUserIdLength;
@@ -2502,6 +2517,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!SkipURLTemplates)
                 RegisterURLTemplates();
 
+            // The JSON account routes (auth/...) are the API itself, not a template.
+            RegisterAuthTemplates();
+
             //DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
 
             //if (AutoStart)
@@ -2514,10 +2532,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Password endpoint rate limiting
 
-        private HTTPResponse.Builder? CheckPasswordRateLimit(HTTPRequest                         Request,
-                                                              String                             Endpoint,
-                                                              InMemoryTokenBucketRateLimiter     ClientRateLimiter,
-                                                              String?                            AccountKey = null)
+        internal HTTPResponse.Builder? CheckPasswordRateLimit(HTTPRequest                         Request,
+                                                               String                             Endpoint,
+                                                               InMemoryTokenBucketRateLimiter     ClientRateLimiter,
+                                                               String?                            AccountKey           = null,
+                                                               InMemoryTokenBucketRateLimiter?    AccountRateLimiter   = null)
         {
 
             var clientDecision = ClientRateLimiter.TryAcquire(
@@ -2542,7 +2561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       )
                                   );
 
-                var accountDecision = passwordAccountRateLimiter.TryAcquire(
+                var accountDecision = (AccountRateLimiter ?? passwordAccountRateLimiter).TryAcquire(
                                            Endpoint + "|account|" + accountHash
                                        );
 
@@ -3407,7 +3426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPCookieDomain.IsNotNullOrEmpty()
                                  ? "; Domain=" + HTTPCookieDomain
                                  : String.Empty,
-                             "; Path=",     RootPath.ToString(),
+                             "; Path=",     HTTPCookiePath,
                              "; SameSite=strict",
                              UseSecureCookies
                                  ? "; secure"
@@ -4650,7 +4669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                //                                    HTTPCookieDomain.IsNotNullOrEmpty()
             //                //                                        ? "; Domain=" + HTTPCookieDomain
             //                //                                        : String.Empty,
-            //                //                                    "; Path=", URLPathPrefix),
+            //                //                                    "; Path=", HTTPCookiePath),
             //                XLocationAfterAuth  = request.Path,
             //                CacheControl        = "private, max-age=0, no-cache",
             //                Connection          = ConnectionType.KeepAlive
@@ -5280,7 +5299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                     HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                         ? "; Domain=" + HTTPCookieDomain
                                                                                         : String.Empty,
-                                                                                    "; Path=", URLPathPrefix)
+                                                                                    "; Path=", HTTPCookiePath)
                                                                       )
                                                                   ),
                                      Connection                 = ConnectionType.KeepAlive
@@ -5303,7 +5322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                         HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                             ? "; Domain=" + HTTPCookieDomain
                                                                                             : String.Empty,
-                                                                                        "; Path=", URLPathPrefix)
+                                                                                        "; Path=", HTTPCookiePath)
                                                                       )
                                                                   ),
                                      Connection                 = ConnectionType.KeepAlive
@@ -6068,13 +6087,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    HTTPCookieDomain.IsNotNullOrEmpty()
                                                                        ? "; Domain=" + HTTPCookieDomain
                                                                        : String.Empty,
-                                                                   "; Path=", URLPathPrefix),
+                                                                   "; Path=", HTTPCookiePath),
 
                                                      String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                    HTTPCookieDomain.IsNotNullOrEmpty()
                                                                        ? "; Domain=" + HTTPCookieDomain
                                                                        : String.Empty,
-                                                                   "; Path=", URLPathPrefix)
+                                                                   "; Path=", HTTPCookiePath)
 
                                                  ),
                                Connection      = ConnectionType.Close
@@ -7018,13 +7037,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
                                                                                   : String.Empty,
-                                                                              "; Path=", URLPathPrefix),
+                                                                              "; Path=", HTTPCookiePath),
 
                                                                 String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
                                                                                   : String.Empty,
-                                                                              "; Path=", URLPathPrefix)
+                                                                              "; Path=", HTTPCookiePath)
                                                             ),
                                           Connection      = ConnectionType.KeepAlive
                                       }.AsImmutable));
@@ -16110,6 +16129,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                   );
 
             users.TryRemove(User.Id, out _);
+            // The builder does not carry the API; without this a second update of the
+            // same account failed with "not attached to this API".
+            updatedUser.API = this;
             updatedUser.CopyAllLinkedDataFrom(User);
             users.TryAdd(updatedUser.Id, updatedUser);
 
@@ -16129,9 +16151,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           now,
                           updatedUser,
                           User,
-            // The builder does not carry the API; without this a second update of the
-            // same account failed with "not attached to this API".
-            updatedUser.API = this;
                           eventTrackingId,
                           CurrentUserId
                       );
