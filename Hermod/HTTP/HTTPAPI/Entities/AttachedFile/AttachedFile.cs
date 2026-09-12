@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public IEnumerable<HTTPPath>  Locations        { get; }
 
-        public HTTPContentType        ContentType      { get; }
+        public HTTPContentType?       ContentType      { get; }
 
         public UInt64?                Size             { get; }
 
@@ -181,9 +181,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="JSONObject">A JSON object.</param>
         /// <param name="AttachedFile">The parsed attached file.</param>
         /// <param name="ErrorResponse">An error message.</param>
-        public static Boolean TryParseJSON(JObject           JSONObject,
-                                           out AttachedFile  AttachedFile,
-                                           out String        ErrorResponse)
+        public static Boolean TryParseJSON(JObject            JSONObject,
+                                           out AttachedFile?  AttachedFile,
+                                           out String?        ErrorResponse)
 
             => TryParseJSON(JSONObject,
                             out AttachedFile,
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (!AttachedFileIdURL.HasValue && !AttachedFileIdBody.HasValue)
+                if ((AttachedFileIdBody ?? AttachedFileIdURL) is not { } parsedId)
                 {
                     ErrorResponse = "The AttachedFile identification is missing!";
                     return false;
@@ -307,8 +307,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
                 AttachedFile = new AttachedFile(
-                                   Id:             AttachedFileIdBody ?? AttachedFileIdURL.Value,
-                                   Description:    Description,
+                                   Id:             parsedId,
+                                   Description:    Description ?? I18NString.Empty,
                                    Locations:      Locations,
                                    ContentType:    ContentType,
                                    Size:           Size,
@@ -503,7 +503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                  Id.          Equals(AttachedFile.Id)          &&
                  Description. Equals(AttachedFile.Description) &&
                  Locations.   Equals(AttachedFile.Locations)   &&
-                 ContentType. Equals(AttachedFile.ContentType) &&
+                 Equals(ContentType, AttachedFile.ContentType)   &&
                  Size.        Equals(AttachedFile.Size)        &&
                  Icon.        Equals(AttachedFile.Icon)        &&
                  Created.     Equals(AttachedFile.Created)     &&

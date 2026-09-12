@@ -269,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return false;
                 }
 
-                if (!OrganizationGroupIdURL.HasValue && !OrganizationGroupIdBody.HasValue)
+                if ((OrganizationGroupIdBody ?? OrganizationGroupIdURL) is not { } parsedId)
                 {
                     ErrorResponse = "The OrganizationGroup identification is missing!";
                     return false;
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return false;
                 }
 
-                if (Context != OrganizationGroup.JSONLDContext)
+                if (Context != DefaultJSONLDContext)
                 {
                     ErrorResponse = @"The given JSON-LD ""@context"" information '" + Context + "' is not supported!";
                     return false;
@@ -364,7 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                List<OrganizationGroup> Subgroups = null;
+                List<OrganizationGroup>? Subgroups = null;
 
                 if (SubgroupIds?.Any() == true)
                 {
@@ -427,7 +427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                OrganizationGroup = new OrganizationGroup(OrganizationGroupIdBody ?? OrganizationGroupIdURL.Value,
+                OrganizationGroup = new OrganizationGroup(parsedId,
 
                                                           Name,
                                                           Description,
@@ -757,7 +757,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 : base(Id ?? OrganizationGroup_Id.Random(),
                        JSONLDContext ?? DefaultJSONLDContext,
 
-                       Name,
+                       Name ?? I18NString.Empty,
                        Description,
                        Organizations,
                        ParentGroup,
@@ -790,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public static implicit operator OrganizationGroup(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>
