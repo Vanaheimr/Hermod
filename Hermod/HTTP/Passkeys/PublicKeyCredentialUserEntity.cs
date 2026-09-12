@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -17,19 +17,20 @@
 
 #region Usings
 
-using Newtonsoft.Json.Linq;
+using System.Buffers.Text;
 
-using org.GraphDefined.Vanaheimr.Illias;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialuserentity
-
     /// <summary>
-    /// Informationen über den Benutzer, der den Passkey registriert
+    /// The user a credential is created for. The id is the user handle: an
+    /// opaque identifier the authenticator returns with every assertion,
+    /// never the e-mail address.
+    /// https://w3c.github.io/webauthn/#dictdef-publickeycredentialuserentity
     /// </summary>
     public class PublicKeyCredentialUserEntity(Byte[]  Id,
                                                String  Name,
@@ -39,25 +40,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
     {
 
-        /// <summary>
-        /// Eindeutige ID als Byte-Array
-        /// </summary>
-        public Byte[]  Id             { get; } = Id;
+        #region Properties
 
-        /// <summary>
-        /// Anzeigename (vollständiger Name, etc.)
-        /// </summary>
+        public Byte[]  Id             { get; } = Id;
         public String  DisplayName    { get; } = DisplayName;
 
+        #endregion
+
+        #region ToJSON()
 
         public JObject ToJSON()
 
             => new (
-                   new JProperty("id",           Convert.ToBase64String(Id)),
+                   new JProperty("id",           Base64Url.EncodeToString(Id)),
                    new JProperty("name",         Name),
                    new JProperty("displayName",  DisplayName)
                );
 
+        #endregion
 
     }
 

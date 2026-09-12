@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Buffers.Text;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -26,62 +28,83 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialcreationoptions
-
+    /// <summary>
+    /// The options for navigator.credentials.create(), serialized as the
+    /// WebAuthn Level 3 JSON that PublicKeyCredential.parseCreationOptionsFromJSON()
+    /// reads: binary fields are Base64URL without padding.
+    /// https://w3c.github.io/webauthn/#dictdef-publickeycredentialcreationoptions
+    /// </summary>
     public class PublicKeyCredentialCreationOptions(PublicKeyCredentialRpEntity                  RelyingParty,
                                                     PublicKeyCredentialUserEntity                User,
                                                     Byte[]                                       Challenge,
                                                     IEnumerable<PublicKeyCredentialParameters>   PubKeyCredParams,
-
-                                                    TimeSpan?                                    Timeout              = null,
-                                                    IEnumerable<PublicKeyCredentialDescriptor>?  ExcludeCredentials   = null,
-                                                    IEnumerable<PublicKeyCredentialHint>?        Hints                = null,
-                                                    AttestationConveyancePreference?             Attestation          = null,
-                                                    IEnumerable<String>?                         AttestationFormats   = null,
-                                                    IEnumerable<String>?                         Extensions           = null)
+                                                    TimeSpan?                                    Timeout                  = null,
+                                                    IEnumerable<PublicKeyCredentialDescriptor>?  ExcludeCredentials       = null,
+                                                    AuthenticatorSelectionCriteria?              AuthenticatorSelection   = null,
+                                                    IEnumerable<PublicKeyCredentialHint>?        Hints                    = null,
+                                                    AttestationConveyancePreference?             Attestation              = null,
+                                                    IEnumerable<String>?                         AttestationFormats       = null,
+                                                    AuthenticationExtensions?                    Extensions               = null)
     {
 
-        public PublicKeyCredentialRpEntity                 RelyingParty          { get; } = RelyingParty;
-        public PublicKeyCredentialUserEntity               User                  { get; } = User;
-        public Byte[]                                      Challenge             { get; } = Challenge;
-        public IEnumerable<PublicKeyCredentialParameters>  PubKeyCredParams      { get; } = PubKeyCredParams.   Distinct();
+        #region Properties
 
-        public TimeSpan?                                   Timeout               { get; } = Timeout;
-        public IEnumerable<PublicKeyCredentialDescriptor>  ExcludeCredentials    { get; } = ExcludeCredentials?.Distinct() ?? [];
-        public IEnumerable<PublicKeyCredentialHint>        Hints                 { get; } = Hints?.             Distinct() ?? [];
-        public AttestationConveyancePreference?            Attestation           { get; } = Attestation;
-        public IEnumerable<String>                         AttestationFormats    { get; } = AttestationFormats?.Distinct() ?? [];
+        public PublicKeyCredentialRpEntity                 RelyingParty             { get; } = RelyingParty;
+        public PublicKeyCredentialUserEntity               User                     { get; } = User;
+        public Byte[]                                      Challenge                { get; } = Challenge;
+        public IEnumerable<PublicKeyCredentialParameters>  PubKeyCredParams         { get; } = PubKeyCredParams.   Distinct();
+        public TimeSpan?                                   Timeout                  { get; } = Timeout;
+        public IEnumerable<PublicKeyCredentialDescriptor>  ExcludeCredentials       { get; } = ExcludeCredentials?.Distinct() ?? [];
+        public AuthenticatorSelectionCriteria?             AuthenticatorSelection   { get; } = AuthenticatorSelection;
+        public IEnumerable<PublicKeyCredentialHint>        Hints                    { get; } = Hints?.             Distinct() ?? [];
+        public AttestationConveyancePreference?            Attestation              { get; } = Attestation;
+        public IEnumerable<String>                         AttestationFormats       { get; } = AttestationFormats?.Distinct() ?? [];
+        public AuthenticationExtensions?                   Extensions               { get; } = Extensions;
 
-        public IEnumerable<String>                         Extensions            { get; } = Extensions?.        Distinct() ?? [];
+        #endregion
 
+        #region ToJSON()
 
         public JObject ToJSON()
 
             => JSONObject.Create(
 
-                         new JProperty("rp",                   RelyingParty.  ToJSON()),
-                         new JProperty("user",                 User.ToJSON()),
-                         new JProperty("challenge",            Convert.ToBase64String(Challenge)),
-                         new JProperty("pubKeyCredParams",     new JArray(PubKeyCredParams.Select(publicKeyCredentialParameters => publicKeyCredentialParameters.ToJSON()))),
+                         new JProperty("rp",                      RelyingParty.ToJSON()),
+                         new JProperty("user",                    User.        ToJSON()),
+                         new JProperty("challenge",               Base64Url.EncodeToString(Challenge)),
+                         new JProperty("pubKeyCredParams",        new JArray(PubKeyCredParams.Select(parameters => parameters.ToJSON()))),
 
                    Timeout.HasValue
-                       ? new JProperty("timeout",              (Int32) Timeout.Value.TotalMilliseconds)
+                       ? new JProperty("timeout",                 (UInt32) Timeout.Value.TotalMilliseconds)
                        : null,
 
                    ExcludeCredentials.Any()
-                       ? new JProperty("excludeCredentials",   new JArray(ExcludeCredentials.Select(publicKeyCredentialDescriptor => publicKeyCredentialDescriptor.ToJSON())))
+                       ? new JProperty("excludeCredentials",      new JArray(ExcludeCredentials.Select(descriptor => descriptor.ToJSON())))
                        : null,
 
-                   Hints.             Any()
-                       ? new JProperty("hints",                new JArray(Hints.             Select(publicKeyCredentialHint       => publicKeyCredentialHint.      ToString())))
+                   AuthenticatorSelection is not null
+                       ? new JProperty("authenticatorSelection",  AuthenticatorSelection.ToJSON())
+                       : null,
+
+                   Hints.Any()
+                       ? new JProperty("hints",                   new JArray(Hints.Select(hint => hint.ToString())))
                        : null,
 
                    Attestation.HasValue
-                       ? new JProperty("attestation",          Attestation.Value.ToString())
+                       ? new JProperty("attestation",             Attestation.Value.ToString())
+                       : null,
+
+                   AttestationFormats.Any()
+                       ? new JProperty("attestationFormats",      new JArray(AttestationFormats))
+                       : null,
+
+                   Extensions is { Count: > 0 }
+                       ? new JProperty("extensions",              Extensions.ToJSON())
                        : null
 
                );
 
+        #endregion
 
     }
 

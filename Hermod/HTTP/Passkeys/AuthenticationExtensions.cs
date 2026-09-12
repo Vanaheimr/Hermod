@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -17,38 +17,61 @@
 
 #region Usings
 
+using System.Collections;
+
 using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Text.Json.Nodes;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#webauthn-extensions
-
-
     /// <summary>
-    /// Authentication Extensions
+    /// The client extension inputs of a ceremony, serialized as one JSON
+    /// object with the extension identifiers as keys.
+    /// https://w3c.github.io/webauthn/#webauthn-extensions
     /// </summary>
-    public class AuthenticationExtensions(IEnumerable<AuthenticationExtension>  List)
+    public class AuthenticationExtensions(IEnumerable<AuthenticationExtension> Extensions) : IEnumerable<AuthenticationExtension>
     {
 
-        /// <summary>
-        /// The list of authentication extensions.
-        /// </summary>
-        public IEnumerable<AuthenticationExtension>  List    { get; } = List;
+        #region Data
 
+        private readonly List<AuthenticationExtension> extensions = Extensions.ToList();
+
+        #endregion
+
+        #region Properties
+
+        public Int32  Count
+            => extensions.Count;
+
+        #endregion
+
+        #region Constructor(s)
+
+        public AuthenticationExtensions(params AuthenticationExtension[] Extensions)
+            : this((IEnumerable<AuthenticationExtension>) Extensions)
+        { }
+
+        #endregion
+
+        #region ToJSON()
 
         public JObject ToJSON()
 
-            => JSONObject.Create(
-                   List.Select(entry => new JProperty(
-                                           entry.Name,
-                                           entry.ToJSON()
-                                        ))
-               );
+            => new (extensions.Select(extension => new JProperty(extension.Name, extension.Value)));
+
+        #endregion
+
+        #region IEnumerable<AuthenticationExtension> Members
+
+        public IEnumerator<AuthenticationExtension> GetEnumerator()
+            => extensions.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator()
+            => extensions.GetEnumerator();
+
+        #endregion
 
     }
 

@@ -884,8 +884,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             ClientLogins.AddOrUpdate(
                              Username,
-                             SecurePassword.Parse(Password),
-                             (chargingStationId, password) => SecurePassword.Parse(Password)
+                             SecurePassword.Create(Password),
+                             (chargingStationId, password) => SecurePassword.Create(Password)
                          );
 
             return HTTPBasicAuthentication.Create(

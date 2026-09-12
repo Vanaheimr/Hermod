@@ -75,9 +75,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public User_Id   Login       { get; }
 
         /// <summary>
-        /// The password of the user.
+        /// The password hash of the user.
         /// </summary>
-        public Password  Password    { get; }
+        public SecurePassword  Password    { get; }
 
         #endregion
 
@@ -87,9 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new user identification and password combination.
         /// </summary>
         /// <param name="Login">The unique user identification.</param>
-        /// <param name="Password">The password of the user.</param>
-        public LoginPassword(User_Id   Login,
-                             Password  Password)
+        /// <param name="Password">The password hash of the user.</param>
+        public LoginPassword(User_Id         Login,
+                             SecurePassword  Password)
         {
 
             this.Login     = Login;
@@ -103,27 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region VerifyPassword(Password)
 
         /// <summary>
-        /// Verify the given password.
-        /// </summary>
-        /// <param name="Password">A password to verify.</param>
-        public Boolean VerifyPassword(Password Password)
-
-            => this.Password.Equals(Password);
-
-
-        /// <summary>
-        /// Verify the given password.
-        /// </summary>
-        /// <param name="Password">A password to verify.</param>
-        public Boolean VerifyPassword(Password? Password)
-
-            => Password.HasValue
-                   ? this.Password.Equals(Password.Value)
-                   : false;
-
-
-        /// <summary>
-        /// Verify the given password.
+        /// Verify the given password against the stored hash.
         /// </summary>
         /// <param name="Password">A password to verify.</param>
         public Boolean VerifyPassword(String Password)

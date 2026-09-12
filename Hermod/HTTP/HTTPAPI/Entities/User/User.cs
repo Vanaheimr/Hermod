@@ -235,6 +235,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public DateTimeOffset?            AcceptedEULA         { get; }
 
         /// <summary>
+        /// Timestamp when the user was created.
+        /// </summary>
+        [Mandatory]
+        public DateTimeOffset             CreatedAt            { get; }
+
+        /// <summary>
+        /// Timestamp of the user's last sign-in, if any.
+        /// </summary>
+        public DateTimeOffset?            LastLoginAt          { get; }
+
+        /// <summary>
         /// The user will not be shown in user listings, as its
         /// primary e-mail address is not yet authenticated.
         /// </summary>
@@ -760,6 +771,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="JSONLDContext">The JSON-LD context of this user.</param>
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="LastChange">The timestamp of the last changes within this user. Can e.g. be used as a HTTP ETag.</param>
+        /// <param name="CreatedAt">Timestamp when the user was created; now by default.</param>
+        /// <param name="LastLoginAt">Timestamp of the user's last sign-in, if any.</param>
         public User(User_Id                              Id,
                     I18NString                           Name,
                     SimpleEMailAddress                   EMail,
@@ -789,7 +802,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     IEnumerable<AttachedFile>?           AttachedFiles            = default,
                     JSONLDContext?                       JSONLDContext            = default,
                     String?                              DataSource               = default,
-                    DateTimeOffset?                      LastChange               = default)
+                    DateTimeOffset?                      LastChange               = default,
+                    DateTimeOffset?                      CreatedAt                = null,
+                    DateTimeOffset?                      LastLoginAt              = null)
 
             : base(Id,
                    JSONLDContext ?? DefaultJSONLDContext,
@@ -827,6 +842,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.GeoLocation               = GeoLocation;
             this.Address                   = Address;
             this.AcceptedEULA              = AcceptedEULA;
+            this.CreatedAt                 = CreatedAt ?? Timestamp.Now;
+            this.LastLoginAt               = LastLoginAt;
             this.IsAuthenticated           = IsAuthenticated;
             this.IsDisabled                = IsDisabled;
             this.AttachedFiles             = AttachedFiles ?? Array.Empty<AttachedFile>();
@@ -1283,6 +1300,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                #region Parse CreatedAt        [optional]
+
+                if (JSONObject.ParseOptional("createdAt",
+                                             "creation timestamp",
+                                             out DateTimeOffset? CreatedAt,
+                                             out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
+                #region Parse LastLoginAt      [optional]
+
+                if (JSONObject.ParseOptional("lastLoginAt",
+                                             "last sign-in timestamp",
+                                             out DateTimeOffset? LastLoginAt,
+                                             out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
                 var IsAuthenticated  = JSONObject["isAuthenticated"]?.Value<Boolean>();
 
                 var IsDisabled       = JSONObject["isDisabled"]?.     Value<Boolean>();
@@ -1328,8 +1371,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            null, //AttachedFiles,
                            null, //JSONLDContext,
                            DataSource,
-                           null
-                       ); //LastChange
+                           null, //LastChange
+                           CreatedAt:    CreatedAt,
+                           LastLoginAt:  LastLoginAt
+                       );
 
                 ErrorResponse = null;
                 return true;
@@ -1425,6 +1470,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            ? new JProperty("acceptedEULA",     AcceptedEULA.Value.        ToISO8601())
                                            : null,
 
+                                       new JProperty("createdAt",              CreatedAt.                 ToISO8601()),
+
+                                       LastLoginAt.HasValue
+                                           ? new JProperty("lastLoginAt",      LastLoginAt.Value.         ToISO8601())
+                                           : null,
+
                                        new JProperty("isAuthenticated",        IsAuthenticated),
                                        new JProperty("isDisabled",             IsDisabled)
 
@@ -1480,7 +1531,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     AttachedFiles,
                     JSONLDContext,
                     DataSource,
-                    LastChangeDate);
+                    LastChangeDate,
+                    CreatedAt:    CreatedAt,
+                    LastLoginAt:  LastLoginAt);
 
         #endregion
 
@@ -1795,7 +1848,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     AttachedFiles,
                     JSONLDContext,
                     DataSource,
-                    LastChangeDate);
+                    LastChangeDate,
+                    CreatedAt:    CreatedAt,
+                    LastLoginAt:  LastLoginAt);
 
         #endregion
 
@@ -1878,6 +1933,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             [Mandatory]
             public DateTimeOffset?        AcceptedEULA         { get; set; }
+
+            /// <summary>
+            /// Timestamp when the user was created.
+            /// </summary>
+            [Mandatory]
+            public DateTimeOffset         CreatedAt            { get; set; }
+
+            /// <summary>
+            /// Timestamp of the user's last sign-in, if any.
+            /// </summary>
+            public DateTimeOffset?        LastLoginAt          { get; set; }
 
             /// <summary>
             /// The user is disabled.
@@ -2334,7 +2400,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            JSONLDContext?                       JSONLDContext            = null,
                            String?                              DataSource               = null,
                            DateTimeOffset?                      Created                  = null,
-                           DateTimeOffset?                      LastChange               = null)
+                           DateTimeOffset?                      LastChange               = null,
+                           DateTimeOffset?                      CreatedAt                = null,
+                           DateTimeOffset?                      LastLoginAt              = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,
@@ -2363,6 +2431,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.GeoLocation                  = GeoLocation;
                 this.Address                      = Address;
                 this.AcceptedEULA                 = AcceptedEULA;
+                this.CreatedAt                    = CreatedAt ?? Timestamp.Now;
+                this.LastLoginAt                  = LastLoginAt;
                 this.IsDisabled                   = IsDisabled;
                 this.IsAuthenticated              = IsAuthenticated;
                 this.AttachedFiles                = AttachedFiles is not null && AttachedFiles.Any()
@@ -2638,7 +2708,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     AttachedFiles,
                                     JSONLDContext,
                                     DataSource,
-                                    LastChangeDate);
+                                    LastChangeDate,
+                                    CreatedAt:    CreatedAt,
+                                    LastLoginAt:  LastLoginAt);
                 }
             }
 

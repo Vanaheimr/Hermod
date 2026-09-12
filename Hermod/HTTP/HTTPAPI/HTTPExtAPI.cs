@@ -594,7 +594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     User_Id             Id,
                                                     I18NString          Name,
                                                     SimpleEMailAddress  EMail,
-                                                    Password?           Password                   = null,
+                                                    String?             Password                   = null,
                                                     I18NString?         Description                = null,
                                                     PgpPublicKeyRing?   PublicKeyRing              = null,
                                                     PgpSecretKeyRing?   SecretKeyRing              = null,
@@ -647,10 +647,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -658,10 +658,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      );
                                               }
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -721,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     SimpleEMailAddress          EMail,
                                                     User2OrganizationEdgeLabel  AccessRight,
                                                     Organization                Organization,
-                                                    Password?                   Password                   = null,
+                                                    String?                     Password                   = null,
                                                     I18NString?                 Description                = null,
                                                     PgpPublicKeyRing?           PublicKeyRing              = null,
                                                     PgpSecretKeyRing?           SecretKeyRing              = null,
@@ -777,10 +777,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -788,10 +788,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      );
                                               }
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -847,7 +847,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                User_Id             Id,
                                                                I18NString          Name,
                                                                SimpleEMailAddress  EMail,
-                                                               Password?           Password                   = null,
+                                                               String?             Password                   = null,
                                                                I18NString?         Description                = null,
                                                                PgpPublicKeyRing?   PublicKeyRing              = null,
                                                                PgpSecretKeyRing?   SecretKeyRing              = null,
@@ -900,10 +900,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -911,10 +911,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      );
                                               }
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -974,7 +974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                SimpleEMailAddress          EMail,
                                                                User2OrganizationEdgeLabel  AccessRight,
                                                                IOrganization               Organization,
-                                                               Password?                   Password                   = null,
+                                                               String?                     Password                   = null,
                                                                I18NString?                 Description                = null,
                                                                PgpPublicKeyRing?           PublicKeyRing              = null,
                                                                PgpSecretKeyRing?           SecretKeyRing              = null,
@@ -1030,10 +1030,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -1041,10 +1041,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      );
                                               }
 
-                                              if (Password.HasValue && _user.API is not null) {
+                                              if (Password is not null && _user.API is not null) {
                                                   var result = await _user.API._ChangePassword(
                                                                          _user,
-                                                                         Password.Value,
+                                                                         Password,
                                                                          null,
                                                                          SuppressNotifications:  true,
                                                                          EventTrackingId:        _eventTrackingId,
@@ -1222,7 +1222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// Managing users and organizations et al. within a HTTP API.
     /// </summary>
-    public class HTTPExtAPI : HTTPAPI
+    public partial class HTTPExtAPI : HTTPAPI
     {
 
         #region Data
@@ -1401,6 +1401,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The maximum sign-in session lifetime.
         /// </summary>
         public TimeSpan                       MaxSignInSessionLifetime           { get; }
+
+        /// <summary>
+        /// An optional idle timeout of sign-in sessions: a session ends when it was not used for this long.
+        /// </summary>
+        public TimeSpan?                      SessionIdleTimeout                 { get; }
 
         /// <summary>
         /// The minimal user identification length.
@@ -2244,6 +2249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CookieName">The name of the HTTP Cookie for authentication.</param>
         /// <param name="UseSecureCookies">Force the web browser to send cookies only via HTTPS.</param>
         /// <param name="MaxSignInSessionLifetime">The maximum sign-in session lifetime.</param>
+        /// <param name="SessionIdleTimeout">An optional idle timeout of sign-in sessions: a session ends when it was not used for this long.</param>
         /// <param name="DefaultLanguage">The default language of the API.</param>
         /// <param name="MinUserIdLength">The minimal user identification length.</param>
         /// <param name="MinUserNameLength">The minimal user name length.</param>
@@ -2290,6 +2296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           HTTPCookieName?                CookieName                       = null,
                           Boolean                        UseSecureCookies                 = true,
                           TimeSpan?                      MaxSignInSessionLifetime         = null,
+                          TimeSpan?                      SessionIdleTimeout               = null,
                           Languages?                     DefaultLanguage                  = null,
                           Byte?                          MinUserIdLength                  = null,
                           Byte?                          MinRealmLength                   = null,
@@ -2351,11 +2358,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (this.APIVersionHash.IsNullOrEmpty())
                 this.APIVersionHash              = "unknown";
 
-            this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPI_DatabaseFileName);
-
             this.HTTPAPIPath                     = this.LoggingPath + "UsersAPI"       + Path.DirectorySeparatorChar;
             this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
             this.SMTPLoggingPath                 = this.LoggingPath + "SMTPClient"     + Path.DirectorySeparatorChar;
+
+            // All database files (users, passwords, sessions, password resets) live below HTTPAPIPath.
+            this.DatabaseFileName                = this.HTTPAPIPath + (DatabaseFileName ?? DefaultHTTPExtAPI_DatabaseFileName);
 
             this.DisableNotifications            = DisableNotifications ?? false;
 
@@ -2399,6 +2407,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.PasswordQualityCheck            = PasswordQualityCheck           ?? DefaultPasswordQualityCheck;
             this.MaxSignInSessionLifetime        = MaxSignInSessionLifetime       ?? DefaultMaxSignInSessionLifetime;
+            this.SessionIdleTimeout              = SessionIdleTimeout;
+            this.Sessions                        = new SessionStore(
+                                                       IdleTimeout:      SessionIdleTimeout,
+                                                       MaximumLifetime:  this.MaxSignInSessionLifetime
+                                                   );
 
             this.CurrentDatabaseHashValue        = "";
 
@@ -3326,14 +3339,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public Boolean TryAddCookie(SecurityToken_Id  SecurityTokenId,
-                                    SecurityToken     SecurityToken)
-
-            => httpCookies.TryAdd(
-                   SecurityTokenId,
-                   SecurityToken
-               );
-
 
         #region Get user from HTTP request
 
@@ -3486,9 +3491,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Request.Cookies. TryGet     (SessionCookieName,           out var cookie)              &&
                 cookie is not null &&
                 SecurityToken_Id.TryParse   (cookie.FirstOrDefault().Key, out var securityTokenId)     &&
-                httpCookies.     TryGetValue(securityTokenId,             out var securityInformation) &&
-                Timestamp.Now < securityInformation.Expires                                            &&
-                TryGetUser(securityInformation.UserId, out User))
+                Sessions.        TryGet     (securityTokenId,             out var session)             &&
+                TryGetUser(session.UserId, out User))
             {
                 return true;
             }
@@ -3584,9 +3588,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Request.Cookies. TryGet     (SessionCookieName,           out var cookie)              &&
                 cookie is not null &&
                 SecurityToken_Id.TryParse   (cookie.FirstOrDefault().Key, out var securityTokenId)     &&
-                httpCookies.     TryGetValue(securityTokenId,             out var securityInformation) &&
-                Timestamp.Now < securityInformation.Expires                                            &&
-                TryGetUser(securityInformation.SuperUserId ?? securityInformation.UserId, out User))
+                Sessions.        TryGet     (securityTokenId,             out var session)             &&
+                TryGetUser(session.SuperUserId ?? session.UserId, out User))
             {
                 return true;
             }
@@ -4922,34 +4925,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Register security token
 
-                    var securityTokenId  = SecurityToken_Id.Parse(
-                                               SHA256.HashData(
-                                                   String.Concat(
-                                                       Guid.NewGuid().ToString(),
-                                                       validUser.Id
-                                                   ).ToUTF8Bytes()
-                                               ).ToHexString()
-                                           );
-
-                    var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
-
-                    lock (httpCookies)
-                    {
-
-                        httpCookies.TryAdd(
-                            securityTokenId,
-                            new SecurityToken(
-                                validUser.Id,
-                                expires
-                            )
-                        );
-
-                        File.AppendAllText(
-                            HTTPAPIPath + DefaultHTTPCookiesFile,
-                            securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine
-                        );
-
-                    }
+                    var signInSession    = Sessions.Create(validUser.Id);
+                    var securityTokenId  = signInSession.Token;
+                    var expires          = signInSession.ExpiresAt;
 
                     #endregion
 
@@ -5210,18 +5188,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Parse NewPassword         [mandatory]
 
-                    if (!json.ParseMandatory("newPassword",
-                                             "new user password",
-                                             HTTPServer?.HTTPServerName,
-                                             Password.TryParse,
-                                             out Password NewPassword,
-                                             Request,
-                                             out errorResponseBuilder))
+                    if (!json.ParseMandatoryText("newPassword",
+                                                 "new user password",
+                                                 HTTPServer?.HTTPServerName,
+                                                 out var NewPassword,
+                                                 Request,
+                                                 out errorResponseBuilder))
                     {
                         return errorResponseBuilder;
                     }
 
-                    if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
+                    if (PasswordQualityCheck(NewPassword) < 1.0)
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = HTTPServer?.HTTPServerName,
@@ -5484,8 +5461,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                    Content                     = JSONObject.Create(
 
-                                                                     new JProperty("userId",   securityToken.UserId. ToString()),
-                                                                     new JProperty("expires",  securityToken.Expires.ToISO8601()),
+                                                                     new JProperty("userId",   securityToken.UserId.   ToString()),
+                                                                     new JProperty("expires",  securityToken.ExpiresAt.ToISO8601()),
 
                                                                      securityToken.SuperUserId.HasValue
                                                                          ? new JProperty("superUserId", securityToken.SuperUserId.Value.ToString())
@@ -6052,9 +6029,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 SecurityToken_Id.TryParse(httpSessionCookie.Value, out var securityTokenId))
                             {
 
-                                httpCookies.TryRemove(
-                                    securityTokenId,
-                                    out _
+                                Sessions.Remove(
+                                    securityTokenId
                                 //    //new SecurityToken(
                                 //    //    validUser.Id,
                                 //    //    expires
@@ -6989,30 +6965,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Register security token
 
-                    var securityTokenId  = SecurityToken_Id.Parse(
-                                                SHA256.HashData(
-                                                    String.Concat(
-                                                        Guid.NewGuid().ToString(),
-                                                        validUser.Id
-                                                    ).
-                                                    ToUTF8Bytes()
-                                                ).ToHexString()
-                                            );
-
-                    var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
-
-                    httpCookies.TryAdd(
-                        securityTokenId,
-                        new SecurityToken(
-                            validUser.Id,
-                            expires
-                        )
-                    );
-
-                    await File.AppendAllTextAsync(
-                              HTTPAPIPath + DefaultHTTPCookiesFile,
-                              securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine
-                          );
+                    var signInSession    = Sessions.Create(validUser.Id);
+                    var securityTokenId  = signInSession.Token;
+                    var expires          = signInSession.ExpiresAt;
 
                     #endregion
 
@@ -7145,23 +7100,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Register security token
 
-                                  var securityTokenId  = SecurityToken_Id.Parse(
-                                                             SHA256.HashData(
-                                                                 String.Concat(Guid.NewGuid().ToString(),
-                                                                               userURL.Id).
-                                                                 ToUTF8Bytes()
-                                                             ).ToHexString()
-                                                         );
-
-                                  var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
-
-                                  httpCookies.TryAdd(securityTokenId,
-                                                     new SecurityToken(userURL.Id,
-                                                                       expires,
-                                                                       superUser.Id));
-
-                                  await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                $"{securityTokenId};{userURL.Id};{expires.ToISO8601()};{superUser.Id}{Environment.NewLine}");
+                                  var signInSession    = Sessions.Create(userURL.Id, SuperUserId: superUser.Id);
+                                  var securityTokenId  = signInSession.Token;
+                                  var expires          = signInSession.ExpiresAt;
 
                                   #endregion
 
@@ -7246,23 +7187,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Switch back to super user identification...
 
-                                  var securityTokenId  = SecurityToken_Id.Parse(
-                                                             SHA256.HashData(
-                                                                 String.Concat(Guid.NewGuid().ToString(),
-                                                                               superUser.Id).
-                                                                 ToUTF8Bytes()
-                                                             ).ToHexString()
-                                                         );
-
-                                  var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
-
-
-                                  httpCookies.TryAdd(securityTokenId,
-                                                     new SecurityToken(superUser.Id,
-                                                                       expires));
-
-                                  await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                $"{securityTokenId};{superUser.Id};{expires.ToISO8601()}{Environment.NewLine}");
+                                  var signInSession    = Sessions.Create(superUser.Id);
+                                  var securityTokenId  = signInSession.Token;
+                                  var expires          = signInSession.ExpiresAt;
 
                                   #endregion
 
@@ -7360,11 +7287,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse CurrentPassword    [mandatory]
 
-                                  if (!json.ParseMandatory("currentPassword",
-                                                           "current password",
-                                                           Password.TryParse,
-                                                           out Password CurrentPassword,
-                                                           out var errorResponse))
+                                  if (!json.ParseMandatoryText("currentPassword",
+                                                               "current password",
+                                                               out var CurrentPassword,
+                                                               out var errorResponse))
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -7387,11 +7313,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse NewPassword        [mandatory]
 
-                                  if (!json.ParseMandatory("newPassword",
-                                                           "new password",
-                                                           Password.TryParse,
-                                                           out Password NewPassword,
-                                                           out errorResponse))
+                                  if (!json.ParseMandatoryText("newPassword",
+                                                               "new password",
+                                                               out var NewPassword,
+                                                               out errorResponse))
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -7410,7 +7335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
+                                  if (PasswordQualityCheck(NewPassword) < 1.0)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -11447,6 +11372,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Database file...
 
+        #region LoadDatabase()
+
+        /// <summary>
+        /// Replay the database files of this API: users, organizations and
+        /// their relations, passwords, sign-in sessions, passkeys and
+        /// password resets. Call it once after construction, before the
+        /// first request.
+        /// </summary>
+        public Task LoadDatabase()
+
+            => ReadDatabaseFiles((command, data, sender, lineNumber) => ProcessEvent(command, data, sender, lineNumber));
+
+        #endregion
+
         #region (protected) ReadDatabaseFiles(ProcessEventDelegate, DatabaseFileName = null)
 
         /// <summary>
@@ -11571,19 +11510,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #region addPassword
 
+                                    // Password hashes are stored as SecurePassword text, e.g. "$pbkdf2-sha256$i=600000$<salt>$<hash>".
+
                                     case "addPassword":
 
-                                        if (!loginPasswords.ContainsKey(login))
+                                        if (!loginPasswords.ContainsKey(login) &&
+                                            SecurePassword.TryParse((jsonObject["newPassword"] as JValue)?.Value as String ?? "", out var addedPassword))
+                                        {
                                             loginPasswords.TryAdd(
                                                 login,
                                                 new LoginPassword(
                                                     login,
-                                                    Password.ParseHash(
-                                                        jsonObject["newPassword"]["salt"].        Value<String>(),
-                                                        jsonObject["newPassword"]["passwordHash"].Value<String>()
-                                                    )
+                                                    addedPassword
                                                 )
                                             );
+                                        }
 
                                         else
                                             DebugX.Log("Invalid 'AddPassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
@@ -11597,16 +11538,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     case "changePassword":
 
                                         if (loginPasswords.TryGetValue(login, out var loginPassword) &&
-                                            loginPassword.Password.     UnsecureString   == jsonObject["currentPassword"]["passwordHash"].Value<String>() &&
-                                            loginPassword.Password.Salt.UnsecureString() == jsonObject["currentPassword"]["salt"].        Value<String>())
+                                            loginPassword.Password.ToString() == (jsonObject["currentPassword"] as JValue)?.Value as String &&
+                                            SecurePassword.TryParse((jsonObject["newPassword"] as JValue)?.Value as String ?? "", out var changedPassword))
                                         {
 
                                             loginPasswords[login] = new LoginPassword(
                                                                         login,
-                                                                        Password.ParseHash(
-                                                                            jsonObject["newPassword"]["salt"].        Value<String>(),
-                                                                            jsonObject["newPassword"]["passwordHash"].Value<String>()
-                                                                        )
+                                                                        changedPassword
                                                                     );
 
                                         }
@@ -11622,19 +11560,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     case "resetPassword":
 
-                                        if (loginPasswords.ContainsKey(login))
-                                            loginPasswords.TryRemove(login, out _);
+                                        if (SecurePassword.TryParse((jsonObject["newPassword"] as JValue)?.Value as String ?? "", out var replacedPassword))
+                                        {
 
-                                        loginPasswords.TryAdd(
-                                            login,
-                                            new LoginPassword(
-                                                login,
-                                                Password.ParseHash(
-                                                    jsonObject?["newPassword"]?["salt"]?.        Value<String>() ?? "",
-                                                    jsonObject?["newPassword"]?["passwordHash"]?.Value<String>() ?? ""
-                                                )
-                                            )
-                                        );
+                                            loginPasswords[login] = new LoginPassword(
+                                                                        login,
+                                                                        replacedPassword
+                                                                    );
+
+                                        }
+
+                                        else
+                                            DebugX.Log("Invalid 'ResetPassword' command in '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
 
                                         break;
 
@@ -11673,73 +11610,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Read HTTP Cookies file...
 
-            try
-            {
-
-                var splitter  = new Char[] { ';' };
-                var lines     = await File.ReadAllLinesAsync(HTTPAPIPath + DefaultHTTPCookiesFile);
-
-                lines.ForEachCounted((line, linenumber) => {
-
-                    try
-                    {
-
-                        var elements         = line.Split(splitter, StringSplitOptions.None);
-
-                        var securityTokenId  = SecurityToken_Id.Parse(elements[0]);
-                        var userId           = User_Id.         Parse(elements[1]);
-                        var expires          = DateTimeOffset.  Parse(elements[2]);
-                        var superUserId      = elements.Length == 4
-                                                   ? new User_Id?(User_Id.Parse(elements[3]))
-                                                   : null;
-
-                        if (!httpCookies.ContainsKey(securityTokenId) &&
-                            loginPasswords.ContainsKey(userId) &&
-                            expires > Timestamp.Now)
-                        {
-
-                            httpCookies.TryAdd(
-                                securityTokenId,
-                                new SecurityToken(
-                                    userId,
-                                    expires,
-                                    superUserId
-                                )
-                            );
-
-                        }
-
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.Log($"Could not read HTTP cookies file '{HTTPAPIPath + DefaultHTTPCookiesFile}' line {linenumber}: " + e.Message);
-                    }
-
-                });
-
-            }
-            catch (FileNotFoundException)
-            { }
-            catch (Exception e)
-            {
-                DebugX.Log($"Could not read HTTP cookies file '{HTTPAPIPath + DefaultHTTPCookiesFile}': " + e.Message);
-            }
-
-
-            // Write filtered (no invalid users, no expired tokens) tokens back to file...
-            try
-            {
-
-                File.WriteAllLines(
-                    HTTPAPIPath + DefaultHTTPCookiesFile,
-                    httpCookies.Select(token => token.Key + ";" + token.Value.ToLogLine())
-                );
-
-            }
-            catch (Exception e)
-            {
-                DebugX.Log("Could not update HTTP cookies file '{HTTPAPIPath + DefaultHTTPCookiesFile}': " + e.Message);
-            }
+            // The session store replays the file, drops the expired and the
+            // signed-out sessions, writes the live ones back and appends all
+            // further sign-ins and sign-outs by itself.
+            Sessions.AttachFile(HTTPAPIPath + DefaultHTTPCookiesFile);
 
             #endregion
 
@@ -12175,6 +12049,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             switch (Command)
             {
+
+                #region Passkeys
+
+                case "addPasskey":
+                case "updatePasskey":
+                case "removePasskey":
+
+                    if (!ProcessPasskeyEvent(Command, Data, out errorResponse))
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
+
+                    break;
+
+                #endregion
 
                 #region Create user
 
@@ -13581,14 +13468,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CheckHTTPCookie (SecurityTokenId, RemoteAuthServersMaxHopCount = 0)
 
-        public async Task<SecurityToken?> CheckHTTPCookie(SecurityToken_Id  SecurityTokenId,
-                                                          Byte?             RemoteAuthServersMaxHopCount = 0)
+        public async Task<Session?> CheckHTTPCookie(SecurityToken_Id  SecurityTokenId,
+                                                    Byte?             RemoteAuthServersMaxHopCount = 0)
         {
 
             User_Id? userId = null;
 
-            if (httpCookies.TryGetValue(SecurityTokenId, out var securityToken) &&
-                Timestamp.Now < securityToken.Expires)
+            if (Sessions.TryGet(SecurityTokenId, out var securityToken))
             {
                 userId = securityToken.UserId;
             }
@@ -13824,9 +13710,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected          readonly  ConcurrentDictionary<VerificationToken, IUser>          verificationTokens   = [];
 
         /// <summary>
-        /// All HTTP cookies.
+        /// The signed-in sessions, identified by the security token within the session cookie.
         /// </summary>
-        protected          readonly  ConcurrentDictionary<SecurityToken_Id, SecurityToken>   httpCookies          = [];
+        public SessionStore Sessions { get; }
 
         /// <summary>
         /// All password resets.
@@ -14632,23 +14518,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           CurrentUserId
                       );
 
-            var resetPasswordResult = await _ResetPassword(
-                                                User,
-                                                SuppressNotifications:  true,
-                                                EventTrackingId:        eventTrackingId
-                                            );
-
+            // The new-user e-mail carries a password reset token, so that the user
+            // can set the first password. Without the e-mail the token would only
+            // be a secret on disk that nobody ever learns.
             if (!SkipNewUserEMail)
-                await SMTPClient.Send(
-                          NewUserSignUpEMailCreator(
-                              User,
-                              User.EMail,
-                              resetPasswordResult.PasswordReset.SecurityToken1,
-                              User.MobilePhone.HasValue,
-                              DefaultLanguage,
-                              eventTrackingId
-                          )
-                      );
+            {
+
+                var resetPasswordResult = await _ResetPassword(
+                                                    User,
+                                                    SuppressNotifications:  true,
+                                                    EventTrackingId:        eventTrackingId
+                                                );
+
+                if (resetPasswordResult.PasswordReset is not null)
+                    await SMTPClient.Send(
+                              NewUserSignUpEMailCreator(
+                                  User,
+                                  User.EMail,
+                                  resetPasswordResult.PasswordReset.SecurityToken1,
+                                  User.MobilePhone.HasValue,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
+
+                else
+                    DebugX.Log($"{nameof(HTTPExtAPI)}: The new user '{User.Id}' got no password reset token, so no sign-up e-mail was sent: {resetPasswordResult.Description.FirstText()}");
+
+            }
 
             if (!SkipNewUserNotifications)
                 await SendNotifications(
@@ -15137,23 +15034,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           CurrentUserId
                       );
 
-            var resetPasswordResult = await _ResetPassword(
-                                                User,
-                                                SuppressNotifications:  true,
-                                                EventTrackingId:        eventTrackingId
-                                            );
-
+            // The new-user e-mail carries a password reset token, so that the user
+            // can set the first password. Without the e-mail the token would only
+            // be a secret on disk that nobody ever learns.
             if (!SkipNewUserEMail)
-                await SMTPClient.Send(
-                          NewUserSignUpEMailCreator(
-                              User,
-                              User.EMail,
-                              resetPasswordResult.PasswordReset.SecurityToken1,
-                              User.MobilePhone.HasValue,
-                              DefaultLanguage,
-                              eventTrackingId
-                          )
-                      );
+            {
+
+                var resetPasswordResult = await _ResetPassword(
+                                                    User,
+                                                    SuppressNotifications:  true,
+                                                    EventTrackingId:        eventTrackingId
+                                                );
+
+                if (resetPasswordResult.PasswordReset is not null)
+                    await SMTPClient.Send(
+                              NewUserSignUpEMailCreator(
+                                  User,
+                                  User.EMail,
+                                  resetPasswordResult.PasswordReset.SecurityToken1,
+                                  User.MobilePhone.HasValue,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
+
+                else
+                    DebugX.Log($"{nameof(HTTPExtAPI)}: The new user '{User.Id}' got no password reset token, so no sign-up e-mail was sent: {resetPasswordResult.Description.FirstText()}");
+
+            }
 
             if (!SkipNewUserNotifications)
                 await SendNotifications(
@@ -15651,23 +15559,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         CurrentUserId
                     );
 
-                var resetPasswordResult = await _ResetPassword(
-                                                    User,
-                                                    SuppressNotifications:  true,
-                                                    EventTrackingId:        eventTrackingId
-                                                );
-
+                // The new-user e-mail carries a password reset token, so that the user
+                // can set the first password. Without the e-mail the token would only
+                // be a secret on disk that nobody ever learns.
                 if (!SkipNewUserEMail)
-                    await SMTPClient.Send(
-                              NewUserSignUpEMailCreator(
-                                  User,
-                                  User.EMail,
-                                  resetPasswordResult.PasswordReset.SecurityToken1,
-                                  User.MobilePhone.HasValue,
-                                  DefaultLanguage,
-                                  eventTrackingId
-                              )
-                          );
+                {
+
+                    var resetPasswordResult = await _ResetPassword(
+                                                        User,
+                                                        SuppressNotifications:  true,
+                                                        EventTrackingId:        eventTrackingId
+                                                    );
+
+                    if (resetPasswordResult.PasswordReset is not null)
+                        await SMTPClient.Send(
+                                  NewUserSignUpEMailCreator(
+                                      User,
+                                      User.EMail,
+                                      resetPasswordResult.PasswordReset.SecurityToken1,
+                                      User.MobilePhone.HasValue,
+                                      DefaultLanguage,
+                                      eventTrackingId
+                                  )
+                              );
+
+                    else
+                        DebugX.Log($"{nameof(HTTPExtAPI)}: The new user '{User.Id}' got no password reset token, so no sign-up e-mail was sent: {resetPasswordResult.Description.FirstText()}");
+
+                }
 
                 if (!SkipNewUserNotifications)
                     await SendNotifications(
@@ -16721,8 +16640,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
         protected internal async Task<ChangePasswordResult> _ChangePassword(IUser              User,
-                                                                            Password           NewPassword,
-                                                                            Password?          CurrentPassword         = null,
+                                                                            String             NewPassword,
+                                                                            String?            CurrentPassword         = null,
                                                                             Boolean            SuppressNotifications   = false,
                                                                             EventTracking_Id?  EventTrackingId         = null,
                                                                             User_Id?           CurrentUserId           = null)
@@ -16730,7 +16649,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (NewPassword.IsNullOrEmpty)
+            if (NewPassword.IsNullOrEmpty())
                 return ChangePasswordResult.ArgumentError(
                            [ User ],
                            "The given new password must not be null or empty!".ToI18NString(),
@@ -16739,7 +16658,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (CurrentPassword.HasValue && CurrentPassword.Value.IsNullOrEmpty)
+            if (CurrentPassword is not null && CurrentPassword.IsNullOrEmpty())
                 return ChangePasswordResult.ArgumentError(
                            [ User ],
                            "The given current password must not be empty!".ToI18NString(),
@@ -16747,6 +16666,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            SystemId,
                            this
                        );
+
+            if (PasswordQualityCheck(NewPassword) < 1.0)
+                return ChangePasswordResult.ArgumentError(
+                           [ User ],
+                           "The chosen password does not match the password quality criteria!".ToI18NString(),
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
+
+            // Hashing is slow on purpose, so it happens once, up front.
+            var newPassword = SecurePassword.Create(NewPassword);
 
 
             #region AddPassword
@@ -16758,11 +16689,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           HTTPAPIPath + DefaultPasswordFile,
                           addPassword_MessageType,
                           new JObject(
-                              new JProperty("login",         User.Id.ToString()),
-                              new JProperty("newPassword", new JObject(
-                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
-                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
-                              ))
+                              new JProperty("login",        User.Id.ToString()),
+                              new JProperty("newPassword",  newPassword.ToString())
                           ),
                           eventTrackingId,
                           CurrentUserId
@@ -16772,7 +16700,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     User.Id,
                     new LoginPassword(
                         User.Id,
-                        NewPassword
+                        newPassword
                     )
                 );
 
@@ -16800,28 +16728,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region ChangePassword
 
-            else if (CurrentPassword.IsNotNullOrEmpty() && loginPassword.VerifyPassword(CurrentPassword.Value))
+            else if (CurrentPassword is not null && loginPassword.VerifyPassword(CurrentPassword))
             {
 
                 await WriteToDatabaseFile(
                           HTTPAPIPath + DefaultPasswordFile,
                           changePassword_MessageType,
                           new JObject(
-                              new JProperty("login",         User.Id.ToString()),
-                              new JProperty("currentPassword", new JObject(
-                                  new JProperty("salt",          loginPassword.Password.Salt.UnsecureString()),
-                                  new JProperty("passwordHash",  loginPassword.Password.UnsecureString)
-                              )),
-                              new JProperty("newPassword",     new JObject(
-                                  new JProperty("salt",          NewPassword.Salt.UnsecureString()),
-                                  new JProperty("passwordHash",  NewPassword.UnsecureString)
-                              ))
+                              new JProperty("login",            User.Id.ToString()),
+                              new JProperty("currentPassword",  loginPassword.Password.ToString()),
+                              new JProperty("newPassword",      newPassword.ToString())
                           ),
                           eventTrackingId,
                           CurrentUserId
                       );
 
-                loginPasswords[User.Id] = new LoginPassword(User.Id, NewPassword);
+                loginPasswords[User.Id] = new LoginPassword(User.Id, newPassword);
 
                 if (!SuppressNotifications)
                     await SMTPClient.Send(
@@ -16866,8 +16788,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
         public async Task<ChangePasswordResult> ChangePassword(IUser              User,
-                                                               Password           NewPassword,
-                                                               Password?          CurrentPassword         = null,
+                                                               String             NewPassword,
+                                                               String?            CurrentPassword         = null,
                                                                Boolean            SuppressNotifications   = false,
                                                                EventTracking_Id?  EventTrackingId         = null,
                                                                User_Id?           CurrentUserId           = null)
@@ -16938,8 +16860,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
         protected internal async Task<ChangePasswordResult> _ChangePassword(IEnumerable<IUser>  Users,
-                                                                            Password            NewPassword,
-                                                                            Password?           CurrentPassword         = null,
+                                                                            String              NewPassword,
+                                                                            String?             CurrentPassword         = null,
                                                                             Boolean             SuppressNotifications   = false,
                                                                             EventTracking_Id?   EventTrackingId         = null,
                                                                             User_Id?            CurrentUserId           = null)
@@ -16956,7 +16878,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (NewPassword.IsNullOrEmpty)
+            if (NewPassword.IsNullOrEmpty())
                 return ChangePasswordResult.ArgumentError(
                            Users,
                            "The given new password must not be null or empty!".ToI18NString(),
@@ -16965,10 +16887,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (CurrentPassword.HasValue && CurrentPassword.Value.IsNullOrEmpty)
+            if (CurrentPassword is not null && CurrentPassword.IsNullOrEmpty())
                 return ChangePasswordResult.ArgumentError(
                            Users,
                            "The given current password must not be empty!".ToI18NString(),
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
+
+            if (PasswordQualityCheck(NewPassword) < 1.0)
+                return ChangePasswordResult.ArgumentError(
+                           Users,
+                           "The chosen password does not match the password quality criteria!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
                            this
@@ -16983,6 +16914,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
+            // Hashing is slow on purpose, so it happens once for all users.
+            var newPassword = SecurePassword.Create(NewPassword);
+
 
             foreach (var user in Users)
             {
@@ -16994,10 +16928,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                               new JProperty("login",                 user.Id.ToString()),
 
-                              new JProperty("newPassword", new JObject(
-                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
-                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
-                              ))
+                              new JProperty("newPassword",           newPassword.ToString())
 
                               //new JProperty("securityToken1",        SecurityToken1.ToString()),
 
@@ -17010,7 +16941,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           CurrentUserId
                       );
 
-                loginPasswords[user.Id] = new LoginPassword(user.Id, NewPassword);
+                loginPasswords[user.Id] = new LoginPassword(user.Id, newPassword);
 
                 if (!SuppressNotifications)
                     await SMTPClient.Send(
@@ -17044,8 +16975,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
         public async Task<ChangePasswordResult> ChangePassword(IEnumerable<User>  Users,
-                                                               Password           NewPassword,
-                                                               Password?          CurrentPassword         = null,
+                                                               String             NewPassword,
+                                                               String?            CurrentPassword         = null,
                                                                Boolean            SuppressNotifications   = false,
                                                                EventTracking_Id?  EventTrackingId         = null,
                                                                User_Id?           CurrentUserId           = null)
@@ -17444,7 +17375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
         protected internal async Task<ResetPasswordResult> _ResetPassword(SecurityToken_Id   SecurityTokenId1,
-                                                                          Password           NewPassword,
+                                                                          String             NewPassword,
                                                                           SecurityToken_Id?  SecurityTokenId2   = null,
                                                                           EventTracking_Id?  EventTrackingId    = null,
                                                                           User_Id?           CurrentUserId      = null)
@@ -17470,7 +17401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (NewPassword.IsNullOrEmpty)
+            if (NewPassword.IsNullOrEmpty())
                 return ResetPasswordResult.ArgumentError(
                            [],
                            "The given new password must not be null or empty!".ToI18NString(),
@@ -17479,7 +17410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
+            if (PasswordQualityCheck(NewPassword) < 1.0)
                 return ResetPasswordResult.ArgumentError(
                            [],
                            "The chosen password does not match the password quality criteria!".ToI18NString(),
@@ -17507,6 +17438,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
+            // Hashing is slow on purpose, so it happens once for all users.
+            var newPassword = SecurePassword.Create(NewPassword);
+
 
             foreach (var user in passwordReset.Users)
             {
@@ -17518,10 +17452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                               new JProperty("login",                 user.Id.ToString()),
 
-                              new JProperty("newPassword", new JObject(
-                                  new JProperty("salt",              NewPassword.Salt.UnsecureString()),
-                                  new JProperty("passwordHash",      NewPassword.UnsecureString)
-                              ))
+                              new JProperty("newPassword",           newPassword.ToString())
 
                               //new JProperty("securityToken1",        SecurityToken1.ToString()),
 
@@ -17534,7 +17465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           CurrentUserId
                       );
 
-                loginPasswords[user.Id] = new LoginPassword(user.Id, NewPassword);
+                loginPasswords[user.Id] = new LoginPassword(user.Id, newPassword);
 
                 await SMTPClient.Send(
                           PasswordChangedEMailCreator(
@@ -17571,7 +17502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
         public async Task<ResetPasswordResult> ResetPassword(SecurityToken_Id   SecurityTokenId1,
-                                                             Password           NewPassword,
+                                                             String             NewPassword,
                                                              SecurityToken_Id?  SecurityTokenId2   = null,
                                                              EventTracking_Id?  EventTrackingId    = null,
                                                              User_Id?           CurrentUserId      = null)

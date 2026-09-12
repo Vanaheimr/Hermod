@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Buffers.Text;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -26,26 +28,23 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialrequestoptions
-
     /// <summary>
-    /// Options for creating a new PublicKeyCredential.
+    /// The options for navigator.credentials.get(), serialized as the
+    /// WebAuthn Level 3 JSON that PublicKeyCredential.parseRequestOptionsFromJSON()
+    /// reads: binary fields are Base64URL without padding. Without
+    /// allowCredentials the authenticator offers its discoverable credentials.
+    /// https://w3c.github.io/webauthn/#dictdef-publickeycredentialrequestoptions
     /// </summary>
-    /// <param name="Challenge">The challenge that will be used for signing.</param>
-    /// <param name="RelyingPartyId">An optional relying party identification (e.g. the domainname).</param>
-    /// <param name="UserVerification"></param>
-    /// <param name="Timeout">An optional timeout for the operation.</param>
-    /// <param name="AllowCredentials">An optional enumeration of allowed credentials when the user is already known.</param>
-    /// <param name="Hints"></param>
-    /// <param name="Extensions"></param>
     public class PublicKeyCredentialRequestOptions(Byte[]                                       Challenge,
                                                    String?                                      RelyingPartyId     = null,
                                                    UserVerificationRequirement?                 UserVerification   = null,
                                                    TimeSpan?                                    Timeout            = null,
                                                    IEnumerable<PublicKeyCredentialDescriptor>?  AllowCredentials   = null,
                                                    IEnumerable<PublicKeyCredentialHint>?        Hints              = null,
-                                                   IEnumerable<String>?                         Extensions         = null)
+                                                   AuthenticationExtensions?                    Extensions         = null)
     {
+
+        #region Properties
 
         public Byte[]                                      Challenge           { get; } = Challenge;
         public String?                                     RelyingPartyId      { get; } = RelyingPartyId;
@@ -53,21 +52,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
         public TimeSpan?                                   Timeout             { get; } = Timeout;
         public IEnumerable<PublicKeyCredentialDescriptor>  AllowCredentials    { get; } = AllowCredentials?.Distinct() ?? [];
         public IEnumerable<PublicKeyCredentialHint>        Hints               { get; } = Hints?.           Distinct() ?? [];
-        public IEnumerable<String>                         Extensions          { get; } = Extensions?.      Distinct() ?? [];
+        public AuthenticationExtensions?                   Extensions          { get; } = Extensions;
 
+        #endregion
+
+        #region ToJSON()
 
         public JObject ToJSON()
 
             => JSONObject.Create(
 
-                         new JProperty("challenge",          Challenge.ToBase64()),
+                         new JProperty("challenge",          Base64Url.EncodeToString(Challenge)),
 
                    RelyingPartyId.IsNotNullOrEmpty()
                        ? new JProperty("rpId",               RelyingPartyId)
                        : null,
 
-                   UserVerification.IsNotNullOrEmpty()
-                       ? new JProperty("userVerification",   UserVerification)
+                   UserVerification.HasValue
+                       ? new JProperty("userVerification",   UserVerification.Value.ToString())
                        : null,
 
                    Timeout.HasValue
@@ -75,18 +77,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
                        : null,
 
                    AllowCredentials.Any()
-                       ? new JProperty("allowCredentials",   new JArray(AllowCredentials.Select(publicKeyCredentialDescriptor => publicKeyCredentialDescriptor.ToJSON())))
+                       ? new JProperty("allowCredentials",   new JArray(AllowCredentials.Select(descriptor => descriptor.ToJSON())))
                        : null,
 
-                   Hints.           Any()
-                       ? new JProperty("hints",              new JArray(Hints.           Select(hint                          => hint.                         ToString())))
+                   Hints.Any()
+                       ? new JProperty("hints",              new JArray(Hints.Select(hint => hint.ToString())))
                        : null,
 
-                   Extensions.      Any()
-                       ? new JProperty("extensions",         new JArray(Extensions.      Select(extension                     => extension.                    ToString())))
+                   Extensions is { Count: > 0 }
+                       ? new JProperty("extensions",         Extensions.ToJSON())
                        : null
 
                );
+
+        #endregion
 
     }
 

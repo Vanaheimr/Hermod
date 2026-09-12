@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Security.Cryptography;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -108,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Length">The expected length of the random string.</param>
         public static SecurityToken_Id Random(UInt16 Length   = 40)
 
-            => new (RandomExtensions.RandomString(Length));
+            => new (Convert.ToHexString(RandomNumberGenerator.GetBytes((Length + 1) / 2))[..Length]);
 
         #endregion
 
