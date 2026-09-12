@@ -132,14 +132,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (private static) Register(Text, NumericId = 0)
+        #region (static) Register(MediaMainType, MediaSubType, CharSet, Action, MIMEBoundary, params FileExtensions)
 
-        private static HTTPContentType Register(String           MediaMainType,
-                                                String           MediaSubType,
-                                                String?          CharSet,
-                                                String?          Action,
-                                                String?          MIMEBoundary,
-                                                params String[]  FileExtensions)
+        /// <summary>
+        /// Register a content type, so that it can be parsed by media type and
+        /// looked up by file extension. Applications may register their own
+        /// types; registering a media type twice throws.
+        /// </summary>
+        /// <param name="MediaMainType">The media main type, e.g. "application".</param>
+        /// <param name="MediaSubType">The media sub type, e.g. "wasm".</param>
+        /// <param name="CharSet">An optional character set, e.g. "utf-8".</param>
+        /// <param name="Action">An optional action parameter.</param>
+        /// <param name="MIMEBoundary">An optional MIME boundary.</param>
+        /// <param name="FileExtensions">The file extensions without the dot, e.g. "wasm".</param>
+        public static HTTPContentType Register(String           MediaMainType,
+                                               String           MediaSubType,
+                                               String?          CharSet,
+                                               String?          Action,
+                                               String?          MIMEBoundary,
+                                               params String[]  FileExtensions)
         {
 
             var httpContentType = new HTTPContentType(
@@ -298,6 +309,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ForFileName(FileName, DefaultValue = null)
+
+        /// <summary>
+        /// The content type registered first for the extension of the given
+        /// file name or path, or the default value (application/octet-stream
+        /// when null) when the extension is unknown or missing.
+        /// </summary>
+        /// <param name="FileName">A file name or path, e.g. "assets/app.js".</param>
+        /// <param name="DefaultValue">The content type for unknown extensions.</param>
+        public static HTTPContentType ForFileName(String            FileName,
+                                                  HTTPContentType?  DefaultValue = null)
+        {
+
+            var fallback  = DefaultValue ?? Application.OCTETSTREAM;
+            var slash     = FileName.LastIndexOfAny([ '/', '\\' ]);
+            var dot       = FileName.LastIndexOf('.');
+
+            if (dot < 0 || dot <= slash || dot == FileName.Length - 1)
+                return fallback;
+
+            var extension = FileName[(dot + 1)..];
+
+            if (fileExtensionLookup.TryGetValue(extension,                    out var httpContentTypes) && httpContentTypes.Length > 0 ||
+                fileExtensionLookup.TryGetValue(extension.ToLowerInvariant(), out     httpContentTypes) && httpContentTypes.Length > 0)
+            {
+                return httpContentTypes[0];
+            }
+
+            return fallback;
+
+        }
+
+        #endregion
+
 
         #region Clone()
 
@@ -333,9 +378,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public static HTTPContentType CSS_UTF8               { get; }
                 = Register("text", "css",                               "utf-8", null, null, "css");
             public static HTTPContentType CSV_UTF8               { get; }
-                = Register("text", "csv",                               "utf-8", null, null, "css");
+                = Register("text", "csv",                               "utf-8", null, null, "csv");
             public static HTTPContentType JAVASCRIPT_UTF8        { get; }
-                = Register("text", "javascript",                        "utf-8", null, null, "js");
+                = Register("text", "javascript",                        "utf-8", null, null, "js", "mjs");
             public static HTTPContentType XML_UTF8               { get; }
                 = Register("text", "xml",                               "utf-8", null, null, "xml");
             public static HTTPContentType MARKDOWN_UTF8          { get; }
@@ -350,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             public static HTTPContentType JSON_UTF8              { get; }
-                = Register("application", "json",                       "utf-8", null, null, "json");
+                = Register("application", "json",                       "utf-8", null, null, "json", "map");
             public static HTTPContentType JSONLD_UTF8            { get; }
                 = Register("application", "ld+json",                    "utf-8", null, null, "json-ld");
             public static HTTPContentType GeoJSON_UTF8           { get; }
@@ -388,8 +433,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public static HTTPContentType SIG                    { get; }
                 = Register("application", "pgp-signature",              "utf-8", null, null, "sig");
 
+            /// <summary>
+            /// The pre-RFC 8081 media type of WOFF files. Kept for parsing;
+            /// the file extensions now map onto Font.WOFF and Font.WOFF2.
+            /// </summary>
             public static HTTPContentType WOFF                   { get; }
-                = Register("application", "font-woff",                  "utf-8", null, null, "woff", "woff2");
+                = Register("application", "font-woff",                  null,    null, null);
 
             public static HTTPContentType XWWWFormUrlEncoded     { get; }
                 = Register("application", "x-www-form-urlencoded",      "utf-8", null, null);
@@ -400,6 +449,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 = Register("application", "javascript",                 "utf-8", null, null);
             public static HTTPContentType TypeScript             { get; }
                 = Register("application", "typescript",                 "utf-8", null, null);
+
+            public static HTTPContentType WASM                   { get; }
+                = Register("application", "wasm",                       null,    null, null, "wasm");
+            public static HTTPContentType ManifestJSON_UTF8      { get; }
+                = Register("application", "manifest+json",              "utf-8", null, null, "webmanifest");
+
+        }
+
+        /// <summary>
+        /// The font media types of RFC 8081.
+        /// </summary>
+        public static class Font
+        {
+
+            public static HTTPContentType WOFF                   { get; }
+                = Register("font", "woff",                              null,    null, null, "woff");
+            public static HTTPContentType WOFF2                  { get; }
+                = Register("font", "woff2",                             null,    null, null, "woff2");
+            public static HTTPContentType TTF                    { get; }
+                = Register("font", "ttf",                               null,    null, null, "ttf");
+            public static HTTPContentType OTF                    { get; }
+                = Register("font", "otf",                               null,    null, null, "otf");
 
         }
 
@@ -416,6 +487,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 = Register("image", "jpeg",                             null,    null, null, "jpg", "jpeg");
             public static HTTPContentType SVG                    { get; }
                 = Register("image", "svg+xml",                          "utf-8", null, null, "svg");
+            public static HTTPContentType WEBP                   { get; }
+                = Register("image", "webp",                             null,    null, null, "webp");
+            public static HTTPContentType AVIF                   { get; }
+                = Register("image", "avif",                             null,    null, null, "avif");
 
         }
 

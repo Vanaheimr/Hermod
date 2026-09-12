@@ -689,11 +689,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         // Build the API-relative path from the original request path.
                         // Joining the already slash-prefixed server segments would
                         // produce a doubled leading slash (for example "//test1.txt").
+                        // The root path may have been given with or without a trailing
+                        // slash ("/api/" or "/api"); both must strip the same prefix.
                         var requestPath      = Request.Path.ToString();
-                        var rootPath         = httpAPINode.HTTPAPI.RootPath.ToString();
-                        var relativePath     = rootPath == "/"
+                        var rootPath         = httpAPINode.HTTPAPI.RootPath.ToString().TrimEnd('/');
+                        var relativePath     = rootPath.Length == 0
                                                     ? requestPath
-                                                    : requestPath[(rootPath.Length - 1)..];
+                                                    : requestPath[rootPath.Length..];
+
+                        if (relativePath.Length == 0)
+                            relativePath = "/";
                         var newPath          = HTTPPath.Parse(relativePath);
                         var parsedRouteNode  = httpAPINode.HTTPAPI.GetRequestHandle(newPath);
 
