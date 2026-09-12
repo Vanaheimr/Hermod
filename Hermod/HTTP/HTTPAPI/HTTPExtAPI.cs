@@ -4594,7 +4594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //        request.Path == (URLPathPrefix + "/securityToken") ||
 
             //       (request.Path == (URLPathPrefix + "/serviceCheck")  && request.HTTPMethod.ToString() == "GET") ||
-            //       (request.Path == (URLPathPrefix + "/serviceCheck")  && request.HTTPMethod.ToString() == "POST"))
+            //       (request.Path == (HTTPPath.Root + "/serviceCheck")  && request.HTTPMethod.ToString() == "POST"))
             //    {
 
             //        return Anonymous;
@@ -4693,7 +4693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             AddHandler(
                 HTTPMethod.POST,
-                URLPathPrefix + "login",
+                HTTPPath.Root + "login",
                 HTTPContentType.Application.XWWWFormUrlEncoded,
                 HTTPDelegate: Request => {
 
@@ -4976,7 +4976,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.RESET,
-                URLPathPrefix + "resetPassword",
+                HTTPPath.Root + "resetPassword",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: async Request => {
 
@@ -5136,7 +5136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.SET,
-                URLPathPrefix + "setPassword",
+                HTTPPath.Root + "setPassword",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: async Request => {
 
@@ -5328,7 +5328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------
             AddHandler(
                 HTTPMethod.OPTIONS,
-                URLPathPrefix + "securityToken",
+                HTTPPath.Root + "securityToken",
                 HTTPDelegate: request => {
 
                     return Task.FromResult(
@@ -5354,7 +5354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.CHECK,
-                URLPathPrefix + "securityToken",
+                HTTPPath.Root + "securityToken",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: async request => {
 
@@ -5500,7 +5500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.OPTIONS,
-                URLPathPrefix + "users",
+                HTTPPath.Root + "users",
                 HTTPDelegate: request => {
 
                     return Task.FromResult(
@@ -5919,7 +5919,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.GET,
-                URLPathPrefix + "users",
+                HTTPPath.Root + "users",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: request => {
 
@@ -6093,7 +6093,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.OPTIONS,
-                URLPathPrefix + "users/{UserId}",
+                HTTPPath.Root + "users/{UserId}",
                 HTTPDelegate: request => {
 
                     return Task.FromResult(
@@ -6122,7 +6122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.ADD,
-                URLPathPrefix + "users/{UserId}",
+                HTTPPath.Root + "users/{UserId}",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPRequestLogger:   AddUserHTTPRequest,
                 HTTPResponseLogger:  AddUserHTTPResponse,
@@ -6406,7 +6406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.SET,
-                URLPathPrefix + "users/{UserId}",
+                HTTPPath.Root + "users/{UserId}",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPRequestLogger:   SetUserHTTPRequest,
                 HTTPResponseLogger:  SetUserHTTPResponse,
@@ -6527,7 +6527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ----------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.DELETE,
-                URLPathPrefix + "users/{UserId}",
+                HTTPPath.Root + "users/{UserId}",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: async request => {
 
@@ -6645,7 +6645,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}",
+                              HTTPPath.Root + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -6721,7 +6721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             AddHandler(
                 HTTPMethod.AUTH,
-                URLPathPrefix + "users/{UserId}",
+                HTTPPath.Root + "users/{UserId}",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: async request => {
 
@@ -7004,7 +7004,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             AddHandler(
                               HTTPMethod.DEAUTH,
-                              URLPathPrefix + "users/{UserId}",
+                              HTTPPath.Root + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request =>
 
@@ -7035,7 +7035,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             AddHandler(
                               HTTPMethod.IMPERSONATE,
-                              URLPathPrefix + "users/{UserId}",
+                              HTTPPath.Root + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   ImpersonateUserRequest,
                               HTTPResponseLogger:  ImpersonateUserResponse,
@@ -7139,7 +7139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             AddHandler(
                               HTTPMethod.DEPERSONATE,
-                              URLPathPrefix + "users/{UserId}",
+                              HTTPPath.Root + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -7227,7 +7227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             AddHandler(
                               HTTPMethod.SET,
-                              URLPathPrefix + "users/{UserId}/password",
+                              HTTPPath.Root + "users/{UserId}/password",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   ChangePasswordRequest,
                               HTTPResponseLogger:  ChangePasswordResponse,
@@ -7405,7 +7405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}/organizations",
+                              HTTPPath.Root + "users/{UserId}/organizations",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -7477,7 +7477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}/notifications",
+                              HTTPPath.Root + "users/{UserId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -7525,7 +7525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.SET,
-                              URLPathPrefix + "users/{UserId}/notifications",
+                              HTTPPath.Root + "users/{UserId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   SetUserNotificationsRequest,
                               HTTPResponseLogger:  SetUserNotificationsResponse,
@@ -7716,7 +7716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "users/{UserId}/notifications",
+                              HTTPPath.Root + "users/{UserId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   DeleteUserNotificationsRequest,
                               HTTPResponseLogger:  DeleteUserNotificationsResponse,
@@ -7902,7 +7902,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}/notifications/{notificationId}",
+                              HTTPPath.Root + "users/{UserId}/notifications/{notificationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -7980,7 +7980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}/APIKeys",
+                              HTTPPath.Root + "users/{UserId}/APIKeys",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -8063,7 +8063,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.ADD,
-                              URLPathPrefix + "users/{UserId}/APIKeys",
+                              HTTPPath.Root + "users/{UserId}/APIKeys",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -8196,7 +8196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "users/{UserId}/APIKeys/{APIKeyId}",
+                              HTTPPath.Root + "users/{UserId}/APIKeys/{APIKeyId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -8352,7 +8352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "userGroups",
+                              HTTPPath.Root + "userGroups",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -8439,7 +8439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "userGroups/{UserGroupId}",
+                              HTTPPath.Root + "userGroups/{UserGroupId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -8519,7 +8519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "organizations",
+                              HTTPPath.Root + "organizations",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -8612,7 +8612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.COUNT,
-                              URLPathPrefix + "organizations",
+                              HTTPPath.Root + "organizations",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -8679,7 +8679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.ADD,
-                              URLPathPrefix + "organizations",
+                              HTTPPath.Root + "organizations",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  AddOrganizationHTTPRequest,
                               HTTPResponseLogger: AddOrganizationHTTPResponse,
@@ -8825,7 +8825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -8919,7 +8919,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------
             AddHandler(
                               HTTPMethod.EXISTS,
-                              URLPathPrefix + "organizations/{OrganizationId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}",
                               HTTPDelegate: Request => {
 
                                   #region Try to get HTTP user and its organizations
@@ -8993,7 +8993,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.ADD,
-                              URLPathPrefix + "organizations/{organizationId}",
+                              HTTPPath.Root + "organizations/{organizationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  AddOrganizationHTTPRequest,
                               HTTPResponseLogger: AddOrganizationHTTPResponse,
@@ -9237,7 +9237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.SET,
-                              URLPathPrefix + "organizations/{organizationId}",
+                              HTTPPath.Root + "organizations/{organizationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  SetOrganizationHTTPRequest,
                               HTTPResponseLogger: SetOrganizationHTTPResponse,
@@ -9367,7 +9367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "organizations/{organizationId}",
+                              HTTPPath.Root + "organizations/{organizationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  DeleteOrganizationHTTPRequest,
                               HTTPResponseLogger: DeleteOrganizationHTTPResponse,
@@ -9466,7 +9466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.ADD,
-                              URLPathPrefix + "organizations/{OrganizationId}/admins/{UserId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}/admins/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -9567,7 +9567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.ADD,
-                              URLPathPrefix + "organizations/{OrganizationId}/members/{UserId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}/members/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -9668,7 +9668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.ADD,
-                              URLPathPrefix + "organizations/{OrganizationId}/guests/{UserId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}/guests/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -9769,7 +9769,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "organizations/{OrganizationId}/_all/{UserId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}/_all/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -9869,7 +9869,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "organizations/{OrganizationId}/admins/{UserId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}/admins/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -9970,7 +9970,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "organizations/{OrganizationId}/members/{UserId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}/members/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -10071,7 +10071,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "organizations/{OrganizationId}/guests/{UserId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}/guests/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
@@ -10173,7 +10173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}/notifications",
+                              HTTPPath.Root + "organizations/{OrganizationId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -10235,7 +10235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.SET,
-                              URLPathPrefix + "organizations/{OrganizationId}/notifications",
+                              HTTPPath.Root + "organizations/{OrganizationId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   SetOrganizationNotificationsRequest,
                               HTTPResponseLogger:  SetOrganizationNotificationsResponse,
@@ -10423,7 +10423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              URLPathPrefix + "organizations/{OrganizationId}/notifications",
+                              HTTPPath.Root + "organizations/{OrganizationId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   DeleteOrganizationNotificationsRequest,
                               HTTPResponseLogger:  DeleteOrganizationNotificationsResponse,
@@ -10610,7 +10610,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "organizationGroups",
+                              HTTPPath.Root + "organizationGroups",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -10701,7 +10701,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.GET,
-                URLPathPrefix + "notifications",
+                HTTPPath.Root + "notifications",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: request => {
 
@@ -10748,7 +10748,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.GET,
-                URLPathPrefix + "newNotification",
+                HTTPPath.Root + "newNotification",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: request => {
 
@@ -10908,7 +10908,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------
             AddHandler(
                               HTTPMethod.OPTIONS,
-                              URLPathPrefix + "changeSets",
+                              HTTPPath.Root + "changeSets",
                               HTTPDelegate: request => {
 
                                   return Task.FromResult(
@@ -10933,7 +10933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              URLPathPrefix + "changeSets",
+                              HTTPPath.Root + "changeSets",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async request => {
 
@@ -11016,7 +11016,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------
             AddHandler(
                 HTTPMethod.GET,
-                URLPathPrefix + "monitoring",
+                HTTPPath.Root + "monitoring",
                 HTTPDelegate: request => {
 
                     #region Check Check Access Rights
@@ -11067,7 +11067,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ----------------------------------------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.POST,
-                URLPathPrefix + "monitoring",
+                HTTPPath.Root + "monitoring",
                 HTTPDelegate: request => {
 
                     #region Check Check Access Rights
@@ -11147,7 +11147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------
             AddHandler(
                 HTTPMethod.POST,
-                URLPathPrefix + "createGCDump",
+                HTTPPath.Root + "createGCDump",
                 HTTPDelegate: async request => {
 
                     #region Check Check Access Rights
@@ -11282,7 +11282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------
             AddHandler(
                 HTTPMethod.POST,
-                URLPathPrefix + "/restart",
+                HTTPPath.Root + "/restart",
                 HTTPRequestLogger:   RestartRequest,
                 HTTPResponseLogger:  RestartResponse,
                 HTTPDelegate:  async request => {
@@ -11327,7 +11327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------
             AddHandler(
                 HTTPMethod.POST,
-                URLPathPrefix + "/stop",
+                HTTPPath.Root + "/stop",
                 HTTPRequestLogger:   StopRequest,
                 HTTPResponseLogger:  StopResponse,
                 HTTPDelegate:  async request => {
