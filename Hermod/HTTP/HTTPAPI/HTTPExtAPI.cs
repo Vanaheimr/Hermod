@@ -16129,6 +16129,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           now,
                           updatedUser,
                           User,
+            // The builder does not carry the API; without this a second update of the
+            // same account failed with "not attached to this API".
+            updatedUser.API = this;
                           eventTrackingId,
                           CurrentUserId
                       );

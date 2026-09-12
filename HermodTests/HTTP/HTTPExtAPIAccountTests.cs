@@ -112,6 +112,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.That(updated.Result,  Is.EqualTo(CommandResult.Success));
 
+                // A second update of the same account used to fail with "not attached to this API".
+                Assert.That(api.TryGetUser(user.Id, out var current),  Is.True);
+
+                var renamed = await api.UpdateUser(
+                                        current!,
+                                        builder => builder.Name = I18NString.Create("Alice L."),
+                                        SkipUserUpdatedNotifications:  true
+                                    );
+
+                Assert.That(renamed.Result,  Is.EqualTo(CommandResult.Success),  renamed.Description.FirstText());
+                Assert.That(api.TryGetUser(user.Id, out current) && current!.LastLoginAt == lastLogin,  Is.True,  "the builder carries the earlier change");
+
                 var passkey = new Passkey(
                                   Id:              "credential-1",
                                   PublicKey:       new Byte[32],
@@ -141,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.That(restarted.TryGetUser(User_Id.Parse("alice"), out var reloaded),  Is.True);
                 Assert.That(reloaded!.EMail.Address.ToString(),                              Is.EqualTo("alice@example.test"));
-                Assert.That(reloaded.Name.FirstText(),                                       Is.EqualTo("Alice"));
+                Assert.That(reloaded.Name.FirstText(),                                       Is.EqualTo("Alice L."));
                 Assert.That(reloaded.CreatedAt,                                              Is.EqualTo(user.CreatedAt).Within(TimeSpan.FromSeconds(1)));
                 Assert.That(reloaded.LastLoginAt,                                            Is.EqualTo(lastLogin));
                 Assert.That(restarted.VerifyPassword(reloaded.Id, "Correct-Horse-1"),        Is.True);
