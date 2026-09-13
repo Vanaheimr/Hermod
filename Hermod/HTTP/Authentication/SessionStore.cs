@@ -110,6 +110,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TimeSpan   MaximumLifetime    { get; }
 
         /// <summary>
+        /// Where this store reads the time: when a session was created, when it
+        /// was last seen, and whether it has expired.
+        /// </summary>
+        /// <remarks>
+        /// Handed in rather than reached for, so that the sessions of an
+        /// application follow the same clock as the rest of it - and so that a
+        /// test can let a session time out without waiting for it.
+        /// </remarks>
+        public TimeProvider  TimeProvider      { get; }
+
+        /// <summary>
         /// The file the sessions are persisted in, if any.
         /// </summary>
         public String?    FilePath
@@ -122,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                var now = DateTimeOffset.UtcNow;
+                var now = TimeProvider.GetUtcNow();
                 return sessions.Values.Count(session => !session.IsExpired(now));
             }
         }
@@ -137,9 +148,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IdleTimeout">An optional idle timeout: a session ends when it was not used for this long.</param>
         /// <param name="MaximumLifetime">The maximum lifetime of a session, counted from its creation; 30 days by default.</param>
         /// <param name="FilePath">An optional file to persist the sessions in.</param>
-        public SessionStore(TimeSpan?  IdleTimeout       = null,
-                            TimeSpan?  MaximumLifetime   = null,
-                            String?    FilePath          = null)
+        /// <param name="TimeProvider">Where this store reads the time; the system clock by default.</param>
+        public SessionStore(TimeSpan?      IdleTimeout       = null,
+                            TimeSpan?      MaximumLifetime   = null,
+                            String?        FilePath          = null,
+                            TimeProvider?  TimeProvider      = null)
         {
 
             if (IdleTimeout.HasValue && IdleTimeout.Value <= TimeSpan.Zero)
@@ -150,6 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.IdleTimeout      = IdleTimeout;
             this.MaximumLifetime  = MaximumLifetime ?? DefaultMaximumLifetime;
+            this.TimeProvider     = TimeProvider    ?? System.TimeProvider.System;
 
             if (FilePath is not null)
                 AttachFile(FilePath);
@@ -175,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Sweep();
 
-            var now      = DateTimeOffset.UtcNow;
+            var now      = TimeProvider.GetUtcNow();
             var session  = new Session(
                                NewToken(),
                                UserId,
@@ -211,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Token.IsNullOrEmpty || !sessions.TryGetValue(Token, out var session))
                 return false;
 
-            var now = DateTimeOffset.UtcNow;
+            var now = TimeProvider.GetUtcNow();
 
             if (session.IsExpired(now))
             {
@@ -293,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UserId">A user identification.</param>
         public Int32 CountForUser(User_Id UserId)
         {
-            var now = DateTimeOffset.UtcNow;
+            var now = TimeProvider.GetUtcNow();
             return sessions.Values.Count(session => session.UserId == UserId && !session.IsExpired(now));
         }
 
@@ -321,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (File.Exists(FilePath))
                 {
 
-                    var now     = DateTimeOffset.UtcNow;
+                    var now     = TimeProvider.GetUtcNow();
                     var number  = 0;
 
                     foreach (var line in File.ReadLines(FilePath))
@@ -378,7 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private void Sweep()
         {
 
-            var now = DateTimeOffset.UtcNow;
+            var now = TimeProvider.GetUtcNow();
 
             foreach (var session in sessions.Values.Where(session => session.IsExpired(now)).ToList())
                 sessions.TryRemove(session.Token, out _);
@@ -500,7 +514,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                var now = DateTimeOffset.UtcNow;
+                var now = TimeProvider.GetUtcNow();
 
                 File.WriteAllLines(
                     filePath,
@@ -527,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IEnumerator<Session> GetEnumerator()
         {
-            var now = DateTimeOffset.UtcNow;
+            var now = TimeProvider.GetUtcNow();
             return sessions.Values.Where(session => !session.IsExpired(now)).ToList().GetEnumerator();
         }
 
