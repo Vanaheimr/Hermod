@@ -638,6 +638,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (private) SendPasswordChangedEMail(User, EventTrackingId)
+
+        /// <summary>
+        /// The "password changed" e-mail is a courtesy: when it cannot be sent,
+        /// e.g. because no API robot is configured, the change still stands.
+        /// </summary>
+        private async Task SendPasswordChangedEMail(IUser             User,
+                                                    EventTracking_Id  EventTrackingId)
+        {
+            try
+            {
+                await SMTPClient.Send(PasswordChangedEMailCreator(User, User.EMail, DefaultLanguage, EventTrackingId));
+            }
+            catch (Exception e)
+            {
+                DebugX.Log($"{nameof(HTTPExtAPI)}: The 'password changed' e-mail for '{User.Id}' could not be sent: {e.Message}");
+            }
+        }
+
+        #endregion
+
         #region (internal) SignInNoted(User, EventTrackingId)
 
         /// <summary>

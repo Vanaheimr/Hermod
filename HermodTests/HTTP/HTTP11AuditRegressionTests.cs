@@ -206,6 +206,10 @@ public sealed class HTTP11AuditRegressionTests
 
             AddPrivateDictionaryEntry(api, "users", firstUser.Id, firstUser);
             AddPrivateDictionaryEntry(api, "users", verifiedUser.Id, verifiedUser);
+
+            // Injected directly, so attach them like AddUser would; the sign-in updates the account.
+            firstUser.API     = api;
+            verifiedUser.API  = api;
             AddPrivateDictionaryEntry(
                 api,
                 "loginPasswords",
@@ -229,6 +233,10 @@ public sealed class HTTP11AuditRegressionTests
             var response = await handler(request);
 
             Assert.That(response.HTTPStatusCode.Code, Is.EqualTo(201));
+
+            // The form login records the sign-in like the JSON and passkey sign-ins do.
+            Assert.That(api.TryGetUser(verifiedUser.Id, out var signedIn) && signedIn!.LastLoginAt is not null,  Is.True);
+            Assert.That(api.TryGetUser(firstUser.Id,    out var other)    && other!.LastLoginAt    is null,      Is.True);
 
             var sessions = api.Sessions.ToArray();
 

@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Invalid UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPRequest.ParsedURLParameters.Length < 1) {
-                HTTPResponseBuilder.Content = @"{ ""description"": String.EmptyMissing user identification!"" }".ToUTF8Bytes();
+                HTTPResponseBuilder.Content = @"{ ""description"": ""Missing user identification!"" }".ToUTF8Bytes();
                 UserId = null;
                 return false;
             }
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UserId = User_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
 
             if (!UserId.HasValue) {
-                HTTPResponseBuilder.Content = @"{ ""description"": String.EmptyInvalid user identification!"" }".ToUTF8Bytes();
+                HTTPResponseBuilder.Content = @"{ ""description"": ""Invalid user identification!"" }".ToUTF8Bytes();
                 UserId = null;
                 return false;
             }
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Invalid UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyUnknown UserId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Unknown UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -303,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Invalid UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -373,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Invalid UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -388,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyUnknown UserGroupId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Unknown UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -458,7 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Invalid OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -528,7 +528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Invalid OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -543,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": String.EmptyUnknown OrganizationId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": ""Unknown OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -4714,7 +4714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPMethod.POST,
                 HTTPPath.Root + "login",
                 HTTPContentType.Application.XWWWFormUrlEncoded,
-                HTTPDelegate: Request => {
+                HTTPDelegate: async Request => {
 
                     //Note: Add LoginRequest event!
 
@@ -4725,7 +4725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                out var httpResponse,
                                                                AllowEmptyHTTPBody: false))
                     {
-                        return Task.FromResult(httpResponse);
+                        return httpResponse;
                     }
 
                     #endregion
@@ -4738,7 +4738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          login.    IsNullOrEmpty())
                     {
 
-                        return Task.FromResult(
+                        return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4751,7 +4751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl     = "private",
                                 Connection       = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
                     }
 
@@ -4760,7 +4760,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (login.Length < MinUserIdLength)
                     {
 
-                        return Task.FromResult(
+                        return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4773,7 +4773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
                     }
 
@@ -4785,7 +4785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         password.  IsNullOrEmpty())
                     {
 
-                       return Task.FromResult(
+                       return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4798,7 +4798,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
                     }
 
@@ -4807,7 +4807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (PasswordQualityCheck(password) < 1.0)
                     {
 
-                        return Task.FromResult(
+                        return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4820,7 +4820,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
                     }
 
@@ -4858,7 +4858,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     if (possibleUsers.Count == 0)
-                        return Task.FromResult(
+                        return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4870,7 +4870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
 
                     var validUsers = new HashSet<IUser>();
@@ -4885,7 +4885,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     if (validUsers.Count == 0)
-                        return Task.FromResult(
+                        return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4897,11 +4897,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
 
                     if (validUsers.Count > 1)
-                        return Task.FromResult(
+                        return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4913,7 +4913,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
                     #endregion
 
@@ -4926,7 +4926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region Check whether the user has access to at least one organization
 
                     if (!validUser.Organizations(Access_Levels.ReadOnly).Any())
-                        return Task.FromResult(
+                        return
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                 Server          = HTTPServer?.HTTPServerName,
@@ -4937,12 +4937,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable);
+                            }.AsImmutable;
 
                     #endregion
 
 
                     #region Register security token
+
+                    validUser = await SignInNoted(validUser, Request.EventTrackingId);
 
                     var signInSession    = Sessions.Create(validUser.Id);
                     var securityTokenId  = signInSession.Token;
@@ -4953,7 +4955,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     //Note: Add LoginResponse event!
 
-                    return Task.FromResult(
+                    return
                         new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.Created,
                             ContentType     = HTTPContentType.Text.HTML_UTF8,
@@ -4981,7 +4983,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ),
                             Connection      = ConnectionType.KeepAlive,
                             X_FrameOptions  = "DENY"
-                        }.AsImmutable);
+                        }.AsImmutable;
 
                 }
             );
@@ -6984,6 +6986,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Register security token
 
+                    validUser = await SignInNoted(validUser, request.EventTrackingId);
+
                     var signInSession    = Sessions.Create(validUser.Id);
                     var securityTokenId  = signInSession.Token;
                     var expires          = signInSession.ExpiresAt;
@@ -7380,6 +7384,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          CurrentUserId:    httpUser.Id
                                                      );
 
+                                  // Everybody else who knew the old password is signed out; the
+                                  // session that changed it stays, like on POST auth/password.
+                                  if (result.Result == CommandResult.Success)
+                                      Sessions.RemoveAllForUser(
+                                          user.Id,
+                                          ExceptToken:  TryGetSecurityTokenFromCookie(Request, out var currentToken)
+                                                            ? currentToken
+                                                            : null
+                                      );
 
                                   return result.Result == CommandResult.Success
 
@@ -7400,6 +7413,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ HTTPMethod.SET ],
                                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                                   Content                     = new JObject(new JProperty("description", result.Description.FirstText())).ToString().ToUTF8Bytes(),
                                                    Connection                  = ConnectionType.KeepAlive
                                                }.AsImmutable;
 
@@ -16726,16 +16741,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     )
                 );
 
-                if (!SuppressNotifications)
-                    await SMTPClient.Send(
-                              PasswordChangedEMailCreator(
-                                  User,
-                                  User.EMail,
-                                  //"https://" + Request.Host.SimpleString,
-                                  DefaultLanguage,
-                                  eventTrackingId
-                              )
-                          );
+                if (!SuppressNotifications && !DisableNotifications)
+                    await SendPasswordChangedEMail(User, eventTrackingId);
 
                 return ChangePasswordResult.Success(
                            [ User ],
@@ -16767,16 +16774,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 loginPasswords[User.Id] = new LoginPassword(User.Id, newPassword);
 
-                if (!SuppressNotifications)
-                    await SMTPClient.Send(
-                              PasswordChangedEMailCreator(
-                                  User,
-                                  User.EMail,
-                                  //"https://" + Request.Host.SimpleString,
-                                  DefaultLanguage,
-                                  eventTrackingId
-                              )
-                          );
+                if (!SuppressNotifications && !DisableNotifications)
+                    await SendPasswordChangedEMail(User, eventTrackingId);
 
                 return ChangePasswordResult.Success(
                            [ User ],

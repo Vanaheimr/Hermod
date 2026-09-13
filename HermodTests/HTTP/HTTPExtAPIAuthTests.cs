@@ -54,6 +54,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             public Dictionary<String, String> Cookies { get; } = [];
 
+            /// <summary>
+            /// The body of the last response, for failure messages.
+            /// </summary>
+            public String LastBody { get; private set; } = "";
+
             public Boolean HasSession
                 => Cookies.Keys.Any(name => name.EndsWith("Session", StringComparison.Ordinal));
 
@@ -93,6 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
 
                 var text = await response.Content.ReadAsStringAsync();
+                LastBody = text;
 
                 JObject? json = null;
 
@@ -114,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region (private) StartAsync()
 
-        private static async Task<(HTTPServer Server, HTTPExtAPI API, HttpClient Client, String Directory)> StartAsync()
+        private static async Task<(HTTPServer Server, HTTPExtAPI API, HttpClient Client, String Directory)> StartAsync(Boolean WithTemplates = false)
         {
 
             var directory  = Path.Combine(Path.GetTempPath(), $"hermod-auth-{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
@@ -124,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api        = new HTTPExtAPI(
                                  server,
                                  RootPath:              HTTPPath.Parse("/accounts"),
-                                 SkipURLTemplates:      true,
+                                 SkipURLTemplates:      !WithTemplates,
                                  DisableNotifications:  true,
                                  LoggingPath:           directory,
                                  MinUserIdLength:       3,
@@ -462,6 +468,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 (status, _) = await browser.Call(HttpMethod.Delete, $"accounts/auth/passkeys/{authenticator.CredentialIdText}");
                 Assert.That(status,                     Is.EqualTo(HttpStatusCode.NoContent));
                 Assert.That(api.GetPasskeys(erin),      Is.Empty);
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region Unknown_Paths_Answer_404()
+
+        [Test]
+        public async Task Unknown_Paths_Answer_404()
+        {
+
+            var (server, api, client, directory) = await StartAsync();
+
+            try
+            {
+
+                var browser = new Browser(client);
+
+                // The API root without a route, an unknown route below it, a path
+                // outside every API: all 404, none of them a server error.
+                Assert.That((await browser.Call(HttpMethod.Get,  "accounts/")).Status,             Is.EqualTo(HttpStatusCode.NotFound));
+                Assert.That((await browser.Call(HttpMethod.Get,  "accounts")).Status,              Is.EqualTo(HttpStatusCode.NotFound));
+                Assert.That((await browser.Call(HttpMethod.Get,  "accounts/auth/nothing")).Status, Is.EqualTo(HttpStatusCode.NotFound));
+                Assert.That((await browser.Call(HttpMethod.Post, "accounts/nothing")).Status,      Is.EqualTo(HttpStatusCode.NotFound));
+                Assert.That((await browser.Call(HttpMethod.Get,  "nothing")).Status,               Is.EqualTo(HttpStatusCode.NotFound));
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SET_Password_Ends_The_Other_Sessions()
+
+        [Test]
+        public async Task SET_Password_Ends_The_Other_Sessions()
+        {
+
+            // The management route of the HTML templates behaves like POST auth/password.
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                var laptop = new Browser(client);
+                var phone  = new Browser(client);
+
+                Assert.That((await SignUp(laptop, "hank")).Status,  Is.EqualTo(HttpStatusCode.Created));
+
+                // The management routes are for organization members: give the account one it may write to.
+                Assert.That(api.TryGetUser(User_Id.Parse("hank"), out var hank),  Is.True);
+
+                var acme = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
+
+                Assert.That((await api.AddOrganization(acme)).Result,                                                       Is.EqualTo(CommandResult.Success));
+                Assert.That((await api.AddUserToOrganization(hank!, User2OrganizationEdgeLabel.IsMember, acme)).IsSuccess,  Is.True);
+                Assert.That((await phone.Call(HttpMethod.Post, "accounts/auth/login", new { login = "hank", password = "Correct-Horse-1" })).Status,  Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(api.Sessions.CountForUser(User_Id.Parse("hank")),  Is.EqualTo(2));
+
+                var (status, setJSON) = await laptop.Call(new HttpMethod("SET"), "accounts/users/hank/password", new { currentPassword = "Correct-Horse-1", newPassword = "Correct-Horse-2" });
+                Assert.That(status,  Is.EqualTo(HttpStatusCode.OK),  laptop.LastBody);
+
+                Assert.That((await laptop.Call(HttpMethod.Get, "accounts/auth/me")).Status,  Is.EqualTo(HttpStatusCode.OK),            "the session that changed the password stays");
+                Assert.That((await phone. Call(HttpMethod.Get, "accounts/auth/me")).Status,  Is.EqualTo(HttpStatusCode.Unauthorized),  "every other session is gone");
+                Assert.That((await phone.Call(HttpMethod.Post, "accounts/auth/login", new { login = "hank", password = "Correct-Horse-2" })).Status,  Is.EqualTo(HttpStatusCode.OK));
 
             }
             finally
