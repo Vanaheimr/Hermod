@@ -77,6 +77,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private readonly        ConcurrentDictionary<DNSServerConfig, IDNSClientWithTransport>  transportClients = new();
 
+        /// <summary>
+        /// The DNS servers this client asks, exchanged as a whole by
+        /// <see cref="SetDNSServers"/> and never modified in place.
+        /// </summary>
+        private volatile        IReadOnlySet<DNSServerConfig>                   currentDNSServers = new HashSet<DNSServerConfig>();
+
         private                 Boolean disposedValue;
 
 
@@ -90,12 +96,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS servers used by this DNS client.
         /// </summary>
-        public IReadOnlySet<DNSServerConfig>  DNSServers          { get; }
+        /// <remarks>
+        /// Replaceable through <see cref="SetDNSServers"/> while this client is
+        /// in use, so that a host which is told to resolve names somewhere else
+        /// does not have to be restarted - and so that everything which was
+        /// handed this client keeps resolving through the same object instead
+        /// of half of them still asking the old servers.
+        ///
+        /// The set behind it is never modified, only exchanged, so a query that
+        /// is already under way finishes against the servers it started with.
+        /// </remarks>
+        public IReadOnlySet<DNSServerConfig>  DNSServers
+            => currentDNSServers;
 
         /// <summary>
         /// The DNS query timeout.
         /// </summary>
-        public TimeSpan                       QueryTimeout        { get; }
+        public TimeSpan                       QueryTimeout        { get; set; }
 
         /// <summary>
         /// Whether DNS recursion is desired as a default.
@@ -313,11 +330,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
-            this.DNSServers        = dnsServers;
+            this.currentDNSServers = dnsServers;
 
         }
 
         #endregion
+
+        #endregion
+
+
+        #region SetDNSServers(DNSServers)
+
+        /// <summary>
+        /// Ask different DNS servers from now on.
+        /// </summary>
+        /// <remarks>
+        /// The set is exchanged rather than edited, so a query that is already
+        /// on its way finishes against the servers it was sent to.
+        ///
+        /// Two things are let go of along with the old servers: the connections
+        /// pooled to the ones that are gone, which would otherwise stay open to
+        /// a host this client no longer talks to, and the cache, whose answers
+        /// were given by servers that are no longer the ones being asked. The
+        /// point of naming other servers is usually that the old ones were
+        /// answering wrongly, and keeping their answers would hide exactly the
+        /// change that was wanted.
+        /// </remarks>
+        /// <param name="DNSServers">The DNS servers to query from now on.</param>
+        public void SetDNSServers(IEnumerable<DNSServerConfig> DNSServers)
+        {
+
+            var newServers  = new HashSet<DNSServerConfig>(DNSServers);
+            var oldServers  = currentDNSServers;
+
+            currentDNSServers = newServers;
+
+            foreach (var goneServer in oldServers.Where(server => !newServers.Contains(server)))
+            {
+                if (transportClients.TryRemove(goneServer, out var transportClient))
+                {
+                    try
+                    {
+                        (transportClient as IDisposable)?.Dispose();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogDebug(
+                            "Closing the pooled connection to the DNS server '{DNSServer}' failed: {Message}",
+                            goneServer,
+                            e.Message
+                        );
+                    }
+                }
+            }
+
+            DNSCache.RemoveAll();
+
+        }
 
         #endregion
 
@@ -430,11 +499,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var effectiveTimeout = Timeout ?? QueryTimeout;
 
+            // Taken once, because SetDNSServers may exchange them while this
+            // query runs: one list for the whole query is what makes "the
+            // servers it started with" a true statement rather than a hope.
+            var dnsServers       = DNSServers;
+
             #region Initial checks
 
             var stopWatch = Stopwatch.StartNew();
 
-            if (DNSServiceName.IsNullOrEmpty() || !DNSServers.Any())
+            if (DNSServiceName.IsNullOrEmpty() || dnsServers.Count == 0)
                 return new DNSInfo(
 
                            Origin:                 new DNSServerConfig(
@@ -563,7 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 return new DNSInfo(
 
-                           Origin:                 DNSServers.First(),
+                           Origin:                 dnsServers.First(),
                            QueryId:                0,
                            IsAuthoritativeAnswer:  false,
                            IsTruncated:            false,
@@ -601,10 +675,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             logger.LogTrace(
                 "Dispatching DNS query for '{DNSServiceName}' to {ServerCount} server(s)",
                 DNSServiceName,
-                DNSServers.Count
+                dnsServers.Count
             );
 
-            var allDNSServerRequests = DNSServers.Select(dnsServer =>
+            var allDNSServerRequests = dnsServers.Select(dnsServer =>
 
                 QueryDNSServerAsync(dnsServer, dnsQuery, effectiveTimeout, raceCTS.Token)
 

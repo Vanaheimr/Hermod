@@ -402,11 +402,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region RemoveAll     ()
 
         /// <summary>
-        /// Remove all cached DNS entries.
+        /// Remove all cached DNS entries, the negative ones included.
         /// </summary>
+        /// <remarks>
+        /// The two negative caches are emptied along with the positive one: a
+        /// remembered "this name does not exist" is as much a cached answer as
+        /// a remembered address, and leaving it behind would go on denying a
+        /// name for minutes after everything else had been forgotten.
+        /// </remarks>
         public void RemoveAll()
-
-            => dnsCache.Clear();
+        {
+            dnsCache.      Clear();
+            noDataCache.   Clear();
+            nsecRangeCache.Clear();
+        }
 
         #endregion
 
