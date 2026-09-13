@@ -36,6 +36,12 @@ Hermod is a .NET library for simplified advanced networking tasks...
 
 - ModbusTCP/TLS client / server
 - HTTP SOAP client / server
+- HTTP user and organization management (`HTTPExtAPI`): accounts with
+  PBKDF2 passwords, sign-in sessions, passkeys and a hash-chained event log
+  as database, JSON account routes below `auth/` for single-page
+  applications (sign-in and sign-out with the session cookies, the signed-in
+  account, its password and passkeys) and self sign-up as an opt-in through
+  `SelfSignUpAPI`
 - HTTP Passkeys
 - HTTP TOTP Authentication
 - Argus
