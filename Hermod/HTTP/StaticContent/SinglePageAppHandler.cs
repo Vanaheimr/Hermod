@@ -415,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            };
 
             if (coding is not null)
-                response.SetHeaderField("Content-Encoding", coding);
+                response.ContentEncoding = [ coding ];
 
             if (IsDocument)
                 response.WithDocumentSecurityHeaders(Options.SecurityHeaders);

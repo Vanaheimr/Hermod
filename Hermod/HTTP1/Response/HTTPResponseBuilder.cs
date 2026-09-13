@@ -745,15 +745,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region SetContentEncoding(ContentEncoding)
+            #region SetContentEncoding(ContentCodings)
 
             /// <summary>
             /// Set the HTTP Content-Encoding.
             /// </summary>
-            /// <param name="ContentEncoding">The encoding of the HTTP content/body.</param>
-            public Builder SetContentEncoding(Encoding ContentEncoding)
+            /// <param name="ContentCodings">The content codings applied to the HTTP body, in the order of their application, e.g. "gzip".</param>
+            public Builder SetContentEncoding(params String[] ContentCodings)
             {
-                this.ContentEncoding = ContentEncoding;
+                this.ContentEncoding = ContentCodings;
                 return this;
             }
 

@@ -322,9 +322,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-Encoding
 
-        public Encoding? ContentEncoding
+        /// <summary>
+        /// The content codings applied to the HTTP body, in the order of their
+        /// application (e.g. "gzip"); empty when the body was sent as it is.
+        /// </summary>
+        public IEnumerable<String> ContentEncoding
 
-            => GetHeaderField<Encoding>(HTTPHeaderField.ContentEncoding);
+            => GetHeaderFields(HTTPHeaderField.ContentEncoding) ?? [];
 
         #endregion
 

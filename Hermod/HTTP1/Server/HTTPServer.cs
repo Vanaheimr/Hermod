@@ -65,7 +65,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly ConcurrentDictionary<HTTPHostname,       HostnameNodeX>     hostnameNodes   = [];
         private readonly ConcurrentDictionary<HTTPHostname,       HTTPAPINode>       routeNodes      = [];
         private readonly List<AHTTPPipeline>                                         httpPipelines   = [];
         private volatile Boolean                                                     includeStackTracesInErrorResponses;
@@ -929,10 +928,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     host = __routeNode;
 
-                    if (host.HTTPAPI is not null)
+                    // A host node may already contain an API while also being
+                    // the parent of a more specific API path. Defer dispatch
+                    // to the parent API until no deeper API route matches.
+                    var hasMoreSpecificAPI = i + 1 < segments.Length &&
+                                             host.Children.ContainsKey(segments[i + 1]);
+
+                    if (host.HTTPAPI is not null &&
+                        !hasMoreSpecificAPI)
                     {
 
-                        var newPath          = HTTPPath.Parse(segments.AggregateWith('/')[(host.HTTPAPI.RootPath.ToString().Length - 1)..]);
+                        // The API-relative path: strip the root path of the API,
+                        // given with or without a trailing slash, from the path.
+                        var requestPath      = Path.ToString();
+                        var rootPath         = host.HTTPAPI.RootPath.ToString().TrimEnd('/');
+                        var relativePath     = rootPath.Length == 0
+                                                   ? requestPath
+                                                   : requestPath[rootPath.Length..];
+
+                        if (relativePath.Length == 0)
+                            relativePath = "/";
+
+                        var newPath          = HTTPPath.Parse(relativePath);
                         var parsedRouteNode  = host.HTTPAPI.GetRequestHandle(newPath);
 
                         if (parsedRouteNode.RouteNode is not null)
@@ -994,23 +1011,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
+        #region (internal) AddHandler(HTTPAPI, HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, OpenEnd = false, ...)
 
         /// <summary>
-        /// Add a method callback for the given URL template.
+        /// Add a method callback for the given server-wide URL template.
+        /// Requests are dispatched to the HTTP APIs registered at this server,
+        /// therefore the handler is registered at the HTTP API owning the URL
+        /// template: the given one, or else the most specific HTTP API registered
+        /// for the hostname and the path. When no HTTP API covers the path yet,
+        /// a default HTTP API at '/' is created for the hostname.
         /// </summary>
+        /// <param name="HTTPAPI">An optional HTTP API to register the handler at.</param>
         /// <param name="HTTPDelegate">A delegate called for each incoming HTTP request.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="URLTemplate">The server-wide URL template, i.e. including the root path of the HTTP API.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="OpenEnd">Whether the last URL parameter of the template also matches the rest of the path, i.e. "{name}" acts as "{name..}".</param>
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
         /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        internal void AddHandler(HTTPAPI                     HTTPAPI,
+        /// <param name="AllowReplacement">Whether an existing handler may be replaced.</param>
+        internal void AddHandler(HTTPAPI?                     HTTPAPI,
                                  HTTPDelegate                 HTTPDelegate,
 
                                  HTTPHostname?                Hostname                    = null,
@@ -1036,41 +1061,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPDelegate is null)
                 throw new ArgumentNullException(nameof(HTTPDelegate), "The given parameter must not be null!");
 
-            var hostname = Hostname ?? HTTPHostname.Any;
-
             if (HTTPMethod is null && HTTPContentType is not null)
                 throw new ArgumentException("If HTTPMethod is null the HTTPContentType must also be null!");
 
             #endregion
 
-            if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
-                hostnameNode = hostnameNodes.AddAndReturnValue(
-                                                 hostname,
-                                                 new HostnameNodeX(
-                                                     HTTPAPI,
-                                                     hostname
-                                                 )
-                                             );
+            var hostname     = Hostname    ?? HTTPHostname.Any;
+            var urlTemplate  = URLTemplate ?? HTTPPath.Root;
 
-            hostnameNode.AddHandler(
-                             HTTPAPI,
-                             HTTPDelegate,
+            var httpAPI      = HTTPAPI
+                                   ?? FindHTTPAPI(hostname, urlTemplate)
+                                   ?? AddHTTPAPI(HTTPPath.Root, hostname);
 
-                             URLTemplate,
-                             OpenEnd,
-                             HTTPMethod,
-                             HTTPContentType,
+            // The HTTP API matches its templates relative to its root path.
+            var rootPath     = httpAPI.RootPath.ToString().TrimEnd('/');
+            var template     = urlTemplate.ToString();
 
-                             URLAuthentication,
-                             HTTPMethodAuthentication,
-                             ContentTypeAuthentication,
+            if (rootPath.Length > 0)
+            {
 
-                             HTTPRequestLogger,
-                             HTTPResponseLogger,
+                if (template != rootPath &&
+                   !template.StartsWith(rootPath + "/", StringComparison.Ordinal))
+                {
+                    throw new ArgumentException($"The URL template '{urlTemplate}' is outside the HTTP API at '{httpAPI.RootPath}'!",
+                                                nameof(URLTemplate));
+                }
 
-                             DefaultErrorHandler,
-                             AllowReplacement
-                         );
+                template = template[rootPath.Length..];
+
+                if (template.Length == 0)
+                    template = "/";
+
+            }
+
+            // An open end widens the last URL parameter to the rest of the path.
+            if (OpenEnd &&
+                template.EndsWith('}') &&
+               !template.EndsWith("..}", StringComparison.Ordinal))
+            {
+                template = template[..^1] + "..}";
+            }
+
+            httpAPI.AddHandler(
+                HTTPPath.Parse(template),
+                HTTPDelegate,
+                HTTPMethod,
+                HTTPContentType,
+                URLAuthentication,
+                HTTPMethodAuthentication,
+                ContentTypeAuthentication,
+                HTTPRequestLogger,
+                HTTPResponseLogger,
+                DefaultErrorHandler,
+                AllowReplacement:  AllowReplacement
+            );
+
+        }
+
+        #endregion
+
+        #region (private) FindHTTPAPI(Hostname, Path)
+
+        /// <summary>
+        /// The most specific HTTP API registered for the given hostname
+        /// whose root path covers the given path, if any.
+        /// </summary>
+        /// <param name="Hostname">An HTTP hostname.</param>
+        /// <param name="Path">A server-wide HTTP path.</param>
+        private HTTPAPI? FindHTTPAPI(HTTPHostname  Hostname,
+                                     HTTPPath      Path)
+        {
+
+            if (!routeNodes.TryGetValue(Hostname, out var routeNode))
+                return null;
+
+            var segments = ("/" + Path.ToString().Trim('/')).Split('/');
+
+            if (segments[0] == "")
+                segments[0] = "/";
+
+            HTTPAPI? httpAPI = null;
+
+            foreach (var segment in segments)
+            {
+
+                if (!routeNode.Children.TryGetValue(segment, out var childNode))
+                    break;
+
+                routeNode = childNode;
+
+                if (routeNode.HTTPAPI is not null)
+                    httpAPI = routeNode.HTTPAPI;
+
+            }
+
+            return httpAPI;
 
         }
 
@@ -1079,12 +1164,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentType = null, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
-        /// Add a method callback for the given URL template.
+        /// Add a method callback for the given server-wide URL template.
+        /// The handler is registered at the HTTP API owning the path, see AddHandler(...).
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="URLTemplate">The server-wide URL template, i.e. including the root path of the HTTP API.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="OpenEnd">Whether the last URL parameter of the template also matches the rest of the path.</param>
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
@@ -1139,12 +1226,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
-        /// Add a method callback for the given URL template.
+        /// Add a method callback for the given server-wide URL template.
+        /// The handler is registered at the HTTP API owning the path, see AddHandler(...).
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="URLTemplate">The server-wide URL template, i.e. including the root path of the HTTP API.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="OpenEnd">Whether the last URL parameter of the template also matches the rest of the path.</param>
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
