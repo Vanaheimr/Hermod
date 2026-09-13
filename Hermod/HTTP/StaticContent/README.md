@@ -36,8 +36,21 @@ the catch-all `{path..}`. Every request is answered by one rule:
 |---|---|
 | a file of the bundle (`/assets/app.<hash>.js`, `/favicon.svg`) | the file |
 | the stub itself (`/index.html`) | the stub, transformed |
-| any other path without a file extension (`/`, `/devices/42`) | the stub with status 200, so that deep links and reloads work with a client-side router |
-| any other path with a file extension (`/assets/missing.js`) | `404 Not Found`, never the stub |
+| any other path that does not name a file (`/`, `/devices/42`, `/chats/alice@example.org`) | the stub with status 200, so that deep links and reloads work with a client-side router |
+| any other path that names a file (`/assets/missing.js`) | `404 Not Found`, never the stub |
+
+A path "names a file" when its last segment ends in a dot and one of
+`SinglePageAppOptions.AssetExtensions` - by default the extensions a bundle
+ships (`js`, `css`, `png`, `woff2`, ...). Guessing from the extension is not
+perfect and cannot be, since a URL is not obliged to say what it is; the list
+is weighted so that the mistakes fall on the harmless side. A file type missing
+from it answers with the stub where a 404 would have been tidier; a file type
+wrongly in it turns every page URL ending that way into a 404. That is why
+`zip`, `mov`, `app`, `dev`, `page` and `box` are absent although they are real
+file types: they are also top-level domains, and `/chats/alice@example.zip` is
+a conversation, not a download. Set `AssetExtensions` for a bundle that ships
+something unusual, or for an application whose own page URLs end in one of
+them.
 
 Literal routes on the same `HTTPAPI` still win over the catch-all, but unknown
 paths below them end up in the fallback; an API belongs in its own `HTTPAPI`.

@@ -34,10 +34,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public sealed record SinglePageAppOptions
     {
 
+        #region (static) DefaultAssetExtensions
+
+        /// <summary>
+        /// What the last segment of a URL may end in for the request to be
+        /// taken for a file of the bundle rather than for a page of the
+        /// application. See <see cref="AssetExtensions"/>.
+        /// </summary>
+        /// <remarks>
+        /// Generous about what a bundle ships, and deliberately silent about a
+        /// handful of extensions that would otherwise be right: ".zip", ".mov",
+        /// ".app", ".dev", ".page" and ".box" are all top-level domains, and a
+        /// path segment ending in one of those is far more often a name than a
+        /// file - "/chats/alice@example.zip" is a conversation.
+        ///
+        /// The cost of each mistake is not the same, which is what this list is
+        /// weighted for. A kind of file that is missing here and goes missing
+        /// on the server answers with the stub instead of a 404 - untidy. A
+        /// kind of file that is here by mistake turns every page URL ending in
+        /// it into a 404 - broken.
+        /// </remarks>
+        public static readonly IReadOnlySet<String> DefaultAssetExtensions =
+            new HashSet<String>(StringComparer.OrdinalIgnoreCase) {
+
+                // Code and data
+                "js", "mjs", "cjs", "css", "map", "json", "wasm", "xml", "xsl",
+                "csv", "txt", "webmanifest", "manifest", "atom", "rss",
+
+                // Documents of the bundle itself
+                "html", "htm", "pdf",
+
+                // Pictures
+                "png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "svg", "ico", "cur",
+
+                // Fonts
+                "woff", "woff2", "ttf", "otf", "eot",
+
+                // Sound and moving pictures
+                "mp4", "m4v", "webm", "ogv", "ogg", "oga", "mp3", "m4a",
+                "wav", "opus", "flac", "aac"
+
+            };
+
+        #endregion
+
+
         /// <summary>
         /// The application stub within the bundle.
         /// </summary>
         public String                 IndexFile                 { get; init; } = "index.html";
+
+        /// <summary>
+        /// Which URLs are taken for files of the bundle when the bundle does
+        /// not have them: those whose last segment ends in a dot and one of
+        /// these extensions. Everything else is a page of the application and
+        /// gets the stub.
+        /// </summary>
+        /// <remarks>
+        /// The point of the distinction is that a missing asset must be a real
+        /// 404 rather than the stub with status 200 - otherwise a mistyped
+        /// script tag hands the browser HTML to execute, and a deployment that
+        /// forgot half the bundle looks healthy.
+        ///
+        /// Guessing from the extension is not perfect and cannot be: a URL is
+        /// not obliged to say what it is. It is, however, much closer than
+        /// "the last segment contains a dot", which this replaced - that test
+        /// called every version number, every e-mail address and every domain
+        /// name in a path a file. Set this where a bundle ships something
+        /// unusual, or where a page URL of the application ends in one of the
+        /// extensions above.
+        /// </remarks>
+        public IReadOnlySet<String>   AssetExtensions           { get; init; } = DefaultAssetExtensions;
 
         /// <summary>
         /// An optional transformation of the stub, e.g. for replacing {{placeholders}}
@@ -90,9 +157,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Serve a bundler-style single-page application from the root of the
         /// given HTTP API: files of the bundle are delivered as they are, every
-        /// other URL without a file extension gets the application stub with
-        /// status 200 (so that deep links and reloads work), and missing assets
-        /// get a real 404.
+        /// other URL gets the application stub with status 200 (so that deep
+        /// links and reloads work), and a URL that names a file the bundle does
+        /// not have gets a real 404 - see
+        /// <see cref="SinglePageAppOptions.AssetExtensions"/> for where that
+        /// line is drawn.
         /// </summary>
         /// <param name="HTTPAPI">The HTTP API, normally the one registered at "/".</param>
         /// <param name="Content">Where the bundle comes from.</param>
@@ -202,10 +271,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                : Deliver(Request, file, CacheControlFor(file), IsDocument: false)
                        );
 
-            // 2) A page URL (no file extension in the last segment) => the application stub
-            var lastSegment = path[(path.LastIndexOf('/') + 1)..];
-
-            if (!lastSegment.Contains('.'))
+            // 2) A page URL (the last segment does not end in an extension the
+            //    bundle would ship) => the application stub
+            if (!LooksLikeAnAsset(path))
             {
 
                 if (Content.TryGet(Options.IndexFile, out var index))
@@ -229,6 +297,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            $"'{Request.Path}' was not found!"
                        )
                    );
+
+        }
+
+        #endregion
+
+        #region (private) LooksLikeAnAsset(Path)
+
+        /// <summary>
+        /// Whether this path asks for a file of the bundle - which decides what
+        /// a path the bundle does not have is answered with: a 404 for a file,
+        /// the application stub for a page.
+        /// </summary>
+        /// <remarks>
+        /// A leading dot is not an extension: "/.well-known/x" names a
+        /// directory, and a segment that is nothing but ".gitignore" is a name
+        /// as much as a type. A trailing dot is not one either.
+        /// </remarks>
+        private Boolean LooksLikeAnAsset(String Path)
+        {
+
+            var lastSegment  = Path[(Path.LastIndexOf('/') + 1)..];
+            var dot          = lastSegment.LastIndexOf('.');
+
+            return dot > 0 &&
+                   dot < lastSegment.Length - 1 &&
+                   Options.AssetExtensions.Contains(lastSegment[(dot + 1)..]);
 
         }
 

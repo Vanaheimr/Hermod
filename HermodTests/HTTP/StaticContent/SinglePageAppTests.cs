@@ -160,10 +160,122 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                var response = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/assets/missing.js")));
+                foreach (var path in new[] { "/assets/missing.js", "/missing.css", "/a/b/gone.woff2", "/nope.png" })
+                {
 
-                Assert.That(response.HTTPStatusCode,           Is.EqualTo(HTTPStatusCode.NotFound));
-                Assert.That(response.ContentType?.ToString(),  Does.StartWith("text/plain"));
+                    var response = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse(path)));
+
+                    Assert.That(response.HTTPStatusCode,           Is.EqualTo(HTTPStatusCode.NotFound),  path);
+                    Assert.That(response.ContentType?.ToString(),  Does.StartWith("text/plain"),         path);
+
+                }
+
+            }
+            finally
+            {
+                await server.Stop();
+            }
+
+        }
+
+        #endregion
+
+        #region APageURLWithDotsInIt_IsStillAPage()
+
+        /// <summary>
+        /// A path segment is not a file name because it contains a dot.
+        /// </summary>
+        /// <remarks>
+        /// This is the rule that decides whether a deep link works at all. An
+        /// e-mail address, a JID, a domain name, a version number and a decimal
+        /// all contain dots and all turn up in the paths of real applications -
+        /// XMPPWebApp addresses a conversation as "/chats/alice@example.org",
+        /// which under the older test (a dot anywhere in the last segment means
+        /// a file) answered 404 on every reload and every shared link.
+        ///
+        /// The top-level domains that are also file types are the sharp edge
+        /// here: ".zip" and ".mov" can be bought, so a JID may end in one.
+        /// </remarks>
+        [Test]
+        public async Task APageURLWithDotsInIt_IsStillAPage()
+        {
+
+            var (server, client) = await StartAsync();
+
+            try
+            {
+
+                foreach (var path in new[] {
+                             "/chats/alice@example.org",
+                             "/chats/alice@example.zip",
+                             "/chats/user@xn--bcher-kva.example",
+                             "/users/achim.friedland",
+                             "/docs/v1.2",
+                             "/search/3.14159",
+                             "/devices/192.168.0.1",
+                             "/.well-known/change-password"
+                         })
+                {
+
+                    var response = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse(path)));
+
+                    Assert.That(response.HTTPStatusCode,             Is.EqualTo(HTTPStatusCode.OK),     path);
+                    Assert.That(response.ContentType?.ToString(),    Does.StartWith("text/html"),       path);
+                    Assert.That(response.HTTPBodyAsUTF8String ?? "", Does.Contain("<div id=\"app\">"),  path);
+
+                }
+
+            }
+            finally
+            {
+                await server.Stop();
+            }
+
+        }
+
+        #endregion
+
+        #region AssetExtensions_CanBeChanged()
+
+        /// <summary>
+        /// The way out for a bundle that ships something unusual, or for an
+        /// application whose own page URLs end in what is normally a file type.
+        /// </summary>
+        [Test]
+        public async Task AssetExtensions_CanBeChanged()
+        {
+
+            var (server, client) = await StartAsync(
+                                       new SinglePageAppOptions {
+                                           AssetExtensions = new HashSet<String>(StringComparer.OrdinalIgnoreCase) { "js", "hex" }
+                                       }
+                                   );
+
+            try
+            {
+
+                // Still a file: it is in the list.
+                var missingScript = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/assets/missing.js")));
+
+                // Now a file as well, although no default would say so.
+                var missingHex    = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/firmware/v2.hex")));
+
+                // No longer a file: the application may have a page called this.
+                var page          = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/reports/2026.pdf")));
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(missingScript.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.NotFound));
+                    Assert.That(missingHex.HTTPStatusCode,     Is.EqualTo(HTTPStatusCode.NotFound));
+                    Assert.That(page.HTTPStatusCode,           Is.EqualTo(HTTPStatusCode.OK));
+                    Assert.That(page.ContentType?.ToString(),  Does.StartWith("text/html"));
+                });
+
+                // And the files that are there are still delivered, whatever
+                // the list says.
+                var asset = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse(AssetPath)));
+
+                Assert.That(asset.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.OK));
 
             }
             finally
